@@ -1,0 +1,63 @@
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { login as apiLogin } from "../lib/api";
+import { setSession } from "../lib/auth";
+
+export default function Login() {
+  const nav = useNavigate();
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    setLoading(true);
+    try {
+      const data = await apiLogin(email.trim(), password);
+      setSession(data.token, data.user);
+      nav("/graduates");
+    } catch (e: any) {
+      setErr(e?.response?.data?.error?.message ?? "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="container">
+      <div className="card" style={{ maxWidth: 460, margin: "48px auto" }}>
+        <h2 style={{ marginTop: 0 }}>ALUPLA</h2>
+        <p style={{ marginTop: -8, opacity: 0.8 }}>Σύνδεση</p>
+
+        <form onSubmit={onSubmit} className="grid">
+          <label>
+            Email
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@..." />
+          </label>
+
+          <label>
+            Κωδικός
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </label>
+
+          {err && <div className="error">{err}</div>}
+
+          <button disabled={loading} className="btn">
+            {loading ? "..." : "Σύνδεση"}
+          </button>
+
+          <div style={{ fontSize: 12, opacity: 0.8 }}>
+            Tip: Αν έχεις seed με “dummyhash”, κάνε νέο user από <code>/auth/register</code> και μετά <code>/auth/verify</code>.
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
