@@ -7,6 +7,7 @@ import { buildGraduateWhere } from "../utils/buildGraduateWhere";
 import { clamp, toInt } from "../utils/pagination";
 import { logAction } from "../services/log.service";
 import * as XLSX from "xlsx";
+import { normHeader, toDateOnly, toInt, toNumber } from "../utils/importUtils";
 
 function parseSort(sortRaw: unknown): Array<[string, "ASC" | "DESC"]> {
   const s = typeof sortRaw === "string" ? sortRaw.trim() : "";
@@ -126,6 +127,176 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
   }
 }
 
+
+
+
+export async function importGraduates(req: Request, res: Response, next: NextFunction) {
+  try {
+    const file = (req as any).file as { buffer: Buffer; originalname: string; mimetype: string } | undefined;
+    if (!file?.buffer) return res.status(400).json({ error: { message: "Missing file" } });
+
+    const wb = XLSX.read(file.buffer, { type: "buffer", cellDates: true });
+    const sheetName = wb.SheetNames[0];
+    if (!sheetName) return res.status(400).json({ error: { message: "Empty workbook" } });
+    const ws = wb.Sheets[sheetName];
+
+    // Get raw rows as arrays to normalize headers ourselves
+    const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" }) as any[][];
+    if (rows.length < 2) return res.status(400).json({ error: { message: "No data rows" } });
+
+    const headerRow = rows[0];
+    const headers = headerRow.map((h) => normHeader(h));
+
+    const col = (name: string) => headers.indexOf(normHeader(name));
+
+    // Accept multiple header aliases (Greek/English)
+    const idx = {
+      student_number: firstIndex(headers, ["student_number","am","a_m","a.m","αμ","α.μ"]),
+      ad_code: firstIndex(headers, ["ad_code","aa","a_a","a.a","αα","α.α"]),
+      last_name: firstIndex(headers, ["last_name","επωνυμο","surname"]),
+      first_name: firstIndex(headers, ["first_name","ονομα","name"]),
+      father_name: firstIndex(headers, ["father_name","πατρωνυμο","father"]),
+      gender: firstIndex(headers, ["gender","φυλο","sex"]),
+      entry_year: firstIndex(headers, ["entry_year","ετος_εισαγωγης","entryyear"]),
+      graduation_date: firstIndex(headers, ["graduation_date","ημ_αποφοιτησης","graduation"]),
+      oath_date: firstIndex(headers, ["oath_date","ημ_ορκωμοσιας","oath"]),
+      degree_grade: firstIndex(headers, ["degree_grade","βαθμος","grade"]),
+      birth_year: firstIndex(headers, ["birth_year","ετος_γεννησης","birthyear"]),
+      study_program_id: firstIndex(headers, ["study_program_id","study_prog","program_id","προγραμμα","program"]),
+      program_direction_id: firstIndex(headers, ["program_direction_id","program_dir","direction_id","κατευθυνση","direction"]),
+      origin_region_id: firstIndex(headers, ["origin_region_id","origin_regio","region_id","περιοχη","region"]),
+      origin_municipality: firstIndex(headers, ["origin_municipality","δημος","municipality"]),
+    };
+
+    const required = ["student_number","ad_code","last_name","first_name","father_name","gender","entry_year","graduation_date","oath_date","degree_grade","birth_year","study_program_id"];
+    const missingRequired = required.filter((k) => (idx as any)[k] === -1);
+    if (missingRequired.length) {
+      return res.status(400).json({
+        error: { message: "Missing required columns", details: { missing: missingRequired } }
+      });
+    }
+
+    type RowError = { row: number; column?: string; message: string; value?: any };
+    const errors: RowError[] = [];
+    let inserted = 0;
+    let updated = 0;
+    let skipped = 0;
+
+    for (let r = 1; r < rows.length; r++) {
+      const arr = rows[r];
+      // skip completely empty rows
+      if (arr.every((v) => String(v ?? "").trim() === "")) continue;
+
+      const rowNum = r + 1; // excel row number
+      const get = (key: keyof typeof idx) => (idx[key] >= 0 ? arr[idx[key]] : "");
+
+      const student_number = String(get("student_number")).trim();
+      const ad_code = String(get("ad_code")).trim();
+      const last_name = String(get("last_name")).trim();
+      const first_name = String(get("first_name")).trim();
+      const father_name = String(get("father_name")).trim();
+      const genderRaw = String(get("gender")).trim().toUpperCase();
+      const gender = genderRaw === "M" || genderRaw === "F" ? genderRaw : null;
+      const entry_year = toInt(get("entry_year"));
+      const graduation_date = toDateOnly(get("graduation_date"));
+      const oath_date = toDateOnly(get("oath_date"));
+      const degree_grade = toNumber(get("degree_grade"));
+      const birth_year = toInt(get("birth_year"));
+      const study_program_id = toInt(get("study_program_id"));
+      const program_direction_id = toInt(get("program_direction_id"));
+      const origin_region_id = toInt(get("origin_region_id"));
+      const origin_municipality = String(get("origin_municipality")).trim() || null;
+
+      const rowProblems: RowError[] = [];
+      const reqStr = (val: string, colName: string) => { if (!val) rowProblems.push({ row: rowNum, column: colName, message: "Required" }); };
+      reqStr(student_number, "student_number");
+      reqStr(ad_code, "ad_code");
+      reqStr(last_name, "last_name");
+      reqStr(first_name, "first_name");
+      reqStr(father_name, "father_name");
+      if (!gender) rowProblems.push({ row: rowNum, column: "gender", message: "Must be M or F", value: genderRaw });
+      if (!entry_year) rowProblems.push({ row: rowNum, column: "entry_year", message: "Invalid integer", value: get("entry_year") });
+      if (!graduation_date) rowProblems.push({ row: rowNum, column: "graduation_date", message: "Invalid date", value: get("graduation_date") });
+      if (!oath_date) rowProblems.push({ row: rowNum, column: "oath_date", message: "Invalid date", value: get("oath_date") });
+      if (degree_grade === null) rowProblems.push({ row: rowNum, column: "degree_grade", message: "Invalid number", value: get("degree_grade") });
+      if (!birth_year) rowProblems.push({ row: rowNum, column: "birth_year", message: "Invalid integer", value: get("birth_year") });
+      if (!study_program_id) rowProblems.push({ row: rowNum, column: "study_program_id", message: "Invalid integer", value: get("study_program_id") });
+
+      if (rowProblems.length) {
+        errors.push(...rowProblems);
+        skipped++;
+        continue;
+      }
+
+      const payload: any = {
+        student_number,
+        ad_code,
+        last_name,
+        first_name,
+        father_name,
+        gender,
+        entry_year,
+        graduation_date,
+        oath_date,
+        degree_grade,
+        birth_year,
+        study_program_id,
+        program_direction_id: program_direction_id ?? null,
+        origin_region_id: origin_region_id ?? null,
+        origin_municipality
+      };
+
+      // Upsert by student_number (common stable identifier)
+      const existing = await Graduate.findOne({ where: { student_number } });
+      if (existing) {
+        await existing.update(payload);
+        updated++;
+      } else {
+        await Graduate.create(payload);
+        inserted++;
+      }
+    }
+
+    await logAction({
+      user_id: req.user?.id ?? null,
+      action: "import_graduates",
+      entity_type: "graduate",
+      entity_id: null,
+      details: {
+        file: file.originalname,
+        total_rows: rows.length - 1,
+        inserted,
+        updated,
+        skipped,
+        errors: errors.length
+      }
+    });
+
+    return res.json({
+      ok: true,
+      summary: {
+        file: file.originalname,
+        sheet: sheetName,
+        total: rows.length - 1,
+        inserted,
+        updated,
+        skipped,
+        error_count: errors.length
+      },
+      errors: errors.slice(0, 500) // cap response size
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+function firstIndex(headers: string[], candidates: string[]): number {
+  for (const c of candidates) {
+    const i = headers.indexOf(normHeader(c));
+    if (i >= 0) return i;
+  }
+  return -1;
+}
 
 export async function getGraduate(req: Request, res: Response, next: NextFunction) {
   try {

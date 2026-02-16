@@ -373,3 +373,24 @@ export async function exportGraduatesXlsx(params: Record<string, any>): Promise<
   return await res.blob();
 }
 
+
+
+export async function importGraduatesXlsx(file: File): Promise<any> {
+  const token = getToken();
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API_URL}/graduates/import`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: fd
+  });
+  if (!res.ok) {
+    const j = await parseJsonSafe(res);
+    const msg = (j as any)?.error?.message || (j as any)?.message || res.statusText;
+    throw new Error(msg);
+  }
+  return await res.json();
+}
+

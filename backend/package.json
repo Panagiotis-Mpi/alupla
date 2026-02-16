@@ -19,7 +19,8 @@
     "sequelize": "^6.37.3",
     "mysql2": "^3.10.3",
     "zod": "^3.23.8",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
@@ -29,6 +30,7 @@
     "typescript": "^5.5.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.6",
-    "@types/node": "^20.14.10"
+    "@types/node": "^20.14.10",
+    "@types/multer": "^1.4.12"
   }
 }
