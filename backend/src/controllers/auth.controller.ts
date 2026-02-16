@@ -130,6 +130,31 @@ export async function changePassword(req: Request, res: Response) {
 
 
 
+
+
+export async function resendVerification(req: Request, res: Response) {
+  const { email } = req.body ?? {};
+  if (!email) return res.status(400).json({ ok: false, error: { message: "Missing email" } });
+
+  const user = await User.findOne({ where: { email } });
+  // Don't leak existence
+  if (!user || !user.is_active) return res.json({ ok: true });
+
+  if ((user as any).email_verified) return res.json({ ok: true, already_verified: true });
+
+  const token = crypto.randomBytes(32).toString("hex");
+  const expires = new Date(Date.now() + 1000 * 60 * 60); // 1h
+
+  (user as any).email_verification_token = token;
+  (user as any).email_verification_expires = expires;
+  await user.save();
+
+  await logAction({ user_id: user.id, action: "resend_verify_email", entity_type: "user", entity_id: user.id });
+
+  // In real app: send email. For dev: return token.
+  return res.json({ ok: true, verification_token: token, verification_expires: expires });
+}
+
 export async function requestPasswordReset(req: Request, res: Response) {
   const { email } = req.body ?? {};
   if (!email) return res.status(400).json({ ok: false, error: { message: "Missing email" } });

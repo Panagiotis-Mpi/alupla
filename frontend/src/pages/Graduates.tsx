@@ -1,8 +1,34 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { deleteGraduate, listGraduates, listStudyPrograms, type Graduate, type StudyProgram } from "../lib/api";
+import { deleteGraduate, listGraduates, listStudyPrograms, exportGraduatesXlsx, type Graduate, type StudyProgram } from "../lib/api";
 
 export default function Graduates() {
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function onExportXlsx() {
+  const p: any = { ...params };
+  delete p.page;
+  delete p.pageSize;
+  try {
+    const blob = await exportGraduatesXlsx(p);
+    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    downloadBlob(blob, `graduates-${ts}.xlsx`);
+  } catch (e: any) {
+    alert(e?.message ?? "Export failed");
+  }
+}
+
+
   const [programs, setPrograms] = useState<StudyProgram[]>([]);
   const [items, setItems] = useState<Graduate[]>([]);
   const [total, setTotal] = useState(0);
@@ -49,6 +75,7 @@ export default function Graduates() {
         <h2 style={{ margin: 0 }}>Απόφοιτοι</h2>
         <span className="badge">{loading ? "loading..." : `${total} σύνολο`}</span>
         <div className="spacer" />
+        <button className="btn" type="button" onClick={() => void onExportXlsx()}>Export Excel</button>
         <Link className="btn primary" to="/graduates/new">+ Νέος Απόφοιτος</Link>
       </div>
 

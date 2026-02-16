@@ -6,6 +6,7 @@ import { Region } from "../models/Region";
 import { buildGraduateWhere } from "../utils/buildGraduateWhere";
 import { clamp, toInt } from "../utils/pagination";
 import { logAction } from "../services/log.service";
+import * as XLSX from "xlsx";
 
 function parseSort(sortRaw: unknown): Array<[string, "ASC" | "DESC"]> {
   const s = typeof sortRaw === "string" ? sortRaw.trim() : "";
@@ -72,6 +73,59 @@ export async function listGraduates(req: Request, res: Response, next: NextFunct
     next(err);
   }
 }
+
+
+
+
+export async function exportGraduates(req: Request, res: Response, next: NextFunction) {
+  try {
+    const where = buildGraduateWhere(req.query as Record<string, unknown>);
+    const order = parseSort(req.query.sort);
+
+    // Safety cap
+    const limit = clamp(toInt(req.query.limit, 5000), 1, 10000);
+    const rows = await Graduate.findAll({ where, order, limit });
+
+    const data = rows.map((g) => ({
+      id: (g as any).id,
+      student_number: (g as any).student_number ?? "",
+      ad_code: (g as any).ad_code ?? "",
+      last_name: (g as any).last_name ?? "",
+      first_name: (g as any).first_name ?? "",
+      gender: (g as any).gender ?? "",
+      entry_year: (g as any).entry_year ?? "",
+      graduation_date: (g as any).graduation_date ?? "",
+      oath_date: (g as any).oath_date ?? "",
+      degree_grade: (g as any).degree_grade ?? "",
+      birth_year: (g as any).birth_year ?? "",
+      study_program_id: (g as any).study_program_id ?? "",
+      program_direction_id: (g as any).program_direction_id ?? "",
+      origin_region_id: (g as any).origin_region_id ?? "",
+      origin_municipality: (g as any).origin_municipality ?? ""
+    }));
+
+    await logAction({
+      user_id: req.user?.id ?? null,
+      action: "export_graduates",
+      entity_type: "graduate",
+      entity_id: null,
+      details: { format: "xlsx", limit, count: data.length }
+    });
+
+    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "graduates");
+    const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="graduates-${ts}.xlsx"`);
+    return res.send(buf);
+  } catch (err) {
+    next(err);
+  }
+}
+
 
 export async function getGraduate(req: Request, res: Response, next: NextFunction) {
   try {

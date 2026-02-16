@@ -344,3 +344,32 @@ export function activityLogsExportUrl(params: Record<string, any> = {}): string 
   const qs = q.toString();
   return `${API_URL}/activity-logs/export.csv${qs ? `?${qs}` : ""}`;
 }
+
+
+export async function resendVerification(email: string): Promise<any> {
+  return api("/auth/resend-verify", { method: "POST", body: { email } });
+}
+
+
+
+export async function exportGraduatesXlsx(params: Record<string, any>): Promise<Blob> {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params ?? {})) {
+    if (v === undefined || v === null || v === "") continue;
+    q.set(k, String(v));
+  }
+  const token = getToken();
+  const res = await fetch(`${API_URL}/graduates/export?${q.toString()}`, {
+    method: "GET",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    }
+  });
+  if (!res.ok) {
+    const j = await parseJsonSafe(res);
+    const msg = (j as any)?.error?.message || (j as any)?.message || res.statusText;
+    throw new Error(msg);
+  }
+  return await res.blob();
+}
+
