@@ -44,12 +44,13 @@ export default function Login() {
         <form onSubmit={onSubmit} className="grid">
           <label>
             Email
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@..." />
+            <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@..." />
           </label>
 
           <label>
             Κωδικός
             <input
+              className="input"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -63,8 +64,10 @@ export default function Login() {
             {loading ? "..." : "Σύνδεση"}
           </button>
 
-          <div style={{ fontSize: 12, opacity: 0.8 }}>
-            Tip: Αν έχεις seed με “dummyhash”, κάνε νέο user από <code>/auth/register</code> και μετά <code>/auth/verify</code>.
+          <div style={{ display: "flex", gap: 10, fontSize: 12, opacity: 0.9 }}>
+            <a href="/register">Register</a>
+            <span>·</span>
+            <a href="/forgot">Ξέχασα κωδικό</a>
           </div>
         </form>
       </div>

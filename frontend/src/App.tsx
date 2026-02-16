@@ -3,6 +3,10 @@ import { Link, Route, Routes, useLocation, useNavigate } from "react-router-dom"
 import Guard from "./components/Guard";
 import { getUser, logout } from "./lib/auth";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Verify from "./pages/Verify";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Graduates from "./pages/Graduates";
 import GraduateForm from "./pages/GraduateForm";
 import Regions from "./pages/Regions";
@@ -19,7 +23,8 @@ function TopNav() {
     logout();
     nav("/login");
   };
-if (loc.pathname === "/login") return null;
+const hideNav = ["/login","/register","/verify","/forgot","/reset"].some((p) => loc.pathname.startsWith(p));
+  if (hideNav) return null;
 
   return (
     <div className="nav">
@@ -43,6 +48,10 @@ export default function App() {
       <div className="container">
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/verify" element={<Verify />} />
+          <Route path="/forgot" element={<ForgotPassword />} />
+          <Route path="/reset" element={<ResetPassword />} />
 
           <Route
             path="/graduates"

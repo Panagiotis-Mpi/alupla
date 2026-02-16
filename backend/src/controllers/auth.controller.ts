@@ -128,6 +128,62 @@ export async function changePassword(req: Request, res: Response) {
   return res.json({ ok: true });
 }
 
+
+
+export async function requestPasswordReset(req: Request, res: Response) {
+  const { email } = req.body ?? {};
+  if (!email) return res.status(400).json({ ok: false, error: { message: "Missing email" } });
+
+  const user = await User.findOne({ where: { email } });
+  // Don't leak whether email exists; return ok anyway.
+  if (!user || !user.is_active) {
+    return res.json({ ok: true });
+  }
+
+  const token = crypto.randomBytes(32).toString("hex");
+  const expires = new Date(Date.now() + 1000 * 60 * 60); // 1h
+
+  user.password_reset_token = token;
+  user.password_reset_expires = expires;
+  await user.save();
+
+  await logAction({ user_id: user.id, action: "request_password_reset", entity_type: "user", entity_id: user.id });
+
+  // In real app: send email. For dev: return token.
+  return res.json({ ok: true, reset_token: token, reset_expires: expires });
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  const { token, new_password } = req.body ?? {};
+  if (!token || !new_password) {
+    return res.status(400).json({ ok: false, error: { message: "Missing fields" } });
+  }
+  if (!isStrongPassword(String(new_password))) {
+    return res.status(400).json({
+      ok: false,
+      error: { message: "Weak password (min 8, letter+number+symbol)" }
+    });
+  }
+
+  const user = await User.findOne({
+    where: {
+      password_reset_token: String(token),
+      password_reset_expires: { [Op.gt]: new Date() }
+    }
+  });
+
+  if (!user) return res.status(400).json({ ok: false, error: { message: "Invalid/expired token" } });
+
+  user.password_hash = await bcrypt.hash(String(new_password), 10);
+  user.password_reset_token = null;
+  user.password_reset_expires = null;
+  await user.save();
+
+  await logAction({ user_id: user.id, action: "reset_password", entity_type: "user", entity_id: user.id });
+
+  return res.json({ ok: true });
+}
+
 export async function me(req: Request, res: Response) {
   const auth = req.auth!;
   const user = await User.findByPk(auth.id);

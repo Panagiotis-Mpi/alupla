@@ -176,6 +176,25 @@ export async function login(email: string, password: string): Promise<{ ok: true
   });
 }
 
+
+export async function register(first_name: string, last_name: string, email: string, password: string): Promise<any> {
+  return api("/auth/register", { method: "POST", body: { first_name, last_name, email, password } });
+}
+
+export async function verifyEmail(token: string): Promise<any> {
+  const t = encodeURIComponent(token);
+  return api(`/auth/verify?token=${t}`, { method: "GET" });
+}
+
+export async function requestPasswordReset(email: string): Promise<any> {
+  return api("/auth/forgot", { method: "POST", body: { email } });
+}
+
+export async function resetPassword(token: string, new_password: string): Promise<any> {
+  return api("/auth/reset", { method: "POST", body: { token, new_password } });
+}
+
+
 export async function me(): Promise<any> {
   return api("/auth/me", { method: "GET" });
 }

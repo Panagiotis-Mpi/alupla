@@ -167,7 +167,7 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     } as any);
 
     await logAction({
-      user_id: null,
+      user_id: req.user?.id ?? null,
       action: "create_graduate",
       entity_type: "graduate",
       entity_id: (created as any).id,
@@ -274,7 +274,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     await item.save();
 
     await logAction({
-      user_id: null,
+      user_id: req.user?.id ?? null,
       action: "update_graduate",
       entity_type: "graduate",
       entity_id: id,
@@ -298,7 +298,7 @@ export async function deleteGraduate(req: Request, res: Response, next: NextFunc
     await item.destroy();
 
     await logAction({
-      user_id: null,
+      user_id: req.user?.id ?? null,
       action: "delete_graduate",
       entity_type: "graduate",
       entity_id: id,

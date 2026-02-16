@@ -10,6 +10,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: AuthUser;
+      auth?: AuthUser;
     }
   }
 }
@@ -66,7 +67,9 @@ export function authRequired(req: Request, res: Response, next: NextFunction) {
 
   try {
     const payload = verifyToken(token);
-    req.user = { id: Number(payload.sub), role: payload.role };
+    const au: AuthUser = { id: Number(payload.sub), role: payload.role };
+    req.user = au;
+    req.auth = au;
     return next();
   } catch {
     return res.status(401).json({ ok: false, error: { message: "Invalid token" } });
