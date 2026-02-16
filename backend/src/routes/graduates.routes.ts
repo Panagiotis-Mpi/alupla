@@ -4,9 +4,12 @@ import { allowRoles, authRequired } from "../middleware/auth";
 
 export const graduatesRouter = Router();
 
+// TEMPORARY: allow public read for debugging (list only)
+graduatesRouter.get("/", listGraduates);
+
+// All write / detail routes remain protected
 graduatesRouter.use(authRequired, allowRoles(["secretariat","super_admin"]));
 
-graduatesRouter.get("/", listGraduates);
 graduatesRouter.post("/", createGraduate);
 
 graduatesRouter.get("/:id", getGraduate);

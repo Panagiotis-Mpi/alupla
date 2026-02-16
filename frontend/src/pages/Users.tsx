@@ -21,7 +21,7 @@ export default function Users() {
       const data = await listUsers();
       setItems(data.items);
     } catch (e: any) {
-      setErr(e?.response?.data?.error?.message ?? "Error");
+      setErr(e?.message ?? "Error");
     } finally {
       setLoading(false);
     }
@@ -29,13 +29,6 @@ export default function Users() {
 
   React.useEffect(() => {
     void load();
-
-    // refresh list every 5s so Online status is "live"
-    const t = window.setInterval(() => {
-      load().catch(() => {});
-    }, 5000);
-
-    return () => window.clearInterval(t);
   }, []);
 
   async function onCreate() {
@@ -44,7 +37,7 @@ export default function Users() {
       setForm({ first_name: "", last_name: "", email: "", role: "secretariat", password: "" });
       await load();
     } catch (e: any) {
-      alert(e?.response?.data?.error?.message ?? "Error");
+      alert(e?.message ?? "Error");
     }
   }
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { login as apiLogin } from "../lib/api";
+import { login as apiLogin, setToken } from "../lib/api";
 import { setSession } from "../lib/auth";
 
 export default function Login() {
@@ -16,10 +16,20 @@ export default function Login() {
     setLoading(true);
     try {
       const data = await apiLogin(email.trim(), password);
+
+      if (!data?.token || !data?.user) {
+        throw new Error("Login failed: missing token");
+      }
+
+      // IMPORTANT: api.ts reads token from localStorage key "alupla_token".
+      // setSession stores user/role, but may not store the token. Ensure token is saved.
+      setToken(data.token);
       setSession(data.token, data.user);
+
       nav("/graduates");
     } catch (e: any) {
-      setErr(e?.response?.data?.error?.message ?? "Login failed");
+      // Our fetch-based api helper throws Error(message), not axios errors.
+      setErr(e?.message ?? "Login failed");
     } finally {
       setLoading(false);
     }

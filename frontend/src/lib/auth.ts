@@ -36,8 +36,9 @@ export function logout() {
   localStorage.removeItem(KEY_TOKEN);
   localStorage.removeItem(KEY_USER);
 }
-export function clearSession() {
-  setSession(null);
-  setToken(null);
-}
 
+// FIX: clearSession was broken (called setSession(null) and setToken(null) that doesn't exist here).
+// Minimal, safe behavior: just remove stored session data.
+export function clearSession() {
+  logout();
+}

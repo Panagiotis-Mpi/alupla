@@ -1,7 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { env } from "../config/env";
-import { User } from "../models";
+import { verifyToken } from "../utils/jwt";
 
 export type AuthUser = {
   id: number;
@@ -16,19 +14,50 @@ declare global {
   }
 }
 
+function sanitizeToken(raw: string): string {
+  let t = raw.trim();
+
+  // If someone stored JSON string in localStorage and sent it with quotes.
+  if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
+    t = t.slice(1, -1).trim();
+  }
+
+  // If header accidentally became "Bearer Bearer <token>"
+  if (t.toLowerCase().startsWith("bearer ")) {
+    t = t.slice(7).trim();
+  }
+
+  // If something appended extra stuff: "<token>, ..." keep the first token.
+  if (t.includes(",")) {
+    t = t.split(",")[0].trim();
+  }
+
+  return t;
+}
+
 function getToken(req: Request): string | null {
   const h = req.headers.authorization;
-  if (!h) {
-    // Fallback for file downloads (e.g. CSV export via <a href="...">).
-    // Browser links can't send Authorization headers; allow token in query.
-    const q: any = (req as any).query;
-    const qt = typeof q?.token === "string" ? q.token : null;
-    return qt;
+
+  if (typeof h === "string" && h.trim()) {
+    const parts = h.trim().split(/\s+/);
+    if (parts.length >= 2 && parts[0].toLowerCase() === "bearer") {
+      const joined = parts.slice(1).join(" ");
+      const tok = sanitizeToken(joined);
+      return tok ? tok : null;
+    }
+    // If client mistakenly sent the token without "Bearer"
+    const tok = sanitizeToken(h);
+    return tok ? tok : null;
   }
-  const parts = h.split(" ");
-  if (parts.length !== 2) return null;
-  if (parts[0].toLowerCase() !== "bearer") return null;
-  return parts[1];
+
+  // Fallback for file downloads (<a href>) that can't send Authorization header.
+  const q: any = (req as any).query;
+  if (q && typeof q.token === "string") {
+    const tok = sanitizeToken(q.token);
+    return tok ? tok : null;
+  }
+
+  return null;
 }
 
 export function authRequired(req: Request, res: Response, next: NextFunction) {
@@ -36,12 +65,8 @@ export function authRequired(req: Request, res: Response, next: NextFunction) {
   if (!token) return res.status(401).json({ ok: false, error: { message: "Missing token" } });
 
   try {
-    const payload = jwt.verify(token, env.jwtSecret) as AuthUser;
-    req.user = { id: Number(payload.id), role: payload.role };
-
-    // LIVE presence: update last_seen_at on ANY authenticated request (fire-and-forget)
-    User.update({ last_seen_at: new Date() }, { where: { id: req.user.id } }).catch(() => {});
-
+    const payload = verifyToken(token);
+    req.user = { id: Number(payload.sub), role: payload.role };
     return next();
   } catch {
     return res.status(401).json({ ok: false, error: { message: "Invalid token" } });
@@ -54,7 +79,6 @@ export function superAdminOnly(req: Request, res: Response, next: NextFunction) 
   return next();
 }
 
-// Keep compatibility with existing routes: allowRoles(["secretariat","super_admin"])
 export function allowRoles(roles: Array<AuthUser["role"]>) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) return res.status(401).json({ ok: false, error: { message: "Unauthorized" } });

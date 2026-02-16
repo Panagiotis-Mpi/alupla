@@ -12,10 +12,18 @@ export const API_URL: string = (import.meta as any).env?.VITE_API_URL || "http:/
 const TOKEN_KEY = "alupla_token";
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  const t = localStorage.getItem(TOKEN_KEY);
+  if (!t) return null;
+  const v = t.trim();
+  if (!v || v === "null" || v === "undefined") return null;
+  return v;
 }
 
 export function setToken(token: string) {
+  if (!token || token === "null" || token === "undefined") {
+    localStorage.removeItem(TOKEN_KEY);
+    return;
+  }
   localStorage.setItem(TOKEN_KEY, token);
 }
 

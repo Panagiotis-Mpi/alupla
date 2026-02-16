@@ -7,7 +7,6 @@ import Graduates from "./pages/Graduates";
 import GraduateForm from "./pages/GraduateForm";
 import Regions from "./pages/Regions";
 import Profile from "./pages/Profile";
-import { presencePing } from "./lib/api";
 import Users from "./pages/Users";
 import Logs from "./pages/Logs";
 
@@ -20,18 +19,7 @@ function TopNav() {
     logout();
     nav("/login");
   };
-
-  React.useEffect(() => {
-    if (!user) return;
-    // ping presence every 15s
-    presencePing().catch(() => {});
-    const t = window.setInterval(() => {
-      presencePing().catch(() => {});
-    }, 15000);
-    return () => window.clearInterval(t);
-  }, [user?.id]);
-
-  if (loc.pathname === "/login") return null;
+if (loc.pathname === "/login") return null;
 
   return (
     <div className="nav">

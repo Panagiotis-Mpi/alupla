@@ -23,7 +23,7 @@ export default function Profile() {
       logout();
       nav("/login");
     } catch (e: any) {
-      setErr(e?.response?.data?.error?.message ?? "Error");
+      setErr(e?.message ?? "Error");
     } finally {
       setLoading(false);
     }
