@@ -5,7 +5,17 @@ import { deleteGraduate, listGraduates, listStudyPrograms, exportGraduatesXlsx, 
 export default function Graduates() {
   const [importBusy, setImportBusy] = React.useState(false);
   const [importReport, setImportReport] = React.useState<any | null>(null);
+  const [toast, setToast] = React.useState<{ type: "success" | "error"; title: string; detail?: string; action?: "download_errors" } | null>(null);
 
+
+
+
+function showToast(t: { type: "success" | "error"; title: string; detail?: string; action?: "download_errors" }) {
+  setToast(t);
+  window.setTimeout(() => {
+    setToast((cur) => (cur === t ? null : cur));
+  }, 6000);
+}
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -72,20 +82,42 @@ async function onExportXlsx() {
 
   useEffect(() => { void load(); }, [params.page, params.pageSize, params.sort]); // eslint-disable-line
 
+
 async function onImportXlsx(file: File) {
   setImportReport(null);
   setImportBusy(true);
   try {
     const rep = await importGraduatesXlsx(file);
     setImportReport(rep);
-    // refresh list
+
+    const inserted = Number(rep?.summary?.inserted ?? 0);
+    const updated = Number(rep?.summary?.updated ?? 0);
+    const skipped = Number(rep?.summary?.skipped ?? 0);
+    const errCount = Array.isArray(rep?.errors) ? rep.errors.length : 0;
+
+    if (errCount > 0) {
+      showToast({
+        type: "error",
+        title: `Import ολοκληρώθηκε με ${errCount} σφάλματα`,
+        detail: `inserted: ${inserted}, updated: ${updated}, skipped: ${skipped}`,
+        action: "download_errors",
+      });
+    } else {
+      showToast({
+        type: "success",
+        title: "Import completed",
+        detail: `inserted: ${inserted}, updated: ${updated}, skipped: ${skipped}`,
+      });
+    }
+
     await load();
   } catch (e: any) {
-    alert(e?.message ?? "Import failed");
+    showToast({ type: "error", title: "Import failed", detail: e?.message ?? "Κάτι πήγε στραβά" });
   } finally {
     setImportBusy(false);
   }
 }
+
 
 function downloadErrorsCsv(errors: any[]) {
   const headers = ["row","column","message","value"];
@@ -104,6 +136,50 @@ function downloadErrorsCsv(errors: any[]) {
 
   return (
     <div className="grid" style={{ gap: 14 }}>
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            top: 16,
+            right: 16,
+            zIndex: 9999,
+            width: 360,
+            maxWidth: "calc(100vw - 32px)",
+            background: "#fff",
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderLeft: `6px solid ${toast.type === "success" ? "#16a34a" : "#dc2626"}`,
+            borderRadius: 12,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+            padding: 12,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+            <div>
+              <div style={{ fontWeight: 700 }}>{toast.title}</div>
+              {toast.detail ? (
+                <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>{toast.detail}</div>
+              ) : null}
+            </div>
+            <button
+              className="btn"
+              type="button"
+              onClick={() => setToast(null)}
+              style={{ padding: "6px 10px" }}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+
+          {toast.action === "download_errors" && Array.isArray(importReport?.errors) ? (
+            <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>
+              <button className="btn" type="button" onClick={() => downloadErrorsCsv(importReport.errors)}>
+                Download errors
+              </button>
+            </div>
+          ) : null}
+        </div>
+      )}
       <div className="topbar">
         <h2 style={{ margin: 0 }}>Απόφοιτοι</h2>
         <span className="badge">{loading ? "loading..." : `${total} σύνολο`}</span>
@@ -126,56 +202,6 @@ function downloadErrorsCsv(errors: any[]) {
         <Link className="btn primary" to="/graduates/new">+ Νέος Απόφοιτος</Link>
       
 </div>
-
-{importReport && (
-  <div className="card" style={{ background: "#fafafa" }}>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-      <div>
-        <strong>Import report</strong>{" "}
-        <span style={{ fontSize: 12, opacity: 0.85 }}>
-          (inserted: {importReport?.summary?.inserted}, updated: {importReport?.summary?.updated}, skipped: {importReport?.summary?.skipped})
-        </span>
-      </div>
-      {importReport?.errors?.length ? (
-        <button className="btn" type="button" onClick={() => downloadErrorsCsv(importReport.errors)}>
-          Download errors (CSV)
-        </button>
-      ) : (
-        <span style={{ fontSize: 12, opacity: 0.85 }}>No errors 🎉</span>
-      )}
-    </div>
-
-    {importReport?.errors?.length ? (
-      <div style={{ marginTop: 10, maxHeight: 220, overflow: "auto" }}>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Row</th>
-              <th>Column</th>
-              <th>Message</th>
-              <th>Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {importReport.errors.slice(0, 50).map((er: any, i: number) => (
-              <tr key={i}>
-                <td>{er.row}</td>
-                <td>{er.column ?? ""}</td>
-                <td>{er.message}</td>
-                <td style={{ maxWidth: 260, wordBreak: "break-word" }}>{String(er.value ?? "")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {importReport.errors.length > 50 && (
-          <div style={{ marginTop: 8, fontSize: 12, opacity: 0.85 }}>
-            Showing first 50 of {importReport.errors.length} errors.
-          </div>
-        )}
-      </div>
-    ) : null}
-  </div>
-)}
 
 <div className="card"
 >
@@ -232,55 +258,7 @@ function downloadErrorsCsv(errors: any[]) {
       
 </div>
 
-{importReport && (
-  <div className="card" style={{ background: "#fafafa" }}>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-      <div>
-        <strong>Import report</strong>{" "}
-        <span style={{ fontSize: 12, opacity: 0.85 }}>
-          (inserted: {importReport?.summary?.inserted}, updated: {importReport?.summary?.updated}, skipped: {importReport?.summary?.skipped})
-        </span>
-      </div>
-      {importReport?.errors?.length ? (
-        <button className="btn" type="button" onClick={() => downloadErrorsCsv(importReport.errors)}>
-          Download errors (CSV)
-        </button>
-      ) : (
-        <span style={{ fontSize: 12, opacity: 0.85 }}>No errors 🎉</span>
-      )}
-    </div>
 
-    {importReport?.errors?.length ? (
-      <div style={{ marginTop: 10, maxHeight: 220, overflow: "auto" }}>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Row</th>
-              <th>Column</th>
-              <th>Message</th>
-              <th>Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {importReport.errors.slice(0, 50).map((er: any, i: number) => (
-              <tr key={i}>
-                <td>{er.row}</td>
-                <td>{er.column ?? ""}</td>
-                <td>{er.message}</td>
-                <td style={{ maxWidth: 260, wordBreak: "break-word" }}>{String(er.value ?? "")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {importReport.errors.length > 50 && (
-          <div style={{ marginTop: 8, fontSize: 12, opacity: 0.85 }}>
-            Showing first 50 of {importReport.errors.length} errors.
-          </div>
-        )}
-      </div>
-    ) : null}
-  </div>
-)}
 
 <div className="card"
 >
