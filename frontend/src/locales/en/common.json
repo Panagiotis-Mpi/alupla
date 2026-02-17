@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "graduates": "Graduates",
+    "regions": "Regions",
+    "profile": "Profile",
+    "users": "Users",
+    "logs": "Logs",
+    "logout": "Logout"
+  },
+  "login": {
+    "title": "Login",
+    "email": "Email",
+    "password": "Password",
+    "button": "Sign In",
+    "register": "Register",
+    "forgot": "Forgot password"
+  }
+}

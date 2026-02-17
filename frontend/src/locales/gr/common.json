@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "graduates": "Απόφοιτοι",
+    "regions": "Περιοχές",
+    "profile": "Προφίλ",
+    "users": "Χρήστες",
+    "logs": "Logs",
+    "logout": "Αποσύνδεση"
+  },
+  "login": {
+    "title": "Σύνδεση",
+    "email": "Email",
+    "password": "Κωδικός",
+    "button": "Είσοδος",
+    "register": "Εγγραφή",
+    "forgot": "Ξέχασα κωδικό"
+  }
+}

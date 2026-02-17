@@ -1,0 +1,62 @@
+{
+  "pageTitle": "Graduates",
+  "topbar": {
+    "loading": "loading...",
+    "total": "{{total}} total",
+    "importExcel": "Import Excel",
+    "importing": "Import...",
+    "exportExcel": "Export Excel",
+    "newGraduate": "+ New Graduate"
+  },
+  "filters": {
+    "qLabel": "Global search (q)",
+    "qPlaceholder": "e.g. Papad...",
+    "lastNameLike": "Last name (like)",
+    "firstNameLike": "First name (like)",
+    "gender": "Gender",
+    "all": "All",
+    "studyProgram": "Study Program",
+    "sort": "Sort",
+    "sort_id_asc": "id ↑",
+    "sort_id_desc": "id ↓",
+    "sort_last_name_asc": "last name ↑",
+    "sort_last_name_desc": "last name ↓",
+    "search": "Search",
+    "reset": "Reset",
+    "page": "page {{page}}"
+  },
+  "table": {
+    "id": "ID",
+    "ad": "A.D.",
+    "am": "Student No.",
+    "lastName": "Last name",
+    "firstName": "First name",
+    "fatherName": "Father name",
+    "gender": "Gender",
+    "entryYear": "Entry year",
+    "birthYear": "Birth year",
+    "degreeGrade": "Degree grade",
+    "graduationDate": "Graduation date",
+    "oathDate": "Oath date",
+    "studyProgram": "Study program",
+    "direction": "Direction",
+    "originMunicipality": "Municipality of origin",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "empty": "No results."
+  },
+  "toast": {
+    "importCompleted": "Import completed",
+    "importWithErrors": "Import completed with {{count}} errors",
+    "importFailed": "Import failed",
+    "somethingWentWrong": "Something went wrong",
+    "downloadErrors": "Download errors"
+  },
+  "confirm": {
+    "deleteGraduate": "Delete graduate #{{id}}?"
+  },
+  "export": {
+    "failed": "Export failed"
+  }
+}

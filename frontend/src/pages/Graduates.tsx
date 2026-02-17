@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   deleteGraduate,
   exportGraduatesXlsx,
@@ -12,6 +13,8 @@ import {
 } from "../lib/api";
 
 export default function Graduates() {
+  const { t } = useTranslation("graduates");
+
   const [importBusy, setImportBusy] = useState(false);
   const [importReport, setImportReport] = useState<any | null>(null);
   const [toast, setToast] = useState<{
@@ -38,10 +41,10 @@ export default function Graduates() {
     sort: "id:asc",
   });
 
-  function showToast(t: { type: "success" | "error"; title: string; detail?: string; action?: "download_errors" }) {
-    setToast(t);
+  function showToast(tst: { type: "success" | "error"; title: string; detail?: string; action?: "download_errors" }) {
+    setToast(tst);
     window.setTimeout(() => {
-      setToast((cur) => (cur === t ? null : cur));
+      setToast((cur) => (cur === tst ? null : cur));
     }, 6000);
   }
 
@@ -60,13 +63,13 @@ export default function Graduates() {
     const headers = ["row", "column", "message", "value"];
     const esc = (v: any) => {
       const s = String(v ?? "");
-      if (/[\",\n\r]/.test(s)) return `"${s.replace(/\"/g, '""')}"`;
+      if (/[\",\n\r]/.test(s)) return `"\${s.replace(/\"/g, '""')}"`;
       return s;
     };
     const lines = [headers.join(","), ...(errors ?? []).map((e) => headers.map((h) => esc(e?.[h])).join(","))];
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-    downloadBlob(blob, `import-errors-${ts}.csv`);
+    downloadBlob(blob, `import-errors-\${ts}.csv`);
   }
 
   async function onExportXlsx() {
@@ -76,9 +79,9 @@ export default function Graduates() {
     try {
       const blob = await exportGraduatesXlsx(p);
       const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-      downloadBlob(blob, `graduates-${ts}.xlsx`);
+      downloadBlob(blob, `graduates-\${ts}.xlsx`);
     } catch (e: any) {
-      alert(e?.message ?? "Export failed");
+      alert(e?.message ?? t("export.failed"));
     }
   }
 
@@ -119,18 +122,12 @@ export default function Graduates() {
   async function load() {
     setLoading(true);
     try {
-      // 1) Fetch graduates + study programs first
-      const [sp, gr] = await Promise.all([
-        listStudyPrograms(),
-        listGraduates(params),
-      ]);
+      const [sp, gr] = await Promise.all([listStudyPrograms(), listGraduates(params)]);
 
       setPrograms(sp.items);
       setItems(gr.items);
       setTotal(gr.total);
 
-      // 2) Fetch program directions ONLY for the study_program_id(s) that appear in the current page.
-      //    (The backend requires study_program_id, so we can't call listProgramDirections(null).)
       const programIds = Array.from(
         new Set(
           (gr.items ?? [])
@@ -179,21 +176,25 @@ export default function Graduates() {
       if (errCount > 0) {
         showToast({
           type: "error",
-          title: `Import ολοκληρώθηκε με ${errCount} σφάλματα`,
-          detail: `inserted: ${inserted}, updated: ${updated}, skipped: ${skipped}`,
+          title: t("toast.importWithErrors", { count: errCount }),
+          detail: `inserted: \${inserted}, updated: \${updated}, skipped: \${skipped}`,
           action: "download_errors",
         });
       } else {
         showToast({
           type: "success",
-          title: "Import completed",
-          detail: `inserted: ${inserted}, updated: ${updated}, skipped: ${skipped}`,
+          title: t("toast.importCompleted"),
+          detail: `inserted: \${inserted}, updated: \${updated}, skipped: \${skipped}`,
         });
       }
 
       await load();
     } catch (e: any) {
-      showToast({ type: "error", title: "Import failed", detail: e?.message ?? "Κάτι πήγε στραβά" });
+      showToast({
+        type: "error",
+        title: t("toast.importFailed"),
+        detail: e?.message ?? t("toast.somethingWentWrong"),
+      });
     } finally {
       setImportBusy(false);
     }
@@ -212,7 +213,7 @@ export default function Graduates() {
             maxWidth: "calc(100vw - 32px)",
             background: "#fff",
             border: "1px solid rgba(0,0,0,0.12)",
-            borderLeft: `6px solid ${toast.type === "success" ? "#16a34a" : "#dc2626"}`,
+            borderLeft: `6px solid \${toast.type === "success" ? "#16a34a" : "#dc2626"}`,
             borderRadius: 12,
             boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
             padding: 12,
@@ -231,7 +232,7 @@ export default function Graduates() {
           {toast.action === "download_errors" && Array.isArray(importReport?.errors) ? (
             <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>
               <button className="btn" type="button" onClick={() => downloadErrorsCsv(importReport.errors)}>
-                Download errors
+                {t("toast.downloadErrors")}
               </button>
             </div>
           ) : null}
@@ -239,8 +240,8 @@ export default function Graduates() {
       )}
 
       <div className="topbar">
-        <h2 style={{ margin: 0 }}>Απόφοιτοι</h2>
-        <span className="badge">{loading ? "loading..." : `${total} σύνολο`}</span>
+        <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
+        <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
         <div className="spacer" />
 
         <input
@@ -260,49 +261,57 @@ export default function Graduates() {
           onClick={() => (document.getElementById("import-xlsx") as HTMLInputElement | null)?.click()}
           disabled={importBusy}
         >
-          {importBusy ? "Import..." : "Import Excel"}
+          {importBusy ? t("topbar.importing") : t("topbar.importExcel")}
         </button>
         <button className="btn" type="button" onClick={() => void onExportXlsx()}>
-          Export Excel
+          {t("topbar.exportExcel")}
         </button>
         <Link className="btn primary" to="/graduates/new">
-          + Νέος Απόφοιτος
+          {t("topbar.newGraduate")}
         </Link>
       </div>
 
       <div className="card">
         <div className="grid cols3">
           <div>
-            <label className="label">Global αναζήτηση (q)</label>
+            <label className="label">{t("filters.qLabel")}</label>
             <input
               className="input"
               value={filters.q}
               onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-              placeholder="π.χ. Παπαδ..."
+              placeholder={t("filters.qPlaceholder")}
             />
           </div>
           <div>
-            <label className="label">Επώνυμο (like)</label>
-            <input className="input" value={filters.last_name_like} onChange={(e) => setFilters((f) => ({ ...f, last_name_like: e.target.value }))} />
+            <label className="label">{t("filters.lastNameLike")}</label>
+            <input
+              className="input"
+              value={filters.last_name_like}
+              onChange={(e) => setFilters((f) => ({ ...f, last_name_like: e.target.value }))}
+            />
           </div>
           <div>
-            <label className="label">Όνομα (like)</label>
-            <input className="input" value={filters.first_name_like} onChange={(e) => setFilters((f) => ({ ...f, first_name_like: e.target.value }))} />
+            <label className="label">{t("filters.firstNameLike")}</label>
+            <input
+              className="input"
+              value={filters.first_name_like}
+              onChange={(e) => setFilters((f) => ({ ...f, first_name_like: e.target.value }))}
+            />
           </div>
 
           <div>
-            <label className="label">Φύλο</label>
+            <label className="label">{t("filters.gender")}</label>
             <select className="input" value={filters.gender} onChange={(e) => setFilters((f) => ({ ...f, gender: e.target.value }))}>
-              <option value="">Όλα</option>
+              <option value="">{t("filters.all")}</option>
               <option value="M">M</option>
               <option value="F">F</option>
             </select>
           </div>
 
           <div>
-            <label className="label">Πρόγραμμα Σπουδών</label>
+            <label className="label">{t("filters.studyProgram")}</label>
             <select className="input" value={filters.study_program_id} onChange={(e) => setFilters((f) => ({ ...f, study_program_id: e.target.value }))}>
-              <option value="">Όλα</option>
+              <option value="">{t("filters.all")}</option>
               {programs.map((p) => (
                 <option key={(p as any).id} value={(p as any).id}>
                   {(p as any).code} - {(p as any).name_el}
@@ -312,12 +321,12 @@ export default function Graduates() {
           </div>
 
           <div>
-            <label className="label">Sort</label>
+            <label className="label">{t("filters.sort")}</label>
             <select className="input" value={filters.sort} onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value }))}>
-              <option value="id:asc">id ↑</option>
-              <option value="id:desc">id ↓</option>
-              <option value="last_name:asc">επώνυμο ↑</option>
-              <option value="last_name:desc">επώνυμο ↓</option>
+              <option value="id:asc">{t("filters.sort_id_asc")}</option>
+              <option value="id:desc">{t("filters.sort_id_desc")}</option>
+              <option value="last_name:asc">{t("filters.sort_last_name_asc")}</option>
+              <option value="last_name:desc">{t("filters.sort_last_name_desc")}</option>
             </select>
           </div>
         </div>
@@ -330,7 +339,7 @@ export default function Graduates() {
               void load();
             }}
           >
-            Αναζήτηση
+            {t("filters.search")}
           </button>
           <button
             className="btn"
@@ -339,13 +348,13 @@ export default function Graduates() {
               setTimeout(() => void load(), 0);
             }}
           >
-            Reset
+            {t("filters.reset")}
           </button>
           <div className="spacer" />
           <button className="btn" disabled={filters.page <= 1} onClick={() => setFilters((f) => ({ ...f, page: f.page - 1 }))}>
             ◀
           </button>
-          <span className="badge">page {filters.page}</span>
+          <span className="badge">{t("filters.page", { page: filters.page })}</span>
           <button className="btn" disabled={filters.page * filters.pageSize >= total} onClick={() => setFilters((f) => ({ ...f, page: f.page + 1 }))}>
             ▶
           </button>
@@ -357,22 +366,22 @@ export default function Graduates() {
           <table className="table" style={{ minWidth: 2000 }}>
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Α.Δ.</th>
-                <th>Α.Μ.</th>
-                <th>Επώνυμο</th>
-                <th>Όνομα</th>
-                <th>Πατρώνυμο</th>
-                <th>Φύλο</th>
-                <th>Έτος εισαγωγής</th>
-                <th>Έτος γέννησης</th>
-                <th>Βαθμός πτυχίου</th>
-                <th>Ημ. αποφοίτησης</th>
-                <th>Ημ. ορκωμοσίας</th>
-                <th>Πρόγραμμα σπουδών</th>
-                <th>Κατεύθυνση</th>
-                <th>Δήμος προέλευσης</th>
-                <th className="row-actions">Actions</th>
+                <th>{t("table.id")}</th>
+                <th>{t("table.ad")}</th>
+                <th>{t("table.am")}</th>
+                <th>{t("table.lastName")}</th>
+                <th>{t("table.firstName")}</th>
+                <th>{t("table.fatherName")}</th>
+                <th>{t("table.gender")}</th>
+                <th>{t("table.entryYear")}</th>
+                <th>{t("table.birthYear")}</th>
+                <th>{t("table.degreeGrade")}</th>
+                <th>{t("table.graduationDate")}</th>
+                <th>{t("table.oathDate")}</th>
+                <th>{t("table.studyProgram")}</th>
+                <th>{t("table.direction")}</th>
+                <th>{t("table.originMunicipality")}</th>
+                <th className="row-actions">{t("table.actions")}</th>
               </tr>
             </thead>
 
@@ -400,7 +409,6 @@ export default function Graduates() {
                       : ""}
                   </td>
 
-                  {/* CHANGE: show direction NAME (not the numeric id) */}
                   <td>{directionNameById.get(Number(g.program_direction_id)) ?? ""}</td>
 
                   <td>{fmt(g.origin_municipality)}</td>
@@ -408,17 +416,17 @@ export default function Graduates() {
                   <td>
                     <div className="row-actions">
                       <Link className="btn" to={`/graduates/${g.id}`}>
-                        Edit
+                        {t("table.edit")}
                       </Link>
                       <button
                         className="btn danger"
                         onClick={async () => {
-                          if (!confirm(`Delete graduate #${g.id}?`)) return;
+                          if (!confirm(t("confirm.deleteGraduate", { id: g.id }))) return;
                           await deleteGraduate(g.id);
                           await load();
                         }}
                       >
-                        Delete
+                        {t("table.delete")}
                       </button>
                     </div>
                   </td>
@@ -428,7 +436,7 @@ export default function Graduates() {
               {!items.length && (
                 <tr>
                   <td colSpan={16} className="muted">
-                    Δεν υπάρχουν αποτελέσματα.
+                    {t("table.empty")}
                   </td>
                 </tr>
               )}

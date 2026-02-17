@@ -1,9 +1,11 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { login as apiLogin } from "../lib/api";
 import { setSession } from "../lib/auth";
 
 export default function Login() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -34,12 +36,12 @@ export default function Login() {
 
         <form onSubmit={onSubmit} className="grid">
           <label>
-            <span className="label">Email</span>
+            <span className="label">{t("login.email")}</span>
             <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
           </label>
 
           <label>
-            <span className="label">Password</span>
+            <span className="label">{t("login.password")}</span>
             <input
               className="input"
               type="password"
@@ -51,13 +53,13 @@ export default function Login() {
           {err && <div className="error">{err}</div>}
 
           <button className="btn primary" disabled={loading} type="submit">
-            {loading ? "..." : "Login"}
+            {loading ? "..." : t("login.button")}
           </button>
 
           <div style={{ display: "flex", gap: 10, fontSize: 12, opacity: 0.9 }}>
-            <Link to="/register">Register</Link>
+            <Link to="/register">{t("login.register")}</Link>
             <span>·</span>
-            <Link to="/forgot">Ξέχασα κωδικό</Link>
+            <Link to="/forgot">{t("login.forgot")}</Link>
           </div>
         </form>
       </div>

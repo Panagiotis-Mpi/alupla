@@ -1,5 +1,7 @@
 import React from "react";
 import { Link, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import i18n from "./i18n";
 import Guard from "./components/Guard";
 import { getUser, logout } from "./lib/auth";
 import Login from "./pages/Login";
@@ -15,6 +17,7 @@ import Users from "./pages/Users";
 import Logs from "./pages/Logs";
 
 function TopNav() {
+  const { t } = useTranslation();
   const user = getUser();
   const role = user?.role;
   const nav = useNavigate();
@@ -26,17 +29,38 @@ function TopNav() {
 const hideNav = ["/login","/register","/verify","/forgot","/reset"].some((p) => loc.pathname.startsWith(p));
   if (hideNav) return null;
 
+  const lang = i18n.language?.startsWith("en") ? "en" : "gr";
+
   return (
     <div className="nav">
       <strong>ALUPLA</strong>
-      <Link className="btn" to="/graduates">Απόφοιτοι</Link>
-      <Link className="btn" to="/regions">Περιοχές</Link>
-      <Link className="btn" to="/profile">Προφίλ</Link>
-      {role === "super_admin" && <Link className="btn" to="/users">Χρήστες</Link>}
-      {role === "super_admin" && <Link className="btn" to="/logs">Logs</Link>}
+      <Link className="btn" to="/graduates">{t("nav.graduates")}</Link>
+      <Link className="btn" to="/regions">{t("nav.regions")}</Link>
+      <Link className="btn" to="/profile">{t("nav.profile")}</Link>
+      {role === "super_admin" && <Link className="btn" to="/users">{t("nav.users")}</Link>}
+      {role === "super_admin" && <Link className="btn" to="/logs">{t("nav.logs")}</Link>}
       <div className="spacer" />
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <button
+          className="btn"
+          onClick={() => i18n.changeLanguage("gr")}
+          aria-pressed={lang === "gr"}
+          title="Ελληνικά"
+        >
+          GR
+        </button>
+        <span style={{ opacity: 0.6 }}>|</span>
+        <button
+          className="btn"
+          onClick={() => i18n.changeLanguage("en")}
+          aria-pressed={lang === "en"}
+          title="English"
+        >
+          EN
+        </button>
+      </div>
       <span className="badge">{user ? `${user.first_name} ${user.last_name} (${user.role})` : "guest"}</span>
-      <button className="btn" onClick={onLogout}>Logout</button>
+      <button className="btn" onClick={onLogout}>{t("nav.logout")}</button>
     </div>
   );
 }

@@ -1,0 +1,62 @@
+{
+  "pageTitle": "Απόφοιτοι",
+  "topbar": {
+    "loading": "φόρτωση...",
+    "total": "{{total}} σύνολο",
+    "importExcel": "Import Excel",
+    "importing": "Import...",
+    "exportExcel": "Export Excel",
+    "newGraduate": "+ Νέος Απόφοιτος"
+  },
+  "filters": {
+    "qLabel": "Global αναζήτηση (q)",
+    "qPlaceholder": "π.χ. Παπαδ...",
+    "lastNameLike": "Επώνυμο (like)",
+    "firstNameLike": "Όνομα (like)",
+    "gender": "Φύλο",
+    "all": "Όλα",
+    "studyProgram": "Πρόγραμμα Σπουδών",
+    "sort": "Sort",
+    "sort_id_asc": "id ↑",
+    "sort_id_desc": "id ↓",
+    "sort_last_name_asc": "επώνυμο ↑",
+    "sort_last_name_desc": "επώνυμο ↓",
+    "search": "Αναζήτηση",
+    "reset": "Reset",
+    "page": "page {{page}}"
+  },
+  "table": {
+    "id": "ID",
+    "ad": "Α.Δ.",
+    "am": "Α.Μ.",
+    "lastName": "Επώνυμο",
+    "firstName": "Όνομα",
+    "fatherName": "Πατρώνυμο",
+    "gender": "Φύλο",
+    "entryYear": "Έτος εισαγωγής",
+    "birthYear": "Έτος γέννησης",
+    "degreeGrade": "Βαθμός πτυχίου",
+    "graduationDate": "Ημ. αποφοίτησης",
+    "oathDate": "Ημ. ορκωμοσίας",
+    "studyProgram": "Πρόγραμμα σπουδών",
+    "direction": "Κατεύθυνση",
+    "originMunicipality": "Δήμος προέλευσης",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "empty": "Δεν υπάρχουν αποτελέσματα."
+  },
+  "toast": {
+    "importCompleted": "Import completed",
+    "importWithErrors": "Import ολοκληρώθηκε με {{count}} σφάλματα",
+    "importFailed": "Import failed",
+    "somethingWentWrong": "Κάτι πήγε στραβά",
+    "downloadErrors": "Download errors"
+  },
+  "confirm": {
+    "deleteGraduate": "Delete graduate #{{id}}?"
+  },
+  "export": {
+    "failed": "Export failed"
+  }
+}
