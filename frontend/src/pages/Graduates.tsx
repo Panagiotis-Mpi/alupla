@@ -63,13 +63,13 @@ export default function Graduates() {
     const headers = ["row", "column", "message", "value"];
     const esc = (v: any) => {
       const s = String(v ?? "");
-      if (/[\",\n\r]/.test(s)) return `"\${s.replace(/\"/g, '""')}"`;
+      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
       return s;
     };
     const lines = [headers.join(","), ...(errors ?? []).map((e) => headers.map((h) => esc(e?.[h])).join(","))];
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-    downloadBlob(blob, `import-errors-\${ts}.csv`);
+    downloadBlob(blob, `import-errors-${ts}.csv`);
   }
 
   async function onExportXlsx() {
@@ -79,7 +79,7 @@ export default function Graduates() {
     try {
       const blob = await exportGraduatesXlsx(p);
       const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-      downloadBlob(blob, `graduates-\${ts}.xlsx`);
+      downloadBlob(blob, `graduates-${ts}.xlsx`);
     } catch (e: any) {
       alert(e?.message ?? t("export.failed"));
     }
@@ -200,6 +200,15 @@ export default function Graduates() {
     }
   }
 
+  // Break out of the centered layout just for the table card, so it uses the free space on the right
+  // while staying nicely padded from the viewport edges.
+  const wideCardStyle: React.CSSProperties = {
+    width: "calc(100vw - 32px)",
+    marginLeft: "calc(50% - 50vw + 16px)",
+    marginRight: 0,
+    boxSizing: "border-box",
+  };
+
   return (
     <div className="grid" style={{ gap: 14 }}>
       {toast && (
@@ -213,7 +222,7 @@ export default function Graduates() {
             maxWidth: "calc(100vw - 32px)",
             background: "#fff",
             border: "1px solid rgba(0,0,0,0.12)",
-            borderLeft: `6px solid \${toast.type === "success" ? "#16a34a" : "#dc2626"}`,
+            borderLeft: `6px solid ${toast.type === "success" ? "#16a34a" : "#dc2626"}`,
             borderRadius: 12,
             boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
             padding: 12,
@@ -361,12 +370,11 @@ export default function Graduates() {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card" style={wideCardStyle}>
         <div style={{ overflowX: "auto" }}>
           <table className="table" style={{ minWidth: 2000 }}>
             <thead>
               <tr>
-                <th>{t("table.id")}</th>
                 <th>{t("table.ad")}</th>
                 <th>{t("table.am")}</th>
                 <th>{t("table.lastName")}</th>
@@ -388,7 +396,6 @@ export default function Graduates() {
             <tbody>
               {items.map((g: any) => (
                 <tr key={g.id}>
-                  <td>{g.id}</td>
                   <td>{fmt(g.ad_code)}</td>
                   <td>{fmt(g.student_number ?? g.student_nuad_code ?? g.am ?? g.student_id)}</td>
                   <td>{fmt(g.last_name)}</td>
@@ -435,7 +442,7 @@ export default function Graduates() {
 
               {!items.length && (
                 <tr>
-                  <td colSpan={16} className="muted">
+                  <td colSpan={15} className="muted">
                     {t("table.empty")}
                   </td>
                 </tr>
