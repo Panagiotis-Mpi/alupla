@@ -1,9 +1,10 @@
-
 import React from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { resetPassword } from "../lib/api";
 
 export default function ResetPassword() {
+  const { t } = useTranslation("auth");
   const nav = useNavigate();
   const [sp] = useSearchParams();
   const token = sp.get("token") || "";
@@ -22,7 +23,7 @@ export default function ResetPassword() {
       setOk(true);
       setTimeout(() => nav("/login"), 400);
     } catch (e: any) {
-      setErr(e?.message ?? "Reset failed");
+      setErr(e?.message ?? t("reset.failed"));
     } finally {
       setLoading(false);
     }
@@ -31,26 +32,26 @@ export default function ResetPassword() {
   return (
     <div className="container">
       <div className="card" style={{ maxWidth: 520, margin: "48px auto" }}>
-        <h2 style={{ marginTop: 0 }}>Reset κωδικού</h2>
+        <h2 style={{ marginTop: 0 }}>{t("reset.title")}</h2>
 
         {!token ? (
-          <p className="error">Λείπει token.</p>
+          <p className="error">{t("reset.missingToken")}</p>
         ) : (
           <form onSubmit={onSubmit} className="grid">
             <label>
-              <span className="label">Νέος κωδικός (8+ με γράμμα/αριθμό/σύμβολο)</span>
+              <span className="label">{t("reset.newPasswordHint")}</span>
               <input className="input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
             </label>
 
             {err && <div className="error">{err}</div>}
-            {ok && <div style={{ color: "green", fontSize: 13 }}>Έγινε ✅ Πηγαίνεις στο login...</div>}
+            {ok && <div style={{ color: "green", fontSize: 13 }}>{t("reset.okRedirect")}</div>}
 
             <button className="btn primary" disabled={loading}>
-              {loading ? "..." : "Reset"}
+              {loading ? t("common.loading") : t("reset.button")}
             </button>
 
             <div style={{ fontSize: 12, opacity: 0.85 }}>
-              <Link to="/login">Login</Link> · <Link to="/forgot">Ξέχασα κωδικό</Link>
+              <Link to="/login">{t("reset.login")}</Link> · <Link to="/forgot">{t("reset.forgot")}</Link>
             </div>
           </form>
         )}

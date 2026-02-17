@@ -22,24 +22,48 @@ function TopNav() {
   const role = user?.role;
   const nav = useNavigate();
   const loc = useLocation();
+
+  const isAuthRoute = ["/login", "/register", "/verify", "/forgot", "/reset"].some((p) =>
+    loc.pathname.startsWith(p)
+  );
+
   const onLogout = () => {
     logout();
     nav("/login");
   };
-const hideNav = ["/login","/register","/verify","/forgot","/reset"].some((p) => loc.pathname.startsWith(p));
-  if (hideNav) return null;
 
   const lang = i18n.language?.startsWith("en") ? "en" : "gr";
 
   return (
     <div className="nav">
       <strong>ALUPLA</strong>
-      <Link className="btn" to="/graduates">{t("nav.graduates")}</Link>
-      <Link className="btn" to="/regions">{t("nav.regions")}</Link>
-      <Link className="btn" to="/profile">{t("nav.profile")}</Link>
-      {role === "super_admin" && <Link className="btn" to="/users">{t("nav.users")}</Link>}
-      {role === "super_admin" && <Link className="btn" to="/logs">{t("nav.logs")}</Link>}
+
+      {!isAuthRoute && (
+        <>
+          <Link className="btn" to="/graduates">
+            {t("nav.graduates")}
+          </Link>
+          <Link className="btn" to="/regions">
+            {t("nav.regions")}
+          </Link>
+          <Link className="btn" to="/profile">
+            {t("nav.profile")}
+          </Link>
+          {role === "super_admin" && (
+            <Link className="btn" to="/users">
+              {t("nav.users")}
+            </Link>
+          )}
+          {role === "super_admin" && (
+            <Link className="btn" to="/logs">
+              {t("nav.logs")}
+            </Link>
+          )}
+        </>
+      )}
+
       <div className="spacer" />
+
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <button
           className="btn"
@@ -59,8 +83,17 @@ const hideNav = ["/login","/register","/verify","/forgot","/reset"].some((p) => 
           EN
         </button>
       </div>
-      <span className="badge">{user ? `${user.first_name} ${user.last_name} (${user.role})` : "guest"}</span>
-      <button className="btn" onClick={onLogout}>{t("nav.logout")}</button>
+
+      {!isAuthRoute && (
+        <>
+          <span className="badge">
+            {user ? `${user.first_name} ${user.last_name} (${user.role})` : "guest"}
+          </span>
+          <button className="btn" onClick={onLogout}>
+            {t("nav.logout")}
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -128,7 +161,6 @@ export default function App() {
               </Guard>
             }
           />
-
 
           <Route
             path="/regions"

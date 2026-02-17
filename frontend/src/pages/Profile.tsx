@@ -1,84 +1,93 @@
 import React from "react";
-import { changePassword } from "../lib/api";
-import { getUser, logout } from "../lib/auth";
-import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { me, changePassword } from "../lib/api";
 
 export default function Profile() {
-  const u = getUser();
-  const nav = useNavigate();
-  const [current, setCurrent] = React.useState("");
-  const [next, setNext] = React.useState("");
-  const [msg, setMsg] = React.useState<string | null>(null);
-  const [err, setErr] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(false);
+  const { t } = useTranslation("profile");
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setErr(null);
-    setMsg(null);
-    setLoading(true);
+  const [user, setUser] = React.useState<any>(null);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  const [currentPassword, setCurrentPassword] = React.useState("");
+  const [newPassword, setNewPassword] = React.useState("");
+
+  async function load() {
     try {
-      await changePassword(current, next);
-      setMsg("OK: άλλαξε ο κωδικός. Κάνε login ξανά.");
-      logout();
-      nav("/login");
+      const data = await me();
+      setUser(data.user ?? data);
     } catch (e: any) {
-      setErr(e?.message ?? "Error");
-    } finally {
-      setLoading(false);
+      setErr(e?.message ?? t("error"));
     }
   }
 
+  React.useEffect(() => {
+    void load();
+  }, []);
+
+  async function onChangePassword() {
+    try {
+      await changePassword(currentPassword, newPassword);
+      alert(t("changePassword.success"));
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (e: any) {
+      alert(e?.message ?? t("error"));
+    }
+  }
+
+  if (!user) return null;
+
   return (
-    <div className="grid" style={{ gap: 14 }}>
-      <div className="topbar">
-        <h2 style={{ margin: 0 }}>Προφίλ</h2>
+    <div className="grid" style={{ gap: 16 }}>
+      <h2>{t("title")}</h2>
+
+      <div className="card">
+        <div><strong>{t("info.email")}:</strong> {user.email}</div>
+        <div><strong>{t("info.name")}:</strong> {user.first_name} {user.last_name}</div>
+        <div><strong>{t("info.role")}:</strong> {user.role}</div>
+        <div>
+          <strong>{t("info.status")}:</strong>{" "}
+          {user.is_active ? t("info.active") : t("info.inactive")}
+        </div>
       </div>
 
       <div className="card">
-        <div className="muted">Συνδεδεμένος ως:</div>
-        <div style={{ marginTop: 6 }}>
-          <strong>
-            {u?.first_name} {u?.last_name}
-          </strong>{" "}
-          <span className="badge">{u?.role}</span>
-          <div className="muted">{u?.email}</div>
+        <h3>{t("changePassword.title")}</h3>
+
+        <div className="grid cols2">
+          <div>
+            <label className="label">{t("changePassword.current")}</label>
+            <input
+              type="password"
+              className="input"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="label">{t("changePassword.new")}</label>
+            <input
+              type="password"
+              className="input"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+          </div>
         </div>
 
-        <hr />
-
-        <h3 style={{ marginTop: 0 }}>Αλλαγή κωδικού</h3>
-        <form onSubmit={onSubmit} className="grid cols2">
-          <div>
-            <label className="label">Τρέχων κωδικός</label>
-            <input className="input" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} />
-          </div>
-          <div>
-            <label className="label">Νέος κωδικός</label>
-            <input className="input" type="password" value={next} onChange={(e) => setNext(e.target.value)} />
-            <div className="muted">Policy: 8+ chars, letter + number + symbol</div>
-          </div>
-
-          <div style={{ gridColumn: "1 / -1" }}>
-            {err && (
-              <div className="card" style={{ borderColor: "#b00020", color: "#b00020" }}>
-                {err}
-              </div>
-            )}
-            {msg && (
-              <div className="card" style={{ borderColor: "#2e7d32", color: "#2e7d32" }}>
-                {msg}
-              </div>
-            )}
-          </div>
-
-          <div style={{ gridColumn: "1 / -1" }}>
-            <button className="btn primary" disabled={loading}>
-              {loading ? "..." : "Αλλαγή"}
-            </button>
-          </div>
-        </form>
+        <div style={{ marginTop: 12 }}>
+          <button className="btn primary" onClick={onChangePassword}>
+            {t("changePassword.submit")}
+          </button>
+        </div>
       </div>
+
+      {err && (
+        <div className="card" style={{ borderColor: "#b00020", color: "#b00020" }}>
+          {err}
+        </div>
+      )}
     </div>
   );
 }

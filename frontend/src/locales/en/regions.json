@@ -1,0 +1,15 @@
+{
+  "title": "Regions (hierarchy)",
+  "parentId": "parent_id",
+  "null": "null",
+  "breadcrumb": "Breadcrumb:",
+  "table": {
+    "id": "ID",
+    "type": "Type",
+    "name": "Name",
+    "go": "Go"
+  },
+  "root": "Root",
+  "children": "Children",
+  "empty": "No children at this level."
+}

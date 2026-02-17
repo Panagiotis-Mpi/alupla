@@ -1,0 +1,19 @@
+{
+  "title": "Profile",
+  "info": {
+    "email": "Email",
+    "name": "Name",
+    "role": "Role",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "changePassword": {
+    "title": "Change password",
+    "current": "Current password",
+    "new": "New password",
+    "submit": "Change",
+    "success": "Password changed successfully"
+  },
+  "error": "Error"
+}

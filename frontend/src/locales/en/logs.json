@@ -1,0 +1,29 @@
+{
+  "title": "Logs",
+  "badgeLoading": "loading...",
+  "badgeCount": "{{count}} entries",
+  "filters": {
+    "q": "Search",
+    "qPlaceholder": "e.g. login, graduates, export...",
+    "level": "Level",
+    "all": "All",
+    "search": "Search",
+    "reset": "Reset"
+  },
+  "actions": {
+    "exportCsv": "Export CSV"
+  },
+  "table": {
+    "id": "ID",
+    "ts": "Timestamp",
+    "level": "Level",
+    "actor": "Actor",
+    "action": "Action",
+    "resource": "Resource",
+    "ip": "IP",
+    "details": "Details",
+    "none": "No logs."
+  },
+  "error": "Error",
+  "exportFailed": "Export failed"
+}

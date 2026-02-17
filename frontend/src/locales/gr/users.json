@@ -1,0 +1,37 @@
+{
+  "title": "Χρήστες",
+  "badgeLoading": "loading...",
+  "badgeCount": "{{count}} χρήστες",
+  "error": "Error",
+  "newUser": "Νέος χρήστης",
+  "labels": {
+    "firstName": "Όνομα",
+    "lastName": "Επώνυμο",
+    "email": "Email",
+    "role": "Ρόλος",
+    "passwordStrong": "Password (strong)",
+    "passwordHint": "8+ chars, letter + number + symbol"
+  },
+  "actions": {
+    "create": "Create",
+    "deactivate": "Deactivate"
+  },
+  "table": {
+    "id": "ID",
+    "email": "Email",
+    "name": "Όνομα",
+    "role": "Ρόλος",
+    "online": "Online",
+    "active": "Active",
+    "verified": "Verified",
+    "actions": "Actions",
+    "none": "Δεν υπάρχουν χρήστες."
+  },
+  "status": {
+    "online": "● online",
+    "offline": "○ offline"
+  },
+  "confirm": {
+    "deactivate": "Deactivate user #{{id}}?"
+  }
+}

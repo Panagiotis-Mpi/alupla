@@ -1,0 +1,29 @@
+{
+  "title": "Logs",
+  "badgeLoading": "loading...",
+  "badgeCount": "{{count}} entries",
+  "filters": {
+    "q": "Αναζήτηση",
+    "qPlaceholder": "π.χ. login, graduates, export...",
+    "level": "Level",
+    "all": "Όλα",
+    "search": "Αναζήτηση",
+    "reset": "Reset"
+  },
+  "actions": {
+    "exportCsv": "Export CSV"
+  },
+  "table": {
+    "id": "ID",
+    "ts": "Timestamp",
+    "level": "Level",
+    "actor": "Actor",
+    "action": "Action",
+    "resource": "Resource",
+    "ip": "IP",
+    "details": "Details",
+    "none": "Δεν υπάρχουν logs."
+  },
+  "error": "Error",
+  "exportFailed": "Export failed"
+}

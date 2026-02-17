@@ -177,14 +177,14 @@ export default function Graduates() {
         showToast({
           type: "error",
           title: t("toast.importWithErrors", { count: errCount }),
-          detail: `inserted: \${inserted}, updated: \${updated}, skipped: \${skipped}`,
+          detail: `inserted: ${inserted}, updated: ${updated}, skipped: ${skipped}`,
           action: "download_errors",
         });
       } else {
         showToast({
           type: "success",
           title: t("toast.importCompleted"),
-          detail: `inserted: \${inserted}, updated: \${updated}, skipped: \${skipped}`,
+          detail: `inserted: ${inserted}, updated: ${updated}, skipped: ${skipped}`,
         });
       }
 

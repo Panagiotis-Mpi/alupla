@@ -1,9 +1,10 @@
-
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { register as apiRegister } from "../lib/api";
 
 export default function Register() {
+  const { t } = useTranslation("auth");
   const nav = useNavigate();
   const [first, setFirst] = React.useState("");
   const [last, setLast] = React.useState("");
@@ -23,7 +24,7 @@ export default function Register() {
       // backend (dev) επιστρέφει verification_token
       if (res?.verification_token) setToken(String(res.verification_token));
     } catch (e: any) {
-      setErr(e?.message ?? "Register failed");
+      setErr(e?.message ?? t("register.failed"));
     } finally {
       setLoading(false);
     }
@@ -32,53 +33,56 @@ export default function Register() {
   return (
     <div className="container">
       <div className="card" style={{ maxWidth: 520, margin: "48px auto" }}>
-        <h2 style={{ marginTop: 0 }}>Δημιουργία Λογαριασμού</h2>
-        <p style={{ marginTop: -8, opacity: 0.8 }}>
-          Για ανάπτυξη: θα πάρεις token επιβεβαίωσης και θα κάνεις verify.
-        </p>
+        <h2 style={{ marginTop: 0 }}>{t("register.title")}</h2>
+        <p style={{ marginTop: -8, opacity: 0.8 }}>{t("register.devHint")}</p>
 
         <form onSubmit={onSubmit} className="grid">
           <div className="grid cols2">
             <label>
-              <span className="label">Όνομα</span>
+              <span className="label">{t("register.firstName")}</span>
               <input className="input" value={first} onChange={(e) => setFirst(e.target.value)} />
             </label>
             <label>
-              <span className="label">Επώνυμο</span>
+              <span className="label">{t("register.lastName")}</span>
               <input className="input" value={last} onChange={(e) => setLast(e.target.value)} />
             </label>
           </div>
 
           <label>
-            <span className="label">Email</span>
-            <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@..." />
+            <span className="label">{t("register.email")}</span>
+            <input
+              className="input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t("register.emailPlaceholder")}
+            />
           </label>
 
           <label>
-            <span className="label">Κωδικός (8+ με γράμμα/αριθμό/σύμβολο)</span>
+            <span className="label">{t("register.passwordHint")}</span>
             <input className="input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
           </label>
 
           {err && <div className="error">{err}</div>}
 
           <button className="btn primary" disabled={loading}>
-            {loading ? "..." : "Register"}
+            {loading ? t("common.loading") : t("register.button")}
           </button>
 
           {token && (
             <div className="card" style={{ background: "#fafafa" }}>
-              <div style={{ fontSize: 12, marginBottom: 6, opacity: 0.85 }}>Verification token (dev):</div>
+              <div style={{ fontSize: 12, marginBottom: 6, opacity: 0.85 }}>{t("register.tokenLabel")}</div>
               <code style={{ wordBreak: "break-all" }}>{token}</code>
               <div style={{ marginTop: 10 }}>
                 <button className="btn" type="button" onClick={() => nav(`/verify?token=${encodeURIComponent(token)}`)}>
-                  Verify τώρα
+                  {t("register.verifyNow")}
                 </button>
               </div>
             </div>
           )}
 
           <div style={{ fontSize: 12, opacity: 0.85 }}>
-            Έχεις ήδη λογαριασμό; <Link to="/login">Σύνδεση</Link>
+            {t("register.haveAccount")} <Link to="/login">{t("register.login")}</Link>
           </div>
         </form>
       </div>

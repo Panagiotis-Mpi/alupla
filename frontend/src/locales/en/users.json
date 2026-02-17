@@ -1,0 +1,37 @@
+{
+  "title": "Users",
+  "badgeLoading": "loading...",
+  "badgeCount": "{{count}} users",
+  "error": "Error",
+  "newUser": "New user",
+  "labels": {
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "role": "Role",
+    "passwordStrong": "Password (strong)",
+    "passwordHint": "8+ chars, letter + number + symbol"
+  },
+  "actions": {
+    "create": "Create",
+    "deactivate": "Deactivate"
+  },
+  "table": {
+    "id": "ID",
+    "email": "Email",
+    "name": "Name",
+    "role": "Role",
+    "online": "Online",
+    "active": "Active",
+    "verified": "Verified",
+    "actions": "Actions",
+    "none": "No users."
+  },
+  "status": {
+    "online": "● online",
+    "offline": "○ offline"
+  },
+  "confirm": {
+    "deactivate": "Deactivate user #{{id}}?"
+  }
+}

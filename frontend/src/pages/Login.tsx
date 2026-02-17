@@ -5,7 +5,7 @@ import { login as apiLogin } from "../lib/api";
 import { setSession } from "../lib/auth";
 
 export default function Login() {
-  const { t } = useTranslation();
+  const { t } = useTranslation("auth");
   const nav = useNavigate();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -23,7 +23,7 @@ export default function Login() {
       setSession(res.token, res.user);
       nav("/graduates");
     } catch (e: any) {
-      setErr(e?.message ?? "Login failed");
+      setErr(e?.message ?? t("login.failed"));
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export default function Login() {
           {err && <div className="error">{err}</div>}
 
           <button className="btn primary" disabled={loading} type="submit">
-            {loading ? "..." : t("login.button")}
+            {loading ? t("common.loading") : t("login.button")}
           </button>
 
           <div style={{ display: "flex", gap: 10, fontSize: 12, opacity: 0.9 }}>
