@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { GeoJSON, MapContainer, TileLayer } from "react-leaflet";
+import { GeoJSON, MapContainer } from "react-leaflet";
 import type { LeafletMouseEvent } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -251,8 +251,12 @@ export default function Map() {
       <div className="grid cols2" style={{ alignItems: "start", marginTop: 12 }}>
         <div className="card" style={{ padding: 0, overflow: "hidden", position: "relative" }}>
           <div style={{ height: 520 }}>
-            <MapContainer center={[38.6, 24.0]} zoom={6} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
-              <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <MapContainer
+              center={[38.6, 24.0]}
+              zoom={6}
+              style={{ height: "100%", width: "100%", background: "#ffffff" }}
+              scrollWheelZoom
+            >
 
               {geojson ? (
                 <GeoJSON

@@ -1,6 +1,8 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { getPublicStats, getPublicStudyPrograms, publicAnonExportUrl, type StudyProgram } from "../lib/api";
+import { getUser } from "../lib/auth";
 
 type Filters = {
   graduation_year: string;
@@ -11,6 +13,8 @@ type Filters = {
 
 export default function Statistics() {
   const { t } = useTranslation("statistics");
+  const nav = useNavigate();
+  const user = getUser();
 
   const [programs, setPrograms] = React.useState<StudyProgram[]>([]);
   const [filters, setFilters] = React.useState<Filters>({ graduation_year: "", study_program_id: "", gender: "", age_group: "" });
@@ -58,6 +62,11 @@ export default function Statistics() {
       <div className="topbar">
         <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
         <div className="spacer" />
+        {!user && (
+          <button className="btn" type="button" onClick={() => nav("/login")}>
+            {t("login", { defaultValue: "Σύνδεση" })}
+          </button>
+        )}
         <button className="btn" type="button" onClick={downloadAnon}>
           {t("filters.exportCsv")}
         </button>

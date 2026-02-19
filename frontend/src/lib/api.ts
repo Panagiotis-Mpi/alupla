@@ -416,3 +416,53 @@ export async function importGraduatesXlsx(file: File): Promise<any> {
   return await res.json();
 }
 
+// ---------- Public (no-auth) endpoints ----------
+export async function getPublicStudyPrograms(): Promise<{ ok: true; items: StudyProgram[] } | any> {
+  return api("/public/study-programs", { method: "GET" });
+}
+
+export async function getPublicStats(params: {
+  graduation_year?: string;
+  study_program_id?: string;
+  gender?: string;
+  age_group?: string;
+}): Promise<any> {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params ?? {})) {
+    if (v === undefined || v === null || v === "") continue;
+    q.set(k, String(v));
+  }
+  const qs = q.toString();
+  return api(`/public/stats${qs ? `?${qs}` : ""}`, { method: "GET" });
+}
+
+export async function getPublicMap(params: {
+  graduation_year?: string;
+  study_program_id?: string;
+  gender?: string;
+  age_group?: string;
+}): Promise<any> {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params ?? {})) {
+    if (v === undefined || v === null || v === "") continue;
+    q.set(k, String(v));
+  }
+  const qs = q.toString();
+  return api(`/public/map${qs ? `?${qs}` : ""}`, { method: "GET" });
+}
+
+export function publicAnonExportUrl(params: {
+  graduation_year?: string;
+  study_program_id?: string;
+  gender?: string;
+  age_group?: string;
+}) {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params ?? {})) {
+    if (v === undefined || v === null || v === "") continue;
+    q.set(k, String(v));
+  }
+  const qs = q.toString();
+  return `${API_URL}/public/anonymous-graduates.csv${qs ? `?${qs}` : ""}`;
+}
+

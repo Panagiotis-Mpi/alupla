@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { authRequired } from "../middleware/auth";
 import { getGraduatesMap } from "../controllers/map.controller";
 
 const r = Router();
 
-// Authenticated map data (used by the frontend interactive map page)
-r.get("/graduates", authRequired, getGraduatesMap);
+// Map data is anonymous/aggregated, so it is safe to expose without login.
+// (Admins/secretariat can still access it too.)
+r.get("/graduates", getGraduatesMap);
 
 export default r;

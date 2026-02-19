@@ -13,6 +13,7 @@ import { usersRouter } from "./routes/users.routes";
 import { activityLogsRouter } from "./routes/activityLogs.routes";
 import { presenceRouter } from "./routes/presence.routes";
 import mapRouter from "./routes/map.routes";
+import { publicRouter } from "./routes/public.routes";
 
 export function createApp() {
   const app = express();
@@ -35,6 +36,9 @@ export function createApp() {
   app.use("/activity-logs", activityLogsRouter);
   app.use("/presence", presenceRouter);
   app.use("/map", mapRouter);
+
+  // Public (no-auth) endpoints for anonymous statistics/map + anonymous CSV export
+  app.use("/public", publicRouter);
 
   app.use("/study-programs", studyProgramsRouter);
   app.use("/program-directions", programDirectionsRouter);

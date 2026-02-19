@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPublicMap, getPublicStudyPrograms, publicAnonExportUrl, type StudyProgram } from "../lib/api";
 
@@ -55,6 +56,9 @@ export default function MapView() {
         <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
         <span className="muted" style={{ marginLeft: 10 }}>{t("note")}</span>
         <div className="spacer" />
+        <Link className="btn" to="/login">
+          {t("filters.login") || "Σύνδεση"}
+        </Link>
         <button className="btn" type="button" onClick={downloadAnon}>
           {t("filters.exportCsv")}
         </button>
