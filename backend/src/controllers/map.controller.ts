@@ -70,7 +70,8 @@ export async function getGraduatesMap(req: Request, res: Response) {
 
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_region_id", "gender", "birth_year"],
+        // origin_region_id is preferred; origin_municipality is a fallback for older/imported rows.
+    attributes: ["origin_region_id", "origin_municipality", "gender", "birth_year"],
   });
 
   const groups = new Map<number, any>();
@@ -92,8 +93,34 @@ export async function getGraduatesMap(req: Request, res: Response) {
     });
   }
 
+  // A lightweight lookup to resolve municipality/city names to a Region id when origin_region_id is missing.
+  // This keeps the map useful even if some imported graduates only have origin_municipality filled.
+  const normalizeKey = (s: string) =>
+    (s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      // remove accents/diacritics
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const byName = new Map<string, any>();
+  for (const r of regions as any[]) {
+    const k = normalizeKey(String(r.name || ""));
+    if (!k) continue;
+    if (!byName.has(k)) byName.set(k, r);
+  }
+
+  function resolveRegionIdFromMunicipalityName(name: string | null | undefined): number | null {
+    const k = normalizeKey(String(name || ""));
+    if (!k) return null;
+    const hit = byName.get(k);
+    return hit ? (Number(hit.id) || null) : null;
+  }
+
   for (const g of grads as any[]) {
-    const per = findPeriphery(Number(g.origin_region_id) || null);
+    const originId = Number(g.origin_region_id) || resolveRegionIdFromMunicipalityName(g.origin_municipality);
+    const per = findPeriphery(originId);
     if (!per) continue;
 
     const id = Number(per.id);

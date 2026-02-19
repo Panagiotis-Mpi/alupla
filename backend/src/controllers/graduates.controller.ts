@@ -4,10 +4,11 @@ import { ProgramDirection } from "../models/ProgramDirection";
 import { StudyProgram } from "../models/StudyProgram";
 import { Region } from "../models/Region";
 import { buildGraduateWhere } from "../utils/buildGraduateWhere";
-import { clamp, toInt } from "../utils/pagination";
+import { clamp, toInt as toIntParam } from "../utils/pagination";
 import { logAction } from "../services/log.service";
 import * as XLSX from "xlsx";
 import { normHeader, toDateOnly, toInt, toNumber } from "../utils/importUtils";
+import { resolvePeripheryRegionId } from "../utils/resolvePeripheryRegionId";
 
 function parseSort(sortRaw: unknown): Array<[string, "ASC" | "DESC"]> {
   const s = typeof sortRaw === "string" ? sortRaw.trim() : "";
@@ -49,8 +50,8 @@ function toNullableNumber(v: any): number | null {
 
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
   try {
-    const page = clamp(toInt(req.query.page, 1), 1, 1_000_000);
-    const pageSize = clamp(toInt(req.query.pageSize, 20), 1, 200);
+    const page = clamp(toIntParam(req.query.page, 1), 1, 1_000_000);
+    const pageSize = clamp(toIntParam(req.query.pageSize, 20), 1, 200);
     const offset = (page - 1) * pageSize;
 
     const where = buildGraduateWhere(req.query as Record<string, unknown>);
@@ -84,7 +85,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
     const order = parseSort(req.query.sort);
 
     // Safety cap
-    const limit = clamp(toInt(req.query.limit, 5000), 1, 10000);
+    const limit = clamp(toIntParam(req.query.limit, 5000), 1, 10000);
     const rows = await Graduate.findAll({ where, order, limit });
 
     const data = rows.map((g) => ({
@@ -242,8 +243,12 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         birth_year,
         study_program_id,
         program_direction_id: program_direction_id ?? null,
-        origin_region_id: origin_region_id ?? null,
-        origin_municipality
+        // Option A: always store PERIPHERY id.
+        origin_region_id: await resolvePeripheryRegionId({
+          origin_region_id: origin_region_id ?? null,
+          origin_municipality,
+        }),
+        origin_municipality,
       };
 
       // Upsert by student_number (common stable identifier)
@@ -363,15 +368,16 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     const origin_region_id = toNullableNumber(body.origin_region_id);
     if (Number.isNaN(origin_region_id as any)) return bad(res, "origin_region_id must be a number");
 
-    if (origin_region_id !== null) {
-      const region = await Region.findByPk(origin_region_id);
-      if (!region) return bad(res, "origin_region_id not found");
-    }
-
     const origin_municipality =
       body.origin_municipality === undefined || body.origin_municipality === null || body.origin_municipality === ""
         ? null
         : String(body.origin_municipality).trim();
+
+    // Option A: always store PERIPHERY id.
+    const periphery_origin_region_id = await resolvePeripheryRegionId({
+      origin_region_id: origin_region_id ?? null,
+      origin_municipality,
+    });
 
     const created = await Graduate.create({
       ad_code,
@@ -387,7 +393,7 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
       gender,
       study_program_id,
       program_direction_id,
-      origin_region_id,
+      origin_region_id: periphery_origin_region_id,
       origin_municipality
     } as any);
 
@@ -451,17 +457,13 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       (item as any).program_direction_id = program_direction_id;
     }
 
-    // Validate region if provided
+    // If region/municipality changes, normalize to PERIPHERY (Option A)
+    let originRegionTouched = false;
     if (body.origin_region_id !== undefined) {
       const origin_region_id = toNullableNumber(body.origin_region_id);
       if (Number.isNaN(origin_region_id as any)) return bad(res, "origin_region_id must be a number");
-
-      if (origin_region_id !== null) {
-        const region = await Region.findByPk(origin_region_id);
-        if (!region) return bad(res, "origin_region_id not found");
-      }
-
       (item as any).origin_region_id = origin_region_id;
+      originRegionTouched = true;
     }
 
     // Apply other fields (if present)
@@ -479,7 +481,16 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     setIf("oath_date", (v) => String(v ?? "").trim());
     setIf("entry_year", (v) => (v === "" ? NaN : Number(v)));
     setIf("birth_year", (v) => (v === "" ? NaN : Number(v)));
+    if (body.origin_municipality !== undefined) originRegionTouched = true;
     setIf("origin_municipality", (v) => (v === "" ? null : String(v ?? "").trim()));
+
+    if (originRegionTouched) {
+      const normalized = await resolvePeripheryRegionId({
+        origin_region_id: (item as any).origin_region_id ?? null,
+        origin_municipality: (item as any).origin_municipality ?? null,
+      });
+      (item as any).origin_region_id = normalized;
+    }
 
     if (body.study_program_id !== undefined) (item as any).study_program_id = nextStudyProgramId;    // Required still after updates (basic sanity)
     if (!String((item as any).ad_code ?? "").trim()) return bad(res, "ad_code cannot be empty");
@@ -531,6 +542,52 @@ export async function deleteGraduate(req: Request, res: Response, next: NextFunc
     });
 
     res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Admin utility: one-time normalization of stored origins to PERIPHERY (Option A)
+export async function normalizeGraduateOrigins(req: Request, res: Response, next: NextFunction) {
+  try {
+    // Safety cap to avoid huge accidental runs
+    const limit = clamp(toIntParam((req.query.limit as any) ?? 5000, 5000), 1, 20000);
+
+    const grads = await Graduate.findAll({
+      limit,
+      attributes: ["id", "origin_region_id", "origin_municipality"],
+    });
+
+    let changed = 0;
+    let unchanged = 0;
+
+    for (const g of grads as any[]) {
+      const normalized = await resolvePeripheryRegionId({
+        origin_region_id: g.origin_region_id != null ? Number(g.origin_region_id) : null,
+        origin_municipality: g.origin_municipality ? String(g.origin_municipality) : null,
+      });
+
+      const cur = g.origin_region_id != null ? Number(g.origin_region_id) : null;
+      if (normalized !== cur) {
+        await Graduate.update(
+          { origin_region_id: normalized },
+          { where: { id: Number(g.id) } }
+        );
+        changed++;
+      } else {
+        unchanged++;
+      }
+    }
+
+    await logAction({
+      user_id: req.user?.id ?? null,
+      action: "normalize_graduate_origins",
+      entity_type: "graduate",
+      entity_id: null,
+      details: { limit, changed, unchanged },
+    });
+
+    res.json({ ok: true, limit, changed, unchanged });
   } catch (err) {
     next(err);
   }

@@ -1,5 +1,5 @@
 {
-  "pageTitle": "Graduates map",
+  "pageTitle": "Graduates map (Regions)",
   "topbar": {
     "loading": "Loading…",
     "ready": "Ready"
@@ -15,19 +15,23 @@
     "apply": "Apply",
     "reset": "Reset"
   },
+  "export": {
+    "png": "Export PNG",
+    "notReady": "Map is not ready for export"
+  },
   "map": {
     "total": "Total: {{total}}"
   },
   "legend": {
     "title": "Legend",
-    "hint": "Bigger circle = more graduates"
+    "hint": "Darker color = more graduates"
   },
   "panel": {
     "title": "Details",
-    "selectHint": "Click a circle on the map to see details.",
+    "selectHint": "Click a region for details.",
     "region": "Region",
     "total": "Total graduates",
-    "avgAge": "Average age",
+    "avgAge": "Avg age",
     "male": "Male",
     "female": "Female"
   },
