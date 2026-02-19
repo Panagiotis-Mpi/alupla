@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
 import Guard from "./components/Guard";
 import { getUser, logout } from "./lib/auth";
+import { presencePing } from "./lib/api";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Verify from "./pages/Verify";
@@ -103,6 +104,72 @@ function TopNav() {
 }
 
 export default function App() {
+  // Presence heartbeat:
+  // - Helps super_admin see who is currently active.
+  // - Uses a leader lock in localStorage so only 1 tab pings per browser.
+  React.useEffect(() => {
+    const user = getUser();
+    if (!user) return;
+
+    const TAB_KEY = "alupla_presence_tab_id";
+    const LOCK_KEY = "alupla_presence_leader";
+
+    const pingEveryMs = 45_000; // 45s (backend considers online if seen within 60s)
+    const lockStaleMs = 90_000; // if no refresh for 90s, another tab may take over
+
+    // Stable per-tab id
+    let tabId = sessionStorage.getItem(TAB_KEY);
+    if (!tabId) {
+      tabId = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      sessionStorage.setItem(TAB_KEY, tabId);
+    }
+
+    function getLock(): { tabId: string; ts: number } | null {
+      const raw = localStorage.getItem(LOCK_KEY);
+      if (!raw) return null;
+      try {
+        const v = JSON.parse(raw) as any;
+        if (!v || typeof v.tabId !== "string" || typeof v.ts !== "number") return null;
+        return { tabId: v.tabId, ts: v.ts };
+      } catch {
+        return null;
+      }
+    }
+
+    function setLock(next: { tabId: string; ts: number }) {
+      localStorage.setItem(LOCK_KEY, JSON.stringify(next));
+    }
+
+    async function tick() {
+      const now = Date.now();
+      const lock = getLock();
+      const canTake = !lock || now - lock.ts > lockStaleMs;
+      const isLeader = lock?.tabId === tabId;
+
+      if (isLeader || canTake) {
+        setLock({ tabId: tabId!, ts: now });
+        try {
+          await presencePing();
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    void tick();
+    const id = window.setInterval(() => {
+      void tick();
+    }, pingEveryMs);
+
+    return () => {
+      window.clearInterval(id);
+      const lock = getLock();
+      if (lock?.tabId === tabId) {
+        setLock({ tabId: tabId!, ts: 0 });
+      }
+    };
+  }, []);
+
   return (
     <>
       <TopNav />

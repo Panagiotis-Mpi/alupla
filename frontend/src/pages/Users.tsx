@@ -9,6 +9,9 @@ export default function Users() {
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
 
+  // Avoid overlapping refreshes (auto-refresh + manual refresh after actions)
+  const inFlight = React.useRef(false);
+
   const [form, setForm] = React.useState({
     first_name: "",
     last_name: "",
@@ -18,6 +21,8 @@ export default function Users() {
   });
 
   async function load() {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setLoading(true);
     setErr(null);
     try {
@@ -27,11 +32,20 @@ export default function Users() {
       setErr(e?.message ?? t("error"));
     } finally {
       setLoading(false);
+      inFlight.current = false;
     }
   }
 
   React.useEffect(() => {
     void load();
+  }, []);
+
+  // Auto-refresh so super_admin can see who is active in near real-time.
+  React.useEffect(() => {
+    const id = window.setInterval(() => {
+      void load();
+    }, 10_000);
+    return () => window.clearInterval(id);
   }, []);
 
   async function onCreate() {

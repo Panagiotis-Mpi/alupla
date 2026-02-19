@@ -200,7 +200,9 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `first_name`, `last_name`, `email`, `password_hash`, `role`, `is_active`, `email_verified`, `email_verification_token`, `email_verification_expires`, `password_reset_token`, `password_reset_expires`, `created_at`, `updated_at`) VALUES
 (1, 'Super', 'Admin', 'admin@alupla.gr', '$2a$10$S8Kxk8jRMLVF3cnRgXI.8uaTY3JtxoztL6s24QJ2pIHhN.3J0PFjK', 'super_admin', 1, 1, NULL, NULL, NULL, NULL, '2026-02-12 13:40:43', '2026-02-12 14:29:10'),
-(2, 'Secretariat', 'User', 'secretariat@alupla.gr', '$2a$10$S8Kxk8jRMLVF3cnRgXI.8uaTY3JtxoztL6s24QJ2pIHhN.3J0PFjK', 'secretariat', 1, 1, NULL, NULL, NULL, NULL, '2026-02-12 13:40:43', '2026-02-12 14:28:18');
+(2, 'Secretariat', 'User', 'secretariat@alupla.gr', '$2a$10$S8Kxk8jRMLVF3cnRgXI.8uaTY3JtxoztL6s24QJ2pIHhN.3J0PFjK', 'secretariat', 1, 1, NULL, NULL, NULL, NULL, '2026-02-12 13:40:43', '2026-02-12 14:28:18',
+  last_seen_at TIMESTAMP NULL
+);
 
 --
 -- Indexes for dumped tables

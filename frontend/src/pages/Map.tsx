@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GeoJSON, MapContainer, TileLayer } from "react-leaflet";
+import type { LeafletMouseEvent } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import { getGraduatesMap, type GraduatesMapItem } from "../lib/api";
@@ -29,6 +30,26 @@ function tryParseGeoJson(raw: string): any | null {
   }
 }
 
+function downloadBlob(filename: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function csvEscape(v: any, delimiter: string) {
+  const s = v === null || v === undefined ? "" : String(v);
+  // Quote if it contains delimiter, quote, or newline
+  if (s.includes(delimiter) || s.includes('"') || s.includes("\n") || s.includes("\r")) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
 export default function Map() {
   const { t, i18n } = useTranslation();
 
@@ -43,7 +64,7 @@ export default function Map() {
 
   const geojson = useMemo(() => tryParseGeoJson(greeceRegionsRaw), []);
 
-  // Build counts map keyed by periphery_name (Greek), normalized.
+  // counts keyed by Greek name (periphery_name), normalized.
   const countsByGreekName = useMemo(() => {
     const M = new (globalThis as any).Map<string, number>();
     for (const it of items) {
@@ -106,14 +127,12 @@ export default function Map() {
   }
 
   function featureGreekName(feature: any): string {
-    // Prefer greek field if exists; fallback to "name" (might be English).
     const p = feature?.properties || {};
     return String(p.name_greek || p.name_el || p.name || p.NAME || "");
   }
 
   function featureDisplayName(feature: any): string {
     const p = feature?.properties || {};
-    // If UI language is EN and we have English label, show it; otherwise show Greek.
     if (i18n.language?.toLowerCase().startsWith("en")) {
       return String(p.name_en || p.name || p.NAME || p.name_greek || "");
     }
@@ -134,6 +153,45 @@ export default function Map() {
 
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
+  function onExportCsv() {
+    // Excel (especially on Windows) often misreads UTF-8 unless there is a BOM.
+    const BOM = "\ufeff";
+
+    // Greek/European Excel often expects semicolon delimiter.
+    const delimiter = i18n.language?.toLowerCase().startsWith("el") ? ";" : ",";
+
+    const headers = ["periphery_id", "periphery_name", "count", "avg_age", "male_pct", "female_pct"];
+    const lines = [headers.join(delimiter)];
+
+    for (const it of items) {
+      const row = [
+        (it as any).periphery_id ?? "",
+        (it as any).periphery_name ?? "",
+        (it as any).count ?? 0,
+        (it as any).avg_age ?? "",
+        (it as any).male_pct ?? "",
+        (it as any).female_pct ?? "",
+      ].map((v) => csvEscape(v, delimiter));
+      lines.push(row.join(delimiter));
+    }
+
+    const csv = BOM + lines.join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    downloadBlob("alupla_graduates_map_peripheries.csv", blob);
+  }
+
+  function legendBuckets(max: number) {
+    // 5 buckets inclusive
+    const m = Math.max(1, max);
+    const b1 = Math.ceil(m * 0.2);
+    const b2 = Math.ceil(m * 0.4);
+    const b3 = Math.ceil(m * 0.6);
+    const b4 = Math.ceil(m * 0.8);
+    return [0, b1, b2, b3, b4, m];
+  }
+
+  const buckets = useMemo(() => legendBuckets(maxCount), [maxCount]);
+
   return (
     <div className="page">
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -143,6 +201,12 @@ export default function Map() {
             ? t("common.loading", { defaultValue: "Φόρτωση..." })
             : `${t("common.ready", { defaultValue: "Έτοιμο" })} · ${t("map.totalInline", { defaultValue: "Σύνολο" })}: ${total}`}
         </span>
+
+        <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
+          <button className="secondary" onClick={onExportCsv} disabled={loading || items.length === 0}>
+            {t("map.exportCsv", { defaultValue: "Export CSV" })}
+          </button>
+        </div>
       </div>
 
       <div className="card" style={{ marginTop: 12 }}>
@@ -185,7 +249,7 @@ export default function Map() {
       </div>
 
       <div className="grid cols2" style={{ alignItems: "start", marginTop: 12 }}>
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="card" style={{ padding: 0, overflow: "hidden", position: "relative" }}>
           <div style={{ height: 520 }}>
             <MapContainer center={[38.6, 24.0]} zoom={6} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
               <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -203,23 +267,74 @@ export default function Map() {
                     } as any;
                   }}
                   onEachFeature={(feature: any, layer: any) => {
-                    // Bind once, but keep content fresh on hover using refs.
                     layer.bindTooltip(renderTooltipHtml(feature), { sticky: true });
 
                     layer.on({
-                      mouseover: () => {
+                      mouseover: (e: LeafletMouseEvent) => {
+                        layer.setStyle({ weight: 2 });
+                        layer.bringToFront();
                         layer.setTooltipContent(renderTooltipHtml(feature));
+                      },
+                      mouseout: () => {
+                        layer.setStyle({ weight: 1 });
                       },
                       click: () => {
                         const key = normalizeKey(featureGreekName(feature));
                         const match = itemsRef.current.find((it: any) => normalizeKey(String(it.periphery_name || "")) === key) || null;
                         setSelected(match);
+                        layer.setTooltipContent(renderTooltipHtml(feature));
                       },
                     });
                   }}
                 />
               ) : null}
             </MapContainer>
+          </div>
+
+          {/* Legend */}
+          <div
+            style={{
+              position: "absolute",
+              left: 12,
+              bottom: 12,
+              background: "rgba(255,255,255,.92)",
+              border: "1px solid #e5e7eb",
+              borderRadius: 10,
+              padding: "10px 12px",
+              fontSize: 12,
+              boxShadow: "0 2px 10px rgba(0,0,0,.06)",
+              maxWidth: 220,
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>{t("map.legend", { defaultValue: "Υπόμνημα" })}</div>
+            <div className="muted" style={{ marginBottom: 8 }}>
+              {t("map.legendCounts", { defaultValue: "Αριθμός αποφοίτων" })}
+            </div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {Array.from({ length: 5 }).map((_, idx) => {
+                const from = buckets[idx];
+                const to = buckets[idx + 1];
+                const mid = (from + to) / 2;
+                const opacity = fillOpacityForCount(mid);
+                return (
+                  <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span
+                      style={{
+                        width: 16,
+                        height: 12,
+                        display: "inline-block",
+                        border: "1px solid #334155",
+                        background: `rgba(37, 99, 235, ${opacity})`,
+                        borderRadius: 3,
+                      }}
+                    />
+                    <span>
+                      {from}–{to}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 

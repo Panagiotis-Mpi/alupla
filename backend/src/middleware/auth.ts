@@ -1,4 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
+import { Op } from "sequelize";
+import { User } from "../models/User";
 import { verifyToken } from "../utils/jwt";
 
 export type AuthUser = {
@@ -70,6 +72,22 @@ export function authRequired(req: Request, res: Response, next: NextFunction) {
     const au: AuthUser = { id: Number(payload.sub), role: payload.role };
     req.user = au;
     req.auth = au;
+
+    // Soft presence: update users.last_seen_at at most once per 5 minutes.
+    // Non-blocking to keep request latency low.
+    const cutoff = new Date(Date.now() - 5 * 60 * 1000);
+    void User.update(
+      { last_seen_at: new Date() },
+      {
+        where: {
+          id: au.id,
+          [Op.or]: [{ last_seen_at: null }, { last_seen_at: { [Op.lt]: cutoff } }]
+        }
+      }
+    ).catch(() => {
+      // ignore presence update failures
+    });
+
     return next();
   } catch {
     return res.status(401).json({ ok: false, error: { message: "Invalid token" } });
