@@ -12,6 +12,7 @@ import { authRouter } from "./routes/auth.routes";
 import { usersRouter } from "./routes/users.routes";
 import { activityLogsRouter } from "./routes/activityLogs.routes";
 import { presenceRouter } from "./routes/presence.routes";
+import mapRouter from "./routes/map.routes";
 
 export function createApp() {
   const app = express();
@@ -33,6 +34,7 @@ export function createApp() {
   app.use("/users", usersRouter);
   app.use("/activity-logs", activityLogsRouter);
   app.use("/presence", presenceRouter);
+  app.use("/map", mapRouter);
 
   app.use("/study-programs", studyProgramsRouter);
   app.use("/program-directions", programDirectionsRouter);

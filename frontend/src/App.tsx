@@ -15,6 +15,7 @@ import Regions from "./pages/Regions";
 import Profile from "./pages/Profile";
 import Users from "./pages/Users";
 import Logs from "./pages/Logs";
+import Map from "./pages/Map";
 
 function TopNav() {
   const { t } = useTranslation();
@@ -45,6 +46,9 @@ function TopNav() {
           </Link>
           <Link className="btn" to="/regions">
             {t("nav.regions")}
+          </Link>
+          <Link className="btn" to="/map">
+            {t("nav.map")}
           </Link>
           <Link className="btn" to="/profile">
             {t("nav.profile")}
@@ -167,6 +171,15 @@ export default function App() {
             element={
               <Guard allow={["secretariat", "super_admin"]}>
                 <Regions />
+              </Guard>
+            }
+          />
+
+          <Route
+            path="/map"
+            element={
+              <Guard allow={["secretariat", "super_admin"]}>
+                <Map />
               </Guard>
             }
           />

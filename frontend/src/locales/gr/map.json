@@ -1,0 +1,37 @@
+{
+  "pageTitle": "Χάρτης αποφοίτων",
+  "topbar": {
+    "loading": "Φόρτωση…",
+    "ready": "Έτοιμο"
+  },
+  "filters": {
+    "gradYear": "Έτος αποφοίτησης",
+    "gradYearPlaceholder": "π.χ. 2026",
+    "studyProgramId": "ID προγράμματος",
+    "studyProgramIdPlaceholder": "π.χ. 1",
+    "gender": "Φύλο",
+    "ageGroup": "Ηλικιακή ομάδα",
+    "all": "Όλα",
+    "apply": "Εφαρμογή",
+    "reset": "Reset"
+  },
+  "map": {
+    "total": "Σύνολο: {{total}}"
+  },
+  "legend": {
+    "title": "Υπόμνημα",
+    "hint": "Μεγαλύτερος κύκλος = περισσότεροι απόφοιτοι"
+  },
+  "panel": {
+    "title": "Λεπτομέρειες",
+    "selectHint": "Κάνε κλικ σε έναν κύκλο στον χάρτη για λεπτομέρειες.",
+    "region": "Περιοχή",
+    "total": "Σύνολο αποφοίτων",
+    "avgAge": "Μ.Ο. ηλικίας",
+    "male": "Άνδρες",
+    "female": "Γυναίκες"
+  },
+  "errors": {
+    "failed": "Αποτυχία φόρτωσης δεδομένων χάρτη"
+  }
+}

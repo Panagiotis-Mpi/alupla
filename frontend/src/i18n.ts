@@ -18,6 +18,8 @@ import grLogs from "./locales/gr/logs.json";
 import enLogs from "./locales/en/logs.json";
 import grProfile from "./locales/gr/profile.json";
 import enProfile from "./locales/en/profile.json";
+import grMap from "./locales/gr/map.json";
+import enMap from "./locales/en/map.json";
 
 i18n
   .use(LanguageDetector)
@@ -33,6 +35,7 @@ i18n
         users: grUsers,
         logs: grLogs,
         profile: grProfile,
+        map: grMap,
       },
       en: {
         common: enCommon,
@@ -43,6 +46,7 @@ i18n
         users: enUsers,
         logs: enLogs,
         profile: enProfile,
+        map: enMap,
       },
     },
     fallbackLng: "gr",

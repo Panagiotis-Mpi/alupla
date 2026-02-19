@@ -1,0 +1,37 @@
+{
+  "pageTitle": "Graduates map",
+  "topbar": {
+    "loading": "Loading…",
+    "ready": "Ready"
+  },
+  "filters": {
+    "gradYear": "Graduation year",
+    "gradYearPlaceholder": "e.g. 2026",
+    "studyProgramId": "Study program ID",
+    "studyProgramIdPlaceholder": "e.g. 1",
+    "gender": "Gender",
+    "ageGroup": "Age group",
+    "all": "All",
+    "apply": "Apply",
+    "reset": "Reset"
+  },
+  "map": {
+    "total": "Total: {{total}}"
+  },
+  "legend": {
+    "title": "Legend",
+    "hint": "Bigger circle = more graduates"
+  },
+  "panel": {
+    "title": "Details",
+    "selectHint": "Click a circle on the map to see details.",
+    "region": "Region",
+    "total": "Total graduates",
+    "avgAge": "Average age",
+    "male": "Male",
+    "female": "Female"
+  },
+  "errors": {
+    "failed": "Failed to load map data"
+  }
+}

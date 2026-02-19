@@ -5,6 +5,7 @@ import { ProgramDirection } from "./ProgramDirection";
 import { Graduate } from "./Graduate";
 import { ActivityLog } from "./ActivityLog";
 import { Region } from "./Region";
+import { ensurePeripheriesSeeded } from "../seed/peripheries";
 
 // Study Programs / Directions
 StudyProgram.hasMany(ProgramDirection, { foreignKey: "study_program_id" });
@@ -31,4 +32,12 @@ ActivityLog.belongsTo(User, { foreignKey: "user_id", as: "user" });
 
 export async function initDb() {
   await sequelize.authenticate();
+
+  // Public map expects PERIPHERY regions to exist. Seed once if missing.
+  try {
+    await ensurePeripheriesSeeded();
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn("[db] periphery seed skipped:", (e as any)?.message ?? e);
+  }
 }

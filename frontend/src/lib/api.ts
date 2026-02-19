@@ -168,6 +168,17 @@ export type ActivityLog = {
   user_email?: string | null;
 };
 
+export type GraduatesMapItem = {
+  periphery_id: number;
+  periphery_name: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  count: number;
+  male_pct: number;
+  female_pct: number;
+  avg_age: number | null;
+};
+
 // ---------- Auth ----------
 export async function login(email: string, password: string): Promise<{ ok: true; token: string; user: any } | any> {
   return api("/auth/login", {
@@ -327,6 +338,17 @@ export async function listActivityLogs(params: Record<string, any> = {}): Promis
   });
   const qs = q.toString();
   return api(`/activity-logs${qs ? `?${qs}` : ""}`, { method: "GET" });
+}
+
+// ---------- Map (graduates distribution) ----------
+export async function getGraduatesMap(params: Record<string, any> = {}): Promise<{ ok: true; items: GraduatesMapItem[]; total: number } | any> {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v === undefined || v === null || v === "") return;
+    q.set(k, String(v));
+  });
+  const qs = q.toString();
+  return api(`/map/graduates${qs ? `?${qs}` : ""}`, { method: "GET" });
 }
 
 // Export CSV as a simple link. Because a normal <a href> can't send the Authorization header,

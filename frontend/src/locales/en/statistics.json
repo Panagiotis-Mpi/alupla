@@ -1,0 +1,33 @@
+{
+  "pageTitle": "Statistics",
+  "filters": {
+    "graduationYear": "Graduation year",
+    "studyProgram": "Study program",
+    "gender": "Gender",
+    "ageGroup": "Age group",
+    "all": "All",
+    "apply": "Apply",
+    "exportCsv": "Export CSV (anonymous)"
+  },
+  "cards": {
+    "total": "Total graduates",
+    "avgAge": "Average age",
+    "avgGrade": "Average degree grade"
+  },
+  "sections": {
+    "byYear": "Graduates per year",
+    "gender": "M / F ratio",
+    "age": "Age distribution",
+    "gradeByYear": "Average grade per year"
+  },
+  "table": {
+    "year": "Year",
+    "count": "Count",
+    "male": "Male",
+    "female": "Female",
+    "avg": "Avg",
+    "ageGroup": "Age group"
+  },
+  "loading": "Loading...",
+  "error": "Something went wrong"
+}
