@@ -9,27 +9,31 @@ export default function PublicHome() {
   const user = getUser();
 
   return (
-    <div className="page" style={{ maxWidth: 900, margin: "0 auto" }}>
+    <div className="grid" style={{ gap: 14 }}>
+      <div className="topbar">
+        <h2 style={{ margin: 0 }}>{t("home.title", { defaultValue: "Καλώς ήρθατε" })}</h2>
+        <div className="spacer" />
+        {!user && (
+          <button className="btn" type="button" onClick={() => nav("/login")}>
+            {t("nav.login", { defaultValue: "Σύνδεση" })}
+          </button>
+        )}
+      </div>
+
       <div className="card" style={{ padding: 18 }}>
-        <h2 style={{ marginTop: 0 }}>{t("home.title", { defaultValue: "Καλώς ήρθατε" })}</h2>
-        <p style={{ marginTop: 6, opacity: 0.9 }}>
+        <p style={{ marginTop: 0, opacity: 0.9, maxWidth: 720 }}>
           {t("home.subtitle", {
             defaultValue: "Επιλέξτε τι θέλετε να δείτε. Τα δεδομένα είναι ανώνυμα/συγκεντρωτικά.",
           })}
         </p>
 
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 14 }}>
-          <button className="btn" onClick={() => nav("/map")}> 
+        <div className="topbar" style={{ marginTop: 14 }}>
+          <button className="btn primary" type="button" onClick={() => nav("/map")}>
             {t("home.map", { defaultValue: "Δείτε Χάρτη" })}
           </button>
-          <button className="btn" onClick={() => nav("/statistics")}> 
+          <button className="btn" type="button" onClick={() => nav("/statistics")}>
             {t("home.stats", { defaultValue: "Δείτε Στατιστικά" })}
           </button>
-          {!user && (
-            <button className="secondary" onClick={() => nav("/login")}>
-              {t("nav.login", { defaultValue: "Σύνδεση" })}
-            </button>
-          )}
         </div>
       </div>
     </div>

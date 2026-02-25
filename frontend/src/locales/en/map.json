@@ -1,10 +1,17 @@
 {
   "pageTitle": "Graduates map (Regions)",
+  "note": "Anonymous data",
+  "loading": "Loading...",
+  "error": "Something went wrong",
   "topbar": {
     "loading": "Loading…",
     "ready": "Ready"
   },
   "filters": {
+    "login": "Login",
+    "exportCsv": "Export CSV (anonymous)",
+    "graduationYear": "Graduation year",
+    "studyProgram": "Study program",
     "gradYear": "Graduation year",
     "gradYearPlaceholder": "e.g. 2026",
     "studyProgramId": "Study program ID",
@@ -14,6 +21,14 @@
     "all": "All",
     "apply": "Apply",
     "reset": "Reset"
+  },
+  "table": {
+    "region": "Region",
+    "type": "Type",
+    "count": "Count",
+    "male": "Male",
+    "female": "Female",
+    "ratio": "Ratio"
   },
   "export": {
     "png": "Export PNG",

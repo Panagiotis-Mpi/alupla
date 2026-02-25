@@ -1,10 +1,17 @@
 {
   "pageTitle": "Χάρτης αποφοίτων (Περιφέρειες)",
+  "note": "Ανώνυμα δεδομένα",
+  "loading": "Φόρτωση...",
+  "error": "Κάτι πήγε στραβά",
   "topbar": {
     "loading": "Φόρτωση…",
     "ready": "Έτοιμο"
   },
   "filters": {
+    "login": "Σύνδεση",
+    "exportCsv": "Εξαγωγή CSV (ανώνυμα)",
+    "graduationYear": "Έτος αποφοίτησης",
+    "studyProgram": "Πρόγραμμα Σπουδών",
     "gradYear": "Έτος αποφοίτησης",
     "gradYearPlaceholder": "π.χ. 2026",
     "studyProgramId": "ID προγράμματος",
@@ -14,6 +21,14 @@
     "all": "Όλα",
     "apply": "Εφαρμογή",
     "reset": "Reset"
+  },
+  "table": {
+    "region": "Περιφέρεια",
+    "type": "Τύπος",
+    "count": "Πλήθος",
+    "male": "Άνδρες",
+    "female": "Γυναίκες",
+    "ratio": "Αναλογία"
   },
   "export": {
     "png": "Export PNG",

@@ -35,46 +35,77 @@ function TopNav() {
     nav("/login");
   };
 
+  const onBrandClick = () => {
+    // If not logged in, send the user to the public landing page.
+    if (!user) {
+      nav("/");
+      return;
+    }
+    // If logged in, send the user to the first page based on role.
+    if (role === "super_admin") {
+      nav("/users");
+      return;
+    }
+    // secretariat
+    nav("/graduates");
+  };
+
   const lang = i18n.language?.startsWith("en") ? "en" : "gr";
+
+  // Nav order must match mockups per role.
+  // Guest & auth pages:   Στατιστικά, Χάρτης
+  // Secretariat user:     Απόφοιτοι, Στατιστικά, Χάρτης
+  // Super admin:          Χρήστες, Απόφοιτοι, Στατιστικά, Χάρτης, Logs
+  const navLinks: Array<{ to: string; label: string }> = React.useMemo(() => {
+    const statsLabel = t("nav.statistics", { defaultValue: "Στατιστικά" });
+    const mapLabel = t("nav.map");
+    const gradsLabel = t("nav.graduates");
+    const usersLabel = t("nav.users");
+    const logsLabel = t("nav.logs");
+
+    if (!user) return [{ to: "/statistics", label: statsLabel }, { to: "/map", label: mapLabel }];
+
+    if (role === "super_admin") {
+      return [
+        { to: "/users", label: usersLabel },
+        { to: "/graduates", label: gradsLabel },
+        { to: "/statistics", label: statsLabel },
+        { to: "/map", label: mapLabel },
+        { to: "/logs", label: logsLabel },
+      ];
+    }
+
+    // secretariat
+    return [
+      { to: "/graduates", label: gradsLabel },
+      { to: "/statistics", label: statsLabel },
+      { to: "/map", label: mapLabel },
+    ];
+  }, [t, user, role]);
 
   return (
     <div className="nav">
-      <strong>ALUPLA</strong>
+      <button className="brand" type="button" onClick={onBrandClick} aria-label="ALUPLA Home">
+        ALUPLA
+      </button>
 
-      {!isAuthRoute && (
+      {/* In mockups, auth pages also show: Στατιστικά, Χάρτης */}
+      {isAuthRoute ? (
         <>
-          {/* Public anonymous pages */}
-          <Link className="btn" to="/map">
-            {t("nav.map")}
-          </Link>
           <Link className="btn" to="/statistics">
             {t("nav.statistics", { defaultValue: "Στατιστικά" })}
           </Link>
-
-          {/* Authenticated-only pages */}
-          {user && (
-            <>
-              <Link className="btn" to="/graduates">
-                {t("nav.graduates")}
-              </Link>
-              <Link className="btn" to="/regions">
-                {t("nav.regions")}
-              </Link>
-              <Link className="btn" to="/profile">
-                {t("nav.profile")}
-              </Link>
-              {role === "super_admin" && (
-                <Link className="btn" to="/users">
-                  {t("nav.users")}
-                </Link>
-              )}
-              {role === "super_admin" && (
-                <Link className="btn" to="/logs">
-                  {t("nav.logs")}
-                </Link>
-              )}
-            </>
-          )}
+          <Link className="btn" to="/map">
+            {t("nav.map")}
+          </Link>
+        </>
+      ) : (
+        <>
+          {navLinks.map((l) => (
+            <Link key={l.to} className="btn" to={l.to}>
+              {l.label}
+            </Link>
+          ))}
         </>
       )}
 
@@ -100,9 +131,15 @@ function TopNav() {
         </button>
       </div>
 
+      {/* Right-side actions */}
       {!isAuthRoute && (
         <>
           <span className="badge">{user ? `${user.first_name} ${user.last_name} (${user.role})` : "guest"}</span>
+          {user && (
+            <button className="btn" onClick={() => nav("/profile")}>
+              {t("nav.profile", { defaultValue: "Προφίλ" })}
+            </button>
+          )}
           {user ? (
             <button className="btn" onClick={onLogout}>
               {t("nav.logout")}
