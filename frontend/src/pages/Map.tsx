@@ -114,15 +114,20 @@ export default function Map() {
     itemsRef.current = items;
   }, [items]);
 
-  async function onApply() {
+  async function fetchMap(opts?: {
+    year?: string;
+    studyProgramId?: string;
+    gender?: string;
+    ageGroup?: AgeGroup;
+  }) {
     setLoading(true);
     setSelected(null);
     try {
       const res = await getGraduatesMap({
-        year: year || undefined,
-        study_program_id: studyProgramId || undefined,
-        gender: gender || undefined,
-        age_group: ageGroup || undefined,
+        year: opts?.year || undefined,
+        study_program_id: opts?.studyProgramId || undefined,
+        gender: opts?.gender || undefined,
+        age_group: opts?.ageGroup || undefined,
       });
       setItems(res?.items ?? []);
     } finally {
@@ -130,19 +135,58 @@ export default function Map() {
     }
   }
 
+  // Load totals immediately on first render (no filters)
+  useEffect(() => {
+    fetchMap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function onApply() {
+    await fetchMap({ year, studyProgramId, gender, ageGroup });
+  }
+
   function onReset() {
     setYear("");
     setStudyProgramId("");
     setGender("");
     setAgeGroup("");
-    setItems([]);
     setSelected(null);
+    // After clearing filters, show totals again (no filters)
+    fetchMap();
   }
 
-  function fillOpacityForCount(c: number) {
-    const ratio = maxCount <= 0 ? 0 : c / maxCount;
-    return clamp(0.15 + ratio * 0.65, 0.15, 0.8);
+  
+// Color ramp (soft blue shades). 5 buckets.
+const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
+
+function thresholdsForMax(m: number) {
+  const mm = Math.max(1, m || 1);
+  const b1 = Math.ceil(mm * 0.2);
+  const b2 = Math.ceil(mm * 0.4);
+  const b3 = Math.ceil(mm * 0.6);
+  const b4 = Math.ceil(mm * 0.8);
+  return [0, b1, b2, b3, b4, mm];
+}
+
+function bucketIndexForCount(c: number) {
+  const t = thresholdsForMax(maxCount);
+  for (let i = 0; i < 5; i++) {
+    const from = t[i];
+    const to = t[i + 1];
+    if (c >= from && c <= to) return i;
   }
+  return 4;
+}
+
+function fillColorForCount(c: number) {
+  const idx = bucketIndexForCount(c);
+  return fillColors[Math.max(0, Math.min(fillColors.length - 1, idx))];
+}
+
+function fillOpacityForCount(c: number) {
+  // Keep a visible but subtle fill for 0-count regions.
+  return c <= 0 ? 0.18 : 0.75;
+}
 
   function featureGreekName(feature: any): string {
     const p = feature?.properties || {};
@@ -210,6 +254,12 @@ export default function Map() {
 
   const buckets = useMemo(() => legendBuckets(maxCount), [maxCount]);
 
+  // react-leaflet's GeoJSON layers do not always re-apply styles when external data changes.
+  // Force a remount whenever the computed buckets/max change so initial load paints correctly.
+  const geoRenderKey = useMemo(() => {
+    return `${i18n.language}:${items.length}:${maxCount}`;
+  }, [i18n.language, items.length, maxCount]);
+
   return (
     <div className="page">
       {/* Remove the Leaflet/SVG focus outline (the "selection box") without affecting behavior */}
@@ -228,7 +278,7 @@ export default function Map() {
         </span>
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
-          <button className="btn" onClick={onExportCsv} disabled={loading || items.length === 0}>
+          <button className="secondary" onClick={onExportCsv} disabled={loading || items.length === 0}>
             {t("map.exportCsv", { defaultValue: "Export CSV" })}
           </button>
         </div>
@@ -269,13 +319,14 @@ export default function Map() {
             >
               {geojson ? (
                 <GeoJSON
+                  key={geoRenderKey}
                   data={geojson as any}
                   style={(feature: any) => {
                     const c = currentCountForFeature(feature);
                     return {
                       color: "#334155",
                       weight: 1,
-                      fillColor: "#2563eb",
+                      fillColor: fillColorForCount(c),
                       fillOpacity: fillOpacityForCount(c),
                     } as any;
                   }}
@@ -331,6 +382,7 @@ export default function Map() {
                 const to = buckets[idx + 1];
                 const mid = (from + to) / 2;
                 const opacity = fillOpacityForCount(mid);
+                const color = fillColorForCount(mid);
                 return (
                   <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span
@@ -339,7 +391,8 @@ export default function Map() {
                         height: 12,
                         display: "inline-block",
                         border: "1px solid #334155",
-                        background: `rgba(37, 99, 235, ${opacity})`,
+                        background: color,
+                        opacity,
                         borderRadius: 3,
                       }}
                     />
@@ -397,10 +450,10 @@ export default function Map() {
             </div>
 
             <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-              <button className="btn primary" onClick={onApply} disabled={loading}>
+              <button onClick={onApply} disabled={loading}>
                 {t("common.apply", { defaultValue: "Εφαρμογή" })}
               </button>
-              <button className="btn" onClick={onReset} disabled={loading}>
+              <button className="secondary" onClick={onReset} disabled={loading}>
                 {t("common.reset", { defaultValue: "Reset" })}
               </button>
             </div>
