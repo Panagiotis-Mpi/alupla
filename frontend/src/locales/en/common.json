@@ -6,7 +6,9 @@
     "profile": "Profile",
     "users": "Users",
     "logs": "Logs",
-    "logout": "Logout"
+    "logout": "Logout",
+    "statistics": "Statistics",
+    "login": "Login"
   },
   "login": {
     "title": "Login",

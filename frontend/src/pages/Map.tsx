@@ -228,7 +228,7 @@ export default function Map() {
         </span>
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
-          <button className="secondary" onClick={onExportCsv} disabled={loading || items.length === 0}>
+          <button className="btn" onClick={onExportCsv} disabled={loading || items.length === 0}>
             {t("map.exportCsv", { defaultValue: "Export CSV" })}
           </button>
         </div>
@@ -397,10 +397,10 @@ export default function Map() {
             </div>
 
             <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-              <button onClick={onApply} disabled={loading}>
+              <button className="btn primary" onClick={onApply} disabled={loading}>
                 {t("common.apply", { defaultValue: "Εφαρμογή" })}
               </button>
-              <button className="secondary" onClick={onReset} disabled={loading}>
+              <button className="btn" onClick={onReset} disabled={loading}>
                 {t("common.reset", { defaultValue: "Reset" })}
               </button>
             </div>

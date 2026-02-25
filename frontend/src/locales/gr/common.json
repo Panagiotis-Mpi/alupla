@@ -6,7 +6,9 @@
     "profile": "Προφίλ",
     "users": "Χρήστες",
     "logs": "Logs",
-    "logout": "Αποσύνδεση"
+    "logout": "Αποσύνδεση",
+    "statistics": "Στατιστικά",
+    "login": "Σύνδεση"
   },
   "login": {
     "title": "Σύνδεση",
