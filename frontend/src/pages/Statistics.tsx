@@ -3,6 +3,56 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { getPublicStats, getPublicStudyPrograms, publicAnonExportUrl, type StudyProgram } from "../lib/api";
 import { getUser } from "../lib/auth";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+
+function BarList(props: {
+  title: string;
+  rows: Array<{ label: string; value: number }>;
+  valueFormatter?: (n: number) => string;
+}) {
+  const max = React.useMemo(() => Math.max(1, ...props.rows.map((r) => Number(r.value) || 0)), [props.rows]);
+  const fmt = props.valueFormatter ?? ((n: number) => String(n));
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontWeight: 700, marginBottom: 8 }}>{props.title}</div>
+      <div style={{ display: "grid", gap: 8 }}>
+        {props.rows.map((r) => {
+          const pct = Math.max(0, Math.min(100, (Number(r.value) / max) * 100));
+          return (
+            <div key={r.label} style={{ display: "grid", gridTemplateColumns: "120px 1fr 70px", gap: 10, alignItems: "center" }}>
+              <div className="muted" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.label}>
+                {r.label}
+              </div>
+              <div style={{ height: 10, borderRadius: 999, background: "#e5e7eb", overflow: "hidden" }}>
+                <div
+                  style={{
+                    width: pct + "%",
+                    height: "100%",
+                    background: "#2563eb",
+                    borderRadius: 999,
+                  }}
+                />
+              </div>
+              <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmt(Number(r.value) || 0)}</div>
+            </div>
+          );
+        })}
+        {props.rows.length === 0 ? <div className="muted">-</div> : null}
+      </div>
+    </div>
+  );
+}
 
 type Filters = {
   graduation_year: string;
@@ -47,6 +97,143 @@ export default function Statistics() {
   const total = Number(data?.total ?? 0);
   const avgAge = data?.avg_age === null || data?.avg_age === undefined ? "" : Number(data.avg_age).toFixed(1);
   const avgGrade = data?.avg_degree_grade === null || data?.avg_degree_grade === undefined ? "" : Number(data.avg_degree_grade).toFixed(2);
+
+  const byYearRows = React.useMemo(
+    () => (data?.by_year ?? []).map((r: any) => ({ label: String(r.year), value: Number(r.count) || 0 })),
+    [data]
+  );
+  const ageRows = React.useMemo(
+    () => (data?.age_groups ?? []).map((r: any) => ({ label: String(r.label), value: Number(r.count) || 0 })),
+    [data]
+  );
+  const avgGradeRows = React.useMemo(
+    () => (data?.avg_grade_by_year ?? []).map((r: any) => ({ label: String(r.year), value: Number(r.avg) || 0 })),
+    [data]
+  );
+
+
+const timeToDegreeRows = React.useMemo(
+  () => (data?.avg_years_to_degree_by_entry_year ?? []).map((r: any) => ({ label: String(r.entry_year), value: Number(r.avg_years) || 0 })),
+  [data]
+);
+
+const byYearChartData = React.useMemo(() => {
+  const labels = byYearRows.map((r) => r.label);
+  return {
+    labels,
+    datasets: [
+      {
+        label: t("sections.byYear"),
+        data: byYearRows.map((r) => r.value),
+        backgroundColor: "#2563eb",
+      },
+    ],
+  };
+}, [byYearRows, t]);
+
+const byYearChartOptions = React.useMemo(() => {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { autoSkip: false, maxRotation: 0 } },
+      y: { beginAtZero: true, ticks: { precision: 0 } },
+    },
+  } as const;
+}, []);
+
+const avgGradeChartData = React.useMemo(() => {
+  const labels = avgGradeRows.map((r) => r.label);
+  return {
+    labels,
+    datasets: [
+      {
+        label: t("sections.gradeByYear"),
+        data: avgGradeRows.map((r) => Number(r.value.toFixed(2))),
+        backgroundColor: "#2563eb",
+      },
+    ],
+  };
+}, [avgGradeRows, t]);
+
+const avgGradeChartOptions = React.useMemo(() => {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { autoSkip: false, maxRotation: 0 } },
+      y: { beginAtZero: true, suggestedMax: 10 },
+    },
+  } as const;
+}, []);
+
+const timeToDegreeChartData = React.useMemo(() => {
+  const labels = timeToDegreeRows.map((r) => r.label);
+  return {
+    labels,
+    datasets: [
+      {
+        label: t("sections.timeToDegreeByEntryYear", { defaultValue: "Μ.Ο. χρόνια για πτυχίο ανά έτος εισαγωγής" }),
+        data: timeToDegreeRows.map((r) => Number(r.value.toFixed(2))),
+        backgroundColor: "#2563eb",
+      },
+    ],
+  };
+}, [timeToDegreeRows, t]);
+
+const timeToDegreeChartOptions = React.useMemo(() => {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { autoSkip: false, maxRotation: 0 } },
+      y: { beginAtZero: true },
+    },
+  } as const;
+}, []);
+
+
+  const termByYear = React.useMemo(() => {
+    const rows: Array<any> = data?.by_term ?? [];
+    const map = new Map<number, { year: number; winter: number; spring: number; september: number }>();
+    for (const r of rows) {
+      const y = Number(r.year);
+      if (!Number.isFinite(y)) continue;
+      const cur = map.get(y) ?? { year: y, winter: 0, spring: 0, september: 0 };
+      const term = String(r.term);
+      const c = Number(r.count) || 0;
+      if (term === "winter") cur.winter += c;
+      else if (term === "spring") cur.spring += c;
+      else if (term === "september") cur.september += c;
+      map.set(y, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => a.year - b.year);
+  }, [data]);
+
+  const termTotalsRows = React.useMemo(() => {
+    let winter = 0, spring = 0, september = 0;
+    for (const r of (data?.by_term ?? [])) {
+      const term = String(r.term);
+      const c = Number(r.count) || 0;
+      if (term === "winter") winter += c;
+      else if (term === "spring") spring += c;
+      else if (term === "september") september += c;
+    }
+    return [
+      { label: t("table.winter", { defaultValue: "Χειμερινό" }), value: winter },
+      { label: t("table.spring", { defaultValue: "Εαρινό" }), value: spring },
+      { label: t("table.september", { defaultValue: "Σεπτέμβρης" }), value: september },
+    ];
+  }, [data, t]);
+
+  const male = Number(data?.gender?.M ?? 0);
+  const female = Number(data?.gender?.F ?? 0);
+  const genderTotal = Math.max(1, male + female);
+  const malePct = Math.round((male / genderTotal) * 100);
+  const femalePct = 100 - malePct;
 
   function downloadAnon() {
     const url = publicAnonExportUrl(filters as any);
@@ -151,95 +338,72 @@ export default function Statistics() {
       <div className="grid cols2" style={{ gap: 14 }}>
         <div className="card">
           <h3 style={{ marginTop: 0 }}>{t("sections.byYear")}</h3>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t("table.year")}</th>
-                <th>{t("table.count")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data?.by_year ?? []).map((r: any) => (
-                <tr key={r.year}>
-                  <td>{r.year}</td>
-                  <td>{r.count}</td>
-                </tr>
-              ))}
-              {(!data?.by_year || data.by_year.length === 0) && (
-                <tr>
-                  <td colSpan={2} className="muted">-</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+
+          <div style={{ height: 260 }}>
+            <Bar data={byYearChartData as any} options={byYearChartOptions as any} />
+          </div>
+
+          </div>
 
         <div className="card">
           <h3 style={{ marginTop: 0 }}>{t("sections.gender")}</h3>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t("table.male")}</th>
-                <th>{t("table.female")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>{Number(data?.gender?.M ?? 0)}</td>
-                <td>{Number(data?.gender?.F ?? 0)}</td>
-              </tr>
-            </tbody>
-          </table>
+
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>{t("charts.gender", { defaultValue: "Αναλογία" })}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "120px 1fr 70px", gap: 10, alignItems: "center" }}>
+              <div className="muted">M</div>
+              <div style={{ height: 10, borderRadius: 999, background: "#e5e7eb", overflow: "hidden" }}>
+                <div style={{ width: malePct + "%", height: "100%", background: "#2563eb" }} />
+              </div>
+              <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{male} ({malePct}%)</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "120px 1fr 70px", gap: 10, alignItems: "center", marginTop: 8 }}>
+              <div className="muted">F</div>
+              <div style={{ height: 10, borderRadius: 999, background: "#e5e7eb", overflow: "hidden" }}>
+                <div style={{ width: femalePct + "%", height: "100%", background: "#60a5fa" }} />
+              </div>
+              <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{female} ({femalePct}%)</div>
+            </div>
+          </div>
 
           <h3 style={{ marginTop: 18 }}>{t("sections.age")}</h3>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t("table.ageGroup")}</th>
-                <th>{t("table.count")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data?.age_groups ?? []).map((r: any) => (
-                <tr key={r.label}>
-                  <td>{r.label}</td>
-                  <td>{r.count}</td>
-                </tr>
-              ))}
-              {(!data?.age_groups || data.age_groups.length === 0) && (
-                <tr>
-                  <td colSpan={2} className="muted">-</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+
+          <BarList title={t("charts.ageGroups", { defaultValue: "Ραβδόγραμμα" })} rows={ageRows} />
+
+          </div>
       </div>
+
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>{t("sections.byTerm", { defaultValue: "Απόφοιτοι ανά εξεταστική" })}</h3>
+
+        <BarList title={t("charts.byTerm", { defaultValue: "Ραβδόγραμμα" })} rows={termTotalsRows} />
+
+        </div>
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>{t("sections.gradeByYear")}</h3>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t("table.year")}</th>
-              <th>{t("table.avg")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(data?.avg_grade_by_year ?? []).map((r: any) => (
-              <tr key={r.year}>
-                <td>{r.year}</td>
-                <td>{Number(r.avg).toFixed(2)}</td>
-              </tr>
-            ))}
-            {(!data?.avg_grade_by_year || data.avg_grade_by_year.length === 0) && (
-              <tr>
-                <td colSpan={2} className="muted">-</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+
+        <div style={{ height: 260 }}>
+          <Bar data={avgGradeChartData as any} options={avgGradeChartOptions as any} />
+        </div>
+
+        </div>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>
+          {t("sections.timeToDegreeByEntryYear", { defaultValue: "Μ.Ο. χρόνια για πτυχίο ανά έτος εισαγωγής" })}
+        </h3>
+
+        {timeToDegreeRows.length === 0 ? (
+          <div className="muted">-</div>
+        ) : (
+          <div style={{ height: 260 }}>
+            <Bar data={timeToDegreeChartData as any} options={timeToDegreeChartOptions as any} />
+          </div>
+        )}
       </div>
+
     </div>
   );
 }

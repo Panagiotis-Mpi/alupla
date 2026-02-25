@@ -18,7 +18,9 @@
     "byYear": "Graduates per year",
     "gender": "M / F ratio",
     "age": "Age distribution",
-    "gradeByYear": "Average grade per year"
+    "gradeByYear": "Average grade per year",
+    "byTerm": "Graduates per exam period",
+    "timeToDegreeByEntryYear": "Avg years to degree by entry year"
   },
   "table": {
     "year": "Year",
@@ -26,8 +28,16 @@
     "male": "Male",
     "female": "Female",
     "avg": "Avg",
-    "ageGroup": "Age group"
+    "ageGroup": "Age group",
+    "winter": "Winter",
+    "spring": "Spring",
+    "september": "September",
+    "avgYears": "Avg years"
   },
   "loading": "Loading...",
-  "error": "Something went wrong"
+  "error": "Something went wrong",
+  "charts": {
+    "byTerm": "Bar chart",
+    "timeToDegreeByEntryYear": "Chart"
+  }
 }

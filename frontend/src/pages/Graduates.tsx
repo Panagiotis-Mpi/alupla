@@ -382,7 +382,7 @@ export default function Graduates() {
                 <th>{t("table.fatherName")}</th>
                 <th>{t("table.gender")}</th>
                 <th>{t("table.entryYear")}</th>
-                <th>{t("table.birthYear")}</th>
+                <th>{t("table.birthDate")}</th>
                 <th>{t("table.degreeGrade")}</th>
                 <th>{t("table.graduationDate")}</th>
                 <th>{t("table.oathDate")}</th>
@@ -403,7 +403,7 @@ export default function Graduates() {
                   <td>{fmt(g.father_name)}</td>
                   <td>{fmt(g.gender)}</td>
                   <td>{fmt(g.entry_year)}</td>
-                  <td>{fmt(g.birth_year)}</td>
+                  <td>{fmt((g as any).birth_date)}</td>
                   <td>{fmt(g.degree_grade)}</td>
                   <td>{fmt(g.graduation_date)}</td>
                   <td>{fmt(g.oath_date)}</td>

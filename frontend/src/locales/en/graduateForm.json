@@ -13,6 +13,7 @@
     "studentNumber": "Student No. *",
     "entryYearReq": "Entry year *",
     "birthYear": "Birth year *",
+    "birthDate": "Birth date *",
     "degreeGrade": "Degree grade *",
     "graduationDate": "Graduation date *",
     "oathDate": "Oath date *",

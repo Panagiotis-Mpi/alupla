@@ -13,6 +13,7 @@
     "studentNumber": "ΑΜ *",
     "entryYearReq": "Έτος Εγγραφής *",
     "birthYear": "Έτος Γέννησης *",
+    "birthDate": "Ημ/νία Γέννησης *",
     "degreeGrade": "Βαθμός Διπλώματος *",
     "graduationDate": "Ημ/νία Λήψης Διπλώματος *",
     "oathDate": "Ημ/νία Ορκωμοσίας *",
