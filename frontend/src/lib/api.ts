@@ -11,8 +11,23 @@ export const API_URL: string = (import.meta as any).env?.VITE_API_URL || "http:/
 
 const TOKEN_KEY = "alupla_token";
 
+// Keep token in sessionStorage so closing the browser logs the user out.
+// Migrate any old localStorage token once.
+function migrateLegacyToken() {
+  try {
+    const legacy = localStorage.getItem(TOKEN_KEY);
+    if (legacy && !sessionStorage.getItem(TOKEN_KEY)) {
+      sessionStorage.setItem(TOKEN_KEY, legacy);
+    }
+    if (legacy) localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export function getToken(): string | null {
-  const t = localStorage.getItem(TOKEN_KEY);
+  migrateLegacyToken();
+  const t = sessionStorage.getItem(TOKEN_KEY);
   if (!t) return null;
   const v = t.trim();
   if (!v || v === "null" || v === "undefined") return null;
@@ -21,14 +36,29 @@ export function getToken(): string | null {
 
 export function setToken(token: string) {
   if (!token || token === "null" || token === "undefined") {
-    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      // ignore
+    }
     return;
   }
-  localStorage.setItem(TOKEN_KEY, token);
+  sessionStorage.setItem(TOKEN_KEY, token);
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // ignore
+  }
 }
 
 export function clearToken() {
-  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // ignore
+  }
 }
 
 type ApiError = { message?: string } | string | null;

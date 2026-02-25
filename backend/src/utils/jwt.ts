@@ -8,7 +8,9 @@ export type JwtPayload = {
 };
 
 export function signToken(payload: JwtPayload, opts?: { expiresIn?: string }) {
-  return jwt.sign(payload, env.jwtSecret, { expiresIn: opts?.expiresIn ?? "7d" });
+  // Keep sessions reasonably short for security + thesis requirements.
+  // Default: 2 hours (can be overridden per-call via opts).
+  return jwt.sign(payload, env.jwtSecret, { expiresIn: opts?.expiresIn ?? "2h" });
 }
 
 export function verifyToken(token: string): JwtPayload {

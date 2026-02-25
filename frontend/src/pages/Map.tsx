@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GeoJSON, MapContainer } from "react-leaflet";
 import type { LeafletMouseEvent } from "leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import { getGraduatesMap, type GraduatesMapItem } from "../lib/api";
@@ -53,6 +54,8 @@ function csvEscape(v: any, delimiter: string) {
 export default function Map() {
   const { t, i18n } = useTranslation();
 
+  const mapRef = useRef<L.Map | null>(null);
+
   const [year, setYear] = useState<string>("");
   const [studyProgramId, setStudyProgramId] = useState<string>("");
   const [gender, setGender] = useState<string>("");
@@ -63,6 +66,21 @@ export default function Map() {
   const [selected, setSelected] = useState<GraduatesMapItem | null>(null);
 
   const geojson = useMemo(() => tryParseGeoJson(greeceRegionsRaw), []);
+
+  // Keep the map framed tightly around Greece (no basemap). This affects only the initial view.
+  useEffect(() => {
+    if (!geojson || !mapRef.current) return;
+    try {
+      const layer = L.geoJSON(geojson as any);
+      const bounds = layer.getBounds();
+      if (bounds && bounds.isValid()) {
+        // Use a bit more padding and cap maxZoom to avoid cutting islands.
+        mapRef.current.fitBounds(bounds, { padding: [32, 32], maxZoom: 7.25 });
+      }
+    } catch {
+      // ignore
+    }
+  }, [geojson]);
 
   // counts keyed by Greek name (periphery_name), normalized.
   const countsByGreekName = useMemo(() => {
@@ -194,6 +212,13 @@ export default function Map() {
 
   return (
     <div className="page">
+      {/* Remove the Leaflet/SVG focus outline (the "selection box") without affecting behavior */}
+      <style>{`
+        .leaflet-container path:focus { outline: none !important; }
+        .leaflet-interactive:focus { outline: none !important; }
+        .leaflet-container:focus { outline: none !important; }
+      `}</style>
+
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <h2 style={{ margin: 0 }}>{t("map.title", { defaultValue: "Χάρτης αποφοίτων (Περιφέρειες)" })}</h2>
         <span className="badge">
@@ -209,55 +234,39 @@ export default function Map() {
         </div>
       </div>
 
-      <div className="card" style={{ marginTop: 12 }}>
-        <div className="grid cols4" style={{ alignItems: "end", gap: 12 }}>
-          <div>
-            <div className="label">{t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" })}</div>
-            <input value={year} onChange={(e) => setYear(e.target.value)} placeholder={t("map.filters.yearPh", { defaultValue: "π.χ. 2026" })} />
-          </div>
-
-          <div>
-            <div className="label">{t("map.filters.programId", { defaultValue: "ID προγράμματος" })}</div>
-            <input value={studyProgramId} onChange={(e) => setStudyProgramId(e.target.value)} placeholder={t("map.filters.programIdPh", { defaultValue: "π.χ. 1" })} />
-          </div>
-
-          <div>
-            <div className="label">{t("map.filters.gender", { defaultValue: "Φύλο" })}</div>
-            <select value={gender} onChange={(e) => setGender(e.target.value)}>
-              <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-              <option value="M">{t("common.male", { defaultValue: "Άνδρας" })}</option>
-              <option value="F">{t("common.female", { defaultValue: "Γυναίκα" })}</option>
-            </select>
-          </div>
-
-          <div>
-            <div className="label">{t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" })}</div>
-            <select value={ageGroup} onChange={(e) => setAgeGroup(e.target.value as AgeGroup)}>
-              <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-              <option value="18-22">18-22</option>
-              <option value="23-26">23-26</option>
-              <option value="27-30">27-30</option>
-              <option value="31+">31+</option>
-            </select>
-          </div>
-        </div>
-
-        <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-          <button onClick={onApply} disabled={loading}>{t("common.apply", { defaultValue: "Εφαρμογή" })}</button>
-          <button className="secondary" onClick={onReset} disabled={loading}>{t("common.reset", { defaultValue: "Reset" })}</button>
-        </div>
-      </div>
-
-      <div className="grid cols2" style={{ alignItems: "start", marginTop: 12 }}>
-        <div className="card" style={{ padding: 0, overflow: "hidden", position: "relative" }}>
-          <div style={{ height: 520 }}>
+      {/* Two-column layout: map on the left, filters+details stacked on the right */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1.7fr 0.9fr",
+          gap: 12,
+          alignItems: "start",
+          marginTop: 12,
+        }}
+      >
+        {/* Map column (left): transparent container + larger area */}
+        <div
+          className="card"
+          style={{
+            padding: 0,
+            overflow: "hidden",
+            position: "relative",
+            background: "transparent",
+            border: "none",
+            boxShadow: "none",
+          }}
+        >
+          <div style={{ height: "calc(100vh - 260px)", minHeight: 720 }}>
             <MapContainer
               center={[38.6, 24.0]}
-              zoom={6}
-              style={{ height: "100%", width: "100%", background: "#ffffff" }}
+              zoom={6.5 as any}
+              zoomSnap={0.5}
+              whenCreated={(m) => {
+                mapRef.current = m;
+              }}
+              style={{ height: "100%", width: "100%", background: "transparent" }}
               scrollWheelZoom
             >
-
               {geojson ? (
                 <GeoJSON
                   data={geojson as any}
@@ -284,7 +293,9 @@ export default function Map() {
                       },
                       click: () => {
                         const key = normalizeKey(featureGreekName(feature));
-                        const match = itemsRef.current.find((it: any) => normalizeKey(String(it.periphery_name || "")) === key) || null;
+                        const match =
+                          itemsRef.current.find((it: any) => normalizeKey(String(it.periphery_name || "")) === key) ||
+                          null;
                         setSelected(match);
                         layer.setTooltipContent(renderTooltipHtml(feature));
                       },
@@ -342,40 +353,94 @@ export default function Map() {
           </div>
         </div>
 
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>{t("map.detailsTitle", { defaultValue: "Λεπτομέρειες" })}</h3>
-          {!selected ? (
-            <div className="muted">{t("map.detailsHint", { defaultValue: "Κάνε κλικ σε μία περιφέρεια για λεπτομέρειες." })}</div>
-          ) : (
-            <div className="grid" style={{ gap: 10 }}>
+        {/* Right column: filters + details stacked */}
+        <div style={{ display: "grid", gap: 12 }}>
+          <div className="card">
+            <div className="grid cols2" style={{ alignItems: "end", gap: 12 }}>
               <div>
-                <div className="label">{t("map.region", { defaultValue: "Περιφέρεια" })}</div>
-                <div style={{ fontWeight: 700 }}>{(selected as any).periphery_name}</div>
+                <div className="label">{t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" })}</div>
+                <input
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                  placeholder={t("map.filters.yearPh", { defaultValue: "π.χ. 2026" })}
+                />
               </div>
 
-              <div className="grid cols2">
-                <div>
-                  <div className="label">{t("map.totalLabel", { defaultValue: "Σύνολο" })}</div>
-                  <div style={{ fontWeight: 700 }}>{(selected as any).count ?? 0}</div>
-                </div>
-                <div>
-                  <div className="label">{t("map.avgAge", { defaultValue: "Μέση ηλικία" })}</div>
-                  <div style={{ fontWeight: 700 }}>{(selected as any).avg_age ?? "-"}</div>
-                </div>
+              <div>
+                <div className="label">{t("map.filters.programId", { defaultValue: "ID προγράμματος" })}</div>
+                <input
+                  value={studyProgramId}
+                  onChange={(e) => setStudyProgramId(e.target.value)}
+                  placeholder={t("map.filters.programIdPh", { defaultValue: "π.χ. 1" })}
+                />
               </div>
 
-              <div className="grid cols2">
-                <div>
-                  <div className="label">{t("map.malePct", { defaultValue: "% Άνδρες" })}</div>
-                  <div style={{ fontWeight: 700 }}>{(selected as any).male_pct ?? 0}%</div>
-                </div>
-                <div>
-                  <div className="label">{t("map.femalePct", { defaultValue: "% Γυναίκες" })}</div>
-                  <div style={{ fontWeight: 700 }}>{(selected as any).female_pct ?? 0}%</div>
-                </div>
+              <div>
+                <div className="label">{t("map.filters.gender", { defaultValue: "Φύλο" })}</div>
+                <select value={gender} onChange={(e) => setGender(e.target.value)}>
+                  <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                  <option value="M">{t("common.male", { defaultValue: "Άνδρας" })}</option>
+                  <option value="F">{t("common.female", { defaultValue: "Γυναίκα" })}</option>
+                </select>
+              </div>
+
+              <div>
+                <div className="label">{t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" })}</div>
+                <select value={ageGroup} onChange={(e) => setAgeGroup(e.target.value as AgeGroup)}>
+                  <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                  <option value="18-22">18-22</option>
+                  <option value="23-26">23-26</option>
+                  <option value="27-30">27-30</option>
+                  <option value="31+">31+</option>
+                </select>
               </div>
             </div>
-          )}
+
+            <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+              <button onClick={onApply} disabled={loading}>
+                {t("common.apply", { defaultValue: "Εφαρμογή" })}
+              </button>
+              <button className="secondary" onClick={onReset} disabled={loading}>
+                {t("common.reset", { defaultValue: "Reset" })}
+              </button>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>{t("map.detailsTitle", { defaultValue: "Λεπτομέρειες" })}</h3>
+            {!selected ? (
+              <div className="muted">{t("map.detailsHint", { defaultValue: "Κάνε κλικ σε μία περιφέρεια για λεπτομέρειες." })}</div>
+            ) : (
+              <div className="grid" style={{ gap: 10 }}>
+                <div>
+                  <div className="label">{t("map.region", { defaultValue: "Περιφέρεια" })}</div>
+                  <div style={{ fontWeight: 700 }}>{(selected as any).periphery_name}</div>
+                </div>
+
+                <div className="grid cols2">
+                  <div>
+                    <div className="label">{t("map.totalLabel", { defaultValue: "Σύνολο" })}</div>
+                    <div style={{ fontWeight: 700 }}>{(selected as any).count ?? 0}</div>
+                  </div>
+                  <div>
+                    <div className="label">{t("map.avgAge", { defaultValue: "Μέση ηλικία" })}</div>
+                    <div style={{ fontWeight: 700 }}>{(selected as any).avg_age ?? "-"}</div>
+                  </div>
+                </div>
+
+                <div className="grid cols2">
+                  <div>
+                    <div className="label">{t("map.malePct", { defaultValue: "% Άνδρες" })}</div>
+                    <div style={{ fontWeight: 700 }}>{(selected as any).male_pct ?? 0}%</div>
+                  </div>
+                  <div>
+                    <div className="label">{t("map.femalePct", { defaultValue: "% Γυναίκες" })}</div>
+                    <div style={{ fontWeight: 700 }}>{(selected as any).female_pct ?? 0}%</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
