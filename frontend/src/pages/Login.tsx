@@ -12,13 +12,25 @@ export default function Login() {
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
 
+  React.useEffect(() => {
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+    };
+  }, []);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setLoading(true);
     try {
       const res = await apiLogin(email.trim(), password);
-      // expected shape: { ok: true, token: string, user: {..} }
       if (!res?.token || !res?.user) throw new Error("Bad login response");
       setSession(res.token, res.user);
       nav("/graduates");
@@ -30,36 +42,130 @@ export default function Login() {
   }
 
   return (
-    <div className="container">
-      <div className="card" style={{ maxWidth: 460, margin: "48px auto" }}>
-        <h2 style={{ marginTop: 0 }}>ALUPLA</h2>
+    <div
+      style={{
+        height: "calc(100vh - 70px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1rem 1.5rem",
+        background: "linear-gradient(180deg, #eef4ff 0%, #ffffff 65%)",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 520,
+          background: "white",
+          borderRadius: 18,
+          border: "1px solid #e5edff",
+          boxShadow: "0 10px 30px rgba(59,130,246,0.08)",
+          padding: "2.2rem 2.4rem",
+        }}
+      >
+        <h2
+          style={{
+            margin: 0,
+            fontSize: "2rem",
+            fontWeight: 800,
+            color: "#1e3a8a",
+            letterSpacing: "-0.02em",
+            marginBottom: "1.6rem",
+          }}
+        >
+          ALUPLA
+        </h2>
 
-        <form onSubmit={onSubmit} className="grid">
-          <label>
-            <span className="label">{t("login.email")}</span>
-            <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </label>
-
-          <label>
-            <span className="label">{t("login.password")}</span>
+        <form onSubmit={onSubmit} style={{ display: "grid", gap: "1.05rem" }}>
+          <label style={{ display: "grid", gap: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>
+              {t("login.email")}
+            </span>
             <input
-              className="input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{
+                height: 44,
+                borderRadius: 12,
+                border: "1px solid #dbeafe",
+                background: "#ffffff",
+                padding: "0 12px",
+                outline: "none",
+              }}
             />
           </label>
 
-          {err && <div className="error">{err}</div>}
+          <label style={{ display: "grid", gap: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>
+              {t("login.password")}
+            </span>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{
+                height: 44,
+                borderRadius: 12,
+                border: "1px solid #dbeafe",
+                background: "#ffffff",
+                padding: "0 12px",
+                outline: "none",
+              }}
+            />
+          </label>
 
-          <button className="btn primary" disabled={loading} type="submit">
+          {err && (
+            <div
+              style={{
+                borderRadius: 12,
+                border: "1px solid rgba(239,68,68,0.25)",
+                background: "rgba(239,68,68,0.06)",
+                padding: "10px 12px",
+                color: "#991b1b",
+              }}
+            >
+              {err}
+            </div>
+          )}
+
+          <button
+            disabled={loading}
+            type="submit"
+            style={{
+              height: 46,
+              borderRadius: 12,
+              border: "none",
+              backgroundColor: "#2563eb",
+              color: "white",
+              cursor: loading ? "not-allowed" : "pointer",
+              fontWeight: 800,
+              fontSize: "1.02rem",
+              boxShadow: "0 10px 22px rgba(37,99,235,0.22)",
+            }}
+          >
             {loading ? t("common.loading") : t("login.button")}
           </button>
 
-          <div style={{ display: "flex", gap: 10, fontSize: 12, opacity: 0.9 }}>
-            <Link to="/register">{t("login.register")}</Link>
-            <span>·</span>
-            <Link to="/forgot">{t("login.forgot")}</Link>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              fontSize: 13,
+              color: "#1e3a8a",
+              alignItems: "center",
+              flexWrap: "wrap",
+              marginTop: 4,
+            }}
+          >
+            <Link to="/register" style={{ color: "#1e3a8a", fontWeight: 700 }}>
+              {t("login.register")}
+            </Link>
+            <span style={{ opacity: 0.6 }}>·</span>
+            <Link to="/forgot" style={{ color: "#1e3a8a", fontWeight: 700 }}>
+              {t("login.forgot")}
+            </Link>
           </div>
         </form>
       </div>

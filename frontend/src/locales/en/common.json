@@ -17,5 +17,12 @@
     "button": "Sign In",
     "register": "Register",
     "forgot": "Forgot password"
+  },
+  "home": {
+    "heroTitle": "ALUPLA | Graduate Statistics Platform",
+    "heroLead": "Anonymous, aggregated graduate data by year, study program, gender and age group.",
+    "map": "Graduate Map",
+    "stats": "Statistics & Charts",
+    "heroLoginHint": "For Secretariat / Admin access:"
   }
 }
