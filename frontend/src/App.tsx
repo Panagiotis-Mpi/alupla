@@ -18,6 +18,7 @@ import Logs from "./pages/Logs";
 import Map from "./pages/Map";
 import Statistics from "./pages/Statistics";
 import PublicHome from "./pages/PublicHome";
+import Footer from "./components/Footer";
 
 function TopNav() {
   const { t } = useTranslation();
@@ -157,9 +158,9 @@ function TopNav() {
 
 export default function App() {
   return (
-    <>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <TopNav />
-      <div className="container">
+      <div className="container" style={{ flex: 1, width: "100%" }}>
         <Routes>
           <Route path="/" element={<PublicHome />} />
 
@@ -237,6 +238,7 @@ export default function App() {
           <Route path="*" element={<Login />} />
         </Routes>
       </div>
-    </>
+      <Footer />
+    </div>
   );
 }

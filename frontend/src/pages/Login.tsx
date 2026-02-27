@@ -4,26 +4,13 @@ import { useTranslation } from "react-i18next";
 import { login as apiLogin } from "../lib/api";
 import { setSession } from "../lib/auth";
 
-export default function Login() {
+function Login() {
   const { t } = useTranslation("auth");
   const nav = useNavigate();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevBodyOverflow = document.body.style.overflow;
-
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
-    };
-  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,12 +31,14 @@ export default function Login() {
   return (
     <div
       style={{
-        height: "calc(100vh - 70px)",
+        minHeight: "calc(100vh - 70px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "1rem 1.5rem",
+        padding: "1.2rem 1.5rem",
         background: "linear-gradient(180deg, #eef4ff 0%, #ffffff 65%)",
+        // leave space for the pinned footer on static pages
+        paddingBottom: "4rem",
       }}
     >
       <div
@@ -172,3 +161,5 @@ export default function Login() {
     </div>
   );
 }
+
+export default Login;

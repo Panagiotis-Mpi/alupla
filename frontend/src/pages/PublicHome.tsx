@@ -1,96 +1,77 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function PublicHome() {
   const navigate = useNavigate();
 
-  React.useEffect(() => {
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevBodyOverflow = document.body.style.overflow;
-
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
-    };
-  }, []);
-
   return (
     <div
       style={{
-        height: "calc(100vh - 70px)",
+        minHeight: "calc(100vh - 70px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(180deg, #eef4ff 0%, #ffffff 70%)",
-        padding: "1rem 1.5rem",
+        padding: "1.2rem 1.5rem",
+        background: "linear-gradient(180deg, #eef4ff 0%, #ffffff 65%)",
+        // leave space for the pinned footer on this static page
+        paddingBottom: "4rem",
       }}
     >
       <div
         style={{
           width: "100%",
-          maxWidth: "900px",
-          background: "white",
-          borderRadius: "20px",
+          maxWidth: 980,
+          background: "#ffffff",
+          borderRadius: 20,
           border: "1px solid #e5edff",
           boxShadow: "0 20px 40px rgba(37,99,235,0.08)",
-          padding: "2.5rem 3rem",
+          padding: "2.6rem 3rem",
         }}
       >
         <h1
           style={{
-            fontSize: "2.4rem",
-            fontWeight: 800,
+            margin: 0,
+            fontSize: "2.6rem",
+            fontWeight: 900,
             color: "#1e3a8a",
-            marginBottom: "1.2rem",
-            lineHeight: "1.2",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.15,
           }}
         >
           ALUPLA | Πλατφόρμα Στατιστικών Αποφοίτων
         </h1>
 
-        <p
-          style={{
-            fontSize: "1.05rem",
-            lineHeight: "1.7",
-            color: "#475569",
-            marginBottom: "1.2rem",
-          }}
-        >
-          Η ALUPLA αποτελεί μια διαδικτυακή πλατφόρμα προβολής και ανάλυσης
-          ανώνυμων στατιστικών δεδομένων αποφοίτων για το τμήμα Μηχανικών
-          Ηλεκτρονικών και Πληροφορικής του Πανεπιστημίου Πατρών.
+        <div style={{ height: 18 }} />
+
+        <p style={{ margin: 0, fontSize: "1.06rem", lineHeight: 1.75, color: "#475569" }}>
+          Η ALUPLA αποτελεί μια διαδικτυακή πλατφόρμα προβολής και ανάλυσης ανώνυμων
+          στατιστικών δεδομένων αποφοίτων για το τμήμα Μηχανικών Ηλεκτρονικών και
+          Πληροφορικής του Πανεπιστημίου Πατρών.
         </p>
 
-        <p
-          style={{
-            fontSize: "1.05rem",
-            lineHeight: "1.7",
-            color: "#475569",
-            marginBottom: "2rem",
-          }}
-        >
-          Μέσω διαδραστικών διαγραμμάτων και χάρτη Ελλάδας, οι επισκέπτες
-          μπορούν να εξερευνήσουν μεταβολές στον χρόνο, αναλογίες και
-          κατανομές, καθώς και να εξάγουν ανωνυμοποιημένα δεδομένα.
+        <div style={{ height: 16 }} />
+
+        <p style={{ margin: 0, fontSize: "1.06rem", lineHeight: 1.75, color: "#475569" }}>
+          Μέσω διαδραστικών διαγραμμάτων και χάρτη Ελλάδας, οι επισκέπτες μπορούν να
+          εξερευνήσουν μεταβολές στον χρόνο, αναλογίες και κατανομές, καθώς και να
+          εξάγουν ανωνυμοποιημένα δεδομένα.
         </p>
 
-        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+        <div style={{ height: 26 }} />
+
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
           <button
             onClick={() => navigate("/map")}
             style={{
-              fontSize: "1.05rem",
-              padding: "0.9rem 1.6rem",
-              borderRadius: "12px",
+              padding: "0.95rem 1.7rem",
+              borderRadius: 12,
               border: "none",
-              backgroundColor: "#2563eb",
-              color: "white",
+              background: "#2563eb",
+              color: "#fff",
+              fontWeight: 800,
+              fontSize: "1.05rem",
               cursor: "pointer",
-              fontWeight: 700,
-              boxShadow: "0 10px 20px rgba(37,99,235,0.25)",
+              boxShadow: "0 10px 22px rgba(37,99,235,0.22)",
             }}
           >
             Χάρτης Αποφοίτων
@@ -99,14 +80,14 @@ export default function PublicHome() {
           <button
             onClick={() => navigate("/statistics")}
             style={{
-              fontSize: "1.05rem",
-              padding: "0.9rem 1.6rem",
-              borderRadius: "12px",
-              border: "1px solid #2563eb",
-              backgroundColor: "#f0f6ff",
+              padding: "0.95rem 1.7rem",
+              borderRadius: 12,
+              border: "1px solid #93c5fd",
+              background: "#f0f6ff",
               color: "#1e3a8a",
+              fontWeight: 800,
+              fontSize: "1.05rem",
               cursor: "pointer",
-              fontWeight: 700,
             }}
           >
             Στατιστικά & Διαγράμματα
@@ -115,14 +96,14 @@ export default function PublicHome() {
           <button
             onClick={() => navigate("/login")}
             style={{
-              fontSize: "1.05rem",
-              padding: "0.9rem 1.6rem",
-              borderRadius: "12px",
+              padding: "0.95rem 1.7rem",
+              borderRadius: 12,
               border: "1px solid #dbeafe",
-              backgroundColor: "#ffffff",
+              background: "#ffffff",
               color: "#1e3a8a",
+              fontWeight: 800,
+              fontSize: "1.05rem",
               cursor: "pointer",
-              fontWeight: 700,
             }}
           >
             Σύνδεση
