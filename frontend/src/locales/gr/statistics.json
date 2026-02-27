@@ -20,7 +20,8 @@
     "age": "Κατανομή ηλικιών",
     "gradeByYear": "Μ.Ο. βαθμού ανά έτος",
     "byTerm": "Απόφοιτοι ανά εξεταστική",
-    "timeToDegreeByEntryYear": "Μ.Ο. χρόνια για πτυχίο ανά έτος εισαγωγής"
+    "timeToDegreeByEntryYear": "Μ.Ο. χρόνια για πτυχίο ανά έτος εισαγωγής",
+    "gradeDistribution": "Κατανομή βαθμού"
   },
   "table": {
     "year": "Έτος",
@@ -38,6 +39,7 @@
   "error": "Κάτι πήγε στραβά",
   "charts": {
     "byTerm": "Ραβδόγραμμα",
-    "timeToDegreeByEntryYear": "Διάγραμμα"
+    "timeToDegreeByEntryYear": "Διάγραμμα",
+    "gradeDistribution": "Ραβδόγραμμα"
   }
 }

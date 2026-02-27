@@ -30,7 +30,15 @@ function BarList(props: {
         {props.rows.map((r) => {
           const pct = Math.max(0, Math.min(100, (Number(r.value) / max) * 100));
           return (
-            <div key={r.label} style={{ display: "grid", gridTemplateColumns: "120px 1fr 70px", gap: 10, alignItems: "center" }}>
+            <div
+              key={r.label}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "120px 1fr 70px",
+                gap: 10,
+                alignItems: "center",
+              }}
+            >
               <div className="muted" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.label}>
                 {r.label}
               </div>
@@ -67,7 +75,12 @@ export default function Statistics() {
   const user = getUser();
 
   const [programs, setPrograms] = React.useState<StudyProgram[]>([]);
-  const [filters, setFilters] = React.useState<Filters>({ graduation_year: "", study_program_id: "", gender: "", age_group: "" });
+  const [filters, setFilters] = React.useState<Filters>({
+    graduation_year: "",
+    study_program_id: "",
+    gender: "",
+    age_group: "",
+  });
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
   const [data, setData] = React.useState<any | null>(null);
@@ -78,7 +91,7 @@ export default function Statistics() {
     try {
       const [sp, st] = await Promise.all([
         getPublicStudyPrograms().catch(() => ({ items: [] })),
-        getPublicStats(filters as any)
+        getPublicStats(filters as any),
       ]);
       setPrograms(sp.items ?? []);
       setData(st);
@@ -96,7 +109,8 @@ export default function Statistics() {
 
   const total = Number(data?.total ?? 0);
   const avgAge = data?.avg_age === null || data?.avg_age === undefined ? "" : Number(data.avg_age).toFixed(1);
-  const avgGrade = data?.avg_degree_grade === null || data?.avg_degree_grade === undefined ? "" : Number(data.avg_degree_grade).toFixed(2);
+  const avgGrade =
+    data?.avg_degree_grade === null || data?.avg_degree_grade === undefined ? "" : Number(data.avg_degree_grade).toFixed(2);
 
   const byYearRows = React.useMemo(
     () => (data?.by_year ?? []).map((r: any) => ({ label: String(r.year), value: Number(r.count) || 0 })),
@@ -111,90 +125,126 @@ export default function Statistics() {
     [data]
   );
 
+  const gradeBinsRows = React.useMemo(
+    () => (data?.degree_grade_bins ?? []).map((r: any) => ({ label: String(r.label), value: Number(r.count) || 0 })),
+    [data]
+  );
 
-const timeToDegreeRows = React.useMemo(
-  () => (data?.avg_years_to_degree_by_entry_year ?? []).map((r: any) => ({ label: String(r.entry_year), value: Number(r.avg_years) || 0 })),
-  [data]
-);
+  const timeToDegreeRows = React.useMemo(
+    () =>
+      (data?.avg_years_to_degree_by_entry_year ?? []).map((r: any) => ({
+        label: String(r.entry_year),
+        value: Number(r.avg_years) || 0,
+      })),
+    [data]
+  );
 
-const byYearChartData = React.useMemo(() => {
-  const labels = byYearRows.map((r) => r.label);
-  return {
-    labels,
-    datasets: [
-      {
-        label: t("sections.byYear"),
-        data: byYearRows.map((r) => r.value),
-        backgroundColor: "#2563eb",
+  const byYearChartData = React.useMemo(() => {
+    const labels = byYearRows.map((r) => r.label);
+    return {
+      labels,
+      datasets: [
+        {
+          label: t("sections.byYear"),
+          data: byYearRows.map((r) => r.value),
+          backgroundColor: "#2563eb",
+        },
+      ],
+    };
+  }, [byYearRows, t]);
+
+  const byYearChartOptions = React.useMemo(() => {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { autoSkip: false, maxRotation: 0 } },
+        y: { beginAtZero: true, ticks: { precision: 0 } },
       },
-    ],
-  };
-}, [byYearRows, t]);
+    } as const;
+  }, []);
 
-const byYearChartOptions = React.useMemo(() => {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { ticks: { autoSkip: false, maxRotation: 0 } },
-      y: { beginAtZero: true, ticks: { precision: 0 } },
-    },
-  } as const;
-}, []);
+  const avgGradeChartData = React.useMemo(() => {
+    const labels = avgGradeRows.map((r) => r.label);
+    return {
+      labels,
+      datasets: [
+        {
+          label: t("sections.gradeByYear"),
+          data: avgGradeRows.map((r) => Number(r.value.toFixed(2))),
+          backgroundColor: "#2563eb",
+        },
+      ],
+    };
+  }, [avgGradeRows, t]);
 
-const avgGradeChartData = React.useMemo(() => {
-  const labels = avgGradeRows.map((r) => r.label);
-  return {
-    labels,
-    datasets: [
-      {
-        label: t("sections.gradeByYear"),
-        data: avgGradeRows.map((r) => Number(r.value.toFixed(2))),
-        backgroundColor: "#2563eb",
+  const avgGradeChartOptions = React.useMemo(() => {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { autoSkip: false, maxRotation: 0 } },
+        y: { beginAtZero: true, suggestedMax: 10 },
       },
-    ],
-  };
-}, [avgGradeRows, t]);
+    } as const;
+  }, []);
 
-const avgGradeChartOptions = React.useMemo(() => {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { ticks: { autoSkip: false, maxRotation: 0 } },
-      y: { beginAtZero: true, suggestedMax: 10 },
-    },
-  } as const;
-}, []);
+  // ✅ ΝΕΟ: chart data/options για Κατανομή βαθμού (όπως τα άλλα)
+  const gradeBinsChartData = React.useMemo(() => {
+    const labels = gradeBinsRows.map((r) => r.label);
+    return {
+      labels,
+      datasets: [
+        {
+          label: t("sections.gradeDistribution", { defaultValue: "Κατανομή βαθμού" }),
+          data: gradeBinsRows.map((r) => r.value),
+          backgroundColor: "#2563eb",
+        },
+      ],
+    };
+  }, [gradeBinsRows, t]);
 
-const timeToDegreeChartData = React.useMemo(() => {
-  const labels = timeToDegreeRows.map((r) => r.label);
-  return {
-    labels,
-    datasets: [
-      {
-        label: t("sections.timeToDegreeByEntryYear", { defaultValue: "Μ.Ο. χρόνια για πτυχίο ανά έτος εισαγωγής" }),
-        data: timeToDegreeRows.map((r) => Number(r.value.toFixed(2))),
-        backgroundColor: "#2563eb",
+  const gradeBinsChartOptions = React.useMemo(() => {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { autoSkip: false, maxRotation: 0 } },
+        y: { beginAtZero: true, ticks: { precision: 0 } },
       },
-    ],
-  };
-}, [timeToDegreeRows, t]);
+    } as const;
+  }, []);
 
-const timeToDegreeChartOptions = React.useMemo(() => {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { ticks: { autoSkip: false, maxRotation: 0 } },
-      y: { beginAtZero: true },
-    },
-  } as const;
-}, []);
+  const timeToDegreeChartData = React.useMemo(() => {
+    const labels = timeToDegreeRows.map((r) => r.label);
+    return {
+      labels,
+      datasets: [
+        {
+          label: t("sections.timeToDegreeByEntryYear", {
+            defaultValue: "Μ.Ο. χρόνια για πτυχίο ανά έτος εισαγωγής",
+          }),
+          data: timeToDegreeRows.map((r) => Number(r.value.toFixed(2))),
+          backgroundColor: "#2563eb",
+        },
+      ],
+    };
+  }, [timeToDegreeRows, t]);
 
+  const timeToDegreeChartOptions = React.useMemo(() => {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { autoSkip: false, maxRotation: 0 } },
+        y: { beginAtZero: true },
+      },
+    } as const;
+  }, []);
 
   const termByYear = React.useMemo(() => {
     const rows: Array<any> = data?.by_term ?? [];
@@ -214,8 +264,10 @@ const timeToDegreeChartOptions = React.useMemo(() => {
   }, [data]);
 
   const termTotalsRows = React.useMemo(() => {
-    let winter = 0, spring = 0, september = 0;
-    for (const r of (data?.by_term ?? [])) {
+    let winter = 0,
+      spring = 0,
+      september = 0;
+    for (const r of data?.by_term ?? []) {
       const term = String(r.term);
       const c = Number(r.count) || 0;
       if (term === "winter") winter += c;
@@ -274,11 +326,7 @@ const timeToDegreeChartOptions = React.useMemo(() => {
 
           <div>
             <label className="label">{t("filters.studyProgram")}</label>
-            <select
-              className="input"
-              value={filters.study_program_id}
-              onChange={(e) => setFilters((f) => ({ ...f, study_program_id: e.target.value }))}
-            >
+            <select className="input" value={filters.study_program_id} onChange={(e) => setFilters((f) => ({ ...f, study_program_id: e.target.value }))}>
               <option value="">{t("filters.all")}</option>
               {programs.map((p: any) => (
                 <option key={p.id} value={p.id}>
@@ -316,7 +364,11 @@ const timeToDegreeChartOptions = React.useMemo(() => {
           </button>
           <div className="spacer" />
           {loading ? <span className="muted">{t("loading")}</span> : null}
-          {err ? <span className="muted" style={{ color: "#b91c1c" }}>{err}</span> : null}
+          {err ? (
+            <span className="muted" style={{ color: "#b91c1c" }}>
+              {err}
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -342,8 +394,7 @@ const timeToDegreeChartOptions = React.useMemo(() => {
           <div style={{ height: 260 }}>
             <Bar data={byYearChartData as any} options={byYearChartOptions as any} />
           </div>
-
-          </div>
+        </div>
 
         <div className="card">
           <h3 style={{ marginTop: 0 }}>{t("sections.gender")}</h3>
@@ -355,40 +406,49 @@ const timeToDegreeChartOptions = React.useMemo(() => {
               <div style={{ height: 10, borderRadius: 999, background: "#e5e7eb", overflow: "hidden" }}>
                 <div style={{ width: malePct + "%", height: "100%", background: "#2563eb" }} />
               </div>
-              <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{male} ({malePct}%)</div>
+              <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                {male} ({malePct}%)
+              </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "120px 1fr 70px", gap: 10, alignItems: "center", marginTop: 8 }}>
               <div className="muted">F</div>
               <div style={{ height: 10, borderRadius: 999, background: "#e5e7eb", overflow: "hidden" }}>
                 <div style={{ width: femalePct + "%", height: "100%", background: "#60a5fa" }} />
               </div>
-              <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{female} ({femalePct}%)</div>
+              <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                {female} ({femalePct}%)
+              </div>
             </div>
           </div>
 
           <h3 style={{ marginTop: 18 }}>{t("sections.age")}</h3>
-
           <BarList title={t("charts.ageGroups", { defaultValue: "Ραβδόγραμμα" })} rows={ageRows} />
-
-          </div>
+        </div>
       </div>
-
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>{t("sections.byTerm", { defaultValue: "Απόφοιτοι ανά εξεταστική" })}</h3>
-
         <BarList title={t("charts.byTerm", { defaultValue: "Ραβδόγραμμα" })} rows={termTotalsRows} />
-
-        </div>
+      </div>
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>{t("sections.gradeByYear")}</h3>
-
         <div style={{ height: 260 }}>
           <Bar data={avgGradeChartData as any} options={avgGradeChartOptions as any} />
         </div>
+      </div>
 
-        </div>
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>{t("sections.gradeDistribution", { defaultValue: "Κατανομή βαθμού" })}</h3>
+
+        {gradeBinsRows.length === 0 ? (
+          <div className="muted">-</div>
+        ) : (
+          <div style={{ height: 260 }}>
+            <Bar data={gradeBinsChartData as any} options={gradeBinsChartOptions as any} />
+          </div>
+        )}
+      </div>
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>
@@ -403,7 +463,6 @@ const timeToDegreeChartOptions = React.useMemo(() => {
           </div>
         )}
       </div>
-
     </div>
   );
 }
