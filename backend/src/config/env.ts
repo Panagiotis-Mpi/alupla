@@ -13,7 +13,7 @@ export const env = {
 
   db: {
     host: process.env.DB_HOST ?? "127.0.0.1",
-    port: Number(process.env.DB_PORT ?? 3306),
+    port: Number(process.env.DB_PORT ?? 5432),
     name: required("DB_NAME"),
     user: required("DB_USER"),
     pass: process.env.DB_PASS ?? ""

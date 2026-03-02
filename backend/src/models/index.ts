@@ -33,6 +33,10 @@ ActivityLog.belongsTo(User, { foreignKey: "user_id", as: "user" });
 export async function initDb() {
   await sequelize.authenticate();
 
+  // Create tables if missing (fresh DB in production).
+  // Safe for first deploy and keeps setup simple.
+  await sequelize.sync();
+
   // Public map expects PERIPHERY regions to exist. Seed once if missing.
   try {
     await ensurePeripheriesSeeded();

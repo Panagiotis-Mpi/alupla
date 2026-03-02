@@ -124,32 +124,6 @@ export async function publicStats(req: Request, res: Response) {
     { replacements: repl, type: QueryTypes.SELECT }
   );
 
-  // Degree grade distribution (bins)
-  const degreeGradeBins = await sequelize.query<{ label: string; count: number }>(
-    `SELECT
-      CASE
-        WHEN g.degree_grade >= 5 AND g.degree_grade < 6 THEN '5-6'
-        WHEN g.degree_grade >= 6 AND g.degree_grade < 7 THEN '6-7'
-        WHEN g.degree_grade >= 7 AND g.degree_grade < 8 THEN '7-8'
-        WHEN g.degree_grade >= 8 AND g.degree_grade < 9 THEN '8-9'
-        WHEN g.degree_grade >= 9 AND g.degree_grade <= 10 THEN '9-10'
-        ELSE 'unknown'
-      END as label,
-      COUNT(*) as count
-     FROM graduates g ${sqlWhere}
-     GROUP BY label
-     ORDER BY
-       CASE label
-         WHEN '5-6' THEN 1
-         WHEN '6-7' THEN 2
-         WHEN '7-8' THEN 3
-         WHEN '8-9' THEN 4
-         WHEN '9-10' THEN 5
-         ELSE 99
-       END`,
-    { replacements: repl, type: QueryTypes.SELECT }
-  );
-
   const byTerm = await sequelize.query<{ year: number; term: string; count: number }>(
     `SELECT
         YEAR(g.graduation_date) as year,
@@ -195,7 +169,6 @@ const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; 
     gender,
     age_groups: ageRows.filter((r) => r.label !== "unknown"),
     avg_grade_by_year: avgGradeByYear,
-    degree_grade_bins: degreeGradeBins.filter((r) => r.label !== "unknown"),
     by_term: byTerm.filter((r) => r.term !== 'other'),
     avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear
   });
