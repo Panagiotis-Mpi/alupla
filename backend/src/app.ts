@@ -19,13 +19,21 @@ export function createApp() {
   const app = express();
 
   app.use(helmet());
-  app.use(
+app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://alupla.vercel.app"
-    ],
-    credentials: true
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+
+      if (
+        origin === "http://localhost:5173" ||
+        origin.endsWith(".vercel.app")
+      ) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
   })
 );
   app.use(express.json({ limit: "2mb" }));
