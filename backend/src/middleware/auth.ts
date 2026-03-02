@@ -69,7 +69,13 @@ export function authRequired(req: Request, res: Response, next: NextFunction) {
 
   try {
     const payload = verifyToken(token);
-    const au: AuthUser = { id: Number(payload.sub), role: payload.role };
+
+    const roleRaw = String((payload as any).role);
+    if (roleRaw !== "super_admin" && roleRaw !== "secretariat") {
+      return res.status(401).json({ ok: false, error: { message: "Invalid token" } });
+    }
+
+    const au: AuthUser = { id: Number(payload.sub), role: roleRaw };
     req.user = au;
     req.auth = au;
 
