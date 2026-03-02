@@ -1,18 +1,22 @@
-import jwt from "jsonwebtoken";
-import { env } from "../config/env";
-import type { UserRole } from "../models/User";
+import jwt, { type JwtPayload as StdJwtPayload, type Secret, type SignOptions } from "jsonwebtoken";
 
-export type JwtPayload = {
-  sub: number;
-  role: UserRole;
+const JWT_SECRET_RAW = process.env.JWT_SECRET;
+if (!JWT_SECRET_RAW) {
+  throw new Error("JWT_SECRET is not set");
+}
+const JWT_SECRET: Secret = JWT_SECRET_RAW;
+
+export type AppJwtPayload = StdJwtPayload & {
+  role: string;
+  userId?: number | string;
+  email?: string;
 };
 
-export function signToken(payload: JwtPayload, opts?: { expiresIn?: string }) {
-  // Keep sessions reasonably short for security + thesis requirements.
-  // Default: 2 hours (can be overridden per-call via opts).
-  return jwt.sign(payload, env.jwtSecret, { expiresIn: opts?.expiresIn ?? "2h" });
+export function signToken(payload: Record<string, any>) {
+  const options: SignOptions = { expiresIn: "7d" };
+  return jwt.sign(payload, JWT_SECRET, options);
 }
 
-export function verifyToken(token: string): JwtPayload {
-  return jwt.verify(token, env.jwtSecret) as JwtPayload;
+export function verifyToken(token: string): AppJwtPayload {
+  return jwt.verify(token, JWT_SECRET) as AppJwtPayload;
 }
