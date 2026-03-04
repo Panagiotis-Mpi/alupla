@@ -30,11 +30,11 @@ function buildWhere(req: Request) {
     repl.gender = gender;
   }
 
-  // Age group based on years since birth_date
+  // Age group based on years since birth_year (DB schema stores only year)
   // Supported values: 18-22, 23-27, 28-32, 33-40, 41+
   if (ageGroup) {
-    // NOTE: schema uses birth_year (not birth_date). We derive a date from birth_year.
-    const birthDateExpr = "make_date(CAST(NULLIF(g.birth_year::text,'') AS int), 1, 1)";
+    // Build a safe date from birth_year (e.g. 1998-01-01)
+    const birthDateExpr = "make_date(CAST(g.birth_year AS int), 1, 1)";
     if (ageGroup === "18-22") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthDateExpr})) BETWEEN 18 AND 22`);
     else if (ageGroup === "23-27") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthDateExpr})) BETWEEN 23 AND 27`);
     else if (ageGroup === "28-32") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthDateExpr})) BETWEEN 28 AND 32`);
@@ -59,8 +59,8 @@ export async function publicStats(req: Request, res: Response) {
   try {
 const { sqlWhere, repl } = buildWhere(req);
 
-  // Derive a date from birth_year (schema has birth_year, not birth_date)
-  const birthDateExpr = "make_date(CAST(NULLIF(g.birth_year::text,'') AS int), 1, 1)";
+  // DB schema uses birth_year (int). Build a safe date from it.
+  const birthDateExpr = "make_date(CAST(g.birth_year AS int), 1, 1)";
 
   const totalRow = await sequelize.query<{ total: number }>(
     `SELECT COUNT(*) as total FROM graduates g ${sqlWhere}`,
@@ -154,10 +154,10 @@ const { sqlWhere, repl } = buildWhere(req);
 const sqlWhereEntry = sqlWhere ? `${sqlWhere} AND g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL` : "WHERE g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL";
 const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
   `SELECT
-      g.entry_year as entry_year,
-      AVG(EXTRACT(EPOCH FROM (CAST(g.graduation_date AS date) - make_date(CAST(NULLIF(g.entry_year::text,'') AS int), 9, 1)))/86400.0/365.25) as avg_years
+      CAST(g.entry_year AS int) as entry_year,
+      AVG(EXTRACT(EPOCH FROM (CAST(g.graduation_date AS date) - make_date(CAST(g.entry_year AS int), 9, 1)))/86400.0/365.25) as avg_years
    FROM graduates g ${sqlWhereEntry}
-   GROUP BY g.entry_year
+   GROUP BY CAST(g.entry_year AS int)
    ORDER BY entry_year ASC`,
   { replacements: repl, type: QueryTypes.SELECT }
 );
