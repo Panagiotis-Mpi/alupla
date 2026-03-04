@@ -33,7 +33,6 @@ function buildWhere(req: Request) {
   // Age group based on years since birth_date
   // Supported values: 18-22, 23-27, 28-32, 33-40, 41+
   if (ageGroup) {
-    repl.curYear = curYear;
     if (ageGroup === "18-22") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 18 AND 22");
     else if (ageGroup === "23-27") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 23 AND 27");
     else if (ageGroup === "28-32") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 28 AND 32");
