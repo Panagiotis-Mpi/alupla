@@ -1,18 +1,12 @@
-// Basic API helper for ALUPLA frontend (Vite + TS)
-// Token handling + wrappers for backend endpoints.
-//
-// FIXES:
-// 1) Always send Content-Type: application/json when we send a JSON body.
-//    (Previously, callers used JSON.stringify(...) => body was a string, so Content-Type was NOT set,
-//     Express didn't parse the body => /auth/login saw "Missing fields" and returned 400.)
-// 2) changePassword now sends snake_case keys expected by backend: current_password / new_password.
+// API helpers for ALUPLA frontend (Vite + TS).
+// Centralizes token handling and request defaults for backend endpoints.
 
 export const API_URL: string = (import.meta as any).env?.VITE_API_URL || "http://localhost:4000";
 
 const TOKEN_KEY = "alupla_token";
 
-// Keep token in sessionStorage so closing the browser logs the user out.
-// Migrate any old localStorage token once.
+// Keep the token in sessionStorage so closing the browser logs the user out.
+// If a legacy token exists in localStorage, migrate it once.
 function migrateLegacyToken() {
   try {
     const legacy = localStorage.getItem(TOKEN_KEY);
@@ -83,13 +77,12 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers || {});
   headers.set("Accept", "application/json");
 
-  // If we have a body and Content-Type wasn't set, default to JSON.
-  // This is crucial when callers pass JSON.stringify(...) which is a string.
+  // If we have a body and Content-Type wasn't set, choose a reasonable default.
   const hasBody = init.body !== undefined && init.body !== null;
 
   if (hasBody && !headers.has("Content-Type")) {
     if (init.body instanceof FormData) {
-      // Let the browser set multipart boundary.
+      // Let the browser set the multipart boundary.
     } else if (typeof init.body === "string") {
       if (isJsonString(init.body)) headers.set("Content-Type", "application/json");
       else headers.set("Content-Type", "text/plain;charset=UTF-8");
@@ -113,7 +106,7 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const data = await parseJsonSafe(res);
 
   if (res.status === 401) {
-    // Token expired/invalid -> drop it so UI redirects to login.
+    // Token expired/invalid: drop it so the UI can redirect to login.
     clearToken();
   }
 
