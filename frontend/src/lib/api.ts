@@ -1,7 +1,16 @@
 // API helpers for ALUPLA frontend (Vite + TS).
 // Centralizes token handling and request defaults for backend endpoints.
 
-export const API_URL: string = (import.meta as any).env?.VITE_API_URL || "/api";
+export const API_URL: string = (() => {
+  const envUrl = (import.meta as any).env?.VITE_API_URL as string | undefined;
+  // Use relative proxy by default in the browser to avoid cross-origin issues on deployments.
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const isLocal = host === "localhost" || host === "127.0.0.1";
+    if (!isLocal) return "/api";
+  }
+  return envUrl || "/api";
+})();
 
 const TOKEN_KEY = "alupla_token";
 
