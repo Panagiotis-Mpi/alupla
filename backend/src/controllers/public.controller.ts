@@ -49,7 +49,7 @@ function buildWhere(req: Request) {
 export async function publicStudyPrograms(_req: Request, res: Response) {
   const items = await StudyProgram.findAll({
     attributes: ["id", "code", "name_el", "name_en"],
-    where: { is_active: { [Op.in]: [1, true] } },
+    where: { is_active: true },
     order: [["code", "ASC"]]
   });
   res.json({ ok: true, items });
