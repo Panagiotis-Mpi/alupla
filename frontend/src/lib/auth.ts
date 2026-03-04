@@ -29,7 +29,7 @@ function migrateLegacyLocalStorageToSessionStorage() {
       localStorage.removeItem(KEY_USER);
     }
   } catch {
-    // ignore (storage may be unavailable in some environments)
+ // ignore
   }
 }
 
@@ -54,12 +54,12 @@ export function getUser(): SessionUser | null {
 export function setSession(token: string, user: SessionUser) {
   sessionStorage.setItem(KEY_TOKEN, token);
   sessionStorage.setItem(KEY_USER, JSON.stringify(user));
-  // ensure no legacy leftovers
+ // ensure no legacy leftovers
   try {
     localStorage.removeItem(KEY_TOKEN);
     localStorage.removeItem(KEY_USER);
   } catch {
-    // ignore
+ // ignore
   }
 }
 
@@ -70,12 +70,10 @@ export function logout() {
     localStorage.removeItem(KEY_TOKEN);
     localStorage.removeItem(KEY_USER);
   } catch {
-    // ignore
+ // ignore
   }
 }
 
-// FIX: clearSession was broken (called setSession(null) and setToken(null) that doesn't exist here).
-// Minimal, safe behavior: just remove stored session data.
 export function clearSession() {
   logout();
 }
