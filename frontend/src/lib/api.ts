@@ -1,10 +1,7 @@
-
-const API_BASE: string = ((import.meta as any).env?.VITE_API_BASE as string) || "/api";
-
 // API helpers for ALUPLA frontend (Vite + TS).
 // Centralizes token handling and request defaults for backend endpoints.
 
-export const API_URL: string = (import.meta as any).env?.VITE_API_URL || "http://localhost:4000";
+export const API_URL: string = (import.meta as any).env?.VITE_API_URL || "/api";
 
 const TOKEN_KEY = "alupla_token";
 
@@ -491,3 +488,4 @@ export function publicAnonExportUrl(params: {
   const qs = q.toString();
   return `${API_URL}/public/anonymous-graduates.csv${qs ? `?${qs}` : ""}`;
 }
+
