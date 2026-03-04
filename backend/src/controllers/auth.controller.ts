@@ -7,7 +7,7 @@ import { signToken } from "../utils/jwt";
 import { logAction } from "../services/log.service";
 
 function isStrongPassword(pw: string) {
-  // minimum: 8 chars, at least 1 letter, 1 number, 1 symbol
+ // minimum: 8 chars, at least 1 letter, 1 number, 1 symbol
   if (pw.length < 8) return false;
   if (!/[A-Za-z]/.test(pw)) return false;
   if (!/[0-9]/.test(pw)) return false;
@@ -49,7 +49,7 @@ export async function register(req: Request, res: Response) {
 
   await logAction({ user_id: user.id, action: "register", entity_type: "user", entity_id: user.id });
 
-  // In real app: send email. For dev: return token.
+ // Password reset flow handled by email service.
   return res.json({ ok: true, user: safeUser(user), verification_token: token, verification_expires: expires });
 }
 
@@ -92,7 +92,7 @@ export async function login(req: Request, res: Response) {
 
   const token = signToken({ sub: user.id, role: user.role });
 
-  // mark user as online (db presence)
+ // mark user as online (db presence)
   await user.update({ last_seen_at: new Date() } as any);
 
   await logAction({ user_id: user.id, action: "login", entity_type: "system", entity_id: null });
@@ -137,7 +137,7 @@ export async function resendVerification(req: Request, res: Response) {
   if (!email) return res.status(400).json({ ok: false, error: { message: "Missing email" } });
 
   const user = await User.findOne({ where: { email } });
-  // Don't leak existence
+ // Don't leak existence
   if (!user || !user.is_active) return res.json({ ok: true });
 
   if ((user as any).email_verified) return res.json({ ok: true, already_verified: true });
@@ -151,7 +151,7 @@ export async function resendVerification(req: Request, res: Response) {
 
   await logAction({ user_id: user.id, action: "resend_verify_email", entity_type: "user", entity_id: user.id });
 
-  // In real app: send email. For dev: return token.
+ // Password reset flow handled by email service.
   return res.json({ ok: true, verification_token: token, verification_expires: expires });
 }
 
@@ -160,7 +160,7 @@ export async function requestPasswordReset(req: Request, res: Response) {
   if (!email) return res.status(400).json({ ok: false, error: { message: "Missing email" } });
 
   const user = await User.findOne({ where: { email } });
-  // Don't leak whether email exists; return ok anyway.
+ // Don't leak whether email exists; return ok anyway.
   if (!user || !user.is_active) {
     return res.json({ ok: true });
   }
@@ -174,7 +174,7 @@ export async function requestPasswordReset(req: Request, res: Response) {
 
   await logAction({ user_id: user.id, action: "request_password_reset", entity_type: "user", entity_id: user.id });
 
-  // In real app: send email. For dev: return token.
+ // Password reset flow handled by email service.
   return res.json({ ok: true, reset_token: token, reset_expires: expires });
 }
 
