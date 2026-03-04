@@ -30,16 +30,15 @@ function buildWhere(req: Request) {
     repl.gender = gender;
   }
 
-  // Age group is based on current year - YEAR(birth_date)
+  // Age group based on years since birth_date
   // Supported values: 18-22, 23-27, 28-32, 33-40, 41+
   if (ageGroup) {
-    const curYear = new Date().getFullYear();
     repl.curYear = curYear;
-    if (ageGroup === "18-22") where.push("(:curYear - YEAR(g.birth_date)) BETWEEN 18 AND 22");
-    else if (ageGroup === "23-27") where.push("(:curYear - YEAR(g.birth_date)) BETWEEN 23 AND 27");
-    else if (ageGroup === "28-32") where.push("(:curYear - YEAR(g.birth_date)) BETWEEN 28 AND 32");
-    else if (ageGroup === "33-40") where.push("(:curYear - YEAR(g.birth_date)) BETWEEN 33 AND 40");
-    else if (ageGroup === "41+") where.push("(:curYear - YEAR(g.birth_date)) >= 41");
+    if (ageGroup === "18-22") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 18 AND 22");
+    else if (ageGroup === "23-27") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 23 AND 27");
+    else if (ageGroup === "28-32") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 28 AND 32");
+    else if (ageGroup === "33-40") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 33 AND 40");
+    else if (ageGroup === "41+") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) >= 41");
   }
 
   const sqlWhere = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -89,15 +88,14 @@ export async function publicStats(req: Request, res: Response) {
     if (r.gender === "M") gender.M = Number(r.count);
     if (r.gender === "F") gender.F = Number(r.count);
   }
-
-    const ageRows = await sequelize.query<{ label: string; count: number }>(
+  const ageRows = await sequelize.query<{ label: string; count: number }>(
     `SELECT
       CASE
-        WHEN (EXTRACT(YEAR FROM age(current_date, g.birth_date))) BETWEEN 18 AND 22 THEN '18-22'
-        WHEN (EXTRACT(YEAR FROM age(current_date, g.birth_date))) BETWEEN 23 AND 27 THEN '23-27'
-        WHEN (EXTRACT(YEAR FROM age(current_date, g.birth_date))) BETWEEN 28 AND 32 THEN '28-32'
-        WHEN (EXTRACT(YEAR FROM age(current_date, g.birth_date))) BETWEEN 33 AND 40 THEN '33-40'
-        WHEN (EXTRACT(YEAR FROM age(current_date, g.birth_date))) >= 41 THEN '41+'
+        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 18 AND 22 THEN '18-22'
+        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 23 AND 27 THEN '23-27'
+        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 28 AND 32 THEN '28-32'
+        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 33 AND 40 THEN '33-40'
+        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) >= 41 THEN '41+'
         ELSE 'unknown'
       END as label,
       COUNT(*) as count
@@ -114,7 +112,8 @@ export async function publicStats(req: Request, res: Response) {
        END`,
     { replacements: repl, type: QueryTypes.SELECT }
   );
-const avgGradeByYear = await sequelize.query<{ year: number; avg: number }>(
+
+  const avgGradeByYear = await sequelize.query<{ year: number; avg: number }>(
     `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year, AVG(g.degree_grade) as avg
      FROM graduates g ${sqlWhere}
      GROUP BY EXTRACT(YEAR FROM g.graduation_date)
@@ -200,7 +199,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
   // Anonymous dataset: no names/ad_code/student_number.
   const rows = await sequelize.query<any>(
     `SELECT
-      YEAR(g.graduation_date) as graduation_year,
+      EXTRACT(YEAR FROM g.graduation_date)::int as graduation_year,
       g.entry_year,
       g.birth_date,
       g.gender,
