@@ -16,7 +16,9 @@ function buildWhere(req: Request) {
   // (e.g. TEXT) even if the Sequelize model is DATE. Casting avoids Postgres function/operator
   // resolution errors that would otherwise cause /public/stats to return 500.
   const gradDate = "CAST(g.graduation_date AS date)";
-  const birthDate = "CAST(g.birth_date AS date)";
+  // NOTE: Schema source-of-truth (database/alupla.sql) stores only birth_year.
+  // For age calculations we materialize a date (Jan 1st of birth_year).
+  const birthDate = "make_date(CAST(g.birth_year AS int), 1, 1)";
 
   const graduationYear = num(req.query.graduation_year);
   const studyProgramId = num(req.query.study_program_id);
@@ -65,7 +67,8 @@ const { sqlWhere, repl } = buildWhere(req);
 
   // Same safety casts as buildWhere (kept local so the SQL stays explicit).
   const gradDate = "CAST(g.graduation_date AS date)";
-  const birthDate = "CAST(g.birth_date AS date)";
+  // Schema source-of-truth (database/alupla.sql) stores only birth_year.
+  const birthDate = "make_date(CAST(g.birth_year AS int), 1, 1)";
   const degreeGrade = "CAST(g.degree_grade AS numeric)";
   const entryYear = "CAST(g.entry_year AS int)";
 
@@ -217,7 +220,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
     `SELECT
       EXTRACT(YEAR FROM CAST(g.graduation_date AS date))::int as graduation_year,
       g.entry_year,
-      g.birth_date,
+      g.birth_year,
       g.gender,
       g.degree_grade,
       g.study_program_id,
@@ -232,7 +235,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
   const headers = [
     "graduation_year",
     "entry_year",
-    "birth_date",
+    "birth_year",
     "gender",
     "degree_grade",
     "study_program_id",
