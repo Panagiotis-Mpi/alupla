@@ -12,13 +12,19 @@ function buildWhere(req: Request) {
   const where: string[] = [];
   const repl: Record<string, any> = {};
 
+  // Centralized casting for safety: some deployments may contain legacy/loosely-typed columns
+  // (e.g. TEXT) even if the Sequelize model is DATE. Casting avoids Postgres function/operator
+  // resolution errors that would otherwise cause /public/stats to return 500.
+  const gradDate = "CAST(g.graduation_date AS date)";
+  const birthDate = "CAST(g.birth_date AS date)";
+
   const graduationYear = num(req.query.graduation_year);
   const studyProgramId = num(req.query.study_program_id);
   const gender = typeof req.query.gender === "string" ? req.query.gender : "";
   const ageGroup = typeof req.query.age_group === "string" ? req.query.age_group : "";
 
   if (graduationYear) {
-    where.push("EXTRACT(YEAR FROM g.graduation_date) = :graduationYear");
+    where.push(`EXTRACT(YEAR FROM ${gradDate}) = :graduationYear`);
     repl.graduationYear = graduationYear;
   }
   if (studyProgramId) {
@@ -33,11 +39,11 @@ function buildWhere(req: Request) {
   // Age group based on years since birth_date
   // Supported values: 18-22, 23-27, 28-32, 33-40, 41+
   if (ageGroup) {
-    if (ageGroup === "18-22") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 18 AND 22");
-    else if (ageGroup === "23-27") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 23 AND 27");
-    else if (ageGroup === "28-32") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 28 AND 32");
-    else if (ageGroup === "33-40") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 33 AND 40");
-    else if (ageGroup === "41+") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) >= 41");
+    if (ageGroup === "18-22") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthDate})) BETWEEN 18 AND 22`);
+    else if (ageGroup === "23-27") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthDate})) BETWEEN 23 AND 27`);
+    else if (ageGroup === "28-32") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthDate})) BETWEEN 28 AND 32`);
+    else if (ageGroup === "33-40") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthDate})) BETWEEN 33 AND 40`);
+    else if (ageGroup === "41+") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthDate})) >= 41`);
   }
 
   const sqlWhere = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -57,6 +63,12 @@ export async function publicStats(req: Request, res: Response) {
   try {
 const { sqlWhere, repl } = buildWhere(req);
 
+  // Same safety casts as buildWhere (kept local so the SQL stays explicit).
+  const gradDate = "CAST(g.graduation_date AS date)";
+  const birthDate = "CAST(g.birth_date AS date)";
+  const degreeGrade = "CAST(g.degree_grade AS numeric)";
+  const entryYear = "CAST(g.entry_year AS int)";
+
   const totalRow = await sequelize.query<{ total: number }>(
     `SELECT COUNT(*) as total FROM graduates g ${sqlWhere}`,
     { replacements: repl, type: QueryTypes.SELECT }
@@ -64,15 +76,15 @@ const { sqlWhere, repl } = buildWhere(req);
   const total = Number(totalRow?.[0]?.total ?? 0);
 
   const avgRow = await sequelize.query<{ avg_age: number | null; avg_degree_grade: number | null }>(
-    `SELECT AVG(EXTRACT(YEAR FROM age(current_date, g.birth_date))) as avg_age, AVG(g.degree_grade) as avg_degree_grade
+    `SELECT AVG(EXTRACT(YEAR FROM age(current_date, ${birthDate}))) as avg_age, AVG(${degreeGrade}) as avg_degree_grade
      FROM graduates g ${sqlWhere}`,
     { replacements: repl, type: QueryTypes.SELECT }
   );
 
   const byYear = await sequelize.query<{ year: number; count: number }>(
-    `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year, COUNT(*) as count
+    `SELECT EXTRACT(YEAR FROM ${gradDate})::int as year, COUNT(*) as count
      FROM graduates g ${sqlWhere}
-     GROUP BY EXTRACT(YEAR FROM g.graduation_date)
+     GROUP BY EXTRACT(YEAR FROM ${gradDate})
      ORDER BY year ASC`,
     { replacements: repl, type: QueryTypes.SELECT }
   );
@@ -91,11 +103,11 @@ const { sqlWhere, repl } = buildWhere(req);
   const ageRows = await sequelize.query<{ label: string; count: number }>(
     `SELECT
       CASE
-        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 18 AND 22 THEN '18-22'
-        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 23 AND 27 THEN '23-27'
-        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 28 AND 32 THEN '28-32'
-        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 33 AND 40 THEN '33-40'
-        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) >= 41 THEN '41+'
+        WHEN EXTRACT(YEAR FROM age(current_date, ${birthDate})) BETWEEN 18 AND 22 THEN '18-22'
+        WHEN EXTRACT(YEAR FROM age(current_date, ${birthDate})) BETWEEN 23 AND 27 THEN '23-27'
+        WHEN EXTRACT(YEAR FROM age(current_date, ${birthDate})) BETWEEN 28 AND 32 THEN '28-32'
+        WHEN EXTRACT(YEAR FROM age(current_date, ${birthDate})) BETWEEN 33 AND 40 THEN '33-40'
+        WHEN EXTRACT(YEAR FROM age(current_date, ${birthDate})) >= 41 THEN '41+'
         ELSE 'unknown'
       END as label,
       COUNT(*) as count
@@ -114,25 +126,25 @@ const { sqlWhere, repl } = buildWhere(req);
   );
 
   const avgGradeByYear = await sequelize.query<{ year: number; avg: number }>(
-    `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year, AVG(g.degree_grade) as avg
+    `SELECT EXTRACT(YEAR FROM ${gradDate})::int as year, AVG(${degreeGrade}) as avg
      FROM graduates g ${sqlWhere}
-     GROUP BY EXTRACT(YEAR FROM g.graduation_date)
+     GROUP BY EXTRACT(YEAR FROM ${gradDate})
      ORDER BY year ASC`,
     { replacements: repl, type: QueryTypes.SELECT }
   );
 
   const byTerm = await sequelize.query<{ year: number; term: string; count: number }>(
     `SELECT
-        EXTRACT(YEAR FROM g.graduation_date)::int as year,
+        EXTRACT(YEAR FROM ${gradDate})::int as year,
         CASE
-          WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1,2) THEN 'winter'
-          WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6,7) THEN 'spring'
-          WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+          WHEN EXTRACT(MONTH FROM ${gradDate}) IN (1,2) THEN 'winter'
+          WHEN EXTRACT(MONTH FROM ${gradDate}) IN (6,7) THEN 'spring'
+          WHEN EXTRACT(MONTH FROM ${gradDate}) = 9 THEN 'september'
           ELSE 'other'
         END as term,
         COUNT(*) as count
      FROM graduates g ${sqlWhere}
-     GROUP BY EXTRACT(YEAR FROM g.graduation_date), term
+     GROUP BY EXTRACT(YEAR FROM ${gradDate}), term
      ORDER BY year ASC,
        CASE term
          WHEN 'winter' THEN 1
@@ -146,26 +158,16 @@ const { sqlWhere, repl } = buildWhere(req);
 
 
 
-  // Avg years-to-degree by entry year.
-  // NOTE: Cast `entry_year` to int because it may be stored as text in some DBs.
-  // Also avoid the `::date` cast shorthand for portability.
-  const sqlWhereEntry = sqlWhere
-    ? `${sqlWhere} AND g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL`
-    : "WHERE g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL";
-
-  const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
-    `SELECT
-        g.entry_year as entry_year,
-        AVG(
-          EXTRACT(EPOCH FROM (
-            CAST(g.graduation_date AS date) - make_date(CAST(g.entry_year AS int), 9, 1)
-          )) / 86400.0 / 365.25
-        ) as avg_years
-     FROM graduates g ${sqlWhereEntry}
-     GROUP BY g.entry_year
-     ORDER BY entry_year ASC`,
-    { replacements: repl, type: QueryTypes.SELECT }
-  );
+const sqlWhereEntry = sqlWhere ? `${sqlWhere} AND g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL` : "WHERE g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL";
+const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
+  `SELECT
+      ${entryYear} as entry_year,
+      AVG(EXTRACT(EPOCH FROM (${gradDate} - make_date(${entryYear}, 9, 1)))/86400.0/365.25) as avg_years
+   FROM graduates g ${sqlWhereEntry}
+   GROUP BY ${entryYear}
+   ORDER BY entry_year ASC`,
+  { replacements: repl, type: QueryTypes.SELECT }
+);
 
   res.json({
     ok: true,
@@ -213,7 +215,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
   // Anonymous dataset: no names/ad_code/student_number.
   const rows = await sequelize.query<any>(
     `SELECT
-      EXTRACT(YEAR FROM g.graduation_date)::int as graduation_year,
+      EXTRACT(YEAR FROM CAST(g.graduation_date AS date))::int as graduation_year,
       g.entry_year,
       g.birth_date,
       g.gender,
