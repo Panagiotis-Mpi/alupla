@@ -15,6 +15,8 @@ import {
 export default function Graduates() {
   const { t } = useTranslation("graduates");
 
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
   const [importBusy, setImportBusy] = useState(false);
   const [importReport, setImportReport] = useState<any | null>(null);
   const [toast, setToast] = useState<{
@@ -34,8 +36,21 @@ export default function Graduates() {
     q: "",
     last_name_like: "",
     first_name_like: "",
+    father_name_like: "",
+    student_number_like: "",
+    ad_code_like: "",
+    origin_municipality_like: "",
     gender: "",
     study_program_id: "",
+    program_direction_id: "",
+    entry_year_min: "",
+    entry_year_max: "",
+    degree_grade_min: "",
+    degree_grade_max: "",
+    birth_year_min: "",
+    birth_year_max: "",
+    graduation_date_from: "",
+    graduation_date_to: "",
     page: 1,
     pageSize: 20,
     sort: "id:asc",
@@ -90,8 +105,21 @@ export default function Graduates() {
     if (filters.q.trim()) p.q = filters.q.trim();
     if (filters.last_name_like.trim()) p.last_name_like = filters.last_name_like.trim();
     if (filters.first_name_like.trim()) p.first_name_like = filters.first_name_like.trim();
+    if (filters.father_name_like.trim()) p.father_name_like = filters.father_name_like.trim();
+    if (filters.student_number_like.trim()) p.student_number_like = filters.student_number_like.trim();
+    if (filters.ad_code_like.trim()) p.ad_code_like = filters.ad_code_like.trim();
+    if (filters.origin_municipality_like.trim()) p.origin_municipality_like = filters.origin_municipality_like.trim();
     if (filters.gender) p.gender = filters.gender;
     if (filters.study_program_id) p.study_program_id = Number(filters.study_program_id);
+    if (filters.program_direction_id) p.program_direction_id = Number(filters.program_direction_id);
+    if (filters.entry_year_min) p.entry_year_min = Number(filters.entry_year_min);
+    if (filters.entry_year_max) p.entry_year_max = Number(filters.entry_year_max);
+    if (filters.degree_grade_min) p.degree_grade_min = Number(filters.degree_grade_min);
+    if (filters.degree_grade_max) p.degree_grade_max = Number(filters.degree_grade_max);
+    if (filters.birth_year_min) p.birth_year_min = Number(filters.birth_year_min);
+    if (filters.birth_year_max) p.birth_year_max = Number(filters.birth_year_max);
+    if (filters.graduation_date_from) p.graduation_date_from = filters.graduation_date_from;
+    if (filters.graduation_date_to) p.graduation_date_to = filters.graduation_date_to;
     return p;
   }, [filters]);
 
@@ -159,7 +187,26 @@ export default function Graduates() {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.page, params.pageSize, params.sort, filters.study_program_id]);
+  }, [params.page, params.pageSize, params.sort, filters.study_program_id, filters.program_direction_id]);
+
+  // Quick search (debounced) for common text fields.
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setFilters((f) => ({ ...f, page: 1 }));
+      void load();
+    }, 450);
+
+    return () => window.clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    filters.q,
+    filters.last_name_like,
+    filters.first_name_like,
+    filters.father_name_like,
+    filters.student_number_like,
+    filters.ad_code_like,
+    filters.origin_municipality_like,
+  ]);
 
   async function onImportXlsx(file: File) {
     setImportReport(null);
@@ -330,15 +377,140 @@ export default function Graduates() {
           </div>
 
           <div>
+            <label className="label">{t("filters.direction")}</label>
+            <select
+              className="input"
+              value={filters.program_direction_id}
+              onChange={(e) => setFilters((f) => ({ ...f, program_direction_id: e.target.value }))}
+              disabled={!filters.study_program_id}
+            >
+              <option value="">{t("filters.all")}</option>
+              {(directions ?? [])
+                .filter((d: any) => String(d?.study_program_id ?? d?.program_id ?? "") === String(filters.study_program_id || ""))
+                .map((d: any) => (
+                  <option key={d.id} value={d.id}>
+                    {d.code ? `${d.code} - ` : ""}
+                    {d.name_el ?? d.name_en ?? d.id}
+                  </option>
+                ))}
+            </select>
+            {!filters.study_program_id ? <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>{t("filters.directionHint")}</div> : null}
+          </div>
+
+          <div>
             <label className="label">{t("filters.sort")}</label>
             <select className="input" value={filters.sort} onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value }))}>
               <option value="id:asc">{t("filters.sort_id_asc")}</option>
               <option value="id:desc">{t("filters.sort_id_desc")}</option>
               <option value="last_name:asc">{t("filters.sort_last_name_asc")}</option>
               <option value="last_name:desc">{t("filters.sort_last_name_desc")}</option>
+              <option value="entry_year:asc">{t("filters.sort_entry_year_asc")}</option>
+              <option value="entry_year:desc">{t("filters.sort_entry_year_desc")}</option>
+              <option value="degree_grade:desc">{t("filters.sort_degree_desc")}</option>
+              <option value="degree_grade:asc">{t("filters.sort_degree_asc")}</option>
             </select>
           </div>
         </div>
+
+        <div style={{ marginTop: 10 }}>
+          <button className="btn" type="button" onClick={() => setAdvancedOpen((v) => !v)} aria-expanded={advancedOpen}>
+            {advancedOpen ? t("filters.hideAdvanced") : t("filters.showAdvanced")}
+          </button>
+        </div>
+
+        {advancedOpen ? (
+          <div className="grid cols3" style={{ marginTop: 12 }}>
+            <div>
+              <label className="label">{t("filters.fatherNameLike")}</label>
+              <input className="input" value={filters.father_name_like} onChange={(e) => setFilters((f) => ({ ...f, father_name_like: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">{t("filters.studentNumberLike")}</label>
+              <input className="input" value={filters.student_number_like} onChange={(e) => setFilters((f) => ({ ...f, student_number_like: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">{t("filters.adCodeLike")}</label>
+              <input className="input" value={filters.ad_code_like} onChange={(e) => setFilters((f) => ({ ...f, ad_code_like: e.target.value }))} />
+            </div>
+
+            <div>
+              <label className="label">{t("filters.originMunicipalityLike")}</label>
+              <input
+                className="input"
+                value={filters.origin_municipality_like}
+                onChange={(e) => setFilters((f) => ({ ...f, origin_municipality_like: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="label">{t("filters.entryYearRange")}</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  className="input"
+                  inputMode="numeric"
+                  placeholder={t("filters.from")}
+                  value={filters.entry_year_min}
+                  onChange={(e) => setFilters((f) => ({ ...f, entry_year_min: e.target.value.replace(/[^0-9]/g, "") }))}
+                />
+                <input
+                  className="input"
+                  inputMode="numeric"
+                  placeholder={t("filters.to")}
+                  value={filters.entry_year_max}
+                  onChange={(e) => setFilters((f) => ({ ...f, entry_year_max: e.target.value.replace(/[^0-9]/g, "") }))}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="label">{t("filters.degreeGradeRange")}</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  className="input"
+                  inputMode="decimal"
+                  placeholder={t("filters.from")}
+                  value={filters.degree_grade_min}
+                  onChange={(e) => setFilters((f) => ({ ...f, degree_grade_min: e.target.value.replace(/[^0-9.]/g, "") }))}
+                />
+                <input
+                  className="input"
+                  inputMode="decimal"
+                  placeholder={t("filters.to")}
+                  value={filters.degree_grade_max}
+                  onChange={(e) => setFilters((f) => ({ ...f, degree_grade_max: e.target.value.replace(/[^0-9.]/g, "") }))}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="label">{t("filters.birthYearRange")}</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  className="input"
+                  inputMode="numeric"
+                  placeholder={t("filters.from")}
+                  value={filters.birth_year_min}
+                  onChange={(e) => setFilters((f) => ({ ...f, birth_year_min: e.target.value.replace(/[^0-9]/g, "") }))}
+                />
+                <input
+                  className="input"
+                  inputMode="numeric"
+                  placeholder={t("filters.to")}
+                  value={filters.birth_year_max}
+                  onChange={(e) => setFilters((f) => ({ ...f, birth_year_max: e.target.value.replace(/[^0-9]/g, "") }))}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="label">{t("filters.graduationDateRange")}</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input className="input" type="date" value={filters.graduation_date_from} onChange={(e) => setFilters((f) => ({ ...f, graduation_date_from: e.target.value }))} />
+                <input className="input" type="date" value={filters.graduation_date_to} onChange={(e) => setFilters((f) => ({ ...f, graduation_date_to: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
           <button
@@ -353,13 +525,59 @@ export default function Graduates() {
           <button
             className="btn"
             onClick={() => {
-              setFilters({ q: "", last_name_like: "", first_name_like: "", gender: "", study_program_id: "", page: 1, pageSize: 20, sort: "id:asc" });
+              setFilters({
+                q: "",
+                last_name_like: "",
+                first_name_like: "",
+                father_name_like: "",
+                student_number_like: "",
+                ad_code_like: "",
+                origin_municipality_like: "",
+                gender: "",
+                study_program_id: "",
+                program_direction_id: "",
+                entry_year_min: "",
+                entry_year_max: "",
+                degree_grade_min: "",
+                degree_grade_max: "",
+                birth_year_min: "",
+                birth_year_max: "",
+                graduation_date_from: "",
+                graduation_date_to: "",
+                page: 1,
+                pageSize: 20,
+                sort: "id:asc",
+              });
               setTimeout(() => void load(), 0);
             }}
           >
             {t("filters.reset")}
           </button>
           <div className="spacer" />
+
+          <label className="label" style={{ margin: 0, alignSelf: "center" }}>
+            {t("filters.pageSize")}
+          </label>
+          <select
+            className="input"
+            style={{ width: 90, alignSelf: "center" }}
+            value={filters.pageSize}
+            onChange={(e) => setFilters((f) => ({ ...f, page: 1, pageSize: Number(e.target.value) }))}
+          >
+            {[10, 20, 50, 100].map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+
+          <span className="badge" style={{ alignSelf: "center" }}>
+            {t("filters.range", {
+              from: total === 0 ? 0 : (filters.page - 1) * filters.pageSize + 1,
+              to: Math.min(filters.page * filters.pageSize, total),
+              total,
+            })}
+          </span>
           <button className="btn" disabled={filters.page <= 1} onClick={() => setFilters((f) => ({ ...f, page: f.page - 1 }))}>
             ◀
           </button>
@@ -367,6 +585,61 @@ export default function Graduates() {
           <button className="btn" disabled={filters.page * filters.pageSize >= total} onClick={() => setFilters((f) => ({ ...f, page: f.page + 1 }))}>
             ▶
           </button>
+        </div>
+
+        {/* Numbered pagination */}
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+          {(() => {
+            const totalPages = Math.max(1, Math.ceil(total / filters.pageSize));
+            const cur = filters.page;
+            const start = Math.max(1, cur - 2);
+            const end = Math.min(totalPages, cur + 2);
+            const pages: number[] = [];
+            for (let p = start; p <= end; p++) pages.push(p);
+            return (
+              <>
+                <button className="btn" disabled={cur <= 1} onClick={() => setFilters((f) => ({ ...f, page: 1 }))}>
+                  {t("filters.first")}
+                </button>
+                {pages[0] && pages[0] > 1 ? <span className="muted">…</span> : null}
+                {pages.map((p) => (
+                  <button
+                    key={p}
+                    className={p === cur ? "btn primary" : "btn"}
+                    onClick={() => setFilters((f) => ({ ...f, page: p }))}
+                    aria-current={p === cur ? "page" : undefined}
+                  >
+                    {p}
+                  </button>
+                ))}
+                {pages[pages.length - 1] && pages[pages.length - 1] < totalPages ? <span className="muted">…</span> : null}
+                <button className="btn" disabled={cur >= totalPages} onClick={() => setFilters((f) => ({ ...f, page: totalPages }))}>
+                  {t("filters.last")}
+                </button>
+
+                <div className="spacer" />
+                <label className="label" style={{ margin: 0 }}>
+                  {t("filters.goTo")}
+                </label>
+                <input
+                  className="input"
+                  style={{ width: 90 }}
+                  inputMode="numeric"
+                  placeholder="1"
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    const raw = (e.currentTarget as HTMLInputElement).value;
+                    const n = Number(raw);
+                    if (!Number.isFinite(n)) return;
+                    const totalPages2 = Math.max(1, Math.ceil(total / filters.pageSize));
+                    const clamped = Math.min(totalPages2, Math.max(1, Math.trunc(n)));
+                    setFilters((f) => ({ ...f, page: clamped }));
+                    (e.currentTarget as HTMLInputElement).blur();
+                  }}
+                />
+              </>
+            );
+          })()}
         </div>
       </div>
 
