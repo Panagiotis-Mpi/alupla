@@ -1,7 +1,12 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { getPublicStats, getPublicStudyPrograms, publicAnonExportUrl, type StudyProgram } from "../lib/api";
+import {
+  getPublicStats,
+  getPublicStudyPrograms,
+  publicAnonExportUrl,
+  type StudyProgram,
+} from "../lib/api";
 import { getUser } from "../lib/auth";
 import { Bar } from "react-chartjs-2";
 import {
@@ -191,7 +196,6 @@ export default function Statistics() {
     } as const;
   }, []);
 
-  // ✅ ΝΕΟ: chart data/options για Κατανομή βαθμού (όπως τα άλλα)
   const gradeBinsChartData = React.useMemo(() => {
     const labels = gradeBinsRows.map((r) => r.label);
     return {
