@@ -146,16 +146,26 @@ const { sqlWhere, repl } = buildWhere(req);
 
 
 
-const sqlWhereEntry = sqlWhere ? `${sqlWhere} AND g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL` : "WHERE g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL";
-const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
-  `SELECT
-      g.entry_year as entry_year,
-      AVG(EXTRACT(EPOCH FROM (g.graduation_date::date - make_date(g.entry_year, 9, 1)))/86400.0/365.25) as avg_years
-   FROM graduates g ${sqlWhereEntry}
-   GROUP BY g.entry_year
-   ORDER BY entry_year ASC`,
-  { replacements: repl, type: QueryTypes.SELECT }
-);
+  // Avg years-to-degree by entry year.
+  // NOTE: Cast `entry_year` to int because it may be stored as text in some DBs.
+  // Also avoid the `::date` cast shorthand for portability.
+  const sqlWhereEntry = sqlWhere
+    ? `${sqlWhere} AND g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL`
+    : "WHERE g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL";
+
+  const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
+    `SELECT
+        g.entry_year as entry_year,
+        AVG(
+          EXTRACT(EPOCH FROM (
+            CAST(g.graduation_date AS date) - make_date(CAST(g.entry_year AS int), 9, 1)
+          )) / 86400.0 / 365.25
+        ) as avg_years
+     FROM graduates g ${sqlWhereEntry}
+     GROUP BY g.entry_year
+     ORDER BY entry_year ASC`,
+    { replacements: repl, type: QueryTypes.SELECT }
+  );
 
   res.json({
     ok: true,
