@@ -1,8 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://alupla-backend.onrender.com/:path*"
+      "source": "/api/(.*)",
+      "destination": "https://alupla-backend.onrender.com/$1"
     },
     {
       "source": "/(.*)",
