@@ -44,7 +44,7 @@ function downloadBlob(filename: string, blob: Blob) {
 
 function csvEscape(v: any, delimiter: string) {
   const s = v === null || v === undefined ? "" : String(v);
-  // Quote if it contains delimiter, quote, or newline
+  // helper logic
   if (s.includes(delimiter) || s.includes('"') || s.includes("\n") || s.includes("\r")) {
     return `"${s.replace(/"/g, '""')}"`;
   }
