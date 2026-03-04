@@ -37,15 +37,15 @@ export async function getGraduatesMap(req: Request, res: Response) {
     ]);
   }
 
-  // Filter by age group (based on current year - YEAR(birth_date))
+  // Filter by age group (based on current year - birth_year)
   const currentYear = new Date().getFullYear();
   if (ageGroup) {
     const [minAge, maxAge] = ageGroupToRange(ageGroup);
     const minBirth = currentYear - (maxAge ?? 200);
     const maxBirth = currentYear - minAge;
-    // YEAR(birth_date) between [minBirth, maxBirth]
+    // birth_year between [minBirth, maxBirth]
     where[Op.and] = (where[Op.and] || []).concat([
-      Sequelize.where(Sequelize.fn("YEAR", Sequelize.col("birth_date")), { [Op.between]: [minBirth, maxBirth] }),
+      { birth_year: { [Op.between]: [minBirth, maxBirth] } },
     ]);
   }
 
@@ -73,7 +73,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
   const grads = await Graduate.findAll({
     where,
         // origin_region_id is preferred; origin_municipality is a fallback for older/imported rows.
-    attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date"],
+    attributes: ["origin_region_id", "origin_municipality", "gender", "birth_year"],
   });
 
   const groups = new Map<number, any>();
@@ -142,8 +142,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
     if (g.gender === "M") cur.male += 1;
     if (g.gender === "F") cur.female += 1;
 
-    const bd = String(g.birth_date || "");
-    const by = Number(bd.slice(0, 4));
+    const by = Number(g.birth_year);
     if (Number.isFinite(by) && by > 1900) {
       cur.ageSum += currentYear - by;
       cur.ageCount += 1;

@@ -1,4 +1,4 @@
-import { Op, fn, col, where as w, type WhereOptions } from "sequelize";
+import { Op, type WhereOptions } from "sequelize";
 import type { Graduate } from "../models/Graduate";
 
 type Query = Record<string, unknown>;
@@ -80,34 +80,32 @@ export function buildGraduateWhere(q: Query): WhereOptions<Graduate> {
     };
   }
 
-  // birth_date
-  const birthExact = dateStr(q["birth_date"]);
-  if (birthExact) (where as any).birth_date = birthExact;
-
-  const birthFrom = dateStr(q["birth_date_from"]);
-  const birthTo = dateStr(q["birth_date_to"]);
-  if (birthFrom || birthTo) {
-    (where as any).birth_date = {
-      ...(birthFrom ? { [Op.gte]: birthFrom } : {}),
-      ...(birthTo ? { [Op.lte]: birthTo } : {})
-    };
-  }
-
-  // (optional) support birth_year filters by applying them on YEAR(birth_date)
+  // birth_year (schema). Also accept birth_date filters by converting to year.
   const birthYearMin = num(q["birth_year_min"]);
   const birthYearMax = num(q["birth_year_max"]);
   const birthYearExact = num(q["birth_year"]);
-  const yearExpr = fn("YEAR", col("birth_date"));
-  if (birthYearExact !== undefined) (where as any)[Op.and] = [w(yearExpr, birthYearExact)];
+  if (birthYearExact !== undefined) (where as any).birth_year = birthYearExact;
   if (birthYearMin !== undefined || birthYearMax !== undefined) {
-    const and = ((where as any)[Op.and] ?? []) as any[];
-    and.push(
-      w(yearExpr, {
-        ...(birthYearMin !== undefined ? { [Op.gte]: birthYearMin } : {}),
-        ...(birthYearMax !== undefined ? { [Op.lte]: birthYearMax } : {})
-      })
-    );
-    (where as any)[Op.and] = and;
+    (where as any).birth_year = {
+      ...(birthYearMin !== undefined ? { [Op.gte]: birthYearMin } : {}),
+      ...(birthYearMax !== undefined ? { [Op.lte]: birthYearMax } : {})
+    };
+  }
+
+  const birthExact = dateStr(q["birth_date"]);
+  if (birthExact) {
+    const y = Number(String(birthExact).slice(0, 4));
+    if (Number.isFinite(y)) (where as any).birth_year = y;
+  }
+  const birthFrom = dateStr(q["birth_date_from"]);
+  const birthTo = dateStr(q["birth_date_to"]);
+  if (birthFrom || birthTo) {
+    const yf = birthFrom ? Number(String(birthFrom).slice(0, 4)) : undefined;
+    const yt = birthTo ? Number(String(birthTo).slice(0, 4)) : undefined;
+    (where as any).birth_year = {
+      ...(Number.isFinite(yf as any) ? { [Op.gte]: yf } : {}),
+      ...(Number.isFinite(yt as any) ? { [Op.lte]: yt } : {})
+    };
   }
 
   // date ranges

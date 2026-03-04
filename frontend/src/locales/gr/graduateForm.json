@@ -7,7 +7,7 @@
   "labels": {
     "lastName": "Επώνυμο *",
     "firstName": "Όνομα *",
-    "fatherName": "Πατρώνυμο",
+    "fatherName": "Πατρώνυμο *",
     "gender": "Φύλο *",
     "adCode": "Α.Δ. *",
     "studentNumber": "ΑΜ *",
@@ -18,18 +18,19 @@
     "graduationDate": "Ημ/νία Λήψης Διπλώματος *",
     "oathDate": "Ημ/νία Ορκωμοσίας *",
     "studyProgram": "Πρόγραμμα Σπουδών *",
-    "direction": "Κατεύθυνση",
+    "direction": "Κατεύθυνση *",
     "directionNone": "(καμία)",
     "directionHint": "Γεμίζει δυναμικά από το πρόγραμμα.",
     "studentNumberDup": "ΑΜ",
     "entryYearDup": "Έτος Εγγραφής",
-    "regionSearch": "Αναζήτηση Περιοχής (regions)",
+    "regionSearch": "Αναζήτηση Περιοχής (regions) *",
     "regionPlaceholder": "π.χ. Πάτρ",
     "select": "Επιλογή:",
     "originRegionId": "origin_region_id: {{value}}",
     "originRegionNull": "(null)",
-    "originText": "Origin (text)",
-    "originTextPlaceholder": "Δήμος/Πόλη (προαιρετικό)"
+    "originText": "Δήμος/Πόλη *",
+    "originTextPlaceholder": "Δήμος/Πόλη",
+    "required": "Λείπει υποχρεωτικό πεδίο:"
   },
   "tip": "Tip: στην edit σελίδα, αν αλλάξεις πρόγραμμα, οι κατευθύνσεις ξαναφορτώνουν αυτόματα.",
   "error": "Error"

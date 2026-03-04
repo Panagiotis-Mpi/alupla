@@ -27,7 +27,7 @@ const empty: Partial<Graduate> = {
   program_direction_id: null,
 
   entry_year: new Date().getFullYear(),
-  birth_date: "2000-01-01",
+  birth_year: 2000,
   degree_grade: 0,
 
   graduation_date: "",
@@ -98,9 +98,42 @@ export default function GraduateForm(props: { mode: Mode }) {
     return () => clearTimeout(tt);
   }, [regionQ]);
 
+  const validateRequired = (): string | null => {
+    // On create: user requested all graduates columns except id/ad_code/created_at/updated_at to be required.
+    if (isEdit) return null;
+    const required: Array<[keyof Graduate | string, any, string]> = [
+      ["last_name", form.last_name, t("labels.lastName")],
+      ["first_name", form.first_name, t("labels.firstName")],
+      ["father_name", form.father_name, t("labels.fatherName")],
+      ["gender", form.gender, t("labels.gender")],
+      ["student_number", form.student_number, t("labels.studentNumber")],
+      ["entry_year", form.entry_year, t("labels.entryYearReq")],
+      ["birth_year", (form as any).birth_year, t("labels.birthYear")],
+      ["degree_grade", form.degree_grade, t("labels.degreeGrade")],
+      ["graduation_date", form.graduation_date, t("labels.graduationDate")],
+      ["oath_date", form.oath_date, t("labels.oathDate")],
+      ["study_program_id", form.study_program_id, t("labels.studyProgram")],
+      ["program_direction_id", form.program_direction_id, t("labels.direction")],
+      ["origin_region_id", form.origin_region_id, t("labels.regionSearch")],
+      ["origin_municipality", form.origin_municipality, t("labels.originText")],
+    ];
+    for (const [_k, v, label] of required) {
+      if (v === null || v === undefined || String(v).trim() === "") {
+        return label;
+      }
+    }
+    return null;
+  };
+
   const onSave = async () => {
     setSaving(true);
     try {
+      const missing = validateRequired();
+      if (missing) {
+        alert(`${t("error")}: ${t("labels.required")} ${missing}`);
+        return;
+      }
+
       if (isEdit && gradId) {
         await updateGraduate(gradId, form);
       } else {
@@ -145,10 +178,13 @@ export default function GraduateForm(props: { mode: Mode }) {
               <option value="F">F</option>
             </select>
           </div>
-          <div>
-            <label className="label">{t("labels.adCode")}</label>
-            <input className="input" value={form.ad_code ?? ""} onChange={(e) => setForm(f => ({...f, ad_code: e.target.value}))} />
-          </div>
+          {/* Do not show AD code on create (per specs). Keep on edit for existing records. */}
+          {isEdit && (
+            <div>
+              <label className="label">{t("labels.adCode")}</label>
+              <input className="input" value={form.ad_code ?? ""} onChange={(e) => setForm(f => ({...f, ad_code: e.target.value}))} />
+            </div>
+          )}
 
           <div>
             <label className="label">{t("labels.studentNumber")}</label>
@@ -161,8 +197,12 @@ export default function GraduateForm(props: { mode: Mode }) {
           </div>
 
           <div>
-            <label className="label">{t("labels.birthDate")}</label>
-            <input className="input" type="date" value={(form.birth_date ?? "") as any} onChange={(e) => setForm(f => ({...f, birth_date: e.target.value}))} />
+            <label className="label">{t("labels.birthYear")}</label>
+            <input
+              className="input"
+              value={(form as any).birth_year ?? ""}
+              onChange={(e) => setForm(f => ({...f, birth_year: e.target.value ? Number(e.target.value) : ("" as any)}))}
+            />
           </div>
 
           <div>
@@ -195,16 +235,6 @@ export default function GraduateForm(props: { mode: Mode }) {
               {directions.map(d => <option key={d.id} value={d.id}>{d.code} - {d.name_el}</option>)}
             </select>
             <div className="muted">{t("labels.directionHint")}</div>
-          </div>
-
-          <div>
-            <label className="label">{t("labels.studentNumberDup")}</label>
-            <input className="input" value={form.student_number ?? ""} onChange={(e) => setForm(f => ({...f, student_number: e.target.value}))} />
-          </div>
-
-          <div>
-            <label className="label">{t("labels.entryYearDup")}</label>
-            <input className="input" value={form.entry_year ?? ""} onChange={(e) => setForm(f => ({...f, entry_year: e.target.value ? Number(e.target.value) : null}))} />
           </div>
         </div>
 
