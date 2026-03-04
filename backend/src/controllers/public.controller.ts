@@ -54,7 +54,8 @@ export async function publicStudyPrograms(_req: Request, res: Response) {
 }
 
 export async function publicStats(req: Request, res: Response) {
-  const { sqlWhere, repl } = buildWhere(req);
+  try {
+const { sqlWhere, repl } = buildWhere(req);
 
   const totalRow = await sequelize.query<{ total: number }>(
     `SELECT COUNT(*) as total FROM graduates g ${sqlWhere}`,
@@ -168,6 +169,10 @@ const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; 
     by_term: byTerm.filter((r) => r.term !== 'other'),
     avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear
   });
+} catch (err) {
+  console.error("[public/stats] failed", err);
+  return res.status(500).json({ message: "Stats query failed" });
+}
 }
 
 export async function publicMap(req: Request, res: Response) {
