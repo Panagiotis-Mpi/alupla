@@ -179,7 +179,10 @@ export type Graduate = {
   oath_date: string;
   entry_year: number;
   student_number: string;
-  birth_date: string; // YYYY-MM-DD
+  // NOTE: Source of truth is the DB schema (alupla.sql) which uses birth_year.
+  // We keep birth_date optional for backwards-compatibility with older deployments.
+  birth_year?: number;
+  birth_date?: string; // YYYY-MM-DD (legacy)
   gender: "M" | "F";
   study_program_id: number;
   program_direction_id?: number | null;

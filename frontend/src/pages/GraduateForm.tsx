@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 import {
   createGraduate,
   getGraduate,
+  listRegions,
   listProgramDirections,
   listStudyPrograms,
-  searchRegions,
   updateGraduate,
   type Graduate,
   type ProgramDirection,
@@ -27,15 +27,14 @@ const empty: Partial<Graduate> = {
   program_direction_id: null,
 
   entry_year: new Date().getFullYear(),
+  birth_year: 2000,
   degree_grade: 0,
-
-  birth_date: "2000-01-01",
 
   graduation_date: "",
   oath_date: "",
 
   origin_region_id: null,
-  origin_municipality: null
+  origin_municipality: ""
 };
 
 export default function GraduateForm(props: { mode: Mode }) {
@@ -45,8 +44,7 @@ export default function GraduateForm(props: { mode: Mode }) {
 
   const [programs, setPrograms] = useState<StudyProgram[]>([]);
   const [directions, setDirections] = useState<ProgramDirection[]>([]);
-  const [regionQ, setRegionQ] = useState("");
-  const [regionHits, setRegionHits] = useState<Region[]>([]);
+  const [regions, setRegions] = useState<Region[]>([]);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<Graduate>>(empty);
   const isEdit = props.mode === "edit";
@@ -57,6 +55,9 @@ export default function GraduateForm(props: { mode: Mode }) {
     (async () => {
       const sp = await listStudyPrograms();
       setPrograms(sp.items);
+
+      const rs = await listRegions();
+      setRegions(rs.items);
 
       if (!isEdit) {
         // set default program id if exists
@@ -88,53 +89,39 @@ export default function GraduateForm(props: { mode: Mode }) {
     })();
   }, [form.study_program_id]);
 
-  // region search
-  useEffect(() => {
-    const q = regionQ.trim();
-    if (q.length < 2) { setRegionHits([]); return; }
-    const tt = setTimeout(async () => {
-      const r = await searchRegions(q);
-      setRegionHits(r.items);
-    }, 250);
-    return () => clearTimeout(tt);
-  }, [regionQ]);
+  const validate = (): string[] => {
+    const missing: string[] = [];
+    const req = (cond: any, label: string) => { if (!cond) missing.push(label); };
 
-  const validateRequired = (): string | null => {
-    // On create: user requested all graduates columns except id/ad_code/created_at/updated_at to be required.
-    if (isEdit) return null;
-    const required: Array<[keyof Graduate | string, any, string]> = [
-      ["last_name", form.last_name, t("labels.lastName")],
-      ["first_name", form.first_name, t("labels.firstName")],
-      ["father_name", form.father_name, t("labels.fatherName")],
-      ["gender", form.gender, t("labels.gender")],
-      ["student_number", form.student_number, t("labels.studentNumber")],
-      ["entry_year", form.entry_year, t("labels.entryYearReq")],
-      ["birth_date", (form as any).birth_date, t("labels.birthDate")],
-      ["degree_grade", form.degree_grade, t("labels.degreeGrade")],
-      ["graduation_date", form.graduation_date, t("labels.graduationDate")],
-      ["oath_date", form.oath_date, t("labels.oathDate")],
-      ["study_program_id", form.study_program_id, t("labels.studyProgram")],
-      ["program_direction_id", form.program_direction_id, t("labels.direction")],
-      ["origin_region_id", form.origin_region_id, t("labels.regionSearch")],
-      ["origin_municipality", form.origin_municipality, t("labels.originText")],
-    ];
-    for (const [_k, v, label] of required) {
-      if (v === null || v === undefined || String(v).trim() === "") {
-        return label;
-      }
-    }
-    return null;
+    req((form.last_name ?? "").trim(), t("labels.lastName"));
+    req((form.first_name ?? "").trim(), t("labels.firstName"));
+    req((form.father_name ?? "").trim(), t("labels.fatherName"));
+    req((form.ad_code ?? "").trim(), t("labels.adCode"));
+    req((form.student_number ?? "").trim(), t("labels.studentNumber"));
+
+    req(Number.isFinite(Number(form.entry_year)), t("labels.entryYearReq"));
+    req(Number.isFinite(Number((form as any).birth_year)), t("labels.birthYear"));
+    req(Number.isFinite(Number(form.degree_grade)), t("labels.degreeGrade"));
+    req((form.graduation_date ?? "").trim(), t("labels.graduationDate"));
+    req((form.oath_date ?? "").trim(), t("labels.oathDate"));
+
+    req(Number.isFinite(Number(form.study_program_id)), t("labels.studyProgram"));
+    req(Number.isFinite(Number(form.program_direction_id)), t("labels.direction"));
+
+    req(Number.isFinite(Number(form.origin_region_id)), t("labels.originRegion"));
+    req((form.origin_municipality ?? "").trim(), t("labels.originMunicipality"));
+
+    return missing;
   };
 
   const onSave = async () => {
+    const missing = validate();
+    if (missing.length) {
+      alert(t("error") + ": " + missing.join(", "));
+      return;
+    }
     setSaving(true);
     try {
-      const missing = validateRequired();
-      if (missing) {
-        alert(`${t("error")}: ${t("labels.required")} ${missing}`);
-        return;
-      }
-
       if (isEdit && gradId) {
         await updateGraduate(gradId, form);
       } else {
@@ -170,7 +157,7 @@ export default function GraduateForm(props: { mode: Mode }) {
 
           <div>
             <label className="label">{t("labels.fatherName")}</label>
-            <input className="input" value={form.father_name ?? ""} onChange={(e) => setForm(f => ({...f, father_name: e.target.value}))} />
+            <input className="input" required value={form.father_name ?? ""} onChange={(e) => setForm(f => ({...f, father_name: e.target.value}))} />
           </div>
           <div>
             <label className="label">{t("labels.gender")}</label>
@@ -179,61 +166,53 @@ export default function GraduateForm(props: { mode: Mode }) {
               <option value="F">F</option>
             </select>
           </div>
-          {/* Do not show AD code on create (per specs). Keep on edit for existing records. */}
-          {isEdit && (
-            <div>
-              <label className="label">{t("labels.adCode")}</label>
-              <input className="input" value={form.ad_code ?? ""} onChange={(e) => setForm(f => ({...f, ad_code: e.target.value}))} />
-            </div>
-          )}
+          <div>
+            <label className="label">{t("labels.adCode")}</label>
+            <input className="input" required value={form.ad_code ?? ""} onChange={(e) => setForm(f => ({...f, ad_code: e.target.value}))} />
+          </div>
 
           <div>
             <label className="label">{t("labels.studentNumber")}</label>
-            <input className="input" value={form.student_number ?? ""} onChange={(e) => setForm(f => ({...f, student_number: e.target.value}))} />
+            <input className="input" required value={form.student_number ?? ""} onChange={(e) => setForm(f => ({...f, student_number: e.target.value}))} />
           </div>
 
           <div>
             <label className="label">{t("labels.entryYearReq")}</label>
-            <input className="input" value={form.entry_year ?? ""} onChange={(e) => setForm(f => ({...f, entry_year: e.target.value ? Number(e.target.value) : ("" as any)}))} />
+            <input className="input" required type="number" value={form.entry_year ?? ""} onChange={(e) => setForm(f => ({...f, entry_year: e.target.value ? Number(e.target.value) : ("" as any)}))} />
           </div>
 
           <div>
-            <label className="label">{t("labels.birthDate")}</label>
-            <input
-              className="input"
-              type="date"
-              value={(form as any).birth_date ?? ""}
-              onChange={(e) => setForm(f => ({...f, birth_date: e.target.value}))}
-            />
+            <label className="label">{t("labels.birthYear")}</label>
+            <input className="input" required type="number" value={(form as any).birth_year ?? ""} onChange={(e) => setForm(f => ({...f, birth_year: e.target.value ? Number(e.target.value) : ("" as any)}))} />
           </div>
 
           <div>
             <label className="label">{t("labels.degreeGrade")}</label>
-            <input className="input" value={form.degree_grade ?? ""} onChange={(e) => setForm(f => ({...f, degree_grade: e.target.value ? Number(e.target.value) : ("" as any)}))} />
+            <input className="input" required type="number" step="0.01" value={form.degree_grade ?? ""} onChange={(e) => setForm(f => ({...f, degree_grade: e.target.value ? Number(e.target.value) : ("" as any)}))} />
           </div>
 
           <div>
             <label className="label">{t("labels.graduationDate")}</label>
-            <input className="input" type="date" value={(form.graduation_date ?? "") as any} onChange={(e) => setForm(f => ({...f, graduation_date: e.target.value}))} />
+            <input className="input" required type="date" value={(form.graduation_date ?? "") as any} onChange={(e) => setForm(f => ({...f, graduation_date: e.target.value}))} />
           </div>
 
           <div>
             <label className="label">{t("labels.oathDate")}</label>
-            <input className="input" type="date" value={(form.oath_date ?? "") as any} onChange={(e) => setForm(f => ({...f, oath_date: e.target.value}))} />
+            <input className="input" required type="date" value={(form.oath_date ?? "") as any} onChange={(e) => setForm(f => ({...f, oath_date: e.target.value}))} />
           </div>
 
 
           <div>
             <label className="label">{t("labels.studyProgram")}</label>
-            <select className="input" value={String(form.study_program_id ?? "")} onChange={(e) => setForm(f => ({...f, study_program_id: Number(e.target.value)}))}>
+            <select className="input" required value={String(form.study_program_id ?? "")} onChange={(e) => setForm(f => ({...f, study_program_id: Number(e.target.value)}))}>
               {programs.map(p => <option key={p.id} value={p.id}>{p.code} - {p.name_el}</option>)}
             </select>
           </div>
 
           <div>
             <label className="label">{t("labels.direction")}</label>
-            <select className="input" value={form.program_direction_id ?? ""} onChange={(e) => setForm(f => ({...f, program_direction_id: e.target.value ? Number(e.target.value) : null}))}>
-              <option value="">{t("labels.directionNone")}</option>
+            <select className="input" required value={form.program_direction_id ?? ""} onChange={(e) => setForm(f => ({...f, program_direction_id: e.target.value ? Number(e.target.value) : null}))}>
+              <option value="" disabled>{t("labels.directionSelect")}</option>
               {directions.map(d => <option key={d.id} value={d.id}>{d.code} - {d.name_el}</option>)}
             </select>
             <div className="muted">{t("labels.directionHint")}</div>
@@ -244,32 +223,30 @@ export default function GraduateForm(props: { mode: Mode }) {
 
         <div className="grid cols2">
           <div>
-            <label className="label">{t("labels.regionSearch")}</label>
-            <input className="input" value={regionQ} onChange={(e) => setRegionQ(e.target.value)} placeholder={t("labels.regionPlaceholder")} />
-            {regionHits.length > 0 && (
-              <div className="card" style={{ marginTop: 8 }}>
-                <div className="muted">{t("labels.select")}</div>
-                <div className="grid" style={{ gap: 6 }}>
-                  {regionHits.map(r => (
-                    <button key={r.id} className="btn" onClick={() => { setForm(f => ({...f, origin_region_id: r.id})); setRegionQ(r.name); setRegionHits([]); }}>
-                      #{r.id} • {r.type} • {r.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="muted">
-              {t("labels.originRegionId", { value: form.origin_region_id ?? t("labels.originRegionNull") })}
-            </div>
+            <label className="label">{t("labels.originRegion")}</label>
+            <select
+              className="input"
+              required
+              value={form.origin_region_id ?? ""}
+              onChange={(e) => setForm(f => ({ ...f, origin_region_id: e.target.value ? Number(e.target.value) : null }))}
+            >
+              <option value="" disabled>{t("labels.originRegionSelect")}</option>
+              {regions.map(r => (
+                <option key={r.id} value={r.id}>
+                  {r.type} • {r.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
-            <label className="label">{t("labels.originText")}</label>
+            <label className="label">{t("labels.originMunicipality")}</label>
             <input
               className="input"
+              required
               value={form.origin_municipality ?? ""}
-              onChange={(e) => setForm(f => ({ ...f, origin_municipality: e.target.value || null }))}
-              placeholder={t("labels.originTextPlaceholder")}
+              onChange={(e) => setForm(f => ({ ...f, origin_municipality: e.target.value }))}
+              placeholder={t("labels.originMunicipalityPlaceholder")}
             />
           </div>
         </div>
