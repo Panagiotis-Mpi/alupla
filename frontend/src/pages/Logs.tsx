@@ -13,15 +13,31 @@ export default function Logs() {
   const [page, setPage] = React.useState(1);
 
   const [filters, setFilters] = React.useState({
-    q: "",
-    level: ""
+    level: "",
+    actor: "",
+    action: "",
+    resource: ""
   });
+
+  function actorLabel(l: any): string {
+    const fn = (l?.user?.first_name ?? "").trim();
+    const ln = (l?.user?.last_name ?? "").trim();
+    const full = `${fn} ${ln}`.trim();
+    if (full) return full;
+    return "system";
+  }
+
+  const actionForApi = (filters.level || filters.action).trim();
+  const resourceForApi = filters.resource.trim();
 
   async function load() {
     setLoading(true);
     setErr(null);
     try {
-      const data = await listActivityLogs(filters);
+      const data = await listActivityLogs({
+        action: actionForApi || undefined,
+        entity_type: resourceForApi || undefined
+      });
       setItems(data.items ?? data); // συμβατό αν backend επιστρέφει items ή array
       setPage(1);
     } catch (e: any) {
@@ -31,16 +47,66 @@ export default function Logs() {
     }
   }
 
-  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const distinctActions = React.useMemo(() => {
+    const s = new Set<string>();
+    for (const l of items) {
+      const v = String((l as any)?.action ?? "").trim();
+      if (v) s.add(v);
+    }
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [items]);
+
+  const distinctActors = React.useMemo(() => {
+    const s = new Set<string>();
+    for (const l of items) {
+      const v = actorLabel(l);
+      if (v) s.add(v);
+    }
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [items]);
+
+  const distinctResources = React.useMemo(() => {
+    const s = new Set<string>();
+    for (const l of items) {
+      const v = String((l as any)?.entity_type ?? "").trim();
+      if (v) s.add(v);
+    }
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [items]);
+
+  const filteredItems = React.useMemo(() => {
+    const actorNeedle = filters.actor.trim().toLowerCase();
+    const actionNeedle = filters.action.trim().toLowerCase();
+    const levelNeedle = filters.level.trim().toLowerCase();
+    const resourceNeedle = filters.resource.trim().toLowerCase();
+
+    // Note: action/resource may already be filtered server-side via actionForApi/resourceForApi.
+    return items.filter((l: any) => {
+      const actor = actorLabel(l).toLowerCase();
+      const action = String(l?.action ?? "").toLowerCase();
+      const resource = String(l?.entity_type ?? "").toLowerCase();
+
+      if (actorNeedle && !actor.includes(actorNeedle)) return false;
+      if (resourceNeedle && !resource.includes(resourceNeedle)) return false;
+
+      // Allow both "Level" and "Action" boxes to constrain the same underlying action field.
+      if (levelNeedle && !action.includes(levelNeedle)) return false;
+      if (actionNeedle && !action.includes(actionNeedle)) return false;
+
+      return true;
+    });
+  }, [items, filters.actor, filters.action, filters.level, filters.resource]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
   const pageSafe = Math.min(Math.max(1, page), totalPages);
   const startIdx = (pageSafe - 1) * PAGE_SIZE;
-  const pagedItems = items.slice(startIdx, startIdx + PAGE_SIZE);
+  const pagedItems = filteredItems.slice(startIdx, startIdx + PAGE_SIZE);
 
   React.useEffect(() => {
     // clamp page if data size changes
     if (page !== pageSafe) setPage(pageSafe);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length]);
+  }, [filteredItems.length]);
 
   React.useEffect(() => {
     void load();
@@ -48,7 +114,11 @@ export default function Logs() {
   }, []);
 
   function onExport() {
-    const url = activityLogsExportUrl(filters);
+    // Export respects server-side filters only (action/entity_type). Actor is client-only.
+    const url = activityLogsExportUrl({
+      action: actionForApi || undefined,
+      entity_type: resourceForApi || undefined
+    });
     const a = document.createElement("a");
     a.href = url;
     a.download = `logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.csv`;
@@ -62,7 +132,7 @@ export default function Logs() {
       <div className="topbar">
         <h2 style={{ margin: 0 }}>{t("title")}</h2>
         <span className="badge">
-          {loading ? t("badgeLoading") : t("badgeCount", { count: items.length })}
+          {loading ? t("badgeLoading") : t("badgeCount", { count: filteredItems.length })}
         </span>
         <button className="btn" onClick={onExport}>
           {t("actions.exportCsv")}
@@ -79,27 +149,67 @@ export default function Logs() {
       <div className="card">
         <div className="grid cols2">
           <div>
-            <label className="label">{t("filters.q")}</label>
+            <label className="label">Level</label>
             <input
               className="input"
-              value={filters.q}
-              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-              placeholder={t("filters.qPlaceholder")}
+              list="logs-levels"
+              value={filters.level}
+              onChange={(e) => setFilters((f) => ({ ...f, level: e.target.value }))}
+              placeholder={t("filters.all")}
             />
+            <datalist id="logs-levels">
+              {distinctActions.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
           </div>
 
           <div>
-            <label className="label">{t("filters.level")}</label>
-            <select
+            <label className="label">Actor</label>
+            <input
               className="input"
-              value={filters.level}
-              onChange={(e) => setFilters((f) => ({ ...f, level: e.target.value }))}
-            >
-              <option value="">{t("filters.all")}</option>
-              <option value="INFO">INFO</option>
-              <option value="WARN">WARN</option>
-              <option value="ERROR">ERROR</option>
-            </select>
+              list="logs-actors"
+              value={filters.actor}
+              onChange={(e) => setFilters((f) => ({ ...f, actor: e.target.value }))}
+              placeholder={t("filters.all")}
+            />
+            <datalist id="logs-actors">
+              {distinctActors.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
+          </div>
+
+          <div>
+            <label className="label">Action</label>
+            <input
+              className="input"
+              list="logs-actions"
+              value={filters.action}
+              onChange={(e) => setFilters((f) => ({ ...f, action: e.target.value }))}
+              placeholder={t("filters.all")}
+            />
+            <datalist id="logs-actions">
+              {distinctActions.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
+          </div>
+
+          <div>
+            <label className="label">Resource</label>
+            <input
+              className="input"
+              list="logs-resources"
+              value={filters.resource}
+              onChange={(e) => setFilters((f) => ({ ...f, resource: e.target.value }))}
+              placeholder={t("filters.all")}
+            />
+            <datalist id="logs-resources">
+              {distinctResources.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
           </div>
         </div>
 
@@ -110,7 +220,7 @@ export default function Logs() {
           <button
             className="btn"
             onClick={() => {
-              setFilters({ q: "", level: "" });
+              setFilters({ level: "", actor: "", action: "", resource: "" });
               setTimeout(() => void load(), 0);
             }}
           >
@@ -161,11 +271,7 @@ export default function Logs() {
                 <td>{l.id}</td>
                 <td style={{ fontFamily: "monospace" }}>{l.created_at}</td>
                 <td>{l.action}</td>
-                <td>
-                  {l.user
-                   ? `${l.user.first_name ?? ""} ${l.user.last_name ?? ""}`.trim()
-                   : "system"}
-                </td>
+                <td>{actorLabel(l)}</td>
                 <td>{l.action}</td>
                 <td>{l.entity_type ?? ""}</td>
                 <td style={{ maxWidth: 520, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
