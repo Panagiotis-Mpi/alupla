@@ -49,10 +49,10 @@ export default function Logs() {
         <span className="badge">
           {loading ? t("badgeLoading") : t("badgeCount", { count: items.length })}
         </span>
-        <div className="spacer" />
         <button className="btn" onClick={onExport}>
           {t("actions.exportCsv")}
         </button>
+        <div className="spacer" />
       </div>
 
       {err && (
@@ -62,7 +62,7 @@ export default function Logs() {
       )}
 
       <div className="card">
-        <div className="grid cols3">
+        <div className="grid cols2">
           <div>
             <label className="label">{t("filters.q")}</label>
             <input
@@ -86,21 +86,21 @@ export default function Logs() {
               <option value="ERROR">ERROR</option>
             </select>
           </div>
+        </div>
 
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
-            <button className="btn" onClick={() => void load()}>
-              {t("filters.search")}
-            </button>
-            <button
-              className="btn"
-              onClick={() => {
-                setFilters({ q: "", level: "" });
-                setTimeout(() => void load(), 0);
-              }}
-            >
-              {t("filters.reset")}
-            </button>
-          </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+          <button className="btn" onClick={() => void load()}>
+            {t("filters.search")}
+          </button>
+          <button
+            className="btn"
+            onClick={() => {
+              setFilters({ q: "", level: "" });
+              setTimeout(() => void load(), 0);
+            }}
+          >
+            {t("filters.reset")}
+          </button>
         </div>
       </div>
 
