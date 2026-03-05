@@ -179,7 +179,7 @@ export type Graduate = {
   oath_date: string;
   entry_year: number;
   student_number: string;
-  birth_year: number;
+  birth_date: string; // YYYY-MM-DD
   gender: "M" | "F";
   study_program_id: number;
   program_direction_id?: number | null;
