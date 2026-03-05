@@ -403,7 +403,7 @@ export default function Graduates() {
                   <td>{fmt(g.father_name)}</td>
                   <td>{fmt(g.gender)}</td>
                   <td>{fmt(g.entry_year)}</td>
-                  <td>{fmt((g as any).birth_date ? String((g as any).birth_date).slice(0,4) : "")}</td>
+                  <td>{fmt(String((g as any).birth_date ?? "").slice(0, 4))}</td>
                   <td>{fmt(g.degree_grade)}</td>
                   <td>{fmt(g.graduation_date)}</td>
                   <td>{fmt(g.oath_date)}</td>

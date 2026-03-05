@@ -27,8 +27,9 @@ const empty: Partial<Graduate> = {
   program_direction_id: null,
 
   entry_year: new Date().getFullYear(),
-  birth_date: "2000-01-01",
   degree_grade: 0,
+
+  birth_date: "2000-01-01",
 
   graduation_date: "",
   oath_date: "",
@@ -108,7 +109,7 @@ export default function GraduateForm(props: { mode: Mode }) {
       ["gender", form.gender, t("labels.gender")],
       ["student_number", form.student_number, t("labels.studentNumber")],
       ["entry_year", form.entry_year, t("labels.entryYearReq")],
-      ["birth_date", (form as any).birth_date, t("labels.birthYear")],
+      ["birth_date", (form as any).birth_date, t("labels.birthDate")],
       ["degree_grade", form.degree_grade, t("labels.degreeGrade")],
       ["graduation_date", form.graduation_date, t("labels.graduationDate")],
       ["oath_date", form.oath_date, t("labels.oathDate")],
@@ -197,11 +198,10 @@ export default function GraduateForm(props: { mode: Mode }) {
           </div>
 
           <div>
-            <label className="label">{t("labels.birthYear")}</label>
+            <label className="label">{t("labels.birthDate")}</label>
             <input
               className="input"
               type="date"
-              required
               value={(form as any).birth_date ?? ""}
               onChange={(e) => setForm(f => ({...f, birth_date: e.target.value}))}
             />

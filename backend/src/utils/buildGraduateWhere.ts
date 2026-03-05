@@ -1,4 +1,4 @@
-import { Op, fn, col, where as sWhere, type WhereOptions } from "sequelize";
+import { Op, type WhereOptions } from "sequelize";
 import type { Graduate } from "../models/Graduate";
 
 type Query = Record<string, unknown>;
@@ -80,38 +80,31 @@ export function buildGraduateWhere(q: Query): WhereOptions<Graduate> {
     };
   }
 
-// Birth filters (DB uses birth_date DATE). UI may send birth_year_* and/or birth_date_*.
-const birthYearMin = num(q["birth_year_min"]);
-const birthYearMax = num(q["birth_year_max"]);
-const birthYearExact = num(q["birth_year"]);
-
-const yearOfBirth = fn("YEAR", col("birth_date"));
-
-if (birthYearExact !== undefined) {
-  (where as any)[Op.and] = [
-    ...(((where as any)[Op.and] as any[]) ?? []),
-    sWhere(yearOfBirth, birthYearExact)
-  ];
-}
-
-if (birthYearMin !== undefined || birthYearMax !== undefined) {
-  if (birthYearMin !== undefined && birthYearMax !== undefined) {
-    (where as any)[Op.and] = [
-      ...(((where as any)[Op.and] as any[]) ?? []),
-      sWhere(yearOfBirth, { [Op.between]: [birthYearMin, birthYearMax] })
-    ];
-  } else if (birthYearMin !== undefined) {
-    (where as any)[Op.and] = [
-      ...(((where as any)[Op.and] as any[]) ?? []),
-      sWhere(yearOfBirth, { [Op.gte]: birthYearMin })
-    ];
-  } else if (birthYearMax !== undefined) {
-    (where as any)[Op.and] = [
-      ...(((where as any)[Op.and] as any[]) ?? []),
-      sWhere(yearOfBirth, { [Op.lte]: birthYearMax })
-    ];
+  // birth_date (DB). Also accept birth_year filters by converting year -> date range.
+  const birthYearMin = num(q["birth_year_min"]);
+  const birthYearMax = num(q["birth_year_max"]);
+  const birthYearExact = num(q["birth_year"]);
+  if (birthYearExact !== undefined) {
+    (where as any).birth_date = { [Op.between]: [`${birthYearExact}-01-01`, `${birthYearExact}-12-31`] };
+  } else if (birthYearMin !== undefined || birthYearMax !== undefined) {
+    const from = birthYearMin !== undefined ? `${birthYearMin}-01-01` : undefined;
+    const to = birthYearMax !== undefined ? `${birthYearMax}-12-31` : undefined;
+    (where as any).birth_date = {
+      ...(from ? { [Op.gte]: from } : {}),
+      ...(to ? { [Op.lte]: to } : {})
+    };
   }
-}
+
+  const birthExact = dateStr(q["birth_date"]);
+  if (birthExact) (where as any).birth_date = birthExact;
+  const birthFrom = dateStr(q["birth_date_from"]);
+  const birthTo = dateStr(q["birth_date_to"]);
+  if (birthFrom || birthTo) {
+    (where as any).birth_date = {
+      ...(birthFrom ? { [Op.gte]: birthFrom } : {}),
+      ...(birthTo ? { [Op.lte]: birthTo } : {})
+    };
+  }
 
   // date ranges
   const gradFrom = dateStr(q["graduation_date_from"]);

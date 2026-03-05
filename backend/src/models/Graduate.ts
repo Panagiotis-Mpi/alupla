@@ -36,6 +36,7 @@ Graduate.init(
     oath_date: { type: DataTypes.DATEONLY, allowNull: false },
     entry_year: { type: DataTypes.SMALLINT, allowNull: false },
     student_number: { type: DataTypes.STRING(50), allowNull: false },
+    // DB column: birth_date (DATE)
     birth_date: { type: DataTypes.DATEONLY, allowNull: false },
     gender: { type: DataTypes.ENUM("M", "F"), allowNull: false },
     study_program_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },

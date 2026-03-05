@@ -162,7 +162,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       graduation_date: firstIndex(headers, ["graduation_date","ημ_αποφοιτησης","graduation"]),
       oath_date: firstIndex(headers, ["oath_date","ημ_ορκωμοσιας","oath"]),
       degree_grade: firstIndex(headers, ["degree_grade","βαθμος","grade"]),
-      // Prefer birth_date (schema). Also accept birth_year and derive birth_date.
+      // Accept both birth_date (DB) and birth_year (legacy imports)
       birth_year: firstIndex(headers, ["birth_year","ετος_γεννησης","έτος_γεννησης","year_of_birth","yob"]),
       birth_date: firstIndex(headers, ["birth_date","ημερομηνια_γεννησης","ημ_γεννησης","birthdate","dob"]),
       study_program_id: firstIndex(headers, ["study_program_id","study_prog","program_id","προγραμμα","program"]),
@@ -203,12 +203,11 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const entry_year = toInt(get("entry_year"));
       const graduation_date = toDateOnly(get("graduation_date"));
       const oath_date = toDateOnly(get("oath_date"));
-const degree_grade = toNumber(get("degree_grade"));
-const birth_date = idx.birth_date >= 0 ? toDateOnly(get("birth_date" as any)) : null;
-const birth_year_raw = idx.birth_year >= 0 ? toInt(get("birth_year" as any)) : null;
-const birth_date_final = birth_date || (birth_year_raw ? `${birth_year_raw}-01-01` : null);
-const study_program_id = toInt(get("study_program_id"));
-
+      const degree_grade = toNumber(get("degree_grade"));
+      const birth_year_raw = idx.birth_year >= 0 ? toInt(get("birth_year" as any)) : null;
+      const birth_date_raw = idx.birth_date >= 0 ? toDateOnly(get("birth_date" as any)) : null;
+      const birth_date = birth_date_raw || (birth_year_raw ? `${birth_year_raw}-01-01` : null);
+      const study_program_id = toInt(get("study_program_id"));
       const program_direction_id = toInt(get("program_direction_id"));
       const origin_region_id = toInt(get("origin_region_id"));
       const origin_municipality = String(get("origin_municipality")).trim() || null;
@@ -225,7 +224,7 @@ const study_program_id = toInt(get("study_program_id"));
       if (!graduation_date) rowProblems.push({ row: rowNum, column: "graduation_date", message: "Invalid date", value: get("graduation_date") });
       if (!oath_date) rowProblems.push({ row: rowNum, column: "oath_date", message: "Invalid date", value: get("oath_date") });
       if (degree_grade === null) rowProblems.push({ row: rowNum, column: "degree_grade", message: "Invalid number", value: get("degree_grade") });
-      if (!birth_date_final) rowProblems.push({ row: rowNum, column: "birth_date", message: "Invalid date/year", value: idx.birth_date >= 0 ? get("birth_date" as any) : get("birth_year" as any) });
+      if (!birth_date) rowProblems.push({ row: rowNum, column: "birth_date", message: "Invalid date", value: idx.birth_date >= 0 ? get("birth_date" as any) : get("birth_year" as any) });
       if (!study_program_id) rowProblems.push({ row: rowNum, column: "study_program_id", message: "Invalid integer", value: get("study_program_id") });
 
       if (rowProblems.length) {
@@ -245,7 +244,7 @@ const study_program_id = toInt(get("study_program_id"));
         graduation_date,
         oath_date,
         degree_grade,
-        birth_date: birth_date_final,
+        birth_date,
         study_program_id,
         program_direction_id: program_direction_id ?? null,
         // Option A: always store PERIPHERY id.
@@ -336,11 +335,11 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
 
     const study_program_id = Number(body.study_program_id);
     const entry_year = Number(body.entry_year);
-    const birth_date = String(body.birth_date ?? "").trim();
     const degree_grade = Number(body.degree_grade);
 
     const graduation_date = String(body.graduation_date ?? "").trim(); // YYYY-MM-DD
     const oath_date = String(body.oath_date ?? "").trim(); // YYYY-MM-DD
+    const birth_date = String(body.birth_date ?? "").trim(); // YYYY-MM-DD
 
     if (!last_name) return bad(res, "last_name is required");
     if (!first_name) return bad(res, "first_name is required");
@@ -353,9 +352,9 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     if (!Number.isFinite(degree_grade)) return bad(res, "degree_grade is required (number)");
 
     const dateRe = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRe.test(birth_date)) return bad(res, "birth_date must be YYYY-MM-DD");
     if (!dateRe.test(graduation_date)) return bad(res, "graduation_date must be YYYY-MM-DD");
     if (!dateRe.test(oath_date)) return bad(res, "oath_date must be YYYY-MM-DD");
+    if (!dateRe.test(birth_date)) return bad(res, "birth_date must be YYYY-MM-DD");
 
     const program = await StudyProgram.findByPk(study_program_id);
     if (!program) return bad(res, "study_program_id not found");
@@ -505,12 +504,11 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
 
     if (!Number.isFinite(Number((item as any).entry_year))) return bad(res, "entry_year must be a number");
     if (!Number.isFinite(Number((item as any).degree_grade))) return bad(res, "degree_grade must be a number");
-    const dateRe2 = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRe2.test(String((item as any).birth_date ?? ""))) return bad(res, "birth_date must be YYYY-MM-DD");
 
     const dateRe = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRe.test(String((item as any).graduation_date ?? ""))) return bad(res, "graduation_date must be YYYY-MM-DD");
     if (!dateRe.test(String((item as any).oath_date ?? ""))) return bad(res, "oath_date must be YYYY-MM-DD");
+    if (!dateRe.test(String((item as any).birth_date ?? ""))) return bad(res, "birth_date must be YYYY-MM-DD");
 
     await item.save();
 
