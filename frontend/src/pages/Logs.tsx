@@ -97,6 +97,33 @@ export default function Logs() {
     });
   }, [items, filters.actor, filters.action, filters.level, filters.resource]);
 
+  
+  const summary = React.useMemo(() => {
+    const s = {
+      uploads_auth:0, uploads_anon:0,
+      downloads_auth:0, downloads_anon:0,
+      map_auth:0, map_anon:0,
+      stats_auth:0, stats_anon:0
+    };
+    for(const l of items){
+      const action=String((l as any)?.action ?? "");
+      const isAnon=!l?.user;
+      if(action==="import_graduates" || action==="upload"){
+        if(isAnon) s.uploads_anon++; else s.uploads_auth++;
+      }
+      if(action.includes("export")){
+        if(isAnon) s.downloads_anon++; else s.downloads_auth++;
+      }
+      if(action==="map_export"){
+        if(isAnon) s.map_anon++; else s.map_auth++;
+      }
+      if(action==="statistics_export"){
+        if(isAnon) s.stats_anon++; else s.stats_auth++;
+      }
+    }
+    return s;
+  },[items]);
+
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
   const pageSafe = Math.min(Math.max(1, page), totalPages);
   const startIdx = (pageSafe - 1) * PAGE_SIZE;
@@ -146,8 +173,26 @@ export default function Logs() {
         </div>
       )}
 
-      <div className="card">
+      
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+  <div className="card">
+    <h3 style={{marginTop:0}}>Activity Summary</h3>
+    <table className="table">
+      <thead>
+        <tr><th>Activity</th><th>Authenticated</th><th>Anonymous</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>File uploads</td><td>{summary.uploads_auth}</td><td>{summary.uploads_anon}</td></tr>
+        <tr><td>File downloads</td><td>{summary.downloads_auth}</td><td>{summary.downloads_anon}</td></tr>
+        <tr><td>Map downloads</td><td>{summary.map_auth}</td><td>{summary.map_anon}</td></tr>
+        <tr><td>Statistics downloads</td><td>{summary.stats_auth}</td><td>{summary.stats_anon}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div className="card">
         <div className="grid cols2">
+
           <div>
             <label className="label">Level</label>
             <input
@@ -250,7 +295,8 @@ export default function Logs() {
             ▶
           </button>
         </div>
-      </div>
+      
+</div>
 
       <div className="card">
         <table className="table">
