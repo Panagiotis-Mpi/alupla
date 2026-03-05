@@ -9,6 +9,9 @@ export default function Logs() {
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
 
+  const PAGE_SIZE = 20;
+  const [page, setPage] = React.useState(1);
+
   const [filters, setFilters] = React.useState({
     q: "",
     level: ""
@@ -20,12 +23,24 @@ export default function Logs() {
     try {
       const data = await listActivityLogs(filters);
       setItems(data.items ?? data); // συμβατό αν backend επιστρέφει items ή array
+      setPage(1);
     } catch (e: any) {
       setErr(e?.message ?? t("error"));
     } finally {
       setLoading(false);
     }
   }
+
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const pageSafe = Math.min(Math.max(1, page), totalPages);
+  const startIdx = (pageSafe - 1) * PAGE_SIZE;
+  const pagedItems = items.slice(startIdx, startIdx + PAGE_SIZE);
+
+  React.useEffect(() => {
+    // clamp page if data size changes
+    if (page !== pageSafe) setPage(pageSafe);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.length]);
 
   React.useEffect(() => {
     void load();
@@ -88,7 +103,7 @@ export default function Logs() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+        <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>
           <button className="btn" onClick={() => void load()}>
             {t("filters.search")}
           </button>
@@ -100,6 +115,29 @@ export default function Logs() {
             }}
           >
             {t("filters.reset")}
+          </button>
+
+          <div className="spacer" />
+          <button
+            className="btn"
+            style={{ paddingLeft: 12, paddingRight: 12 }}
+            disabled={pageSafe <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            aria-label="Previous"
+          >
+            ◀
+          </button>
+          <span className="badge" style={{ minWidth: 44, textAlign: "center" }}>
+            {pageSafe}
+          </span>
+          <button
+            className="btn"
+            style={{ paddingLeft: 12, paddingRight: 12 }}
+            disabled={pageSafe >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            aria-label="Next"
+          >
+            ▶
           </button>
         </div>
       </div>
@@ -118,7 +156,7 @@ export default function Logs() {
             </tr>
           </thead>
           <tbody>
-            {items.map((l) => (
+            {pagedItems.map((l) => (
               <tr key={l.id}>
                 <td>{l.id}</td>
                 <td style={{ fontFamily: "monospace" }}>{l.created_at}</td>
@@ -132,7 +170,7 @@ export default function Logs() {
               </tr>
             ))}
 
-            {!items.length && (
+            {!pagedItems.length && (
               <tr>
                 <td colSpan={7} className="muted">
                   {t("table.none")}
