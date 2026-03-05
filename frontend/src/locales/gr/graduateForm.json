@@ -24,7 +24,7 @@
     "studentNumberDup": "ΑΜ",
     "entryYearDup": "Έτος Εγγραφής",
     "regionSearch": "Περιφέρεια *",
-    "regionPlaceholder": "π.χ. Δυτική Ελλάδα",
+    "regionPlaceholder": "Επίλεξε περιφέρεια",
     "select": "Επιλογή:",
     "originRegionId": "origin_region_id: {{value}}",
     "originRegionNull": "(null)",
