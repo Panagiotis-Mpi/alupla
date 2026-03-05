@@ -103,6 +103,7 @@ export default function GraduateForm(props: { mode: Mode }) {
     // On create: user requested all graduates columns except id/ad_code/created_at/updated_at to be required.
     if (isEdit) return null;
     const required: Array<[keyof Graduate | string, any, string]> = [
+      ["ad_code", form.ad_code, t("labels.adCode")],
       ["last_name", form.last_name, t("labels.lastName")],
       ["first_name", form.first_name, t("labels.firstName")],
       ["father_name", form.father_name, t("labels.fatherName")],
@@ -160,6 +161,11 @@ export default function GraduateForm(props: { mode: Mode }) {
       <div className="card">
         <div className="grid cols2">
           <div>
+            <label className="label">{t("labels.adCode")}</label>
+            <input className="input" value={form.ad_code ?? ""} onChange={(e) => setForm(f => ({...f, ad_code: e.target.value}))} />
+          </div>
+
+          <div>
             <label className="label">{t("labels.lastName")}</label>
             <input className="input" value={form.last_name ?? ""} onChange={(e) => setForm(f => ({...f, last_name: e.target.value}))} />
           </div>
@@ -179,13 +185,6 @@ export default function GraduateForm(props: { mode: Mode }) {
               <option value="F">F</option>
             </select>
           </div>
-          {/* Do not show AD code on create (per specs). Keep on edit for existing records. */}
-          {isEdit && (
-            <div>
-              <label className="label">{t("labels.adCode")}</label>
-              <input className="input" value={form.ad_code ?? ""} onChange={(e) => setForm(f => ({...f, ad_code: e.target.value}))} />
-            </div>
-          )}
 
           <div>
             <label className="label">{t("labels.studentNumber")}</label>
