@@ -253,7 +253,43 @@ export default function Logs() {
       </div>
 
       <div className="card">
-        <table className="table">
+        
+<div className="card" style={{marginBottom:20}}>
+  <h3 style={{marginBottom:10}}>Activity Summary</h3>
+  <table className="table">
+    <thead>
+      <tr>
+        <th>Activity</th>
+        <th>Authenticated Users</th>
+        <th>Anonymous Users</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>File uploads</td>
+        <td>{summary.uploads_auth}</td>
+        <td>{summary.uploads_anon}</td>
+      </tr>
+      <tr>
+        <td>File downloads</td>
+        <td>{summary.downloads_auth}</td>
+        <td>{summary.downloads_anon}</td>
+      </tr>
+      <tr>
+        <td>Map downloads</td>
+        <td>{summary.map_downloads_auth}</td>
+        <td>{summary.map_downloads_anon}</td>
+      </tr>
+      <tr>
+        <td>Statistics downloads</td>
+        <td>{summary.stats_downloads_auth}</td>
+        <td>{summary.stats_downloads_anon}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<table className="table">
           <thead>
             <tr>
               <th>{t("table.id")}</th>
