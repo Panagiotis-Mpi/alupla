@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 import {
   createGraduate,
   getGraduate,
+  listRegions,
   listProgramDirections,
   listStudyPrograms,
-  searchRegions,
   updateGraduate,
   type Graduate,
   type ProgramDirection,
@@ -46,7 +46,9 @@ export default function GraduateForm(props: { mode: Mode }) {
   const [programs, setPrograms] = useState<StudyProgram[]>([]);
   const [directions, setDirections] = useState<ProgramDirection[]>([]);
   const [regionQ, setRegionQ] = useState("");
+  const [peripheries, setPeripheries] = useState<Region[]>([]);
   const [regionHits, setRegionHits] = useState<Region[]>([]);
+  const [regionOpen, setRegionOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<Graduate>>(empty);
   const isEdit = props.mode === "edit";
@@ -88,16 +90,30 @@ export default function GraduateForm(props: { mode: Mode }) {
     })();
   }, [form.study_program_id]);
 
-  // region search
+  // load the 13 peripheries once (top-level regions)
   useEffect(() => {
-    const q = regionQ.trim();
-    if (q.length < 2) { setRegionHits([]); return; }
-    const tt = setTimeout(async () => {
-      const r = await searchRegions(q);
-      setRegionHits(r.items);
-    }, 250);
-    return () => clearTimeout(tt);
-  }, [regionQ]);
+    (async () => {
+      try {
+        const r = await listRegions({ parent_id: null, type: "PERIPHERY" });
+        setPeripheries(r.items || []);
+      } catch {
+        // keep empty; UI will still allow manual typing (but won't set id)
+        setPeripheries([]);
+      }
+    })();
+  }, []);
+
+  // periphery typeahead (local filter)
+  useEffect(() => {
+    if (!regionOpen) { setRegionHits([]); return; }
+    const q = regionQ.trim().toLowerCase();
+    const items = peripheries || [];
+    if (!q) {
+      setRegionHits(items);
+      return;
+    }
+    setRegionHits(items.filter(r => (r.name || "").toLowerCase().includes(q)));
+  }, [regionQ, peripheries, regionOpen]);
 
   const validateRequired = (): string | null => {
     // On create: user requested all graduates columns except id/ad_code/created_at/updated_at to be required.
@@ -246,14 +262,35 @@ export default function GraduateForm(props: { mode: Mode }) {
         <div className="grid cols2">
           <div>
             <label className="label">{t("labels.regionSearch")}</label>
-            <input className="input" value={regionQ} onChange={(e) => setRegionQ(e.target.value)} placeholder={t("labels.regionPlaceholder")} />
-            {regionHits.length > 0 && (
+            <input
+              className="input"
+              value={regionQ}
+              onFocus={() => setRegionOpen(true)}
+              onBlur={() => setTimeout(() => setRegionOpen(false), 150)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setRegionQ(v);
+                setRegionOpen(true);
+                const hit = peripheries.find(p => (p.name || "") === v);
+                setForm(f => ({ ...f, origin_region_id: hit ? hit.id : f.origin_region_id }));
+              }}
+              placeholder={t("labels.regionPlaceholder")}
+            />
+            {regionOpen && regionHits.length > 0 && (
               <div className="card" style={{ marginTop: 8 }}>
                 <div className="muted">{t("labels.select")}</div>
                 <div className="grid" style={{ gap: 6 }}>
                   {regionHits.map(r => (
-                    <button key={r.id} className="btn" onClick={() => { setForm(f => ({...f, origin_region_id: r.id})); setRegionQ(r.name); setRegionHits([]); }}>
-                      #{r.id} • {r.type} • {r.name}
+                    <button
+                      key={r.id}
+                      className="btn"
+                      onClick={() => {
+                        setForm(f => ({ ...f, origin_region_id: r.id }));
+                        setRegionQ(r.name);
+                        setRegionOpen(false);
+                      }}
+                    >
+                      {r.name}
                     </button>
                   ))}
                 </div>
