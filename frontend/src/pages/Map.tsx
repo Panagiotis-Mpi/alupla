@@ -260,157 +260,34 @@ function fillOpacityForCount(c: number) {
     return `${i18n.language}:${items.length}:${maxCount}`;
   }, [i18n.language, items.length, maxCount]);
 
-  // ---- UI styles (Map page only) ----
-  const ui = useMemo(
-    () =>
-      ({
-        page: {
-          minHeight: "calc(100vh - 70px)",
-          padding: "1.2rem 1.5rem",
-          background: "linear-gradient(180deg, #eef4ff 0%, #ffffff 65%)",
-          paddingBottom: "4.2rem",
-        } as React.CSSProperties,
-        wrap: {
-          width: "100%",
-          maxWidth: 1200,
-          margin: "0 auto",
-        } as React.CSSProperties,
-        titleRow: {
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          flexWrap: "wrap",
-        } as React.CSSProperties,
-        h2: {
-          margin: 0,
-          fontSize: "1.85rem",
-          fontWeight: 800,
-          color: "#0f172a",
-          letterSpacing: "-0.02em",
-        } as React.CSSProperties,
-        badge: {
-          fontSize: 12,
-          border: "1px solid #e5edff",
-          background: "#ffffff",
-          padding: "2px 10px",
-          borderRadius: 999,
-          color: "#475569",
-        } as React.CSSProperties,
-        card: {
-          background: "white",
-          borderRadius: 18,
-          border: "1px solid #e5edff",
-          boxShadow: "0 10px 30px rgba(59,130,246,0.08)",
-          padding: "1.2rem 1.2rem",
-        } as React.CSSProperties,
-        input: {
-          height: 42,
-          borderRadius: 12,
-          border: "1px solid #dbeafe",
-          background: "#ffffff",
-          padding: "0 12px",
-          outline: "none",
-          width: "100%",
-        } as React.CSSProperties,
-        select: {
-          height: 42,
-          borderRadius: 12,
-          border: "1px solid #dbeafe",
-          background: "#ffffff",
-          padding: "0 10px",
-          outline: "none",
-          width: "100%",
-        } as React.CSSProperties,
-        label: {
-          fontSize: 13,
-          fontWeight: 700,
-          color: "#334155",
-          marginBottom: 8,
-        } as React.CSSProperties,
-        btnPrimary: {
-          height: 42,
-          borderRadius: 12,
-          border: "none",
-          backgroundColor: "#2563eb",
-          color: "white",
-          cursor: "pointer",
-          fontWeight: 800,
-          padding: "0 14px",
-          boxShadow: "0 10px 22px rgba(37,99,235,0.18)",
-        } as React.CSSProperties,
-        btnSecondary: {
-          height: 42,
-          borderRadius: 12,
-          border: "1px solid #dbeafe",
-          background: "#ffffff",
-          color: "#1e3a8a",
-          cursor: "pointer",
-          fontWeight: 800,
-          padding: "0 14px",
-        } as React.CSSProperties,
-        btnDisabled: {
-          cursor: "not-allowed",
-          opacity: 0.6,
-          boxShadow: "none",
-        } as React.CSSProperties,
-        mapCard: {
-          padding: 0,
-          overflow: "hidden",
-          position: "relative",
-        } as React.CSSProperties,
-        mapFrame: {
-          height: "calc(100vh - 260px)",
-          minHeight: 720,
-          borderRadius: 18,
-          overflow: "hidden",
-        } as React.CSSProperties,
-        legend: {
-          position: "absolute",
-          left: 12,
-          bottom: 12,
-          background: "rgba(255,255,255,.94)",
-          border: "1px solid #e5edff",
-          borderRadius: 14,
-          padding: "10px 12px",
-          fontSize: 12,
-          boxShadow: "0 10px 22px rgba(59,130,246,0.10)",
-          maxWidth: 220,
-        } as React.CSSProperties,
-      }) as const,
-    []
-  );
-
   return (
-    <div style={ui.page}>
-      {/* Remove the Leaflet/SVG focus outline (the "selection box") without affecting behavior */}
+    <div className="container">
+      {/* Styling only for this page (no functional impact) */}
       <style>{`
+        /* Remove Leaflet/SVG focus outline (the "selection box") */
         .leaflet-container path:focus { outline: none !important; }
         .leaflet-interactive:focus { outline: none !important; }
         .leaflet-container:focus { outline: none !important; }
+
+        /* Make map background transparent */
+        .alupla-map .leaflet-container { background: transparent !important; }
+
+        /* Map card: same style as other pages, but no inner padding */
+        .alupla-map-card { padding: 0; overflow: hidden; position: relative; }
       `}</style>
 
-      <div style={ui.wrap}>
-        <div style={ui.titleRow}>
-          <h2 style={ui.h2}>{t("map.title", { defaultValue: "Χάρτης αποφοίτων (Περιφέρειες)" })}</h2>
-          <span style={ui.badge}>
+      <div className="topbar">
+        <h2 style={{ margin: 0 }}>{t("map.title", { defaultValue: "Χάρτης αποφοίτων (Περιφέρειες)" })}</h2>
+        <span className="badge">
           {loading
             ? t("common.loading", { defaultValue: "Φόρτωση..." })
             : `${t("common.ready", { defaultValue: "Έτοιμο" })} · ${t("map.totalInline", { defaultValue: "Σύνολο" })}: ${total}`}
         </span>
-
-          <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
-            <button
-              onClick={onExportCsv}
-              disabled={loading || items.length === 0}
-              style={{
-                ...ui.btnSecondary,
-                ...(loading || items.length === 0 ? ui.btnDisabled : null),
-              }}
-            >
-              {t("map.exportCsv", { defaultValue: "Export CSV" })}
-            </button>
-          </div>
-        </div>
+        <div className="spacer" />
+        <button className="btn" type="button" onClick={onExportCsv} disabled={loading || items.length === 0}>
+          {t("map.exportCsv", { defaultValue: "Export CSV" })}
+        </button>
+      </div>
 
       {/* Two-column layout: map on the left, filters+details stacked on the right */}
       <div
@@ -423,13 +300,15 @@ function fillOpacityForCount(c: number) {
         }}
       >
         {/* Map column (left) */}
-        <div
-          style={{
-            ...ui.card,
-            ...ui.mapCard,
-          }}
-        >
-          <div style={ui.mapFrame}>
+        <div className="card alupla-map-card">
+          <div
+            className="alupla-map"
+            style={{
+              height: "calc(100vh - 240px)",
+              minHeight: 640,
+              width: "100%",
+            }}
+          >
             <MapContainer
               center={[38.6, 24.0]}
               zoom={6.5 as any}
@@ -482,7 +361,18 @@ function fillOpacityForCount(c: number) {
 
           {/* Legend */}
           <div
-            style={ui.legend}
+            style={{
+              position: "absolute",
+              left: 12,
+              bottom: 12,
+              background: "rgba(255,255,255,.94)",
+              border: "1px solid var(--border)",
+              borderRadius: 14,
+              padding: "10px 12px",
+              fontSize: 12,
+              boxShadow: "var(--shadow)",
+              maxWidth: 220,
+            }}
           >
             <div style={{ fontWeight: 700, marginBottom: 6 }}>{t("map.legend", { defaultValue: "Υπόμνημα" })}</div>
             <div className="muted" style={{ marginBottom: 8 }}>
@@ -520,31 +410,31 @@ function fillOpacityForCount(c: number) {
 
         {/* Right column: filters + details stacked */}
         <div style={{ display: "grid", gap: 12 }}>
-          <div style={ui.card}>
-            <div className="grid cols2" style={{ alignItems: "end", gap: 12 }}>
+          <div className="card">
+            <div className="grid cols2" style={{ alignItems: "end" }}>
               <div>
-                <div style={ui.label}>{t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" })}</div>
+                <label className="label">{t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" })}</label>
                 <input
                   value={year}
                   onChange={(e) => setYear(e.target.value)}
                   placeholder={t("map.filters.yearPh", { defaultValue: "π.χ. 2026" })}
-                  style={ui.input}
+                  className="input"
                 />
               </div>
 
               <div>
-                <div style={ui.label}>{t("map.filters.programId", { defaultValue: "ID προγράμματος" })}</div>
+                <label className="label">{t("map.filters.programId", { defaultValue: "ID προγράμματος" })}</label>
                 <input
                   value={studyProgramId}
                   onChange={(e) => setStudyProgramId(e.target.value)}
                   placeholder={t("map.filters.programIdPh", { defaultValue: "π.χ. 1" })}
-                  style={ui.input}
+                  className="input"
                 />
               </div>
 
               <div>
-                <div style={ui.label}>{t("map.filters.gender", { defaultValue: "Φύλο" })}</div>
-                <select value={gender} onChange={(e) => setGender(e.target.value)} style={ui.select}>
+                <label className="label">{t("map.filters.gender", { defaultValue: "Φύλο" })}</label>
+                <select className="input" value={gender} onChange={(e) => setGender(e.target.value)}>
                   <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
                   <option value="M">{t("common.male", { defaultValue: "Άνδρας" })}</option>
                   <option value="F">{t("common.female", { defaultValue: "Γυναίκα" })}</option>
@@ -552,8 +442,8 @@ function fillOpacityForCount(c: number) {
               </div>
 
               <div>
-                <div style={ui.label}>{t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" })}</div>
-                <select value={ageGroup} onChange={(e) => setAgeGroup(e.target.value as AgeGroup)} style={ui.select}>
+                <label className="label">{t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" })}</label>
+                <select className="input" value={ageGroup} onChange={(e) => setAgeGroup(e.target.value as AgeGroup)}>
                   <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
                   <option value="18-22">18-22</option>
                   <option value="23-26">23-26</option>
@@ -564,67 +454,52 @@ function fillOpacityForCount(c: number) {
             </div>
 
             <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-              <button
-                onClick={onApply}
-                disabled={loading}
-                style={{
-                  ...ui.btnPrimary,
-                  ...(loading ? ui.btnDisabled : null),
-                }}
-              >
+              <button className="btn primary" type="button" onClick={onApply} disabled={loading}>
                 {t("common.apply", { defaultValue: "Εφαρμογή" })}
               </button>
-              <button
-                onClick={onReset}
-                disabled={loading}
-                style={{
-                  ...ui.btnSecondary,
-                  ...(loading ? ui.btnDisabled : null),
-                }}
-              >
+              <button className="btn" type="button" onClick={onReset} disabled={loading}>
                 {t("common.reset", { defaultValue: "Reset" })}
               </button>
             </div>
           </div>
 
-          <div style={ui.card}>
+          <div className="card">
             <h3 style={{ marginTop: 0 }}>{t("map.detailsTitle", { defaultValue: "Λεπτομέρειες" })}</h3>
             {!selected ? (
               <div className="muted">{t("map.detailsHint", { defaultValue: "Κάνε κλικ σε μία περιφέρεια για λεπτομέρειες." })}</div>
             ) : (
               <div className="grid" style={{ gap: 10 }}>
                 <div>
-                  <div style={ui.label}>{t("map.region", { defaultValue: "Περιφέρεια" })}</div>
+                  <label className="label">{t("map.region", { defaultValue: "Περιφέρεια" })}</label>
                   <div style={{ fontWeight: 700 }}>{(selected as any).periphery_name}</div>
                 </div>
 
                 <div className="grid cols2">
                   <div>
-                    <div style={ui.label}>{t("map.totalLabel", { defaultValue: "Σύνολο" })}</div>
+                    <label className="label">{t("map.totalLabel", { defaultValue: "Σύνολο" })}</label>
                     <div style={{ fontWeight: 700 }}>{(selected as any).count ?? 0}</div>
                   </div>
                   <div>
-                    <div style={ui.label}>{t("map.avgAge", { defaultValue: "Μέση ηλικία" })}</div>
+                    <label className="label">{t("map.avgAge", { defaultValue: "Μέση ηλικία" })}</label>
                     <div style={{ fontWeight: 700 }}>{(selected as any).avg_age ?? "-"}</div>
                   </div>
                 </div>
 
                 <div className="grid cols2">
                   <div>
-                    <div style={ui.label}>{t("map.malePct", { defaultValue: "% Άνδρες" })}</div>
+                    <label className="label">{t("map.malePct", { defaultValue: "% Άνδρες" })}</label>
                     <div style={{ fontWeight: 700 }}>{(selected as any).male_pct ?? 0}%</div>
                   </div>
                   <div>
-                    <div style={ui.label}>{t("map.femalePct", { defaultValue: "% Γυναίκες" })}</div>
+                    <label className="label">{t("map.femalePct", { defaultValue: "% Γυναίκες" })}</label>
                     <div style={{ fontWeight: 700 }}>{(selected as any).female_pct ?? 0}%</div>
                   </div>
                 </div>
               </div>
             )}
           </div>
-        </div>
-      </div>
-      </div>
-    </div>
+	        </div>
+	      </div>
+	    </div>
   );
 }
