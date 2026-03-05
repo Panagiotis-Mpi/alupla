@@ -161,7 +161,11 @@ export default function Logs() {
                 <td>{l.id}</td>
                 <td style={{ fontFamily: "monospace" }}>{l.created_at}</td>
                 <td>{l.action}</td>
-                <td>{l.user_email ?? ""}</td>
+                <td>
+                  {l.user
+                   ? `${l.user.first_name ?? ""} ${l.user.last_name ?? ""}`.trim()
+                   : "system"}
+                </td>
                 <td>{l.action}</td>
                 <td>{l.entity_type ?? ""}</td>
                 <td style={{ maxWidth: 520, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
