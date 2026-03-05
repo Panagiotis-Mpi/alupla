@@ -294,9 +294,10 @@ export default function Logs() {
           >
             ▶
           </button>
-        </div>
-      
-</div>
+	      </div>
+
+	    </div>
+	  </div>
 
       <div className="card">
         <table className="table">
