@@ -1,7 +1,7 @@
 {
   "titleCreate": "New Graduate",
   "titleEdit": "Edit Graduate",
-  "back": "← back",
+  "back": "Cancel",
   "save": "Save",
   "saving": "Saving...",
   "labels": {
@@ -24,7 +24,7 @@
     "studentNumberDup": "Student No.",
     "entryYearDup": "Entry year",
     "regionSearch": "Periphery *",
-    "regionPlaceholder": "Select periphery",
+    "regionPlaceholder": "e.g. Patra",
     "select": "Select:",
     "originRegionId": "origin_region_id: {{value}}",
     "originRegionNull": "(null)",
@@ -32,6 +32,6 @@
     "originTextPlaceholder": "City",
     "required": "Missing required field:"
   },
-  "tip": "Tip: on the edit page, if you change the program, directions reload automatically.",
+  "tip": "Attention: All fields are required.",
   "error": "Error"
 }

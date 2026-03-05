@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 import {
   createGraduate,
   getGraduate,
-  listRegions,
   listProgramDirections,
   listStudyPrograms,
+  searchRegions,
   updateGraduate,
   type Graduate,
   type ProgramDirection,
@@ -45,8 +45,8 @@ export default function GraduateForm(props: { mode: Mode }) {
 
   const [programs, setPrograms] = useState<StudyProgram[]>([]);
   const [directions, setDirections] = useState<ProgramDirection[]>([]);
-  const [peripheries, setPeripheries] = useState<Region[]>([]);
-  const [regionText, setRegionText] = useState("");
+  const [regionQ, setRegionQ] = useState("");
+  const [regionHits, setRegionHits] = useState<Region[]>([]);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<Graduate>>(empty);
   const isEdit = props.mode === "edit";
@@ -57,10 +57,6 @@ export default function GraduateForm(props: { mode: Mode }) {
     (async () => {
       const sp = await listStudyPrograms();
       setPrograms(sp.items);
-
-      // Load root peripheries once (13 regions)
-      const rr = await listRegions({ parent_id: "null", type: "PERIPHERY" });
-      setPeripheries(rr.items ?? []);
 
       if (!isEdit) {
         // set default program id if exists
@@ -77,14 +73,6 @@ export default function GraduateForm(props: { mode: Mode }) {
     })();
   }, [gradId, isEdit]);
 
-  // keep regionText in sync when editing / when regions load
-  useEffect(() => {
-    const rid = form.origin_region_id;
-    if (!rid || !peripheries.length) return;
-    const hit = peripheries.find(r => r.id === rid);
-    if (hit) setRegionText(hit.name);
-  }, [form.origin_region_id, peripheries]);
-
   // when study_program changes, reload directions
   useEffect(() => {
     const spid = Number(form.study_program_id);
@@ -100,17 +88,22 @@ export default function GraduateForm(props: { mode: Mode }) {
     })();
   }, [form.study_program_id]);
 
-  const onRegionChange = (v: string) => {
-    setRegionText(v);
-    const normalized = v.trim().toLowerCase();
-    const hit = peripheries.find(p => p.name.trim().toLowerCase() === normalized);
-    setForm(f => ({ ...f, origin_region_id: hit ? hit.id : null }));
-  };
+  // region search
+  useEffect(() => {
+    const q = regionQ.trim();
+    if (q.length < 2) { setRegionHits([]); return; }
+    const tt = setTimeout(async () => {
+      const r = await searchRegions(q);
+      setRegionHits(r.items);
+    }, 250);
+    return () => clearTimeout(tt);
+  }, [regionQ]);
 
   const validateRequired = (): string | null => {
     // On create: user requested all graduates columns except id/ad_code/created_at/updated_at to be required.
     if (isEdit) return null;
     const required: Array<[keyof Graduate | string, any, string]> = [
+      ["ad_code", form.ad_code, t("labels.adCode")],
       ["last_name", form.last_name, t("labels.lastName")],
       ["first_name", form.first_name, t("labels.firstName")],
       ["father_name", form.father_name, t("labels.fatherName")],
@@ -166,7 +159,15 @@ export default function GraduateForm(props: { mode: Mode }) {
       </div>
 
       <div className="card">
+        <div style={{ marginBottom: 12, fontWeight: 600 }}>
+          {t("tip")}
+        </div>
         <div className="grid cols2">
+          <div>
+            <label className="label">{t("labels.adCode")}</label>
+            <input className="input" value={form.ad_code ?? ""} onChange={(e) => setForm(f => ({...f, ad_code: e.target.value}))} required={!isEdit} />
+          </div>
+
           <div>
             <label className="label">{t("labels.lastName")}</label>
             <input className="input" value={form.last_name ?? ""} onChange={(e) => setForm(f => ({...f, last_name: e.target.value}))} />
@@ -187,13 +188,6 @@ export default function GraduateForm(props: { mode: Mode }) {
               <option value="F">F</option>
             </select>
           </div>
-          {/* Do not show AD code on create (per specs). Keep on edit for existing records. */}
-          {isEdit && (
-            <div>
-              <label className="label">{t("labels.adCode")}</label>
-              <input className="input" value={form.ad_code ?? ""} onChange={(e) => setForm(f => ({...f, ad_code: e.target.value}))} />
-            </div>
-          )}
 
           <div>
             <label className="label">{t("labels.studentNumber")}</label>
@@ -244,7 +238,6 @@ export default function GraduateForm(props: { mode: Mode }) {
               <option value="">{t("labels.directionNone")}</option>
               {directions.map(d => <option key={d.id} value={d.id}>{d.code} - {d.name_el}</option>)}
             </select>
-            <div className="muted">{t("labels.directionHint")}</div>
           </div>
         </div>
 
@@ -253,21 +246,19 @@ export default function GraduateForm(props: { mode: Mode }) {
         <div className="grid cols2">
           <div>
             <label className="label">{t("labels.regionSearch")}</label>
-            <input
-              className="input"
-              list="peripheries"
-              value={regionText}
-              onChange={(e) => onRegionChange(e.target.value)}
-              placeholder={t("labels.regionPlaceholder")}
-            />
-            <datalist id="peripheries">
-              {peripheries.map((r) => (
-                <option key={r.id} value={r.name} />
-              ))}
-            </datalist>
-            <div className="muted">
-              {t("labels.originRegionId", { value: form.origin_region_id ?? t("labels.originRegionNull") })}
-            </div>
+            <input className="input" value={regionQ} onChange={(e) => setRegionQ(e.target.value)} placeholder={t("labels.regionPlaceholder")} />
+            {regionHits.length > 0 && (
+              <div className="card" style={{ marginTop: 8 }}>
+                <div className="muted">{t("labels.select")}</div>
+                <div className="grid" style={{ gap: 6 }}>
+                  {regionHits.map(r => (
+                    <button key={r.id} className="btn" onClick={() => { setForm(f => ({...f, origin_region_id: r.id})); setRegionQ(r.name); setRegionHits([]); }}>
+                      #{r.id} • {r.type} • {r.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -280,10 +271,6 @@ export default function GraduateForm(props: { mode: Mode }) {
             />
           </div>
         </div>
-      </div>
-
-      <div className="muted">
-        {t("tip")}
       </div>
     </div>
   );

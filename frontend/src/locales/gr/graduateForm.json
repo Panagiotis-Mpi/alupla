@@ -1,7 +1,7 @@
 {
   "titleCreate": "Νέος Απόφοιτος",
   "titleEdit": "Επεξεργασία Αποφοίτου",
-  "back": "← πίσω",
+  "back": "Ακύρωση",
   "save": "Αποθήκευση",
   "saving": "Saving...",
   "labels": {
@@ -24,7 +24,7 @@
     "studentNumberDup": "ΑΜ",
     "entryYearDup": "Έτος Εγγραφής",
     "regionSearch": "Περιφέρεια *",
-    "regionPlaceholder": "Επίλεξε περιφέρεια",
+    "regionPlaceholder": "π.χ. Πάτρ",
     "select": "Επιλογή:",
     "originRegionId": "origin_region_id: {{value}}",
     "originRegionNull": "(null)",
@@ -32,6 +32,6 @@
     "originTextPlaceholder": "Πόλη",
     "required": "Λείπει υποχρεωτικό πεδίο:"
   },
-  "tip": "Tip: στην edit σελίδα, αν αλλάξεις πρόγραμμα, οι κατευθύνσεις ξαναφορτώνουν αυτόματα.",
+  "tip": "Προσοχή: Η συμπλήρωση ολων των πεδίων είναι υποχρεωτική.",
   "error": "Error"
 }
