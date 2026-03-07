@@ -209,6 +209,7 @@ export async function publicStats(req: Request, res: Response) {
          END`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
+
     const byTerm = await sequelize.query<{ year: number; term: string; count: number }>(
       `SELECT
           EXTRACT(YEAR FROM g.graduation_date)::int as year,
@@ -257,19 +258,6 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
-    const sqlWhereEntry = sqlWhere
-      ? `${sqlWhere} AND g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL`
-      : "WHERE g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL";
-    const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
-      `SELECT
-          g.entry_year as entry_year,
-          AVG(((g.graduation_date::date - make_date(g.entry_year, 9, 1))::numeric) / 365.25) as avg_years
-       FROM graduates g ${sqlWhereEntry}
-       GROUP BY g.entry_year
-       ORDER BY entry_year ASC`,
-      { replacements: repl, type: QueryTypes.SELECT }
-    );
-
     res.json({
       ok: true,
       total,
@@ -281,9 +269,7 @@ export async function publicStats(req: Request, res: Response) {
       gender_by_year: genderByYear,
       gender_by_term: genderByTerm.filter((r) => r.term !== "other"),
       age_groups: ageRows.filter((r) => r.label !== "unknown"),
-      avg_grade_by_year: avgGradeByYear,
       degree_grade_bins: degreeGradeBins,
-      avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear,
     });
   } catch (err) {
     console.error("[public/stats] failed", err);
