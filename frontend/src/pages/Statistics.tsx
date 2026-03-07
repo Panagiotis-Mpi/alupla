@@ -17,53 +17,6 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 type ViewMode = "year" | "semester";
 
-function BarList(props: {
-  title: string;
-  rows: Array<{ label: string; value: number }>;
-  valueFormatter?: (n: number) => string;
-}) {
-  const max = React.useMemo(() => Math.max(1, ...props.rows.map((r) => Number(r.value) || 0)), [props.rows]);
-  const fmt = props.valueFormatter ?? ((n: number) => String(n));
-
-  return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ fontWeight: 700, marginBottom: 8 }}>{props.title}</div>
-      <div style={{ display: "grid", gap: 8 }}>
-        {props.rows.map((r) => {
-          const pct = Math.max(0, Math.min(100, (Number(r.value) / max) * 100));
-          return (
-            <div
-              key={r.label}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "120px 1fr 70px",
-                gap: 10,
-                alignItems: "center",
-              }}
-            >
-              <div className="muted" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.label}>
-                {r.label}
-              </div>
-              <div style={{ height: 10, borderRadius: 999, background: "#e5e7eb", overflow: "hidden" }}>
-                <div
-                  style={{
-                    width: pct + "%",
-                    height: "100%",
-                    background: "#2563eb",
-                    borderRadius: 999,
-                  }}
-                />
-              </div>
-              <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmt(Number(r.value) || 0)}</div>
-            </div>
-          );
-        })}
-        {props.rows.length === 0 ? <div className="muted">-</div> : null}
-      </div>
-    </div>
-  );
-}
-
 function ToggleButtons(props: {
   value: ViewMode;
   onChange: (value: ViewMode) => void;
@@ -74,17 +27,15 @@ function ToggleButtons(props: {
     <div style={{ display: "inline-flex", gap: 8 }}>
       <button
         type="button"
-        className="btn"
+        className={props.value === "year" ? "btn primary" : "btn"}
         onClick={() => props.onChange("year")}
-        style={props.value === "year" ? { background: "#2563eb", color: "#fff", borderColor: "#2563eb" } : undefined}
       >
         {props.yearLabel}
       </button>
       <button
         type="button"
-        className="btn"
+        className={props.value === "semester" ? "btn primary" : "btn"}
         onClick={() => props.onChange("semester")}
-        style={props.value === "semester" ? { background: "#2563eb", color: "#fff", borderColor: "#2563eb" } : undefined}
       >
         {props.semesterLabel}
       </button>
@@ -149,11 +100,6 @@ export default function Statistics() {
         value: Number(r.count) || 0,
       })),
     [data, termLabel]
-  );
-
-  const ageRows = React.useMemo(
-    () => (data?.age_groups ?? []).map((r: any) => ({ label: String(r.label), value: Number(r.count) || 0 })),
-    [data]
   );
 
   const countChartData = React.useMemo(() => {
@@ -247,18 +193,6 @@ export default function Statistics() {
     [genderChartRows]
   );
 
-  const genderTotals = React.useMemo(() => {
-    const male = Number(data?.gender?.M ?? 0);
-    const female = Number(data?.gender?.F ?? 0);
-    const total = Math.max(1, male + female);
-    return {
-      male,
-      female,
-      malePct: Math.round((male / total) * 100),
-      femalePct: Math.round((female / total) * 100),
-    };
-  }, [data]);
-
   function downloadAnon() {
     const url = publicAnonExportUrl();
     const a = document.createElement("a");
@@ -301,7 +235,7 @@ export default function Statistics() {
       <div className="grid cols2" style={{ gap: 14 }}>
         <div className="card">
           <div className="topbar" style={{ marginBottom: 12 }}>
-            <h3 style={{ margin: 0 }}>{t("sections.byYear", { defaultValue: "Πλήθος αποφοίτων" })}</h3>
+            <h3 style={{ margin: 0 }}>{"Πλήθος αποφοίτων"}</h3>
             <div className="spacer" />
             <ToggleButtons
               value={countsMode}
@@ -317,7 +251,7 @@ export default function Statistics() {
 
         <div className="card">
           <div className="topbar" style={{ marginBottom: 12 }}>
-            <h3 style={{ margin: 0 }}>{t("sections.gender", { defaultValue: "Αναλογία M / F" })}</h3>
+            <h3 style={{ margin: 0 }}>{"Αναλογία φύλων"}</h3>
             <div className="spacer" />
             <ToggleButtons
               value={genderMode}
@@ -338,15 +272,7 @@ export default function Statistics() {
               } as any}
             />
           </div>
-          <div className="muted" style={{ marginTop: 8 }}>
-            M: {genderTotals.male} ({genderTotals.malePct}%) | F: {genderTotals.female} ({genderTotals.femalePct}%)
-          </div>
         </div>
-      </div>
-
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>{t("sections.age", { defaultValue: "Κατανομή ηλικιών" })}</h3>
-        <BarList title={t("charts.ageGroups", { defaultValue: "Ραβδόγραμμα" })} rows={ageRows} />
       </div>
 
     </div>
