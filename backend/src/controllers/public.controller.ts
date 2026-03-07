@@ -57,7 +57,12 @@ function getOptionalUserId(req: Request): number | null {
   }
 }
 
-async function logPublicExportAction(req: Request, action: string, entityType: string, details?: Record<string, any>) {
+async function logPublicExportAction(
+  req: Request,
+  action: string,
+  entityType: string,
+  details?: Record<string, any>
+) {
   await logAction({
     user_id: getOptionalUserId(req),
     action,
@@ -106,7 +111,7 @@ export async function publicStudyPrograms(_req: Request, res: Response) {
   const items = await StudyProgram.findAll({
     attributes: ["id", "code", "name_el", "name_en"],
     where: { is_active: true },
-    order: [["code", "ASC"]]
+    order: [["code", "ASC"]],
   });
   res.json({ ok: true, items });
 }
@@ -202,10 +207,35 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
+    const degreeGradeBins = await sequelize.query<{ label: string; count: number }>(
+      `SELECT
+          CASE
+            WHEN g.degree_grade < 5 THEN '<5'
+            WHEN g.degree_grade >= 5 AND g.degree_grade < 6 THEN '5-5.99'
+            WHEN g.degree_grade >= 6 AND g.degree_grade < 7 THEN '6-6.99'
+            WHEN g.degree_grade >= 7 AND g.degree_grade < 8 THEN '7-7.99'
+            WHEN g.degree_grade >= 8 AND g.degree_grade < 9 THEN '8-8.99'
+            ELSE '9-10'
+          END as label,
+          COUNT(*) as count
+       FROM graduates g ${sqlWhere}
+       GROUP BY label
+       ORDER BY
+         CASE label
+           WHEN '<5' THEN 1
+           WHEN '5-5.99' THEN 2
+           WHEN '6-6.99' THEN 3
+           WHEN '7-7.99' THEN 4
+           WHEN '8-8.99' THEN 5
+           WHEN '9-10' THEN 6
+           ELSE 99
+         END`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
+
     const sqlWhereEntry = sqlWhere
       ? `${sqlWhere} AND g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL`
       : "WHERE g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL";
-
     const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
       `SELECT
           g.entry_year as entry_year,
@@ -225,8 +255,9 @@ export async function publicStats(req: Request, res: Response) {
       gender,
       age_groups: ageRows.filter((r) => r.label !== "unknown"),
       avg_grade_by_year: avgGradeByYear,
+      degree_grade_bins: degreeGradeBins,
       by_term: byTerm.filter((r) => r.term !== "other"),
-      avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear
+      avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear,
     });
   } catch (err) {
     console.error("[public/stats] failed", err);
@@ -292,13 +323,12 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
     "degree_grade",
     "study_program_id",
     "program_direction_id",
-    "origin_region_id"
+    "origin_region_id",
   ];
 
   const esc = (v: any) => {
     const s = String(v ?? "");
-    if (/[",
-]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
     return s;
   };
 
@@ -309,8 +339,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
 
   res.setHeader("Content-Type", "text/csv;charset=utf-8");
   res.setHeader("Content-Disposition", "attachment; filename=anonymous-graduates.csv");
-  res.send(lines.join("
-"));
+  res.send(lines.join("\n"));
 }
 
 export async function publicExportActivity(req: Request, res: Response) {
