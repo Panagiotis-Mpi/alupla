@@ -209,15 +209,6 @@ export async function publicStats(req: Request, res: Response) {
          END`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
-
-    const avgGradeByYear = await sequelize.query<{ year: number; avg: number }>(
-      `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year, AVG(g.degree_grade) as avg
-       FROM graduates g ${sqlWhere}
-       GROUP BY EXTRACT(YEAR FROM g.graduation_date)
-       ORDER BY year ASC`,
-      { replacements: repl, type: QueryTypes.SELECT }
-    );
-
     const byTerm = await sequelize.query<{ year: number; term: string; count: number }>(
       `SELECT
           EXTRACT(YEAR FROM g.graduation_date)::int as year,
