@@ -149,14 +149,7 @@ export default function Users() {
                   </span>
                 </td>
                 <td>
-                  <input
-                    type="checkbox"
-                    checked={u.email_verified}
-                    onChange={async (e) => {
-                      await updateUser(u.id, { email_verified: e.target.checked });
-                      await load();
-                    }}
-                  />
+                  <span>{u.email_verified ? t("status.yes") : t("status.no")}</span>
                 </td>
                 <td>
                   {u.admin_approved ? (

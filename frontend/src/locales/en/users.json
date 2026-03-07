@@ -22,7 +22,7 @@
     "name": "Name",
     "role": "Role",
     "online": "Online",
-    "verified": "Verified",
+    "verified": "Email verified",
     "approved": "Approval",
     "none": "No users.",
     "deactivate": "Deactivate"
