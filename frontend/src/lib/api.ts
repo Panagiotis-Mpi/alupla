@@ -494,7 +494,16 @@ export function publicAnonExportUrl(params: {
     if (v === undefined || v === null || v === "") continue;
     q.set(k, String(v));
   }
+  const token = getToken();
+  if (token) q.set("token", token);
   const qs = q.toString();
   return `${API_URL}/public/anonymous-graduates.csv${qs ? `?${qs}` : ""}`;
+}
+
+export async function logPublicExport(action: "map_export" | "statistics_export", format: string): Promise<any> {
+  return api("/public/activity-export", {
+    method: "POST",
+    body: { action, format },
+  });
 }
 

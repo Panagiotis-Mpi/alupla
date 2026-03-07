@@ -2,10 +2,47 @@ import { Request, Response } from "express";
 import { Op, QueryTypes } from "sequelize";
 import { sequelize } from "../config/sequelize";
 import { StudyProgram } from "../models/StudyProgram";
+import { verifyToken } from "../utils/jwt";
+import { logAction } from "../services/log.service";
 
 function num(v: any): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+
+function getOptionalUserId(req: Request): number | null {
+  const auth = req.headers.authorization;
+  let token: string | null = null;
+
+  if (typeof auth === "string" && auth.trim()) {
+    const raw = auth.trim();
+    token = raw.toLowerCase().startsWith("bearer ") ? raw.slice(7).trim() : raw;
+  }
+
+  if (!token && typeof req.query.token === "string" && req.query.token.trim()) {
+    token = req.query.token.trim();
+  }
+
+  if (!token) return null;
+
+  try {
+    const payload: any = verifyToken(token);
+    const id = Number(payload?.sub ?? payload?.userId);
+    return Number.isFinite(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+async function logPublicExportAction(req: Request, action: string, entityType: string, details?: Record<string, any>) {
+  await logAction({
+    user_id: getOptionalUserId(req),
+    action,
+    entity_type: entityType,
+    entity_id: null,
+    details: details ?? null,
+  });
 }
 
 function buildWhere(req: Request) {
@@ -217,6 +254,15 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
     { replacements: repl, type: QueryTypes.SELECT }
   );
 
+  await logPublicExportAction(req, "statistics_export", "statistics", {
+    format: "csv",
+    graduation_year: req.query.graduation_year ?? null,
+    study_program_id: req.query.study_program_id ?? null,
+    gender: req.query.gender ?? null,
+    age_group: req.query.age_group ?? null,
+    rows: rows.length,
+  });
+
   const headers = [
     "graduation_year",
     "entry_year",
@@ -242,4 +288,18 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
   res.setHeader("Content-Type", "text/csv;charset=utf-8");
   res.setHeader("Content-Disposition", "attachment; filename=anonymous-graduates.csv");
   res.send(lines.join("\n"));
+}
+
+
+export async function publicExportActivity(req: Request, res: Response) {
+  const action = typeof req.body?.action === "string" ? req.body.action : "";
+  const format = typeof req.body?.format === "string" ? req.body.format : null;
+
+  if (action !== "map_export" && action !== "statistics_export") {
+    return res.status(400).json({ ok: false, message: "Invalid action" });
+  }
+
+  const entityType = action === "map_export" ? "map" : "statistics";
+  await logPublicExportAction(req, action, entityType, { format });
+  return res.json({ ok: true });
 }

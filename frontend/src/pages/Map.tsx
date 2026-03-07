@@ -5,7 +5,7 @@ import type { LeafletMouseEvent } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { getGraduatesMap, type GraduatesMapItem } from "../lib/api";
+import { getGraduatesMap, logPublicExport, type GraduatesMapItem } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
 
 type AgeGroup = "" | "18-22" | "23-26" | "27-30" | "31+";
@@ -215,7 +215,7 @@ function fillOpacityForCount(c: number) {
 
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
-  function onExportCsv() {
+  async function onExportCsv() {
     // Excel (especially on Windows) often misreads UTF-8 unless there is a BOM.
     const BOM = "\ufeff";
 
@@ -240,6 +240,11 @@ function fillOpacityForCount(c: number) {
     const csv = BOM + lines.join("\r\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     downloadBlob("alupla_graduates_map_peripheries.csv", blob);
+    try {
+      await logPublicExport("map_export", "csv");
+    } catch {
+      // ignore logging failures so export still works
+    }
   }
 
   function legendBuckets(max: number) {
