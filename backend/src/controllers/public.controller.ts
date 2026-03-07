@@ -146,6 +146,7 @@ export async function publicStats(req: Request, res: Response) {
       if (r.gender === "M") gender.M = Number(r.count);
       if (r.gender === "F") gender.F = Number(r.count);
     }
+
     const ageRows = await sequelize.query<{ label: string; count: number }>(
       `SELECT
         CASE
@@ -204,6 +205,7 @@ export async function publicStats(req: Request, res: Response) {
     const sqlWhereEntry = sqlWhere
       ? `${sqlWhere} AND g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL`
       : "WHERE g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL";
+
     const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
       `SELECT
           g.entry_year as entry_year,
@@ -223,7 +225,7 @@ export async function publicStats(req: Request, res: Response) {
       gender,
       age_groups: ageRows.filter((r) => r.label !== "unknown"),
       avg_grade_by_year: avgGradeByYear,
-      by_term: byTerm.filter((r) => r.term !== 'other'),
+      by_term: byTerm.filter((r) => r.term !== "other"),
       avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear
     });
   } catch (err) {
