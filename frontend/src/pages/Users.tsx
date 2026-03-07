@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { createUser, deactivateUser, listUsers, updateUser, type AdminUser } from "../lib/api";
+import { approveUser, createUser, deactivateUser, listUsers, rejectUser, updateUser, type AdminUser } from "../lib/api";
 
 export default function Users() {
   const { t } = useTranslation("users");
@@ -169,33 +169,39 @@ export default function Users() {
                     }}
                   />
                 </td>
-                <td>
-                  <span className="badge">{u.admin_approved ? t("status.yes") : t("status.no")}</span>
-                </td>
+                <td>{u.admin_approved ? t("status.yes") : t("status.no")}</td>
                 <td className="row-actions">
-                  {!u.admin_approved && u.is_active && (
+                  {!u.admin_approved && (
                     <button
                       className="btn primary"
                       onClick={async () => {
-                        await updateUser(u.id, { admin_approved: true });
+                        await approveUser(u.id);
                         await load();
                       }}
                     >
                       {t("actions.approve")}
                     </button>
                   )}
-                  {u.is_active && (
-                    <button
-                      className="btn danger"
-                      onClick={async () => {
-                        if (!confirm(t("confirm.reject", { id: u.id }))) return;
-                        await deactivateUser(u.id);
-                        await load();
-                      }}
-                    >
-                      {t("actions.reject")}
-                    </button>
-                  )}
+                  <button
+                    className="btn"
+                    onClick={async () => {
+                      if (!confirm(t("confirm.reject", { id: u.id }))) return;
+                      await rejectUser(u.id);
+                      await load();
+                    }}
+                  >
+                    {t("actions.reject")}
+                  </button>
+                  <button
+                    className="btn danger"
+                    onClick={async () => {
+                      if (!confirm(t("confirm.deactivate", { id: u.id }))) return;
+                      await deactivateUser(u.id);
+                      await load();
+                    }}
+                  >
+                    {t("actions.deactivate")}
+                  </button>
                 </td>
               </tr>
             ))}

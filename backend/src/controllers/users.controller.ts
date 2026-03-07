@@ -30,7 +30,7 @@ function safeUser(u: User) {
     role: u.role,
     is_active: u.is_active,
     email_verified: u.email_verified,
-    admin_approved: (u as any).admin_approved,
+    admin_approved: u.admin_approved,
     created_at: (u as any).created_at,
     updated_at: (u as any).updated_at,
     last_seen_at: (u as any).last_seen_at,
@@ -146,6 +146,48 @@ export async function deactivateUser(req: Request, res: Response, next: NextFunc
     await logAction({ user_id: req.auth!.id, action: "deactivate_user", entity_type: "user", entity_id: u.id });
 
     res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function approveUser(req: Request, res: Response, next: NextFunction) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return bad(res, "Invalid id");
+
+    const u = await User.findByPk(id);
+    if (!u) return res.status(404).json({ ok: false, error: { message: "Not found" } });
+
+    u.admin_approved = true;
+    u.is_active = true;
+    await u.save();
+
+    await logAction({ user_id: req.auth!.id, action: "approve_user", entity_type: "user", entity_id: u.id });
+
+    res.json({ ok: true, item: safeUser(u) });
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function rejectUser(req: Request, res: Response, next: NextFunction) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return bad(res, "Invalid id");
+
+    const u = await User.findByPk(id);
+    if (!u) return res.status(404).json({ ok: false, error: { message: "Not found" } });
+
+    if (req.auth!.id === u.id) return bad(res, "Cannot reject yourself");
+
+    u.admin_approved = false;
+    u.is_active = false;
+    await u.save();
+
+    await logAction({ user_id: req.auth!.id, action: "reject_user", entity_type: "user", entity_id: u.id });
+
+    res.json({ ok: true, item: safeUser(u) });
   } catch (e) {
     next(e);
   }

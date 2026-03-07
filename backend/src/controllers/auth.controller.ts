@@ -74,7 +74,7 @@ export async function verifyEmail(req: Request, res: Response) {
 
   await logAction({ user_id: user.id, action: "verify_email", entity_type: "user", entity_id: user.id });
 
-  return res.json({ ok: true, admin_approved: Boolean((user as any).admin_approved) });
+  return res.json({ ok: true });
 }
 
 export async function login(req: Request, res: Response) {
@@ -91,7 +91,7 @@ export async function login(req: Request, res: Response) {
     return res.status(403).json({ ok: false, error: { message: "Email not verified" } });
   }
 
-  if (!(user as any).admin_approved) {
+  if (!user.admin_approved) {
     return res.status(403).json({ ok: false, error: { message: "Account pending admin approval" } });
   }
 
@@ -230,7 +230,7 @@ function safeUser(u: User) {
     role: u.role,
     is_active: u.is_active,
     email_verified: u.email_verified,
-    admin_approved: (u as any).admin_approved,
+    admin_approved: u.admin_approved,
     created_at: (u as any).created_at,
     updated_at: (u as any).updated_at
   };

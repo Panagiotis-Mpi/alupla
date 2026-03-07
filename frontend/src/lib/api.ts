@@ -201,6 +201,8 @@ export type ActivityLog = {
   user_email?: string | null;
 };
 
+export type AdminUser = User;
+
 export type GraduatesMapItem = {
   periphery_id: number;
   periphery_name: string;
@@ -296,6 +298,15 @@ export async function updateUser(
 
 export async function deactivateUser(id: number): Promise<any> {
   return api(`/users/${id}/deactivate`, { method: "POST" });
+}
+
+
+export async function approveUser(id: number): Promise<any> {
+  return api(`/users/${id}/approve`, { method: "POST" });
+}
+
+export async function rejectUser(id: number): Promise<any> {
+  return api(`/users/${id}/reject`, { method: "POST" });
 }
 
 // ---------- Study Programs / Directions ----------

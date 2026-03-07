@@ -22,8 +22,9 @@ function Login() {
       setSession(res.token, res.user);
       nav("/graduates");
     } catch (e: any) {
-      const message = e?.message ?? t("login.failed");
-      setErr(message === "Account pending admin approval" ? t("login.pendingApproval") : message);
+      const message = e?.message;
+      if (message === "Account pending admin approval") setErr(t("login.pendingApproval"));
+      else setErr(message ?? t("login.failed"));
     } finally {
       setLoading(false);
     }
