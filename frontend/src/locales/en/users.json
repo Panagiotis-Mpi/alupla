@@ -14,9 +14,9 @@
   },
   "actions": {
     "create": "Create",
-    "deactivate": "Deactivate",
     "approve": "Approve",
-    "reject": "Reject"
+    "reject": "Reject",
+    "deactivate": "Deactivate"
   },
   "table": {
     "id": "ID",
@@ -26,9 +26,10 @@
     "online": "Online",
     "active": "Active",
     "verified": "Verified",
+    "approved": "Approved by Super Admin",
     "actions": "Actions",
     "none": "No users.",
-    "approved": "Approved"
+    "deactivate": "Deactivate"
   },
   "status": {
     "online": "● online",
@@ -37,7 +38,7 @@
     "no": "No"
   },
   "confirm": {
-    "deactivate": "Deactivate user #{{id}}?",
-    "reject": "Reject user #{{id}}?"
+    "reject": "Reject user #{{id}}?",
+    "deactivate": "Deactivate user #{{id}}?"
   }
 }

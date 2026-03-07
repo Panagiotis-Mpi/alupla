@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { approveUser, createUser, deactivateUser, listUsers, rejectUser, updateUser, type AdminUser } from "../lib/api";
+import { createUser, deactivateUser, listUsers, updateUser, type AdminUser } from "../lib/api";
 
 export default function Users() {
   const { t } = useTranslation("users");
@@ -115,10 +115,10 @@ export default function Users() {
               <th>{t("table.name")}</th>
               <th>{t("table.role")}</th>
               <th>{t("table.online")}</th>
-              <th>{t("table.active")}</th>
               <th>{t("table.verified")}</th>
               <th>{t("table.approved")}</th>
               <th>{t("table.actions")}</th>
+              <th>{t("table.deactivate")}</th>
             </tr>
           </thead>
           <tbody>
@@ -152,16 +152,6 @@ export default function Users() {
                 <td>
                   <input
                     type="checkbox"
-                    checked={u.is_active}
-                    onChange={async (e) => {
-                      await updateUser(u.id, { is_active: e.target.checked });
-                      await load();
-                    }}
-                  />
-                </td>
-                <td>
-                  <input
-                    type="checkbox"
                     checked={u.email_verified}
                     onChange={async (e) => {
                       await updateUser(u.id, { email_verified: e.target.checked });
@@ -169,39 +159,47 @@ export default function Users() {
                     }}
                   />
                 </td>
-                <td>{u.admin_approved ? t("status.yes") : t("status.no")}</td>
+                <td>
+                  <span className="badge">{u.admin_approved ? t("status.yes") : t("status.no")}</span>
+                </td>
                 <td className="row-actions">
-                  {!u.admin_approved && (
+                  {!u.admin_approved && u.is_active && (
+                    <>
+                      <button
+                        className="btn primary"
+                        onClick={async () => {
+                          await updateUser(u.id, { admin_approved: true });
+                          await load();
+                        }}
+                      >
+                        {t("actions.approve")}
+                      </button>
+                      <button
+                        className="btn"
+                        onClick={async () => {
+                          if (!confirm(t("confirm.reject", { id: u.id }))) return;
+                          await deactivateUser(u.id);
+                          await load();
+                        }}
+                      >
+                        {t("actions.reject")}
+                      </button>
+                    </>
+                  )}
+                </td>
+                <td>
+                  {u.is_active && (
                     <button
-                      className="btn primary"
+                      className="btn danger"
                       onClick={async () => {
-                        await approveUser(u.id);
+                        if (!confirm(t("confirm.deactivate", { id: u.id }))) return;
+                        await deactivateUser(u.id);
                         await load();
                       }}
                     >
-                      {t("actions.approve")}
+                      {t("actions.deactivate")}
                     </button>
                   )}
-                  <button
-                    className="btn"
-                    onClick={async () => {
-                      if (!confirm(t("confirm.reject", { id: u.id }))) return;
-                      await rejectUser(u.id);
-                      await load();
-                    }}
-                  >
-                    {t("actions.reject")}
-                  </button>
-                  <button
-                    className="btn danger"
-                    onClick={async () => {
-                      if (!confirm(t("confirm.deactivate", { id: u.id }))) return;
-                      await deactivateUser(u.id);
-                      await load();
-                    }}
-                  >
-                    {t("actions.deactivate")}
-                  </button>
                 </td>
               </tr>
             ))}
