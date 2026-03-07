@@ -218,27 +218,6 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
-    const avgGradeByTerm = await sequelize.query<{ term: string; avg: number }>(
-      `SELECT
-          CASE
-            WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1,2) THEN 'winter'
-            WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6,7) THEN 'spring'
-            WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-            ELSE 'other'
-          END as term,
-          AVG(g.degree_grade) as avg
-       FROM graduates g ${sqlWhere}
-       GROUP BY term
-       ORDER BY
-         CASE term
-           WHEN 'winter' THEN 1
-           WHEN 'spring' THEN 2
-           WHEN 'september' THEN 3
-           ELSE 99
-         END ASC`,
-      { replacements: repl, type: QueryTypes.SELECT }
-    );
-
     const byTerm = await sequelize.query<{ year: number; term: string; count: number }>(
       `SELECT
           EXTRACT(YEAR FROM g.graduation_date)::int as year,
@@ -287,44 +266,6 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
-    const directionByYear = await sequelize.query<{ year: number; direction: string; count: number }>(
-      `SELECT
-          EXTRACT(YEAR FROM g.graduation_date)::int as year,
-          COALESCE(pd.name_en, pd.name_el, pd.code, 'Χωρίς κατεύθυνση') as direction,
-          COUNT(*) as count
-       FROM graduates g
-       LEFT JOIN program_directions pd ON pd.id = g.program_direction_id
-       ${sqlWhere}
-       GROUP BY EXTRACT(YEAR FROM g.graduation_date), direction
-       ORDER BY year ASC, direction ASC`,
-      { replacements: repl, type: QueryTypes.SELECT }
-    );
-
-    const directionByTerm = await sequelize.query<{ term: string; direction: string; count: number }>(
-      `SELECT
-          CASE
-            WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1,2) THEN 'winter'
-            WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6,7) THEN 'spring'
-            WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-            ELSE 'other'
-          END as term,
-          COALESCE(pd.name_en, pd.name_el, pd.code, 'Χωρίς κατεύθυνση') as direction,
-          COUNT(*) as count
-       FROM graduates g
-       LEFT JOIN program_directions pd ON pd.id = g.program_direction_id
-       ${sqlWhere}
-       GROUP BY term, direction
-       ORDER BY
-         CASE term
-           WHEN 'winter' THEN 1
-           WHEN 'spring' THEN 2
-           WHEN 'september' THEN 3
-           ELSE 99
-         END ASC,
-         direction ASC`,
-      { replacements: repl, type: QueryTypes.SELECT }
-    );
-
     const sqlWhereEntry = sqlWhere
       ? `${sqlWhere} AND g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL`
       : "WHERE g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL";
@@ -350,10 +291,7 @@ export async function publicStats(req: Request, res: Response) {
       gender_by_term: genderByTerm.filter((r) => r.term !== "other"),
       age_groups: ageRows.filter((r) => r.label !== "unknown"),
       avg_grade_by_year: avgGradeByYear,
-      avg_grade_by_term: avgGradeByTerm.filter((r) => r.term !== "other"),
       degree_grade_bins: degreeGradeBins,
-      direction_by_year: directionByYear,
-      direction_by_term: directionByTerm.filter((r) => r.term !== "other"),
       avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear,
     });
   } catch (err) {
