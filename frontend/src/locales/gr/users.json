@@ -14,7 +14,8 @@
   },
   "actions": {
     "create": "Create",
-    "deactivate": "Deactivate"
+    "approve": "Αποδοχή",
+    "reject": "Απόρριψη"
   },
   "table": {
     "id": "ID",
@@ -24,14 +25,17 @@
     "online": "Online",
     "active": "Active",
     "verified": "Verified",
+    "approved": "Αποδοχή από Super Admin",
     "actions": "Actions",
     "none": "Δεν υπάρχουν χρήστες."
   },
   "status": {
     "online": "● online",
-    "offline": "○ offline"
+    "offline": "○ offline",
+    "yes": "Ναι",
+    "no": "Όχι"
   },
   "confirm": {
-    "deactivate": "Deactivate user #{{id}}?"
+    "reject": "Απόρριψη χρήστη #{{id}};"
   }
 }

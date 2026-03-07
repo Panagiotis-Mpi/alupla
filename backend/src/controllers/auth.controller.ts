@@ -43,6 +43,7 @@ export async function register(req: Request, res: Response) {
     role: "secretariat",
     is_active: true,
     email_verified: false,
+    admin_approved: false,
     email_verification_token: token,
     email_verification_expires: expires
   });
@@ -73,7 +74,7 @@ export async function verifyEmail(req: Request, res: Response) {
 
   await logAction({ user_id: user.id, action: "verify_email", entity_type: "user", entity_id: user.id });
 
-  return res.json({ ok: true });
+  return res.json({ ok: true, admin_approved: Boolean((user as any).admin_approved) });
 }
 
 export async function login(req: Request, res: Response) {
@@ -88,6 +89,10 @@ export async function login(req: Request, res: Response) {
 
   if (!user.email_verified) {
     return res.status(403).json({ ok: false, error: { message: "Email not verified" } });
+  }
+
+  if (!(user as any).admin_approved) {
+    return res.status(403).json({ ok: false, error: { message: "Account pending admin approval" } });
   }
 
   const token = signToken({ sub: user.id, role: user.role });
@@ -225,6 +230,7 @@ function safeUser(u: User) {
     role: u.role,
     is_active: u.is_active,
     email_verified: u.email_verified,
+    admin_approved: (u as any).admin_approved,
     created_at: (u as any).created_at,
     updated_at: (u as any).updated_at
   };

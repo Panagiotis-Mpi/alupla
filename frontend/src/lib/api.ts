@@ -137,6 +137,7 @@ export type User = {
   role: UserRole;
   is_active: 0 | 1 | boolean;
   email_verified: 0 | 1 | boolean;
+  admin_approved: 0 | 1 | boolean;
   created_at?: string;
   updated_at?: string;
   is_online?: boolean;
@@ -288,7 +289,7 @@ export async function createUser(payload: {
 
 export async function updateUser(
   id: number,
-  patch: Partial<Pick<User, "first_name" | "last_name" | "email" | "role" | "is_active" | "email_verified">>
+  patch: Partial<Pick<User, "first_name" | "last_name" | "email" | "role" | "is_active" | "email_verified" | "admin_approved">>
 ): Promise<any> {
   return api(`/users/${id}`, { method: "PUT", body: patch });
 }

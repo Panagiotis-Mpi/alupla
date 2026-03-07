@@ -117,6 +117,7 @@ export default function Users() {
               <th>{t("table.online")}</th>
               <th>{t("table.active")}</th>
               <th>{t("table.verified")}</th>
+              <th>{t("table.approved")}</th>
               <th>{t("table.actions")}</th>
             </tr>
           </thead>
@@ -168,23 +169,39 @@ export default function Users() {
                     }}
                   />
                 </td>
+                <td>
+                  <span className="badge">{u.admin_approved ? t("status.yes") : t("status.no")}</span>
+                </td>
                 <td className="row-actions">
-                  <button
-                    className="btn danger"
-                    onClick={async () => {
-                      if (!confirm(t("confirm.deactivate", { id: u.id }))) return;
-                      await deactivateUser(u.id);
-                      await load();
-                    }}
-                  >
-                    {t("actions.deactivate")}
-                  </button>
+                  {!u.admin_approved && u.is_active && (
+                    <button
+                      className="btn primary"
+                      onClick={async () => {
+                        await updateUser(u.id, { admin_approved: true });
+                        await load();
+                      }}
+                    >
+                      {t("actions.approve")}
+                    </button>
+                  )}
+                  {u.is_active && (
+                    <button
+                      className="btn danger"
+                      onClick={async () => {
+                        if (!confirm(t("confirm.reject", { id: u.id }))) return;
+                        await deactivateUser(u.id);
+                        await load();
+                      }}
+                    >
+                      {t("actions.reject")}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
             {!items.length && (
               <tr>
-                <td colSpan={8} className="muted">
+                <td colSpan={9} className="muted">
                   {t("table.none")}
                 </td>
               </tr>

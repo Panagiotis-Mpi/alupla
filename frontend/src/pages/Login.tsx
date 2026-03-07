@@ -22,7 +22,8 @@ function Login() {
       setSession(res.token, res.user);
       nav("/graduates");
     } catch (e: any) {
-      setErr(e?.message ?? t("login.failed"));
+      const message = e?.message ?? t("login.failed");
+      setErr(message === "Account pending admin approval" ? t("login.pendingApproval") : message);
     } finally {
       setLoading(false);
     }

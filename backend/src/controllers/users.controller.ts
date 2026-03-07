@@ -30,6 +30,7 @@ function safeUser(u: User) {
     role: u.role,
     is_active: u.is_active,
     email_verified: u.email_verified,
+    admin_approved: (u as any).admin_approved,
     created_at: (u as any).created_at,
     updated_at: (u as any).updated_at,
     last_seen_at: (u as any).last_seen_at,
@@ -68,7 +69,8 @@ export async function createUser(req: Request, res: Response, next: NextFunction
       password_hash,
       role,
       is_active: true,
-      email_verified: true
+      email_verified: true,
+      admin_approved: true
     });
 
     await logAction({ user_id: req.auth!.id, action: "create_user", entity_type: "user", entity_id: u.id });
@@ -101,6 +103,7 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
 
     if (body.is_active !== undefined) u.is_active = Boolean(body.is_active);
     if (body.email_verified !== undefined) u.email_verified = Boolean(body.email_verified);
+    if (body.admin_approved !== undefined) u.admin_approved = Boolean(body.admin_approved);
 
     if (body.password !== undefined && String(body.password).length) {
       if (!isStrongPassword(String(body.password))) {
