@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Op, QueryTypes } from "sequelize";
+import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/sequelize";
 import { StudyProgram } from "../models/StudyProgram";
 import { verifyToken } from "../utils/jwt";
@@ -10,6 +10,28 @@ function num(v: any): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+let graduatesBirthModeCache: "birth_date" | "birth_year" | null = null;
+
+async function getGraduatesBirthMode(): Promise<"birth_date" | "birth_year"> {
+  if (graduatesBirthModeCache) return graduatesBirthModeCache;
+
+  const rows = await sequelize.query<{ column_name: string }>(
+    `SELECT column_name
+       FROM information_schema.columns
+      WHERE table_name = 'graduates'
+        AND column_name IN ('birth_date', 'birth_year')`,
+    { type: QueryTypes.SELECT }
+  );
+
+  const cols = new Set(rows.map((r) => String(r.column_name)));
+  graduatesBirthModeCache = cols.has("birth_date") ? "birth_date" : "birth_year";
+  return graduatesBirthModeCache;
+}
+
+async function getBirthDateExpr(): Promise<string> {
+  const mode = await getGraduatesBirthMode();
+  return mode === "birth_date" ? "g.birth_date" : "make_date(g.birth_year, 1, 1)";
+}
 
 function getOptionalUserId(req: Request): number | null {
   const auth = req.headers.authorization;
@@ -45,7 +67,8 @@ async function logPublicExportAction(req: Request, action: string, entityType: s
   });
 }
 
-function buildWhere(req: Request) {
+async function buildWhere(req: Request) {
+  const birthExpr = await getBirthDateExpr();
   const where: string[] = [];
   const repl: Record<string, any> = {};
 
@@ -67,18 +90,16 @@ function buildWhere(req: Request) {
     repl.gender = gender;
   }
 
-  // Age group based on years since birth_date
-  // Supported values: 18-22, 23-27, 28-32, 33-40, 41+
   if (ageGroup) {
-    if (ageGroup === "18-22") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 18 AND 22");
-    else if (ageGroup === "23-27") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 23 AND 27");
-    else if (ageGroup === "28-32") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 28 AND 32");
-    else if (ageGroup === "33-40") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 33 AND 40");
-    else if (ageGroup === "41+") where.push("EXTRACT(YEAR FROM age(current_date, g.birth_date)) >= 41");
+    if (ageGroup === "18-22") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22`);
+    else if (ageGroup === "23-27") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27`);
+    else if (ageGroup === "28-32") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32`);
+    else if (ageGroup === "33-40") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40`);
+    else if (ageGroup === "41+") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41`);
   }
 
   const sqlWhere = where.length ? `WHERE ${where.join(" AND ")}` : "";
-  return { sqlWhere, repl };
+  return { sqlWhere, repl, birthExpr };
 }
 
 export async function publicStudyPrograms(_req: Request, res: Response) {
@@ -92,128 +113,127 @@ export async function publicStudyPrograms(_req: Request, res: Response) {
 
 export async function publicStats(req: Request, res: Response) {
   try {
-const { sqlWhere, repl } = buildWhere(req);
+    const { sqlWhere, repl, birthExpr } = await buildWhere(req);
 
-  const totalRow = await sequelize.query<{ total: number }>(
-    `SELECT COUNT(*) as total FROM graduates g ${sqlWhere}`,
-    { replacements: repl, type: QueryTypes.SELECT }
-  );
-  const total = Number(totalRow?.[0]?.total ?? 0);
+    const totalRow = await sequelize.query<{ total: number }>(
+      `SELECT COUNT(*) as total FROM graduates g ${sqlWhere}`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
+    const total = Number(totalRow?.[0]?.total ?? 0);
 
-  const avgRow = await sequelize.query<{ avg_age: number | null; avg_degree_grade: number | null }>(
-    `SELECT AVG(EXTRACT(YEAR FROM age(current_date, g.birth_date))) as avg_age, AVG(g.degree_grade) as avg_degree_grade
-     FROM graduates g ${sqlWhere}`,
-    { replacements: repl, type: QueryTypes.SELECT }
-  );
+    const avgRow = await sequelize.query<{ avg_age: number | null; avg_degree_grade: number | null }>(
+      `SELECT AVG(EXTRACT(YEAR FROM age(current_date, ${birthExpr}))) as avg_age, AVG(g.degree_grade) as avg_degree_grade
+       FROM graduates g ${sqlWhere}`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
 
-  const byYear = await sequelize.query<{ year: number; count: number }>(
-    `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year, COUNT(*) as count
-     FROM graduates g ${sqlWhere}
-     GROUP BY EXTRACT(YEAR FROM g.graduation_date)
-     ORDER BY year ASC`,
-    { replacements: repl, type: QueryTypes.SELECT }
-  );
+    const byYear = await sequelize.query<{ year: number; count: number }>(
+      `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year, COUNT(*) as count
+       FROM graduates g ${sqlWhere}
+       GROUP BY EXTRACT(YEAR FROM g.graduation_date)
+       ORDER BY year ASC`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
 
-  const genderRows = await sequelize.query<{ gender: string; count: number }>(
-    `SELECT g.gender as gender, COUNT(*) as count
-     FROM graduates g ${sqlWhere}
-     GROUP BY g.gender`,
-    { replacements: repl, type: QueryTypes.SELECT }
-  );
-  const gender = { M: 0, F: 0 };
-  for (const r of genderRows) {
-    if (r.gender === "M") gender.M = Number(r.count);
-    if (r.gender === "F") gender.F = Number(r.count);
-  }
-  const ageRows = await sequelize.query<{ label: string; count: number }>(
-    `SELECT
-      CASE
-        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 18 AND 22 THEN '18-22'
-        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 23 AND 27 THEN '23-27'
-        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 28 AND 32 THEN '28-32'
-        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) BETWEEN 33 AND 40 THEN '33-40'
-        WHEN EXTRACT(YEAR FROM age(current_date, g.birth_date)) >= 41 THEN '41+'
-        ELSE 'unknown'
-      END as label,
-      COUNT(*) as count
-     FROM graduates g ${sqlWhere}
-     GROUP BY label
-     ORDER BY
-       CASE label
-         WHEN '18-22' THEN 1
-         WHEN '23-27' THEN 2
-         WHEN '28-32' THEN 3
-         WHEN '33-40' THEN 4
-         WHEN '41+' THEN 5
-         ELSE 99
-       END`,
-    { replacements: repl, type: QueryTypes.SELECT }
-  );
-
-  const avgGradeByYear = await sequelize.query<{ year: number; avg: number }>(
-    `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year, AVG(g.degree_grade) as avg
-     FROM graduates g ${sqlWhere}
-     GROUP BY EXTRACT(YEAR FROM g.graduation_date)
-     ORDER BY year ASC`,
-    { replacements: repl, type: QueryTypes.SELECT }
-  );
-
-  const byTerm = await sequelize.query<{ year: number; term: string; count: number }>(
-    `SELECT
-        EXTRACT(YEAR FROM g.graduation_date)::int as year,
+    const genderRows = await sequelize.query<{ gender: string; count: number }>(
+      `SELECT g.gender as gender, COUNT(*) as count
+       FROM graduates g ${sqlWhere}
+       GROUP BY g.gender`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
+    const gender = { M: 0, F: 0 };
+    for (const r of genderRows) {
+      if (r.gender === "M") gender.M = Number(r.count);
+      if (r.gender === "F") gender.F = Number(r.count);
+    }
+    const ageRows = await sequelize.query<{ label: string; count: number }>(
+      `SELECT
         CASE
-          WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1,2) THEN 'winter'
-          WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6,7) THEN 'spring'
-          WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-          ELSE 'other'
-        END as term,
+          WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
+          WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
+          WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
+          WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
+          WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
+          ELSE 'unknown'
+        END as label,
         COUNT(*) as count
-     FROM graduates g ${sqlWhere}
-     GROUP BY EXTRACT(YEAR FROM g.graduation_date), term
-     ORDER BY year ASC,
-       CASE term
-         WHEN 'winter' THEN 1
-         WHEN 'spring' THEN 2
-         WHEN 'september' THEN 3
-         ELSE 99
-       END ASC`,
-    { replacements: repl, type: QueryTypes.SELECT }
-  );
+       FROM graduates g ${sqlWhere}
+       GROUP BY label
+       ORDER BY
+         CASE label
+           WHEN '18-22' THEN 1
+           WHEN '23-27' THEN 2
+           WHEN '28-32' THEN 3
+           WHEN '33-40' THEN 4
+           WHEN '41+' THEN 5
+           ELSE 99
+         END`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
 
+    const avgGradeByYear = await sequelize.query<{ year: number; avg: number }>(
+      `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year, AVG(g.degree_grade) as avg
+       FROM graduates g ${sqlWhere}
+       GROUP BY EXTRACT(YEAR FROM g.graduation_date)
+       ORDER BY year ASC`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
 
+    const byTerm = await sequelize.query<{ year: number; term: string; count: number }>(
+      `SELECT
+          EXTRACT(YEAR FROM g.graduation_date)::int as year,
+          CASE
+            WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1,2) THEN 'winter'
+            WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6,7) THEN 'spring'
+            WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+            ELSE 'other'
+          END as term,
+          COUNT(*) as count
+       FROM graduates g ${sqlWhere}
+       GROUP BY EXTRACT(YEAR FROM g.graduation_date), term
+       ORDER BY year ASC,
+         CASE term
+           WHEN 'winter' THEN 1
+           WHEN 'spring' THEN 2
+           WHEN 'september' THEN 3
+           ELSE 99
+         END ASC`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
 
+    const sqlWhereEntry = sqlWhere
+      ? `${sqlWhere} AND g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL`
+      : "WHERE g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL";
+    const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
+      `SELECT
+          g.entry_year as entry_year,
+          AVG(((g.graduation_date::date - make_date(g.entry_year, 9, 1))::numeric) / 365.25) as avg_years
+       FROM graduates g ${sqlWhereEntry}
+       GROUP BY g.entry_year
+       ORDER BY entry_year ASC`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
 
-const sqlWhereEntry = sqlWhere ? `${sqlWhere} AND g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL` : "WHERE g.entry_year IS NOT NULL AND g.graduation_date IS NOT NULL";
-const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
-  `SELECT
-      g.entry_year as entry_year,
-      AVG(((g.graduation_date::date - make_date(g.entry_year, 9, 1))::numeric) / 365.25) as avg_years
-   FROM graduates g ${sqlWhereEntry}
-   GROUP BY g.entry_year
-   ORDER BY entry_year ASC`,
-  { replacements: repl, type: QueryTypes.SELECT }
-);
-
-  res.json({
-    ok: true,
-    total,
-    avg_age: avgRow?.[0]?.avg_age ?? null,
-    avg_degree_grade: avgRow?.[0]?.avg_degree_grade ?? null,
-    by_year: byYear,
-    gender,
-    age_groups: ageRows.filter((r) => r.label !== "unknown"),
-    avg_grade_by_year: avgGradeByYear,
-    by_term: byTerm.filter((r) => r.term !== 'other'),
-    avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear
-  });
-} catch (err) {
-  console.error("[public/stats] failed", err);
-  return res.status(500).json({ message: "Stats query failed" });
-}
+    res.json({
+      ok: true,
+      total,
+      avg_age: avgRow?.[0]?.avg_age ?? null,
+      avg_degree_grade: avgRow?.[0]?.avg_degree_grade ?? null,
+      by_year: byYear,
+      gender,
+      age_groups: ageRows.filter((r) => r.label !== "unknown"),
+      avg_grade_by_year: avgGradeByYear,
+      by_term: byTerm.filter((r) => r.term !== 'other'),
+      avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear
+    });
+  } catch (err) {
+    console.error("[public/stats] failed", err);
+    return res.status(500).json({ message: "Stats query failed" });
+  }
 }
 
 export async function publicMap(req: Request, res: Response) {
-  const { sqlWhere, repl } = buildWhere(req);
+  const { sqlWhere, repl } = await buildWhere(req);
 
   const rows = await sequelize.query<any>(
     `SELECT
@@ -235,14 +255,13 @@ export async function publicMap(req: Request, res: Response) {
 }
 
 export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
-  const { sqlWhere, repl } = buildWhere(req);
+  const { sqlWhere, repl, birthExpr } = await buildWhere(req);
 
-  // Anonymous dataset: no names/ad_code/student_number.
   const rows = await sequelize.query<any>(
     `SELECT
       EXTRACT(YEAR FROM g.graduation_date)::int as graduation_year,
       g.entry_year,
-      g.birth_date,
+      ${birthExpr} as birth_date,
       g.gender,
       g.degree_grade,
       g.study_program_id,
@@ -276,7 +295,8 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
 
   const esc = (v: any) => {
     const s = String(v ?? "");
-    if (/[\",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    if (/[",
+]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
     return s;
   };
 
@@ -287,9 +307,9 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
 
   res.setHeader("Content-Type", "text/csv;charset=utf-8");
   res.setHeader("Content-Disposition", "attachment; filename=anonymous-graduates.csv");
-  res.send(lines.join("\n"));
+  res.send(lines.join("
+"));
 }
-
 
 export async function publicExportActivity(req: Request, res: Response) {
   const action = typeof req.body?.action === "string" ? req.body.action : "";
