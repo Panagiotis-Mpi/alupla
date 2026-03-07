@@ -8,6 +8,7 @@ export default function Users() {
   const [items, setItems] = React.useState<AdminUser[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
+  const [pendingRejectId, setPendingRejectId] = React.useState<number | null>(null);
 
   // Avoid overlapping refreshes (auto-refresh + manual refresh after actions)
   const inFlight = React.useRef(false);
@@ -40,7 +41,6 @@ export default function Users() {
     void load();
   }, []);
 
-  // Auto-refresh so super_admin can see who is active in near real-time.
   React.useEffect(() => {
     const id = window.setInterval(() => {
       void load();
@@ -117,7 +117,6 @@ export default function Users() {
               <th>{t("table.online")}</th>
               <th>{t("table.verified")}</th>
               <th>{t("table.approved")}</th>
-              <th>{t("table.actions")}</th>
               <th>{t("table.deactivate")}</th>
             </tr>
           </thead>
@@ -160,11 +159,27 @@ export default function Users() {
                   />
                 </td>
                 <td>
-                  <span className="badge">{u.admin_approved ? t("status.yes") : t("status.no")}</span>
-                </td>
-                <td className="row-actions">
-                  {!u.admin_approved && u.is_active && (
-                    <>
+                  {u.admin_approved ? (
+                    <span className="badge">{t("status.yes")}</span>
+                  ) : pendingRejectId === u.id ? (
+                    <div className="row-actions" style={{ flexWrap: "wrap", gap: 8 }}>
+                      <span className="muted">{t("confirm.rejectPrompt")}</span>
+                      <button
+                        className="btn"
+                        onClick={async () => {
+                          await deactivateUser(u.id);
+                          setPendingRejectId(null);
+                          await load();
+                        }}
+                      >
+                        {t("status.yes")}
+                      </button>
+                      <button className="btn primary" onClick={() => setPendingRejectId(null)}>
+                        {t("status.no")}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="row-actions">
                       <button
                         className="btn primary"
                         onClick={async () => {
@@ -172,40 +187,34 @@ export default function Users() {
                           await load();
                         }}
                       >
-                        {t("actions.approve")}
+                        {t("status.yes")}
                       </button>
-                      <button
-                        className="btn"
-                        onClick={async () => {
-                          if (!confirm(t("confirm.reject", { id: u.id }))) return;
-                          await deactivateUser(u.id);
-                          await load();
-                        }}
-                      >
-                        {t("actions.reject")}
+                      <button className="btn" onClick={() => setPendingRejectId(u.id)}>
+                        {t("status.no")}
                       </button>
-                    </>
+                    </div>
                   )}
                 </td>
                 <td>
-                  {u.is_active && (
-                    <button
-                      className="btn danger"
-                      onClick={async () => {
-                        if (!confirm(t("confirm.deactivate", { id: u.id }))) return;
-                        await deactivateUser(u.id);
-                        await load();
-                      }}
-                    >
-                      {t("actions.deactivate")}
-                    </button>
-                  )}
+                  <button
+                    className="btn danger"
+                    disabled={!u.is_active}
+                    onClick={async () => {
+                      if (!u.is_active) return;
+                      if (!confirm(t("confirm.deactivate", { id: u.id }))) return;
+                      await deactivateUser(u.id);
+                      await load();
+                    }}
+                    style={!u.is_active ? { opacity: 0.6, cursor: "not-allowed" } : undefined}
+                  >
+                    {t("actions.deactivate")}
+                  </button>
                 </td>
               </tr>
             ))}
             {!items.length && (
               <tr>
-                <td colSpan={9} className="muted">
+                <td colSpan={8} className="muted">
                   {t("table.none")}
                 </td>
               </tr>

@@ -14,8 +14,6 @@
   },
   "actions": {
     "create": "Create",
-    "approve": "Αποδοχή",
-    "reject": "Απόρριψη",
     "deactivate": "Deactivate"
   },
   "table": {
@@ -24,10 +22,8 @@
     "name": "Όνομα",
     "role": "Ρόλος",
     "online": "Online",
-    "active": "Active",
     "verified": "Verified",
-    "approved": "Αποδοχή από Super Admin",
-    "actions": "Actions",
+    "approved": "Αποδοχή",
     "none": "Δεν υπάρχουν χρήστες.",
     "deactivate": "Deactivate"
   },
@@ -38,7 +34,7 @@
     "no": "Όχι"
   },
   "confirm": {
-    "reject": "Απόρριψη χρήστη #{{id}};",
+    "rejectPrompt": "Είστε σίγουρος;",
     "deactivate": "Απενεργοποίηση χρήστη #{{id}};"
   }
 }
