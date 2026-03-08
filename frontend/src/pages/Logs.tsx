@@ -201,6 +201,13 @@ export default function Logs() {
     a.remove();
   }
 
+  const wideCardStyle: React.CSSProperties = {
+    width: "calc(100vw - 32px)",
+    marginLeft: "calc(50% - 50vw + 16px)",
+    marginRight: 0,
+    boxSizing: "border-box"
+  };
+
   return (
     <div className="grid" style={{ gap: 14 }}>
       <div className="topbar">
@@ -343,9 +350,9 @@ export default function Logs() {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card logs-table-card" style={wideCardStyle}>
         <div className="table-wrap">
-        <table className="table">
+        <table className="table" style={{ minWidth: 1280 }}>
           <thead>
             <tr>
               <th>{t("table.id")}</th>
