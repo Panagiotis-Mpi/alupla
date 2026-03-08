@@ -208,6 +208,14 @@ function fillOpacityForCount(c: number) {
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
   async function onExportExcel() {
+    const exportData = await getGraduatesMap({
+      year: year || undefined,
+      study_program_id: studyProgramId || undefined,
+      gender: gender || undefined,
+      age_group: ageGroup || undefined,
+    });
+
+    const exportItems = exportData?.items ?? [];
     const rows = [
       [
         t("map.export.periphery", { defaultValue: "Περιφέρεια" }),
@@ -216,7 +224,7 @@ function fillOpacityForCount(c: number) {
         t("map.export.malePct", { defaultValue: "% Άνδρες" }),
         t("map.export.femalePct", { defaultValue: "% Γυναίκες" }),
       ],
-      ...items.map((it) => [
+      ...exportItems.map((it) => [
         excelCellValue((it as any).periphery_name ?? ""),
         excelCellValue((it as any).count ?? 0),
         excelCellValue((it as any).avg_age ?? ""),
@@ -247,7 +255,8 @@ function fillOpacityForCount(c: number) {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 
-    downloadBlob("alupla_graduates_map_peripheries.xlsx", blob);
+    const yearSuffix = year ? `_${year}` : "";
+    downloadBlob(`alupla_graduates_map_peripheries${yearSuffix}.xlsx`, blob);
 
     try {
       await logPublicExport("map_export", "xlsx");
