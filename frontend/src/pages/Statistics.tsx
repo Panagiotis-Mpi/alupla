@@ -178,47 +178,36 @@ export default function Statistics() {
       return {
         labels: rows.map((r: any) => r.label),
         datasets: [
-          { label: "M", data: rows.map((r: any) => r.male), backgroundColor: "#2563eb" },
-          { label: "F", data: rows.map((r: any) => r.female), backgroundColor: "#60a5fa" },
+          { label: "Άνδρες", data: rows.map((r: any) => r.male), backgroundColor: "#2563eb" },
+          { label: "Γυναίκες", data: rows.map((r: any) => r.female), backgroundColor: "#60a5fa" },
         ],
       };
     }
 
     const labels = Array.from(new Set((data?.gender_by_term ?? []).map((r: any) => String(r.year))));
     const termOrder = ["winter", "spring", "september"] as const;
-    const maleColors: Record<string, string> = {
-      winter: "#1d4ed8",
-      spring: "#2563eb",
-      september: "#60a5fa",
-    };
-    const femaleColors: Record<string, string> = {
-      winter: "#7c3aed",
-      spring: "#8b5cf6",
-      september: "#a78bfa",
-    };
-
     return {
       labels,
       datasets: termOrder.flatMap((term) => [
         {
-          label: `M ${termLabel(term)}`,
+          label: `Άνδρες ${termLabel(term)}`,
           data: labels.map(
             (year) =>
               (data?.gender_by_term ?? []).find(
                 (r: any) => String(r.year) === year && String(r.term) === term
               )?.male ?? 0
           ),
-          backgroundColor: maleColors[term],
+          backgroundColor: "#2563eb",
         },
         {
-          label: `F ${termLabel(term)}`,
+          label: `Γυναίκες ${termLabel(term)}`,
           data: labels.map(
             (year) =>
               (data?.gender_by_term ?? []).find(
                 (r: any) => String(r.year) === year && String(r.term) === term
               )?.female ?? 0
           ),
-          backgroundColor: femaleColors[term],
+          backgroundColor: "#60a5fa",
         },
       ]),
     };
