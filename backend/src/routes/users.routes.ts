@@ -11,4 +11,5 @@ usersRouter.post("/", createUser);
 usersRouter.put("/:id", updateUser);
 usersRouter.post("/:id/approve", approveUser);
 usersRouter.post("/:id/reject", rejectUser);
+usersRouter.post("/:id/deactivate", deactivateUser);
 usersRouter.delete("/:id", deactivateUser);

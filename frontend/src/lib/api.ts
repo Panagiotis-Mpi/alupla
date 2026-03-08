@@ -297,7 +297,7 @@ export async function updateUser(
 }
 
 export async function deactivateUser(id: number): Promise<any> {
-  return api(`/users/${id}/deactivate`, { method: "POST" });
+  return api(`/users/${id}`, { method: "DELETE" });
 }
 
 

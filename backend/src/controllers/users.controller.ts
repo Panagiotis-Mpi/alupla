@@ -140,10 +140,8 @@ export async function deactivateUser(req: Request, res: Response, next: NextFunc
 
     if (req.auth!.id === u.id) return bad(res, "Cannot deactivate yourself");
 
-    u.is_active = false;
-    await u.save();
-
     await logAction({ user_id: req.auth!.id, action: "deactivate_user", entity_type: "user", entity_id: u.id });
+    await u.destroy();
 
     res.json({ ok: true });
   } catch (e) {
