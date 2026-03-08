@@ -69,7 +69,7 @@ export default function Statistics() {
 
   React.useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   const total = Number(data?.total ?? 0);
