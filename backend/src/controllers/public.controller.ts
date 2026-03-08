@@ -5,14 +5,55 @@ import { StudyProgram } from "../models/StudyProgram";
 import { verifyToken } from "../utils/jwt";
 import { logAction } from "../services/log.service";
 
-function num(v: any): number | null {
-  const n = Number(v);
+type BirthMode = "birth_date" | "birth_year";
+type SqlParts = {
+  sqlWhere: string;
+  repl: Record<string, any>;
+  birthExpr: string;
+};
+
+const TERM_CASE_SQL = `CASE
+  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
+  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
+  WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+  ELSE 'other'
+END`;
+
+const TERM_ORDER_SQL = `CASE ${TERM_CASE_SQL}
+  WHEN 'winter' THEN 1
+  WHEN 'spring' THEN 2
+  WHEN 'september' THEN 3
+  ELSE 99
+END`;
+
+function buildAgeLabelSql(birthExpr: string) {
+  return `CASE
+    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
+    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
+    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
+    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
+    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
+    ELSE 'unknown'
+  END`;
+}
+
+const AGE_ORDER_SQL = `CASE label
+  WHEN '18-22' THEN 1
+  WHEN '23-27' THEN 2
+  WHEN '28-32' THEN 3
+  WHEN '33-40' THEN 4
+  WHEN '41+' THEN 5
+  ELSE 99
+END`;
+
+let graduatesBirthModeCache: BirthMode | null = null;
+
+function toNumberOrNull(value: unknown): number | null {
+  const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
 
-let graduatesBirthModeCache: "birth_date" | "birth_year" | null = null;
-
-async function getGraduatesBirthMode(): Promise<"birth_date" | "birth_year"> {
+async function getGraduatesBirthMode(): Promise<BirthMode> {
   if (graduatesBirthModeCache) return graduatesBirthModeCache;
 
   const rows = await sequelize.query<{ column_name: string }>(
@@ -23,8 +64,8 @@ async function getGraduatesBirthMode(): Promise<"birth_date" | "birth_year"> {
     { type: QueryTypes.SELECT }
   );
 
-  const cols = new Set(rows.map((r) => String(r.column_name)));
-  graduatesBirthModeCache = cols.has("birth_date") ? "birth_date" : "birth_year";
+  const columns = new Set(rows.map((row) => String(row.column_name)));
+  graduatesBirthModeCache = columns.has("birth_date") ? "birth_date" : "birth_year";
   return graduatesBirthModeCache;
 }
 
@@ -34,11 +75,11 @@ async function getBirthDateExpr(): Promise<string> {
 }
 
 function getOptionalUserId(req: Request): number | null {
-  const auth = req.headers.authorization;
   let token: string | null = null;
+  const authHeader = req.headers.authorization;
 
-  if (typeof auth === "string" && auth.trim()) {
-    const raw = auth.trim();
+  if (typeof authHeader === "string" && authHeader.trim()) {
+    const raw = authHeader.trim();
     token = raw.toLowerCase().startsWith("bearer ") ? raw.slice(7).trim() : raw;
   }
 
@@ -50,8 +91,8 @@ function getOptionalUserId(req: Request): number | null {
 
   try {
     const payload: any = verifyToken(token);
-    const id = Number(payload?.sub ?? payload?.userId);
-    return Number.isFinite(id) ? id : null;
+    const userId = Number(payload?.sub ?? payload?.userId);
+    return Number.isFinite(userId) ? userId : null;
   } catch {
     return null;
   }
@@ -72,39 +113,42 @@ async function logPublicExportAction(
   });
 }
 
-async function buildWhere(req: Request) {
+async function buildWhere(req: Request): Promise<SqlParts> {
   const birthExpr = await getBirthDateExpr();
-  const where: string[] = [];
+  const clauses: string[] = [];
   const repl: Record<string, any> = {};
 
-  const graduationYear = num(req.query.graduation_year);
-  const studyProgramId = num(req.query.study_program_id);
+  const graduationYear = toNumberOrNull(req.query.graduation_year);
+  const studyProgramId = toNumberOrNull(req.query.study_program_id);
   const gender = typeof req.query.gender === "string" ? req.query.gender : "";
   const ageGroup = typeof req.query.age_group === "string" ? req.query.age_group : "";
 
   if (graduationYear) {
-    where.push("EXTRACT(YEAR FROM g.graduation_date) = :graduationYear");
+    clauses.push("EXTRACT(YEAR FROM g.graduation_date) = :graduationYear");
     repl.graduationYear = graduationYear;
   }
+
   if (studyProgramId) {
-    where.push("g.study_program_id = :studyProgramId");
+    clauses.push("g.study_program_id = :studyProgramId");
     repl.studyProgramId = studyProgramId;
   }
+
   if (gender === "M" || gender === "F") {
-    where.push("g.gender = :gender");
+    clauses.push("g.gender = :gender");
     repl.gender = gender;
   }
 
-  if (ageGroup) {
-    if (ageGroup === "18-22") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22`);
-    else if (ageGroup === "23-27") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27`);
-    else if (ageGroup === "28-32") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32`);
-    else if (ageGroup === "33-40") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40`);
-    else if (ageGroup === "41+") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41`);
-  }
+  if (ageGroup === "18-22") clauses.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22`);
+  if (ageGroup === "23-27") clauses.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27`);
+  if (ageGroup === "28-32") clauses.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32`);
+  if (ageGroup === "33-40") clauses.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40`);
+  if (ageGroup === "41+") clauses.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41`);
 
-  const sqlWhere = where.length ? `WHERE ${where.join(" AND ")}` : "";
-  return { sqlWhere, repl, birthExpr };
+  return {
+    sqlWhere: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "",
+    repl,
+    birthExpr,
+  };
 }
 
 export async function publicStudyPrograms(_req: Request, res: Response) {
@@ -113,18 +157,19 @@ export async function publicStudyPrograms(_req: Request, res: Response) {
     where: { is_active: true },
     order: [["code", "ASC"]],
   });
+
   res.json({ ok: true, items });
 }
 
 export async function publicStats(req: Request, res: Response) {
   try {
     const { sqlWhere, repl, birthExpr } = await buildWhere(req);
+    const ageLabelSql = buildAgeLabelSql(birthExpr);
 
     const totalRow = await sequelize.query<{ total: number }>(
       `SELECT COUNT(*) as total FROM graduates g ${sqlWhere}`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
-    const total = Number(totalRow?.[0]?.total ?? 0);
 
     const avgRow = await sequelize.query<{ avg_age: number | null; avg_degree_grade: number | null }>(
       `SELECT AVG(EXTRACT(YEAR FROM age(current_date, ${birthExpr}))) as avg_age,
@@ -144,43 +189,11 @@ export async function publicStats(req: Request, res: Response) {
 
     const byTerm = await sequelize.query<{ year: number; term: string; count: number }>(
       `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
-              CASE
-                WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
-                WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
-                WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-                ELSE 'other'
-              END as term,
+              ${TERM_CASE_SQL} as term,
               COUNT(*)::int as count
        FROM graduates g ${sqlWhere}
-       GROUP BY EXTRACT(YEAR FROM g.graduation_date),
-                CASE
-                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
-                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
-                  WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-                  ELSE 'other'
-                END
-       ORDER BY year ASC,
-                CASE
-                  WHEN CASE
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-                    ELSE 'other'
-                  END = 'winter' THEN 1
-                  WHEN CASE
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-                    ELSE 'other'
-                  END = 'spring' THEN 2
-                  WHEN CASE
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-                    ELSE 'other'
-                  END = 'september' THEN 3
-                  ELSE 99
-                END ASC`,
+       GROUP BY EXTRACT(YEAR FROM g.graduation_date), ${TERM_CASE_SQL}
+       ORDER BY year ASC, ${TERM_ORDER_SQL} ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
@@ -190,10 +203,11 @@ export async function publicStats(req: Request, res: Response) {
        GROUP BY g.gender`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
+
     const gender = { M: 0, F: 0 };
-    for (const r of genderRows) {
-      if (r.gender === 'M') gender.M = Number(r.count);
-      if (r.gender === 'F') gender.F = Number(r.count);
+    for (const row of genderRows) {
+      if (row.gender === "M") gender.M = Number(row.count);
+      if (row.gender === "F") gender.F = Number(row.count);
     }
 
     const genderByYear = await sequelize.query<{ year: number; male: number; female: number }>(
@@ -207,121 +221,35 @@ export async function publicStats(req: Request, res: Response) {
     );
 
     const genderByTerm = await sequelize.query<{ term: string; male: number; female: number }>(
-      `SELECT CASE
-                WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
-                WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
-                WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-                ELSE 'other'
-              END as term,
+      `SELECT ${TERM_CASE_SQL} as term,
               SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END)::int as male,
               SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END)::int as female
        FROM graduates g ${sqlWhere}
-       GROUP BY CASE
-                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
-                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
-                  WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-                  ELSE 'other'
-                END
-       ORDER BY CASE
-                  WHEN CASE
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-                    ELSE 'other'
-                  END = 'winter' THEN 1
-                  WHEN CASE
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-                    ELSE 'other'
-                  END = 'spring' THEN 2
-                  WHEN CASE
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-                    ELSE 'other'
-                  END = 'september' THEN 3
-                  ELSE 99
-                END ASC`,
+       GROUP BY ${TERM_CASE_SQL}
+       ORDER BY ${TERM_ORDER_SQL} ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
     const ageRows = await sequelize.query<{ label: string; count: number }>(
-      `SELECT CASE
-                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
-                ELSE 'unknown'
-              END as label,
+      `SELECT ${ageLabelSql} as label,
               COUNT(*)::int as count
        FROM graduates g ${sqlWhere}
-       GROUP BY CASE
-                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
-                  ELSE 'unknown'
-                END
-       ORDER BY CASE
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
-                    ELSE 'unknown'
-                  END = '18-22' THEN 1
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
-                    ELSE 'unknown'
-                  END = '23-27' THEN 2
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
-                    ELSE 'unknown'
-                  END = '28-32' THEN 3
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
-                    ELSE 'unknown'
-                  END = '33-40' THEN 4
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
-                    ELSE 'unknown'
-                  END = '41+' THEN 5
-                  ELSE 99
-                END`,
+       GROUP BY ${ageLabelSql}
+       ORDER BY ${AGE_ORDER_SQL}`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
     res.json({
       ok: true,
-      total,
+      total: Number(totalRow?.[0]?.total ?? 0),
       avg_age: avgRow?.[0]?.avg_age ?? null,
       avg_degree_grade: avgRow?.[0]?.avg_degree_grade ?? null,
       by_year: byYear,
-      by_term: byTerm.filter((r) => r.term !== 'other'),
+      by_term: byTerm.filter((row) => row.term !== "other"),
       gender,
       gender_by_year: genderByYear,
-      gender_by_term: genderByTerm.filter((r) => r.term !== 'other'),
-      age_groups: ageRows.filter((r) => r.label !== 'unknown'),
+      gender_by_term: genderByTerm.filter((row) => row.term !== "other"),
+      age_groups: ageRows.filter((row) => row.label !== "unknown"),
       avg_grade_by_year: [],
       avg_grade_by_term: [],
       degree_grade_bins: [],
@@ -330,8 +258,8 @@ export async function publicStats(req: Request, res: Response) {
       avg_years_to_degree_by_entry_year: [],
     });
   } catch (err) {
-    console.error('[public/stats] failed', err);
-    return res.status(500).json({ message: 'Stats query failed' });
+    console.error("[public/stats] failed", err);
+    return res.status(500).json({ message: "Stats query failed" });
   }
 }
 
@@ -396,15 +324,15 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
     "origin_region_id",
   ];
 
-  const esc = (v: any) => {
-    const s = String(v ?? "");
-    if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-    return s;
+  const escapeCsv = (value: any) => {
+    const text = String(value ?? "");
+    if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+    return text;
   };
 
   const lines = [headers.join(",")];
-  for (const r of rows) {
-    lines.push(headers.map((h) => esc(r?.[h])).join(","));
+  for (const row of rows) {
+    lines.push(headers.map((header) => escapeCsv(row?.[header])).join(","));
   }
 
   res.setHeader("Content-Type", "text/csv;charset=utf-8");

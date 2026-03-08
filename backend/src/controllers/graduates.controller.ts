@@ -10,6 +10,39 @@ import * as XLSX from "xlsx";
 import { normHeader, toDateOnly, toInt, toNumber } from "../utils/importUtils";
 import { resolvePeripheryRegionId } from "../utils/resolvePeripheryRegionId";
 
+const REQUIRED_IMPORT_COLUMNS = [
+  "student_number",
+  "ad_code",
+  "last_name",
+  "first_name",
+  "father_name",
+  "gender",
+  "entry_year",
+  "graduation_date",
+  "oath_date",
+  "degree_grade",
+  "study_program_id"
+] as const;
+
+const IMPORT_HEADER_ALIASES = {
+  student_number: ["student_number","am","a_m","a.m","αμ","α.μ"],
+  ad_code: ["ad_code","aa","a_a","a.a","αα","α.α"],
+  last_name: ["last_name","επωνυμο","surname"],
+  first_name: ["first_name","ονομα","name"],
+  father_name: ["father_name","πατρωνυμο","father"],
+  gender: ["gender","φυλο","sex"],
+  entry_year: ["entry_year","ετος_εισαγωγης","entryyear"],
+  graduation_date: ["graduation_date","ημ_αποφοιτησης","graduation"],
+  oath_date: ["oath_date","ημ_ορκωμοσιας","oath"],
+  degree_grade: ["degree_grade","βαθμος","grade"],
+  birth_year: ["birth_year","ετος_γεννησης","έτος_γεννησης","year_of_birth","yob"],
+  birth_date: ["birth_date","ημερομηνια_γεννησης","ημ_γεννησης","birthdate","dob"],
+  study_program_id: ["study_program_id","study_prog","program_id","προγραμμα","program"],
+  program_direction_id: ["program_direction_id","program_dir","direction_id","κατευθυνση","direction"],
+  origin_region_id: ["origin_region_id","origin_regio","region_id","περιοχη","region"],
+  origin_municipality: ["origin_municipality","δημος","municipality"],
+} as const;
+
 function parseSort(sortRaw: unknown): Array<[string, "ASC" | "DESC"]> {
   const s = typeof sortRaw === "string" ? sortRaw.trim() : "";
   if (!s) return [["id", "ASC"]];
@@ -84,7 +117,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
     const where = buildGraduateWhere(req.query as Record<string, unknown>);
     const order = parseSort(req.query.sort);
 
-    // Safety cap
+    
     const limit = clamp(toIntParam(req.query.limit, 5000), 1, 10000);
     const rows = await Graduate.findAll({ where, order, limit });
 
@@ -141,7 +174,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
     if (!sheetName) return res.status(400).json({ error: { message: "Empty workbook" } });
     const ws = wb.Sheets[sheetName];
 
-    // Get raw rows as arrays to normalize headers ourselves
+    
     const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" }) as any[][];
     if (rows.length < 2) return res.status(400).json({ error: { message: "No data rows" } });
 
@@ -150,7 +183,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
 
     const col = (name: string) => headers.indexOf(normHeader(name));
 
-    // Accept multiple header aliases (Greek/English)
+    
     const idx = {
       student_number: firstIndex(headers, ["student_number","am","a_m","a.m","αμ","α.μ"]),
       ad_code: firstIndex(headers, ["ad_code","aa","a_a","a.a","αα","α.α"]),
@@ -162,7 +195,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       graduation_date: firstIndex(headers, ["graduation_date","ημ_αποφοιτησης","graduation"]),
       oath_date: firstIndex(headers, ["oath_date","ημ_ορκωμοσιας","oath"]),
       degree_grade: firstIndex(headers, ["degree_grade","βαθμος","grade"]),
-      // Accept both birth_date (DB) and birth_year (legacy imports)
+      
       birth_year: firstIndex(headers, ["birth_year","ετος_γεννησης","έτος_γεννησης","year_of_birth","yob"]),
       birth_date: firstIndex(headers, ["birth_date","ημερομηνια_γεννησης","ημ_γεννησης","birthdate","dob"]),
       study_program_id: firstIndex(headers, ["study_program_id","study_prog","program_id","προγραμμα","program"]),
@@ -187,10 +220,9 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
 
     for (let r = 1; r < rows.length; r++) {
       const arr = rows[r];
-      // skip completely empty rows
       if (arr.every((v) => String(v ?? "").trim() === "")) continue;
 
-      const rowNum = r + 1; // excel row number
+      const rowNum = r + 1;
       const get = (key: keyof typeof idx) => (idx[key] >= 0 ? arr[idx[key]] : "");
 
       const student_number = String(get("student_number")).trim();
@@ -247,7 +279,6 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         birth_date,
         study_program_id,
         program_direction_id: program_direction_id ?? null,
-        // Option A: always store PERIPHERY id.
         origin_region_id: await resolvePeripheryRegionId({
           origin_region_id: origin_region_id ?? null,
           origin_municipality,
@@ -255,7 +286,6 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         origin_municipality,
       };
 
-      // Upsert by student_number (common stable identifier)
       const existing = await Graduate.findOne({ where: { student_number } });
       if (existing) {
         await existing.update(payload);
@@ -325,7 +355,6 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
   try {
     const body = req.body ?? {};
 
-    // AD code is not shown on create form (per specs). Auto-generate if missing.
     const ad_code_in = String(body.ad_code ?? "").trim();
     const last_name = String(body.last_name ?? "").trim();
     const first_name = String(body.first_name ?? "").trim();
@@ -359,7 +388,6 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     const program = await StudyProgram.findByPk(study_program_id);
     if (!program) return bad(res, "study_program_id not found");
 
-    // Required on create (per specs)
     const program_direction_id = toNullableNumber(body.program_direction_id);
     if (program_direction_id === null) return bad(res, "program_direction_id is required");
     if (Number.isNaN(program_direction_id as any)) return bad(res, "program_direction_id must be a number");
@@ -376,7 +404,6 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     const origin_municipality = String(body.origin_municipality ?? "").trim();
     if (!origin_municipality) return bad(res, "origin_municipality is required");
 
-    // Option A: always store PERIPHERY id.
     const periphery_origin_region_id = await resolvePeripheryRegionId({
       origin_region_id: origin_region_id ?? null,
       origin_municipality,
@@ -425,26 +452,22 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
 
     const body = req.body ?? {};
 
-    // Determine next study_program_id (needed for direction validation)
     const nextStudyProgramId =
       body.study_program_id === undefined ? (item as any).study_program_id : Number(body.study_program_id);
 
     if (!Number.isFinite(nextStudyProgramId)) return bad(res, "study_program_id must be a number");
 
-    // If changed (or provided), validate exists
     if (body.study_program_id !== undefined) {
       const program = await StudyProgram.findByPk(nextStudyProgramId);
       if (!program) return bad(res, "study_program_id not found");
     }
 
-    // Validate gender if provided
     if (body.gender !== undefined) {
       const g = String(body.gender ?? "").trim();
       if (g !== "M" && g !== "F") return bad(res, "gender must be 'M' or 'F'");
       (item as any).gender = g;
     }
 
-    // Validate direction if provided
     if (body.program_direction_id !== undefined) {
       const program_direction_id = toNullableNumber(body.program_direction_id);
       if (Number.isNaN(program_direction_id as any)) return bad(res, "program_direction_id must be a number");
@@ -460,7 +483,6 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       (item as any).program_direction_id = program_direction_id;
     }
 
-    // If region/municipality changes, normalize to PERIPHERY (Option A)
     let originRegionTouched = false;
     if (body.origin_region_id !== undefined) {
       const origin_region_id = toNullableNumber(body.origin_region_id);
@@ -469,7 +491,6 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       originRegionTouched = true;
     }
 
-    // Apply other fields (if present)
     const setIf = (key: string, fn?: (v: any) => any) => {
       if (body[key] !== undefined) (item as any)[key] = fn ? fn(body[key]) : body[key];
     };
@@ -495,8 +516,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       (item as any).origin_region_id = normalized;
     }
 
-    if (body.study_program_id !== undefined) (item as any).study_program_id = nextStudyProgramId;    // Required still after updates (basic sanity)
-    if (!String((item as any).ad_code ?? "").trim()) return bad(res, "ad_code cannot be empty");
+    if (body.study_program_id !== undefined) (item as any).study_program_id = nextStudyProgramId;    if (!String((item as any).ad_code ?? "").trim()) return bad(res, "ad_code cannot be empty");
     if (!String((item as any).last_name ?? "").trim()) return bad(res, "last_name cannot be empty");
     if (!String((item as any).first_name ?? "").trim()) return bad(res, "first_name cannot be empty");
     if (!String((item as any).father_name ?? "").trim()) return bad(res, "father_name cannot be empty");
@@ -553,7 +573,7 @@ export async function deleteGraduate(req: Request, res: Response, next: NextFunc
 // Admin utility: one-time normalization of stored origins to PERIPHERY (Option A)
 export async function normalizeGraduateOrigins(req: Request, res: Response, next: NextFunction) {
   try {
-    // Safety cap to avoid huge accidental runs
+     to avoid huge accidental runs
     const limit = clamp(toIntParam((req.query.limit as any) ?? 5000, 5000), 1, 20000);
 
     const grads = await Graduate.findAll({

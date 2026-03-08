@@ -17,82 +17,93 @@ declare global {
   }
 }
 
-function sanitizeToken(raw: string): string {
-  let t = raw.trim();
-
-  // If someone stored JSON string in localStorage and sent it with quotes.
-  if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
-    t = t.slice(1, -1).trim();
+function trimQuotes(value: string): string {
+  const token = value.trim();
+  if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
+    return token.slice(1, -1).trim();
   }
-
-  // If header accidentally became "Bearer Bearer <token>"
-  if (t.toLowerCase().startsWith("bearer ")) {
-    t = t.slice(7).trim();
-  }
-
-  // If something appended extra stuff: "<token>, ..." keep the first token.
-  if (t.includes(",")) {
-    t = t.split(",")[0].trim();
-  }
-
-  return t;
+  return token;
 }
 
-function getToken(req: Request): string | null {
-  const h = req.headers.authorization;
+function cleanToken(value: string): string {
+  let token = trimQuotes(value);
 
-  if (typeof h === "string" && h.trim()) {
-    const parts = h.trim().split(/\s+/);
-    if (parts.length >= 2 && parts[0].toLowerCase() === "bearer") {
-      const joined = parts.slice(1).join(" ");
-      const tok = sanitizeToken(joined);
-      return tok ? tok : null;
-    }
-    // If client mistakenly sent the token without "Bearer"
-    const tok = sanitizeToken(h);
-    return tok ? tok : null;
+  if (token.toLowerCase().startsWith("bearer ")) {
+    token = token.slice(7).trim();
   }
 
-  // Fallback for file downloads (<a href>) that can't send Authorization header.
-  const q: any = (req as any).query;
-  if (q && typeof q.token === "string") {
-    const tok = sanitizeToken(q.token);
-    return tok ? tok : null;
+  const commaIndex = token.indexOf(",");
+  if (commaIndex >= 0) {
+    token = token.slice(0, commaIndex).trim();
+  }
+
+  return token;
+}
+
+function extractAuthorizationToken(headerValue: string): string | null {
+  const raw = headerValue.trim();
+  if (!raw) return null;
+
+  const parts = raw.split(/\s+/);
+  if (parts.length >= 2 && parts[0].toLowerCase() === "bearer") {
+    const token = cleanToken(parts.slice(1).join(" "));
+    return token || null;
+  }
+
+  const token = cleanToken(raw);
+  return token || null;
+}
+
+function getRequestToken(req: Request): string | null {
+  if (typeof req.headers.authorization === "string") {
+    const token = extractAuthorizationToken(req.headers.authorization);
+    if (token) return token;
+  }
+
+  const query = (req as any).query;
+  if (query && typeof query.token === "string") {
+    const token = cleanToken(query.token);
+    if (token) return token;
   }
 
   return null;
 }
 
+function touchPresence(userId: number) {
+  const cutoff = new Date(Date.now() - 5 * 60 * 1000);
+
+  return User.update(
+    { last_seen_at: new Date() },
+    {
+      where: {
+        id: userId,
+        [Op.or]: [{ last_seen_at: null }, { last_seen_at: { [Op.lt]: cutoff } }]
+      }
+    }
+  );
+}
+
 export function authRequired(req: Request, res: Response, next: NextFunction) {
-  const token = getToken(req);
+  const token = getRequestToken(req);
   if (!token) return res.status(401).json({ ok: false, error: { message: "Missing token" } });
 
   try {
     const payload = verifyToken(token);
+    const role = String((payload as any).role);
 
-    const roleRaw = String((payload as any).role);
-    if (roleRaw !== "super_admin" && roleRaw !== "secretariat") {
+    if (role !== "super_admin" && role !== "secretariat") {
       return res.status(401).json({ ok: false, error: { message: "Invalid token" } });
     }
 
-    const au: AuthUser = { id: Number(payload.sub), role: roleRaw };
-    req.user = au;
-    req.auth = au;
+    const authUser: AuthUser = {
+      id: Number(payload.sub),
+      role
+    };
 
-    // Soft presence: update users.last_seen_at at most once per 5 minutes.
-    // Non-blocking to keep request latency low.
-    const cutoff = new Date(Date.now() - 5 * 60 * 1000);
-    void User.update(
-      { last_seen_at: new Date() },
-      {
-        where: {
-          id: au.id,
-          [Op.or]: [{ last_seen_at: null }, { last_seen_at: { [Op.lt]: cutoff } }]
-        }
-      }
-    ).catch(() => {
-      // ignore presence update failures
-    });
+    req.user = authUser;
+    req.auth = authUser;
+
+    void touchPresence(authUser.id).catch(() => undefined);
 
     return next();
   } catch {
