@@ -5,7 +5,7 @@ import type { LeafletMouseEvent } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { getGraduatesMap, logPublicExport, type GraduatesMapItem } from "../lib/api";
+import { getGraduatesMap, getPublicStudyPrograms, logPublicExport, type GraduatesMapItem, type StudyProgram } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
 import * as XLSX from "xlsx";
 
@@ -58,6 +58,7 @@ export default function Map() {
   const [studyProgramId, setStudyProgramId] = useState<string>("");
   const [gender, setGender] = useState<string>("");
   const [ageGroup, setAgeGroup] = useState<AgeGroup>("");
+  const [studyPrograms, setStudyPrograms] = useState<StudyProgram[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<GraduatesMapItem[]>([]);
@@ -133,6 +134,25 @@ export default function Map() {
   useEffect(() => {
     fetchMap();
 
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        const res = await getPublicStudyPrograms();
+        if (!active) return;
+        setStudyPrograms(Array.isArray(res?.items) ? res.items : []);
+      } catch {
+        if (!active) return;
+        setStudyPrograms([]);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function onApply() {
@@ -432,13 +452,17 @@ function fillOpacityForCount(c: number) {
               </div>
 
               <div>
-                <label className="label">{t("map.filters.programId", { defaultValue: "ID προγράμματος" })}</label>
-                <input
-                  value={studyProgramId}
-                  onChange={(e) => setStudyProgramId(e.target.value)}
-                  placeholder={t("map.filters.programIdPh", { defaultValue: "π.χ. 1" })}
-                  className="input"
-                />
+                <label className="label">{t("map.filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })}</label>
+                <select className="input" value={studyProgramId} onChange={(e) => setStudyProgramId(e.target.value)}>
+                  <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                  {studyPrograms.map((program) => (
+                    <option key={program.id} value={String(program.id)}>
+                      {i18n.language?.toLowerCase().startsWith("en")
+                        ? program.name_en || program.name_el || program.code
+                        : program.name_el || program.name_en || program.code}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
