@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { Op, Sequelize } from "sequelize";
+import { Op } from "sequelize";
 
 import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
@@ -30,9 +30,8 @@ export async function getGraduatesMap(req: Request, res: Response) {
   if (gender === "M" || gender === "F") where.gender = gender;
 
   if (graduationYear) {
-
     where[Op.and] = (where[Op.and] || []).concat([
-      Sequelize.where(Sequelize.fn("YEAR", Sequelize.col("graduation_date")), graduationYear),
+      { graduation_date: { [Op.between]: [`${graduationYear}-01-01`, `${graduationYear}-12-31`] } },
     ]);
   }
 
