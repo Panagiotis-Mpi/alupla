@@ -153,7 +153,7 @@ export default function Users() {
                 </td>
                 <td>
                   {u.admin_approved ? (
-                    <span className="badge">{t("status.yes")}</span>
+                    <span>{t("status.yes")}</span>
                   ) : pendingRejectId === u.id ? (
                     <div className="row-actions" style={{ flexWrap: "wrap", gap: 8 }}>
                       <span className="muted">{t("confirm.rejectPrompt")}</span>
@@ -191,14 +191,11 @@ export default function Users() {
                 <td>
                   <button
                     className="btn danger"
-                    disabled={!u.is_active}
                     onClick={async () => {
-                      if (!u.is_active) return;
                       if (!confirm(t("confirm.deactivate", { id: u.id }))) return;
                       await deactivateUser(u.id);
                       await load();
                     }}
-                    style={!u.is_active ? { opacity: 0.6, cursor: "not-allowed" } : undefined}
                   >
                     {t("actions.deactivate")}
                   </button>
