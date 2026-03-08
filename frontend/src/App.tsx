@@ -27,8 +27,8 @@ function TopNav() {
   const nav = useNavigate();
   const loc = useLocation();
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [isMobileNav, setIsMobileNav] = React.useState(() =>
-    typeof window !== "undefined" ? window.innerWidth <= 768 : false
+  const [isCompact, setIsCompact] = React.useState(() =>
+    typeof window !== "undefined" ? window.innerWidth <= 820 : false
   );
 
   const isAuthRoute = ["/login", "/register", "/verify", "/forgot", "/reset"].some((p) =>
@@ -41,21 +41,17 @@ function TopNav() {
   };
 
   const onBrandClick = () => {
-    if (isMobileNav) {
-      setMenuOpen((v) => !v);
-      return;
-    }
-
+    // If not logged in, send the user to the public landing page.
     if (!user) {
       nav("/");
       return;
     }
-
+    // If logged in, send the user to the first page based on role.
     if (role === "super_admin") {
       nav("/users");
       return;
     }
-
+    // secretariat
     nav("/graduates");
   };
 
@@ -63,11 +59,10 @@ function TopNav() {
 
   React.useEffect(() => {
     const onResize = () => {
-      const mobile = window.innerWidth <= 768;
-      setIsMobileNav(mobile);
-      if (!mobile) setMenuOpen(false);
+      const compact = window.innerWidth <= 820;
+      setIsCompact(compact);
+      if (!compact) setMenuOpen(false);
     };
-
     onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -77,6 +72,10 @@ function TopNav() {
     setMenuOpen(false);
   }, [loc.pathname]);
 
+  // Nav order must match mockups per role.
+  // Guest & auth pages:   Στατιστικά, Χάρτης
+  // Secretariat user:     Απόφοιτοι, Στατιστικά, Χάρτης
+  // Super admin:          Χρήστες, Απόφοιτοι, Στατιστικά, Χάρτης, Logs
   const navLinks: Array<{ to: string; label: string }> = React.useMemo(() => {
     const statsLabel = t("nav.statistics", { defaultValue: "Στατιστικά" });
     const mapLabel = t("nav.map");
@@ -96,6 +95,7 @@ function TopNav() {
       ];
     }
 
+    // secretariat
     return [
       { to: "/graduates", label: gradsLabel },
       { to: "/statistics", label: statsLabel },
@@ -103,127 +103,132 @@ function TopNav() {
     ];
   }, [t, user, role]);
 
-  const visibleLinks = isAuthRoute
-    ? [
-        { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) },
-        { to: "/map", label: t("nav.map") },
-      ]
-    : navLinks;
-
-  const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : "";
-
   return (
-    <>
-      <div className="nav">
-        <button
-          className={`brand ${isMobileNav ? "brand-mobile" : ""}`}
-          type="button"
-          onClick={onBrandClick}
-          aria-label={isMobileNav ? "ALUPLA menu" : "ALUPLA Home"}
-          aria-expanded={isMobileNav ? menuOpen : undefined}
-          aria-controls={isMobileNav ? "mobile-drawer" : undefined}
-        >
-          <span>ALUPLA</span>
-        </button>
+    <div className="nav">
+      <button
+        className={`brand ${isCompact ? "brand-compact" : ""}`}
+        type="button"
+        onClick={() => {
+          if (isCompact) {
+            setMenuOpen((v) => !v);
+            return;
+          }
+          onBrandClick();
+        }}
+        aria-label={isCompact ? "ALUPLA menu" : "ALUPLA Home"}
+        aria-expanded={isCompact ? menuOpen : undefined}
+        aria-controls={isCompact ? "mobile-drawer" : undefined}
+      >
+        {isCompact && <span className="brand-burger" aria-hidden="true">☰</span>}
+        <span>ALUPLA</span>
+      </button>
 
-        {!isMobileNav && (
-          <div className="nav-links">
-            {visibleLinks.map((l) => (
+      <div className="nav-links desktop-only">
+        {/* In mockups, auth pages also show: Στατιστικά, Χάρτης */}
+        {isAuthRoute ? (
+          <>
+            <Link className="btn" to="/statistics">
+              {t("nav.statistics", { defaultValue: "Στατιστικά" })}
+            </Link>
+            <Link className="btn" to="/map">
+              {t("nav.map")}
+            </Link>
+          </>
+        ) : (
+          <>
+            {navLinks.map((l) => (
               <Link key={l.to} className="btn" to={l.to}>
                 {l.label}
               </Link>
             ))}
-          </div>
+          </>
         )}
+      </div>
 
-        <div className="spacer" />
+      <div className="spacer" />
 
-        <div className="nav-right">
-          <div className="lang-switch">
-            <button
-              className="btn nav-mini-btn"
-              onClick={() => i18n.changeLanguage("gr")}
-              aria-pressed={lang === "gr"}
-              title="Ελληνικά"
-              type="button"
-            >
-              GR
-            </button>
-            <span className="lang-sep">|</span>
-            <button
-              className="btn nav-mini-btn"
-              onClick={() => i18n.changeLanguage("en")}
-              aria-pressed={lang === "en"}
-              title="English"
-              type="button"
-            >
-              EN
-            </button>
-          </div>
+      <div className="nav-right">
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <button
+          className="btn"
+          onClick={() => i18n.changeLanguage("gr")}
+          aria-pressed={lang === "gr"}
+          title="Ελληνικά"
+        >
+          GR
+        </button>
+        <span style={{ opacity: 0.6 }}>|</span>
+        <button
+          className="btn"
+          onClick={() => i18n.changeLanguage("en")}
+          aria-pressed={lang === "en"}
+          title="English"
+        >
+          EN
+        </button>
+        </div>
 
-          {!isAuthRoute && (
-            <div className="nav-actions">
+        {/* Right-side actions */}
+        {!isAuthRoute && (
+          <div className="nav-actions">
+            {user ? (
+              <button className="btn user-profile-btn" onClick={() => nav("/profile")}>
+                {`${user.first_name} ${user.last_name}`}
+              </button>
+            ) : null}
+            <div className="desktop-only nav-actions-desktop">
               {user ? (
-                <span className="badge nav-user-name" title={displayName}>{displayName}</span>
+                <button className="btn" onClick={onLogout}>
+                  {t("nav.logout")}
+                </button>
               ) : (
-                <button className="btn nav-login-btn" onClick={() => nav("/login")} type="button">
+                <button className="btn" onClick={() => nav("/login")}>
                   {t("nav.login", { defaultValue: "Σύνδεση" })}
                 </button>
               )}
-
-              {!isMobileNav && user && (
-                <>
-                  <button className="btn" onClick={() => nav("/profile")} type="button">
-                    {t("nav.profile", { defaultValue: "Προφίλ" })}
-                  </button>
-                  <button className="btn" onClick={onLogout} type="button">
-                    {t("nav.logout")}
-                  </button>
-                </>
-              )}
             </div>
-          )}
-        </div>
+            {!user ? (
+              <button className="btn mobile-login" onClick={() => nav("/login")}>
+                {t("nav.login", { defaultValue: "Σύνδεση" })}
+              </button>
+            ) : null}
+          </div>
+        )}
       </div>
 
-      {isMobileNav && menuOpen && (
-        <>
-          <button
-            className="drawer-backdrop"
-            type="button"
-            aria-label="Close menu"
-            onClick={() => setMenuOpen(false)}
-          />
-          <aside id="mobile-drawer" className="mobile-drawer open">
-            <div className="mobile-drawer-header">
-              <strong>ALUPLA</strong>
-              <button className="btn nav-mini-btn" type="button" onClick={() => setMenuOpen(false)}>
-                ✕
-              </button>
-            </div>
+      {isCompact && menuOpen && <button className="drawer-backdrop" type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
+      <aside id="mobile-drawer" className={`mobile-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
+        <div className="mobile-drawer-header">
+          <strong>ALUPLA</strong>
+          <button className="btn" type="button" onClick={() => setMenuOpen(false)}>✕</button>
+        </div>
 
-            <div className="mobile-drawer-section">
-              {visibleLinks.map((l) => (
-                <Link key={l.to} className="btn" to={l.to}>
-                  {l.label}
-                </Link>
-              ))}
-            </div>
+        <div className="mobile-drawer-section">
+          {(isAuthRoute
+            ? [
+                { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) },
+                { to: "/map", label: t("nav.map") },
+              ]
+            : navLinks
+          ).map((l) => (
+            <Link key={l.to} className="btn" to={l.to}>
+              {l.label}
+            </Link>
+          ))}
+        </div>
 
-            {!isAuthRoute && user && (
-              <div className="mobile-drawer-section">
-                <button className="btn" onClick={() => nav("/profile")} type="button">
-                  {t("nav.profile", { defaultValue: "Προφίλ" })}
-                </button>
-                <button className="btn" onClick={onLogout} type="button">
-                  {t("nav.logout")}
-                </button>
-              </div>
-            )}
-          </aside>
-        </>
-      )}
-    </>
+        {!isAuthRoute && user && (
+          <div className="mobile-drawer-section">
+            <button className="btn" onClick={() => nav("/profile")}>
+              {`${user.first_name} ${user.last_name}`}
+            </button>
+            <button className="btn" onClick={onLogout}>
+              {t("nav.logout")}
+            </button>
+          </div>
+        )}
+      </aside>
+    </div>
   );
 }
 
@@ -241,6 +246,7 @@ export default function App() {
           <Route path="/forgot" element={<ForgotPassword />} />
           <Route path="/reset" element={<ResetPassword />} />
 
+          {/* Public anonymous pages (no login required) */}
           <Route path="/map" element={<Map />} />
           <Route path="/statistics" element={<Statistics />} />
 
@@ -256,26 +262,19 @@ export default function App() {
             path="/graduates/new"
             element={
               <Guard allow={["secretariat", "super_admin"]}>
-                <GraduateForm />
+                <GraduateForm mode="create" />
               </Guard>
             }
           />
           <Route
-            path="/graduates/:id/edit"
+            path="/graduates/:id"
             element={
               <Guard allow={["secretariat", "super_admin"]}>
-                <GraduateForm />
+                <GraduateForm mode="edit" />
               </Guard>
             }
           />
-          <Route
-            path="/regions"
-            element={
-              <Guard allow={["secretariat", "super_admin"]}>
-                <Regions />
-              </Guard>
-            }
-          />
+
           <Route
             path="/profile"
             element={
@@ -284,6 +283,7 @@ export default function App() {
               </Guard>
             }
           />
+
           <Route
             path="/users"
             element={
@@ -292,6 +292,7 @@ export default function App() {
               </Guard>
             }
           />
+
           <Route
             path="/logs"
             element={
@@ -300,6 +301,17 @@ export default function App() {
               </Guard>
             }
           />
+
+          <Route
+            path="/regions"
+            element={
+              <Guard allow={["secretariat", "super_admin"]}>
+                <Regions />
+              </Guard>
+            }
+          />
+
+          <Route path="*" element={<Login />} />
         </Routes>
       </div>
       <Footer />
