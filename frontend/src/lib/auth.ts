@@ -26,7 +26,6 @@ function migrateLegacyLocalStorageToSessionStorage() {
       localStorage.removeItem(KEY_USER);
     }
   } catch {
- // ignore
   }
 }
 
@@ -51,12 +50,10 @@ export function getUser(): SessionUser | null {
 export function setSession(token: string, user: SessionUser) {
   sessionStorage.setItem(KEY_TOKEN, token);
   sessionStorage.setItem(KEY_USER, JSON.stringify(user));
- // ensure no legacy leftovers
   try {
     localStorage.removeItem(KEY_TOKEN);
     localStorage.removeItem(KEY_USER);
   } catch {
- // ignore
   }
 }
 
@@ -67,7 +64,6 @@ export function logout() {
     localStorage.removeItem(KEY_TOKEN);
     localStorage.removeItem(KEY_USER);
   } catch {
- // ignore
   }
 }
 

@@ -250,6 +250,7 @@ function fillOpacityForCount(c: number) {
 
   return (
     <div className="container">
+      {/* Styling only for this page (no functional impact) */}
       <style>{`
         .leaflet-container path:focus { outline: none !important; }
         .leaflet-interactive:focus { outline: none !important; }
@@ -273,7 +274,9 @@ function fillOpacityForCount(c: number) {
         </button>
       </div>
 
+      {/* Two-column layout: map on the left, filters+details stacked on the right */}
       <div className="page-two-col" style={{ marginTop: 12 }}>
+        {/* Map column (left) */}
         <div className="card alupla-map-card">
           <div className="alupla-map map-canvas">
             <MapContainer
@@ -326,6 +329,7 @@ function fillOpacityForCount(c: number) {
             </MapContainer>
           </div>
 
+          {/* Legend */}
           <div
             style={{
               position: "absolute",
@@ -374,6 +378,7 @@ function fillOpacityForCount(c: number) {
           </div>
         </div>
 
+        {/* Right column: filters + details stacked */}
         <div className="map-panel-stack">
           <div className="card">
             <div className="grid cols2" style={{ alignItems: "end" }}>

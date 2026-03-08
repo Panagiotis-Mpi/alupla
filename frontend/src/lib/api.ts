@@ -37,7 +37,7 @@ export function setToken(token: string) {
     try {
       localStorage.removeItem(TOKEN_KEY);
     } catch {
-      }
+    }
     return;
   }
   sessionStorage.setItem(TOKEN_KEY, token);
@@ -166,6 +166,7 @@ export type Graduate = {
   oath_date: string;
   entry_year: number;
   student_number: string;
+  birth_date: string; // YYYY-MM-DD
   gender: "M" | "F";
   study_program_id: number;
   program_direction_id?: number | null;
@@ -202,6 +203,7 @@ export type GraduatesMapItem = {
 export async function login(email: string, password: string): Promise<{ ok: true; token: string; user: any } | any> {
   return api("/auth/login", {
     method: "POST",
+    body: { email, password }, // object is ok; api() will JSON.stringify + set Content-Type
   });
 }
 
