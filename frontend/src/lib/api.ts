@@ -472,6 +472,8 @@ export function publicAnonExportUrl(params: {
   study_program_id?: string;
   gender?: string;
   age_group?: string;
+  counts_mode?: string;
+  gender_mode?: string;
 }) {
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(params ?? {})) {

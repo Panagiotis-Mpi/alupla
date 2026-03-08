@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { QueryTypes } from "sequelize";
-import * as XLSX from "xlsx";
+import XLSX from "xlsx";
 import { sequelize } from "../config/sequelize";
 import { StudyProgram } from "../models/StudyProgram";
 import { verifyToken } from "../utils/jwt";
@@ -361,24 +361,151 @@ export async function publicMap(req: Request, res: Response) {
   res.json({ ok: true, rows });
 }
 
-export async function publicAnonymousGraduatesXls(req: Request, res: Response) {
-  const { sqlWhere, repl, birthExpr } = await buildWhere(req);
+export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
+  const { sqlWhere, repl } = await buildWhere(req);
+  const countsMode = req.query.counts_mode === "semester" ? "semester" : "year";
+  const genderMode = req.query.gender_mode === "semester" ? "semester" : "year";
 
-  const rows = await sequelize.query<any>(
-    `SELECT
-      EXTRACT(YEAR FROM g.graduation_date)::int as graduation_year,
-      g.entry_year,
-      ${birthExpr} as birth_date,
-      g.gender,
-      g.degree_grade,
-      g.study_program_id,
-      g.program_direction_id,
-      g.origin_region_id
-     FROM graduates g
-     ${sqlWhere}
-     ORDER BY graduation_year ASC`,
+  const byYear = await sequelize.query<{ year: number; count: number }>(
+    `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
+            COUNT(*)::int as count
+     FROM graduates g ${sqlWhere}
+     GROUP BY EXTRACT(YEAR FROM g.graduation_date)
+     ORDER BY year ASC`,
     { replacements: repl, type: QueryTypes.SELECT }
   );
+
+  const byTerm = await sequelize.query<{ year: number; term: string; count: number }>(
+    `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
+            CASE
+              WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
+              WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
+              WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+              ELSE 'other'
+            END as term,
+            COUNT(*)::int as count
+     FROM graduates g ${sqlWhere}
+     GROUP BY EXTRACT(YEAR FROM g.graduation_date),
+              CASE
+                WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
+                WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
+                WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+                ELSE 'other'
+              END
+     ORDER BY year ASC,
+              CASE
+                WHEN CASE
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+                  ELSE 'other'
+                END = 'winter' THEN 1
+                WHEN CASE
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+                  ELSE 'other'
+                END = 'spring' THEN 2
+                WHEN CASE
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+                  ELSE 'other'
+                END = 'september' THEN 3
+                ELSE 99
+              END ASC`,
+    { replacements: repl, type: QueryTypes.SELECT }
+  );
+
+  const genderByYear = await sequelize.query<{ year: number; male: number; female: number }>(
+    `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
+            SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END)::int as male,
+            SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END)::int as female
+     FROM graduates g ${sqlWhere}
+     GROUP BY EXTRACT(YEAR FROM g.graduation_date)
+     ORDER BY year ASC`,
+    { replacements: repl, type: QueryTypes.SELECT }
+  );
+
+  const genderByTerm = await sequelize.query<{ year: number; term: string; male: number; female: number }>(
+    `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
+            CASE
+              WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
+              WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
+              WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+              ELSE 'other'
+            END as term,
+            SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END)::int as male,
+            SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END)::int as female
+     FROM graduates g ${sqlWhere}
+     GROUP BY EXTRACT(YEAR FROM g.graduation_date),
+              CASE
+                WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
+                WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
+                WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+                ELSE 'other'
+              END
+     ORDER BY year ASC,
+              CASE
+                WHEN CASE
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+                  ELSE 'other'
+                END = 'winter' THEN 1
+                WHEN CASE
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+                  ELSE 'other'
+                END = 'spring' THEN 2
+                WHEN CASE
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+                  ELSE 'other'
+                END = 'september' THEN 3
+                ELSE 99
+              END ASC`,
+    { replacements: repl, type: QueryTypes.SELECT }
+  );
+
+  const termLabel = (term: string) => {
+    if (term === "winter") return "Χειμερινό";
+    if (term === "spring") return "Εαρινό";
+    if (term === "september") return "Σεπτέμβριος";
+    return term;
+  };
+
+  const countsRows = countsMode === "semester"
+    ? byTerm.map((r) => ({
+        "Έτος": Number(r.year),
+        "Εξάμηνο": termLabel(String(r.term)),
+        "Πλήθος αποφοίτων": Number(r.count) || 0,
+      }))
+    : byYear.map((r) => ({
+        "Έτος": Number(r.year),
+        "Πλήθος αποφοίτων": Number(r.count) || 0,
+      }));
+
+  const genderRows = genderMode === "semester"
+    ? genderByTerm.map((r) => ({
+        "Έτος": Number(r.year),
+        "Εξάμηνο": termLabel(String(r.term)),
+        "Άνδρες": Number(r.male) || 0,
+        "Γυναίκες": Number(r.female) || 0,
+      }))
+    : genderByYear.map((r) => ({
+        "Έτος": Number(r.year),
+        "Άνδρες": Number(r.male) || 0,
+        "Γυναίκες": Number(r.female) || 0,
+      }));
+
+  const workbook = XLSX.utils.book_new();
+  const countsSheet = XLSX.utils.json_to_sheet(countsRows);
+  const genderSheet = XLSX.utils.json_to_sheet(genderRows);
+  XLSX.utils.book_append_sheet(workbook, countsSheet, "Πλήθος αποφοίτων");
+  XLSX.utils.book_append_sheet(workbook, genderSheet, "Αναλογία φύλων");
 
   await logPublicExportAction(req, "statistics_export", "statistics", {
     format: "xls",
@@ -386,51 +513,15 @@ export async function publicAnonymousGraduatesXls(req: Request, res: Response) {
     study_program_id: req.query.study_program_id ?? null,
     gender: req.query.gender ?? null,
     age_group: req.query.age_group ?? null,
-    rows: rows.length,
+    counts_mode: countsMode,
+    gender_mode: genderMode,
+    rows: countsRows.length + genderRows.length,
   });
 
-  const exportRows = rows.map((r) => ({
-    graduation_year: r?.graduation_year ?? "",
-    entry_year: r?.entry_year ?? "",
-    birth_date: r?.birth_date ?? "",
-    gender: r?.gender ?? "",
-    degree_grade: r?.degree_grade ?? "",
-    study_program_id: r?.study_program_id ?? "",
-    program_direction_id: r?.program_direction_id ?? "",
-    origin_region_id: r?.origin_region_id ?? "",
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(exportRows, {
-    header: [
-      "graduation_year",
-      "entry_year",
-      "birth_date",
-      "gender",
-      "degree_grade",
-      "study_program_id",
-      "program_direction_id",
-      "origin_region_id",
-    ],
-  });
-
-  ws["!cols"] = [
-    { wch: 18 },
-    { wch: 12 },
-    { wch: 14 },
-    { wch: 10 },
-    { wch: 14 },
-    { wch: 18 },
-    { wch: 20 },
-    { wch: 16 },
-  ];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "anonymous_graduates");
-  const buf = XLSX.write(wb, { type: "buffer", bookType: "xls" });
-
+  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xls" });
   res.setHeader("Content-Type", "application/vnd.ms-excel");
-  res.setHeader("Content-Disposition", "attachment; filename=anonymous-graduates.xls");
-  res.send(buf);
+  res.setHeader("Content-Disposition", 'attachment; filename="statistics-export.xls"');
+  res.send(buffer);
 }
 
 export async function publicExportActivity(req: Request, res: Response) {
