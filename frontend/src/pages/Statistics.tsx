@@ -207,9 +207,6 @@ export default function Statistics() {
       <div className="topbar">
         <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
         <div className="spacer" />
-        {!user && (
-          </button>
-        )}
         <button className="btn" type="button" onClick={downloadAnon}>
           {t("filters.exportCsv")}
         </button>
