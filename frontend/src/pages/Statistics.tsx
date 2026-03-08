@@ -69,7 +69,6 @@ export default function Statistics() {
 
   React.useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const total = Number(data?.total ?? 0);
@@ -91,6 +90,7 @@ export default function Statistics() {
     () => (data?.by_year ?? []).map((r: any) => ({ label: String(r.year), value: Number(r.count) || 0 })),
     [data]
   );
+
   const bySemesterRows = React.useMemo(
     () =>
       (data?.by_term ?? []).map((r: any) => ({
@@ -134,20 +134,6 @@ export default function Statistics() {
     };
   }, [bySemesterRows, byYearRows, countsMode, t, termLabel]);
 
-  const baseBarOptions = React.useMemo(
-    () =>
-      ({
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { autoSkip: false, maxRotation: 0 } },
-          y: { beginAtZero: true, ticks: { precision: 0 as any } },
-        },
-      }) as const,
-    []
-  );
-
   const countChartOptions = React.useMemo(
     () =>
       ({
@@ -175,11 +161,23 @@ export default function Statistics() {
         female: Number(r.female) || 0,
       }));
     }
-    return (data?.gender_by_term ?? []).map((r: any) => ({
-      label: termLabel(String(r.term)),
-      male: Number(r.male) || 0,
-      female: Number(r.female) || 0,
-    }));
+
+    const years = Array.from(new Set((data?.gender_by_term ?? []).map((r: any) => String(r.year))));
+    const termOrder = ["winter", "spring", "september"];
+
+    return years.flatMap((year) =>
+      termOrder.map((term) => {
+        const row = (data?.gender_by_term ?? []).find(
+          (r: any) => String(r.year) === year && String(r.term) === term
+        );
+
+        return {
+          label: `${year} ${termLabel(term)}`,
+          male: Number(row?.male) || 0,
+          female: Number(row?.female) || 0,
+        };
+      })
+    );
   }, [data, genderMode, termLabel]);
 
   const genderChartData = React.useMemo(
@@ -215,7 +213,7 @@ export default function Statistics() {
       <div className="grid cols3" style={{ gap: 14 }}>
         <div className="card">
           <div className="muted">{t("cards.total")}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{total}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{Number(data?.total ?? 0)}</div>
         </div>
         <div className="card">
           <div className="muted">{t("cards.avgAge")}</div>
@@ -269,7 +267,6 @@ export default function Statistics() {
           </div>
         </div>
       </div>
-
     </div>
   );
 }
