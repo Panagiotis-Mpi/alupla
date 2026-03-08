@@ -199,8 +199,7 @@ function TopNav() {
       {isCompact && menuOpen && <button className="drawer-backdrop" type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
       <aside id="mobile-drawer" className={`mobile-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
         <div className="mobile-drawer-header">
-          <strong>ALUPLA</strong>
-          <button className="btn" type="button" onClick={() => setMenuOpen(false)}>✕</button>
+          <strong style={{cursor:"pointer"}} onClick={() => setMenuOpen(false)}>ALUPLA</strong>
         </div>
 
         <div className="mobile-drawer-section">
