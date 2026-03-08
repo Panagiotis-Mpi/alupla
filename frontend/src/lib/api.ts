@@ -1,9 +1,6 @@
-// API helpers for ALUPLA frontend (Vite + TS).
-// Centralizes token handling and request defaults for backend endpoints.
 
 export const API_URL: string = (() => {
   const envUrl = (import.meta as any).env?.VITE_API_URL as string | undefined;
-  // Use relative proxy by default in the browser to avoid cross-origin issues on deployments.
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
     const isLocal = host === "localhost" || host === "127.0.0.1";
@@ -14,8 +11,6 @@ export const API_URL: string = (() => {
 
 const TOKEN_KEY = "alupla_token";
 
-// Keep the token in sessionStorage so closing the browser logs the user out.
-// If a legacy token exists in localStorage, migrate it once.
 function migrateLegacyToken() {
   try {
     const legacy = localStorage.getItem(TOKEN_KEY);
@@ -24,7 +19,6 @@ function migrateLegacyToken() {
     }
     if (legacy) localStorage.removeItem(TOKEN_KEY);
   } catch {
-    // ignore
   }
 }
 
@@ -43,15 +37,13 @@ export function setToken(token: string) {
     try {
       localStorage.removeItem(TOKEN_KEY);
     } catch {
-      // ignore
-    }
+      }
     return;
   }
   sessionStorage.setItem(TOKEN_KEY, token);
   try {
     localStorage.removeItem(TOKEN_KEY);
   } catch {
-    // ignore
   }
 }
 
@@ -60,7 +52,6 @@ export function clearToken() {
   try {
     localStorage.removeItem(TOKEN_KEY);
   } catch {
-    // ignore
   }
 }
 
@@ -86,12 +77,10 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers || {});
   headers.set("Accept", "application/json");
 
-  // If we have a body and Content-Type wasn't set, choose a reasonable default.
   const hasBody = init.body !== undefined && init.body !== null;
 
   if (hasBody && !headers.has("Content-Type")) {
     if (init.body instanceof FormData) {
-      // Let the browser set the multipart boundary.
     } else if (typeof init.body === "string") {
       if (isJsonString(init.body)) headers.set("Content-Type", "application/json");
       else headers.set("Content-Type", "text/plain;charset=UTF-8");
@@ -100,7 +89,6 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
       init = { ...init, body: JSON.stringify(init.body) };
     }
   } else if (hasBody && headers.get("Content-Type")?.includes("application/json") && typeof init.body === "object" && !(init.body instanceof FormData)) {
-    // If user passed an object but already set JSON content-type, stringify it.
     init = { ...init, body: JSON.stringify(init.body) };
   }
 
@@ -115,7 +103,6 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const data = await parseJsonSafe(res);
 
   if (res.status === 401) {
-    // Token expired/invalid: drop it so the UI can redirect to login.
     clearToken();
   }
 
@@ -127,7 +114,6 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
-// ---------- Types (lightweight) ----------
 export type UserRole = "super_admin" | "secretariat";
 export type User = {
   id: number;
@@ -180,7 +166,6 @@ export type Graduate = {
   oath_date: string;
   entry_year: number;
   student_number: string;
-  birth_date: string; // YYYY-MM-DD
   gender: "M" | "F";
   study_program_id: number;
   program_direction_id?: number | null;
@@ -214,11 +199,9 @@ export type GraduatesMapItem = {
   avg_age: number | null;
 };
 
-// ---------- Auth ----------
 export async function login(email: string, password: string): Promise<{ ok: true; token: string; user: any } | any> {
   return api("/auth/login", {
     method: "POST",
-    body: { email, password }, // object is ok; api() will JSON.stringify + set Content-Type
   });
 }
 
@@ -245,7 +228,6 @@ export async function me(): Promise<any> {
   return api("/auth/me", { method: "GET" });
 }
 
-// Overload-friendly: changePassword({currentPassword,newPassword}) OR changePassword(currentPassword,newPassword)
 export async function changePassword(
   currentPasswordOrPayload: string | { currentPassword: string; newPassword: string },
   maybeNewPassword?: string
@@ -255,7 +237,6 @@ export async function changePassword(
       ? { currentPassword: currentPasswordOrPayload, newPassword: maybeNewPassword || "" }
       : currentPasswordOrPayload;
 
-  // Backend expects snake_case:
   return api("/auth/change-password", {
     method: "POST",
     body: {
@@ -265,7 +246,6 @@ export async function changePassword(
   });
 }
 
-// ---------- Presence (live online) ----------
 export async function presencePing(): Promise<any> {
   return api("/presence/ping", { method: "POST" });
 }
@@ -274,7 +254,6 @@ export async function listOnlineUsers(): Promise<{ ok: true; onlineIds: number[]
   return api("/presence/online", { method: "GET" });
 }
 
-// ---------- Users (super_admin) ----------
 export async function listUsers(): Promise<{ ok: true; items: User[] } | any> {
   return api("/users", { method: "GET" });
 }
@@ -309,7 +288,6 @@ export async function rejectUser(id: number): Promise<any> {
   return api(`/users/${id}/reject`, { method: "POST" });
 }
 
-// ---------- Study Programs / Directions ----------
 export async function listStudyPrograms(): Promise<{ ok: true; items: StudyProgram[] } | any> {
   return api("/study-programs", { method: "GET" });
 }
@@ -319,7 +297,6 @@ export async function listProgramDirections(studyProgramId?: number | null): Pro
   return api(`/program-directions${qs}`, { method: "GET" });
 }
 
-// ---------- Graduates ----------
 export async function listGraduates(params: Record<string, any> = {}): Promise<any> {
   const q = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
@@ -346,8 +323,6 @@ export async function deleteGraduate(id: number | string): Promise<any> {
   return api(`/graduates/${id}`, { method: "DELETE" });
 }
 
-// ---------- Regions ----------
-// Backwards-compatible: listRegions(parentId) OR listRegions({ parent_id, type, q, ... })
 export async function listRegions(parentIdOrParams: any = {}): Promise<any> {
   const params: Record<string, any> =
     typeof parentIdOrParams === "number" || parentIdOrParams === null
@@ -373,7 +348,6 @@ export async function searchRegions(params: { q?: string; type?: string; parent_
   return api(`/regions/search${qs ? `?${qs}` : ""}`, { method: "GET" });
 }
 
-// ---------- Activity Logs ----------
 export async function listActivityLogs(params: Record<string, any> = {}): Promise<any> {
   const q = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
@@ -384,7 +358,6 @@ export async function listActivityLogs(params: Record<string, any> = {}): Promis
   return api(`/activity-logs${qs ? `?${qs}` : ""}`, { method: "GET" });
 }
 
-// ---------- Map (graduates distribution) ----------
 export async function getGraduatesMap(params: Record<string, any> = {}): Promise<{ ok: true; items: GraduatesMapItem[]; total: number } | any> {
   const q = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
@@ -395,8 +368,6 @@ export async function getGraduatesMap(params: Record<string, any> = {}): Promise
   return api(`/map/graduates${qs ? `?${qs}` : ""}`, { method: "GET" });
 }
 
-// Export CSV as a simple link. Because a normal <a href> can't send the Authorization header,
-// we also include the token as a query param (backend accepts it).
 export function activityLogsExportUrl(params: Record<string, any> = {}): string {
   const q = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
@@ -460,7 +431,6 @@ export async function importGraduatesXlsx(file: File): Promise<any> {
   return await res.json();
 }
 
-// ---------- Public (no-auth) endpoints ----------
 export async function getPublicStudyPrograms(): Promise<{ ok: true; items: StudyProgram[] } | any> {
   return api("/public/study-programs", { method: "GET" });
 }

@@ -4,8 +4,6 @@ import { useLocation } from "react-router-dom";
 export default function Footer() {
   const { pathname } = useLocation();
 
-  // Only "pin" the footer on short, static pages (no long scroll content).
-  // Everywhere else, keep it in normal flow so it never covers charts/tables.
   const pin =
     pathname === "/" ||
     pathname === "/login" ||

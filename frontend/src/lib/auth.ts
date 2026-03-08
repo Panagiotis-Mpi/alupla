@@ -11,9 +11,6 @@ export type SessionUser = {
 const KEY_TOKEN = "alupla_token";
 const KEY_USER = "alupla_user";
 
-// We store auth in sessionStorage so closing the browser (or rebooting) logs the user out.
-// To avoid breaking existing installs, we transparently migrate any legacy localStorage
-// session into sessionStorage on first access.
 function migrateLegacyLocalStorageToSessionStorage() {
   try {
     const legacyToken = localStorage.getItem(KEY_TOKEN);
