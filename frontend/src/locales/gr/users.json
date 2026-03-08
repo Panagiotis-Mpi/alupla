@@ -14,7 +14,7 @@
   },
   "actions": {
     "create": "Create",
-    "deactivate": "Deactivate"
+    "deactivate": "Διαγραφή"
   },
   "table": {
     "id": "ID",
@@ -25,7 +25,7 @@
     "verified": "Email verified",
     "approved": "Αποδοχή",
     "none": "Δεν υπάρχουν χρήστες.",
-    "deactivate": "Deactivate"
+    "deactivate": "Διαγραφή"
   },
   "status": {
     "online": "● online",
@@ -35,6 +35,6 @@
   },
   "confirm": {
     "rejectPrompt": "Είστε σίγουρος;",
-    "deactivate": "Απενεργοποίηση χρήστη #{{id}};"
+    "deactivate": "Διαγραφή χρήστη #{{id}};"
   }
 }

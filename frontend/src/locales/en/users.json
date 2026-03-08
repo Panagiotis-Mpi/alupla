@@ -14,7 +14,7 @@
   },
   "actions": {
     "create": "Create",
-    "deactivate": "Deactivate"
+    "deactivate": "Delete"
   },
   "table": {
     "id": "ID",
@@ -25,7 +25,7 @@
     "verified": "Email verified",
     "approved": "Approval",
     "none": "No users.",
-    "deactivate": "Deactivate"
+    "deactivate": "Delete"
   },
   "status": {
     "online": "● online",
@@ -35,6 +35,6 @@
   },
   "confirm": {
     "rejectPrompt": "Are you sure?",
-    "deactivate": "Deactivate user #{{id}}?"
+    "deactivate": "Delete user #{{id}}?"
   }
 }
