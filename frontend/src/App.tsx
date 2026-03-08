@@ -26,6 +26,10 @@ function TopNav() {
   const role = user?.role;
   const nav = useNavigate();
   const loc = useLocation();
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [isCompact, setIsCompact] = React.useState(() =>
+    typeof window !== "undefined" ? window.innerWidth <= 820 : false
+  );
 
   const isAuthRoute = ["/login", "/register", "/verify", "/forgot", "/reset"].some((p) =>
     loc.pathname.startsWith(p)
@@ -52,6 +56,21 @@ function TopNav() {
   };
 
   const lang = i18n.language?.startsWith("en") ? "en" : "gr";
+
+  React.useEffect(() => {
+    const onResize = () => {
+      const compact = window.innerWidth <= 820;
+      setIsCompact(compact);
+      if (!compact) setMenuOpen(false);
+    };
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  React.useEffect(() => {
+    setMenuOpen(false);
+  }, [loc.pathname]);
 
   // Nav order must match mockups per role.
   // Guest & auth pages:   Στατιστικά, Χάρτης
@@ -86,11 +105,25 @@ function TopNav() {
 
   return (
     <div className="nav">
-      <button className="brand" type="button" onClick={onBrandClick} aria-label="ALUPLA Home">
-        ALUPLA
+      <button
+        className={`brand ${isCompact ? "brand-compact" : ""}`}
+        type="button"
+        onClick={() => {
+          if (isCompact) {
+            setMenuOpen((v) => !v);
+            return;
+          }
+          onBrandClick();
+        }}
+        aria-label={isCompact ? "ALUPLA menu" : "ALUPLA Home"}
+        aria-expanded={isCompact ? menuOpen : undefined}
+        aria-controls={isCompact ? "mobile-drawer" : undefined}
+      >
+        {isCompact && <span className="brand-burger" aria-hidden="true">☰</span>}
+        <span>ALUPLA</span>
       </button>
 
-      <div className="nav-links">
+      <div className="nav-links desktop-only">
         {/* In mockups, auth pages also show: Στατιστικά, Χάρτης */}
         {isAuthRoute ? (
           <>
@@ -138,24 +171,64 @@ function TopNav() {
         {/* Right-side actions */}
         {!isAuthRoute && (
           <div className="nav-actions">
-            <span className="badge">{user ? `${user.first_name} ${user.last_name} (${user.role})` : "guest"}</span>
-            {user && (
-              <button className="btn" onClick={() => nav("/profile")}>
-                {t("nav.profile", { defaultValue: "Προφίλ" })}
-              </button>
-            )}
-            {user ? (
-              <button className="btn" onClick={onLogout}>
-                {t("nav.logout")}
-              </button>
-            ) : (
-              <button className="btn" onClick={() => nav("/login")}>
+            {user ? <span className="badge">{`${user.first_name} ${user.last_name}`}</span> : null}
+            <div className="desktop-only nav-actions-desktop">
+              {user && (
+                <button className="btn" onClick={() => nav("/profile")}>
+                  {t("nav.profile", { defaultValue: "Προφίλ" })}
+                </button>
+              )}
+              {user ? (
+                <button className="btn" onClick={onLogout}>
+                  {t("nav.logout")}
+                </button>
+              ) : (
+                <button className="btn" onClick={() => nav("/login")}>
+                  {t("nav.login", { defaultValue: "Σύνδεση" })}
+                </button>
+              )}
+            </div>
+            {!user ? (
+              <button className="btn mobile-login" onClick={() => nav("/login")}>
                 {t("nav.login", { defaultValue: "Σύνδεση" })}
               </button>
-            )}
+            ) : null}
           </div>
         )}
       </div>
+
+      {isCompact && menuOpen && <button className="drawer-backdrop" type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
+      <aside id="mobile-drawer" className={`mobile-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
+        <div className="mobile-drawer-header">
+          <strong>ALUPLA</strong>
+          <button className="btn" type="button" onClick={() => setMenuOpen(false)}>✕</button>
+        </div>
+
+        <div className="mobile-drawer-section">
+          {(isAuthRoute
+            ? [
+                { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) },
+                { to: "/map", label: t("nav.map") },
+              ]
+            : navLinks
+          ).map((l) => (
+            <Link key={l.to} className="btn" to={l.to}>
+              {l.label}
+            </Link>
+          ))}
+        </div>
+
+        {!isAuthRoute && user && (
+          <div className="mobile-drawer-section">
+            <button className="btn" onClick={() => nav("/profile")}>
+              {t("nav.profile", { defaultValue: "Προφίλ" })}
+            </button>
+            <button className="btn" onClick={onLogout}>
+              {t("nav.logout")}
+            </button>
+          </div>
+        )}
+      </aside>
     </div>
   );
 }
