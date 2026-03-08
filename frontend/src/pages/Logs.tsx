@@ -69,160 +69,16 @@ export default function Logs() {
     return map[key] ?? key;
   }
 
-  function toGreekDetailKey(key: string): string {
-    const map: Record<string, string> = {
-      file: "Αρχείο",
-      total_rows: "Σύνολο γραμμών",
-      inserted: "Εισήχθησαν",
-      updated: "Ενημερώθηκαν",
-      skipped: "Παραλείφθηκαν",
-      errors: "Σφάλματα",
-      changed: "Αλλαγμένα πεδία",
-      admin_approved: "Έγκριση διαχειριστή",
-      email_verified: "Επαλήθευση email",
-      is_active: "Ενεργός",
-      first_name: "Όνομα",
-      last_name: "Επώνυμο",
-      role: "Ρόλος",
-      email: "Email",
-      user_id: "ID χρήστη",
-      graduate_id: "ID αποφοίτου",
-      id: "ID",
-      reason: "Αιτία",
-      token: "Token",
-      entity_type: "Αντικείμενο",
-      action: "Ενέργεια",
-      count: "Πλήθος"
-    };
-    return map[key] ?? key.replaceAll("_", " ");
-  }
-
-  function toGreekRoleValue(value: string): string {
-    const map: Record<string, string> = {
-      super_admin: "Super Admin",
-      secretariat: "Γραμματεία"
-    };
-    return map[value] ?? value;
-  }
-
-  function toGreekSimpleValue(value: any): string {
-    if (value === null || value === undefined || value === "") return "";
-    if (typeof value === "boolean") return value ? "Ναι" : "Όχι";
-    if (typeof value === "number") return String(value);
-    const raw = String(value).trim();
-
-    if (raw === "true") return "Ναι";
-    if (raw === "false") return "Όχι";
-    if (raw === "super_admin" || raw === "secretariat") return toGreekRoleValue(raw);
-    if (["user","users","graduate","graduates","system","statistics","map","logs"].includes(raw)) {
-      return toGreekResource(raw);
-    }
-    if ([
-      "login","logout","upload","import_graduates","export_graduates","export_csv","export_xlsx","export_pdf",
-      "map_export","statistics_export","create_user","update_user","reject_user","approve_user",
-      "deactivate_user","delete_user","διαγραφή χρήστη","create_graduate","update_graduate","delete_graduate"
-    ].includes(raw)) {
-      return toGreekAction(raw);
-    }
-
-    return raw;
-  }
-
   function toGreekDetails(v: any): string {
     if (v === null || v === undefined || v === "") return "";
-
-    let parsed = v;
-    if (typeof v === "string") {
-      const raw = v.trim();
-      if (!raw) return "";
-      if ((raw.startsWith("{") && raw.endsWith("}")) || (raw.startsWith("[") && raw.endsWith("]"))) {
-        try {
-          parsed = JSON.parse(raw);
-        } catch {
-          parsed = raw;
-        }
-      } else {
-        parsed = raw;
-      }
-    }
-
-    if (Array.isArray(parsed)) {
-      return parsed.map((item) => toGreekSimpleValue(item)).filter(Boolean).join(", ");
-    }
-
-    if (typeof parsed !== "object") {
-      return toGreekSimpleValue(parsed);
-    }
-
-    const obj = parsed as Record<string, any>;
-
-    if (Array.isArray(obj.changed)) {
-      return `${toGreekDetailKey("changed")}: ${obj.changed.map((k: string) => toGreekDetailKey(String(k))).join(", ")}`;
-    }
-
-    const orderedKeys = [
-      "file",
-      "total_rows",
-      "inserted",
-      "updated",
-      "skipped",
-      "errors",
-      "email",
-      "role",
-      "reason",
-      "count",
-      "user_id",
-      "graduate_id",
-      "id"
-    ];
-
-    const parts: string[] = [];
-
-    for (const key of orderedKeys) {
-      if (!(key in obj)) continue;
-      const value = obj[key];
-      if (value === null || value === undefined || value === "") continue;
-
-      if (Array.isArray(value)) {
-        const formattedArray = value.map((item) => toGreekSimpleValue(item)).filter(Boolean).join(", ");
-        if (formattedArray) parts.push(`${toGreekDetailKey(key)}: ${formattedArray}`);
-        continue;
-      }
-
-      if (typeof value === "object") {
-        const nested = Object.entries(value)
-          .map(([nestedKey, nestedValue]) => `${toGreekDetailKey(nestedKey)}: ${toGreekSimpleValue(nestedValue)}`)
-          .join(", ");
-        if (nested) parts.push(`${toGreekDetailKey(key)}: ${nested}`);
-        continue;
-      }
-
-      parts.push(`${toGreekDetailKey(key)}: ${toGreekSimpleValue(value)}`);
-    }
-
-    for (const [key, value] of Object.entries(obj)) {
-      if (orderedKeys.includes(key)) continue;
-      if (key === "changed" && Array.isArray(value)) continue;
-      if (value === null || value === undefined || value === "") continue;
-
-      if (Array.isArray(value)) {
-        const formattedArray = value.map((item) => toGreekSimpleValue(item)).filter(Boolean).join(", ");
-        if (formattedArray) parts.push(`${toGreekDetailKey(key)}: ${formattedArray}`);
-        continue;
-      }
-
-      if (typeof value === "object") {
-        const nested = Object.entries(value)
-          .map(([nestedKey, nestedValue]) => `${toGreekDetailKey(nestedKey)}: ${toGreekSimpleValue(nestedValue)}`)
-          .join(", ");
-        if (nested) parts.push(`${toGreekDetailKey(key)}: ${nested}`);
-        continue;
-      }
-
-      parts.push(`${toGreekDetailKey(key)}: ${toGreekSimpleValue(value)}`);
-    }
-
-    return parts.join(" • ");
+    const raw = typeof v === "object" ? JSON.stringify(v) : String(v);
+    return raw
+      .replaceAll("admin_approved", "έγκριση διαχειριστή")
+      .replaceAll("email_verified", "επαλήθευση email")
+      .replaceAll("is_active", "ενεργός")
+      .replaceAll("first_name", "όνομα")
+      .replaceAll("last_name", "επώνυμο")
+      .replaceAll("role", "ρόλος");
   }
 
   const actionForApi = (filters.level || filters.action).trim();
@@ -248,10 +104,11 @@ export default function Logs() {
   const distinctActions = React.useMemo(() => {
     const s = new Set<string>();
     for (const l of items) {
-      const v = String((l as any)?.action ?? "").trim();
-      if (v) s.add(v);
+      const raw = String((l as any)?.action ?? "").trim();
+      const label = toGreekAction(raw);
+      if (label) s.add(label);
     }
-    return Array.from(s).sort((a, b) => a.localeCompare(b));
+    return Array.from(s).sort((a, b) => a.localeCompare(b, "el"));
   }, [items]);
 
   const distinctActors = React.useMemo(() => {
@@ -392,7 +249,7 @@ export default function Logs() {
               />
               <datalist id="logs-levels">
                 {distinctActions.map((v) => (
-                  <option key={v} value={toGreekAction(v)} />
+                  <option key={v} value={v} />
                 ))}
               </datalist>
             </div>
@@ -424,7 +281,7 @@ export default function Logs() {
               />
               <datalist id="logs-actions">
                 {distinctActions.map((v) => (
-                  <option key={v} value={toGreekAction(v)} />
+                  <option key={v} value={v} />
                 ))}
               </datalist>
             </div>
