@@ -69,7 +69,7 @@ export default function Statistics() {
 
   React.useEffect(() => {
     void load();
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const total = Number(data?.total ?? 0);
@@ -208,8 +208,6 @@ export default function Statistics() {
         <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
         <div className="spacer" />
         {!user && (
-          <button className="btn" type="button" onClick={() => nav("/login")}>
-            {t("login", { defaultValue: "Σύνδεση" })}
           </button>
         )}
         <button className="btn" type="button" onClick={downloadAnon}>
