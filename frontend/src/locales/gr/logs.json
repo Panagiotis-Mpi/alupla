@@ -1,29 +1,42 @@
 {
   "title": "Logs",
-  "badgeLoading": "loading...",
-  "badgeCount": "{{count}} entries",
+  "badgeLoading": "φόρτωση...",
+  "badgeCount": "{{count}} εγγραφές",
   "filters": {
     "q": "Αναζήτηση",
-    "qPlaceholder": "π.χ. login, graduates, export...",
-    "level": "Level",
+    "qPlaceholder": "π.χ. σύνδεση, απόφοιτοι, εξαγωγή...",
+    "level": "Επίπεδο",
+    "actor": "Χρήστης",
+    "action": "Ενέργεια",
+    "resource": "Αντικείμενο",
     "all": "Όλα",
     "search": "Αναζήτηση",
-    "reset": "Reset"
+    "reset": "Καθαρισμός"
   },
   "actions": {
-    "exportCsv": "Export CSV"
+    "exportCsv": "Εξαγωγή CSV"
   },
   "table": {
     "id": "ID",
-    "ts": "Timestamp",
-    "level": "Level",
-    "actor": "Actor",
-    "action": "Action",
-    "resource": "Resource",
+    "ts": "Ημερομηνία",
+    "level": "Επίπεδο",
+    "actor": "Χρήστης",
+    "action": "Ενέργεια",
+    "resource": "Αντικείμενο",
     "ip": "IP",
-    "details": "Details",
+    "details": "Λεπτομέρειες",
     "none": "Δεν υπάρχουν logs."
   },
-  "error": "Error",
-  "exportFailed": "Export failed"
+  "summary": {
+    "title": "Σύνοψη ενεργειών",
+    "activity": "Ενέργεια",
+    "authenticated": "Συνδεδεμένοι",
+    "anonymous": "Ανώνυμοι",
+    "fileUploads": "Μεταφορτώσεις αρχείων",
+    "fileDownloads": "Λήψεις αρχείων",
+    "mapDownloads": "Λήψεις χάρτη",
+    "statisticsDownloads": "Λήψεις στατιστικών"
+  },
+  "error": "Σφάλμα",
+  "exportFailed": "Η εξαγωγή απέτυχε"
 }

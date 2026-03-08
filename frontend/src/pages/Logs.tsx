@@ -24,7 +24,61 @@ export default function Logs() {
     const ln = (l?.user?.last_name ?? "").trim();
     const full = `${fn} ${ln}`.trim();
     if (full) return full;
-    return "system";
+    return "Σύστημα";
+  }
+
+  function toGreekAction(v: any): string {
+    const key = String(v ?? "").trim();
+    const map: Record<string, string> = {
+      login: "Σύνδεση",
+      logout: "Αποσύνδεση",
+      upload: "Μεταφόρτωση αρχείου",
+      import_graduates: "Εισαγωγή αποφοίτων",
+      export_graduates: "Εξαγωγή αποφοίτων",
+      export_csv: "Εξαγωγή CSV",
+      export_xlsx: "Εξαγωγή Excel",
+      export_pdf: "Εξαγωγή PDF",
+      map_export: "Εξαγωγή χάρτη",
+      statistics_export: "Εξαγωγή στατιστικών",
+      create_user: "Δημιουργία χρήστη",
+      update_user: "Ενημέρωση χρήστη",
+      reject_user: "Απόρριψη χρήστη",
+      approve_user: "Αποδοχή χρήστη",
+      deactivate_user: "Διαγραφή χρήστη",
+      delete_user: "Διαγραφή χρήστη",
+      "διαγραφή χρήστη": "Διαγραφή χρήστη",
+      create_graduate: "Δημιουργία αποφοίτου",
+      update_graduate: "Ενημέρωση αποφοίτου",
+      delete_graduate: "Διαγραφή αποφοίτου"
+    };
+    return map[key] ?? key.replace(/_/g, " ");
+  }
+
+  function toGreekResource(v: any): string {
+    const key = String(v ?? "").trim();
+    const map: Record<string, string> = {
+      user: "Χρήστης",
+      users: "Χρήστες",
+      graduate: "Απόφοιτος",
+      graduates: "Απόφοιτοι",
+      system: "Σύστημα",
+      statistics: "Στατιστικά",
+      map: "Χάρτης",
+      logs: "Logs"
+    };
+    return map[key] ?? key;
+  }
+
+  function toGreekDetails(v: any): string {
+    if (v === null || v === undefined || v === "") return "";
+    const raw = typeof v === "object" ? JSON.stringify(v) : String(v);
+    return raw
+      .replaceAll("admin_approved", "έγκριση διαχειριστή")
+      .replaceAll("email_verified", "επαλήθευση email")
+      .replaceAll("is_active", "ενεργός")
+      .replaceAll("first_name", "όνομα")
+      .replaceAll("last_name", "επώνυμο")
+      .replaceAll("role", "ρόλος");
   }
 
   const actionForApi = (filters.level || filters.action).trim();
@@ -38,7 +92,7 @@ export default function Logs() {
         action: actionForApi || undefined,
         entity_type: resourceForApi || undefined
       });
-      setItems(data.items ?? data); // συμβατό αν backend επιστρέφει items ή array
+      setItems(data.items ?? data);
       setPage(1);
     } catch (e: any) {
       setErr(e?.message ?? t("error"));
@@ -80,16 +134,13 @@ export default function Logs() {
     const levelNeedle = filters.level.trim().toLowerCase();
     const resourceNeedle = filters.resource.trim().toLowerCase();
 
-    // Note: action/resource may already be filtered server-side via actionForApi/resourceForApi.
     return items.filter((l: any) => {
       const actor = actorLabel(l).toLowerCase();
-      const action = String(l?.action ?? "").toLowerCase();
-      const resource = String(l?.entity_type ?? "").toLowerCase();
+      const action = toGreekAction(l?.action ?? "").toLowerCase();
+      const resource = toGreekResource(l?.entity_type ?? "").toLowerCase();
 
       if (actorNeedle && !actor.includes(actorNeedle)) return false;
       if (resourceNeedle && !resource.includes(resourceNeedle)) return false;
-
-      // Allow both "Level" and "Action" boxes to constrain the same underlying action field.
       if (levelNeedle && !action.includes(levelNeedle)) return false;
       if (actionNeedle && !action.includes(actionNeedle)) return false;
 
@@ -97,32 +148,31 @@ export default function Logs() {
     });
   }, [items, filters.actor, filters.action, filters.level, filters.resource]);
 
-  
   const summary = React.useMemo(() => {
     const s = {
-      uploads_auth:0, uploads_anon:0,
-      downloads_auth:0, downloads_anon:0,
-      map_auth:0, map_anon:0,
-      stats_auth:0, stats_anon:0
+      uploads_auth: 0, uploads_anon: 0,
+      downloads_auth: 0, downloads_anon: 0,
+      map_auth: 0, map_anon: 0,
+      stats_auth: 0, stats_anon: 0
     };
-    for(const l of items){
-      const action=String((l as any)?.action ?? "");
-      const isAnon=!l?.user;
-      if(action==="import_graduates" || action==="upload"){
-        if(isAnon) s.uploads_anon++; else s.uploads_auth++;
+    for (const l of items) {
+      const action = String((l as any)?.action ?? "");
+      const isAnon = !l?.user;
+      if (action === "import_graduates" || action === "upload") {
+        if (isAnon) s.uploads_anon++; else s.uploads_auth++;
       }
-      if(action.includes("export")){
-        if(isAnon) s.downloads_anon++; else s.downloads_auth++;
+      if (action.includes("export")) {
+        if (isAnon) s.downloads_anon++; else s.downloads_auth++;
       }
-      if(action==="map_export"){
-        if(isAnon) s.map_anon++; else s.map_auth++;
+      if (action === "map_export") {
+        if (isAnon) s.map_anon++; else s.map_auth++;
       }
-      if(action==="statistics_export"){
-        if(isAnon) s.stats_anon++; else s.stats_auth++;
+      if (action === "statistics_export") {
+        if (isAnon) s.stats_anon++; else s.stats_auth++;
       }
     }
     return s;
-  },[items]);
+  }, [items]);
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
   const pageSafe = Math.min(Math.max(1, page), totalPages);
@@ -130,18 +180,14 @@ export default function Logs() {
   const pagedItems = filteredItems.slice(startIdx, startIdx + PAGE_SIZE);
 
   React.useEffect(() => {
-    // clamp page if data size changes
     if (page !== pageSafe) setPage(pageSafe);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredItems.length]);
 
   React.useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function onExport() {
-    // Export respects server-side filters only (action/entity_type). Actor is client-only.
     const url = activityLogsExportUrl({
       action: actionForApi || undefined,
       entity_type: resourceForApi || undefined
@@ -173,131 +219,128 @@ export default function Logs() {
         </div>
       )}
 
-      
-<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-  <div className="card">
-    <h3 style={{marginTop:0}}>Activity Summary</h3>
-    <table className="table">
-      <thead>
-        <tr><th>Activity</th><th>Authenticated</th><th>Anonymous</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>File uploads</td><td>{summary.uploads_auth}</td><td>{summary.uploads_anon}</td></tr>
-        <tr><td>File downloads</td><td>{summary.downloads_auth}</td><td>{summary.downloads_anon}</td></tr>
-        <tr><td>Map downloads</td><td>{summary.map_auth}</td><td>{summary.map_anon}</td></tr>
-        <tr><td>Statistics downloads</td><td>{summary.stats_auth}</td><td>{summary.stats_anon}</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div className="card">
-        <div className="grid cols2">
-
-          <div>
-            <label className="label">Level</label>
-            <input
-              className="input"
-              list="logs-levels"
-              value={filters.level}
-              onChange={(e) => setFilters((f) => ({ ...f, level: e.target.value }))}
-              placeholder={t("filters.all")}
-            />
-            <datalist id="logs-levels">
-              {distinctActions.map((v) => (
-                <option key={v} value={v} />
-              ))}
-            </datalist>
-          </div>
-
-          <div>
-            <label className="label">Actor</label>
-            <input
-              className="input"
-              list="logs-actors"
-              value={filters.actor}
-              onChange={(e) => setFilters((f) => ({ ...f, actor: e.target.value }))}
-              placeholder={t("filters.all")}
-            />
-            <datalist id="logs-actors">
-              {distinctActors.map((v) => (
-                <option key={v} value={v} />
-              ))}
-            </datalist>
-          </div>
-
-          <div>
-            <label className="label">Action</label>
-            <input
-              className="input"
-              list="logs-actions"
-              value={filters.action}
-              onChange={(e) => setFilters((f) => ({ ...f, action: e.target.value }))}
-              placeholder={t("filters.all")}
-            />
-            <datalist id="logs-actions">
-              {distinctActions.map((v) => (
-                <option key={v} value={v} />
-              ))}
-            </datalist>
-          </div>
-
-          <div>
-            <label className="label">Resource</label>
-            <input
-              className="input"
-              list="logs-resources"
-              value={filters.resource}
-              onChange={(e) => setFilters((f) => ({ ...f, resource: e.target.value }))}
-              placeholder={t("filters.all")}
-            />
-            <datalist id="logs-resources">
-              {distinctResources.map((v) => (
-                <option key={v} value={v} />
-              ))}
-            </datalist>
-          </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>{t("summary.title")}</h3>
+          <table className="table">
+            <thead>
+              <tr><th>{t("summary.activity")}</th><th>{t("summary.authenticated")}</th><th>{t("summary.anonymous")}</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>{t("summary.fileUploads")}</td><td>{summary.uploads_auth}</td><td>{summary.uploads_anon}</td></tr>
+              <tr><td>{t("summary.fileDownloads")}</td><td>{summary.downloads_auth}</td><td>{summary.downloads_anon}</td></tr>
+              <tr><td>{t("summary.mapDownloads")}</td><td>{summary.map_auth}</td><td>{summary.map_anon}</td></tr>
+              <tr><td>{t("summary.statisticsDownloads")}</td><td>{summary.stats_auth}</td><td>{summary.stats_anon}</td></tr>
+            </tbody>
+          </table>
         </div>
 
-        <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>
-          <button className="btn" onClick={() => void load()}>
-            {t("filters.search")}
-          </button>
-          <button
-            className="btn"
-            onClick={() => {
-              setFilters({ level: "", actor: "", action: "", resource: "" });
-              setTimeout(() => void load(), 0);
-            }}
-          >
-            {t("filters.reset")}
-          </button>
+        <div className="card">
+          <div className="grid cols2">
+            <div>
+              <label className="label">{t("filters.level")}</label>
+              <input
+                className="input"
+                list="logs-levels"
+                value={filters.level}
+                onChange={(e) => setFilters((f) => ({ ...f, level: e.target.value }))}
+                placeholder={t("filters.all")}
+              />
+              <datalist id="logs-levels">
+                {distinctActions.map((v) => (
+                  <option key={v} value={toGreekAction(v)} />
+                ))}
+              </datalist>
+            </div>
 
-          <div className="spacer" />
-          <button
-            className="btn"
-            style={{ paddingLeft: 12, paddingRight: 12 }}
-            disabled={pageSafe <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            aria-label="Previous"
-          >
-            ◀
-          </button>
-          <span className="badge" style={{ minWidth: 44, textAlign: "center" }}>
-            {pageSafe}
-          </span>
-          <button
-            className="btn"
-            style={{ paddingLeft: 12, paddingRight: 12 }}
-            disabled={pageSafe >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            aria-label="Next"
-          >
-            ▶
-          </button>
-	      </div>
+            <div>
+              <label className="label">{t("filters.actor")}</label>
+              <input
+                className="input"
+                list="logs-actors"
+                value={filters.actor}
+                onChange={(e) => setFilters((f) => ({ ...f, actor: e.target.value }))}
+                placeholder={t("filters.all")}
+              />
+              <datalist id="logs-actors">
+                {distinctActors.map((v) => (
+                  <option key={v} value={v} />
+                ))}
+              </datalist>
+            </div>
 
-	    </div>
-	  </div>
+            <div>
+              <label className="label">{t("filters.action")}</label>
+              <input
+                className="input"
+                list="logs-actions"
+                value={filters.action}
+                onChange={(e) => setFilters((f) => ({ ...f, action: e.target.value }))}
+                placeholder={t("filters.all")}
+              />
+              <datalist id="logs-actions">
+                {distinctActions.map((v) => (
+                  <option key={v} value={toGreekAction(v)} />
+                ))}
+              </datalist>
+            </div>
+
+            <div>
+              <label className="label">{t("filters.resource")}</label>
+              <input
+                className="input"
+                list="logs-resources"
+                value={filters.resource}
+                onChange={(e) => setFilters((f) => ({ ...f, resource: e.target.value }))}
+                placeholder={t("filters.all")}
+              />
+              <datalist id="logs-resources">
+                {distinctResources.map((v) => (
+                  <option key={v} value={toGreekResource(v)} />
+                ))}
+              </datalist>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>
+            <button className="btn" onClick={() => void load()}>
+              {t("filters.search")}
+            </button>
+            <button
+              className="btn"
+              onClick={() => {
+                setFilters({ level: "", actor: "", action: "", resource: "" });
+                setTimeout(() => void load(), 0);
+              }}
+            >
+              {t("filters.reset")}
+            </button>
+
+            <div className="spacer" />
+            <button
+              className="btn"
+              style={{ paddingLeft: 12, paddingRight: 12 }}
+              disabled={pageSafe <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              aria-label="Previous"
+            >
+              ◀
+            </button>
+            <span className="badge" style={{ minWidth: 44, textAlign: "center" }}>
+              {pageSafe}
+            </span>
+            <button
+              className="btn"
+              style={{ paddingLeft: 12, paddingRight: 12 }}
+              disabled={pageSafe >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              aria-label="Next"
+            >
+              ▶
+            </button>
+          </div>
+        </div>
+      </div>
 
       <div className="card">
         <table className="table">
@@ -317,12 +360,12 @@ export default function Logs() {
               <tr key={l.id}>
                 <td>{l.id}</td>
                 <td style={{ fontFamily: "monospace" }}>{l.created_at}</td>
-                <td>{l.action}</td>
+                <td>{toGreekAction(l.action)}</td>
                 <td>{actorLabel(l)}</td>
-                <td>{l.action}</td>
-                <td>{l.entity_type ?? ""}</td>
+                <td>{toGreekAction(l.action)}</td>
+                <td>{toGreekResource(l.entity_type ?? "")}</td>
                 <td style={{ maxWidth: 520, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {typeof l.details === "object" ? JSON.stringify(l.details) : l.details}
+                  {toGreekDetails(l.details)}
                 </td>
               </tr>
             ))}
