@@ -278,7 +278,7 @@ function fillOpacityForCount(c: number) {
         <span className="badge">
           {loading
             ? t("common.loading", { defaultValue: "Φόρτωση..." })
-            : `${t("common.ready", { defaultValue: "" })} · ${t("map.totalInline", { defaultValue: "Σύνολο" })}: ${total}`}
+            : `${t("common.ready", { defaultValue: "" })}  ${t("map.totalInline", { defaultValue: "Σύνολο" })}: ${total}`}
         </span>
         <div className="spacer" />
         <button className="btn" type="button" onClick={onExportCsv} disabled={loading || items.length === 0}>
