@@ -7,6 +7,7 @@ import "leaflet/dist/leaflet.css";
 
 import { getGraduatesMap, logPublicExport, type GraduatesMapItem } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
+import * as XLSX from "xlsx";
 
 type AgeGroup = "" | "18-22" | "23-26" | "27-30" | "31+";
 
@@ -42,19 +43,9 @@ function downloadBlob(filename: string, blob: Blob) {
   URL.revokeObjectURL(url);
 }
 
-function cellValue(v: any) {
+function excelCellValue(v: any) {
   if (v === null || v === undefined || v === "") return "";
-  const n = Number(v);
-  if (Number.isFinite(n) && String(v).trim() !== "") return n;
-  return String(v);
-}
-
-function htmlEscape(v: any) {
-  return String(v ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return v;
 }
 
 
@@ -216,53 +207,50 @@ function fillOpacityForCount(c: number) {
 
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
-  async function onExportXls() {
-    const headers = [
-      t("map.export.periphery", { defaultValue: "Περιφέρεια" }),
-      t("map.export.count", { defaultValue: "Απόφοιτοι" }),
-      t("map.export.avgAge", { defaultValue: "Μέση Ηλικία" }),
-      t("map.export.malePct", { defaultValue: "% Άνδρες" }),
-      t("map.export.femalePct", { defaultValue: "% Γυναίκες" }),
+  async function onExportExcel() {
+    const rows = [
+      [
+        t("map.export.periphery", { defaultValue: "Περιφέρεια" }),
+        t("map.export.count", { defaultValue: "Απόφοιτοι" }),
+        t("map.export.avgAge", { defaultValue: "Μέση Ηλικία" }),
+        t("map.export.malePct", { defaultValue: "% Άνδρες" }),
+        t("map.export.femalePct", { defaultValue: "% Γυναίκες" }),
+      ],
+      ...items.map((it) => [
+        excelCellValue((it as any).periphery_name ?? ""),
+        excelCellValue((it as any).count ?? 0),
+        excelCellValue((it as any).avg_age ?? ""),
+        excelCellValue((it as any).male_pct ?? ""),
+        excelCellValue((it as any).female_pct ?? ""),
+      ]),
     ];
 
-    const rows = items.map((it) => [
-      cellValue((it as any).periphery_name),
-      cellValue((it as any).count ?? 0),
-      cellValue((it as any).avg_age),
-      cellValue((it as any).male_pct),
-      cellValue((it as any).female_pct),
-    ]);
+    const sheet = XLSX.utils.aoa_to_sheet(rows);
+    sheet["!cols"] = [
+      { wch: 28 },
+      { wch: 12 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 14 },
+    ];
 
-    const tableRows = rows
-      .map(
-        (row) =>
-          `<tr>${row
-            .map((value) => `<td>${htmlEscape(value)}</td>`)
-            .join("")}</tr>`
-      )
-      .join("");
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, "Χάρτης");
 
-    const html = `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8" />
-</head>
-<body>
-<table border="1">
-<thead>
-<tr>${headers.map((value) => `<th>${htmlEscape(value)}</th>`).join("")}</tr>
-</thead>
-<tbody>
-${tableRows}
-</tbody>
-</table>
-</body>
-</html>`;
+    const output = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+      compression: true,
+    });
 
-    const blob = new Blob(["\ufeff", html], { type: "application/vnd.ms-excel;charset=utf-8" });
-    downloadBlob("alupla_graduates_map_peripheries.xls", blob);
+    const blob = new Blob([output], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    downloadBlob("alupla_graduates_map_peripheries.xlsx", blob);
+
     try {
-      await logPublicExport("map_export", "xls");
+      await logPublicExport("map_export", "xlsx");
     } catch {
     }
   }
@@ -308,8 +296,8 @@ ${tableRows}
             : `${t("common.ready", { defaultValue: "" })}  ${t("map.totalInline", { defaultValue: "Σύνολο" })}: ${total}`}
         </span>
         <div className="spacer" />
-        <button className="btn" type="button" onClick={onExportXls} disabled={loading || items.length === 0}>
-          {t("map.exportCsv", { defaultValue: "Export XLS" })}
+        <button className="btn" type="button" onClick={onExportExcel} disabled={loading || items.length === 0}>
+          {t("map.exportExcel", { defaultValue: "Export Excel" })}
         </button>
       </div>
 
