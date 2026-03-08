@@ -69,6 +69,7 @@ export default function Statistics() {
 
   React.useEffect(() => {
     void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const total = Number(data?.total ?? 0);
@@ -90,7 +91,6 @@ export default function Statistics() {
     () => (data?.by_year ?? []).map((r: any) => ({ label: String(r.year), value: Number(r.count) || 0 })),
     [data]
   );
-
   const bySemesterRows = React.useMemo(
     () =>
       (data?.by_term ?? []).map((r: any) => ({
@@ -134,6 +134,20 @@ export default function Statistics() {
     };
   }, [bySemesterRows, byYearRows, countsMode, t, termLabel]);
 
+  const baseBarOptions = React.useMemo(
+    () =>
+      ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { autoSkip: false, maxRotation: 0 } },
+          y: { beginAtZero: true, ticks: { precision: 0 as any } },
+        },
+      }) as const,
+    []
+  );
+
   const countChartOptions = React.useMemo(
     () =>
       ({
@@ -153,43 +167,62 @@ export default function Statistics() {
     [countsMode]
   );
 
-  const genderChartRows = React.useMemo(() => {
+  const genderChartData = React.useMemo(() => {
     if (genderMode === "year") {
-      return (data?.gender_by_year ?? []).map((r: any) => ({
+      const rows = (data?.gender_by_year ?? []).map((r: any) => ({
         label: String(r.year),
         male: Number(r.male) || 0,
         female: Number(r.female) || 0,
       }));
+
+      return {
+        labels: rows.map((r: any) => r.label),
+        datasets: [
+          { label: "M", data: rows.map((r: any) => r.male), backgroundColor: "#2563eb" },
+          { label: "F", data: rows.map((r: any) => r.female), backgroundColor: "#60a5fa" },
+        ],
+      };
     }
 
-    const years = Array.from(new Set((data?.gender_by_term ?? []).map((r: any) => String(r.year))));
-    const termOrder = ["winter", "spring", "september"];
+    const labels = Array.from(new Set((data?.gender_by_term ?? []).map((r: any) => String(r.year))));
+    const termOrder = ["winter", "spring", "september"] as const;
+    const maleColors: Record<string, string> = {
+      winter: "#1d4ed8",
+      spring: "#2563eb",
+      september: "#60a5fa",
+    };
+    const femaleColors: Record<string, string> = {
+      winter: "#7c3aed",
+      spring: "#8b5cf6",
+      september: "#a78bfa",
+    };
 
-    return years.flatMap((year) =>
-      termOrder.map((term) => {
-        const row = (data?.gender_by_term ?? []).find(
-          (r: any) => String(r.year) === year && String(r.term) === term
-        );
-
-        return {
-          label: `${year} ${termLabel(term)}`,
-          male: Number(row?.male) || 0,
-          female: Number(row?.female) || 0,
-        };
-      })
-    );
+    return {
+      labels,
+      datasets: termOrder.flatMap((term) => [
+        {
+          label: `M ${termLabel(term)}`,
+          data: labels.map(
+            (year) =>
+              (data?.gender_by_term ?? []).find(
+                (r: any) => String(r.year) === year && String(r.term) === term
+              )?.male ?? 0
+          ),
+          backgroundColor: maleColors[term],
+        },
+        {
+          label: `F ${termLabel(term)}`,
+          data: labels.map(
+            (year) =>
+              (data?.gender_by_term ?? []).find(
+                (r: any) => String(r.year) === year && String(r.term) === term
+              )?.female ?? 0
+          ),
+          backgroundColor: femaleColors[term],
+        },
+      ]),
+    };
   }, [data, genderMode, termLabel]);
-
-  const genderChartData = React.useMemo(
-    () => ({
-      labels: genderChartRows.map((r: any) => r.label),
-      datasets: [
-        { label: "M", data: genderChartRows.map((r: any) => r.male), backgroundColor: "#2563eb" },
-        { label: "F", data: genderChartRows.map((r: any) => r.female), backgroundColor: "#60a5fa" },
-      ],
-    }),
-    [genderChartRows]
-  );
 
   function downloadAnon() {
     const url = publicAnonExportUrl();
@@ -213,7 +246,7 @@ export default function Statistics() {
       <div className="grid cols3" style={{ gap: 14 }}>
         <div className="card">
           <div className="muted">{t("cards.total")}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{Number(data?.total ?? 0)}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{total}</div>
         </div>
         <div className="card">
           <div className="muted">{t("cards.avgAge")}</div>
@@ -267,6 +300,7 @@ export default function Statistics() {
           </div>
         </div>
       </div>
+
     </div>
   );
 }

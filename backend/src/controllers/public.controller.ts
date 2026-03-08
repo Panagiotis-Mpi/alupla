@@ -206,8 +206,9 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
-    const genderByTerm = await sequelize.query<{ term: string; male: number; female: number }>(
-      `SELECT CASE
+    const genderByTerm = await sequelize.query<{ year: number; term: string; male: number; female: number }>(
+      `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
+              CASE
                 WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
                 WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
                 WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
@@ -216,13 +217,15 @@ export async function publicStats(req: Request, res: Response) {
               SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END)::int as male,
               SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END)::int as female
        FROM graduates g ${sqlWhere}
-       GROUP BY CASE
+       GROUP BY EXTRACT(YEAR FROM g.graduation_date),
+                CASE
                   WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
                   WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
                   WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
                   ELSE 'other'
                 END
-       ORDER BY CASE
+       ORDER BY year ASC,
+                CASE
                   WHEN CASE
                     WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
                     WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
