@@ -42,14 +42,21 @@ function downloadBlob(filename: string, blob: Blob) {
   URL.revokeObjectURL(url);
 }
 
-function csvEscape(v: any, delimiter: string) {
-  const s = v === null || v === undefined ? "" : String(v);
-
-  if (s.includes(delimiter) || s.includes('"') || s.includes("\n") || s.includes("\r")) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
+function cellValue(v: any) {
+  if (v === null || v === undefined || v === "") return "";
+  const n = Number(v);
+  if (Number.isFinite(n) && String(v).trim() !== "") return n;
+  return String(v);
 }
+
+function htmlEscape(v: any) {
+  return String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 
 export default function Map() {
   const { t, i18n } = useTranslation();
@@ -209,34 +216,54 @@ function fillOpacityForCount(c: number) {
 
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
-  async function onExportCsv() {
+  async function onExportXls() {
+    const headers = [
+      t("map.export.periphery", { defaultValue: "Περιφέρεια" }),
+      t("map.export.count", { defaultValue: "Απόφοιτοι" }),
+      t("map.export.avgAge", { defaultValue: "Μέση Ηλικία" }),
+      t("map.export.malePct", { defaultValue: "% Άνδρες" }),
+      t("map.export.femalePct", { defaultValue: "% Γυναίκες" }),
+    ];
 
-    const BOM = "\ufeff";
+    const rows = items.map((it) => [
+      cellValue((it as any).periphery_name),
+      cellValue((it as any).count ?? 0),
+      cellValue((it as any).avg_age),
+      cellValue((it as any).male_pct),
+      cellValue((it as any).female_pct),
+    ]);
 
-    const delimiter = i18n.language?.toLowerCase().startsWith("el") ? ";" : ",";
+    const tableRows = rows
+      .map(
+        (row) =>
+          `<tr>${row
+            .map((value) => `<td>${htmlEscape(value)}</td>`)
+            .join("")}</tr>`
+      )
+      .join("");
 
-    const headers = ["periphery_id", "periphery_name", "count", "avg_age", "male_pct", "female_pct"];
-    const lines = [headers.join(delimiter)];
+    const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+</head>
+<body>
+<table border="1">
+<thead>
+<tr>${headers.map((value) => `<th>${htmlEscape(value)}</th>`).join("")}</tr>
+</thead>
+<tbody>
+${tableRows}
+</tbody>
+</table>
+</body>
+</html>`;
 
-    for (const it of items) {
-      const row = [
-        (it as any).periphery_id ?? "",
-        (it as any).periphery_name ?? "",
-        (it as any).count ?? 0,
-        (it as any).avg_age ?? "",
-        (it as any).male_pct ?? "",
-        (it as any).female_pct ?? "",
-      ].map((v) => csvEscape(v, delimiter));
-      lines.push(row.join(delimiter));
-    }
-
-    const csv = BOM + lines.join("\r\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    downloadBlob("alupla_graduates_map_peripheries.csv", blob);
+    const blob = new Blob(["\ufeff", html], { type: "application/vnd.ms-excel;charset=utf-8" });
+    downloadBlob("alupla_graduates_map_peripheries.xls", blob);
     try {
-      await logPublicExport("map_export", "csv");
+      await logPublicExport("map_export", "xls");
     } catch {
-
     }
   }
 
@@ -281,8 +308,8 @@ function fillOpacityForCount(c: number) {
             : `${t("common.ready", { defaultValue: "" })}  ${t("map.totalInline", { defaultValue: "Σύνολο" })}: ${total}`}
         </span>
         <div className="spacer" />
-        <button className="btn" type="button" onClick={onExportCsv} disabled={loading || items.length === 0}>
-          {t("map.exportCsv", { defaultValue: "Export CSV" })}
+        <button className="btn" type="button" onClick={onExportXls} disabled={loading || items.length === 0}>
+          {t("map.exportCsv", { defaultValue: "Export XLS" })}
         </button>
       </div>
 
