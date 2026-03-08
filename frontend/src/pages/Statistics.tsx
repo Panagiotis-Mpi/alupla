@@ -167,6 +167,18 @@ export default function Statistics() {
     [countsMode]
   );
 
+  const genderSemesterRows = React.useMemo(
+    () =>
+      (data?.gender_by_term ?? []).map((r: any) => ({
+        year: String(r.year),
+        term: String(r.term),
+        termText: termLabel(String(r.term)),
+        male: Number(r.male) || 0,
+        female: Number(r.female) || 0,
+      })),
+    [data, termLabel]
+  );
+
   const genderChartData = React.useMemo(() => {
     if (genderMode === "year") {
       const rows = (data?.gender_by_year ?? []).map((r: any) => ({
@@ -184,34 +196,22 @@ export default function Statistics() {
       };
     }
 
-    const labels = Array.from(new Set((data?.gender_by_term ?? []).map((r: any) => String(r.year))));
-    const termOrder = ["winter", "spring", "september"] as const;
     return {
-      labels,
-      datasets: termOrder.flatMap((term) => [
+      labels: genderSemesterRows.map((r: any) => [r.year, r.termText]),
+      datasets: [
         {
-          label: `Άνδρες ${termLabel(term)}`,
-          data: labels.map(
-            (year) =>
-              (data?.gender_by_term ?? []).find(
-                (r: any) => String(r.year) === year && String(r.term) === term
-              )?.male ?? 0
-          ),
+          label: "Άνδρες",
+          data: genderSemesterRows.map((r: any) => r.male),
           backgroundColor: "#2563eb",
         },
         {
-          label: `Γυναίκες ${termLabel(term)}`,
-          data: labels.map(
-            (year) =>
-              (data?.gender_by_term ?? []).find(
-                (r: any) => String(r.year) === year && String(r.term) === term
-              )?.female ?? 0
-          ),
+          label: "Γυναίκες",
+          data: genderSemesterRows.map((r: any) => r.female),
           backgroundColor: "#60a5fa",
         },
-      ]),
+      ],
     };
-  }, [data, genderMode, termLabel]);
+  }, [data, genderMode, genderSemesterRows]);
 
   function downloadAnon() {
     const url = publicAnonExportUrl();
@@ -282,14 +282,35 @@ export default function Statistics() {
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { position: "bottom" as const } },
-                scales: { x: { stacked: false }, y: { beginAtZero: true, ticks: { precision: 0 as any } } },
+                plugins: {
+                  legend: { position: "bottom" as const },
+                  tooltip:
+                    genderMode === "semester"
+                      ? {
+                          callbacks: {
+                            title: (items: any[]) => {
+                              const rawLabel = items?.[0]?.label;
+                              return Array.isArray(rawLabel) ? rawLabel[0] : String(rawLabel ?? "");
+                            },
+                            label: (context: any) => {
+                              const datasetLabel = String(context.dataset?.label ?? "");
+                              const row = genderSemesterRows[context.dataIndex];
+                              const termText = row?.termText ?? "";
+                              return `${datasetLabel} ${termText}: ${context.parsed.y}`;
+                            },
+                          },
+                        }
+                      : undefined,
+                },
+                scales: {
+                  x: { stacked: false, ticks: { autoSkip: false, maxRotation: 0 } },
+                  y: { beginAtZero: true, ticks: { precision: 0 as any } },
+                },
               } as any}
             />
           </div>
         </div>
       </div>
-
     </div>
   );
 }
