@@ -478,7 +478,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
   };
 
   const countsRows = countsMode === "semester"
-    ? byTerm.map((r) => ({
+    ? byTerm.filter((r) => r.term !== "other").map((r) => ({
         "Έτος": Number(r.year),
         "Εξάμηνο": termLabel(String(r.term)),
         "Πλήθος αποφοίτων": Number(r.count) || 0,
@@ -489,7 +489,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
       }));
 
   const genderRows = genderMode === "semester"
-    ? genderByTerm.map((r) => ({
+    ? genderByTerm.filter((r) => r.term !== "other").map((r) => ({
         "Έτος": Number(r.year),
         "Εξάμηνο": termLabel(String(r.term)),
         "Άνδρες": Number(r.male) || 0,
