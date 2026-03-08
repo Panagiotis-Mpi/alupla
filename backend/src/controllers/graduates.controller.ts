@@ -570,10 +570,9 @@ export async function deleteGraduate(req: Request, res: Response, next: NextFunc
   }
 }
 
-// Admin utility: one-time normalization of stored origins to PERIPHERY (Option A)
 export async function normalizeGraduateOrigins(req: Request, res: Response, next: NextFunction) {
   try {
-    // cap to avoid huge accidental runs
+
     const limit = clamp(toIntParam((req.query.limit as any) ?? 5000, 5000), 1, 20000);
 
     const grads = await Graduate.findAll({

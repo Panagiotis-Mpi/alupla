@@ -29,27 +29,24 @@ export async function getGraduatesMap(req: Request, res: Response) {
   if (studyProgramId) where.study_program_id = studyProgramId;
   if (gender === "M" || gender === "F") where.gender = gender;
 
-  // Filter by graduation year
   if (graduationYear) {
-    // Works for MySQL/MariaDB. If dialect differs, YEAR(...) may need adjustment.
+
     where[Op.and] = (where[Op.and] || []).concat([
       Sequelize.where(Sequelize.fn("YEAR", Sequelize.col("graduation_date")), graduationYear),
     ]);
   }
 
-  // Filter by age group (based on current year - birth_date)
   const currentYear = new Date().getFullYear();
   if (ageGroup) {
     const [minAge, maxAge] = ageGroupToRange(ageGroup);
     const minBirth = currentYear - (maxAge ?? 200);
     const maxBirth = currentYear - minAge;
-    // birth_date between [minBirth-01-01, maxBirth-12-31]
+
     where[Op.and] = (where[Op.and] || []).concat([
       { birth_date: { [Op.between]: [`${minBirth}-01-01`, `${maxBirth}-12-31`] } },
     ]);
   }
 
-  // Load regions for parent-chain rollup to PERIPHERY.
   const regions = await Region.findAll({
     attributes: ["id", "name", "type", "parent_id", "latitude", "longitude"],
   });
@@ -72,13 +69,12 @@ export async function getGraduatesMap(req: Request, res: Response) {
 
   const grads = await Graduate.findAll({
     where,
-        // origin_region_id is preferred; origin_municipality is a fallback for older/imported rows.
+
     attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date"],
   });
 
   const groups = new Map<number, any>();
 
-  // Initialize all PERIPHERY regions with zeros so the map can show empty peripheries too.
   for (const r of regions as any[]) {
     if (String(r.type) !== "PERIPHERY") continue;
     const id = Number(r.id);
@@ -95,13 +91,12 @@ export async function getGraduatesMap(req: Request, res: Response) {
     });
   }
 
-  // A lightweight lookup to resolve municipality/city names to a Region id when origin_region_id is missing.
-  // This keeps the map useful even if some imported graduates only have origin_municipality filled.
+
   const normalizeKey = (s: string) =>
     (s || "")
       .toLowerCase()
       .normalize("NFD")
-      // remove accents/diacritics
+
       .replace(/\p{Diacritic}/gu, "")
       .replace(/\s+/g, " ")
       .trim();
