@@ -44,7 +44,7 @@ function downloadBlob(filename: string, blob: Blob) {
 
 function csvEscape(v: any, delimiter: string) {
   const s = v === null || v === undefined ? "" : String(v);
-  // helper logic
+
   if (s.includes(delimiter) || s.includes('"') || s.includes("\n") || s.includes("\r")) {
     return `"${s.replace(/"/g, '""')}"`;
   }
@@ -67,22 +67,20 @@ export default function Map() {
 
   const geojson = useMemo(() => tryParseGeoJson(greeceRegionsRaw), []);
 
-  // Keep the map framed tightly around Greece (no basemap). This affects only the initial view.
   useEffect(() => {
     if (!geojson || !mapRef.current) return;
     try {
       const layer = L.geoJSON(geojson as any);
       const bounds = layer.getBounds();
       if (bounds && bounds.isValid()) {
-        // Use a bit more padding and cap maxZoom to avoid cutting islands.
+
         mapRef.current.fitBounds(bounds, { padding: [32, 32], maxZoom: 7.25 });
       }
     } catch {
-      // ignore
+
     }
   }, [geojson]);
 
-  // counts keyed by Greek name (periphery_name), normalized.
   const countsByGreekName = useMemo(() => {
     const M = new (globalThis as any).Map<string, number>();
     for (const it of items) {
@@ -102,7 +100,6 @@ export default function Map() {
     return m;
   }, [items]);
 
-  // IMPORTANT: GeoJSON tooltips are bound once. Use refs so events always read latest counts/items.
   const countsRef = useRef<Map<string, number>>(countsByGreekName);
   const itemsRef = useRef<GraduatesMapItem[]>(items);
 
@@ -135,10 +132,9 @@ export default function Map() {
     }
   }
 
-  // Load totals immediately on first render (no filters)
   useEffect(() => {
     fetchMap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   async function onApply() {
@@ -151,12 +147,10 @@ export default function Map() {
     setGender("");
     setAgeGroup("");
     setSelected(null);
-    // After clearing filters, show totals again (no filters)
+
     fetchMap();
   }
 
-  
-// Color ramp (soft blue shades). 5 buckets.
 const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
 
 function thresholdsForMax(m: number) {
@@ -184,7 +178,7 @@ function fillColorForCount(c: number) {
 }
 
 function fillOpacityForCount(c: number) {
-  // Keep a visible but subtle fill for 0-count regions.
+
   return c <= 0 ? 0.18 : 0.75;
 }
 
@@ -216,10 +210,9 @@ function fillOpacityForCount(c: number) {
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
   async function onExportCsv() {
-    // Excel (especially on Windows) often misreads UTF-8 unless there is a BOM.
+
     const BOM = "\ufeff";
 
-    // Greek/European Excel often expects semicolon delimiter.
     const delimiter = i18n.language?.toLowerCase().startsWith("el") ? ";" : ",";
 
     const headers = ["periphery_id", "periphery_name", "count", "avg_age", "male_pct", "female_pct"];
@@ -243,12 +236,12 @@ function fillOpacityForCount(c: number) {
     try {
       await logPublicExport("map_export", "csv");
     } catch {
-      // ignore logging failures so export still works
+
     }
   }
 
   function legendBuckets(max: number) {
-    // 5 buckets inclusive
+
     const m = Math.max(1, max);
     const b1 = Math.ceil(m * 0.2);
     const b2 = Math.ceil(m * 0.4);
@@ -259,25 +252,24 @@ function fillOpacityForCount(c: number) {
 
   const buckets = useMemo(() => legendBuckets(maxCount), [maxCount]);
 
-  // react-leaflet's GeoJSON layers do not always re-apply styles when external data changes.
-  // Force a remount whenever the computed buckets/max change so initial load paints correctly.
+
   const geoRenderKey = useMemo(() => {
     return `${i18n.language}:${items.length}:${maxCount}`;
   }, [i18n.language, items.length, maxCount]);
 
   return (
     <div className="container">
-      {/* Styling only for this page (no functional impact) */}
+      {}
       <style>{`
-        /* Remove Leaflet/SVG focus outline (the "selection box") */
+        
         .leaflet-container path:focus { outline: none !important; }
         .leaflet-interactive:focus { outline: none !important; }
         .leaflet-container:focus { outline: none !important; }
 
-        /* Make map background transparent */
+        
         .alupla-map .leaflet-container { background: transparent !important; }
 
-        /* Map card: same style as other pages, but no inner padding */
+        
         .alupla-map-card { padding: 0; overflow: hidden; position: relative; }
       `}</style>
 
@@ -294,9 +286,9 @@ function fillOpacityForCount(c: number) {
         </button>
       </div>
 
-      {/* Two-column layout: map on the left, filters+details stacked on the right */}
+      {}
       <div className="page-two-col" style={{ marginTop: 12 }}>
-        {/* Map column (left) */}
+        {}
         <div className="card alupla-map-card">
           <div className="alupla-map map-canvas">
             <MapContainer
@@ -349,7 +341,7 @@ function fillOpacityForCount(c: number) {
             </MapContainer>
           </div>
 
-          {/* Legend */}
+          {}
           <div
             style={{
               position: "absolute",
@@ -398,7 +390,7 @@ function fillOpacityForCount(c: number) {
           </div>
         </div>
 
-        {/* Right column: filters + details stacked */}
+        {}
         <div className="map-panel-stack">
           <div className="card">
             <div className="grid cols2" style={{ alignItems: "end" }}>
