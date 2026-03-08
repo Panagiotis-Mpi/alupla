@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { QueryTypes } from "sequelize";
+import * as XLSX from "xlsx";
 import { sequelize } from "../config/sequelize";
 import { StudyProgram } from "../models/StudyProgram";
 import { verifyToken } from "../utils/jwt";
@@ -360,7 +361,7 @@ export async function publicMap(req: Request, res: Response) {
   res.json({ ok: true, rows });
 }
 
-export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
+export async function publicAnonymousGraduatesXls(req: Request, res: Response) {
   const { sqlWhere, repl, birthExpr } = await buildWhere(req);
 
   const rows = await sequelize.query<any>(
@@ -380,7 +381,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
   );
 
   await logPublicExportAction(req, "statistics_export", "statistics", {
-    format: "csv",
+    format: "xls",
     graduation_year: req.query.graduation_year ?? null,
     study_program_id: req.query.study_program_id ?? null,
     gender: req.query.gender ?? null,
@@ -388,31 +389,48 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
     rows: rows.length,
   });
 
-  const headers = [
-    "graduation_year",
-    "entry_year",
-    "birth_date",
-    "gender",
-    "degree_grade",
-    "study_program_id",
-    "program_direction_id",
-    "origin_region_id",
+  const exportRows = rows.map((r) => ({
+    graduation_year: r?.graduation_year ?? "",
+    entry_year: r?.entry_year ?? "",
+    birth_date: r?.birth_date ?? "",
+    gender: r?.gender ?? "",
+    degree_grade: r?.degree_grade ?? "",
+    study_program_id: r?.study_program_id ?? "",
+    program_direction_id: r?.program_direction_id ?? "",
+    origin_region_id: r?.origin_region_id ?? "",
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(exportRows, {
+    header: [
+      "graduation_year",
+      "entry_year",
+      "birth_date",
+      "gender",
+      "degree_grade",
+      "study_program_id",
+      "program_direction_id",
+      "origin_region_id",
+    ],
+  });
+
+  ws["!cols"] = [
+    { wch: 18 },
+    { wch: 12 },
+    { wch: 14 },
+    { wch: 10 },
+    { wch: 14 },
+    { wch: 18 },
+    { wch: 20 },
+    { wch: 16 },
   ];
 
-  const esc = (v: any) => {
-    const s = String(v ?? "");
-    if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-    return s;
-  };
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "anonymous_graduates");
+  const buf = XLSX.write(wb, { type: "buffer", bookType: "xls" });
 
-  const lines = [headers.join(",")];
-  for (const r of rows) {
-    lines.push(headers.map((h) => esc(r?.[h])).join(","));
-  }
-
-  res.setHeader("Content-Type", "text/csv;charset=utf-8");
-  res.setHeader("Content-Disposition", "attachment; filename=anonymous-graduates.csv");
-  res.send(lines.join("\n"));
+  res.setHeader("Content-Type", "application/vnd.ms-excel");
+  res.setHeader("Content-Disposition", "attachment; filename=anonymous-graduates.xls");
+  res.send(buf);
 }
 
 export async function publicExportActivity(req: Request, res: Response) {

@@ -481,7 +481,7 @@ export function publicAnonExportUrl(params: {
   const token = getToken();
   if (token) q.set("token", token);
   const qs = q.toString();
-  return `${API_URL}/public/anonymous-graduates.csv${qs ? `?${qs}` : ""}`;
+  return `${API_URL}/public/anonymous-graduates.xls${qs ? `?${qs}` : ""}`;
 }
 
 export async function logPublicExport(action: "map_export" | "statistics_export", format: string): Promise<any> {
