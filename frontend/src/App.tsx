@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -27,6 +28,11 @@ function TopNav() {
   const nav = useNavigate();
   const loc = useLocation();
 
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [isCompact, setIsCompact] = React.useState(
+    typeof window !== "undefined" ? window.innerWidth <= 820 : false
+  );
+
   const isAuthRoute = ["/login", "/register", "/verify", "/forgot", "/reset"].some((p) =>
     loc.pathname.startsWith(p)
   );
@@ -37,34 +43,52 @@ function TopNav() {
   };
 
   const onBrandClick = () => {
-    // If not logged in, send the user to the public landing page.
+    if (isCompact) {
+      setMenuOpen((v) => !v);
+      return;
+    }
+
     if (!user) {
       nav("/");
       return;
     }
-    // If logged in, send the user to the first page based on role.
+
     if (role === "super_admin") {
       nav("/users");
       return;
     }
-    // secretariat
+
     nav("/graduates");
   };
 
   const lang = i18n.language?.startsWith("en") ? "en" : "gr";
 
-  // Nav order must match mockups per role.
-  // Guest & auth pages:   Στατιστικά, Χάρτης
-  // Secretariat user:     Απόφοιτοι, Στατιστικά, Χάρτης
-  // Super admin:          Χρήστες, Απόφοιτοι, Στατιστικά, Χάρτης, Logs
-  const navLinks: Array<{ to: string; label: string }> = React.useMemo(() => {
+  React.useEffect(() => {
+    const onResize = () => {
+      const compact = window.innerWidth <= 820;
+      setIsCompact(compact);
+      if (!compact) setMenuOpen(false);
+    };
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  React.useEffect(() => {
+    setMenuOpen(false);
+  }, [loc.pathname]);
+
+  const navLinks = React.useMemo(() => {
     const statsLabel = t("nav.statistics", { defaultValue: "Στατιστικά" });
     const mapLabel = t("nav.map");
     const gradsLabel = t("nav.graduates");
     const usersLabel = t("nav.users");
     const logsLabel = t("nav.logs");
 
-    if (!user) return [{ to: "/statistics", label: statsLabel }, { to: "/map", label: mapLabel }];
+    if (!user) return [
+      { to: "/statistics", label: statsLabel },
+      { to: "/map", label: mapLabel }
+    ];
 
     if (role === "super_admin") {
       return [
@@ -72,90 +96,125 @@ function TopNav() {
         { to: "/graduates", label: gradsLabel },
         { to: "/statistics", label: statsLabel },
         { to: "/map", label: mapLabel },
-        { to: "/logs", label: logsLabel },
+        { to: "/logs", label: logsLabel }
       ];
     }
 
-    // secretariat
     return [
       { to: "/graduates", label: gradsLabel },
       { to: "/statistics", label: statsLabel },
-      { to: "/map", label: mapLabel },
+      { to: "/map", label: mapLabel }
     ];
   }, [t, user, role]);
 
   return (
     <div className="nav">
-      <button className="brand" type="button" onClick={onBrandClick} aria-label="ALUPLA Home">
-        ALUPLA
+
+      {/* BRAND */}
+      <button
+        className={`brand ${isCompact ? "brand-compact" : ""}`}
+        type="button"
+        onClick={onBrandClick}
+      >
+        {isCompact && <span className="brand-burger">☰</span>}
+        <span>ALUPLA</span>
       </button>
 
-      <div className="nav-links">
-        {/* In mockups, auth pages also show: Στατιστικά, Χάρτης */}
-        {isAuthRoute ? (
-          <>
-            <Link className="btn" to="/statistics">
-              {t("nav.statistics", { defaultValue: "Στατιστικά" })}
+      {/* DESKTOP NAV LINKS */}
+      {!isCompact && (
+        <div className="nav-links">
+          {(isAuthRoute
+            ? [
+                { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) },
+                { to: "/map", label: t("nav.map") }
+              ]
+            : navLinks
+          ).map((l) => (
+            <Link key={l.to} className="btn" to={l.to}>
+              {l.label}
             </Link>
-            <Link className="btn" to="/map">
-              {t("nav.map")}
-            </Link>
-          </>
-        ) : (
-          <>
-            {navLinks.map((l) => (
-              <Link key={l.to} className="btn" to={l.to}>
-                {l.label}
-              </Link>
-            ))}
-          </>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div className="spacer" />
 
+      {/* RIGHT SIDE */}
       <div className="nav-right">
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <button
-          className="btn"
-          onClick={() => i18n.changeLanguage("gr")}
-          aria-pressed={lang === "gr"}
-          title="Ελληνικά"
-        >
+
+        {/* LANGUAGE */}
+        <button className="btn" onClick={() => i18n.changeLanguage("gr")}>
           GR
         </button>
         <span style={{ opacity: 0.6 }}>|</span>
-        <button
-          className="btn"
-          onClick={() => i18n.changeLanguage("en")}
-          aria-pressed={lang === "en"}
-          title="English"
-        >
+        <button className="btn" onClick={() => i18n.changeLanguage("en")}>
           EN
         </button>
-        </div>
 
-        {/* Right-side actions */}
+        {/* USER / LOGIN */}
         {!isAuthRoute && (
-          <div className="nav-actions">
-            <span className="badge">{user ? `${user.first_name} ${user.last_name} (${user.role})` : "guest"}</span>
-            {user && (
-              <button className="btn" onClick={() => nav("/profile")}>
-                {t("nav.profile", { defaultValue: "Προφίλ" })}
-              </button>
-            )}
+          <>
             {user ? (
-              <button className="btn" onClick={onLogout}>
-                {t("nav.logout")}
-              </button>
+              <span className="badge">{user.first_name} {user.last_name}</span>
             ) : (
               <button className="btn" onClick={() => nav("/login")}>
                 {t("nav.login", { defaultValue: "Σύνδεση" })}
               </button>
             )}
-          </div>
+
+            {/* desktop actions only */}
+            {!isCompact && user && (
+              <>
+                <button className="btn" onClick={() => nav("/profile")}>
+                  {t("nav.profile", { defaultValue: "Προφίλ" })}
+                </button>
+                <button className="btn" onClick={onLogout}>
+                  {t("nav.logout")}
+                </button>
+              </>
+            )}
+          </>
         )}
       </div>
+
+      {/* BACKDROP */}
+      {isCompact && menuOpen && (
+        <button className="drawer-backdrop" onClick={() => setMenuOpen(false)} />
+      )}
+
+      {/* MOBILE DRAWER */}
+      <aside className={`mobile-drawer ${menuOpen ? "open" : ""}`}>
+        <div className="mobile-drawer-header">
+          <strong>ALUPLA</strong>
+          <button className="btn" onClick={() => setMenuOpen(false)}>✕</button>
+        </div>
+
+        <div className="mobile-drawer-section">
+          {(isAuthRoute
+            ? [
+                { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) },
+                { to: "/map", label: t("nav.map") }
+              ]
+            : navLinks
+          ).map((l) => (
+            <Link key={l.to} className="btn" to={l.to}>
+              {l.label}
+            </Link>
+          ))}
+        </div>
+
+        {!isAuthRoute && user && (
+          <div className="mobile-drawer-section">
+            <button className="btn" onClick={() => nav("/profile")}>
+              {t("nav.profile", { defaultValue: "Προφίλ" })}
+            </button>
+            <button className="btn" onClick={onLogout}>
+              {t("nav.logout")}
+            </button>
+          </div>
+        )}
+      </aside>
+
     </div>
   );
 }
@@ -174,7 +233,6 @@ export default function App() {
           <Route path="/forgot" element={<ForgotPassword />} />
           <Route path="/reset" element={<ResetPassword />} />
 
-          {/* Public anonymous pages (no login required) */}
           <Route path="/map" element={<Map />} />
           <Route path="/statistics" element={<Statistics />} />
 
@@ -186,6 +244,7 @@ export default function App() {
               </Guard>
             }
           />
+
           <Route
             path="/graduates/new"
             element={
@@ -194,11 +253,21 @@ export default function App() {
               </Guard>
             }
           />
+
           <Route
             path="/graduates/:id"
             element={
               <Guard allow={["secretariat", "super_admin"]}>
                 <GraduateForm mode="edit" />
+              </Guard>
+            }
+          />
+
+          <Route
+            path="/regions"
+            element={
+              <Guard allow={["secretariat", "super_admin"]}>
+                <Regions />
               </Guard>
             }
           />
@@ -229,17 +298,6 @@ export default function App() {
               </Guard>
             }
           />
-
-          <Route
-            path="/regions"
-            element={
-              <Guard allow={["secretariat", "super_admin"]}>
-                <Regions />
-              </Guard>
-            }
-          />
-
-          <Route path="*" element={<Login />} />
         </Routes>
       </div>
       <Footer />
