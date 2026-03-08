@@ -274,7 +274,7 @@ function fillOpacityForCount(c: number) {
       `}</style>
 
       <div className="topbar">
-        <h2 style={{ margin: 0 }}>{t("map.title", { defaultValue: "Χάρτης αποφοίτων (Περιφέρειες)" })}</h2>
+        <h2 style={{ margin: 0 }}>{t("map.title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
         <span className="badge">
           {loading
             ? t("common.loading", { defaultValue: "Φόρτωση..." })
