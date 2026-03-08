@@ -11,8 +11,8 @@
   "filters": {
     "qLabel": "Global αναζήτηση (q)",
     "qPlaceholder": "π.χ. Παπαδ...",
-    "lastNameLike": "Επώνυμο (like)",
-    "firstNameLike": "Όνομα (like)",
+    "lastNameLike": "Επώνυμο",
+    "firstNameLike": "Όνομα",
     "gender": "Φύλο",
     "all": "Όλα",
     "studyProgram": "Πρόγραμμα Σπουδών",

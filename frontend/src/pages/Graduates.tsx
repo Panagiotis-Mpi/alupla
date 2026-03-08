@@ -283,15 +283,6 @@ export default function Graduates() {
       <div className="card">
         <div className="grid cols3">
           <div>
-            <label className="label">{t("filters.qLabel")}</label>
-            <input
-              className="input"
-              value={filters.q}
-              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-              placeholder={t("filters.qPlaceholder")}
-            />
-          </div>
-          <div>
             <label className="label">{t("filters.lastNameLike")}</label>
             <input
               className="input"
@@ -329,15 +320,6 @@ export default function Graduates() {
             </select>
           </div>
 
-          <div>
-            <label className="label">{t("filters.sort")}</label>
-            <select className="input" value={filters.sort} onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value }))}>
-              <option value="id:asc">{t("filters.sort_id_asc")}</option>
-              <option value="id:desc">{t("filters.sort_id_desc")}</option>
-              <option value="last_name:asc">{t("filters.sort_last_name_asc")}</option>
-              <option value="last_name:desc">{t("filters.sort_last_name_desc")}</option>
-            </select>
-          </div>
         </div>
 
         <div style={{ display: "flex", gap: 10, marginTop: 12 }}>

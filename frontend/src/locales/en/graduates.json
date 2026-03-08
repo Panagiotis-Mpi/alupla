@@ -11,8 +11,8 @@
   "filters": {
     "qLabel": "Global search (q)",
     "qPlaceholder": "e.g. Papad...",
-    "lastNameLike": "Last name (like)",
-    "firstNameLike": "First name (like)",
+    "lastNameLike": "Last name",
+    "firstNameLike": "First name",
     "gender": "Gender",
     "all": "All",
     "studyProgram": "Study Program",
