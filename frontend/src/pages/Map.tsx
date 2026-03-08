@@ -119,7 +119,7 @@ export default function Map() {
     setSelected(null);
     try {
       const res = await getGraduatesMap({
-        year: opts?.year || undefined,
+        graduation_year: opts?.year || undefined,
         study_program_id: opts?.studyProgramId || undefined,
         gender: opts?.gender || undefined,
         age_group: opts?.ageGroup || undefined,
@@ -209,7 +209,7 @@ function fillOpacityForCount(c: number) {
 
   async function onExportExcel() {
     const res = await getGraduatesMap({
-      year: year || undefined,
+      graduation_year: year || undefined,
       study_program_id: studyProgramId || undefined,
       gender: gender || undefined,
       age_group: ageGroup || undefined,
