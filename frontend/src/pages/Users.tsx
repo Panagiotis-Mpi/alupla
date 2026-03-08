@@ -93,7 +93,7 @@ export default function Users() {
               <option value="super_admin">super_admin</option>
             </select>
           </div>
-          <div style={{ gridColumn: "span 2" }}>
+          <div className="users-password-field" style={{ gridColumn: "span 2" }}>
             <label className="label">{t("labels.passwordStrong")}</label>
             <input className="input" type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
             <div className="muted">{t("labels.passwordHint")}</div>
@@ -107,6 +107,7 @@ export default function Users() {
       </div>
 
       <div className="card">
+        <div className="table-wrap">
         <table className="table">
           <thead>
             <tr>
@@ -211,6 +212,7 @@ export default function Users() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

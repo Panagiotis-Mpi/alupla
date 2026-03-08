@@ -220,7 +220,7 @@ export default function Logs() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div className="grid cols2" style={{ gap: 14 }}>
         <div className="card">
           <h3 style={{ marginTop: 0 }}>{t("summary.title")}</h3>
           <table className="table">
@@ -344,6 +344,7 @@ export default function Logs() {
       </div>
 
       <div className="card">
+        <div className="table-wrap">
         <table className="table">
           <thead>
             <tr>
@@ -380,6 +381,7 @@ export default function Logs() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

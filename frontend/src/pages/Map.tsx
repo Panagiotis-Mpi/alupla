@@ -295,25 +295,10 @@ function fillOpacityForCount(c: number) {
       </div>
 
       {/* Two-column layout: map on the left, filters+details stacked on the right */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.7fr 0.9fr",
-          gap: 12,
-          alignItems: "start",
-          marginTop: 12,
-        }}
-      >
+      <div className="page-two-col" style={{ marginTop: 12 }}>
         {/* Map column (left) */}
         <div className="card alupla-map-card">
-          <div
-            className="alupla-map"
-            style={{
-              height: "calc(100vh - 240px)",
-              minHeight: 640,
-              width: "100%",
-            }}
-          >
+          <div className="alupla-map map-canvas">
             <MapContainer
               center={[38.6, 24.0]}
               zoom={6.5 as any}
@@ -414,7 +399,7 @@ function fillOpacityForCount(c: number) {
         </div>
 
         {/* Right column: filters + details stacked */}
-        <div style={{ display: "grid", gap: 12 }}>
+        <div className="map-panel-stack">
           <div className="card">
             <div className="grid cols2" style={{ alignItems: "end" }}>
               <div>

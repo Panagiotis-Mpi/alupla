@@ -371,7 +371,7 @@ export default function Graduates() {
       </div>
 
       <div className="card" style={wideCardStyle}>
-        <div style={{ overflowX: "auto" }}>
+        <div className="table-wrap">
           <table className="table" style={{ minWidth: 2000 }}>
             <thead>
               <tr>

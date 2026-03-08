@@ -90,29 +90,32 @@ function TopNav() {
         ALUPLA
       </button>
 
-      {/* In mockups, auth pages also show: Στατιστικά, Χάρτης */}
-      {isAuthRoute ? (
-        <>
-          <Link className="btn" to="/statistics">
-            {t("nav.statistics", { defaultValue: "Στατιστικά" })}
-          </Link>
-          <Link className="btn" to="/map">
-            {t("nav.map")}
-          </Link>
-        </>
-      ) : (
-        <>
-          {navLinks.map((l) => (
-            <Link key={l.to} className="btn" to={l.to}>
-              {l.label}
+      <div className="nav-links">
+        {/* In mockups, auth pages also show: Στατιστικά, Χάρτης */}
+        {isAuthRoute ? (
+          <>
+            <Link className="btn" to="/statistics">
+              {t("nav.statistics", { defaultValue: "Στατιστικά" })}
             </Link>
-          ))}
-        </>
-      )}
+            <Link className="btn" to="/map">
+              {t("nav.map")}
+            </Link>
+          </>
+        ) : (
+          <>
+            {navLinks.map((l) => (
+              <Link key={l.to} className="btn" to={l.to}>
+                {l.label}
+              </Link>
+            ))}
+          </>
+        )}
+      </div>
 
       <div className="spacer" />
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <div className="nav-right">
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <button
           className="btn"
           onClick={() => i18n.changeLanguage("gr")}
@@ -130,28 +133,29 @@ function TopNav() {
         >
           EN
         </button>
-      </div>
+        </div>
 
-      {/* Right-side actions */}
-      {!isAuthRoute && (
-        <>
-          <span className="badge">{user ? `${user.first_name} ${user.last_name} (${user.role})` : "guest"}</span>
-          {user && (
-            <button className="btn" onClick={() => nav("/profile")}>
-              {t("nav.profile", { defaultValue: "Προφίλ" })}
-            </button>
-          )}
-          {user ? (
-            <button className="btn" onClick={onLogout}>
-              {t("nav.logout")}
-            </button>
-          ) : (
-            <button className="btn" onClick={() => nav("/login")}>
-              {t("nav.login", { defaultValue: "Σύνδεση" })}
-            </button>
-          )}
-        </>
-      )}
+        {/* Right-side actions */}
+        {!isAuthRoute && (
+          <div className="nav-actions">
+            <span className="badge">{user ? `${user.first_name} ${user.last_name} (${user.role})` : "guest"}</span>
+            {user && (
+              <button className="btn" onClick={() => nav("/profile")}>
+                {t("nav.profile", { defaultValue: "Προφίλ" })}
+              </button>
+            )}
+            {user ? (
+              <button className="btn" onClick={onLogout}>
+                {t("nav.logout")}
+              </button>
+            ) : (
+              <button className="btn" onClick={() => nav("/login")}>
+                {t("nav.login", { defaultValue: "Σύνδεση" })}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
