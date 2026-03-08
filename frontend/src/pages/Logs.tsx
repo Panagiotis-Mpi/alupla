@@ -104,10 +104,11 @@ export default function Logs() {
   const distinctActions = React.useMemo(() => {
     const s = new Set<string>();
     for (const l of items) {
-      const v = String((l as any)?.action ?? "").trim();
-      if (v) s.add(v);
+      const raw = String((l as any)?.action ?? "").trim();
+      const label = toGreekAction(raw);
+      if (label) s.add(label);
     }
-    return Array.from(s).sort((a, b) => a.localeCompare(b));
+    return Array.from(s).sort((a, b) => a.localeCompare(b, "el"));
   }, [items]);
 
   const distinctActors = React.useMemo(() => {
@@ -248,7 +249,7 @@ export default function Logs() {
               />
               <datalist id="logs-levels">
                 {distinctActions.map((v) => (
-                  <option key={v} value={toGreekAction(v)} />
+                  <option key={v} value={v} />
                 ))}
               </datalist>
             </div>
@@ -280,7 +281,7 @@ export default function Logs() {
               />
               <datalist id="logs-actions">
                 {distinctActions.map((v) => (
-                  <option key={v} value={toGreekAction(v)} />
+                  <option key={v} value={v} />
                 ))}
               </datalist>
             </div>
