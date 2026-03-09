@@ -391,12 +391,13 @@ export async function resendVerification(email: string): Promise<any> {
 
 
 
-export async function exportGraduatesXlsx(params: Record<string, any>): Promise<Blob> {
+export async function exportGraduatesXlsx(params: Record<string, any>, lang?: string): Promise<Blob> {
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(params ?? {})) {
     if (v === undefined || v === null || v === "") continue;
     q.set(k, Array.isArray(v) ? v.join(",") : String(v));
   }
+  if (lang) q.set("lang", lang);
   const token = getToken();
   const res = await fetch(`${API_URL}/graduates/export?${q.toString()}`, {
     method: "GET",
@@ -416,9 +417,11 @@ export async function exportGraduatesXlsx(params: Record<string, any>): Promise<
 
 
 
-export async function downloadGraduatesImportTemplateXlsx(): Promise<Blob> {
+export async function downloadGraduatesImportTemplateXlsx(lang?: string): Promise<Blob> {
   const token = getToken();
-  const res = await fetch(`${API_URL}/graduates/import-template`, {
+  const q = new URLSearchParams();
+  if (lang) q.set("lang", lang);
+  const res = await fetch(`${API_URL}/graduates/import-template${q.toString() ? `?${q.toString()}` : ""}`, {
     method: "GET",
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -432,10 +435,11 @@ export async function downloadGraduatesImportTemplateXlsx(): Promise<Blob> {
   return await res.blob();
 }
 
-export async function importGraduatesXlsx(file: File): Promise<any> {
+export async function importGraduatesXlsx(file: File, lang?: string): Promise<any> {
   const token = getToken();
   const fd = new FormData();
   fd.append("file", file);
+  if (lang) fd.append("lang", lang);
   const res = await fetch(`${API_URL}/graduates/import`, {
     method: "POST",
     headers: {

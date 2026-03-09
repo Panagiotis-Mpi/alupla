@@ -31,7 +31,7 @@ type SortKey =
   | "origin_municipality";
 
 export default function Graduates() {
-  const { t } = useTranslation("graduates");
+  const { t, i18n } = useTranslation("graduates");
   const [importBusy, setImportBusy] = useState(false);
   const [importReport, setImportReport] = useState<any | null>(null);
   const [toast, setToast] = useState<{
@@ -255,7 +255,7 @@ export default function Graduates() {
     delete exportParams.pageSize;
     if (ids?.length) exportParams.ids = ids;
     try {
-      const blob = await exportGraduatesXlsx(exportParams);
+      const blob = await exportGraduatesXlsx(exportParams, i18n.resolvedLanguage || i18n.language);
       const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
       downloadBlob(blob, `graduates-${ts}.xlsx`);
     } catch (e: any) {
@@ -265,7 +265,7 @@ export default function Graduates() {
 
   async function onDownloadTemplate() {
     try {
-      const blob = await downloadGraduatesImportTemplateXlsx();
+      const blob = await downloadGraduatesImportTemplateXlsx(i18n.resolvedLanguage || i18n.language);
       downloadBlob(blob, "graduates-import-template.xlsx");
     } catch (e: any) {
       alert(e?.message ?? t("export.failed"));
@@ -276,7 +276,7 @@ export default function Graduates() {
     setImportReport(null);
     setImportBusy(true);
     try {
-      const rep = await importGraduatesXlsx(file);
+      const rep = await importGraduatesXlsx(file, i18n.resolvedLanguage || i18n.language);
       setImportReport(rep);
       const inserted = Number(rep?.summary?.inserted ?? 0);
       const updated = Number(rep?.summary?.updated ?? 0);

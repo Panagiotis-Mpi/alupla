@@ -10,37 +10,71 @@ import * as XLSX from "xlsx";
 import { normHeader, toDateOnly, toInt, toNumber } from "../utils/importUtils";
 import { resolvePeripheryRegionId } from "../utils/resolvePeripheryRegionId";
 
-const REQUIRED_IMPORT_COLUMNS = [
-  "student_number",
-  "ad_code",
-  "last_name",
-  "first_name",
-  "father_name",
-  "gender",
-  "entry_year",
-  "graduation_date",
-  "oath_date",
-  "degree_grade",
-  "study_program_id"
-] as const;
+const EXPORT_LANGS = new Set(["gr", "en"]);
+
+type ExportLang = "gr" | "en";
+
+function getExportLang(raw: unknown): ExportLang {
+  return typeof raw === "string" && EXPORT_LANGS.has(raw) ? (raw as ExportLang) : "gr";
+}
+
+function getColumnLabels(lang: ExportLang) {
+  if (lang === "en") {
+    return {
+      ad_code: "A.D.",
+      student_number: "Student No.",
+      last_name: "Last name",
+      first_name: "First name",
+      father_name: "Father name",
+      gender: "Gender",
+      entry_year: "Entry year",
+      birth_year: "Birth year",
+      degree_grade: "Degree grade",
+      graduation_date: "Graduation date",
+      oath_date: "Oath date",
+      study_program: "Study program",
+      direction: "Direction",
+      origin_municipality: "Municipality of origin"
+    } as const;
+  }
+
+  return {
+    ad_code: "Α.Δ.",
+    student_number: "Α.Μ.",
+    last_name: "Επώνυμο",
+    first_name: "Όνομα",
+    father_name: "Πατρώνυμο",
+    gender: "Φύλο",
+    entry_year: "Έτος εισαγωγής",
+    birth_year: "Έτος γέννησης",
+    degree_grade: "Βαθμός πτυχίου",
+    graduation_date: "Ημ. αποφοίτησης",
+    oath_date: "Ημ. ορκωμοσίας",
+    study_program: "Πρόγραμμα σπουδών",
+    direction: "Κατεύθυνση",
+    origin_municipality: "Δήμος προέλευσης"
+  } as const;
+}
 
 const IMPORT_HEADER_ALIASES = {
-  student_number: ["student_number","am","a_m","a.m","αμ","α.μ"],
-  ad_code: ["ad_code","aa","a_a","a.a","αα","α.α"],
-  last_name: ["last_name","επωνυμο","surname"],
-  first_name: ["first_name","ονομα","name"],
-  father_name: ["father_name","πατρωνυμο","father"],
+  student_number: ["student_number","am","a_m","a.m","αμ","α.μ","student no.","student no","α.μ.","Α.Μ."],
+  ad_code: ["ad_code","aa","a_a","a.a","αα","α.α","a.d.","a.d","α.δ.","α.δ","A.D.","Α.Δ."],
+  last_name: ["last_name","επωνυμο","surname","last name"],
+  first_name: ["first_name","ονομα","name","first name"],
+  father_name: ["father_name","πατρωνυμο","father","father name"],
   gender: ["gender","φυλο","sex"],
-  entry_year: ["entry_year","ετος_εισαγωγης","entryyear"],
-  graduation_date: ["graduation_date","ημ_αποφοιτησης","graduation"],
-  oath_date: ["oath_date","ημ_ορκωμοσιας","oath"],
-  degree_grade: ["degree_grade","βαθμος","grade"],
-  birth_year: ["birth_year","ετος_γεννησης","έτος_γεννησης","year_of_birth","yob"],
-  birth_date: ["birth_date","ημερομηνια_γεννησης","ημ_γεννησης","birthdate","dob"],
+  entry_year: ["entry_year","ετος_εισαγωγης","entryyear","έτος εισαγωγής","entry year"],
+  graduation_date: ["graduation_date","ημ_αποφοιτησης","graduation","ημ. αποφοίτησης","graduation date","Ημ. αποφοίτησης"],
+  oath_date: ["oath_date","ημ_ορκωμοσιας","oath","ημ. ορκωμοσίας","oath date","Ημ. ορκωμοσίας"],
+  degree_grade: ["degree_grade","βαθμος","grade","βαθμός πτυχίου","degree grade"],
+  birth_year: ["birth_year","ετος_γεννησης","έτος_γεννησης","year_of_birth","yob","έτος γέννησης","birth year"],
+  birth_date: ["birth_date","ημερομηνια_γεννησης","ημ_γεννησης","birthdate","dob","birth date"],
+  study_program: ["study_program","study_program_id","study_prog","program_id","προγραμμα","program","πρόγραμμα σπουδών","study program"],
   study_program_id: ["study_program_id","study_prog","program_id","προγραμμα","program"],
+  program_direction: ["program_direction","program_direction_id","program_dir","direction_id","κατευθυνση","direction","κατεύθυνση"],
   program_direction_id: ["program_direction_id","program_dir","direction_id","κατευθυνση","direction"],
   origin_region_id: ["origin_region_id","origin_regio","region_id","περιοχη","region"],
-  origin_municipality: ["origin_municipality","δημος","municipality"],
+  origin_municipality: ["origin_municipality","δημος","municipality","δήμος προέλευσης","municipality of origin"],
 } as const;
 
 function parseSort(sortRaw: unknown): Array<[string, "ASC" | "DESC"]> {
@@ -93,25 +127,120 @@ function parseIds(idsRaw: unknown): number[] {
   );
 }
 
-function buildExportRows(rows: any[]) {
-  return rows.map((g) => ({
-    id: (g as any).id,
-    student_number: (g as any).student_number ?? "",
-    ad_code: (g as any).ad_code ?? "",
-    last_name: (g as any).last_name ?? "",
-    first_name: (g as any).first_name ?? "",
-    father_name: (g as any).father_name ?? "",
-    gender: (g as any).gender ?? "",
-    entry_year: (g as any).entry_year ?? "",
-    graduation_date: (g as any).graduation_date ?? "",
-    oath_date: (g as any).oath_date ?? "",
-    degree_grade: (g as any).degree_grade ?? "",
-    birth_date: (g as any).birth_date ?? "",
-    study_program_id: (g as any).study_program_id ?? "",
-    program_direction_id: (g as any).program_direction_id ?? "",
-    origin_region_id: (g as any).origin_region_id ?? "",
-    origin_municipality: (g as any).origin_municipality ?? ""
-  }));
+function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number, any>, directionsById: Map<number, any>) {
+  const labels = getColumnLabels(lang);
+
+  return rows.map((g) => {
+    const item = g as any;
+    const studyProgram = programsById.get(Number(item.study_program_id));
+    const direction = directionsById.get(Number(item.program_direction_id));
+    const studyProgramName = studyProgram ? String(lang === "en" ? (studyProgram.name_en ?? studyProgram.name_el ?? studyProgram.code ?? studyProgram.id) : (studyProgram.name_el ?? studyProgram.name_en ?? studyProgram.code ?? studyProgram.id)) : "";
+    const directionName = direction ? String(lang === "en" ? (direction.name_en ?? direction.name_el ?? direction.code ?? direction.id) : (direction.name_el ?? direction.name_en ?? direction.code ?? direction.id)) : "";
+
+    return {
+      [labels.ad_code]: item.ad_code ?? "",
+      [labels.student_number]: item.student_number ?? "",
+      [labels.last_name]: item.last_name ?? "",
+      [labels.first_name]: item.first_name ?? "",
+      [labels.father_name]: item.father_name ?? "",
+      [labels.gender]: item.gender ?? "",
+      [labels.entry_year]: item.entry_year ?? "",
+      [labels.birth_year]: String(item.birth_date ?? "").slice(0, 4),
+      [labels.degree_grade]: item.degree_grade ?? "",
+      [labels.graduation_date]: item.graduation_date ?? "",
+      [labels.oath_date]: item.oath_date ?? "",
+      [labels.study_program]: item.study_program_id && studyProgramName ? `${item.study_program_id} (${studyProgramName})` : studyProgramName,
+      [labels.direction]: directionName,
+      [labels.origin_municipality]: item.origin_municipality ?? ""
+    };
+  });
+}
+
+function getTemplateHeaders(lang: ExportLang) {
+  const labels = getColumnLabels(lang);
+  return [[
+    labels.ad_code,
+    labels.student_number,
+    labels.last_name,
+    labels.first_name,
+    labels.father_name,
+    labels.gender,
+    labels.entry_year,
+    labels.birth_year,
+    labels.degree_grade,
+    labels.graduation_date,
+    labels.oath_date,
+    labels.study_program,
+    labels.direction,
+    labels.origin_municipality
+  ]];
+}
+
+async function getProgramMaps() {
+  const [programs, directions] = await Promise.all([
+    StudyProgram.findAll({ order: [["id", "ASC"]] }),
+    ProgramDirection.findAll({ order: [["id", "ASC"]] })
+  ]);
+
+  return {
+    programsById: new Map(programs.map((item: any) => [Number(item.id), item])),
+    directionsById: new Map(directions.map((item: any) => [Number(item.id), item]))
+  };
+}
+
+function normalizeLookupValue(value: unknown) {
+  return normHeader(String(value ?? "")).replace(/\./g, "").trim();
+}
+
+function resolveStudyProgramId(value: unknown, programsById: Map<number, any>) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+
+  const directId = toInt(raw);
+  if (directId && programsById.has(directId)) return directId;
+
+  const prefixId = raw.match(/^\s*(\d+)\s*(?:\(|-|$)/);
+  if (prefixId) {
+    const n = Number(prefixId[1]);
+    if (programsById.has(n)) return n;
+  }
+
+  const normalized = normalizeLookupValue(raw);
+  for (const [id, item] of programsById.entries()) {
+    const candidates = [item.code, item.name_el, item.name_en, `${item.id} (${item.name_el ?? item.name_en ?? item.code ?? item.id})`, `${item.id} (${item.name_en ?? item.name_el ?? item.code ?? item.id})`]
+      .filter(Boolean)
+      .map(normalizeLookupValue);
+    if (candidates.includes(normalized)) return id;
+  }
+
+  return null;
+}
+
+function resolveProgramDirectionId(value: unknown, directionsById: Map<number, any>, studyProgramId: number | null) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+
+  const directId = toInt(raw);
+  if (directId && directionsById.has(directId)) {
+    const item = directionsById.get(directId);
+    if (!studyProgramId || Number(item?.study_program_id) === studyProgramId) return directId;
+  }
+
+  const prefixId = raw.match(/^\s*(\d+)\s*(?:\(|-|$)/);
+  if (prefixId) {
+    const n = Number(prefixId[1]);
+    const item = directionsById.get(n);
+    if (item && (!studyProgramId || Number(item.study_program_id) === studyProgramId)) return n;
+  }
+
+  const normalized = normalizeLookupValue(raw);
+  for (const [id, item] of directionsById.entries()) {
+    if (studyProgramId && Number(item.study_program_id) !== studyProgramId) continue;
+    const candidates = [item.code, item.name_el, item.name_en].filter(Boolean).map(normalizeLookupValue);
+    if (candidates.includes(normalized)) return id;
+  }
+
+  return null;
 }
 
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
@@ -151,13 +280,15 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
     const order = parseSort(req.query.sort);
     const ids = parseIds(req.query.ids);
     const limit = clamp(toIntParam(req.query.limit, 5000), 1, 10000);
+    const lang = getExportLang(req.query.lang);
 
     if (ids.length) {
       (where as any).id = ids;
     }
 
     const rows = await Graduate.findAll({ where, order, limit: ids.length ? undefined : limit });
-    const data = buildExportRows(rows as any[]);
+    const { programsById, directionsById } = await getProgramMaps();
+    const data = buildExportRows(rows as any[], lang, programsById, directionsById);
 
     await logAction({
       user_id: req.user?.id ?? null,
@@ -183,25 +314,8 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
 
 export async function exportGraduatesImportTemplate(req: Request, res: Response, next: NextFunction) {
   try {
-    const headers = [[
-      "student_number",
-      "ad_code",
-      "last_name",
-      "first_name",
-      "father_name",
-      "gender",
-      "entry_year",
-      "graduation_date",
-      "oath_date",
-      "degree_grade",
-      "birth_date",
-      "study_program_id",
-      "program_direction_id",
-      "origin_region_id",
-      "origin_municipality"
-    ]];
-
-    const ws = XLSX.utils.aoa_to_sheet(headers);
+    const lang = getExportLang(req.query.lang);
+    const ws = XLSX.utils.aoa_to_sheet(getTemplateHeaders(lang));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "graduates_import_template");
     const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
@@ -220,6 +334,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
     if (!file?.buffer) return res.status(400).json({ error: { message: "Missing file" } });
 
     const wb = XLSX.read(file.buffer, { type: "buffer", cellDates: true });
+    const { programsById, directionsById } = await getProgramMaps();
     const sheetName = wb.SheetNames[0];
     if (!sheetName) return res.status(400).json({ error: { message: "Empty workbook" } });
     const ws = wb.Sheets[sheetName];
@@ -235,26 +350,28 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
 
     
     const idx = {
-      student_number: firstIndex(headers, ["student_number","am","a_m","a.m","αμ","α.μ"]),
-      ad_code: firstIndex(headers, ["ad_code","aa","a_a","a.a","αα","α.α"]),
-      last_name: firstIndex(headers, ["last_name","επωνυμο","surname"]),
-      first_name: firstIndex(headers, ["first_name","ονομα","name"]),
-      father_name: firstIndex(headers, ["father_name","πατρωνυμο","father"]),
-      gender: firstIndex(headers, ["gender","φυλο","sex"]),
-      entry_year: firstIndex(headers, ["entry_year","ετος_εισαγωγης","entryyear"]),
-      graduation_date: firstIndex(headers, ["graduation_date","ημ_αποφοιτησης","graduation"]),
-      oath_date: firstIndex(headers, ["oath_date","ημ_ορκωμοσιας","oath"]),
-      degree_grade: firstIndex(headers, ["degree_grade","βαθμος","grade"]),
+      student_number: firstIndex(headers, [...IMPORT_HEADER_ALIASES.student_number]),
+      ad_code: firstIndex(headers, [...IMPORT_HEADER_ALIASES.ad_code]),
+      last_name: firstIndex(headers, [...IMPORT_HEADER_ALIASES.last_name]),
+      first_name: firstIndex(headers, [...IMPORT_HEADER_ALIASES.first_name]),
+      father_name: firstIndex(headers, [...IMPORT_HEADER_ALIASES.father_name]),
+      gender: firstIndex(headers, [...IMPORT_HEADER_ALIASES.gender]),
+      entry_year: firstIndex(headers, [...IMPORT_HEADER_ALIASES.entry_year]),
+      graduation_date: firstIndex(headers, [...IMPORT_HEADER_ALIASES.graduation_date]),
+      oath_date: firstIndex(headers, [...IMPORT_HEADER_ALIASES.oath_date]),
+      degree_grade: firstIndex(headers, [...IMPORT_HEADER_ALIASES.degree_grade]),
       
-      birth_year: firstIndex(headers, ["birth_year","ετος_γεννησης","έτος_γεννησης","year_of_birth","yob"]),
-      birth_date: firstIndex(headers, ["birth_date","ημερομηνια_γεννησης","ημ_γεννησης","birthdate","dob"]),
-      study_program_id: firstIndex(headers, ["study_program_id","study_prog","program_id","προγραμμα","program"]),
-      program_direction_id: firstIndex(headers, ["program_direction_id","program_dir","direction_id","κατευθυνση","direction"]),
-      origin_region_id: firstIndex(headers, ["origin_region_id","origin_regio","region_id","περιοχη","region"]),
-      origin_municipality: firstIndex(headers, ["origin_municipality","δημος","municipality"]),
+      birth_year: firstIndex(headers, [...IMPORT_HEADER_ALIASES.birth_year]),
+      birth_date: firstIndex(headers, [...IMPORT_HEADER_ALIASES.birth_date]),
+      study_program: firstIndex(headers, [...IMPORT_HEADER_ALIASES.study_program]),
+      study_program_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.study_program_id]),
+      program_direction: firstIndex(headers, [...IMPORT_HEADER_ALIASES.program_direction]),
+      program_direction_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.program_direction_id]),
+      origin_region_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_region_id]),
+      origin_municipality: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_municipality]),
     };
 
-    const required = ["student_number","ad_code","last_name","first_name","father_name","gender","entry_year","graduation_date","oath_date","degree_grade","study_program_id"];
+    const required = ["student_number","ad_code","last_name","first_name","father_name","gender","entry_year","graduation_date","oath_date","degree_grade","study_program"];
     const missingRequired = required.filter((k) => (idx as any)[k] === -1);
     if (missingRequired.length) {
       return res.status(400).json({
@@ -289,8 +406,10 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const birth_year_raw = idx.birth_year >= 0 ? toInt(get("birth_year" as any)) : null;
       const birth_date_raw = idx.birth_date >= 0 ? toDateOnly(get("birth_date" as any)) : null;
       const birth_date = birth_date_raw || (birth_year_raw ? `${birth_year_raw}-01-01` : null);
-      const study_program_id = toInt(get("study_program_id"));
-      const program_direction_id = toInt(get("program_direction_id"));
+      const study_program_source = idx.study_program >= 0 ? get("study_program") : get("study_program_id");
+      const study_program_id = resolveStudyProgramId(study_program_source, programsById);
+      const program_direction_source = idx.program_direction >= 0 ? get("program_direction") : get("program_direction_id");
+      const program_direction_id = resolveProgramDirectionId(program_direction_source, directionsById, study_program_id);
       const origin_region_id = toInt(get("origin_region_id"));
       const origin_municipality = String(get("origin_municipality")).trim() || null;
 
@@ -307,7 +426,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       if (!oath_date) rowProblems.push({ row: rowNum, column: "oath_date", message: "Invalid date", value: get("oath_date") });
       if (degree_grade === null) rowProblems.push({ row: rowNum, column: "degree_grade", message: "Invalid number", value: get("degree_grade") });
       if (!birth_date) rowProblems.push({ row: rowNum, column: "birth_date", message: "Invalid date", value: idx.birth_date >= 0 ? get("birth_date" as any) : get("birth_year" as any) });
-      if (!study_program_id) rowProblems.push({ row: rowNum, column: "study_program_id", message: "Invalid integer", value: get("study_program_id") });
+      if (!study_program_id) rowProblems.push({ row: rowNum, column: "study_program", message: "Invalid value", value: study_program_source });
 
       if (rowProblems.length) {
         errors.push(...rowProblems);
