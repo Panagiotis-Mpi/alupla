@@ -81,10 +81,43 @@ function toNullableNumber(v: any): number | null {
   return Number.isFinite(n) ? n : NaN;
 }
 
+function parseIds(idsRaw: unknown): number[] {
+  if (typeof idsRaw !== "string") return [];
+  return Array.from(
+    new Set(
+      idsRaw
+        .split(",")
+        .map((v) => Number(String(v).trim()))
+        .filter((v) => Number.isInteger(v) && v > 0)
+    )
+  );
+}
+
+function buildExportRows(rows: any[]) {
+  return rows.map((g) => ({
+    id: (g as any).id,
+    student_number: (g as any).student_number ?? "",
+    ad_code: (g as any).ad_code ?? "",
+    last_name: (g as any).last_name ?? "",
+    first_name: (g as any).first_name ?? "",
+    father_name: (g as any).father_name ?? "",
+    gender: (g as any).gender ?? "",
+    entry_year: (g as any).entry_year ?? "",
+    graduation_date: (g as any).graduation_date ?? "",
+    oath_date: (g as any).oath_date ?? "",
+    degree_grade: (g as any).degree_grade ?? "",
+    birth_date: (g as any).birth_date ?? "",
+    study_program_id: (g as any).study_program_id ?? "",
+    program_direction_id: (g as any).program_direction_id ?? "",
+    origin_region_id: (g as any).origin_region_id ?? "",
+    origin_municipality: (g as any).origin_municipality ?? ""
+  }));
+}
+
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
   try {
     const page = clamp(toIntParam(req.query.page, 1), 1, 1_000_000);
-    const pageSize = clamp(toIntParam(req.query.pageSize, 20), 1, 200);
+    const pageSize = clamp(toIntParam(req.query.pageSize, 20), 1, 10000);
     const offset = (page - 1) * pageSize;
 
     const where = buildGraduateWhere(req.query as Record<string, unknown>);
@@ -116,35 +149,22 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
   try {
     const where = buildGraduateWhere(req.query as Record<string, unknown>);
     const order = parseSort(req.query.sort);
-
-    
+    const ids = parseIds(req.query.ids);
     const limit = clamp(toIntParam(req.query.limit, 5000), 1, 10000);
-    const rows = await Graduate.findAll({ where, order, limit });
 
-    const data = rows.map((g) => ({
-      id: (g as any).id,
-      student_number: (g as any).student_number ?? "",
-      ad_code: (g as any).ad_code ?? "",
-      last_name: (g as any).last_name ?? "",
-      first_name: (g as any).first_name ?? "",
-      gender: (g as any).gender ?? "",
-      entry_year: (g as any).entry_year ?? "",
-      graduation_date: (g as any).graduation_date ?? "",
-      oath_date: (g as any).oath_date ?? "",
-      degree_grade: (g as any).degree_grade ?? "",
-      birth_date: (g as any).birth_date ?? "",
-      study_program_id: (g as any).study_program_id ?? "",
-      program_direction_id: (g as any).program_direction_id ?? "",
-      origin_region_id: (g as any).origin_region_id ?? "",
-      origin_municipality: (g as any).origin_municipality ?? ""
-    }));
+    if (ids.length) {
+      (where as any).id = ids;
+    }
+
+    const rows = await Graduate.findAll({ where, order, limit: ids.length ? undefined : limit });
+    const data = buildExportRows(rows as any[]);
 
     await logAction({
       user_id: req.user?.id ?? null,
       action: "export_graduates",
       entity_type: "graduate",
       entity_id: null,
-      details: { format: "xlsx", limit, count: data.length }
+      details: { format: "xlsx", limit: ids.length ? null : limit, count: data.length, selected: ids.length || 0 }
     });
 
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
@@ -161,8 +181,38 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
   }
 }
 
+export async function exportGraduatesImportTemplate(req: Request, res: Response, next: NextFunction) {
+  try {
+    const headers = [[
+      "student_number",
+      "ad_code",
+      "last_name",
+      "first_name",
+      "father_name",
+      "gender",
+      "entry_year",
+      "graduation_date",
+      "oath_date",
+      "degree_grade",
+      "birth_date",
+      "study_program_id",
+      "program_direction_id",
+      "origin_region_id",
+      "origin_municipality"
+    ]];
 
+    const ws = XLSX.utils.aoa_to_sheet(headers);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "graduates_import_template");
+    const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", 'attachment; filename="graduates-import-template.xlsx"');
+    return res.send(buf);
+  } catch (err) {
+    next(err);
+  }
+}
 
 export async function importGraduates(req: Request, res: Response, next: NextFunction) {
   try {

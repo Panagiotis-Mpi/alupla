@@ -6,7 +6,11 @@
     "importExcel": "Import Excel",
     "importing": "Import...",
     "exportExcel": "Export Excel",
-    "newGraduate": "+ Νέος Απόφοιτος"
+    "newGraduate": "+ Νέος Απόφοιτος",
+    "importTemplateHelp": "Η μορφή των πεδίων του excel για την εισαγωγή αποφοίτων είναι η εξής:",
+    "downloadTemplate": "Λήψη προτύπου Excel",
+    "selectGraduates": "Επιλογή αποφοίτων",
+    "exportSelected": "Export επιλεγμένων"
   },
   "filters": {
     "qLabel": "Global αναζήτηση (q)",

@@ -6,7 +6,11 @@
     "importExcel": "Import Excel",
     "importing": "Import...",
     "exportExcel": "Export Excel",
-    "newGraduate": "+ New Graduate"
+    "newGraduate": "+ New Graduate",
+    "importTemplateHelp": "The Excel field format for importing graduates is the following:",
+    "downloadTemplate": "Download Excel Template",
+    "selectGraduates": "Select Graduates",
+    "exportSelected": "Export Selected"
   },
   "filters": {
     "qLabel": "Global search (q)",

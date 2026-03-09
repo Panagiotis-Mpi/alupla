@@ -395,7 +395,7 @@ export async function exportGraduatesXlsx(params: Record<string, any>): Promise<
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(params ?? {})) {
     if (v === undefined || v === null || v === "") continue;
-    q.set(k, String(v));
+    q.set(k, Array.isArray(v) ? v.join(",") : String(v));
   }
   const token = getToken();
   const res = await fetch(`${API_URL}/graduates/export?${q.toString()}`, {
@@ -413,6 +413,24 @@ export async function exportGraduatesXlsx(params: Record<string, any>): Promise<
 }
 
 
+
+
+
+export async function downloadGraduatesImportTemplateXlsx(): Promise<Blob> {
+  const token = getToken();
+  const res = await fetch(`${API_URL}/graduates/import-template`, {
+    method: "GET",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    }
+  });
+  if (!res.ok) {
+    const j = await parseJsonSafe(res);
+    const msg = (j as any)?.error?.message || (j as any)?.message || res.statusText;
+    throw new Error(msg);
+  }
+  return await res.blob();
+}
 
 export async function importGraduatesXlsx(file: File): Promise<any> {
   const token = getToken();
