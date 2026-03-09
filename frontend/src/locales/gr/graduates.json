@@ -27,6 +27,9 @@
     "sort_last_name_desc": "επώνυμο ↓",
     "search": "Αναζήτηση",
     "reset": "Καθαρισμός",
+    "from": "Από",
+    "to": "Έως",
+    "region": "Περιφέρεια",
     "page": "page {{page}}",
     "male": "Άνδρας",
     "female": "Γυναίκα"

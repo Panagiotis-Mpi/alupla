@@ -127,6 +127,17 @@ function parseIds(idsRaw: unknown): number[] {
   );
 }
 
+function formatGenderValue(value: unknown, lang: ExportLang) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) {
+    return lang === "en" ? "Male" : "Άνδρας";
+  }
+  if (["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalized)) {
+    return lang === "en" ? "Female" : "Γυναίκα";
+  }
+  return String(value ?? "").trim();
+}
+
 function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number, any>, directionsById: Map<number, any>) {
   const labels = getColumnLabels(lang);
 
@@ -143,7 +154,7 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
       [labels.last_name]: item.last_name ?? "",
       [labels.first_name]: item.first_name ?? "",
       [labels.father_name]: item.father_name ?? "",
-      [labels.gender]: item.gender ?? "",
+      [labels.gender]: formatGenderValue(item.gender, lang),
       [labels.entry_year]: item.entry_year ?? "",
       [labels.birth_year]: String(item.birth_date ?? "").slice(0, 4),
       [labels.degree_grade]: item.degree_grade ?? "",
@@ -397,8 +408,13 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const last_name = String(get("last_name")).trim();
       const first_name = String(get("first_name")).trim();
       const father_name = String(get("father_name")).trim();
-      const genderRaw = String(get("gender")).trim().toUpperCase();
-      const gender = genderRaw === "M" || genderRaw === "F" ? genderRaw : null;
+      const genderRaw = String(get("gender")).trim();
+      const normalizedGender = normHeader(genderRaw).replace(/\./g, "");
+      const gender = ["m", "male", "man", "άνδρας", "ανδρας"].includes(normalizedGender)
+        ? "M"
+        : ["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalizedGender)
+          ? "F"
+          : null;
       const entry_year = toInt(get("entry_year"));
       const graduation_date = toDateOnly(get("graduation_date"));
       const oath_date = toDateOnly(get("oath_date"));
@@ -420,7 +436,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       reqStr(last_name, "last_name");
       reqStr(first_name, "first_name");
       reqStr(father_name, "father_name");
-      if (!gender) rowProblems.push({ row: rowNum, column: "gender", message: "Must be M or F", value: genderRaw });
+      if (!gender) rowProblems.push({ row: rowNum, column: "gender", message: "Must be M/F or Άνδρας/Γυναίκα", value: genderRaw });
       if (!entry_year) rowProblems.push({ row: rowNum, column: "entry_year", message: "Invalid integer", value: get("entry_year") });
       if (!graduation_date) rowProblems.push({ row: rowNum, column: "graduation_date", message: "Invalid date", value: get("graduation_date") });
       if (!oath_date) rowProblems.push({ row: rowNum, column: "oath_date", message: "Invalid date", value: get("oath_date") });

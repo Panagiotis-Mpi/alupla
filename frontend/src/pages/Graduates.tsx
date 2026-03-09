@@ -8,6 +8,7 @@ import {
   importGraduatesXlsx,
   listGraduates,
   listProgramDirections,
+  listRegions,
   listStudyPrograms,
   type Graduate,
   type StudyProgram,
@@ -30,6 +31,107 @@ type SortKey =
   | "direction"
   | "origin_municipality";
 
+type FiltersState = {
+  ad_code_like: string;
+  student_number_like: string;
+  last_name_like: string;
+  first_name_like: string;
+  father_name_like: string;
+  gender: string;
+  entry_year_min: string;
+  entry_year_max: string;
+  birth_year_min: string;
+  birth_year_max: string;
+  degree_grade_min: string;
+  degree_grade_max: string;
+  graduation_date_from: string;
+  graduation_date_to: string;
+  oath_date_from: string;
+  oath_date_to: string;
+  study_program_id: string;
+  program_direction_id: string;
+  origin_region_id: string;
+  origin_municipality_like: string;
+};
+
+const EMPTY_FILTERS: FiltersState = {
+  ad_code_like: "",
+  student_number_like: "",
+  last_name_like: "",
+  first_name_like: "",
+  father_name_like: "",
+  gender: "",
+  entry_year_min: "",
+  entry_year_max: "",
+  birth_year_min: "",
+  birth_year_max: "",
+  degree_grade_min: "",
+  degree_grade_max: "",
+  graduation_date_from: "",
+  graduation_date_to: "",
+  oath_date_from: "",
+  oath_date_to: "",
+  study_program_id: "",
+  program_direction_id: "",
+  origin_region_id: "",
+  origin_municipality_like: "",
+};
+
+function Field(props: { label: string; children: React.ReactNode; span?: number }) {
+  return (
+    <div style={{ gridColumn: `span ${props.span ?? 4}` }}>
+      <label className="label">{props.label}</label>
+      {props.children}
+    </div>
+  );
+}
+
+function RangeField(props: {
+  label: string;
+  fromLabel: string;
+  toLabel: string;
+  fromValue: string;
+  toValue: string;
+  onFromChange: (value: string) => void;
+  onToChange: (value: string) => void;
+  type?: string;
+  min?: string;
+  max?: string;
+  step?: string;
+  span?: number;
+}) {
+  return (
+    <Field label={props.label} span={props.span}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div>
+          <label className="label" style={{ fontSize: 12, marginBottom: 6 }}>{props.fromLabel}</label>
+          <input
+            className="input"
+            type={props.type ?? "text"}
+            value={props.fromValue}
+            min={props.min}
+            max={props.max}
+            step={props.step}
+            onChange={(e) => props.onFromChange(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label" style={{ fontSize: 12, marginBottom: 6 }}>{props.toLabel}</label>
+          <input
+            className="input"
+            type={props.type ?? "text"}
+            value={props.toValue}
+            min={props.min}
+            max={props.max}
+            step={props.step}
+            onChange={(e) => props.onToChange(e.target.value)}
+          />
+        </div>
+      </div>
+    </Field>
+  );
+}
+
 export default function Graduates() {
   const { t, i18n } = useTranslation("graduates");
   const [importBusy, setImportBusy] = useState(false);
@@ -42,17 +144,13 @@ export default function Graduates() {
   } | null>(null);
   const [programs, setPrograms] = useState<StudyProgram[]>([]);
   const [directions, setDirections] = useState<any[]>([]);
+  const [regions, setRegions] = useState<any[]>([]);
   const [items, setItems] = useState<Graduate[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [sortState, setSortState] = useState<{ key: SortKey; dir: SortDir }>({ key: "ad_code", dir: "asc" });
-  const [filters, setFilters] = useState({
-    last_name_like: "",
-    first_name_like: "",
-    gender: "",
-    study_program_id: "",
-  });
+  const [filters, setFilters] = useState<FiltersState>(EMPTY_FILTERS);
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarInnerRef = useRef<HTMLDivElement | null>(null);
@@ -91,10 +189,11 @@ export default function Graduates() {
 
   const params = useMemo(() => {
     const p: any = { page: 1, pageSize: 10000 };
-    if (filters.last_name_like.trim()) p.last_name_like = filters.last_name_like.trim();
-    if (filters.first_name_like.trim()) p.first_name_like = filters.first_name_like.trim();
-    if (filters.gender) p.gender = filters.gender;
-    if (filters.study_program_id) p.study_program_id = Number(filters.study_program_id);
+    Object.entries(filters).forEach(([key, value]) => {
+      const trimmed = typeof value === "string" ? value.trim() : value;
+      if (trimmed === undefined || trimmed === null || trimmed === "") return;
+      p[key] = trimmed;
+    });
     return p;
   }, [filters]);
 
@@ -122,36 +221,51 @@ export default function Graduates() {
     return m;
   }, [activeLang, directions]);
 
+  const regionNameById = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const r of regions || []) {
+      m.set(Number((r as any).id), String((r as any).name ?? ""));
+    }
+    return m;
+  }, [regions]);
+
+  const availableDirections = useMemo(() => {
+    if (!filters.study_program_id) return directions;
+    return directions.filter((item: any) => Number(item?.study_program_id) === Number(filters.study_program_id));
+  }, [directions, filters.study_program_id]);
+
   const fmt = (v: any) => (v === null || v === undefined ? "" : String(v));
+
+  function renderGender(value: any) {
+    return String(value ?? "") === "F" ? t("filters.female") : String(value ?? "") === "M" ? t("filters.male") : fmt(value);
+  }
 
   async function load() {
     setLoading(true);
     try {
-      const [sp, gr] = await Promise.all([listStudyPrograms(), listGraduates(params)]);
-      setPrograms(sp.items);
-      setItems(gr.items);
-      setTotal(gr.total);
-      const programIds = Array.from(
-        new Set(
-          (gr.items ?? [])
-            .map((g: any) => Number(g?.study_program_id))
-            .filter((x) => Number.isFinite(x) && x > 0)
-        )
-      );
-      const dirsResults = await Promise.all(
-        programIds.map(async (pid) => {
+      const [sp, peripheryRegions, gr] = await Promise.all([
+        listStudyPrograms(),
+        listRegions({ type: "PERIPHERY" }),
+        listGraduates(params),
+      ]);
+
+      setPrograms(sp.items ?? []);
+      setRegions(peripheryRegions.items ?? []);
+      setItems(gr.items ?? []);
+      setTotal(gr.total ?? 0);
+
+      const directionsResults = await Promise.all(
+        (sp.items ?? []).map(async (program: any) => {
           try {
-            return await listProgramDirections(pid);
+            return await listProgramDirections(Number(program?.id));
           } catch {
             return { items: [] as any[] };
           }
         })
       );
-      const merged: any[] = [];
-      for (const r of dirsResults) {
-        for (const d of (r as any)?.items ?? []) merged.push(d);
-      }
-      setDirections(merged);
+
+      const mergedDirections = directionsResults.flatMap((result: any) => result?.items ?? []);
+      setDirections(mergedDirections);
       setSelectedIds((prev) => prev.filter((id) => (gr.items ?? []).some((g: any) => Number(g.id) === id)));
     } finally {
       setLoading(false);
@@ -200,7 +314,13 @@ export default function Graduates() {
       bar.removeEventListener("scroll", onBarScroll);
       window.removeEventListener("resize", update);
     };
-  }, [items, sortState, programs, directions]);
+  }, [items, sortState, programs, directions, regions]);
+
+  useEffect(() => {
+    if (filters.program_direction_id && !availableDirections.some((item: any) => Number(item.id) === Number(filters.program_direction_id))) {
+      setFilters((current) => ({ ...current, program_direction_id: "" }));
+    }
+  }, [availableDirections, filters.program_direction_id]);
 
   function normalizeValue(value: any) {
     if (value === null || value === undefined) return "";
@@ -214,6 +334,7 @@ export default function Graduates() {
       return `${g?.study_program_id ?? ""} ${name}`;
     }
     if (key === "direction") return directionNameById.get(Number(g?.program_direction_id)) ?? "";
+    if (key === "gender") return renderGender(g?.gender);
     return g?.[key] ?? "";
   }
 
@@ -242,7 +363,7 @@ export default function Graduates() {
       return normalizeValue(av).localeCompare(normalizeValue(bv), "el", { numeric: true, sensitivity: "base" }) * dirFactor;
     });
     return list;
-  }, [items, sortState, programNameById, directionNameById]);
+  }, [items, sortState, programNameById, directionNameById, activeLang]);
 
   function toggleSort(key: SortKey) {
     setSortState((cur) => (cur.key === key ? { key, dir: cur.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
@@ -258,7 +379,6 @@ export default function Graduates() {
   }
 
   const visibleIds = useMemo(() => visibleItems.map((g: any) => Number(g.id)).filter((id) => Number.isFinite(id)), [visibleItems]);
-
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
   const someVisibleSelected = visibleIds.some((id) => selectedIds.includes(id));
 
@@ -432,42 +552,121 @@ export default function Graduates() {
             </button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14, alignItems: "end" }}>
-            <div style={{ gridColumn: "span 4" }}>
-              <label className="label">{t("filters.lastNameLike")}</label>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14, alignItems: "start" }}>
+            <Field label={t("table.ad")}>
+              <input className="input" value={filters.ad_code_like} onChange={(e) => setFilters((f) => ({ ...f, ad_code_like: e.target.value }))} />
+            </Field>
+            <Field label={t("table.am")}>
+              <input className="input" value={filters.student_number_like} onChange={(e) => setFilters((f) => ({ ...f, student_number_like: e.target.value }))} />
+            </Field>
+            <Field label={t("table.lastName")}>
               <input className="input" value={filters.last_name_like} onChange={(e) => setFilters((f) => ({ ...f, last_name_like: e.target.value }))} />
-            </div>
-            <div style={{ gridColumn: "span 4" }}>
-              <label className="label">{t("filters.firstNameLike")}</label>
+            </Field>
+            <Field label={t("table.firstName")}>
               <input className="input" value={filters.first_name_like} onChange={(e) => setFilters((f) => ({ ...f, first_name_like: e.target.value }))} />
-            </div>
-            <div style={{ gridColumn: "span 4" }}>
-              <label className="label">{t("filters.gender")}</label>
+            </Field>
+            <Field label={t("table.fatherName")}>
+              <input className="input" value={filters.father_name_like} onChange={(e) => setFilters((f) => ({ ...f, father_name_like: e.target.value }))} />
+            </Field>
+            <Field label={t("table.gender")}>
               <select className="input" value={filters.gender} onChange={(e) => setFilters((f) => ({ ...f, gender: e.target.value }))}>
                 <option value="">{t("filters.all")}</option>
                 <option value="M">{t("filters.male")}</option>
                 <option value="F">{t("filters.female")}</option>
               </select>
-            </div>
-            <div style={{ gridColumn: "span 4" }}>
-              <label className="label">{t("filters.studyProgram")}</label>
+            </Field>
+            <RangeField
+              label={t("table.entryYear")}
+              fromLabel={t("filters.from")}
+              toLabel={t("filters.to")}
+              fromValue={filters.entry_year_min}
+              toValue={filters.entry_year_max}
+              onFromChange={(value) => setFilters((f) => ({ ...f, entry_year_min: value }))}
+              onToChange={(value) => setFilters((f) => ({ ...f, entry_year_max: value }))}
+              type="number"
+            />
+            <RangeField
+              label={t("table.birthYear")}
+              fromLabel={t("filters.from")}
+              toLabel={t("filters.to")}
+              fromValue={filters.birth_year_min}
+              toValue={filters.birth_year_max}
+              onFromChange={(value) => setFilters((f) => ({ ...f, birth_year_min: value }))}
+              onToChange={(value) => setFilters((f) => ({ ...f, birth_year_max: value }))}
+              type="number"
+            />
+            <RangeField
+              label={t("table.degreeGrade")}
+              fromLabel={t("filters.from")}
+              toLabel={t("filters.to")}
+              fromValue={filters.degree_grade_min}
+              toValue={filters.degree_grade_max}
+              onFromChange={(value) => setFilters((f) => ({ ...f, degree_grade_min: value }))}
+              onToChange={(value) => setFilters((f) => ({ ...f, degree_grade_max: value }))}
+              type="number"
+              step="0.01"
+            />
+            <RangeField
+              label={t("table.graduationDate")}
+              fromLabel={t("filters.from")}
+              toLabel={t("filters.to")}
+              fromValue={filters.graduation_date_from}
+              toValue={filters.graduation_date_to}
+              onFromChange={(value) => setFilters((f) => ({ ...f, graduation_date_from: value }))}
+              onToChange={(value) => setFilters((f) => ({ ...f, graduation_date_to: value }))}
+              type="date"
+            />
+            <RangeField
+              label={t("table.oathDate")}
+              fromLabel={t("filters.from")}
+              toLabel={t("filters.to")}
+              fromValue={filters.oath_date_from}
+              toValue={filters.oath_date_to}
+              onFromChange={(value) => setFilters((f) => ({ ...f, oath_date_from: value }))}
+              onToChange={(value) => setFilters((f) => ({ ...f, oath_date_to: value }))}
+              type="date"
+            />
+            <Field label={t("table.studyProgram")}>
               <select className="input" value={filters.study_program_id} onChange={(e) => setFilters((f) => ({ ...f, study_program_id: e.target.value }))}>
                 <option value="">{t("filters.all")}</option>
                 {programs.map((p) => (
                   <option key={(p as any).id} value={(p as any).id}>
-                    {(p as any).code} - {activeLang === "en" ? ((p as any).name_en ?? (p as any).name_el) : ((p as any).name_el ?? (p as any).name_en)}
+                    {programNameById.get(Number((p as any).id))}
                   </option>
                 ))}
               </select>
-            </div>
-            <div style={{ gridColumn: "span 8", display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-start" }}>
+            </Field>
+            <Field label={t("table.direction")}>
+              <select className="input" value={filters.program_direction_id} onChange={(e) => setFilters((f) => ({ ...f, program_direction_id: e.target.value }))}>
+                <option value="">{t("filters.all")}</option>
+                {availableDirections.map((direction: any) => (
+                  <option key={Number(direction.id)} value={Number(direction.id)}>
+                    {directionNameById.get(Number(direction.id))}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label={t("filters.region")}>
+              <select className="input" value={filters.origin_region_id} onChange={(e) => setFilters((f) => ({ ...f, origin_region_id: e.target.value }))}>
+                <option value="">{t("filters.all")}</option>
+                {regions.map((region: any) => (
+                  <option key={Number(region.id)} value={Number(region.id)}>
+                    {region.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label={t("table.originMunicipality")}>
+              <input className="input" value={filters.origin_municipality_like} onChange={(e) => setFilters((f) => ({ ...f, origin_municipality_like: e.target.value }))} />
+            </Field>
+            <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-start" }}>
               <button className="btn" onClick={() => void load()}>
                 {t("filters.search")}
               </button>
               <button
                 className="btn"
                 onClick={() => {
-                  setFilters({ last_name_like: "", first_name_like: "", gender: "", study_program_id: "" });
+                  setFilters(EMPTY_FILTERS);
                   setSelectedIds([]);
                   setTimeout(() => void load(), 0);
                 }}
@@ -527,7 +726,7 @@ export default function Graduates() {
                     <td>{fmt(g.last_name)}</td>
                     <td>{fmt(g.first_name)}</td>
                     <td>{fmt(g.father_name)}</td>
-                    <td>{fmt(g.gender)}</td>
+                    <td>{renderGender(g.gender)}</td>
                     <td>{fmt(g.entry_year)}</td>
                     <td>{fmt(String((g as any).birth_date ?? "").slice(0, 4))}</td>
                     <td>{fmt(g.degree_grade)}</td>

@@ -27,6 +27,9 @@
     "sort_last_name_desc": "last name ↓",
     "search": "Search",
     "reset": "Reset",
+    "from": "From",
+    "to": "To",
+    "region": "Region",
     "page": "page {{page}}",
     "male": "Male",
     "female": "Female"
