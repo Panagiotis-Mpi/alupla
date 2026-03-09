@@ -151,6 +151,7 @@ export default function Graduates() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [sortState, setSortState] = useState<{ key: SortKey; dir: SortDir }>({ key: "ad_code", dir: "asc" });
   const [filters, setFilters] = useState<FiltersState>(EMPTY_FILTERS);
+  const [showFilters, setShowFilters] = useState(false);
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarInnerRef = useRef<HTMLDivElement | null>(null);
@@ -472,6 +473,15 @@ export default function Graduates() {
     gap: 4,
   };
 
+  const topButtonStyle: React.CSSProperties = {
+    minWidth: 190,
+    height: 52,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxSizing: "border-box",
+  };
+
   return (
     <div className="grid" style={{ gap: 14 }}>
       {toast && (
@@ -522,7 +532,7 @@ export default function Graduates() {
           >
             <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
             <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
-            <Link className="btn primary" to="/graduates/new">
+            <Link className="btn primary" to="/graduates/new" style={topButtonStyle}>
               {t("topbar.newGraduate")}
             </Link>
             <input
@@ -539,19 +549,24 @@ export default function Graduates() {
             <button
               className="btn"
               type="button"
+              style={topButtonStyle}
               onClick={() => (document.getElementById("import-xlsx") as HTMLInputElement | null)?.click()}
               disabled={importBusy}
             >
               {importBusy ? t("topbar.importing") : t("topbar.importExcel")}
             </button>
-            <button className="btn" type="button" onClick={() => void onDownloadTemplate()}>
+            <button className="btn" type="button" style={topButtonStyle} onClick={() => void onDownloadTemplate()}>
               {t("topbar.downloadTemplate")}
             </button>
-            <button className="btn" type="button" onClick={() => void onExportXlsx(selectedIds.length ? selectedIds : undefined)}>
+            <button className="btn" type="button" style={topButtonStyle} onClick={() => void onExportXlsx(selectedIds.length ? selectedIds : undefined)}>
               {t("topbar.exportExcel")}
+            </button>
+            <button className="btn" type="button" style={topButtonStyle} onClick={() => setShowFilters((v) => !v)}>
+              {activeLang === "gr" ? "Φίλτρα" : "Filters"}
             </button>
           </div>
 
+          {showFilters ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14, alignItems: "start" }}>
             <Field label={t("table.ad")}>
               <input className="input" value={filters.ad_code_like} onChange={(e) => setFilters((f) => ({ ...f, ad_code_like: e.target.value }))} />
@@ -585,27 +600,29 @@ export default function Graduates() {
               onToChange={(value) => setFilters((f) => ({ ...f, entry_year_max: value }))}
               type="number"
             />
-            <RangeField
-              label={t("table.birthYear")}
-              fromLabel={t("filters.from")}
-              toLabel={t("filters.to")}
-              fromValue={filters.birth_year_min}
-              toValue={filters.birth_year_max}
-              onFromChange={(value) => setFilters((f) => ({ ...f, birth_year_min: value }))}
-              onToChange={(value) => setFilters((f) => ({ ...f, birth_year_max: value }))}
-              type="number"
-            />
-            <RangeField
-              label={t("table.degreeGrade")}
-              fromLabel={t("filters.from")}
-              toLabel={t("filters.to")}
-              fromValue={filters.degree_grade_min}
-              toValue={filters.degree_grade_max}
-              onFromChange={(value) => setFilters((f) => ({ ...f, degree_grade_min: value }))}
-              onToChange={(value) => setFilters((f) => ({ ...f, degree_grade_max: value }))}
-              type="number"
-              step="0.01"
-            />
+            <Field label={t("table.birthYear")}>
+              <input
+                className="input"
+                type="number"
+                value={filters.birth_year_min || filters.birth_year_max}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFilters((f) => ({ ...f, birth_year_min: value, birth_year_max: value }));
+                }}
+              />
+            </Field>
+            <Field label={t("table.degreeGrade")}>
+              <input
+                className="input"
+                type="number"
+                step="0.01"
+                value={filters.degree_grade_min || filters.degree_grade_max}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFilters((f) => ({ ...f, degree_grade_min: value, degree_grade_max: value }));
+                }}
+              />
+            </Field>
             <RangeField
               label={t("table.graduationDate")}
               fromLabel={t("filters.from")}
@@ -675,6 +692,7 @@ export default function Graduates() {
               </button>
             </div>
           </div>
+          ) : null}
         </div>
       </div>
 
