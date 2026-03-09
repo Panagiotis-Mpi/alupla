@@ -34,7 +34,8 @@ function getColumnLabels(lang: ExportLang) {
       oath_date: "Oath date",
       study_program: "Study program",
       direction: "Direction",
-      origin_municipality: "Municipality of origin"
+      origin_region: "Region",
+      origin_municipality: "City"
     } as const;
   }
 
@@ -52,7 +53,8 @@ function getColumnLabels(lang: ExportLang) {
     oath_date: "Ημ. ορκωμοσίας",
     study_program: "Πρόγραμμα σπουδών",
     direction: "Κατεύθυνση",
-    origin_municipality: "Δήμος προέλευσης"
+    origin_region: "Περιφέρεια",
+    origin_municipality: "Πόλη"
   } as const;
 }
 
@@ -73,8 +75,9 @@ const IMPORT_HEADER_ALIASES = {
   study_program_id: ["study_program_id","study_prog","program_id","προγραμμα","program"],
   program_direction: ["program_direction","program_direction_id","program_dir","direction_id","κατευθυνση","direction","κατεύθυνση"],
   program_direction_id: ["program_direction_id","program_dir","direction_id","κατευθυνση","direction"],
-  origin_region_id: ["origin_region_id","origin_regio","region_id","περιοχη","region"],
-  origin_municipality: ["origin_municipality","δημος","municipality","δήμος προέλευσης","municipality of origin"],
+  origin_region: ["origin_region","origin_region_id","origin_regio","region_id","περιοχη","περιφέρεια","region"],
+  origin_region_id: ["origin_region_id","origin_regio","region_id","περιοχη","περιφέρεια","region"],
+  origin_municipality: ["origin_municipality","δημος","πόλη","municipality","city","δήμος προέλευσης","municipality of origin"],
 } as const;
 
 function parseSort(sortRaw: unknown): Array<[string, "ASC" | "DESC"]> {
@@ -138,7 +141,7 @@ function formatGenderValue(value: unknown, lang: ExportLang) {
   return String(value ?? "").trim();
 }
 
-function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number, any>, directionsById: Map<number, any>) {
+function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number, any>, directionsById: Map<number, any>, regionsById: Map<number, any>) {
   const labels = getColumnLabels(lang);
 
   return rows.map((g) => {
@@ -147,6 +150,8 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
     const direction = directionsById.get(Number(item.program_direction_id));
     const studyProgramName = studyProgram ? String(lang === "en" ? (studyProgram.name_en ?? studyProgram.name_el ?? studyProgram.code ?? studyProgram.id) : (studyProgram.name_el ?? studyProgram.name_en ?? studyProgram.code ?? studyProgram.id)) : "";
     const directionName = direction ? String(lang === "en" ? (direction.name_en ?? direction.name_el ?? direction.code ?? direction.id) : (direction.name_el ?? direction.name_en ?? direction.code ?? direction.id)) : "";
+    const region = regionsById.get(Number(item.origin_region_id));
+    const regionName = region ? String(region.name ?? "") : "";
 
     return {
       [labels.ad_code]: item.ad_code ?? "",
@@ -162,6 +167,7 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
       [labels.oath_date]: item.oath_date ?? "",
       [labels.study_program]: item.study_program_id && studyProgramName ? `${item.study_program_id} (${studyProgramName})` : studyProgramName,
       [labels.direction]: directionName,
+      [labels.origin_region]: regionName,
       [labels.origin_municipality]: item.origin_municipality ?? ""
     };
   });
@@ -183,19 +189,22 @@ function getTemplateHeaders(lang: ExportLang) {
     labels.oath_date,
     labels.study_program,
     labels.direction,
+    labels.origin_region,
     labels.origin_municipality
   ]];
 }
 
-async function getProgramMaps() {
-  const [programs, directions] = await Promise.all([
+async function getReferenceMaps() {
+  const [programs, directions, regions] = await Promise.all([
     StudyProgram.findAll({ order: [["id", "ASC"]] }),
-    ProgramDirection.findAll({ order: [["id", "ASC"]] })
+    ProgramDirection.findAll({ order: [["id", "ASC"]] }),
+    Region.findAll({ order: [["id", "ASC"]] })
   ]);
 
   return {
     programsById: new Map(programs.map((item: any) => [Number(item.id), item])),
-    directionsById: new Map(directions.map((item: any) => [Number(item.id), item]))
+    directionsById: new Map(directions.map((item: any) => [Number(item.id), item])),
+    regionsById: new Map(regions.map((item: any) => [Number(item.id), item]))
   };
 }
 
@@ -222,6 +231,22 @@ function resolveStudyProgramId(value: unknown, programsById: Map<number, any>) {
       .filter(Boolean)
       .map(normalizeLookupValue);
     if (candidates.includes(normalized)) return id;
+  }
+
+  return null;
+}
+
+function resolveRegionId(value: unknown, regionsById: Map<number, any>) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+
+  const directId = toInt(raw);
+  if (directId && regionsById.has(directId)) return directId;
+
+  const normalized = normalizeLookupValue(raw);
+  for (const [id, item] of regionsById.entries()) {
+    const candidates = [item?.name];
+    if (candidates.some((entry) => normalizeLookupValue(entry) === normalized)) return id;
   }
 
   return null;
@@ -298,8 +323,8 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
     }
 
     const rows = await Graduate.findAll({ where, order, limit: ids.length ? undefined : limit });
-    const { programsById, directionsById } = await getProgramMaps();
-    const data = buildExportRows(rows as any[], lang, programsById, directionsById);
+    const { programsById, directionsById, regionsById } = await getReferenceMaps();
+    const data = buildExportRows(rows as any[], lang, programsById, directionsById, regionsById);
 
     await logAction({
       user_id: req.user?.id ?? null,
@@ -345,7 +370,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
     if (!file?.buffer) return res.status(400).json({ error: { message: "Missing file" } });
 
     const wb = XLSX.read(file.buffer, { type: "buffer", cellDates: true });
-    const { programsById, directionsById } = await getProgramMaps();
+    const { programsById, directionsById, regionsById } = await getReferenceMaps();
     const sheetName = wb.SheetNames[0];
     if (!sheetName) return res.status(400).json({ error: { message: "Empty workbook" } });
     const ws = wb.Sheets[sheetName];
@@ -378,6 +403,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       study_program_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.study_program_id]),
       program_direction: firstIndex(headers, [...IMPORT_HEADER_ALIASES.program_direction]),
       program_direction_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.program_direction_id]),
+      origin_region: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_region]),
       origin_region_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_region_id]),
       origin_municipality: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_municipality]),
     };
@@ -426,7 +452,8 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const study_program_id = resolveStudyProgramId(study_program_source, programsById);
       const program_direction_source = idx.program_direction >= 0 ? get("program_direction") : get("program_direction_id");
       const program_direction_id = resolveProgramDirectionId(program_direction_source, directionsById, study_program_id);
-      const origin_region_id = toInt(get("origin_region_id"));
+      const origin_region_source = idx.origin_region >= 0 ? get("origin_region") : get("origin_region_id");
+      const origin_region_id = resolveRegionId(origin_region_source, regionsById) ?? toInt(get("origin_region_id"));
       const origin_municipality = String(get("origin_municipality")).trim() || null;
 
       const rowProblems: RowError[] = [];
@@ -443,6 +470,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       if (degree_grade === null) rowProblems.push({ row: rowNum, column: "degree_grade", message: "Invalid number", value: get("degree_grade") });
       if (!birth_date) rowProblems.push({ row: rowNum, column: "birth_date", message: "Invalid date", value: idx.birth_date >= 0 ? get("birth_date" as any) : get("birth_year" as any) });
       if (!study_program_id) rowProblems.push({ row: rowNum, column: "study_program", message: "Invalid value", value: study_program_source });
+      if (!origin_region_id && String(origin_region_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_region", message: "Invalid value", value: origin_region_source });
 
       if (rowProblems.length) {
         errors.push(...rowProblems);

@@ -10,7 +10,8 @@
     "importTemplateHelp": "The Excel field format for importing graduates is the following:",
     "downloadTemplate": "Download Excel Template",
     "selectGraduates": "Select Graduates",
-    "exportSelected": "Export Selected"
+    "exportSelected": "Export Selected",
+    "delete": "Delete"
   },
   "filters": {
     "qLabel": "Global search (q)",
@@ -30,7 +31,6 @@
     "from": "From",
     "to": "To",
     "region": "Region",
-    "filtersToggle": "Filters",
     "page": "page {{page}}",
     "male": "Male",
     "female": "Female"
@@ -51,12 +51,12 @@
     "oathDate": "Oath date",
     "studyProgram": "Study program",
     "direction": "Direction",
-    "originRegion": "Region",
     "originMunicipality": "City",
     "actions": "Actions",
     "edit": "Edit",
     "delete": "Delete",
-    "empty": "No results."
+    "empty": "No results.",
+    "region": "Region"
   },
   "toast": {
     "importCompleted": "Import completed",
@@ -66,7 +66,8 @@
     "downloadErrors": "Download errors"
   },
   "confirm": {
-    "deleteGraduate": "Delete graduate #{{id}}?"
+    "deleteGraduate": "Delete graduate #{{id}}?",
+    "deleteSelectedGraduates": "Are you sure you want to delete the selected graduates?"
   },
   "export": {
     "failed": "Export failed"

@@ -80,7 +80,7 @@ const EMPTY_FILTERS: FiltersState = {
 
 function Field(props: { label: string; children: React.ReactNode; span?: number }) {
   return (
-    <div style={{ gridColumn: `span ${props.span ?? 4}` }}>
+    <div style={{ gridColumn: `span ${props.span ?? 4}`, display: "flex", flexDirection: "column", gap: 8, minHeight: 104 }}>
       <label className="label">{props.label}</label>
       {props.children}
     </div>
@@ -457,6 +457,19 @@ export default function Graduates() {
     }
   }
 
+
+
+  async function onDeleteSelected() {
+    if (!selectedIds.length) return;
+    if (!confirm(t("confirm.deleteSelectedGraduates"))) return;
+    try {
+      await Promise.all(selectedIds.map((id) => deleteGraduate(id)));
+      setSelectedIds([]);
+      await load();
+    } catch (e: any) {
+      alert(e?.message ?? t("toast.somethingWentWrong"));
+    }
+  }
   const wideCardStyle: React.CSSProperties = {
     width: "calc(100vw - 32px)",
     marginLeft: "calc(50% - 50vw + 16px)",
@@ -476,8 +489,8 @@ export default function Graduates() {
   };
 
   const topButtonStyle: React.CSSProperties = {
-    minWidth: 190,
-    height: 52,
+    minWidth: 156,
+    height: 44,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -529,7 +542,7 @@ export default function Graduates() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: 16,
+              gap: 14,
               flexWrap: "wrap",
             }}
           >
@@ -537,44 +550,54 @@ export default function Graduates() {
               <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
               <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <Link className="btn primary" to="/graduates/new" style={topButtonStyle}>
                 {t("topbar.newGraduate")}
               </Link>
-            <input
-              id="import-xlsx"
-              type="file"
-              accept=".xlsx,.xls"
-              style={{ display: "none" }}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void onImportXlsx(f);
-                e.currentTarget.value = "";
-              }}
-            />
-            <button
-              className="btn"
-              type="button"
-              style={topButtonStyle}
-              onClick={() => (document.getElementById("import-xlsx") as HTMLInputElement | null)?.click()}
-              disabled={importBusy}
-            >
-              {importBusy ? t("topbar.importing") : t("topbar.importExcel")}
-            </button>
-            <button className="btn" type="button" style={topButtonStyle} onClick={() => void onDownloadTemplate()}>
-              {t("topbar.downloadTemplate")}
-            </button>
-            <button className="btn" type="button" style={topButtonStyle} onClick={() => void onExportXlsx(selectedIds.length ? selectedIds : undefined)}>
-              {t("topbar.exportExcel")}
-            </button>
-            <button className="btn" type="button" style={topButtonStyle} onClick={() => setShowFilters((v) => !v)}>
-              {t("filters.filtersToggle")}
-            </button>
+              <button
+                className="btn danger"
+                type="button"
+                style={topButtonStyle}
+                onClick={() => void onDeleteSelected()}
+                disabled={!selectedIds.length}
+              >
+                {t("topbar.delete")}
+              </button>
+              <input
+                id="import-xlsx"
+                type="file"
+                accept=".xlsx,.xls"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void onImportXlsx(f);
+                  e.currentTarget.value = "";
+                }}
+              />
+              <button
+                className="btn"
+                type="button"
+                style={topButtonStyle}
+                onClick={() => (document.getElementById("import-xlsx") as HTMLInputElement | null)?.click()}
+                disabled={importBusy}
+              >
+                {importBusy ? t("topbar.importing") : t("topbar.importExcel")}
+              </button>
+              <button className="btn" type="button" style={topButtonStyle} onClick={() => void onDownloadTemplate()}>
+                {t("topbar.downloadTemplate")}
+              </button>
+              <button className="btn" type="button" style={topButtonStyle} onClick={() => void onExportXlsx(selectedIds.length ? selectedIds : undefined)}>
+                {t("topbar.exportExcel")}
+              </button>
+              <button className="btn" type="button" style={topButtonStyle} onClick={() => setShowFilters((v) => !v)}>
+                {activeLang === "gr" ? "Φίλτρα" : "Filters"}
+              </button>
             </div>
           </div>
 
           {showFilters ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14, alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14, alignItems: "stretch" }}>
             <Field label={t("table.ad")}>
               <input className="input" value={filters.ad_code_like} onChange={(e) => setFilters((f) => ({ ...f, ad_code_like: e.target.value }))} />
             </Field>
@@ -717,7 +740,7 @@ export default function Graduates() {
             msOverflowStyle: "none",
           }}
         >
-          <table className="table" style={{ minWidth: 2200 }}>
+          <table className="table" style={{ minWidth: 2000 }}>
             <thead>
               <tr>
                 <th style={{ width: 44 }}><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} /></th>
@@ -734,7 +757,7 @@ export default function Graduates() {
                 <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("oath_date")}>{t("table.oathDate")}{getSortIndicator("oath_date")}</button></th>
                 <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("study_program")}>{t("table.studyProgram")}{getSortIndicator("study_program")}</button></th>
                 <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("direction")}>{t("table.direction")}{getSortIndicator("direction")}</button></th>
-                <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_region")}>{t("table.originRegion")}{getSortIndicator("origin_region")}</button></th>
+                <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_region")}>{t("table.region")}{getSortIndicator("origin_region")}</button></th>
                 <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_municipality")}>{t("table.originMunicipality")}{getSortIndicator("origin_municipality")}</button></th>
                 <th className="row-actions">{t("table.actions")}</th>
               </tr>
@@ -768,7 +791,7 @@ export default function Graduates() {
                     <td>{fmt(g.origin_municipality)}</td>
                     <td>
                       <div className="row-actions">
-                        <Link className="btn" to={`/graduates/${g.id}`}>
+                        <Link className="btn" to={`/graduates/${g.id}`} style={{ textDecoration: "none" }}>
                           {t("table.edit")}
                         </Link>
                         <button

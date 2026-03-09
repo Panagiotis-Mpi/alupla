@@ -10,7 +10,8 @@
     "importTemplateHelp": "Η μορφή των πεδίων του excel για την εισαγωγή αποφοίτων είναι η εξής:",
     "downloadTemplate": "Λήψη προτύπου Excel",
     "selectGraduates": "Επιλογή αποφοίτων",
-    "exportSelected": "Εξαγωγή επιλεγμένων"
+    "exportSelected": "Εξαγωγή επιλεγμένων",
+    "delete": "Διαγραφή"
   },
   "filters": {
     "qLabel": "Global αναζήτηση (q)",
@@ -30,7 +31,6 @@
     "from": "Από",
     "to": "Έως",
     "region": "Περιφέρεια",
-    "filtersToggle": "Φίλτρα",
     "page": "page {{page}}",
     "male": "Άνδρας",
     "female": "Γυναίκα"
@@ -51,12 +51,12 @@
     "oathDate": "Ημ. ορκωμοσίας",
     "studyProgram": "Πρόγραμμα σπουδών",
     "direction": "Κατεύθυνση",
-    "originRegion": "Περιφέρεια",
     "originMunicipality": "Πόλη",
     "actions": "Ενέργειες",
     "edit": "Επεξεργασία",
     "delete": "Διαγραφή",
-    "empty": "Δεν υπάρχουν αποτελέσματα."
+    "empty": "Δεν υπάρχουν αποτελέσματα.",
+    "region": "Περιφέρεια"
   },
   "toast": {
     "importCompleted": "Η εισαγωγή ολοκληρώθηκε",
@@ -66,7 +66,8 @@
     "downloadErrors": "Λήψη σφαλμάτων"
   },
   "confirm": {
-    "deleteGraduate": "Διαγραφή αποφοίτου #{{id}};"
+    "deleteGraduate": "Διαγραφή αποφοίτου #{{id}};",
+    "deleteSelectedGraduates": "Είσαι σίγουρος ότι θέλεις να διαγράψεις τους επιλεγμένους αποφοίτους;"
   },
   "export": {
     "failed": "Η εξαγωγή απέτυχε"
