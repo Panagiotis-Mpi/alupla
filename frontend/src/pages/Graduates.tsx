@@ -364,62 +364,90 @@ export default function Graduates() {
         </div>
       )}
 
-      <div className="topbar" style={{ alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-        <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
-        <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
-        <div className="spacer" />
-        <input
-          id="import-xlsx"
-          type="file"
-          accept=".xlsx,.xls"
-          style={{ display: "none" }}
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void onImportXlsx(f);
-            e.currentTarget.value = "";
-          }}
-        />
-        <button
-          className="btn"
-          type="button"
-          onClick={() => (document.getElementById("import-xlsx") as HTMLInputElement | null)?.click()}
-          disabled={importBusy}
-        >
-          {importBusy ? t("topbar.importing") : t("topbar.importExcel")}
-        </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13 }}>{t("topbar.importTemplateHelp")}</span>
-          <button className="btn" type="button" onClick={() => void onDownloadTemplate()}>
-            {t("topbar.downloadTemplate")}
-          </button>
+      <div className="card" style={{ padding: 14 }}>
+        <div style={{ display: "grid", gap: 14 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
+              <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <button className={`btn${selectionMode ? " primary" : ""}`} type="button" onClick={() => setSelectionMode((v) => !v)}>
+                {t("topbar.selectGraduates")}
+              </button>
+              <Link className="btn primary" to="/graduates/new">
+                {t("topbar.newGraduate")}
+              </Link>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <input
+                id="import-xlsx"
+                type="file"
+                accept=".xlsx,.xls"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void onImportXlsx(f);
+                  e.currentTarget.value = "";
+                }}
+              />
+              <button
+                className="btn"
+                type="button"
+                onClick={() => (document.getElementById("import-xlsx") as HTMLInputElement | null)?.click()}
+                disabled={importBusy}
+              >
+                {importBusy ? t("topbar.importing") : t("topbar.importExcel")}
+              </button>
+              <button className="btn" type="button" onClick={() => void onDownloadTemplate()}>
+                {t("topbar.downloadTemplate")}
+              </button>
+              <button className="btn" type="button" onClick={() => void onExportXlsx()}>
+                {t("topbar.exportExcel")}
+              </button>
+              {selectionMode ? (
+                <button className="btn" type="button" onClick={() => void onExportXlsx(selectedIds)} disabled={!selectedIds.length}>
+                  {t("topbar.exportSelected")}
+                </button>
+              ) : null}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <span style={{ fontSize: 13 }}>{t("topbar.importTemplateHelp")}</span>
+            </div>
+          </div>
         </div>
-        <button className="btn" type="button" onClick={() => void onExportXlsx()}>
-          {t("topbar.exportExcel")}
-        </button>
-        <button className={`btn${selectionMode ? " primary" : ""}`} type="button" onClick={() => setSelectionMode((v) => !v)}>
-          {t("topbar.selectGraduates")}
-        </button>
-        {selectionMode ? (
-          <button className="btn" type="button" onClick={() => void onExportXlsx(selectedIds)} disabled={!selectedIds.length}>
-            {t("topbar.exportSelected")}
-          </button>
-        ) : null}
-        <Link className="btn primary" to="/graduates/new">
-          {t("topbar.newGraduate")}
-        </Link>
       </div>
 
       <div className="card">
-        <div className="grid cols3">
-          <div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14, alignItems: "end" }}>
+          <div style={{ gridColumn: "span 4" }}>
             <label className="label">{t("filters.lastNameLike")}</label>
             <input className="input" value={filters.last_name_like} onChange={(e) => setFilters((f) => ({ ...f, last_name_like: e.target.value }))} />
           </div>
-          <div>
+          <div style={{ gridColumn: "span 4" }}>
             <label className="label">{t("filters.firstNameLike")}</label>
             <input className="input" value={filters.first_name_like} onChange={(e) => setFilters((f) => ({ ...f, first_name_like: e.target.value }))} />
           </div>
-          <div>
+          <div style={{ gridColumn: "span 4" }}>
             <label className="label">{t("filters.gender")}</label>
             <select className="input" value={filters.gender} onChange={(e) => setFilters((f) => ({ ...f, gender: e.target.value }))}>
               <option value="">{t("filters.all")}</option>
@@ -427,7 +455,7 @@ export default function Graduates() {
               <option value="F">F</option>
             </select>
           </div>
-          <div>
+          <div style={{ gridColumn: "span 4" }}>
             <label className="label">{t("filters.studyProgram")}</label>
             <select className="input" value={filters.study_program_id} onChange={(e) => setFilters((f) => ({ ...f, study_program_id: e.target.value }))}>
               <option value="">{t("filters.all")}</option>
@@ -438,20 +466,20 @@ export default function Graduates() {
               ))}
             </select>
           </div>
-        </div>
-        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-          <button className="btn" onClick={() => void load()}>
-            {t("filters.search")}
-          </button>
-          <button
-            className="btn"
-            onClick={() => {
-              setFilters({ last_name_like: "", first_name_like: "", gender: "", study_program_id: "" });
-              setTimeout(() => void load(), 0);
-            }}
-          >
-            {t("filters.reset")}
-          </button>
+          <div style={{ gridColumn: "span 8", display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-start" }}>
+            <button className="btn" onClick={() => void load()}>
+              {t("filters.search")}
+            </button>
+            <button
+              className="btn"
+              onClick={() => {
+                setFilters({ last_name_like: "", first_name_like: "", gender: "", study_program_id: "" });
+                setTimeout(() => void load(), 0);
+              }}
+            >
+              {t("filters.reset")}
+            </button>
+          </div>
         </div>
       </div>
 
