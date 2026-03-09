@@ -27,7 +27,9 @@
     "sort_last_name_desc": "last name ↓",
     "search": "Search",
     "reset": "Reset",
-    "page": "page {{page}}"
+    "page": "page {{page}}",
+    "male": "Male",
+    "female": "Female"
   },
   "table": {
     "id": "ID",

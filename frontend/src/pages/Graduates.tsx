@@ -98,21 +98,29 @@ export default function Graduates() {
     return p;
   }, [filters]);
 
+  const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
+
   const programNameById = useMemo(() => {
     const m = new Map<number, string>();
     for (const p of programs || []) {
-      m.set(Number((p as any).id), String((p as any).name_el ?? (p as any).name_en ?? (p as any).code ?? (p as any).id));
+      const name = activeLang === "en"
+        ? String((p as any).name_en ?? (p as any).name_el ?? (p as any).code ?? (p as any).id)
+        : String((p as any).name_el ?? (p as any).name_en ?? (p as any).code ?? (p as any).id);
+      m.set(Number((p as any).id), name);
     }
     return m;
-  }, [programs]);
+  }, [activeLang, programs]);
 
   const directionNameById = useMemo(() => {
     const m = new Map<number, string>();
     for (const d of directions || []) {
-      m.set(Number((d as any).id), String((d as any).name_el ?? (d as any).name_en ?? (d as any).code ?? (d as any).id));
+      const name = activeLang === "en"
+        ? String((d as any).name_en ?? (d as any).name_el ?? (d as any).code ?? (d as any).id)
+        : String((d as any).name_el ?? (d as any).name_en ?? (d as any).code ?? (d as any).id);
+      m.set(Number((d as any).id), name);
     }
     return m;
-  }, [directions]);
+  }, [activeLang, directions]);
 
   const fmt = (v: any) => (v === null || v === undefined ? "" : String(v));
 
@@ -388,63 +396,40 @@ export default function Graduates() {
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
               gap: 12,
               flexWrap: "wrap",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
-              <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-              <Link className="btn primary" to="/graduates/new">
-                {t("topbar.newGraduate")}
-              </Link>
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <input
-                id="import-xlsx"
-                type="file"
-                accept=".xlsx,.xls"
-                style={{ display: "none" }}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void onImportXlsx(f);
-                  e.currentTarget.value = "";
-                }}
-              />
-              <button
-                className="btn"
-                type="button"
-                onClick={() => (document.getElementById("import-xlsx") as HTMLInputElement | null)?.click()}
-                disabled={importBusy}
-              >
-                {importBusy ? t("topbar.importing") : t("topbar.importExcel")}
-              </button>
-              <button className="btn" type="button" onClick={() => void onDownloadTemplate()}>
-                {t("topbar.downloadTemplate")}
-              </button>
-              <button className="btn" type="button" onClick={() => void onExportXlsx()}>
-                {t("topbar.exportExcel")}
-              </button>
-              {selectedIds.length ? (
-                <button className="btn" type="button" onClick={() => void onExportXlsx(selectedIds)}>
-                  {t("topbar.exportSelected")}
-                </button>
-              ) : null}
-            </div>
+            <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
+            <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
+            <Link className="btn primary" to="/graduates/new">
+              {t("topbar.newGraduate")}
+            </Link>
+            <input
+              id="import-xlsx"
+              type="file"
+              accept=".xlsx,.xls"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void onImportXlsx(f);
+                e.currentTarget.value = "";
+              }}
+            />
+            <button
+              className="btn"
+              type="button"
+              onClick={() => (document.getElementById("import-xlsx") as HTMLInputElement | null)?.click()}
+              disabled={importBusy}
+            >
+              {importBusy ? t("topbar.importing") : t("topbar.importExcel")}
+            </button>
+            <button className="btn" type="button" onClick={() => void onDownloadTemplate()}>
+              {t("topbar.downloadTemplate")}
+            </button>
+            <button className="btn" type="button" onClick={() => void onExportXlsx(selectedIds.length ? selectedIds : undefined)}>
+              {t("topbar.exportExcel")}
+            </button>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14, alignItems: "end" }}>
@@ -460,8 +445,8 @@ export default function Graduates() {
               <label className="label">{t("filters.gender")}</label>
               <select className="input" value={filters.gender} onChange={(e) => setFilters((f) => ({ ...f, gender: e.target.value }))}>
                 <option value="">{t("filters.all")}</option>
-                <option value="M">M</option>
-                <option value="F">F</option>
+                <option value="M">{t("filters.male")}</option>
+                <option value="F">{t("filters.female")}</option>
               </select>
             </div>
             <div style={{ gridColumn: "span 4" }}>
@@ -470,7 +455,7 @@ export default function Graduates() {
                 <option value="">{t("filters.all")}</option>
                 {programs.map((p) => (
                   <option key={(p as any).id} value={(p as any).id}>
-                    {(p as any).code} - {(p as any).name_el}
+                    {(p as any).code} - {activeLang === "en" ? ((p as any).name_en ?? (p as any).name_el) : ((p as any).name_el ?? (p as any).name_en)}
                   </option>
                 ))}
               </select>
@@ -495,7 +480,19 @@ export default function Graduates() {
       </div>
 
       <div className="card" style={{ ...wideCardStyle, position: "relative" }}>
-        <div className="table-wrap" ref={tableWrapRef} style={{ overflowX: "hidden" }}>
+        <div
+          className="table-wrap"
+          ref={tableWrapRef}
+          style={{
+            overflowX: "auto",
+            overflowY: "hidden",
+            WebkitOverflowScrolling: "touch",
+            touchAction: "pan-x pan-y",
+            overscrollBehaviorX: "contain",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
           <table className="table" style={{ minWidth: 2000 }}>
             <thead>
               <tr>

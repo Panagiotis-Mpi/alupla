@@ -3,14 +3,14 @@
   "topbar": {
     "loading": "φόρτωση...",
     "total": "{{total}} σύνολο",
-    "importExcel": "Import Excel",
-    "importing": "Import...",
-    "exportExcel": "Export Excel",
+    "importExcel": "Εισαγωγή Excel",
+    "importing": "Εισαγωγή...",
+    "exportExcel": "Εξαγωγή Excel",
     "newGraduate": "+ Νέος Απόφοιτος",
     "importTemplateHelp": "Η μορφή των πεδίων του excel για την εισαγωγή αποφοίτων είναι η εξής:",
     "downloadTemplate": "Λήψη προτύπου Excel",
     "selectGraduates": "Επιλογή αποφοίτων",
-    "exportSelected": "Export επιλεγμένων"
+    "exportSelected": "Εξαγωγή επιλεγμένων"
   },
   "filters": {
     "qLabel": "Global αναζήτηση (q)",
@@ -26,8 +26,10 @@
     "sort_last_name_asc": "επώνυμο ↑",
     "sort_last_name_desc": "επώνυμο ↓",
     "search": "Αναζήτηση",
-    "reset": "Reset",
-    "page": "page {{page}}"
+    "reset": "Καθαρισμός",
+    "page": "page {{page}}",
+    "male": "Άνδρας",
+    "female": "Γυναίκα"
   },
   "table": {
     "id": "ID",
@@ -46,22 +48,22 @@
     "studyProgram": "Πρόγραμμα σπουδών",
     "direction": "Κατεύθυνση",
     "originMunicipality": "Δήμος προέλευσης",
-    "actions": "Actions",
-    "edit": "Edit",
-    "delete": "Delete",
+    "actions": "Ενέργειες",
+    "edit": "Επεξεργασία",
+    "delete": "Διαγραφή",
     "empty": "Δεν υπάρχουν αποτελέσματα."
   },
   "toast": {
-    "importCompleted": "Import completed",
-    "importWithErrors": "Import ολοκληρώθηκε με {{count}} σφάλματα",
-    "importFailed": "Import failed",
+    "importCompleted": "Η εισαγωγή ολοκληρώθηκε",
+    "importWithErrors": "Η εισαγωγή ολοκληρώθηκε με {{count}} σφάλματα",
+    "importFailed": "Η εισαγωγή απέτυχε",
     "somethingWentWrong": "Κάτι πήγε στραβά",
-    "downloadErrors": "Download errors"
+    "downloadErrors": "Λήψη σφαλμάτων"
   },
   "confirm": {
-    "deleteGraduate": "Delete graduate #{{id}}?"
+    "deleteGraduate": "Διαγραφή αποφοίτου #{{id}};"
   },
   "export": {
-    "failed": "Export failed"
+    "failed": "Η εξαγωγή απέτυχε"
   }
 }
