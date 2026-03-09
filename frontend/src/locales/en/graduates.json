@@ -30,6 +30,7 @@
     "from": "From",
     "to": "To",
     "region": "Region",
+    "filtersToggle": "Filters",
     "page": "page {{page}}",
     "male": "Male",
     "female": "Female"
@@ -50,7 +51,8 @@
     "oathDate": "Oath date",
     "studyProgram": "Study program",
     "direction": "Direction",
-    "originMunicipality": "Municipality of origin",
+    "originRegion": "Region",
+    "originMunicipality": "City",
     "actions": "Actions",
     "edit": "Edit",
     "delete": "Delete",

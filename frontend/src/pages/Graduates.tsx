@@ -29,6 +29,7 @@ type SortKey =
   | "oath_date"
   | "study_program"
   | "direction"
+  | "origin_region"
   | "origin_municipality";
 
 type FiltersState = {
@@ -335,6 +336,7 @@ export default function Graduates() {
       return `${g?.study_program_id ?? ""} ${name}`;
     }
     if (key === "direction") return directionNameById.get(Number(g?.program_direction_id)) ?? "";
+    if (key === "origin_region") return regionNameById.get(Number(g?.origin_region_id)) ?? "";
     if (key === "gender") return renderGender(g?.gender);
     return g?.[key] ?? "";
   }
@@ -526,15 +528,19 @@ export default function Graduates() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 12,
+              justifyContent: "space-between",
+              gap: 16,
               flexWrap: "wrap",
             }}
           >
-            <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
-            <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
-            <Link className="btn primary" to="/graduates/new" style={topButtonStyle}>
-              {t("topbar.newGraduate")}
-            </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
+              <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <Link className="btn primary" to="/graduates/new" style={topButtonStyle}>
+                {t("topbar.newGraduate")}
+              </Link>
             <input
               id="import-xlsx"
               type="file"
@@ -562,8 +568,9 @@ export default function Graduates() {
               {t("topbar.exportExcel")}
             </button>
             <button className="btn" type="button" style={topButtonStyle} onClick={() => setShowFilters((v) => !v)}>
-              {activeLang === "gr" ? "Φίλτρα" : "Filters"}
+              {t("filters.filtersToggle")}
             </button>
+            </div>
           </div>
 
           {showFilters ? (
@@ -710,7 +717,7 @@ export default function Graduates() {
             msOverflowStyle: "none",
           }}
         >
-          <table className="table" style={{ minWidth: 2000 }}>
+          <table className="table" style={{ minWidth: 2200 }}>
             <thead>
               <tr>
                 <th style={{ width: 44 }}><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} /></th>
@@ -727,6 +734,7 @@ export default function Graduates() {
                 <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("oath_date")}>{t("table.oathDate")}{getSortIndicator("oath_date")}</button></th>
                 <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("study_program")}>{t("table.studyProgram")}{getSortIndicator("study_program")}</button></th>
                 <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("direction")}>{t("table.direction")}{getSortIndicator("direction")}</button></th>
+                <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_region")}>{t("table.originRegion")}{getSortIndicator("origin_region")}</button></th>
                 <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_municipality")}>{t("table.originMunicipality")}{getSortIndicator("origin_municipality")}</button></th>
                 <th className="row-actions">{t("table.actions")}</th>
               </tr>
@@ -756,6 +764,7 @@ export default function Graduates() {
                         : ""}
                     </td>
                     <td>{directionNameById.get(Number(g.program_direction_id)) ?? ""}</td>
+                    <td>{regionNameById.get(Number(g.origin_region_id)) ?? ""}</td>
                     <td>{fmt(g.origin_municipality)}</td>
                     <td>
                       <div className="row-actions">
@@ -779,7 +788,7 @@ export default function Graduates() {
               })}
               {!visibleItems.length && (
                 <tr>
-                  <td colSpan={16} className="muted">
+                  <td colSpan={17} className="muted">
                     {t("table.empty")}
                   </td>
                 </tr>

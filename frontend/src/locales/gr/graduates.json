@@ -30,6 +30,7 @@
     "from": "Από",
     "to": "Έως",
     "region": "Περιφέρεια",
+    "filtersToggle": "Φίλτρα",
     "page": "page {{page}}",
     "male": "Άνδρας",
     "female": "Γυναίκα"
@@ -50,7 +51,8 @@
     "oathDate": "Ημ. ορκωμοσίας",
     "studyProgram": "Πρόγραμμα σπουδών",
     "direction": "Κατεύθυνση",
-    "originMunicipality": "Δήμος προέλευσης",
+    "originRegion": "Περιφέρεια",
+    "originMunicipality": "Πόλη",
     "actions": "Ενέργειες",
     "edit": "Επεξεργασία",
     "delete": "Διαγραφή",
