@@ -45,7 +45,6 @@ export default function Graduates() {
   const [items, setItems] = useState<Graduate[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [sortState, setSortState] = useState<{ key: SortKey; dir: SortDir }>({ key: "ad_code", dir: "asc" });
   const [filters, setFilters] = useState({
@@ -57,6 +56,7 @@ export default function Graduates() {
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarInnerRef = useRef<HTMLDivElement | null>(null);
+  const selectAllRef = useRef<HTMLInputElement | null>(null);
 
   function showToast(tst: { type: "success" | "error"; title: string; detail?: string; action?: "download_errors" }) {
     setToast(tst);
@@ -192,7 +192,7 @@ export default function Graduates() {
       bar.removeEventListener("scroll", onBarScroll);
       window.removeEventListener("resize", update);
     };
-  }, [items, selectionMode, sortState, programs, directions]);
+  }, [items, sortState, programs, directions]);
 
   function normalizeValue(value: any) {
     if (value === null || value === undefined) return "";
@@ -247,6 +247,24 @@ export default function Graduates() {
 
   function toggleSelected(id: number) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  const visibleIds = useMemo(() => visibleItems.map((g: any) => Number(g.id)).filter((id) => Number.isFinite(id)), [visibleItems]);
+
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+  const someVisibleSelected = visibleIds.some((id) => selectedIds.includes(id));
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = !allVisibleSelected && someVisibleSelected;
+    }
+  }, [allVisibleSelected, someVisibleSelected]);
+
+  function toggleAllVisible() {
+    setSelectedIds((prev) => {
+      if (allVisibleSelected) return prev.filter((id) => !visibleIds.includes(id));
+      return Array.from(new Set([...prev, ...visibleIds]));
+    });
   }
 
   async function onExportXlsx(ids?: number[]) {
@@ -380,9 +398,6 @@ export default function Graduates() {
               <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-              <button className={`btn${selectionMode ? " primary" : ""}`} type="button" onClick={() => setSelectionMode((v) => !v)}>
-                {t("topbar.selectGraduates")}
-              </button>
               <Link className="btn primary" to="/graduates/new">
                 {t("topbar.newGraduate")}
               </Link>
@@ -424,71 +439,67 @@ export default function Graduates() {
               <button className="btn" type="button" onClick={() => void onExportXlsx()}>
                 {t("topbar.exportExcel")}
               </button>
-              {selectionMode ? (
-                <button className="btn" type="button" onClick={() => void onExportXlsx(selectedIds)} disabled={!selectedIds.length}>
+              {selectedIds.length ? (
+                <button className="btn" type="button" onClick={() => void onExportXlsx(selectedIds)}>
                   {t("topbar.exportSelected")}
                 </button>
               ) : null}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-              <span style={{ fontSize: 13 }}>{t("topbar.importTemplateHelp")}</span>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14, alignItems: "end" }}>
+            <div style={{ gridColumn: "span 4" }}>
+              <label className="label">{t("filters.lastNameLike")}</label>
+              <input className="input" value={filters.last_name_like} onChange={(e) => setFilters((f) => ({ ...f, last_name_like: e.target.value }))} />
+            </div>
+            <div style={{ gridColumn: "span 4" }}>
+              <label className="label">{t("filters.firstNameLike")}</label>
+              <input className="input" value={filters.first_name_like} onChange={(e) => setFilters((f) => ({ ...f, first_name_like: e.target.value }))} />
+            </div>
+            <div style={{ gridColumn: "span 4" }}>
+              <label className="label">{t("filters.gender")}</label>
+              <select className="input" value={filters.gender} onChange={(e) => setFilters((f) => ({ ...f, gender: e.target.value }))}>
+                <option value="">{t("filters.all")}</option>
+                <option value="M">M</option>
+                <option value="F">F</option>
+              </select>
+            </div>
+            <div style={{ gridColumn: "span 4" }}>
+              <label className="label">{t("filters.studyProgram")}</label>
+              <select className="input" value={filters.study_program_id} onChange={(e) => setFilters((f) => ({ ...f, study_program_id: e.target.value }))}>
+                <option value="">{t("filters.all")}</option>
+                {programs.map((p) => (
+                  <option key={(p as any).id} value={(p as any).id}>
+                    {(p as any).code} - {(p as any).name_el}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ gridColumn: "span 8", display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-start" }}>
+              <button className="btn" onClick={() => void load()}>
+                {t("filters.search")}
+              </button>
+              <button
+                className="btn"
+                onClick={() => {
+                  setFilters({ last_name_like: "", first_name_like: "", gender: "", study_program_id: "" });
+                  setSelectedIds([]);
+                  setTimeout(() => void load(), 0);
+                }}
+              >
+                {t("filters.reset")}
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="card">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14, alignItems: "end" }}>
-          <div style={{ gridColumn: "span 4" }}>
-            <label className="label">{t("filters.lastNameLike")}</label>
-            <input className="input" value={filters.last_name_like} onChange={(e) => setFilters((f) => ({ ...f, last_name_like: e.target.value }))} />
-          </div>
-          <div style={{ gridColumn: "span 4" }}>
-            <label className="label">{t("filters.firstNameLike")}</label>
-            <input className="input" value={filters.first_name_like} onChange={(e) => setFilters((f) => ({ ...f, first_name_like: e.target.value }))} />
-          </div>
-          <div style={{ gridColumn: "span 4" }}>
-            <label className="label">{t("filters.gender")}</label>
-            <select className="input" value={filters.gender} onChange={(e) => setFilters((f) => ({ ...f, gender: e.target.value }))}>
-              <option value="">{t("filters.all")}</option>
-              <option value="M">M</option>
-              <option value="F">F</option>
-            </select>
-          </div>
-          <div style={{ gridColumn: "span 4" }}>
-            <label className="label">{t("filters.studyProgram")}</label>
-            <select className="input" value={filters.study_program_id} onChange={(e) => setFilters((f) => ({ ...f, study_program_id: e.target.value }))}>
-              <option value="">{t("filters.all")}</option>
-              {programs.map((p) => (
-                <option key={(p as any).id} value={(p as any).id}>
-                  {(p as any).code} - {(p as any).name_el}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div style={{ gridColumn: "span 8", display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-start" }}>
-            <button className="btn" onClick={() => void load()}>
-              {t("filters.search")}
-            </button>
-            <button
-              className="btn"
-              onClick={() => {
-                setFilters({ last_name_like: "", first_name_like: "", gender: "", study_program_id: "" });
-                setTimeout(() => void load(), 0);
-              }}
-            >
-              {t("filters.reset")}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="card" style={wideCardStyle}>
+      <div className="card" style={{ ...wideCardStyle, position: "relative" }}>
         <div className="table-wrap" ref={tableWrapRef} style={{ overflowX: "hidden" }}>
           <table className="table" style={{ minWidth: 2000 }}>
             <thead>
               <tr>
-                {selectionMode ? <th style={{ width: 44 }} /> : null}
+                <th style={{ width: 44 }}><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} /></th>
                 <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("ad_code")}>{t("table.ad")}{getSortIndicator("ad_code")}</button></th>
                 <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("student_number")}>{t("table.am")}{getSortIndicator("student_number")}</button></th>
                 <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("last_name")}>{t("table.lastName")}{getSortIndicator("last_name")}</button></th>
@@ -511,11 +522,9 @@ export default function Graduates() {
                 const id = Number(g.id);
                 return (
                   <tr key={g.id}>
-                    {selectionMode ? (
-                      <td>
-                        <input type="checkbox" checked={selectedIds.includes(id)} onChange={() => toggleSelected(id)} />
-                      </td>
-                    ) : null}
+                    <td>
+                      <input type="checkbox" checked={selectedIds.includes(id)} onChange={() => toggleSelected(id)} />
+                    </td>
                     <td>{fmt(g.ad_code)}</td>
                     <td>{fmt(g.student_number ?? g.student_nuad_code ?? g.am ?? g.student_id)}</td>
                     <td>{fmt(g.last_name)}</td>
@@ -556,7 +565,7 @@ export default function Graduates() {
               })}
               {!visibleItems.length && (
                 <tr>
-                  <td colSpan={selectionMode ? 16 : 15} className="muted">
+                  <td colSpan={16} className="muted">
                     {t("table.empty")}
                   </td>
                 </tr>
@@ -564,26 +573,26 @@ export default function Graduates() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      <div
-        ref={floatingScrollbarRef}
-        style={{
-          position: "fixed",
-          left: 16,
-          right: 16,
-          bottom: 8,
-          overflowX: "auto",
-          overflowY: "hidden",
-          zIndex: 30,
-          background: "rgba(255,255,255,0.96)",
-          border: "1px solid rgba(0,0,0,0.08)",
-          borderRadius: 10,
-          boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-          height: 18,
-        }}
-      >
-        <div ref={floatingScrollbarInnerRef} style={{ height: 1 }} />
+        <div
+          ref={floatingScrollbarRef}
+          style={{
+            position: "sticky",
+            left: 16,
+            right: 16,
+            bottom: 8,
+            overflowX: "auto",
+            overflowY: "hidden",
+            zIndex: 30,
+            background: "rgba(255,255,255,0.96)",
+            border: "1px solid rgba(0,0,0,0.08)",
+            borderRadius: 10,
+            boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+            height: 18,
+            marginTop: 8,
+          }}
+        >
+          <div ref={floatingScrollbarInnerRef} style={{ height: 1 }} />
+        </div>
       </div>
     </div>
   );
