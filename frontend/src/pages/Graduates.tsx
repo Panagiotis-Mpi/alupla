@@ -332,8 +332,7 @@ export default function Graduates() {
   function getSortValue(g: any, key: SortKey) {
     if (key === "birth_year") return String((g?.birth_date ?? "")).slice(0, 4);
     if (key === "study_program") {
-      const name = programNameById.get(Number(g?.study_program_id)) ?? "";
-      return `${g?.study_program_id ?? ""} ${name}`;
+      return programNameById.get(Number(g?.study_program_id)) ?? "";
     }
     if (key === "direction") return directionNameById.get(Number(g?.program_direction_id)) ?? "";
     if (key === "origin_region") return regionNameById.get(Number(g?.origin_region_id)) ?? "";
@@ -489,12 +488,14 @@ export default function Graduates() {
   };
 
   const topButtonStyle: React.CSSProperties = {
-    minWidth: 156,
-    height: 44,
+    minWidth: 136,
+    height: 40,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     boxSizing: "border-box",
+    padding: "0 12px",
+    fontSize: 14,
   };
 
   return (
@@ -555,15 +556,6 @@ export default function Graduates() {
               <Link className="btn primary" to="/graduates/new" style={topButtonStyle}>
                 {t("topbar.newGraduate")}
               </Link>
-              <button
-                className="btn danger"
-                type="button"
-                style={topButtonStyle}
-                onClick={() => void onDeleteSelected()}
-                disabled={!selectedIds.length}
-              >
-                {t("topbar.delete")}
-              </button>
               <input
                 id="import-xlsx"
                 type="file"
@@ -592,6 +584,15 @@ export default function Graduates() {
               </button>
               <button className="btn" type="button" style={topButtonStyle} onClick={() => setShowFilters((v) => !v)}>
                 {activeLang === "gr" ? "Φίλτρα" : "Filters"}
+              </button>
+              <button
+                className="btn danger"
+                type="button"
+                style={topButtonStyle}
+                onClick={() => void onDeleteSelected()}
+                disabled={!selectedIds.length}
+              >
+                {t("topbar.delete")}
               </button>
             </div>
           </div>
@@ -781,11 +782,7 @@ export default function Graduates() {
                     <td>{fmt(g.degree_grade)}</td>
                     <td>{fmt(g.graduation_date)}</td>
                     <td>{fmt(g.oath_date)}</td>
-                    <td>
-                      {g.study_program_id
-                        ? `${g.study_program_id}${programNameById.get(Number(g.study_program_id)) ? ` (${programNameById.get(Number(g.study_program_id))})` : ""}`
-                        : ""}
-                    </td>
+                    <td>{programNameById.get(Number(g.study_program_id)) ?? ""}</td>
                     <td>{directionNameById.get(Number(g.program_direction_id)) ?? ""}</td>
                     <td>{regionNameById.get(Number(g.origin_region_id)) ?? ""}</td>
                     <td>{fmt(g.origin_municipality)}</td>
