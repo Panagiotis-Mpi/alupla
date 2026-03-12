@@ -45,19 +45,13 @@ export default function Profile() {
       setUser(nextUser);
       const token = getToken();
       if (token) setSession(token, nextUser);
+      if (currentPassword.trim() || newPassword.trim()) {
+        await changePassword(currentPassword, newPassword);
+        setCurrentPassword("");
+        setNewPassword("");
+      }
       setIsEditing(false);
       alert(t("editProfile.success"));
-    } catch (e: any) {
-      alert(e?.message ?? t("error"));
-    }
-  }
-
-  async function onChangePassword() {
-    try {
-      await changePassword(currentPassword, newPassword);
-      alert(t("changePassword.success"));
-      setCurrentPassword("");
-      setNewPassword("");
     } catch (e: any) {
       alert(e?.message ?? t("error"));
     }
@@ -84,43 +78,45 @@ export default function Profile() {
       </div>
 
       {isEditing && (
-        <div className="card">
-          <h3>{t("editProfile.title")}</h3>
+        <div className="card" style={{ display: "grid", gap: 20 }}>
+          <div style={{ display: "grid", gap: 12 }}>
+            <h3 style={{ margin: 0 }}>{t("editProfile.title")}</h3>
 
-          <div className="grid cols2">
-            <div>
-              <label className="label">{t("editProfile.firstName")}</label>
-              <input
-                type="text"
-                className="input"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-              />
+            <div className="grid cols2">
+              <div>
+                <label className="label">{t("editProfile.firstName")}</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="label">{t("editProfile.lastName")}</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+              </div>
             </div>
 
             <div>
-              <label className="label">{t("editProfile.lastName")}</label>
+              <label className="label">{t("editProfile.email")}</label>
               <input
-                type="text"
+                type="email"
                 className="input"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
           </div>
 
-          <div style={{ marginTop: 12 }}>
-            <label className="label">{t("editProfile.email")}</label>
-            <input
-              type="email"
-              className="input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div style={{ marginTop: 20 }}>
-            <h3>{t("changePassword.title")}</h3>
+          <div style={{ display: "grid", gap: 12, paddingTop: 4 }}>
+            <h3 style={{ margin: 0 }}>{t("changePassword.title")}</h3>
 
             <div className="grid cols2">
               <div>
@@ -145,12 +141,9 @@ export default function Profile() {
             </div>
           </div>
 
-          <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button className="btn primary" onClick={onSaveProfile}>
               {t("editProfile.save")}
-            </button>
-            <button className="btn primary" onClick={onChangePassword}>
-              {t("changePassword.submit")}
             </button>
             <button className="btn" onClick={() => setIsEditing(false)}>
               {t("editProfile.cancel")}
