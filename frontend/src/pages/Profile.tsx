@@ -160,7 +160,7 @@ export default function Profile() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
-                <div style={{ marginTop: 8, color: "#52627a", fontSize: 14, lineHeight: 1.4 }}>
+                <div style={{ marginTop: 8, color: "#52627a", fontSize: 14, lineHeight: 1.4, whiteSpace: "pre-line" }}>
                   {t("changePassword.hint")}
                 </div>
               </div>
