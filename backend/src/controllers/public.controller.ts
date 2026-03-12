@@ -316,9 +316,10 @@ export async function publicStats(req: Request, res: Response) {
     );
 
     const birthYearRows = await sequelize.query<{ year: number; count: number }>(
-      `SELECT g.birth_year::int as year, COUNT(*)::int as count
+      `SELECT EXTRACT(YEAR FROM ${birthExpr})::int as year,
+              COUNT(*)::int as count
        FROM graduates g ${sqlWhere}
-       GROUP BY g.birth_year
+       GROUP BY EXTRACT(YEAR FROM ${birthExpr})
        ORDER BY year ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
