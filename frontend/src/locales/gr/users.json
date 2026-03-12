@@ -1,19 +1,23 @@
 {
   "title": "Χρήστες",
-  "badgeLoading": "loading...",
+  "badgeLoading": "φόρτωση...",
   "badgeCount": "{{count}} χρήστες",
-  "error": "Error",
+  "error": "Σφάλμα",
   "newUser": "Νέος χρήστης",
   "labels": {
     "firstName": "Όνομα",
     "lastName": "Επώνυμο",
     "email": "Email",
     "role": "Ρόλος",
-    "passwordStrong": "Password (strong)",
+    "passwordStrong": "Κωδικός (ισχυρός)",
     "passwordHint": "Ο κωδικός πρέπει να περιέχει τα εξής:\n- Τουλάχιστον 8 χαρακτήρες\n- Τουλάχιστον ένα γράμμα\n- Τουλάχιστον έναν αριθμό\n- Τουλάχιστον ένα σύμβολο"
   },
+  "roles": {
+    "secretariat": "Γραμματεία",
+    "superAdmin": "Super Admin"
+  },
   "actions": {
-    "create": "Create",
+    "create": "Δημιουργία",
     "deactivate": "Διαγραφή"
   },
   "table": {
@@ -21,15 +25,15 @@
     "email": "Email",
     "name": "Όνομα",
     "role": "Ρόλος",
-    "online": "Online",
-    "verified": "Email verified",
+    "online": "Σύνδεση",
+    "verified": "Επιβεβαίωση email",
     "approved": "Αποδοχή",
     "none": "Δεν υπάρχουν χρήστες.",
     "deactivate": "Διαγραφή"
   },
   "status": {
-    "online": "● online",
-    "offline": "○ offline",
+    "online": "● συνδεδεμένος",
+    "offline": "○ εκτός σύνδεσης",
     "yes": "Ναι",
     "no": "Όχι"
   },

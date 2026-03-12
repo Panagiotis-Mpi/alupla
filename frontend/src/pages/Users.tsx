@@ -123,14 +123,14 @@ export default function Users() {
           <div>
             <label className="label">{t("labels.role")}</label>
             <select className="input" value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as AdminUser["role"] }))}>
-              <option value="secretariat">secretariat</option>
-              <option value="super_admin">super_admin</option>
+              <option value="secretariat">{t("roles.secretariat")}</option>
+              <option value="super_admin">{t("roles.superAdmin")}</option>
             </select>
           </div>
           <div className="users-password-field" style={{ gridColumn: "span 2" }}>
             <label className="label">{t("labels.passwordStrong")}</label>
             <input className="input" type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
-            <div className="muted">{t("labels.passwordHint")}</div>
+            <div className="muted" style={{ whiteSpace: "pre-line" }}>{t("labels.passwordHint")}</div>
           </div>
         </div>
         <div style={{ marginTop: 12 }}>
@@ -172,8 +172,8 @@ export default function Users() {
                         await load();
                       }}
                     >
-                      <option value="secretariat">secretariat</option>
-                      <option value="super_admin">super_admin</option>
+                      <option value="secretariat">{t("roles.secretariat")}</option>
+                      <option value="super_admin">{t("roles.superAdmin")}</option>
                     </select>
                   </td>
                   <td>
