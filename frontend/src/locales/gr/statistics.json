@@ -7,7 +7,9 @@
     "ageGroup": "Ηλικιακή Ομάδα",
     "all": "Όλα",
     "apply": "Εφαρμογή",
-    "exportCsv": "Εξαγωγή CSV (ανώνυμα)"
+    "exportCsv": "Εξαγωγή CSV (ανώνυμα)",
+    "byYear": "Ανά έτος",
+    "bySemester": "Ανά εξάμηνο"
   },
   "cards": {
     "total": "Σύνολο αποφοίτων",
@@ -21,7 +23,13 @@
     "gradeByYear": "Μ.Ο. βαθμού ανά έτος",
     "byTerm": "Απόφοιτοι ανά εξεταστική",
     "timeToDegreeByEntryYear": "Μ.Ο. χρόνια για πτυχίο ανά έτος εισαγωγής",
-    "gradeDistribution": "Κατανομή βαθμού"
+    "gradeDistribution": "Κατανομή βαθμού",
+    "birthYear": "Κατανομή έτους γέννησης",
+    "studyProgram": "Κατανομή προγράμματος σπουδών",
+    "direction": "Κατανομή κατεύθυνσης",
+    "originRegion": "Κατανομή περιφέρειας",
+    "originMunicipality": "Top 10 δήμοι / πόλεις καταγωγής",
+    "oathYear": "Πλήθος ανά έτος ορκωμοσίας"
   },
   "table": {
     "year": "Έτος",
@@ -41,5 +49,8 @@
     "byTerm": "Ραβδόγραμμα",
     "timeToDegreeByEntryYear": "Διάγραμμα",
     "gradeDistribution": "Ραβδόγραμμα"
+  },
+  "actions": {
+    "exportExcel": "Εξαγωγή Excel"
   }
 }

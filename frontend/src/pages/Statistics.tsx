@@ -1,6 +1,5 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import { getPublicStats, publicAnonExportUrl } from "../lib/api";
 import { getUser } from "../lib/auth";
 import { Bar } from "react-chartjs-2";
@@ -16,6 +15,19 @@ import {
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 type ViewMode = "year" | "semester";
+
+type NamedCountRow = {
+  id?: number | null;
+  name?: string | null;
+  name_el?: string | null;
+  name_en?: string | null;
+  label?: string | null;
+  count?: number | null;
+  avg?: number | null;
+  avg_years?: number | null;
+  year?: number | null;
+  entry_year?: number | null;
+};
 
 function ToggleButtons(props: {
   value: ViewMode;
@@ -43,9 +55,47 @@ function ToggleButtons(props: {
   );
 }
 
+function ChartCard(props: {
+  title: string;
+  labels: string[];
+  values: number[];
+  datasetLabel?: string;
+  height?: number;
+}) {
+  return (
+    <div className="card">
+      <div className="topbar" style={{ marginBottom: 12 }}>
+        <h3 style={{ margin: 0 }}>{props.title}</h3>
+      </div>
+      <div style={{ height: props.height ?? 280 }}>
+        <Bar
+          data={{
+            labels: props.labels,
+            datasets: [
+              {
+                label: props.datasetLabel ?? props.title,
+                data: props.values,
+                backgroundColor: "#2563eb",
+              },
+            ],
+          }}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { autoSkip: false, maxRotation: 0 } },
+              y: { beginAtZero: true, ticks: { precision: 0 as any } },
+            },
+          } as any}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function Statistics() {
-  const { t } = useTranslation("statistics");
-  const nav = useNavigate();
+  const { t, i18n } = useTranslation("statistics");
   const user = getUser();
 
   const [loading, setLoading] = React.useState(false);
@@ -53,6 +103,8 @@ export default function Statistics() {
   const [data, setData] = React.useState<any | null>(null);
   const [countsMode, setCountsMode] = React.useState<ViewMode>("year");
   const [genderMode, setGenderMode] = React.useState<ViewMode>("year");
+
+  const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
 
   async function load() {
     setLoading(true);
@@ -69,7 +121,6 @@ export default function Statistics() {
 
   React.useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const total = Number(data?.total ?? 0);
@@ -87,10 +138,38 @@ export default function Statistics() {
     [t]
   );
 
+  const seriesFromRows = React.useCallback(
+    (
+      rows: NamedCountRow[] | undefined,
+      options?: {
+        valueKey?: "count" | "avg" | "avg_years";
+        labelKey?: "label" | "name" | "year" | "entry_year";
+      }
+    ) => {
+      const valueKey = options?.valueKey ?? "count";
+      const labelKey = options?.labelKey ?? "label";
+      const safeRows = Array.isArray(rows) ? rows : [];
+      return {
+        labels: safeRows.map((row) => {
+          if (labelKey === "year") return String(row.year ?? "-");
+          if (labelKey === "entry_year") return String(row.entry_year ?? "-");
+          if (labelKey === "name") {
+            const value = activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name;
+            return String(value ?? "-");
+          }
+          return String(row.label ?? row.name ?? row.name_el ?? row.name_en ?? row.year ?? row.entry_year ?? "-");
+        }),
+        values: safeRows.map((row) => Number(row[valueKey] ?? 0)),
+      };
+    },
+    [activeLang]
+  );
+
   const byYearRows = React.useMemo(
     () => (data?.by_year ?? []).map((r: any) => ({ label: String(r.year), value: Number(r.count) || 0 })),
     [data]
   );
+
   const bySemesterRows = React.useMemo(
     () =>
       (data?.by_term ?? []).map((r: any) => ({
@@ -134,20 +213,6 @@ export default function Statistics() {
     };
   }, [bySemesterRows, byYearRows, countsMode, t, termLabel]);
 
-  const baseBarOptions = React.useMemo(
-    () =>
-      ({
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { autoSkip: false, maxRotation: 0 } },
-          y: { beginAtZero: true, ticks: { precision: 0 as any } },
-        },
-      }) as const,
-    []
-  );
-
   const countChartOptions = React.useMemo(
     () =>
       ({
@@ -178,8 +243,16 @@ export default function Statistics() {
       return {
         labels: rows.map((r: any) => r.label),
         datasets: [
-          { label: "Άνδρες", data: rows.map((r: any) => r.male), backgroundColor: "#2563eb" },
-          { label: "Γυναίκες", data: rows.map((r: any) => r.female), backgroundColor: "#60a5fa" },
+          {
+            label: t("table.male", { defaultValue: "Άνδρες" }),
+            data: rows.map((r: any) => r.male),
+            backgroundColor: "#2563eb",
+          },
+          {
+            label: t("table.female", { defaultValue: "Γυναίκες" }),
+            data: rows.map((r: any) => r.female),
+            backgroundColor: "#60a5fa",
+          },
         ],
       };
     }
@@ -190,28 +263,35 @@ export default function Statistics() {
       labels,
       datasets: termOrder.flatMap((term) => [
         {
-          label: `Άνδρες ${termLabel(term)}`,
+          label: `${t("table.male", { defaultValue: "Άνδρες" })} ${termLabel(term)}`,
           data: labels.map(
             (year) =>
-              (data?.gender_by_term ?? []).find(
-                (r: any) => String(r.year) === year && String(r.term) === term
-              )?.male ?? 0
+              (data?.gender_by_term ?? []).find((r: any) => String(r.year) === year && String(r.term) === term)?.male ?? 0
           ),
           backgroundColor: "#2563eb",
         },
         {
-          label: `Γυναίκες ${termLabel(term)}`,
+          label: `${t("table.female", { defaultValue: "Γυναίκες" })} ${termLabel(term)}`,
           data: labels.map(
             (year) =>
-              (data?.gender_by_term ?? []).find(
-                (r: any) => String(r.year) === year && String(r.term) === term
-              )?.female ?? 0
+              (data?.gender_by_term ?? []).find((r: any) => String(r.year) === year && String(r.term) === term)?.female ?? 0
           ),
           backgroundColor: "#60a5fa",
         },
       ]),
     };
-  }, [data, genderMode, termLabel]);
+  }, [data, genderMode, t, termLabel]);
+
+  const ageGroups = seriesFromRows(data?.age_groups);
+  const birthYears = seriesFromRows(data?.birth_year_distribution, { labelKey: "year" });
+  const avgGradesByYear = seriesFromRows(data?.avg_grade_by_year, { labelKey: "year", valueKey: "avg" });
+  const gradeBins = seriesFromRows(data?.degree_grade_bins);
+  const studyPrograms = seriesFromRows(data?.study_program_distribution, { labelKey: "name" });
+  const directions = seriesFromRows(data?.direction_distribution, { labelKey: "name" });
+  const regions = seriesFromRows(data?.origin_region_distribution, { labelKey: "name" });
+  const municipalities = seriesFromRows(data?.origin_municipality_distribution, { labelKey: "name" });
+  const oathYears = seriesFromRows(data?.oath_year_distribution, { labelKey: "year" });
+  const yearsToDegree = seriesFromRows(data?.avg_years_to_degree_by_entry_year, { labelKey: "entry_year", valueKey: "avg_years" });
 
   function downloadAnon() {
     const url = publicAnonExportUrl({
@@ -225,13 +305,21 @@ export default function Statistics() {
     a.click();
   }
 
+  if (loading && !data) {
+    return <div className="card">{t("loading")}</div>;
+  }
+
+  if (err && !data) {
+    return <div className="card">{err}</div>;
+  }
+
   return (
     <div className="grid" style={{ gap: 14 }}>
       <div className="topbar">
         <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
         <div className="spacer" />
         <button className="btn" type="button" onClick={downloadAnon}>
-          Export Excel
+          {t("actions.exportExcel", { defaultValue: "Export Excel" })}
         </button>
       </div>
 
@@ -253,7 +341,7 @@ export default function Statistics() {
       <div className="grid cols2" style={{ gap: 14 }}>
         <div className="card">
           <div className="topbar" style={{ marginBottom: 12 }}>
-            <h3 style={{ margin: 0 }}>{"Πλήθος αποφοίτων"}</h3>
+            <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
             <div className="spacer" />
             <ToggleButtons
               value={countsMode}
@@ -269,7 +357,7 @@ export default function Statistics() {
 
         <div className="card">
           <div className="topbar" style={{ marginBottom: 12 }}>
-            <h3 style={{ margin: 0 }}>{"Αναλογία φύλων"}</h3>
+            <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
             <div className="spacer" />
             <ToggleButtons
               value={genderMode}
@@ -278,7 +366,6 @@ export default function Statistics() {
               semesterLabel={t("filters.bySemester", { defaultValue: "Ανά εξάμηνο" })}
             />
           </div>
-
           <div style={{ height: 260 }}>
             <Bar
               data={genderChartData as any}
@@ -293,6 +380,30 @@ export default function Statistics() {
         </div>
       </div>
 
+      <div className="grid cols2" style={{ gap: 14 }}>
+        <ChartCard title={t("sections.age")} labels={ageGroups.labels} values={ageGroups.values} />
+        <ChartCard title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} />
+      </div>
+
+      <div className="grid cols2" style={{ gap: 14 }}>
+        <ChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} />
+        <ChartCard title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} />
+      </div>
+
+      <div className="grid cols2" style={{ gap: 14 }}>
+        <ChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} />
+        <ChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} />
+      </div>
+
+      <div className="grid cols2" style={{ gap: 14 }}>
+        <ChartCard title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} />
+        <ChartCard title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} />
+      </div>
+
+      <div className="grid cols2" style={{ gap: 14 }}>
+        <ChartCard title={t("sections.oathYear")} labels={oathYears.labels} values={oathYears.values} />
+        <ChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} />
+      </div>
     </div>
   );
 }

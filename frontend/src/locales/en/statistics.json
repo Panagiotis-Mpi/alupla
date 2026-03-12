@@ -7,7 +7,9 @@
     "ageGroup": "Age group",
     "all": "All",
     "apply": "Apply",
-    "exportCsv": "Export CSV (anonymous)"
+    "exportCsv": "Export CSV (anonymous)",
+    "byYear": "By year",
+    "bySemester": "By semester"
   },
   "cards": {
     "total": "Total graduates",
@@ -21,7 +23,13 @@
     "gradeByYear": "Average grade per year",
     "byTerm": "Graduates per exam period",
     "timeToDegreeByEntryYear": "Avg years to degree by entry year",
-    "gradeDistribution": "Grade distribution"
+    "gradeDistribution": "Grade distribution",
+    "birthYear": "Birth year distribution",
+    "studyProgram": "Study program distribution",
+    "direction": "Direction distribution",
+    "originRegion": "Region distribution",
+    "originMunicipality": "Top 10 origin municipalities / cities",
+    "oathYear": "Graduates per oath year"
   },
   "table": {
     "year": "Year",
@@ -41,5 +49,8 @@
     "byTerm": "Bar chart",
     "timeToDegreeByEntryYear": "Chart",
     "gradeDistribution": "Bar chart"
+  },
+  "actions": {
+    "exportExcel": "Export Excel"
   }
 }
