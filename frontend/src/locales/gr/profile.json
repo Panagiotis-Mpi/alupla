@@ -3,10 +3,21 @@
   "info": {
     "email": "Email",
     "name": "Όνομα",
-    "role": "Ρόλος",
-    "status": "Κατάσταση",
-    "active": "Ενεργός",
-    "inactive": "Ανενεργός"
+    "role": "Ρόλος"
+  },
+  "roles": {
+    "super_admin": "Super Admin",
+    "secretariat": "Γραμματεία"
+  },
+  "editProfile": {
+    "button": "Επεξεργασία προφίλ",
+    "title": "Επεξεργασία προφίλ",
+    "firstName": "Όνομα",
+    "lastName": "Επώνυμο",
+    "email": "Email",
+    "save": "Αποθήκευση",
+    "cancel": "Ακύρωση",
+    "success": "Το προφίλ ενημερώθηκε επιτυχώς"
   },
   "changePassword": {
     "title": "Αλλαγή κωδικού",

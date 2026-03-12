@@ -230,6 +230,15 @@ export async function me(): Promise<any> {
   return api("/auth/me", { method: "GET" });
 }
 
+
+export async function updateProfile(payload: {
+  first_name: string;
+  last_name: string;
+  email: string;
+}): Promise<any> {
+  return api("/auth/me", { method: "PUT", body: payload });
+}
+
 export async function changePassword(
   currentPasswordOrPayload: string | { currentPassword: string; newPassword: string },
   maybeNewPassword?: string

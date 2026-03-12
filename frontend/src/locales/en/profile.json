@@ -3,10 +3,21 @@
   "info": {
     "email": "Email",
     "name": "Name",
-    "role": "Role",
-    "status": "Status",
-    "active": "Active",
-    "inactive": "Inactive"
+    "role": "Role"
+  },
+  "roles": {
+    "super_admin": "Super Admin",
+    "secretariat": "Secretariat"
+  },
+  "editProfile": {
+    "button": "Edit profile",
+    "title": "Edit profile",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "save": "Save",
+    "cancel": "Cancel",
+    "success": "Profile updated successfully"
   },
   "changePassword": {
     "title": "Change password",

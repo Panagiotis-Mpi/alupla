@@ -7,7 +7,6 @@ import { signToken } from "../utils/jwt";
 import { logAction } from "../services/log.service";
 
 function isStrongPassword(pw: string) {
- // minimum: 8 chars, at least 1 letter, 1 number, 1 symbol
   if (pw.length < 8) return false;
   if (!/[A-Za-z]/.test(pw)) return false;
   if (!/[0-9]/.test(pw)) return false;
@@ -33,7 +32,7 @@ export async function register(req: Request, res: Response) {
   const password_hash = await bcrypt.hash(password, 10);
 
   const token = crypto.randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24h
+  const expires = new Date(Date.now() + 1000 * 60 * 60 * 24);
 
   const user = await User.create({
     first_name,
@@ -50,7 +49,6 @@ export async function register(req: Request, res: Response) {
 
   await logAction({ user_id: user.id, action: "register", entity_type: "user", entity_id: user.id });
 
- // Password reset flow handled by email service.
   return res.json({ ok: true, user: safeUser(user), verification_token: token, verification_expires: expires });
 }
 
@@ -97,7 +95,6 @@ export async function login(req: Request, res: Response) {
 
   const token = signToken({ sub: user.id, role: user.role });
 
- // mark user as online (db presence)
   await user.update({ last_seen_at: new Date() } as any);
 
   await logAction({ user_id: user.id, action: "login", entity_type: "system", entity_id: null });
@@ -105,6 +102,38 @@ export async function login(req: Request, res: Response) {
   return res.json({ ok: true, token, user: safeUser(user) });
 }
 
+export async function updateProfile(req: Request, res: Response) {
+  const auth = req.auth!;
+  const { first_name, last_name, email } = req.body ?? {};
+
+  if (!first_name || !last_name || !email) {
+    return res.status(400).json({ ok: false, error: { message: "Missing fields" } });
+  }
+
+  const user = await User.findByPk(auth.id);
+  if (!user) return res.status(404).json({ ok: false, error: { message: "Not found" } });
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const existing = await User.findOne({
+    where: {
+      email: normalizedEmail,
+      id: { [Op.ne]: user.id }
+    }
+  });
+
+  if (existing) {
+    return res.status(409).json({ ok: false, error: { message: "Email already exists" } });
+  }
+
+  user.first_name = String(first_name).trim();
+  user.last_name = String(last_name).trim();
+  user.email = normalizedEmail;
+  await user.save();
+
+  await logAction({ user_id: user.id, action: "update_profile", entity_type: "user", entity_id: user.id });
+
+  return res.json({ ok: true, user: safeUser(user) });
+}
 
 export async function changePassword(req: Request, res: Response) {
   const auth = req.auth!;
@@ -133,22 +162,17 @@ export async function changePassword(req: Request, res: Response) {
   return res.json({ ok: true });
 }
 
-
-
-
-
 export async function resendVerification(req: Request, res: Response) {
   const { email } = req.body ?? {};
   if (!email) return res.status(400).json({ ok: false, error: { message: "Missing email" } });
 
   const user = await User.findOne({ where: { email } });
- // Don't leak existence
   if (!user || !user.is_active) return res.json({ ok: true });
 
   if ((user as any).email_verified) return res.json({ ok: true, already_verified: true });
 
   const token = crypto.randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + 1000 * 60 * 60); // 1h
+  const expires = new Date(Date.now() + 1000 * 60 * 60);
 
   (user as any).email_verification_token = token;
   (user as any).email_verification_expires = expires;
@@ -156,7 +180,6 @@ export async function resendVerification(req: Request, res: Response) {
 
   await logAction({ user_id: user.id, action: "resend_verify_email", entity_type: "user", entity_id: user.id });
 
- // Password reset flow handled by email service.
   return res.json({ ok: true, verification_token: token, verification_expires: expires });
 }
 
@@ -165,13 +188,12 @@ export async function requestPasswordReset(req: Request, res: Response) {
   if (!email) return res.status(400).json({ ok: false, error: { message: "Missing email" } });
 
   const user = await User.findOne({ where: { email } });
- // Don't leak whether email exists; return ok anyway.
   if (!user || !user.is_active) {
     return res.json({ ok: true });
   }
 
   const token = crypto.randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + 1000 * 60 * 60); // 1h
+  const expires = new Date(Date.now() + 1000 * 60 * 60);
 
   user.password_reset_token = token;
   user.password_reset_expires = expires;
@@ -179,7 +201,6 @@ export async function requestPasswordReset(req: Request, res: Response) {
 
   await logAction({ user_id: user.id, action: "request_password_reset", entity_type: "user", entity_id: user.id });
 
- // Password reset flow handled by email service.
   return res.json({ ok: true, reset_token: token, reset_expires: expires });
 }
 
