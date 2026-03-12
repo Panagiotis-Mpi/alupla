@@ -552,7 +552,7 @@ export default function Graduates() {
               <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", width: "100%" }}>
               <Link className="btn primary" to="/graduates/new" style={topButtonStyle}>
                 {t("topbar.newGraduate")}
               </Link>
