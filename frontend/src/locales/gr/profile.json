@@ -1,4 +1,10 @@
 {
+  "title": "Προφίλ",
+  "info": {
+    "email": "Email",
+    "name": "Όνομα",
+    "role": "Ρόλος"
+  },
   "roles": {
     "super_admin": "Super Admin",
     "secretariat": "Γραμματεία"
