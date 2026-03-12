@@ -2,17 +2,19 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { getPublicStats, publicAnonExportUrl } from "../lib/api";
 import { getUser } from "../lib/auth";
-import { Bar } from "react-chartjs-2";
+import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  BarElement,
+  LineElement,
+  PointElement,
+  Filler,
   Tooltip,
   Legend,
 } from "chart.js";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip, Legend);
 
 type ViewMode = "year" | "semester";
 
@@ -61,7 +63,7 @@ function chartContentWidth(labels: string[], datasetCount = 1) {
   return Math.max(640, labels.length * Math.max(labelWidth, 92 * Math.max(1, datasetCount)));
 }
 
-function ScrollableBarChart(props: {
+function ScrollableLineChart(props: {
   data: any;
   options: any;
   height?: number;
@@ -73,7 +75,7 @@ function ScrollableBarChart(props: {
   return (
     <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4 }}>
       <div style={{ minWidth: contentWidth, width: contentWidth, height: props.height ?? 280 }}>
-        <Bar data={props.data} options={props.options} />
+        <Line data={props.data} options={props.options} />
       </div>
     </div>
   );
@@ -92,7 +94,7 @@ function ChartCard(props: {
       <div className="topbar" style={{ marginBottom: 12 }}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
-      <ScrollableBarChart
+      <ScrollableLineChart
         height={props.height ?? 280}
         labels={props.labels}
         datasetCount={props.datasetCount}
@@ -102,9 +104,13 @@ function ChartCard(props: {
             {
               label: props.datasetLabel ?? props.title,
               data: props.values,
-              backgroundColor: "#2563eb",
-              categoryPercentage: 0.72,
-              barPercentage: 0.82,
+              borderColor: "#2563eb",
+              backgroundColor: "rgba(37, 99, 235, 0.28)",
+              fill: true,
+              tension: 0.38,
+              pointRadius: 3,
+              pointHoverRadius: 4,
+              borderWidth: 3,
             },
           ],
         }}
@@ -217,9 +223,13 @@ export default function Statistics() {
           {
             label: t("sections.byYear", { defaultValue: "Πλήθος αποφοίτων ανά έτος" }),
             data: byYearRows.map((r) => r.value),
-            backgroundColor: "#2563eb",
-            categoryPercentage: 0.72,
-            barPercentage: 0.82,
+            borderColor: "#2563eb",
+            backgroundColor: "rgba(37, 99, 235, 0.28)",
+            fill: true,
+            tension: 0.38,
+            pointRadius: 3,
+            pointHoverRadius: 4,
+            borderWidth: 3,
           },
         ],
       };
@@ -238,9 +248,13 @@ export default function Statistics() {
       datasets: termOrder.map((term) => ({
         label: termLabel(term),
         data: labels.map((year) => bySemesterRows.find((r) => r.year === year && r.term === term)?.value ?? 0),
-        backgroundColor: termColors[term],
-        categoryPercentage: 0.72,
-        barPercentage: 0.82,
+        borderColor: termColors[term],
+        backgroundColor: `${termColors[term]}33`,
+        fill: false,
+        tension: 0.38,
+        pointRadius: 3,
+        pointHoverRadius: 4,
+        borderWidth: 3,
       })),
     };
   }, [bySemesterRows, byYearRows, countsMode, t, termLabel]);
@@ -278,16 +292,24 @@ export default function Statistics() {
           {
             label: t("table.male", { defaultValue: "Άνδρες" }),
             data: rows.map((r: any) => r.male),
-            backgroundColor: "#2563eb",
-            categoryPercentage: 0.72,
-            barPercentage: 0.82,
+            borderColor: "#2563eb",
+            backgroundColor: "rgba(37, 99, 235, 0.28)",
+            fill: true,
+            tension: 0.38,
+            pointRadius: 3,
+            pointHoverRadius: 4,
+            borderWidth: 3,
           },
           {
             label: t("table.female", { defaultValue: "Γυναίκες" }),
             data: rows.map((r: any) => r.female),
-            backgroundColor: "#60a5fa",
-            categoryPercentage: 0.72,
-            barPercentage: 0.82,
+            borderColor: "#60a5fa",
+            backgroundColor: "rgba(96, 165, 250, 0.22)",
+            fill: false,
+            tension: 0.38,
+            pointRadius: 3,
+            pointHoverRadius: 4,
+            borderWidth: 3,
           },
         ],
       };
@@ -304,9 +326,13 @@ export default function Statistics() {
             (year) =>
               (data?.gender_by_term ?? []).find((r: any) => String(r.year) === year && String(r.term) === term)?.male ?? 0
           ),
-          backgroundColor: "#2563eb",
-          categoryPercentage: 0.72,
-          barPercentage: 0.82,
+          borderColor: "#2563eb",
+          backgroundColor: "rgba(37, 99, 235, 0.22)",
+          fill: false,
+          tension: 0.38,
+          pointRadius: 3,
+          pointHoverRadius: 4,
+          borderWidth: 3,
         },
         {
           label: `${t("table.female", { defaultValue: "Γυναίκες" })} ${termLabel(term)}`,
@@ -314,9 +340,13 @@ export default function Statistics() {
             (year) =>
               (data?.gender_by_term ?? []).find((r: any) => String(r.year) === year && String(r.term) === term)?.female ?? 0
           ),
-          backgroundColor: "#60a5fa",
-          categoryPercentage: 0.72,
-          barPercentage: 0.82,
+          borderColor: "#60a5fa",
+          backgroundColor: "rgba(96, 165, 250, 0.22)",
+          fill: false,
+          tension: 0.38,
+          pointRadius: 3,
+          pointHoverRadius: 4,
+          borderWidth: 3,
         },
       ]),
     };
@@ -390,7 +420,7 @@ export default function Statistics() {
               semesterLabel={t("filters.bySemester", { defaultValue: "Ανά εξάμηνο" })}
             />
           </div>
-          <ScrollableBarChart height={260} labels={(countChartData as any).labels ?? []} datasetCount={((countChartData as any).datasets ?? []).length} data={countChartData as any} options={countChartOptions as any} />
+          <ScrollableLineChart height={260} labels={(countChartData as any).labels ?? []} datasetCount={((countChartData as any).datasets ?? []).length} data={countChartData as any} options={countChartOptions as any} />
         </div>
 
         <div className="card" style={{ minWidth: 0 }}>
@@ -404,7 +434,7 @@ export default function Statistics() {
               semesterLabel={t("filters.bySemester", { defaultValue: "Ανά εξάμηνο" })}
             />
           </div>
-          <ScrollableBarChart
+          <ScrollableLineChart
             height={260}
             labels={(genderChartData as any).labels ?? []}
             datasetCount={((genderChartData as any).datasets ?? []).length}
