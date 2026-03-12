@@ -59,8 +59,8 @@ function ToggleButtons(props: {
 
 function chartContentWidth(labels: string[], datasetCount = 1) {
   const longest = labels.reduce((max, label) => Math.max(max, String(label ?? "").length), 0);
-  const labelWidth = Math.max(34, Math.min(72, longest * 4 + 10));
-  return Math.max(360, labels.length * Math.max(labelWidth, 18 * Math.max(1, datasetCount)));
+  const labelWidth = Math.max(68, Math.min(128, longest * 5 + 20));
+  return Math.max(640, labels.length * Math.max(labelWidth, 44 * Math.max(1, datasetCount)));
 }
 
 function ScrollableLineChart(props: {
