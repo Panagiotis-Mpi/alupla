@@ -55,9 +55,10 @@ function ToggleButtons(props: {
   );
 }
 
-function chartContentWidth(labels: string[]) {
+function chartContentWidth(labels: string[], datasetCount = 1) {
   const longest = labels.reduce((max, label) => Math.max(max, String(label ?? "").length), 0);
-  return Math.max(640, labels.length * Math.max(72, Math.min(160, longest * 7)));
+  const labelWidth = Math.max(96, Math.min(180, longest * 7 + 40));
+  return Math.max(640, labels.length * Math.max(labelWidth, 92 * Math.max(1, datasetCount)));
 }
 
 function ScrollableBarChart(props: {
@@ -65,8 +66,9 @@ function ScrollableBarChart(props: {
   options: any;
   height?: number;
   labels: string[];
+  datasetCount?: number;
 }) {
-  const contentWidth = chartContentWidth(props.labels);
+  const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1);
 
   return (
     <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4 }}>
@@ -83,6 +85,7 @@ function ChartCard(props: {
   values: number[];
   datasetLabel?: string;
   height?: number;
+  datasetCount?: number;
 }) {
   return (
     <div className="card" style={{ minWidth: 0 }}>
@@ -92,6 +95,7 @@ function ChartCard(props: {
       <ScrollableBarChart
         height={props.height ?? 280}
         labels={props.labels}
+        datasetCount={props.datasetCount}
         data={{
           labels: props.labels,
           datasets: [
@@ -386,7 +390,7 @@ export default function Statistics() {
               semesterLabel={t("filters.bySemester", { defaultValue: "Ανά εξάμηνο" })}
             />
           </div>
-          <ScrollableBarChart height={260} labels={(countChartData as any).labels ?? []} data={countChartData as any} options={countChartOptions as any} />
+          <ScrollableBarChart height={260} labels={(countChartData as any).labels ?? []} datasetCount={((countChartData as any).datasets ?? []).length} data={countChartData as any} options={countChartOptions as any} />
         </div>
 
         <div className="card" style={{ minWidth: 0 }}>
@@ -403,6 +407,7 @@ export default function Statistics() {
           <ScrollableBarChart
             height={260}
             labels={(genderChartData as any).labels ?? []}
+            datasetCount={((genderChartData as any).datasets ?? []).length}
             data={genderChartData as any}
             options={{
               responsive: true,
