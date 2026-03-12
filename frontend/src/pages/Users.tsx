@@ -20,7 +20,7 @@ export default function Users() {
     last_name: "",
     email: "",
     role: "secretariat" as AdminUser["role"],
-    password: ""
+    password: "",
   });
 
   async function load() {
@@ -63,37 +63,33 @@ export default function Users() {
 
   const sortedItems = React.useMemo(() => {
     const arr = [...items];
+    arr.sort((a: any, b: any) => {
+      const av = sortState.key === "name" ? `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim() : a[sortState.key];
+      const bv = sortState.key === "name" ? `${b.first_name ?? ""} ${b.last_name ?? ""}`.trim() : b[sortState.key];
 
-    arr.sort((a, b) => {
-      const valueFor = (user: AdminUser) => {
-        if (sortState.key === "name") {
-          return `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim().toLocaleLowerCase("el-GR");
-        }
+      if (av == null && bv == null) return 0;
+      if (av == null) return -1;
+      if (bv == null) return 1;
 
-        const value = user[sortState.key];
-
-        if (typeof value === "string") return value.toLocaleLowerCase("el-GR");
-        if (typeof value === "boolean") return Number(value);
-        return value ?? "";
-      };
-
-      const av = valueFor(a);
-      const bv = valueFor(b);
+      if (typeof av === "string" || typeof bv === "string") {
+        const res = String(av).localeCompare(String(bv), "el", { sensitivity: "base" });
+        return sortState.dir === "asc" ? res : -res;
+      }
 
       if (av < bv) return sortState.dir === "asc" ? -1 : 1;
       if (av > bv) return sortState.dir === "asc" ? 1 : -1;
       return 0;
     });
-
     return arr;
   }, [items, sortState]);
 
   function toggleSort(key: SortKey) {
-    setSortState((current) =>
-      current.key === key
-        ? { key, dir: current.dir === "asc" ? "desc" : "asc" }
-        : { key, dir: "asc" }
-    );
+    setSortState((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
+  }
+
+  function getSortArrow(key: SortKey) {
+    if (sortState.key !== key) return "";
+    return sortState.dir === "asc" ? " ↑" : " ↓";
   }
 
   return (
@@ -134,7 +130,7 @@ export default function Users() {
           <div className="users-password-field" style={{ gridColumn: "span 2" }}>
             <label className="label">{t("labels.passwordStrong")}</label>
             <input className="input" type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
-            <div className="muted" style={{ whiteSpace: "pre-line" }}>{t("labels.passwordHint")}</div>
+            <div className="muted">{t("labels.passwordHint")}</div>
           </div>
         </div>
         <div style={{ marginTop: 12 }}>
@@ -149,13 +145,13 @@ export default function Users() {
           <table className="table">
             <thead>
               <tr>
-                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("id")}>{t("table.id")}</th>
-                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("email")}>{t("table.email")}</th>
-                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("name")}>{t("table.name")}</th>
-                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("role")}>{t("table.role")}</th>
-                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("is_online")}>{t("table.online")}</th>
-                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("email_verified")}>{t("table.verified")}</th>
-                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("admin_approved")}>{t("table.approved")}</th>
+                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("id")}>{t("table.id")}{getSortArrow("id")}</th>
+                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("email")}>{t("table.email")}{getSortArrow("email")}</th>
+                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("name")}>{t("table.name")}{getSortArrow("name")}</th>
+                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("role")}>{t("table.role")}{getSortArrow("role")}</th>
+                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("is_online")}>{t("table.online")}{getSortArrow("is_online")}</th>
+                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("email_verified")}>{t("table.verified")}{getSortArrow("email_verified")}</th>
+                <th style={{ cursor: "pointer" }} onClick={() => toggleSort("admin_approved")}>{t("table.approved")}{getSortArrow("admin_approved")}</th>
                 <th>{t("table.deactivate")}</th>
               </tr>
             </thead>
@@ -164,9 +160,7 @@ export default function Users() {
                 <tr key={u.id}>
                   <td>{u.id}</td>
                   <td>{u.email}</td>
-                  <td>
-                    {u.first_name} {u.last_name}
-                  </td>
+                  <td>{u.first_name} {u.last_name}</td>
                   <td>
                     <select
                       className="input"
