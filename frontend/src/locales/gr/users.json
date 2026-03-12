@@ -10,7 +10,7 @@
     "email": "Email",
     "role": "Ρόλος",
     "passwordStrong": "Password (strong)",
-    "passwordHint": "8+ chars, letter + number + symbol"
+    "passwordHint": "Ο κωδικός πρέπει να περιέχει τα εξής:\n- Τουλάχιστον 8 χαρακτήρες\n- Τουλάχιστον ένα γράμμα\n- Τουλάχιστον έναν αριθμό\n- Τουλάχιστον ένα σύμβολο"
   },
   "actions": {
     "create": "Create",

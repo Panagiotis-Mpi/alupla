@@ -13,6 +13,8 @@ export default function Users() {
   // Avoid overlapping refreshes (auto-refresh + manual refresh after actions)
   const inFlight = React.useRef(false);
 
+  const [sortState, setSortState] = React.useState<{ key: string; dir: "asc" | "desc" }>({ key: "id", dir: "asc" });
+
   const [form, setForm] = React.useState({
     first_name: "",
     last_name: "",
@@ -45,7 +47,28 @@ export default function Users() {
     const id = window.setInterval(() => {
       void load();
     }, 10_000);
-    return () => window.clearInterval(id);
+    
+  const sortedItems = React.useMemo(() => {
+    const arr = [...items];
+    arr.sort((a: any, b: any) => {
+      const k = sortState.key as any;
+      const av = k==="name" ? (a.first_name+" "+a.last_name) : a[k];
+      const bv = k==="name" ? (b.first_name+" "+b.last_name) : b[k];
+      if (av==null) return -1;
+      if (bv==null) return 1;
+      if (av < bv) return sortState.dir==="asc" ? -1 : 1;
+      if (av > bv) return sortState.dir==="asc" ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [items, sortState]);
+
+  function toggleSort(key: string){
+    setSortState(s=> s.key===key ? {key, dir: s.dir==="asc"?"desc":"asc"} : {key, dir:"asc"});
+  }
+
+  return (
+) => window.clearInterval(id);
   }, []);
 
   async function onCreate() {
@@ -58,7 +81,28 @@ export default function Users() {
     }
   }
 
+  
+  const sortedItems = React.useMemo(() => {
+    const arr = [...items];
+    arr.sort((a: any, b: any) => {
+      const k = sortState.key as any;
+      const av = k==="name" ? (a.first_name+" "+a.last_name) : a[k];
+      const bv = k==="name" ? (b.first_name+" "+b.last_name) : b[k];
+      if (av==null) return -1;
+      if (bv==null) return 1;
+      if (av < bv) return sortState.dir==="asc" ? -1 : 1;
+      if (av > bv) return sortState.dir==="asc" ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [items, sortState]);
+
+  function toggleSort(key: string){
+    setSortState(s=> s.key===key ? {key, dir: s.dir==="asc"?"desc":"asc"} : {key, dir:"asc"});
+  }
+
   return (
+
     <div className="grid" style={{ gap: 14 }}>
       <div className="topbar">
         <h2 style={{ margin: 0 }}>{t("title")}</h2>
@@ -111,18 +155,18 @@ export default function Users() {
         <table className="table">
           <thead>
             <tr>
-              <th>{t("table.id")}</th>
-              <th>{t("table.email")}</th>
-              <th>{t("table.name")}</th>
-              <th>{t("table.role")}</th>
-              <th>{t("table.online")}</th>
-              <th>{t("table.verified")}</th>
-              <th>{t("table.approved")}</th>
+              <th style={{cursor:"pointer"}} onClick={()=>toggleSort("id")}>{t("table.id")}</th>
+              <th style={{cursor:"pointer"}} onClick={()=>toggleSort("email")}>{t("table.email")}</th>
+              <th style={{cursor:"pointer"}} onClick={()=>toggleSort("name")}>{t("table.name")}</th>
+              <th style={{cursor:"pointer"}} onClick={()=>toggleSort("role")}>{t("table.role")}</th>
+              <th style={{cursor:"pointer"}} onClick={()=>toggleSort("is_online")}>{t("table.online")}</th>
+              <th style={{cursor:"pointer"}} onClick={()=>toggleSort("email_verified")}>{t("table.verified")}</th>
+              <th style={{cursor:"pointer"}} onClick={()=>toggleSort("admin_approved")}>{t("table.approved")}</th>
               <th>{t("table.deactivate")}</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((u) => (
+            {sortedItems.map((u) => (
               <tr key={u.id}>
                 <td>{u.id}</td>
                 <td>{u.email}</td>
