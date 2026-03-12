@@ -119,9 +119,38 @@ export default function Profile() {
             />
           </div>
 
+          <div style={{ marginTop: 20 }}>
+            <h3>{t("changePassword.title")}</h3>
+
+            <div className="grid cols2">
+              <div>
+                <label className="label">{t("changePassword.current")}</label>
+                <input
+                  type="password"
+                  className="input"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="label">{t("changePassword.new")}</label>
+                <input
+                  type="password"
+                  className="input"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
           <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button className="btn primary" onClick={onSaveProfile}>
               {t("editProfile.save")}
+            </button>
+            <button className="btn primary" onClick={onChangePassword}>
+              {t("changePassword.submit")}
             </button>
             <button className="btn" onClick={() => setIsEditing(false)}>
               {t("editProfile.cancel")}
@@ -129,38 +158,6 @@ export default function Profile() {
           </div>
         </div>
       )}
-
-      <div className="card">
-        <h3>{t("changePassword.title")}</h3>
-
-        <div className="grid cols2">
-          <div>
-            <label className="label">{t("changePassword.current")}</label>
-            <input
-              type="password"
-              className="input"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="label">{t("changePassword.new")}</label>
-            <input
-              type="password"
-              className="input"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div style={{ marginTop: 12 }}>
-          <button className="btn primary" onClick={onChangePassword}>
-            {t("changePassword.submit")}
-          </button>
-        </div>
-      </div>
 
       {err && (
         <div className="card" style={{ borderColor: "#b00020", color: "#b00020" }}>
@@ -170,4 +167,3 @@ export default function Profile() {
     </div>
   );
 }
-
