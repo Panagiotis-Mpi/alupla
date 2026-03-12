@@ -36,20 +36,43 @@ export default function Profile() {
 
   async function onSaveProfile() {
     try {
-      const data = await updateProfile({
-        first_name: firstName,
-        last_name: lastName,
-        email,
-      });
-      const nextUser = data.user ?? data;
-      setUser(nextUser);
-      const token = getToken();
-      if (token) setSession(token, nextUser);
-      if (currentPassword.trim() || newPassword.trim()) {
+      if (!user) return;
+
+      const normalizedFirstName = firstName.trim();
+      const normalizedLastName = lastName.trim();
+      const normalizedEmail = email.trim().toLowerCase();
+
+      const profileChanged =
+        normalizedFirstName !== String(user.first_name ?? "").trim() ||
+        normalizedLastName !== String(user.last_name ?? "").trim() ||
+        normalizedEmail !== String(user.email ?? "").trim().toLowerCase();
+
+      const passwordChanged = Boolean(currentPassword.trim() || newPassword.trim());
+
+      if (!profileChanged && !passwordChanged) {
+        return;
+      }
+
+      let nextUser = user;
+
+      if (profileChanged) {
+        const data = await updateProfile({
+          first_name: normalizedFirstName,
+          last_name: normalizedLastName,
+          email: normalizedEmail,
+        });
+        nextUser = data.user ?? data;
+        setUser(nextUser);
+        const token = getToken();
+        if (token) setSession(token, nextUser);
+      }
+
+      if (passwordChanged) {
         await changePassword(currentPassword, newPassword);
         setCurrentPassword("");
         setNewPassword("");
       }
+
       setIsEditing(false);
       alert(t("editProfile.success"));
     } catch (e: any) {
@@ -79,7 +102,7 @@ export default function Profile() {
 
       {isEditing && (
         <div className="card" style={{ display: "grid", gap: 20 }}>
-          <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ display: "grid", gap: 16 }}>
             <h3 style={{ margin: 0 }}>{t("editProfile.title")}</h3>
 
             <div className="grid cols2">
@@ -137,6 +160,9 @@ export default function Profile() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
+                <div style={{ marginTop: 8, color: "#52627a", fontSize: 14, lineHeight: 1.4 }}>
+                  {t("changePassword.hint")}
+                </div>
               </div>
             </div>
           </div>
