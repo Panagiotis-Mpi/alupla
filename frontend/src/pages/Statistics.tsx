@@ -55,6 +55,26 @@ function ToggleButtons(props: {
   );
 }
 
+function chartContentWidth(labels: string[]) {
+  const longest = labels.reduce((max, label) => Math.max(max, String(label ?? "").length), 0);
+  return Math.max(640, labels.length * Math.max(72, Math.min(160, longest * 7)));
+}
+
+function ScrollableBarChart(props: {
+  data: any;
+  options: any;
+  height?: number;
+  labels: string[];
+}) {
+  return (
+    <div style={{ overflowX: "auto", paddingBottom: 4 }}>
+      <div style={{ width: chartContentWidth(props.labels), height: props.height ?? 280 }}>
+        <Bar data={props.data} options={props.options} />
+      </div>
+    </div>
+  );
+}
+
 function ChartCard(props: {
   title: string;
   labels: string[];
@@ -67,29 +87,31 @@ function ChartCard(props: {
       <div className="topbar" style={{ marginBottom: 12 }}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
-      <div style={{ height: props.height ?? 280 }}>
-        <Bar
-          data={{
-            labels: props.labels,
-            datasets: [
-              {
-                label: props.datasetLabel ?? props.title,
-                data: props.values,
-                backgroundColor: "#2563eb",
-              },
-            ],
-          }}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              x: { ticks: { autoSkip: false, maxRotation: 0 } },
-              y: { beginAtZero: true, ticks: { precision: 0 as any } },
+      <ScrollableBarChart
+        height={props.height ?? 280}
+        labels={props.labels}
+        data={{
+          labels: props.labels,
+          datasets: [
+            {
+              label: props.datasetLabel ?? props.title,
+              data: props.values,
+              backgroundColor: "#2563eb",
+              categoryPercentage: 0.72,
+              barPercentage: 0.82,
             },
-          } as any}
-        />
-      </div>
+          ],
+        }}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
+            y: { beginAtZero: true, ticks: { precision: 0 as any } },
+          },
+        } as any}
+      />
     </div>
   );
 }
@@ -190,6 +212,8 @@ export default function Statistics() {
             label: t("sections.byYear", { defaultValue: "Πλήθος αποφοίτων ανά έτος" }),
             data: byYearRows.map((r) => r.value),
             backgroundColor: "#2563eb",
+            categoryPercentage: 0.72,
+            barPercentage: 0.82,
           },
         ],
       };
@@ -209,6 +233,8 @@ export default function Statistics() {
         label: termLabel(term),
         data: labels.map((year) => bySemesterRows.find((r) => r.year === year && r.term === term)?.value ?? 0),
         backgroundColor: termColors[term],
+        categoryPercentage: 0.72,
+        barPercentage: 0.82,
       })),
     };
   }, [bySemesterRows, byYearRows, countsMode, t, termLabel]);
@@ -247,11 +273,15 @@ export default function Statistics() {
             label: t("table.male", { defaultValue: "Άνδρες" }),
             data: rows.map((r: any) => r.male),
             backgroundColor: "#2563eb",
+            categoryPercentage: 0.72,
+            barPercentage: 0.82,
           },
           {
             label: t("table.female", { defaultValue: "Γυναίκες" }),
             data: rows.map((r: any) => r.female),
             backgroundColor: "#60a5fa",
+            categoryPercentage: 0.72,
+            barPercentage: 0.82,
           },
         ],
       };
@@ -269,6 +299,8 @@ export default function Statistics() {
               (data?.gender_by_term ?? []).find((r: any) => String(r.year) === year && String(r.term) === term)?.male ?? 0
           ),
           backgroundColor: "#2563eb",
+          categoryPercentage: 0.72,
+          barPercentage: 0.82,
         },
         {
           label: `${t("table.female", { defaultValue: "Γυναίκες" })} ${termLabel(term)}`,
@@ -277,6 +309,8 @@ export default function Statistics() {
               (data?.gender_by_term ?? []).find((r: any) => String(r.year) === year && String(r.term) === term)?.female ?? 0
           ),
           backgroundColor: "#60a5fa",
+          categoryPercentage: 0.72,
+          barPercentage: 0.82,
         },
       ]),
     };
@@ -350,9 +384,7 @@ export default function Statistics() {
               semesterLabel={t("filters.bySemester", { defaultValue: "Ανά εξάμηνο" })}
             />
           </div>
-          <div style={{ height: 260 }}>
-            <Bar data={countChartData as any} options={countChartOptions as any} />
-          </div>
+          <ScrollableBarChart height={260} labels={(countChartData as any).labels ?? []} data={countChartData as any} options={countChartOptions as any} />
         </div>
 
         <div className="card">
@@ -366,17 +398,17 @@ export default function Statistics() {
               semesterLabel={t("filters.bySemester", { defaultValue: "Ανά εξάμηνο" })}
             />
           </div>
-          <div style={{ height: 260 }}>
-            <Bar
-              data={genderChartData as any}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: "bottom" as const } },
-                scales: { x: { stacked: false }, y: { beginAtZero: true, ticks: { precision: 0 as any } } },
-              } as any}
-            />
-          </div>
+          <ScrollableBarChart
+            height={260}
+            labels={(genderChartData as any).labels ?? []}
+            data={genderChartData as any}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: "bottom" as const } },
+              scales: { x: { stacked: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } }, y: { beginAtZero: true, ticks: { precision: 0 as any } } },
+            } as any}
+          />
         </div>
       </div>
 
