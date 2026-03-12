@@ -66,9 +66,11 @@ function ScrollableBarChart(props: {
   height?: number;
   labels: string[];
 }) {
+  const contentWidth = chartContentWidth(props.labels);
+
   return (
-    <div style={{ overflowX: "auto", paddingBottom: 4 }}>
-      <div style={{ width: chartContentWidth(props.labels), height: props.height ?? 280 }}>
+    <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4 }}>
+      <div style={{ minWidth: contentWidth, width: contentWidth, height: props.height ?? 280 }}>
         <Bar data={props.data} options={props.options} />
       </div>
     </div>
@@ -83,7 +85,7 @@ function ChartCard(props: {
   height?: number;
 }) {
   return (
-    <div className="card">
+    <div className="card" style={{ minWidth: 0 }}>
       <div className="topbar" style={{ marginBottom: 12 }}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
@@ -358,22 +360,22 @@ export default function Statistics() {
       </div>
 
       <div className="grid cols3" style={{ gap: 14 }}>
-        <div className="card">
+        <div className="card" style={{ minWidth: 0 }}>
           <div className="muted">{t("cards.total")}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{total}</div>
         </div>
-        <div className="card">
+        <div className="card" style={{ minWidth: 0 }}>
           <div className="muted">{t("cards.avgAge")}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{avgAge || "-"}</div>
         </div>
-        <div className="card">
+        <div className="card" style={{ minWidth: 0 }}>
           <div className="muted">{t("cards.avgGrade")}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{avgGrade || "-"}</div>
         </div>
       </div>
 
       <div className="grid cols2" style={{ gap: 14 }}>
-        <div className="card">
+        <div className="card" style={{ minWidth: 0 }}>
           <div className="topbar" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
             <div className="spacer" />
@@ -387,7 +389,7 @@ export default function Statistics() {
           <ScrollableBarChart height={260} labels={(countChartData as any).labels ?? []} data={countChartData as any} options={countChartOptions as any} />
         </div>
 
-        <div className="card">
+        <div className="card" style={{ minWidth: 0 }}>
           <div className="topbar" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
             <div className="spacer" />
