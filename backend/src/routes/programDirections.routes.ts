@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { allowRoles, authRequired } from "../middleware/auth";
-import { listProgramDirections } from "../controllers/programDirections.controller";
+import { createProgramDirection, deleteProgramDirection, listProgramDirections, updateProgramDirection } from "../controllers/programDirections.controller";
 
 export const programDirectionsRouter = Router();
 
-programDirectionsRouter.use(authRequired, allowRoles(["secretariat","super_admin"]));
-
-// GET /program-directions?study_program_id=1
-programDirectionsRouter.get("/", listProgramDirections);
+programDirectionsRouter.use(authRequired);
+programDirectionsRouter.get("/", allowRoles(["secretariat", "super_admin"]), listProgramDirections);
+programDirectionsRouter.post("/", allowRoles(["super_admin"]), createProgramDirection);
+programDirectionsRouter.put("/:id", allowRoles(["super_admin"]), updateProgramDirection);
+programDirectionsRouter.delete("/:id", allowRoles(["super_admin"]), deleteProgramDirection);

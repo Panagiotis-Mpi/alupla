@@ -1,0 +1,51 @@
+{
+  "title": "Study Programs & Directions",
+  "badgeLoading": "loading...",
+  "badgeReady": "ready",
+  "error": "Error",
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "actions": {
+    "add": "Add",
+    "edit": "Edit",
+    "save": "Save",
+    "delete": "Delete",
+    "cancel": "Cancel"
+  },
+  "table": {
+    "code": "Code",
+    "name": "Name",
+    "status": "Status",
+    "actions": "Actions",
+    "empty": "No entries found."
+  },
+  "programs": {
+    "title": "Study Programs",
+    "count": "{{count}} entries",
+    "labels": {
+      "code": "Code *",
+      "nameEl": "Name (EL) *",
+      "nameEn": "Name (EN)",
+      "status": "Status"
+    }
+  },
+  "directions": {
+    "title": "Directions",
+    "count": "{{count}} entries",
+    "filterProgram": "Show program",
+    "selectProgram": "Select study program",
+    "labels": {
+      "program": "Study program *",
+      "code": "Code *",
+      "nameEl": "Name (EL) *",
+      "nameEn": "Name (EN)",
+      "status": "Status"
+    }
+  },
+  "confirm": {
+    "deleteProgram": "Delete study program \"{{name}}\"?",
+    "deleteDirection": "Delete direction \"{{name}}\"?"
+  }
+}

@@ -22,6 +22,8 @@ import grMap from "./locales/gr/map.json";
 import enMap from "./locales/en/map.json";
 import grStatistics from "./locales/gr/statistics.json";
 import enStatistics from "./locales/en/statistics.json";
+import grAcademicData from "./locales/gr/academicData.json";
+import enAcademicData from "./locales/en/academicData.json";
 
 i18n
   .use(LanguageDetector)
@@ -39,6 +41,7 @@ i18n
         profile: grProfile,
         map: grMap,
         statistics: grStatistics,
+        academicData: grAcademicData,
       },
       en: {
         common: enCommon,
@@ -51,6 +54,7 @@ i18n
         profile: enProfile,
         map: enMap,
         statistics: enStatistics,
+        academicData: enAcademicData,
       },
     },
     fallbackLng: "gr",

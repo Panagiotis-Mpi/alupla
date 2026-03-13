@@ -19,6 +19,7 @@ import Map from "./pages/Map";
 import Statistics from "./pages/Statistics";
 import PublicHome from "./pages/PublicHome";
 import Footer from "./components/Footer";
+import AcademicData from "./pages/AcademicData";
 
 function TopNav() {
   const { t } = useTranslation();
@@ -82,6 +83,7 @@ function TopNav() {
     const gradsLabel = t("nav.graduates");
     const usersLabel = t("nav.users");
     const logsLabel = t("nav.logs");
+    const academicDataLabel = t("nav.academicData");
 
     if (!user) return [{ to: "/statistics", label: statsLabel }, { to: "/map", label: mapLabel }];
 
@@ -89,6 +91,7 @@ function TopNav() {
       return [
         { to: "/users", label: usersLabel },
         { to: "/graduates", label: gradsLabel },
+        { to: "/academic-data", label: academicDataLabel },
         { to: "/statistics", label: statsLabel },
         { to: "/map", label: mapLabel },
         { to: "/logs", label: logsLabel },
@@ -297,6 +300,15 @@ export default function App() {
             element={
               <Guard allow={["super_admin"]}>
                 <Logs />
+              </Guard>
+            }
+          />
+
+          <Route
+            path="/academic-data"
+            element={
+              <Guard allow={["super_admin"]}>
+                <AcademicData />
               </Guard>
             }
           />

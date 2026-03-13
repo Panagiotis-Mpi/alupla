@@ -303,9 +303,52 @@ export async function listStudyPrograms(): Promise<{ ok: true; items: StudyProgr
   return api("/study-programs", { method: "GET" });
 }
 
+
+export async function createStudyProgram(payload: {
+  code: string;
+  name_el: string;
+  name_en?: string | null;
+  is_active?: boolean;
+}): Promise<any> {
+  return api("/study-programs", { method: "POST", body: payload });
+}
+
+export async function updateStudyProgram(
+  id: number,
+  payload: Partial<{ code: string; name_el: string; name_en?: string | null; is_active?: boolean }>
+): Promise<any> {
+  return api(`/study-programs/${id}`, { method: "PUT", body: payload });
+}
+
+export async function deleteStudyProgram(id: number): Promise<any> {
+  return api(`/study-programs/${id}`, { method: "DELETE" });
+}
+
 export async function listProgramDirections(studyProgramId?: number | null): Promise<{ ok: true; items: ProgramDirection[] } | any> {
   const qs = studyProgramId ? `?study_program_id=${encodeURIComponent(String(studyProgramId))}` : "";
   return api(`/program-directions${qs}`, { method: "GET" });
+}
+
+
+export async function createProgramDirection(payload: {
+  study_program_id: number;
+  code: string;
+  name_el: string;
+  name_en?: string | null;
+  is_active?: boolean;
+}): Promise<any> {
+  return api("/program-directions", { method: "POST", body: payload });
+}
+
+export async function updateProgramDirection(
+  id: number,
+  payload: Partial<{ study_program_id: number; code: string; name_el: string; name_en?: string | null; is_active?: boolean }>
+): Promise<any> {
+  return api(`/program-directions/${id}`, { method: "PUT", body: payload });
+}
+
+export async function deleteProgramDirection(id: number): Promise<any> {
+  return api(`/program-directions/${id}`, { method: "DELETE" });
 }
 
 export async function listGraduates(params: Record<string, any> = {}): Promise<any> {
