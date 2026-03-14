@@ -1,32 +1,3 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Host: 127.0.0.1
--- Generation Time: Feb 16, 2026 at 02:09 PM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
-
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
-
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
-
---
--- Database: `alupla`
---
-
--- --------------------------------------------------------
-
---
--- Table structure for table `activity_logs`
---
-
 CREATE TABLE `activity_logs` (
   `id` int(10) UNSIGNED NOT NULL,
   `user_id` int(10) UNSIGNED DEFAULT NULL,
@@ -37,36 +8,6 @@ CREATE TABLE `activity_logs` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `activity_logs`
---
-
-INSERT INTO `activity_logs` (`id`, `user_id`, `action`, `entity_type`, `entity_id`, `details`, `created_at`) VALUES
-(1, 1, 'create_graduate', 'graduate', 1, '{\"student_number\": \"20201234\"}', '2026-02-12 13:40:44'),
-(2, 1, 'create_graduate', 'graduate', 2, '{\"student_number\": \"20211234\"}', '2026-02-12 13:40:44'),
-(3, 1, 'login', 'system', NULL, NULL, '2026-02-12 15:45:53'),
-(4, 1, 'login', 'system', NULL, NULL, '2026-02-12 16:44:22'),
-(5, 1, 'login', 'system', NULL, NULL, '2026-02-12 16:45:56'),
-(6, 1, 'login', 'system', NULL, NULL, '2026-02-12 17:33:56'),
-(7, 2, 'login', 'system', NULL, NULL, '2026-02-12 17:34:17'),
-(8, 1, 'login', 'system', NULL, NULL, '2026-02-12 19:03:23'),
-(9, 1, 'login', 'system', NULL, NULL, '2026-02-16 11:30:18'),
-(10, 1, 'login', 'system', NULL, NULL, '2026-02-16 11:34:55'),
-(11, 1, 'login', 'system', NULL, NULL, '2026-02-16 11:47:08'),
-(12, 1, 'login', 'system', NULL, NULL, '2026-02-16 11:56:40'),
-(13, 1, 'login', 'system', NULL, NULL, '2026-02-16 11:57:13'),
-(14, 1, 'login', 'system', NULL, NULL, '2026-02-16 12:06:04'),
-(15, 1, 'login', 'system', NULL, NULL, '2026-02-16 12:18:24'),
-(16, 1, 'login', 'system', NULL, NULL, '2026-02-16 12:29:08'),
-(17, 1, 'login', 'system', NULL, NULL, '2026-02-16 12:36:40'),
-(18, 1, 'login', 'system', NULL, NULL, '2026-02-16 12:54:44'),
-(19, NULL, 'create_graduate', 'graduate', 3, '{\"student_number\":\"111111\"}', '2026-02-16 12:59:51');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `graduates`
---
 
 CREATE TABLE `graduates` (
   `id` int(10) UNSIGNED NOT NULL,
@@ -89,20 +30,6 @@ CREATE TABLE `graduates` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `graduates`
---
-
-INSERT INTO `graduates` (`id`, `ad_code`, `last_name`, `first_name`, `father_name`, `degree_grade`, `graduation_date`, `oath_date`, `entry_year`, `student_number`, `birth_year`, `gender`, `study_program_id`, `program_direction_id`, `origin_region_id`, `origin_municipality`, `created_at`, `updated_at`) VALUES
-(1, 'ΑΔ1234', 'Παπαδόπουλος', 'Γιάννης', 'Κωνσταντίνος', 7.85, '2024-06-15', '2024-07-20', 2020, '20201234', 2002, 'M', 1, 1, 4, 'Πάτρα', '2026-02-12 13:40:43', '2026-02-12 13:40:43'),
-(2, 'ΑΔ5678', 'Ιωάννου', 'Μαρία', 'Δημήτριος', 8.65, '2025-06-10', '2025-07-15', 2021, '20211234', 2003, 'F', 1, 2, 4, 'Πάτρα', '2026-02-12 13:40:43', '2026-02-12 13:40:43'),
-(3, '111', 'Οικονόμου', 'Μαρία', 'Γιάννης', 10.00, '2026-02-19', '2026-02-26', 2026, '111111', 2000, 'F', 1, NULL, NULL, NULL, '2026-02-16 12:59:51', '2026-02-16 12:59:51');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `program_directions`
---
 
 CREATE TABLE `program_directions` (
   `id` int(10) UNSIGNED NOT NULL,
@@ -113,19 +40,6 @@ CREATE TABLE `program_directions` (
   `is_active` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `program_directions`
---
-
-INSERT INTO `program_directions` (`id`, `study_program_id`, `code`, `name_el`, `name_en`, `is_active`) VALUES
-(1, 1, 'SW', 'Μηχανική Λογισμικού', 'Software Engineering', 1),
-(2, 1, 'HW', 'Υλικό και Συστήματα', 'Hardware and Systems', 1);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `regions`
---
 
 CREATE TABLE `regions` (
   `id` int(10) UNSIGNED NOT NULL,
@@ -138,21 +52,6 @@ CREATE TABLE `regions` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `regions`
---
-
-INSERT INTO `regions` (`id`, `name`, `type`, `parent_id`, `latitude`, `longitude`, `created_at`, `updated_at`) VALUES
-(1, 'Δυτική Ελλάδα', 'PERIPHERY', NULL, NULL, NULL, '2026-02-12 13:40:43', '2026-02-12 13:40:43'),
-(2, 'Αχαΐα', 'NOMOS', 1, NULL, NULL, '2026-02-12 13:40:43', '2026-02-12 13:40:43'),
-(3, 'Δήμος Πατρέων', 'DIMOS', 2, NULL, NULL, '2026-02-12 13:40:43', '2026-02-12 13:40:43'),
-(4, 'Πάτρα', 'CITY', 3, 38.2466000, 21.7346000, '2026-02-12 13:40:43', '2026-02-12 13:40:43');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `study_programs`
---
 
 CREATE TABLE `study_programs` (
   `id` int(10) UNSIGNED NOT NULL,
@@ -164,18 +63,6 @@ CREATE TABLE `study_programs` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `study_programs`
---
-
-INSERT INTO `study_programs` (`id`, `code`, `name_el`, `name_en`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 'CEID', 'Μηχανικών Η/Υ και Πληροφορικής', 'Computer Engineering and Informatics', 1, '2026-02-12 13:40:43', '2026-02-12 13:40:43');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `users`
---
 
 CREATE TABLE `users` (
   `id` int(10) UNSIGNED NOT NULL,
@@ -193,20 +80,6 @@ CREATE TABLE `users` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `users`
---
-
-INSERT INTO `users` (`id`, `first_name`, `last_name`, `email`, `password_hash`, `role`, `is_active`, `email_verified`, `email_verification_token`, `email_verification_expires`, `password_reset_token`, `password_reset_expires`, `created_at`, `updated_at`) VALUES
-(1, 'Super', 'Admin', 'admin@alupla.gr', '$2a$10$S8Kxk8jRMLVF3cnRgXI.8uaTY3JtxoztL6s24QJ2pIHhN.3J0PFjK', 'super_admin', 1, 1, NULL, NULL, NULL, NULL, '2026-02-12 13:40:43', '2026-02-12 14:29:10'),
-(2, 'Secretariat', 'User', 'secretariat@alupla.gr', '$2a$10$S8Kxk8jRMLVF3cnRgXI.8uaTY3JtxoztL6s24QJ2pIHhN.3J0PFjK', 'secretariat', 1, 1, NULL, NULL, NULL, NULL, '2026-02-12 13:40:43', '2026-02-12 14:28:18',
-  last_seen_at TIMESTAMP NULL
-);
-
---
--- Indexes for dumped tables
---
 
 --
 -- Indexes for table `activity_logs`
