@@ -368,9 +368,6 @@ export default function Graduates() {
     });
     if (!query) return list;
     return list.filter((g: any) => {
-      const firstName = fmt(g?.first_name).trim();
-      const lastName = fmt(g?.last_name).trim();
-      const fatherName = fmt(g?.father_name).trim();
       const values = [
         g?.ad_code,
         g?.student_number,
@@ -380,10 +377,6 @@ export default function Graduates() {
         g?.last_name,
         g?.first_name,
         g?.father_name,
-        `${firstName} ${lastName}`.trim(),
-        `${lastName} ${firstName}`.trim(),
-        `${firstName} ${fatherName} ${lastName}`.trim(),
-        `${lastName} ${firstName} ${fatherName}`.trim(),
         renderGender(g?.gender),
         g?.entry_year,
         String(g?.birth_date ?? "").slice(0, 4),
@@ -582,6 +575,7 @@ export default function Graduates() {
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
               <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
+              <span className="badge">{activeLang === "gr" ? `Επιλεγμένοι: ${selectedIds.length}` : `Selected: ${selectedIds.length}`}</span>
             </div>
 
             <div style={{ display: "grid", gap: 10, width: "100%" }}>
