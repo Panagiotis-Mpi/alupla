@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { GeoJSON, MapContainer } from "react-leaflet";
+import { CircleMarker, GeoJSON, MapContainer, Tooltip } from "react-leaflet";
 import type { LeafletMouseEvent } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -10,6 +10,57 @@ import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
 import * as XLSX from "xlsx";
 
 type AgeGroup = "" | "18-22" | "23-26" | "27-30" | "31+";
+
+type RegionCity = {
+  region: string;
+  nameEl: string;
+  nameEn: string;
+  lat: number;
+  lng: number;
+};
+
+const regionCities: RegionCity[] = [
+  { region: "Ανατολική Μακεδονία και Θράκη", nameEl: "Αλεξανδρούπολη", nameEn: "Alexandroupoli", lat: 40.8457, lng: 25.8739 },
+  { region: "Ανατολική Μακεδονία και Θράκη", nameEl: "Καβάλα", nameEn: "Kavala", lat: 40.9396, lng: 24.4018 },
+  { region: "Ανατολική Μακεδονία και Θράκη", nameEl: "Κομοτηνή", nameEn: "Komotini", lat: 41.1192, lng: 25.4054 },
+  { region: "Κεντρική Μακεδονία", nameEl: "Θεσσαλονίκη", nameEn: "Thessaloniki", lat: 40.6401, lng: 22.9444 },
+  { region: "Κεντρική Μακεδονία", nameEl: "Κατερίνη", nameEn: "Katerini", lat: 40.2696, lng: 22.5061 },
+  { region: "Κεντρική Μακεδονία", nameEl: "Σέρρες", nameEn: "Serres", lat: 41.0849, lng: 23.5476 },
+  { region: "Δυτική Μακεδονία", nameEl: "Κοζάνη", nameEn: "Kozani", lat: 40.3006, lng: 21.7889 },
+  { region: "Δυτική Μακεδονία", nameEl: "Φλώρινα", nameEn: "Florina", lat: 40.7845, lng: 21.4096 },
+  { region: "Δυτική Μακεδονία", nameEl: "Καστοριά", nameEn: "Kastoria", lat: 40.5217, lng: 21.2636 },
+  { region: "Ήπειρος", nameEl: "Ιωάννινα", nameEn: "Ioannina", lat: 39.665, lng: 20.8537 },
+  { region: "Ήπειρος", nameEl: "Άρτα", nameEn: "Arta", lat: 39.1609, lng: 20.9856 },
+  { region: "Ήπειρος", nameEl: "Πρέβεζα", nameEn: "Preveza", lat: 38.9593, lng: 20.7517 },
+  { region: "Θεσσαλία", nameEl: "Λάρισα", nameEn: "Larissa", lat: 39.639, lng: 22.4191 },
+  { region: "Θεσσαλία", nameEl: "Βόλος", nameEn: "Volos", lat: 39.361, lng: 22.9422 },
+  { region: "Θεσσαλία", nameEl: "Τρίκαλα", nameEn: "Trikala", lat: 39.5553, lng: 21.7679 },
+  { region: "Ιόνια Νησιά", nameEl: "Κέρκυρα", nameEn: "Corfu", lat: 39.6243, lng: 19.9217 },
+  { region: "Ιόνια Νησιά", nameEl: "Ζάκυνθος", nameEn: "Zakynthos", lat: 37.787, lng: 20.8999 },
+  { region: "Ιόνια Νησιά", nameEl: "Αργοστόλι", nameEn: "Argostoli", lat: 38.1811, lng: 20.489 },
+  { region: "Δυτική Ελλάδα", nameEl: "Πάτρα", nameEn: "Patras", lat: 38.2466, lng: 21.7346 },
+  { region: "Δυτική Ελλάδα", nameEl: "Αγρίνιο", nameEn: "Agrinio", lat: 38.6218, lng: 21.4077 },
+  { region: "Δυτική Ελλάδα", nameEl: "Μεσολόγγι", nameEn: "Messolonghi", lat: 38.3692, lng: 21.4296 },
+  { region: "Στερεά Ελλάδα", nameEl: "Λαμία", nameEn: "Lamia", lat: 38.9, lng: 22.4333 },
+  { region: "Στερεά Ελλάδα", nameEl: "Χαλκίδα", nameEn: "Chalkida", lat: 38.4636, lng: 23.6022 },
+  { region: "Στερεά Ελλάδα", nameEl: "Καρπενήσι", nameEn: "Karpenisi", lat: 38.9122, lng: 21.7984 },
+  { region: "Αττική", nameEl: "Αθήνα", nameEn: "Athens", lat: 37.9838, lng: 23.7275 },
+  { region: "Αττική", nameEl: "Πειραιάς", nameEn: "Piraeus", lat: 37.942, lng: 23.6465 },
+  { region: "Αττική", nameEl: "Μαρούσι", nameEn: "Marousi", lat: 38.05, lng: 23.8 },
+  { region: "Πελοπόννησος", nameEl: "Τρίπολη", nameEn: "Tripoli", lat: 37.5089, lng: 22.3794 },
+  { region: "Πελοπόννησος", nameEl: "Καλαμάτα", nameEn: "Kalamata", lat: 37.0389, lng: 22.1142 },
+  { region: "Πελοπόννησος", nameEl: "Κόρινθος", nameEn: "Corinth", lat: 37.9381, lng: 22.9322 },
+  { region: "Βόρειο Αιγαίο", nameEl: "Μυτιλήνη", nameEn: "Mytilene", lat: 39.1077, lng: 26.5553 },
+  { region: "Βόρειο Αιγαίο", nameEl: "Χίος", nameEn: "Chios", lat: 38.3709, lng: 26.1363 },
+  { region: "Βόρειο Αιγαίο", nameEl: "Σάμος", nameEn: "Samos", lat: 37.7544, lng: 26.9785 },
+  { region: "Νότιο Αιγαίο", nameEl: "Ερμούπολη", nameEn: "Ermoupoli", lat: 37.4447, lng: 24.9425 },
+  { region: "Νότιο Αιγαίο", nameEl: "Ρόδος", nameEn: "Rhodes", lat: 36.4341, lng: 28.2176 },
+  { region: "Νότιο Αιγαίο", nameEl: "Κως", nameEn: "Kos", lat: 36.8926, lng: 27.2877 },
+  { region: "Κρήτη", nameEl: "Ηράκλειο", nameEn: "Heraklion", lat: 35.3387, lng: 25.1442 },
+  { region: "Κρήτη", nameEl: "Χανιά", nameEn: "Chania", lat: 35.5138, lng: 24.018 },
+  { region: "Κρήτη", nameEl: "Ρέθυμνο", nameEn: "Rethymno", lat: 35.3656, lng: 24.4823 },
+];
+
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
@@ -348,6 +399,22 @@ function fillOpacityForCount(c: number) {
               style={{ height: "100%", width: "100%", background: "transparent" }}
               scrollWheelZoom
             >
+
+              {regionCities.map((city) => (
+                <CircleMarker
+                  key={`${city.region}-${city.nameEl}`}
+                  center={[city.lat, city.lng]}
+                  radius={3.5}
+                  pathOptions={{ color: "#1e293b", weight: 1, fillColor: "#1e293b", fillOpacity: 0.9 }}
+                >
+                  <Tooltip permanent direction="top" offset={[0, -4]} opacity={1}>
+                    <span style={{ fontSize: 11, fontWeight: 600 }}>
+                      {i18n.language?.toLowerCase().startsWith("en") ? city.nameEn : city.nameEl}
+                    </span>
+                  </Tooltip>
+                </CircleMarker>
+              ))}
+
               {geojson ? (
                 <GeoJSON
                   key={geoRenderKey}
