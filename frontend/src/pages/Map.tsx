@@ -651,14 +651,16 @@ export default function Map() {
           top: calc(100% + 8px);
           right: 0;
           width: 220px;
-          background: #fff;
+          background: #ffffff;
           border: 1px solid var(--border);
           border-radius: 14px;
-          box-shadow: var(--shadow);
+          box-shadow: 0 18px 40px rgba(15,23,42,.16);
           padding: 8px;
-          z-index: 30;
+          z-index: 3000;
           display: grid;
           gap: 6px;
+          opacity: 1;
+          backdrop-filter: none;
         }
         .map-export-item {
           width: 100%;
@@ -683,9 +685,6 @@ export default function Map() {
           {loading ? t("common.loading", { defaultValue: "Φόρτωση..." }) : `${t("map.totalInline", { defaultValue: "Σύνολο" })}: ${total}`}
         </span>
         <div className="spacer" />
-        <button className="btn" type="button" onClick={() => setShowFilters((prev) => !prev)}>
-          {t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}
-        </button>
         <div style={{ position: "relative" }} ref={exportMenuRef}>
           <button className="btn" type="button" onClick={() => setShowExportMenu((prev) => !prev)} disabled={loading || items.length === 0}>
             {t("common.export", { defaultValue: "Export" })}
@@ -706,93 +705,7 @@ export default function Map() {
         </div>
       </div>
 
-      {showFilters ? (
-        <div className="card" style={{ marginTop: 12 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14 }}>
-            <Field label={t("graduates.filters.adCode", { defaultValue: "Α.Δ." })}>
-              <input className="input" value={filters.ad_code_like} onChange={(e) => updateFilter("ad_code_like", e.target.value)} />
-            </Field>
-            <Field label={t("graduates.filters.studentNumber", { defaultValue: "Α.Μ." })}>
-              <input className="input" value={filters.student_number_like} onChange={(e) => updateFilter("student_number_like", e.target.value)} />
-            </Field>
-            <Field label={t("graduates.filters.lastName", { defaultValue: "Επώνυμο" })}>
-              <input className="input" value={filters.last_name_like} onChange={(e) => updateFilter("last_name_like", e.target.value)} />
-            </Field>
-            <Field label={t("graduates.filters.firstName", { defaultValue: "Όνομα" })}>
-              <input className="input" value={filters.first_name_like} onChange={(e) => updateFilter("first_name_like", e.target.value)} />
-            </Field>
-            <Field label={t("graduates.filters.fatherName", { defaultValue: "Πατρώνυμο" })}>
-              <input className="input" value={filters.father_name_like} onChange={(e) => updateFilter("father_name_like", e.target.value)} />
-            </Field>
-            <Field label={t("graduates.filters.gender", { defaultValue: "Φύλο" })}>
-              <select className="input" value={filters.gender} onChange={(e) => updateFilter("gender", e.target.value)}>
-                <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                <option value="M">{t("common.male", { defaultValue: "Άνδρας" })}</option>
-                <option value="F">{t("common.female", { defaultValue: "Γυναίκα" })}</option>
-              </select>
-            </Field>
-            <RangeField label={t("graduates.filters.entryYear", { defaultValue: "Έτος εισαγωγής" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.entry_year_min} toValue={filters.entry_year_max} onFromChange={(value) => updateFilter("entry_year_min", value)} onToChange={(value) => updateFilter("entry_year_max", value)} type="number" />
-            <RangeField label={t("graduates.filters.birthYear", { defaultValue: "Έτος γέννησης" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.birth_year_min} toValue={filters.birth_year_max} onFromChange={(value) => updateFilter("birth_year_min", value)} onToChange={(value) => updateFilter("birth_year_max", value)} type="number" />
-            <RangeField label={t("graduates.filters.degreeGrade", { defaultValue: "Βαθμός πτυχίου" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.degree_grade_min} toValue={filters.degree_grade_max} onFromChange={(value) => updateFilter("degree_grade_min", value)} onToChange={(value) => updateFilter("degree_grade_max", value)} type="number" step="0.1" />
-            <Field label={t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" })}>
-              <input className="input" value={filters.graduation_year} onChange={(e) => updateFilter("graduation_year", e.target.value)} />
-            </Field>
-            <Field label={t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" })}>
-              <select className="input" value={filters.age_group} onChange={(e) => updateFilter("age_group", e.target.value as AgeGroup)}>
-                <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                <option value="18-22">18-22</option>
-                <option value="23-26">23-26</option>
-                <option value="27-30">27-30</option>
-                <option value="31+">31+</option>
-              </select>
-            </Field>
-            <RangeField label={t("graduates.filters.graduationDate", { defaultValue: "Ημερομηνία αποφοίτησης" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.graduation_date_from} toValue={filters.graduation_date_to} onFromChange={(value) => updateFilter("graduation_date_from", value)} onToChange={(value) => updateFilter("graduation_date_to", value)} type="date" />
-            <RangeField label={t("graduates.filters.oathDate", { defaultValue: "Ημερομηνία ορκωμοσίας" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.oath_date_from} toValue={filters.oath_date_to} onFromChange={(value) => updateFilter("oath_date_from", value)} onToChange={(value) => updateFilter("oath_date_to", value)} type="date" />
-            <Field label={t("map.filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })}>
-              <select className="input" value={filters.study_program_id} onChange={(e) => updateFilter("study_program_id", e.target.value)}>
-                <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                {studyPrograms.map((program) => (
-                  <option key={program.id} value={String(program.id)}>
-                    {activeLang === "en" ? program.name_en || program.name_el || program.code : program.name_el || program.name_en || program.code}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label={t("graduates.filters.direction", { defaultValue: "Κατεύθυνση" })}>
-              <select className="input" value={filters.program_direction_id} onChange={(e) => updateFilter("program_direction_id", e.target.value)}>
-                <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                {availableDirections.map((direction) => (
-                  <option key={direction.id} value={String(direction.id)}>
-                    {activeLang === "en" ? (direction as any).name_en || (direction as any).name_el || (direction as any).code : (direction as any).name_el || (direction as any).name_en || (direction as any).code}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label={t("graduates.filters.region", { defaultValue: "Περιφέρεια" })}>
-              <select className="input" value={filters.origin_region_id} onChange={(e) => updateFilter("origin_region_id", e.target.value)}>
-                <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                {regions.map((region) => (
-                  <option key={region.id} value={String(region.id)}>{region.name}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label={t("graduates.filters.city", { defaultValue: "Πόλη" })}>
-              <input className="input" value={filters.origin_municipality_like} onChange={(e) => updateFilter("origin_municipality_like", e.target.value)} />
-            </Field>
-          </div>
-
-          <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-            <button className="btn primary" type="button" onClick={onApply} disabled={loading}>
-              {t("common.apply", { defaultValue: "Εφαρμογή" })}
-            </button>
-            <button className="btn" type="button" onClick={onReset} disabled={loading}>
-              {t("common.reset", { defaultValue: "Reset" })}
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="page-two-col" style={{ marginTop: 12 }}>
+            <div className="page-two-col" style={{ marginTop: 12 }}>
         <div className="card alupla-map-card">
           <div className="alupla-map map-canvas" ref={mapCanvasRef}>
             <MapContainer
@@ -880,35 +793,129 @@ export default function Map() {
 
         <div className="map-panel-stack">
           <div className="card">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: showFilters ? 12 : 0 }}>
+              <h3 style={{ margin: 0 }}>{t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}</h3>
+              <button className="btn" type="button" onClick={() => setShowFilters((prev) => !prev)}>
+                {showFilters ? t("common.hide", { defaultValue: "Απόκρυψη" }) : t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}
+              </button>
+            </div>
+
+            {showFilters ? (
+              <div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+                  <Field label={t("graduates.filters.adCode", { defaultValue: "Α.Δ." })} span={1}>
+                    <input className="input" value={filters.ad_code_like} onChange={(e) => updateFilter("ad_code_like", e.target.value)} />
+                  </Field>
+                  <Field label={t("graduates.filters.studentNumber", { defaultValue: "Α.Μ." })} span={1}>
+                    <input className="input" value={filters.student_number_like} onChange={(e) => updateFilter("student_number_like", e.target.value)} />
+                  </Field>
+                  <Field label={t("graduates.filters.lastName", { defaultValue: "Επώνυμο" })} span={1}>
+                    <input className="input" value={filters.last_name_like} onChange={(e) => updateFilter("last_name_like", e.target.value)} />
+                  </Field>
+                  <Field label={t("graduates.filters.firstName", { defaultValue: "Όνομα" })} span={1}>
+                    <input className="input" value={filters.first_name_like} onChange={(e) => updateFilter("first_name_like", e.target.value)} />
+                  </Field>
+                  <Field label={t("graduates.filters.fatherName", { defaultValue: "Πατρώνυμο" })} span={1}>
+                    <input className="input" value={filters.father_name_like} onChange={(e) => updateFilter("father_name_like", e.target.value)} />
+                  </Field>
+                  <Field label={t("graduates.filters.gender", { defaultValue: "Φύλο" })} span={1}>
+                    <select className="input" value={filters.gender} onChange={(e) => updateFilter("gender", e.target.value)}>
+                      <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                      <option value="M">{t("common.male", { defaultValue: "Άνδρας" })}</option>
+                      <option value="F">{t("common.female", { defaultValue: "Γυναίκα" })}</option>
+                    </select>
+                  </Field>
+                  <RangeField label={t("graduates.filters.entryYear", { defaultValue: "Έτος εισαγωγής" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.entry_year_min} toValue={filters.entry_year_max} onFromChange={(value) => updateFilter("entry_year_min", value)} onToChange={(value) => updateFilter("entry_year_max", value)} type="number" span={1} />
+                  <RangeField label={t("graduates.filters.birthYear", { defaultValue: "Έτος γέννησης" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.birth_year_min} toValue={filters.birth_year_max} onFromChange={(value) => updateFilter("birth_year_min", value)} onToChange={(value) => updateFilter("birth_year_max", value)} type="number" span={1} />
+                  <RangeField label={t("graduates.filters.degreeGrade", { defaultValue: "Βαθμός πτυχίου" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.degree_grade_min} toValue={filters.degree_grade_max} onFromChange={(value) => updateFilter("degree_grade_min", value)} onToChange={(value) => updateFilter("degree_grade_max", value)} type="number" step="0.1" span={1} />
+                  <Field label={t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" })} span={1}>
+                    <input className="input" value={filters.graduation_year} onChange={(e) => updateFilter("graduation_year", e.target.value)} />
+                  </Field>
+                  <Field label={t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" })} span={1}>
+                    <select className="input" value={filters.age_group} onChange={(e) => updateFilter("age_group", e.target.value as AgeGroup)}>
+                      <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                      <option value="18-22">18-22</option>
+                      <option value="23-26">23-26</option>
+                      <option value="27-30">27-30</option>
+                      <option value="31+">31+</option>
+                    </select>
+                  </Field>
+                  <RangeField label={t("graduates.filters.graduationDate", { defaultValue: "Ημερομηνία αποφοίτησης" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.graduation_date_from} toValue={filters.graduation_date_to} onFromChange={(value) => updateFilter("graduation_date_from", value)} onToChange={(value) => updateFilter("graduation_date_to", value)} type="date" span={1} />
+                  <RangeField label={t("graduates.filters.oathDate", { defaultValue: "Ημερομηνία ορκωμοσίας" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.oath_date_from} toValue={filters.oath_date_to} onFromChange={(value) => updateFilter("oath_date_from", value)} onToChange={(value) => updateFilter("oath_date_to", value)} type="date" span={1} />
+                  <Field label={t("map.filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })} span={1}>
+                    <select className="input" value={filters.study_program_id} onChange={(e) => updateFilter("study_program_id", e.target.value)}>
+                      <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                      {studyPrograms.map((program) => (
+                        <option key={program.id} value={String(program.id)}>
+                          {activeLang === "en" ? program.name_en || program.name_el || program.code : program.name_el || program.name_en || program.code}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label={t("graduates.filters.direction", { defaultValue: "Κατεύθυνση" })} span={1}>
+                    <select className="input" value={filters.program_direction_id} onChange={(e) => updateFilter("program_direction_id", e.target.value)}>
+                      <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                      {availableDirections.map((direction) => (
+                        <option key={direction.id} value={String(direction.id)}>
+                          {activeLang === "en" ? (direction as any).name_en || (direction as any).name_el || (direction as any).code : (direction as any).name_el || (direction as any).name_en || (direction as any).code}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label={t("graduates.filters.region", { defaultValue: "Περιφέρεια" })} span={1}>
+                    <select className="input" value={filters.origin_region_id} onChange={(e) => updateFilter("origin_region_id", e.target.value)}>
+                      <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                      {regions.map((region) => (
+                        <option key={region.id} value={String(region.id)}>{region.name}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label={t("graduates.filters.city", { defaultValue: "Πόλη" })} span={1}>
+                    <input className="input" value={filters.origin_municipality_like} onChange={(e) => updateFilter("origin_municipality_like", e.target.value)} />
+                  </Field>
+                </div>
+
+                <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button className="btn primary" type="button" onClick={onApply} disabled={loading}>
+                    {t("common.apply", { defaultValue: "Εφαρμογή" })}
+                  </button>
+                  <button className="btn" type="button" onClick={onReset} disabled={loading}>
+                    {t("common.reset", { defaultValue: "Reset" })}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="card">
             <h3 style={{ marginTop: 0 }}>{t("map.detailsTitle", { defaultValue: "Λεπτομέρειες" })}</h3>
             {!selected ? (
               <div className="muted">{t("map.detailsHint", { defaultValue: "Κάνε κλικ σε μία περιφέρεια για λεπτομέρειες." })}</div>
             ) : (
               <div className="grid" style={{ gap: 10 }}>
-                <div style={{ padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 12, background: "rgba(248,250,252,.8)", display: "grid", gap: 4 }}>
-                  <div style={{ fontWeight: 700 }}>{(selected as any).periphery_name}</div>
-                  <div className="muted">{t("map.total", { total: (selected as any).count ?? 0, defaultValue: "Σύνολο: {{total}}" })}</div>
-                </div>
+                <div style={{ padding: "14px", border: "1px solid var(--border)", borderRadius: 12, background: "rgba(248,250,252,.8)", display: "grid", gap: 12 }}>
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <div style={{ fontWeight: 700 }}>{(selected as any).periphery_name}</div>
+                    <div className="muted">{t("map.total", { total: (selected as any).count ?? 0, defaultValue: "Σύνολο: {{total}}" })}</div>
+                  </div>
 
-                <div className="grid cols2">
-                  <div>
-                    <label className="label">{t("map.totalLabel", { defaultValue: "Σύνολο" })}</label>
-                    <div style={{ fontWeight: 700 }}>{(selected as any).count ?? 0}</div>
-                  </div>
-                  <div>
-                    <label className="label">{t("map.avgAge", { defaultValue: "Μέση ηλικία" })}</label>
-                    <div style={{ fontWeight: 700 }}>{(selected as any).avg_age ?? "-"}</div>
-                  </div>
-                </div>
-
-                <div className="grid cols2">
-                  <div>
-                    <label className="label">{t("map.malePct", { defaultValue: "% Άνδρες" })}</label>
-                    <div style={{ fontWeight: 700 }}>{(selected as any).male_pct ?? 0}%</div>
-                  </div>
-                  <div>
-                    <label className="label">{t("map.femalePct", { defaultValue: "% Γυναίκες" })}</label>
-                    <div style={{ fontWeight: 700 }}>{(selected as any).female_pct ?? 0}%</div>
+                  <div className="grid cols2">
+                    <div>
+                      <label className="label">{t("map.totalLabel", { defaultValue: "Σύνολο" })}</label>
+                      <div style={{ fontWeight: 700 }}>{(selected as any).count ?? 0}</div>
+                    </div>
+                    <div>
+                      <label className="label">{t("map.avgAge", { defaultValue: "Μέση ηλικία" })}</label>
+                      <div style={{ fontWeight: 700 }}>{(selected as any).avg_age ?? "-"}</div>
+                    </div>
+                    <div>
+                      <label className="label">{t("map.malePct", { defaultValue: "% Άνδρες" })}</label>
+                      <div style={{ fontWeight: 700 }}>{(selected as any).male_pct ?? 0}%</div>
+                    </div>
+                    <div>
+                      <label className="label">{t("map.femalePct", { defaultValue: "% Γυναίκες" })}</label>
+                      <div style={{ fontWeight: 700 }}>{(selected as any).female_pct ?? 0}%</div>
+                    </div>
                   </div>
                 </div>
 
