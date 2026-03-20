@@ -153,6 +153,7 @@ export default function Graduates() {
   const [sortState, setSortState] = useState<{ key: SortKey; dir: SortDir }>({ key: "ad_code", dir: "asc" });
   const [filters, setFilters] = useState<FiltersState>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarInnerRef = useRef<HTMLDivElement | null>(null);
@@ -341,6 +342,7 @@ export default function Graduates() {
   }
 
   const visibleItems = useMemo(() => {
+    const query = normalizeValue(searchTerm).trim();
     const list = [...items];
     list.sort((a: any, b: any) => {
       const av = getSortValue(a, sortState.key);
@@ -364,8 +366,31 @@ export default function Graduates() {
 
       return normalizeValue(av).localeCompare(normalizeValue(bv), "el", { numeric: true, sensitivity: "base" }) * dirFactor;
     });
-    return list;
-  }, [items, sortState, programNameById, directionNameById, activeLang]);
+    if (!query) return list;
+    return list.filter((g: any) => {
+      const values = [
+        g?.ad_code,
+        g?.student_number,
+        g?.student_nuad_code,
+        g?.am,
+        g?.student_id,
+        g?.last_name,
+        g?.first_name,
+        g?.father_name,
+        renderGender(g?.gender),
+        g?.entry_year,
+        String(g?.birth_date ?? "").slice(0, 4),
+        g?.degree_grade,
+        g?.graduation_date,
+        g?.oath_date,
+        programNameById.get(Number(g?.study_program_id)) ?? "",
+        directionNameById.get(Number(g?.program_direction_id)) ?? "",
+        regionNameById.get(Number(g?.origin_region_id)) ?? "",
+        g?.origin_municipality,
+      ];
+      return values.some((value) => normalizeValue(value).includes(query));
+    });
+  }, [items, sortState, searchTerm, programNameById, directionNameById, regionNameById, activeLang]);
 
   function toggleSort(key: SortKey) {
     setSortState((cur) => (cur.key === key ? { key, dir: cur.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
@@ -552,10 +577,17 @@ export default function Graduates() {
               <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", width: "100%" }}>
-              <Link className="btn primary" to="/graduates/new" style={topButtonStyle}>
-                {t("topbar.newGraduate")}
-              </Link>
+            <div style={{ display: "grid", gap: 10, width: "100%" }}>
+              <input
+                className="input"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t("topbar.searchPlaceholder")}
+              />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", width: "100%" }}>
+                <Link className="btn primary" to="/graduates/new" style={topButtonStyle}>
+                  {t("topbar.newGraduate")}
+                </Link>
               <input
                 id="import-xlsx"
                 type="file"
@@ -585,15 +617,16 @@ export default function Graduates() {
               <button className="btn" type="button" style={topButtonStyle} onClick={() => setShowFilters((v) => !v)}>
                 {activeLang === "gr" ? "Φίλτρα" : "Filters"}
               </button>
-              <button
-                className="btn danger"
-                type="button"
-                style={topButtonStyle}
-                onClick={() => void onDeleteSelected()}
-                disabled={!selectedIds.length}
-              >
-                {t("topbar.delete")}
-              </button>
+                <button
+                  className="btn danger"
+                  type="button"
+                  style={topButtonStyle}
+                  onClick={() => void onDeleteSelected()}
+                  disabled={!selectedIds.length}
+                >
+                  {t("topbar.delete")}
+                </button>
+              </div>
             </div>
           </div>
 

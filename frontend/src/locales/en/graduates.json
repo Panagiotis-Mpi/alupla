@@ -11,7 +11,8 @@
     "downloadTemplate": "Download Excel Template",
     "selectGraduates": "Select Graduates",
     "exportSelected": "Export Selected",
-    "delete": "Delete"
+    "delete": "Delete",
+    "searchPlaceholder": "Search across all graduate fields..."
   },
   "filters": {
     "qLabel": "Global search (q)",

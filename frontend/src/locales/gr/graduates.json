@@ -11,7 +11,8 @@
     "downloadTemplate": "Λήψη προτύπου Excel",
     "selectGraduates": "Επιλογή αποφοίτων",
     "exportSelected": "Εξαγωγή επιλεγμένων",
-    "delete": "Διαγραφή"
+    "delete": "Διαγραφή",
+    "searchPlaceholder": "Αναζήτηση σε όλα τα πεδία αποφοίτων..."
   },
   "filters": {
     "qLabel": "Global αναζήτηση (q)",
