@@ -1,8 +1,10 @@
 import type { Request, Response } from "express";
 import { Op } from "sequelize";
-
 import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
+import { StudyProgram } from "../models/StudyProgram";
+import { ProgramDirection } from "../models/ProgramDirection";
+import { buildGraduateWhere } from "../utils/buildGraduateWhere";
 
 function toInt(v: any): number | null {
   const n = Number(v);
@@ -18,55 +20,49 @@ function ageGroupToRange(g: AgeGroup): [number, number | null] {
   return [31, null];
 }
 
-function buildMapFilters(req: Request) {
+function buildMapWhere(req: Request) {
   const graduationYear = toInt(req.query.graduation_year);
-  const studyProgramId = toInt(req.query.study_program_id);
-  const gender = (req.query.gender as string | undefined) || "";
   const ageGroup = (req.query.age_group as string | undefined) as AgeGroup | undefined;
-
-  const where: any = {};
-
-  if (studyProgramId) where.study_program_id = studyProgramId;
-  if (gender === "M" || gender === "F") where.gender = gender;
+  const where: any = buildGraduateWhere(req.query as Record<string, unknown>);
+  const currentYear = new Date().getFullYear();
+  const andParts = Array.isArray(where[Op.and]) ? [...where[Op.and]] : [];
 
   if (graduationYear) {
-    where[Op.and] = (where[Op.and] || []).concat([
-      { graduation_date: { [Op.between]: [`${graduationYear}-01-01`, `${graduationYear}-12-31`] } },
-    ]);
+    andParts.push({ graduation_date: { [Op.between]: [`${graduationYear}-01-01`, `${graduationYear}-12-31`] } });
   }
 
-  const currentYear = new Date().getFullYear();
   if (ageGroup) {
     const [minAge, maxAge] = ageGroupToRange(ageGroup);
-    const minBirth = currentYear - (maxAge ?? 200);
+    const minBirth = currentYear - (maxAge ?? 120);
     const maxBirth = currentYear - minAge;
-
-    where[Op.and] = (where[Op.and] || []).concat([
-      { birth_date: { [Op.between]: [`${minBirth}-01-01`, `${maxBirth}-12-31`] } },
-    ]);
+    andParts.push({ birth_date: { [Op.between]: [`${minBirth}-01-01`, `${maxBirth}-12-31`] } });
   }
 
+  if (andParts.length) where[Op.and] = andParts;
   return { where, currentYear };
 }
 
-function normalizeKey(s: string) {
-  return (s || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+async function loadRegions() {
+  const regions = await Region.findAll({
+    attributes: ["id", "name", "type", "parent_id", "latitude", "longitude"],
+  });
 
-function buildRegionHelpers(regions: any[]) {
-  const byId = new globalThis.Map<number, any>();
+  const byId = new Map<number, any>();
   for (const r of regions) byId.set(Number((r as any).id), (r as any));
 
-  const byName = new globalThis.Map<string, any>();
+  const normalizeKey = (s: string) =>
+    (s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const byName = new Map<string, any>();
   for (const r of regions as any[]) {
-    const k = normalizeKey(String(r.name || ""));
-    if (!k) continue;
-    if (!byName.has(k)) byName.set(k, r);
+    const key = normalizeKey(String(r.name || ""));
+    if (!key || byName.has(key)) continue;
+    byName.set(key, r);
   }
 
   function findPeriphery(regionId: number | null | undefined): any | null {
@@ -83,27 +79,43 @@ function buildRegionHelpers(regions: any[]) {
   }
 
   function resolveRegionIdFromMunicipalityName(name: string | null | undefined): number | null {
-    const k = normalizeKey(String(name || ""));
-    if (!k) return null;
-    const hit = byName.get(k);
+    const key = normalizeKey(String(name || ""));
+    if (!key) return null;
+    const hit = byName.get(key);
     return hit ? (Number(hit.id) || null) : null;
   }
 
-  return { byId, byName, findPeriphery, resolveRegionIdFromMunicipalityName };
+  return { regions, findPeriphery, resolveRegionIdFromMunicipalityName };
+}
+
+export async function getMapFilterOptions(_req: Request, res: Response) {
+  const [studyPrograms, programDirections, regions] = await Promise.all([
+    StudyProgram.findAll({
+      attributes: ["id", "code", "name_el", "name_en"],
+      where: { is_active: true },
+      order: [["code", "ASC"]],
+    }),
+    ProgramDirection.findAll({
+      attributes: ["id", "study_program_id", "code", "name_el", "name_en"],
+      where: { is_active: true },
+      order: [["study_program_id", "ASC"], ["code", "ASC"]],
+    }),
+    Region.findAll({
+      attributes: ["id", "name", "type", "parent_id"],
+      where: { type: "PERIPHERY" },
+      order: [["name", "ASC"]],
+    }),
+  ]);
+
+  return res.json({ ok: true, studyPrograms, programDirections, regions });
 }
 
 export async function getGraduatesMap(req: Request, res: Response) {
-  const { where, currentYear } = buildMapFilters(req);
-
-  const regions = await Region.findAll({
-    attributes: ["id", "name", "type", "parent_id", "latitude", "longitude"],
-  });
-
-  const { findPeriphery, resolveRegionIdFromMunicipalityName } = buildRegionHelpers(regions as any[]);
+  const { where, currentYear } = buildMapWhere(req);
+  const { regions, findPeriphery, resolveRegionIdFromMunicipalityName } = await loadRegions();
 
   const grads = await Graduate.findAll({
     where,
-
     attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date"],
   });
 
@@ -124,7 +136,6 @@ export async function getGraduatesMap(req: Request, res: Response) {
       ageCount: 0,
     });
   }
-
 
   for (const g of grads as any[]) {
     const originId = Number(g.origin_region_id) || resolveRegionIdFromMunicipalityName(g.origin_municipality);
@@ -158,60 +169,53 @@ export async function getGraduatesMap(req: Request, res: Response) {
   }
 
   const items = Array.from(groups.values())
-    .map((x) => {
-      const malePct = x.count ? Math.round((x.male / x.count) * 1000) / 10 : 0;
-      const femalePct = x.count ? Math.round((x.female / x.count) * 1000) / 10 : 0;
-      const avgAge = x.ageCount ? Math.round((x.ageSum / x.ageCount) * 10) / 10 : null;
-      return {
-        periphery_id: x.periphery_id,
-        periphery_name: x.periphery_name,
-        latitude: x.latitude,
-        longitude: x.longitude,
-        count: x.count,
-        male_pct: malePct,
-        female_pct: femalePct,
-        avg_age: avgAge,
-      };
-    })
+    .map((x) => ({
+      periphery_id: x.periphery_id,
+      periphery_name: x.periphery_name,
+      latitude: x.latitude,
+      longitude: x.longitude,
+      count: x.count,
+      male_pct: x.count ? Math.round((x.male / x.count) * 1000) / 10 : 0,
+      female_pct: x.count ? Math.round((x.female / x.count) * 1000) / 10 : 0,
+      avg_age: x.ageCount ? Math.round((x.ageSum / x.ageCount) * 10) / 10 : null,
+    }))
     .sort((a, b) => b.count - a.count);
 
   const total = items.reduce((s, it) => s + (Number(it.count) || 0), 0);
-
   return res.json({ ok: true, items, total });
 }
 
-
-export async function getRegionCitiesMapStats(req: Request, res: Response) {
+export async function getRegionCities(req: Request, res: Response) {
   const peripheryId = toInt(req.query.periphery_id);
-  if (!peripheryId) return res.status(400).json({ message: "periphery_id is required" });
+  if (!peripheryId) return res.status(400).json({ ok: false, error: "periphery_id is required" });
 
-  const { where, currentYear } = buildMapFilters(req);
-
-  const regions = await Region.findAll({
-    attributes: ["id", "name", "type", "parent_id"],
-  });
-
-  const { byId, findPeriphery, resolveRegionIdFromMunicipalityName } = buildRegionHelpers(regions as any[]);
+  const { where, currentYear } = buildMapWhere(req);
+  const { findPeriphery, resolveRegionIdFromMunicipalityName } = await loadRegions();
 
   const grads = await Graduate.findAll({
     where,
     attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date"],
   });
 
-  const groups = new globalThis.Map<string, any>();
+  const groups = new Map<string, any>();
 
   for (const g of grads as any[]) {
     const originId = Number(g.origin_region_id) || resolveRegionIdFromMunicipalityName(g.origin_municipality);
     const per = findPeriphery(originId);
     if (!per || Number(per.id) !== peripheryId) continue;
 
-    const originRegion = originId ? byId.get(Number(originId)) : null;
-    const cityName = String(g.origin_municipality || originRegion?.name || "").trim();
-    if (!cityName) continue;
+    const name = String(g.origin_municipality || "").trim();
+    if (!name) continue;
 
-    const key = normalizeKey(cityName);
+    const key = name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
     const cur = groups.get(key) || {
-      name: cityName,
+      city: name,
       count: 0,
       male: 0,
       female: 0,
@@ -234,15 +238,17 @@ export async function getRegionCitiesMapStats(req: Request, res: Response) {
 
   const items = Array.from(groups.values())
     .map((x) => ({
-      name: x.name,
+      city: x.city,
       count: x.count,
       male_pct: x.count ? Math.round((x.male / x.count) * 1000) / 10 : 0,
       female_pct: x.count ? Math.round((x.female / x.count) * 1000) / 10 : 0,
       avg_age: x.ageCount ? Math.round((x.ageSum / x.ageCount) * 10) / 10 : null,
     }))
-    .sort((a, b) => b.count - a.count || String(a.name).localeCompare(String(b.name), "el"))
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.city.localeCompare(b.city, "el");
+    })
     .slice(0, 3);
 
   return res.json({ ok: true, items });
 }
-
