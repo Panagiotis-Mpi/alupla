@@ -34,7 +34,7 @@ export const regionCities: RegionCity[] = [
   { region: "Στερεά Ελλάδα", nameEl: "Θήβα", nameEn: "Thebes", lat: 38.325, lng: 23.3189, population: 22663 },
   { region: "Αττική", nameEl: "Αθήνα", nameEn: "Athens", lat: 37.9838, lng: 23.7275, population: 643452 },
   { region: "Αττική", nameEl: "Πειραιάς", nameEn: "Piraeus", lat: 37.942, lng: 23.6465, population: 163688 },
-  { region: "Αττική", nameEl: "Λαύριο", nameEn: "Lavrio", lat: 37.7145, lng: 24.0565, population: 25000 },
+  { region: "Αττική", nameEl: "Λαύριο", nameEn: "Lavrio", lat: 37.7145, lng: 24.0565, population: 25871 },
   { region: "Πελοπόννησος", nameEl: "Καλαμάτα", nameEn: "Kalamata", lat: 37.0389, lng: 22.1142, population: 69903 },
   { region: "Πελοπόννησος", nameEl: "Κόρινθος", nameEn: "Corinth", lat: 37.9381, lng: 22.9322, population: 58280 },
   { region: "Πελοπόννησος", nameEl: "Τρίπολη", nameEn: "Tripoli", lat: 37.5089, lng: 22.3794, population: 30866 },

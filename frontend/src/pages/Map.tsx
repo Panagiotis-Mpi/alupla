@@ -263,7 +263,7 @@ export default function Map() {
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
   const visibleCities = useMemo(() => {
-    const grouped = new Map<string, RegionCity[]>();
+    const grouped = new (globalThis as any).Map<string, RegionCity[]>();
 
     for (const city of regionCities) {
       const key = normalizeKey(city.region);
@@ -287,20 +287,16 @@ export default function Map() {
         ? sorted.filter((city) => mapBounds.contains(L.latLng(city.lat, city.lng)))
         : sorted;
 
-      next.push(...(insideBounds.length ? insideBounds : sorted).slice(0, 3));
+      if (insideBounds.length) {
+        next.push(...insideBounds.slice(0, 3));
+        return;
+      }
+
+      if (sorted[0]) next.push(sorted[0]);
     });
 
     return next;
   }, [mapBounds, mapZoom]);
-
-  const selectedRegionCities = useMemo(() => {
-    if (!selected) return [] as RegionCity[];
-    const key = normalizeKey(String((selected as any).periphery_name || ""));
-    return regionCities
-      .filter((city) => normalizeKey(city.region) === key)
-      .sort((a, b) => b.population - a.population)
-      .slice(0, 3);
-  }, [selected]);
 
   async function onExportExcel() {
     const res = await getGraduatesMap({
@@ -372,6 +368,16 @@ export default function Map() {
   }
 
   const buckets = useMemo(() => legendBuckets(maxCount), [maxCount]);
+
+
+  const selectedRegionCities = useMemo(() => {
+    if (!selected) return [];
+    const key = normalizeKey(String((selected as any).periphery_name || ""));
+    return regionCities
+      .filter((city) => normalizeKey(city.region) === key)
+      .sort((a, b) => b.population - a.population)
+      .slice(0, 3);
+  }, [selected]);
 
   const geoRenderKey = useMemo(() => {
     return `${i18n.language}:${items.length}:${maxCount}`;
@@ -617,23 +623,14 @@ export default function Map() {
                   </div>
                 </div>
 
-                {selectedRegionCities.length > 0 ? (
+                {selectedRegionCities.length ? (
                   <div>
                     <label className="label">{t("map.cities", { defaultValue: "Πόλεις" })}</label>
-                    <div style={{ display: "grid", gap: 8 }}>
+                    <div className="grid" style={{ gap: 8 }}>
                       {selectedRegionCities.map((city) => (
                         <div
-                          key={`${city.region}-${city.nameEl}-details`}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            padding: "8px 10px",
-                            border: "1px solid var(--border)",
-                            borderRadius: 12,
-                            background: "rgba(248,250,252,.8)",
-                          }}
+                          key={`${city.region}-${city.nameEl}`}
+                          style={{ display: "flex", justifyContent: "space-between", gap: 12, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}
                         >
                           <div style={{ fontWeight: 600 }}>
                             {i18n.language?.toLowerCase().startsWith("en") ? city.nameEn : city.nameEl}
