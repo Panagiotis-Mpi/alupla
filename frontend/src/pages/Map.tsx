@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CircleMarker, GeoJSON, MapContainer, Tooltip } from "react-leaflet";
+import { GeoJSON, MapContainer, Marker, Tooltip } from "react-leaflet";
 import type { LeafletMouseEvent } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -18,6 +18,13 @@ type RegionCity = {
   lat: number;
   lng: number;
 };
+
+const cityLabelAnchor = L.divIcon({
+  className: "alupla-city-label-anchor",
+  html: "<span></span>",
+  iconSize: [0, 0],
+  iconAnchor: [0, 0],
+});
 
 const regionCities: RegionCity[] = [
   { region: "Ανατολική Μακεδονία και Θράκη", nameEl: "Αλεξανδρούπολη", nameEn: "Alexandroupoli", lat: 40.8457, lng: 25.8739 },
@@ -61,11 +68,6 @@ const regionCities: RegionCity[] = [
   { region: "Κρήτη", nameEl: "Ρέθυμνο", nameEn: "Rethymno", lat: 35.3656, lng: 24.4823 },
 ];
 
-
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
-
 function normalizeKey(s: string): string {
   return (s || "")
     .toLowerCase()
@@ -99,7 +101,6 @@ function excelCellValue(v: any) {
   return v;
 }
 
-
 export default function Map() {
   const { t, i18n } = useTranslation();
 
@@ -110,6 +111,7 @@ export default function Map() {
   const [gender, setGender] = useState<string>("");
   const [ageGroup, setAgeGroup] = useState<AgeGroup>("");
   const [studyPrograms, setStudyPrograms] = useState<StudyProgram[]>([]);
+  const [mapZoom, setMapZoom] = useState(6.5);
 
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<GraduatesMapItem[]>([]);
@@ -123,11 +125,10 @@ export default function Map() {
       const layer = L.geoJSON(geojson as any);
       const bounds = layer.getBounds();
       if (bounds && bounds.isValid()) {
-
         mapRef.current.fitBounds(bounds, { padding: [32, 32], maxZoom: 7.25 });
+        setMapZoom(mapRef.current.getZoom());
       }
     } catch {
-
     }
   }, [geojson]);
 
@@ -184,7 +185,6 @@ export default function Map() {
 
   useEffect(() => {
     fetchMap();
-
   }, []);
 
   useEffect(() => {
@@ -220,36 +220,35 @@ export default function Map() {
     fetchMap();
   }
 
-const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
+  const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
 
-function thresholdsForMax(m: number) {
-  const mm = Math.max(1, m || 1);
-  const b1 = Math.ceil(mm * 0.2);
-  const b2 = Math.ceil(mm * 0.4);
-  const b3 = Math.ceil(mm * 0.6);
-  const b4 = Math.ceil(mm * 0.8);
-  return [0, b1, b2, b3, b4, mm];
-}
-
-function bucketIndexForCount(c: number) {
-  const t = thresholdsForMax(maxCount);
-  for (let i = 0; i < 5; i++) {
-    const from = t[i];
-    const to = t[i + 1];
-    if (c >= from && c <= to) return i;
+  function thresholdsForMax(m: number) {
+    const mm = Math.max(1, m || 1);
+    const b1 = Math.ceil(mm * 0.2);
+    const b2 = Math.ceil(mm * 0.4);
+    const b3 = Math.ceil(mm * 0.6);
+    const b4 = Math.ceil(mm * 0.8);
+    return [0, b1, b2, b3, b4, mm];
   }
-  return 4;
-}
 
-function fillColorForCount(c: number) {
-  const idx = bucketIndexForCount(c);
-  return fillColors[Math.max(0, Math.min(fillColors.length - 1, idx))];
-}
+  function bucketIndexForCount(c: number) {
+    const t = thresholdsForMax(maxCount);
+    for (let i = 0; i < 5; i++) {
+      const from = t[i];
+      const to = t[i + 1];
+      if (c >= from && c <= to) return i;
+    }
+    return 4;
+  }
 
-function fillOpacityForCount(c: number) {
+  function fillColorForCount(c: number) {
+    const idx = bucketIndexForCount(c);
+    return fillColors[Math.max(0, Math.min(fillColors.length - 1, idx))];
+  }
 
-  return c <= 0 ? 0.18 : 0.75;
-}
+  function fillOpacityForCount(c: number) {
+    return c <= 0 ? 0.18 : 0.75;
+  }
 
   function featureGreekName(feature: any): string {
     const p = feature?.properties || {};
@@ -277,6 +276,18 @@ function fillOpacityForCount(c: number) {
   }
 
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
+
+  const visibleCities = useMemo(() => {
+    if (mapZoom >= 8) return regionCities;
+
+    const seen = new Set<string>();
+    return regionCities.filter((city) => {
+      const key = normalizeKey(city.region);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [mapZoom]);
 
   async function onExportExcel() {
     const res = await getGraduatesMap({
@@ -339,7 +350,6 @@ function fillOpacityForCount(c: number) {
   }
 
   function legendBuckets(max: number) {
-
     const m = Math.max(1, max);
     const b1 = Math.ceil(m * 0.2);
     const b2 = Math.ceil(m * 0.4);
@@ -350,25 +360,31 @@ function fillOpacityForCount(c: number) {
 
   const buckets = useMemo(() => legendBuckets(maxCount), [maxCount]);
 
-
   const geoRenderKey = useMemo(() => {
     return `${i18n.language}:${items.length}:${maxCount}`;
   }, [i18n.language, items.length, maxCount]);
 
   return (
     <div className="container">
-      {}
       <style>{`
-        
         .leaflet-container path:focus { outline: none !important; }
         .leaflet-interactive:focus { outline: none !important; }
         .leaflet-container:focus { outline: none !important; }
-
-        
         .alupla-map .leaflet-container { background: transparent !important; }
-
-        
         .alupla-map-card { padding: 0; overflow: hidden; position: relative; }
+        .alupla-city-label-anchor { background: transparent !important; border: 0 !important; }
+        .alupla-city-label {
+          background: transparent !important;
+          border: 0 !important;
+          box-shadow: none !important;
+          color: #1e293b;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 0 !important;
+          margin: 0;
+          white-space: nowrap;
+        }
+        .alupla-city-label::before { display: none !important; }
       `}</style>
 
       <div className="topbar">
@@ -384,9 +400,7 @@ function fillOpacityForCount(c: number) {
         </button>
       </div>
 
-      {}
       <div className="page-two-col" style={{ marginTop: 12 }}>
-        {}
         <div className="card alupla-map-card">
           <div className="alupla-map map-canvas">
             <MapContainer
@@ -395,26 +409,12 @@ function fillOpacityForCount(c: number) {
               zoomSnap={0.5}
               whenCreated={(m) => {
                 mapRef.current = m;
+                setMapZoom(m.getZoom());
+                m.on("zoomend", () => setMapZoom(m.getZoom()));
               }}
               style={{ height: "100%", width: "100%", background: "transparent" }}
               scrollWheelZoom
             >
-
-              {regionCities.map((city) => (
-                <CircleMarker
-                  key={`${city.region}-${city.nameEl}`}
-                  center={[city.lat, city.lng]}
-                  radius={3.5}
-                  pathOptions={{ color: "#1e293b", weight: 1, fillColor: "#1e293b", fillOpacity: 0.9 }}
-                >
-                  <Tooltip permanent direction="top" offset={[0, -4]} opacity={1}>
-                    <span style={{ fontSize: 11, fontWeight: 600 }}>
-                      {i18n.language?.toLowerCase().startsWith("en") ? city.nameEn : city.nameEl}
-                    </span>
-                  </Tooltip>
-                </CircleMarker>
-              ))}
-
               {geojson ? (
                 <GeoJSON
                   key={geoRenderKey}
@@ -452,10 +452,17 @@ function fillOpacityForCount(c: number) {
                   }}
                 />
               ) : null}
+
+              {visibleCities.map((city) => (
+                <Marker key={`${city.region}-${city.nameEl}`} position={[city.lat, city.lng]} icon={cityLabelAnchor} interactive={false}>
+                  <Tooltip permanent direction="center" offset={[0, 0]} opacity={1} className="alupla-city-label">
+                    {i18n.language?.toLowerCase().startsWith("en") ? city.nameEn : city.nameEl}
+                  </Tooltip>
+                </Marker>
+              ))}
             </MapContainer>
           </div>
 
-          {}
           <div
             style={{
               position: "absolute",
@@ -504,7 +511,6 @@ function fillOpacityForCount(c: number) {
           </div>
         </div>
 
-        {}
         <div className="map-panel-stack">
           <div className="card">
             <div className="grid cols2" style={{ alignItems: "end" }}>
@@ -598,8 +604,8 @@ function fillOpacityForCount(c: number) {
               </div>
             )}
           </div>
-	        </div>
-	      </div>
-	    </div>
+        </div>
+      </div>
+    </div>
   );
 }
