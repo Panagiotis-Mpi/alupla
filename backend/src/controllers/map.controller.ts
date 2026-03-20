@@ -18,7 +18,7 @@ function ageGroupToRange(g: AgeGroup): [number, number | null] {
   return [31, null];
 }
 
-export async function getGraduatesMap(req: Request, res: Response) {
+function buildMapWhere(req: Request) {
   const graduationYear = toInt(req.query.graduation_year);
   const studyProgramId = toInt(req.query.study_program_id);
   const gender = (req.query.gender as string | undefined) || "";
@@ -29,13 +29,14 @@ export async function getGraduatesMap(req: Request, res: Response) {
   if (studyProgramId) where.study_program_id = studyProgramId;
   if (gender === "M" || gender === "F") where.gender = gender;
 
+  const currentYear = new Date().getFullYear();
+
   if (graduationYear) {
     where[Op.and] = (where[Op.and] || []).concat([
       { graduation_date: { [Op.between]: [`${graduationYear}-01-01`, `${graduationYear}-12-31`] } },
     ]);
   }
 
-  const currentYear = new Date().getFullYear();
   if (ageGroup) {
     const [minAge, maxAge] = ageGroupToRange(ageGroup);
     const minBirth = currentYear - (maxAge ?? 200);
@@ -46,12 +47,31 @@ export async function getGraduatesMap(req: Request, res: Response) {
     ]);
   }
 
+  return { where, currentYear };
+}
+
+async function loadRegions() {
   const regions = await Region.findAll({
     attributes: ["id", "name", "type", "parent_id", "latitude", "longitude"],
   });
 
   const byId = new Map<number, any>();
   for (const r of regions) byId.set(Number((r as any).id), (r as any));
+
+  const normalizeKey = (s: string) =>
+    (s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const byName = new Map<string, any>();
+  for (const r of regions as any[]) {
+    const k = normalizeKey(String(r.name || ""));
+    if (!k || byName.has(k)) continue;
+    byName.set(k, r);
+  }
 
   function findPeriphery(regionId: number | null | undefined): any | null {
     if (!regionId) return null;
@@ -66,9 +86,22 @@ export async function getGraduatesMap(req: Request, res: Response) {
     return null;
   }
 
+  function resolveRegionIdFromMunicipalityName(name: string | null | undefined): number | null {
+    const k = normalizeKey(String(name || ""));
+    if (!k) return null;
+    const hit = byName.get(k);
+    return hit ? (Number(hit.id) || null) : null;
+  }
+
+  return { regions, findPeriphery, resolveRegionIdFromMunicipalityName };
+}
+
+export async function getGraduatesMap(req: Request, res: Response) {
+  const { where, currentYear } = buildMapWhere(req);
+  const { regions, findPeriphery, resolveRegionIdFromMunicipalityName } = await loadRegions();
+
   const grads = await Graduate.findAll({
     where,
-
     attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date"],
   });
 
@@ -88,30 +121,6 @@ export async function getGraduatesMap(req: Request, res: Response) {
       ageSum: 0,
       ageCount: 0,
     });
-  }
-
-
-  const normalizeKey = (s: string) =>
-    (s || "")
-      .toLowerCase()
-      .normalize("NFD")
-
-      .replace(/\p{Diacritic}/gu, "")
-      .replace(/\s+/g, " ")
-      .trim();
-
-  const byName = new Map<string, any>();
-  for (const r of regions as any[]) {
-    const k = normalizeKey(String(r.name || ""));
-    if (!k) continue;
-    if (!byName.has(k)) byName.set(k, r);
-  }
-
-  function resolveRegionIdFromMunicipalityName(name: string | null | undefined): number | null {
-    const k = normalizeKey(String(name || ""));
-    if (!k) return null;
-    const hit = byName.get(k);
-    return hit ? (Number(hit.id) || null) : null;
   }
 
   for (const g of grads as any[]) {
@@ -166,4 +175,72 @@ export async function getGraduatesMap(req: Request, res: Response) {
   const total = items.reduce((s, it) => s + (Number(it.count) || 0), 0);
 
   return res.json({ ok: true, items, total });
+}
+
+export async function getRegionCities(req: Request, res: Response) {
+  const peripheryId = toInt(req.query.periphery_id);
+  if (!peripheryId) return res.status(400).json({ ok: false, error: "periphery_id is required" });
+
+  const { where, currentYear } = buildMapWhere(req);
+  const { findPeriphery, resolveRegionIdFromMunicipalityName } = await loadRegions();
+
+  const grads = await Graduate.findAll({
+    where,
+    attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date"],
+  });
+
+  const groups = new Map<string, any>();
+
+  for (const g of grads as any[]) {
+    const originId = Number(g.origin_region_id) || resolveRegionIdFromMunicipalityName(g.origin_municipality);
+    const per = findPeriphery(originId);
+    if (!per || Number(per.id) !== peripheryId) continue;
+
+    const name = String(g.origin_municipality || "").trim();
+    if (!name) continue;
+
+    const key = name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const cur = groups.get(key) || {
+      city: name,
+      count: 0,
+      male: 0,
+      female: 0,
+      ageSum: 0,
+      ageCount: 0,
+    };
+
+    cur.count += 1;
+    if (g.gender === "M") cur.male += 1;
+    if (g.gender === "F") cur.female += 1;
+
+    const by = Number(String(g.birth_date ?? "").slice(0, 4));
+    if (Number.isFinite(by) && by > 1900) {
+      cur.ageSum += currentYear - by;
+      cur.ageCount += 1;
+    }
+
+    groups.set(key, cur);
+  }
+
+  const items = Array.from(groups.values())
+    .map((x) => ({
+      city: x.city,
+      count: x.count,
+      male_pct: x.count ? Math.round((x.male / x.count) * 1000) / 10 : 0,
+      female_pct: x.count ? Math.round((x.female / x.count) * 1000) / 10 : 0,
+      avg_age: x.ageCount ? Math.round((x.ageSum / x.ageCount) * 10) / 10 : null,
+    }))
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.city.localeCompare(b.city, "el");
+    })
+    .slice(0, 3);
+
+  return res.json({ ok: true, items });
 }
