@@ -5,7 +5,7 @@ import type { LeafletMouseEvent } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { getGraduatesMap, getPublicStudyPrograms, getRegionCitiesMap, logPublicExport, type GraduatesMapItem, type RegionCityMapItem, type StudyProgram } from "../lib/api";
+import { getGraduatesMap, getPublicStudyPrograms, logPublicExport, type GraduatesMapItem, type StudyProgram } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
 import { regionCities, type RegionCity } from "../data/regionCities";
 import * as XLSX from "xlsx";
@@ -100,7 +100,6 @@ export default function Map() {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<GraduatesMapItem[]>([]);
   const [selected, setSelected] = useState<GraduatesMapItem | null>(null);
-  const [selectedCityStats, setSelectedCityStats] = useState<RegionCityMapItem[]>([]);
 
   const geojson = useMemo(() => tryParseGeoJson(greeceRegionsRaw), []);
 
@@ -264,7 +263,7 @@ export default function Map() {
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
   const visibleCities = useMemo(() => {
-    const grouped = new Map<string, RegionCity[]>();
+    const grouped = new globalThis.Map<string, RegionCity[]>();
 
     for (const city of regionCities) {
       const key = normalizeKey(city.region);
@@ -294,38 +293,14 @@ export default function Map() {
     return next;
   }, [mapBounds, mapZoom]);
 
-
-  useEffect(() => {
-    let active = true;
-
-    if (!selected || !(selected as any).periphery_id) {
-      setSelectedCityStats([]);
-      return () => {
-        active = false;
-      };
-    }
-
-    (async () => {
-      try {
-        const res = await getRegionCitiesMap({
-          periphery_id: (selected as any).periphery_id,
-          graduation_year: year || undefined,
-          study_program_id: studyProgramId || undefined,
-          gender: gender || undefined,
-          age_group: ageGroup || undefined,
-        });
-        if (!active) return;
-        setSelectedCityStats(Array.isArray(res?.items) ? res.items : []);
-      } catch {
-        if (!active) return;
-        setSelectedCityStats([]);
-      }
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, [selected, year, studyProgramId, gender, ageGroup]);
+  const selectedRegionCities = useMemo(() => {
+    if (!selected) return [] as RegionCity[];
+    const key = normalizeKey(String((selected as any).periphery_name || ""));
+    return regionCities
+      .filter((city) => normalizeKey(city.region) === key)
+      .sort((a, b) => b.population - a.population)
+      .slice(0, 3);
+  }, [selected]);
 
   async function onExportExcel() {
     const res = await getGraduatesMap({
@@ -642,39 +617,28 @@ export default function Map() {
                   </div>
                 </div>
 
-                {selectedCityStats.length > 0 ? (
+                {selectedRegionCities.length > 0 ? (
                   <div>
                     <label className="label">{t("map.cities", { defaultValue: "Πόλεις" })}</label>
                     <div style={{ display: "grid", gap: 8 }}>
-                      {selectedCityStats.map((city) => (
+                      {selectedRegionCities.map((city) => (
                         <div
-                          key={`${(selected as any).periphery_id}-${city.city}-details`}
+                          key={`${city.region}-${city.nameEl}-details`}
                           style={{
-                            padding: "10px 12px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            padding: "8px 10px",
                             border: "1px solid var(--border)",
                             borderRadius: 12,
                             background: "rgba(248,250,252,.8)",
                           }}
                         >
-                          <div style={{ fontWeight: 700, marginBottom: 8 }}>{city.city}</div>
-                          <div className="grid cols2" style={{ gap: 8 }}>
-                            <div>
-                              <label className="label">{t("map.totalLabel", { defaultValue: "Σύνολο" })}</label>
-                              <div style={{ fontWeight: 600 }}>{city.count}</div>
-                            </div>
-                            <div>
-                              <label className="label">{t("map.avgAge", { defaultValue: "Μέση ηλικία" })}</label>
-                              <div style={{ fontWeight: 600 }}>{city.avg_age ?? "-"}</div>
-                            </div>
-                            <div>
-                              <label className="label">{t("map.malePct", { defaultValue: "% Άνδρες" })}</label>
-                              <div style={{ fontWeight: 600 }}>{city.male_pct}%</div>
-                            </div>
-                            <div>
-                              <label className="label">{t("map.femalePct", { defaultValue: "% Γυναίκες" })}</label>
-                              <div style={{ fontWeight: 600 }}>{city.female_pct}%</div>
-                            </div>
+                          <div style={{ fontWeight: 600 }}>
+                            {i18n.language?.toLowerCase().startsWith("en") ? city.nameEn : city.nameEl}
                           </div>
+                          <div className="muted">{city.population.toLocaleString(i18n.language === "en" ? "en-US" : "el-GR")}</div>
                         </div>
                       ))}
                     </div>
