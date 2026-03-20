@@ -29,9 +29,5 @@ export default function Footer() {
     zIndex: 50,
   };
 
-  return (
-    <footer style={{ ...baseStyle, ...(pin ? pinnedStyle : {}) }}>
-      Copyright © 2026 All rights reserved
-    </footer>
-  );
+  return <footer style={{ ...baseStyle, ...(pin ? pinnedStyle : {}) }} />;
 }

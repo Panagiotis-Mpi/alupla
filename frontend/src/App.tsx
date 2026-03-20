@@ -42,17 +42,14 @@ function TopNav() {
   };
 
   const onBrandClick = () => {
-    // If not logged in, send the user to the public landing page.
     if (!user) {
       nav("/");
       return;
     }
-    // If logged in, send the user to the first page based on role.
     if (role === "super_admin") {
-      nav("/users");
+      nav("/graduates");
       return;
     }
-    // secretariat
     nav("/graduates");
   };
 
@@ -89,11 +86,11 @@ function TopNav() {
 
     if (role === "super_admin") {
       return [
-        { to: "/users", label: usersLabel },
         { to: "/graduates", label: gradsLabel },
         { to: "/academic-data", label: academicDataLabel },
         { to: "/statistics", label: statsLabel },
         { to: "/map", label: mapLabel },
+        { to: "/users", label: usersLabel },
         { to: "/logs", label: logsLabel },
       ];
     }
