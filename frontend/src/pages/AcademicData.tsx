@@ -158,7 +158,7 @@ export default function AcademicData() {
         </div>
       )}
 
-      <div className="grid cols2">
+      <div className="grid" style={{ gap: 14 }}>
         <div className="card">
           <div className="topbar" style={{ justifyContent: "space-between" }}>
             <h3 style={{ margin: 0 }}>{t("programs.title")}</h3>
