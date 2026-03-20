@@ -5,7 +5,7 @@ import type { LeafletMouseEvent } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { getGraduatesMap, getPublicStudyPrograms, logPublicExport, type GraduatesMapItem, type StudyProgram } from "../lib/api";
+import { getGraduatesMap, getPublicStudyPrograms, getRegionCitiesMapStats, logPublicExport, type GraduatesMapItem, type StudyProgram } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
 import { regionCities, type RegionCity } from "../data/regionCities";
 import * as XLSX from "xlsx";
@@ -100,6 +100,7 @@ export default function Map() {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<GraduatesMapItem[]>([]);
   const [selected, setSelected] = useState<GraduatesMapItem | null>(null);
+  const [selectedCityStats, setSelectedCityStats] = useState<Array<{ name: string; count: number; male_pct: number; female_pct: number; avg_age: number | null }>>([]);
 
   const geojson = useMemo(() => tryParseGeoJson(greeceRegionsRaw), []);
 
@@ -155,6 +156,7 @@ export default function Map() {
   }) {
     setLoading(true);
     setSelected(null);
+    setSelectedCityStats([]);
     try {
       const res = await getGraduatesMap({
         graduation_year: opts?.year || undefined,
@@ -293,14 +295,37 @@ export default function Map() {
     return next;
   }, [mapBounds, mapZoom]);
 
-  const selectedRegionCities = useMemo(() => {
-    if (!selected) return [] as RegionCity[];
-    const key = normalizeKey(String((selected as any).periphery_name || ""));
-    return regionCities
-      .filter((city) => normalizeKey(city.region) === key)
-      .sort((a, b) => b.population - a.population)
-      .slice(0, 3);
-  }, [selected]);
+  useEffect(() => {
+    let active = true;
+
+    if (!selected) {
+      setSelectedCityStats([]);
+      return () => {
+        active = false;
+      };
+    }
+
+    (async () => {
+      try {
+        const res = await getRegionCitiesMapStats({
+          periphery_id: (selected as any).periphery_id,
+          graduation_year: year || undefined,
+          study_program_id: studyProgramId || undefined,
+          gender: gender || undefined,
+          age_group: ageGroup || undefined,
+        });
+        if (!active) return;
+        setSelectedCityStats(Array.isArray(res?.items) ? res.items : []);
+      } catch {
+        if (!active) return;
+        setSelectedCityStats([]);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [selected, year, studyProgramId, gender, ageGroup]);
 
   async function onExportExcel() {
     const res = await getGraduatesMap({
@@ -617,13 +642,13 @@ export default function Map() {
                   </div>
                 </div>
 
-                {selectedRegionCities.length > 0 ? (
+                {selectedCityStats.length > 0 ? (
                   <div>
                     <label className="label">{t("map.cities", { defaultValue: "Πόλεις" })}</label>
                     <div style={{ display: "grid", gap: 8 }}>
-                      {selectedRegionCities.map((city) => (
+                      {selectedCityStats.map((city) => (
                         <div
-                          key={`${city.region}-${city.nameEl}-details`}
+                          key={`${city.name}-details`}
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -635,10 +660,18 @@ export default function Map() {
                             background: "rgba(248,250,252,.8)",
                           }}
                         >
-                          <div style={{ fontWeight: 600 }}>
-                            {i18n.language?.toLowerCase().startsWith("en") ? city.nameEn : city.nameEl}
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{city.name}</div>
+                            <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                              {t("map.avgAge", { defaultValue: "Μέση ηλικία" })}: {city.avg_age ?? "-"} · {t("map.malePct", { defaultValue: "% Άνδρες" })}: {city.male_pct ?? 0}% · {t("map.femalePct", { defaultValue: "% Γυναίκες" })}: {city.female_pct ?? 0}%
+                            </div>
                           </div>
-                          <div className="muted">{city.population.toLocaleString(i18n.language === "en" ? "en-US" : "el-GR")}</div>
+                          <div style={{ textAlign: "right", minWidth: 120 }}>
+                            <div style={{ fontWeight: 700 }}>{city.count}</div>
+                            <div className="muted" style={{ fontSize: 12 }}>
+                              {t("map.totalLabel", { defaultValue: "Σύνολο" })}
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>

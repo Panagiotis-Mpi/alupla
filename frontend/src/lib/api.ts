@@ -200,14 +200,6 @@ export type GraduatesMapItem = {
   avg_age: number | null;
 };
 
-export type RegionCityMapItem = {
-  city: string;
-  count: number;
-  male_pct: number;
-  female_pct: number;
-  avg_age: number | null;
-};
-
 export async function login(email: string, password: string): Promise<{ ok: true; token: string; user: any } | any> {
   return api("/auth/login", {
     method: "POST",
@@ -430,7 +422,7 @@ export async function getGraduatesMap(params: Record<string, any> = {}): Promise
   return api(`/map/graduates${qs ? `?${qs}` : ""}`, { method: "GET" });
 }
 
-export async function getRegionCitiesMap(params: Record<string, any> = {}): Promise<{ ok: true; items: RegionCityMapItem[] } | any> {
+export async function getRegionCitiesMapStats(params: Record<string, any> = {}): Promise<{ ok: true; items: Array<{ name: string; count: number; male_pct: number; female_pct: number; avg_age: number | null }> } | any> {
   const q = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
     if (v === undefined || v === null || v === "") return;
@@ -439,6 +431,7 @@ export async function getRegionCitiesMap(params: Record<string, any> = {}): Prom
   const qs = q.toString();
   return api(`/map/region-cities${qs ? `?${qs}` : ""}`, { method: "GET" });
 }
+
 
 export function activityLogsExportUrl(params: Record<string, any> = {}): string {
   const q = new URLSearchParams();
