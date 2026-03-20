@@ -263,7 +263,7 @@ export default function Map() {
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
   const visibleCities = useMemo(() => {
-    const grouped = new Map<string, RegionCity[]>();
+    const grouped = new (globalThis as any).Map<string, RegionCity[]>();
 
     for (const city of regionCities) {
       const key = normalizeKey(city.region);
