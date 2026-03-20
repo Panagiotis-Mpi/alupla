@@ -263,7 +263,7 @@ export default function Map() {
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
   const visibleCities = useMemo(() => {
-    const grouped = new (globalThis as any).Map<string, RegionCity[]>();
+    const grouped = new Map<string, RegionCity[]>();
 
     for (const city of regionCities) {
       const key = normalizeKey(city.region);
@@ -287,16 +287,20 @@ export default function Map() {
         ? sorted.filter((city) => mapBounds.contains(L.latLng(city.lat, city.lng)))
         : sorted;
 
-      if (insideBounds.length) {
-        next.push(...insideBounds.slice(0, 3));
-        return;
-      }
-
-      if (sorted[0]) next.push(sorted[0]);
+      next.push(...(insideBounds.length ? insideBounds : sorted).slice(0, 3));
     });
 
     return next;
   }, [mapBounds, mapZoom]);
+
+  const selectedRegionCities = useMemo(() => {
+    if (!selected) return [] as RegionCity[];
+    const key = normalizeKey(String((selected as any).periphery_name || ""));
+    return regionCities
+      .filter((city) => normalizeKey(city.region) === key)
+      .sort((a, b) => b.population - a.population)
+      .slice(0, 3);
+  }, [selected]);
 
   async function onExportExcel() {
     const res = await getGraduatesMap({
@@ -612,6 +616,34 @@ export default function Map() {
                     <div style={{ fontWeight: 700 }}>{(selected as any).female_pct ?? 0}%</div>
                   </div>
                 </div>
+
+                {selectedRegionCities.length > 0 ? (
+                  <div>
+                    <label className="label">{t("map.cities", { defaultValue: "Πόλεις" })}</label>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {selectedRegionCities.map((city) => (
+                        <div
+                          key={`${city.region}-${city.nameEl}-details`}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            padding: "8px 10px",
+                            border: "1px solid var(--border)",
+                            borderRadius: 12,
+                            background: "rgba(248,250,252,.8)",
+                          }}
+                        >
+                          <div style={{ fontWeight: 600 }}>
+                            {i18n.language?.toLowerCase().startsWith("en") ? city.nameEn : city.nameEl}
+                          </div>
+                          <div className="muted">{city.population.toLocaleString(i18n.language === "en" ? "en-US" : "el-GR")}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
