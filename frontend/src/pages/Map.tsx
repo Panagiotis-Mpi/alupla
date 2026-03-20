@@ -178,7 +178,7 @@ async function exportElementAsPng(element: HTMLElement, filename: string) {
 
 function Field(props: { label: string; children: React.ReactNode; span?: number }) {
   return (
-    <div style={{ gridColumn: `span ${props.span ?? 4}`, display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={{ gridColumn: `span ${props.span ?? 4}`, display: "flex", flexDirection: "column", gap: 8, minHeight: 104 }}>
       <label className="label">{props.label}</label>
       {props.children}
     </div>
@@ -201,7 +201,7 @@ function RangeField(props: {
 }) {
   return (
     <Field label={props.label} span={props.span}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div className="map-range-grid">
         <div>
           <label className="label" style={{ fontSize: 12, marginBottom: 6 }}>{props.fromLabel}</label>
           <input className="input" type={props.type ?? "text"} value={props.fromValue} min={props.min} max={props.max} step={props.step} onChange={(e) => props.onFromChange(e.target.value)} />
@@ -650,7 +650,8 @@ export default function Map() {
           position: absolute;
           top: calc(100% + 8px);
           right: 0;
-          width: 220px;
+          left: 0;
+          width: auto;
           background: #ffffff;
           border: 1px solid var(--border);
           border-radius: 14px;
@@ -675,13 +676,56 @@ export default function Map() {
         .map-export-item:hover {
           background: #f8fafc;
         }
+        .map-side-actions {
+          display: flex;
+          gap: 12px;
+          width: 100%;
+        }
+        .map-side-action {
+          flex: 1 1 0;
+          min-width: 0;
+          padding: 12px 16px;
+          font-size: 16px;
+        }
+        .map-filters-panel {
+          overflow: hidden;
+        }
+        .map-filters-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+        .map-filters-grid > * {
+          min-width: 0;
+        }
+        .map-range-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+        @media (max-width: 1200px) {
+          .map-filters-grid {
+            grid-template-columns: minmax(0, 1fr);
+          }
+        }
+        @media (max-width: 640px) {
+          .map-side-actions {
+            flex-direction: column;
+          }
+          .map-range-grid {
+            grid-template-columns: minmax(0, 1fr);
+          }
+        }
       `}</style>
 
-      <div className="topbar" style={{ alignItems: "center", gap: 16 }}>
-        <h2 style={{ margin: 0, lineHeight: 1.1 }}>{t("map.title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
-        <span className="badge" style={{ display: "inline-flex", alignItems: "center", lineHeight: 1.1 }}>
+      <div className="topbar" style={{ alignItems: "flex-start" }}>
+        <div>
+          <h2 style={{ margin: 0 }}>{t("map.title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
+        </div>
+        <span className="badge">
           {loading ? t("common.loading", { defaultValue: "Φόρτωση..." }) : `${t("map.totalInline", { defaultValue: "Σύνολο" })}: ${total}`}
         </span>
+        <div className="spacer" />
       </div>
 
       <div className="page-two-col" style={{ marginTop: 12 }}>
@@ -771,34 +815,34 @@ export default function Map() {
         </div>
 
         <div className="map-panel-stack">
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, position: "relative" }}>
-            <div style={{ position: "relative" }} ref={exportMenuRef}>
-              <button className="btn" type="button" onClick={() => setShowExportMenu((prev) => !prev)} disabled={loading || items.length === 0} style={{ minWidth: 110 }}>
-                {t("common.export", { defaultValue: "Export" })}
+          <div style={{ display: "grid", gap: 12 }}>
+            <div className="map-side-actions">
+              <div style={{ position: "relative", flex: 1 }} ref={exportMenuRef}>
+                <button className="btn map-side-action" type="button" onClick={() => setShowExportMenu((prev) => !prev)} disabled={loading || items.length === 0}>
+                  {t("common.export", { defaultValue: "Export" })}
+                </button>
+                {showExportMenu ? (
+                  <div className="map-export-menu">
+                    <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>
+                      {t("map.exportPng", { defaultValue: "Export map as PNG" })}
+                    </button>
+                    <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>
+                      {t("map.exportExcel", { defaultValue: "Export Excel" })}
+                    </button>
+                    <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>
+                      {t("map.exportCsv", { defaultValue: "Export CSV" })}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              <button className="btn map-side-action" type="button" onClick={() => setShowFilters((prev) => !prev)}>
+                {showFilters ? t("common.hide", { defaultValue: "Απόκρυψη" }) : t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}
               </button>
-              {showExportMenu ? (
-                <div className="map-export-menu">
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>
-                    {t("map.exportPng", { defaultValue: "Export map as PNG" })}
-                  </button>
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>
-                    {t("map.exportExcel", { defaultValue: "Export Excel" })}
-                  </button>
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>
-                    {t("map.exportCsv", { defaultValue: "Export CSV" })}
-                  </button>
-                </div>
-              ) : null}
             </div>
-            <button className="btn" type="button" onClick={() => setShowFilters((prev) => !prev)} style={{ minWidth: 110 }}>
-              {showFilters ? t("common.hide", { defaultValue: "Απόκρυψη" }) : t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}
-            </button>
-          </div>
 
-          {showFilters ? (
-            <div className="card">
-              <div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+            {showFilters ? (
+              <div className="card map-filters-panel">
+                <div className="map-filters-grid">
                   <Field label={t("graduates.filters.adCode", { defaultValue: "Α.Δ." })} span={1}>
                     <input className="input" value={filters.ad_code_like} onChange={(e) => updateFilter("ad_code_like", e.target.value)} />
                   </Field>
@@ -880,8 +924,8 @@ export default function Map() {
                   </button>
                 </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
 
           <div className="card">
             <h3 style={{ marginTop: 0 }}>{t("map.detailsTitle", { defaultValue: "Λεπτομέρειες" })}</h3>
@@ -913,14 +957,16 @@ export default function Map() {
                       <div style={{ fontWeight: 700 }}>{(selected as any).female_pct ?? 0}%</div>
                     </div>
                   </div>
+                </div>
 
-                  {cityStatsLoading ? (
-                    <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
-                  ) : selectedCityStats.length > 0 ? (
+                {cityStatsLoading ? (
+                  <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
+                ) : selectedCityStats.length > 0 ? (
+                  <div>
+                    <label className="label">{t("map.cities", { defaultValue: "Πόλεις" })}</label>
                     <div style={{ display: "grid", gap: 10 }}>
-                      <label className="label">{t("map.cities", { defaultValue: "Πόλεις" })}</label>
                       {selectedCityStats.map((city) => (
-                        <div key={`${selected?.periphery_id}-${city.city}`} style={{ padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 12, background: "rgba(255,255,255,.72)" }}>
+                        <div key={`${selected?.periphery_id}-${city.city}`} style={{ padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 12, background: "rgba(248,250,252,.8)" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                             <div style={{ fontWeight: 700 }}>{city.city}</div>
                             <div style={{ fontWeight: 700 }}>{city.count}</div>
@@ -931,8 +977,8 @@ export default function Map() {
                         </div>
                       ))}
                     </div>
-                  ) : null}
-                </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>

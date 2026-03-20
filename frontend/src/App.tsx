@@ -42,14 +42,17 @@ function TopNav() {
   };
 
   const onBrandClick = () => {
+    // If not logged in, send the user to the public landing page.
     if (!user) {
       nav("/");
       return;
     }
+    // If logged in, send the user to the first page based on role.
     if (role === "super_admin") {
       nav("/graduates");
       return;
     }
+    // secretariat
     nav("/graduates");
   };
 
@@ -80,17 +83,19 @@ function TopNav() {
     const gradsLabel = t("nav.graduates");
     const usersLabel = t("nav.users");
     const logsLabel = t("nav.logs");
-    const academicDataLabel = t("nav.academicData");
+    const academicDataLabel = role === "super_admin"
+      ? t("nav.academicData", { defaultValue: "Ακαδημαϊκά προγράμματα" }).replace("Διαχείριση Ακαδημαϊκών Δεδομένων", "Ακαδημαϊκά προγράμματα").replace("Academic Data", "Academic Programs")
+      : t("nav.academicData");
 
     if (!user) return [{ to: "/statistics", label: statsLabel }, { to: "/map", label: mapLabel }];
 
     if (role === "super_admin") {
       return [
+        { to: "/users", label: usersLabel },
         { to: "/graduates", label: gradsLabel },
         { to: "/academic-data", label: academicDataLabel },
         { to: "/statistics", label: statsLabel },
         { to: "/map", label: mapLabel },
-        { to: "/users", label: usersLabel },
         { to: "/logs", label: logsLabel },
       ];
     }
