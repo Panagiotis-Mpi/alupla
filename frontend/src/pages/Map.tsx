@@ -300,7 +300,7 @@ export default function Map() {
   }, [filters]);
 
   const countsByGreekName = useMemo(() => {
-    const next = new Map<string, number>();
+    const next = new (globalThis as any).Map<string, number>();
     for (const it of items) next.set(normalizeKey(String((it as any).periphery_name ?? "")), Number((it as any).count ?? 0) || 0);
     return next;
   }, [items]);
@@ -472,7 +472,7 @@ export default function Map() {
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
   const visibleCities = useMemo(() => {
-    const grouped = new Map<string, RegionCity[]>();
+    const grouped = new (globalThis as any).Map<string, RegionCity[]>();
 
     for (const city of regionCities) {
       const key = normalizeKey(city.region);
