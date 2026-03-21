@@ -6,6 +6,7 @@ import { Graduate } from "./Graduate";
 import { ActivityLog } from "./ActivityLog";
 import { Region } from "./Region";
 import { ensurePeripheriesSeeded } from "../seed/peripheries";
+import { ensureRegionCitiesSeeded } from "../seed/regionCities";
 
 // Study Programs / Directions
 StudyProgram.hasMany(ProgramDirection, { foreignKey: "study_program_id" });
@@ -40,6 +41,7 @@ export async function initDb() {
   // Public map expects PERIPHERY regions to exist. Seed once if missing.
   try {
     await ensurePeripheriesSeeded();
+    await ensureRegionCitiesSeeded();
   } catch (e) {
     // eslint-disable-next-line no-console
     console.warn("[db] periphery seed skipped:", (e as any)?.message ?? e);
