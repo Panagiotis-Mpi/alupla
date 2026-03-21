@@ -145,6 +145,35 @@ function normalizeKey(s: string): string {
     .trim();
 }
 
+
+function mapCityLatitude(city: MapCityPoint | RegionCity): number | null {
+  if ("latitude" in city) {
+    const value = Number(city.latitude);
+    return Number.isFinite(value) ? value : null;
+  }
+  const value = Number(city.lat);
+  return Number.isFinite(value) ? value : null;
+}
+
+function mapCityLongitude(city: MapCityPoint | RegionCity): number | null {
+  if ("longitude" in city) {
+    const value = Number(city.longitude);
+    return Number.isFinite(value) ? value : null;
+  }
+  const value = Number(city.lng);
+  return Number.isFinite(value) ? value : null;
+}
+
+function mapCityLabel(city: MapCityPoint | RegionCity, lang: "gr" | "en"): string {
+  if ("city_name" in city) return city.city_name;
+  return lang === "en" ? city.nameEn : city.nameEl;
+}
+
+function mapCityKey(city: MapCityPoint | RegionCity): string {
+  if ("city_id" in city) return `db-${city.city_id}`;
+  return `static-${city.region}-${city.nameEl}`;
+}
+
 function tryParseGeoJson(raw: string): any | null {
   try {
     return JSON.parse(raw);
@@ -546,6 +575,9 @@ export default function Map() {
       const grouped = new (globalThis as any).Map<string, MapCityPoint[]>();
 
       for (const city of cityPoints) {
+        const lat = mapCityLatitude(city);
+        const lng = mapCityLongitude(city);
+        if (lat === null || lng === null) continue;
         const key = normalizeKey(city.periphery_name);
         const list = grouped.get(key) || [];
         list.push(city);
@@ -564,7 +596,13 @@ export default function Map() {
           if (sorted[0]) next.push(sorted[0]);
           return;
         }
-        const insideBounds = mapBounds ? sorted.filter((city) => mapBounds.contains(L.latLng(Number(city.latitude), Number(city.longitude)))) : sorted;
+        const insideBounds = mapBounds
+          ? sorted.filter((city) => {
+              const lat = mapCityLatitude(city);
+              const lng = mapCityLongitude(city);
+              return lat !== null && lng !== null && mapBounds.contains(L.latLng(lat, lng));
+            })
+          : sorted;
         next.push(...(insideBounds.length ? insideBounds : sorted).slice(0, 3));
       });
 
@@ -932,14 +970,19 @@ export default function Map() {
                 />
               ) : null}
 
-              {visibleCities.map((city) => (
-                <Marker
-                  key={`${city.region}-${city.nameEl}`}
-                  position={[city.lat, city.lng]}
-                  icon={cityLabelIcon(activeLang === "en" ? city.nameEn : city.nameEl)}
-                  interactive={false}
-                />
-              ))}
+              {visibleCities.map((city) => {
+                const lat = mapCityLatitude(city);
+                const lng = mapCityLongitude(city);
+                if (lat === null || lng === null) return null;
+                return (
+                  <Marker
+                    key={mapCityKey(city)}
+                    position={[lat, lng]}
+                    icon={cityLabelIcon(mapCityLabel(city, activeLang))}
+                    interactive={false}
+                  />
+                );
+              })}
             </MapContainer>
           </div>
 
