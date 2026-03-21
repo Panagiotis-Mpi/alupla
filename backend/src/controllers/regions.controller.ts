@@ -1,6 +1,63 @@
 import type { NextFunction, Request, Response } from "express";
 import { Op } from "sequelize";
 import { Region } from "../models/Region";
+import { logAction } from "../services/log.service";
+
+function normalizeRegionName(value: unknown) {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\./g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function toNullableCoord(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : NaN;
+}
+
+async function validateCityInput(body: any, currentId?: number) {
+  const name = String(body?.name ?? "").trim();
+  const parentRaw = Number(body?.parent_id);
+  const latitude = toNullableCoord(body?.latitude);
+  const longitude = toNullableCoord(body?.longitude);
+
+  if (!name) return { error: "name is required" };
+  if (!Number.isFinite(parentRaw) || parentRaw <= 0) return { error: "parent_id is required" };
+  if (Number.isNaN(latitude as any)) return { error: "latitude must be a number" };
+  if (Number.isNaN(longitude as any)) return { error: "longitude must be a number" };
+
+  const parent = await Region.findByPk(parentRaw);
+  if (!parent || String((parent as any).type) !== "PERIPHERY") {
+    return { error: "parent_id must point to a periphery" };
+  }
+
+  const siblings = await Region.findAll({
+    where: {
+      type: "CITY",
+      parent_id: parentRaw,
+      ...(currentId ? { id: { [Op.ne]: currentId } } : {}),
+    },
+    attributes: ["id", "name"],
+  });
+
+  const normalizedName = normalizeRegionName(name);
+  const duplicate = (siblings as any[]).find((item) => normalizeRegionName(item.name) === normalizedName);
+  if (duplicate) return { error: "A city with this name already exists in the selected periphery" };
+
+  return {
+    value: {
+      name,
+      type: "CITY",
+      parent_id: parentRaw,
+      latitude,
+      longitude,
+    },
+  };
+}
 
 export async function listRegions(req: Request, res: Response, next: NextFunction) {
   try {
@@ -48,15 +105,79 @@ export async function getRegion(req: Request, res: Response, next: NextFunction)
 export async function searchRegions(req: Request, res: Response, next: NextFunction) {
   try {
     const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    const type = typeof req.query.type === "string" ? req.query.type.trim() : "";
     if (!q) return res.json({ ok: true, items: [] });
 
+    const where: any = { name: { [Op.like]: `%${q}%` } };
+    if (["PERIPHERY", "NOMOS", "DIMOS", "CITY"].includes(type)) where.type = type;
+
     const items = await Region.findAll({
-      where: { name: { [Op.like]: `%${q}%` } },
+      where,
       order: [["name", "ASC"]],
       limit: 50
     });
 
     res.json({ ok: true, items });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function createRegion(req: Request, res: Response, next: NextFunction) {
+  try {
+    const type = String(req.body?.type ?? "").trim();
+    if (type !== "CITY") return res.status(400).json({ ok: false, error: { message: "Only CITY creation is supported" } });
+
+    const validated = await validateCityInput(req.body);
+    if ('error' in validated) return res.status(400).json({ ok: false, error: { message: validated.error } });
+
+    const item = await Region.create(validated.value as any);
+
+    await logAction({
+      user_id: req.user?.id ?? null,
+      action: "create_region_city",
+      entity_type: "region",
+      entity_id: Number((item as any).id),
+      details: {
+        name: validated.value.name,
+        parent_id: validated.value.parent_id,
+      },
+    });
+
+    res.status(201).json({ ok: true, item });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateRegion(req: Request, res: Response, next: NextFunction) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: { message: "Invalid id" } });
+
+    const item = await Region.findByPk(id);
+    if (!item) return res.status(404).json({ ok: false, error: { message: "Not found" } });
+    if (String((item as any).type) !== "CITY") {
+      return res.status(400).json({ ok: false, error: { message: "Only CITY update is supported" } });
+    }
+
+    const validated = await validateCityInput({ ...req.body, type: "CITY" }, id);
+    if ('error' in validated) return res.status(400).json({ ok: false, error: { message: validated.error } });
+
+    await item.update(validated.value as any);
+
+    await logAction({
+      user_id: req.user?.id ?? null,
+      action: "update_region_city",
+      entity_type: "region",
+      entity_id: id,
+      details: {
+        name: validated.value.name,
+        parent_id: validated.value.parent_id,
+      },
+    });
+
+    res.json({ ok: true, item });
   } catch (err) {
     next(err);
   }

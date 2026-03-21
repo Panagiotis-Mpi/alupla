@@ -11,5 +11,32 @@
   },
   "root": "Root",
   "children": "Children",
-  "empty": "No children at this level."
+  "empty": "No children at this level.",
+  "manage": {
+    "title": "City management",
+    "new": "New city",
+    "create": "Create",
+    "save": "Save",
+    "clear": "Clear",
+    "search": "Search city",
+    "searchButton": "Search",
+    "listTitle": "Stored cities",
+    "edit": "Edit",
+    "actions": "Action",
+    "emptyCities": "No cities found.",
+    "fields": {
+      "name": "City name",
+      "periphery": "Periphery",
+      "latitude": "Latitude",
+      "longitude": "Longitude"
+    },
+    "placeholders": {
+      "periphery": "Select periphery"
+    }
+  },
+  "messages": {
+    "created": "City created.",
+    "updated": "City updated.",
+    "error": "The action could not be completed."
+  }
 }

@@ -153,6 +153,8 @@ export type Region = {
   name: string;
   type: RegionType;
   parent_id?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type Graduate = {
@@ -228,6 +230,15 @@ export type MapFilterOptions = {
   programDirections: ProgramDirection[];
   regions: Region[];
 };
+
+
+export async function createRegion(payload: { name: string; type: RegionType; parent_id: number; latitude: number; longitude: number }): Promise<{ ok: true; item: Region }> {
+  return api("/regions", { method: "POST", body: payload });
+}
+
+export async function updateRegion(id: number, payload: { name: string; type: RegionType; parent_id: number; latitude: number; longitude: number }): Promise<{ ok: true; item: Region }> {
+  return api(`/regions/${id}`, { method: "PUT", body: payload });
+}
 
 export async function login(email: string, password: string): Promise<{ ok: true; token: string; user: any } | any> {
   return api("/auth/login", {
