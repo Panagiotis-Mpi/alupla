@@ -289,8 +289,7 @@ function ensureManagedOrigin(
   origin_municipality: string | null | undefined
 ) {
   if (!hasOriginValue(origin_region_id, origin_municipality)) return null;
-  if (normalizedOrigin.city_region_id) return null;
-  return "origin_municipality must match an existing city";
+  return null;
 }
 
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
