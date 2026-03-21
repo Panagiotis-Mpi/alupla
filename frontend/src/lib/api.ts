@@ -198,6 +198,8 @@ export type GraduatesMapItem = {
   male_pct: number;
   female_pct: number;
   avg_age: number | null;
+  avg_grade: number | null;
+  avg_graduation_years: number | null;
 };
 
 export type RegionCityMapItem = {
@@ -206,6 +208,8 @@ export type RegionCityMapItem = {
   male_pct: number;
   female_pct: number;
   avg_age: number | null;
+  avg_grade: number | null;
+  avg_graduation_years: number | null;
 };
 
 export type MapFilterOptions = {

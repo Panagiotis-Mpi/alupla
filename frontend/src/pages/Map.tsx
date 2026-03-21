@@ -74,9 +74,9 @@ const EMPTY_FILTERS: FiltersState = {
 function cityLabelIcon(label: string) {
   return L.divIcon({
     className: "alupla-city-label-icon",
-    html: `<span class="alupla-city-label-text">${label}</span>`,
-    iconSize: [0, 0],
-    iconAnchor: [0, 0],
+    html: `<span class="alupla-city-label-wrap"><span class="alupla-city-label-text">${label}</span><span class="alupla-city-label-dot"></span></span>`,
+    iconSize: [12, 18],
+    iconAnchor: [6, 18],
   });
 }
 
@@ -625,6 +625,15 @@ export default function Map() {
         .alupla-map .leaflet-container { background: transparent !important; }
         .alupla-map-card { padding: 0; overflow: hidden; position: relative; }
         .alupla-city-label-icon { background: transparent !important; border: 0 !important; }
+        .alupla-city-label-wrap {
+          position: relative;
+          display: inline-flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          transform: translate(-50%, -100%);
+          pointer-events: none;
+        }
         .alupla-city-label-text {
           color: #1e293b;
           font-size: 12px;
@@ -632,9 +641,15 @@ export default function Map() {
           line-height: 1;
           white-space: nowrap;
           text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9);
-          transform: translate(-50%, -50%);
           display: inline-block;
-          pointer-events: none;
+        }
+        .alupla-city-label-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 999px;
+          background: #1e293b;
+          box-shadow: 0 0 0 2px rgba(255,255,255,.92);
+          display: inline-block;
         }
         .leaflet-tooltip.alupla-region-tooltip {
           background: rgba(248,250,252,.98);
@@ -1012,6 +1027,14 @@ export default function Map() {
                       <label className="label">{t("map.femalePct", { defaultValue: "% Γυναίκες" })}</label>
                       <div style={{ fontWeight: 700 }}>{(selected as any).female_pct ?? 0}%</div>
                     </div>
+                    <div>
+                      <label className="label">{t("map.avgGrade", { defaultValue: "Μέσος βαθμός" })}</label>
+                      <div style={{ fontWeight: 700 }}>{(selected as any).avg_grade ?? "-"}</div>
+                    </div>
+                    <div>
+                      <label className="label">{t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" })}</label>
+                      <div style={{ fontWeight: 700 }}>{(selected as any).avg_graduation_years ?? "-"}</div>
+                    </div>
                   </div>
 
                   {cityStatsLoading ? (
@@ -1026,7 +1049,7 @@ export default function Map() {
                             <div style={{ fontWeight: 700 }}>{city.count}</div>
                           </div>
                           <div className="muted" style={{ marginTop: 6 }}>
-                            {t("map.avgAge", { defaultValue: "Μέση ηλικία" })}: {city.avg_age ?? "-"} · {t("map.malePct", { defaultValue: "% Άνδρες" })}: {city.male_pct}% · {t("map.femalePct", { defaultValue: "% Γυναίκες" })}: {city.female_pct}%
+                            {t("map.avgAge", { defaultValue: "Μέση ηλικία" })}: {city.avg_age ?? "-"} · {t("map.malePct", { defaultValue: "% Άνδρες" })}: {city.male_pct}% · {t("map.femalePct", { defaultValue: "% Γυναίκες" })}: {city.female_pct}% · {t("map.avgGrade", { defaultValue: "Μέσος βαθμός" })}: {city.avg_grade ?? "-"} · {t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" })}: {city.avg_graduation_years ?? "-"}
                           </div>
                         </div>
                       ))}

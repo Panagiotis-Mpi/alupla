@@ -116,7 +116,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
 
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date"],
+    attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date"],
   });
 
   const groups = new Map<number, any>();
@@ -134,6 +134,10 @@ export async function getGraduatesMap(req: Request, res: Response) {
       female: 0,
       ageSum: 0,
       ageCount: 0,
+      gradeSum: 0,
+      gradeCount: 0,
+      graduationDurationSum: 0,
+      graduationDurationCount: 0,
     });
   }
 
@@ -153,6 +157,10 @@ export async function getGraduatesMap(req: Request, res: Response) {
       female: 0,
       ageSum: 0,
       ageCount: 0,
+      gradeSum: 0,
+      gradeCount: 0,
+      graduationDurationSum: 0,
+      graduationDurationCount: 0,
     };
 
     cur.count += 1;
@@ -163,6 +171,19 @@ export async function getGraduatesMap(req: Request, res: Response) {
     if (Number.isFinite(by) && by > 1900) {
       cur.ageSum += currentYear - by;
       cur.ageCount += 1;
+    }
+
+    const degreeGrade = Number(g.degree_grade);
+    if (Number.isFinite(degreeGrade) && degreeGrade >= 0) {
+      cur.gradeSum += degreeGrade;
+      cur.gradeCount += 1;
+    }
+
+    const entryYear = Number(g.entry_year);
+    const graduationYear = Number(String(g.graduation_date ?? "").slice(0, 4));
+    if (Number.isFinite(entryYear) && Number.isFinite(graduationYear) && entryYear > 1900 && graduationYear >= entryYear) {
+      cur.graduationDurationSum += graduationYear - entryYear;
+      cur.graduationDurationCount += 1;
     }
 
     groups.set(id, cur);
@@ -178,6 +199,8 @@ export async function getGraduatesMap(req: Request, res: Response) {
       male_pct: x.count ? Math.round((x.male / x.count) * 1000) / 10 : 0,
       female_pct: x.count ? Math.round((x.female / x.count) * 1000) / 10 : 0,
       avg_age: x.ageCount ? Math.round((x.ageSum / x.ageCount) * 10) / 10 : null,
+      avg_grade: x.gradeCount ? Math.round((x.gradeSum / x.gradeCount) * 100) / 100 : null,
+      avg_graduation_years: x.graduationDurationCount ? Math.round((x.graduationDurationSum / x.graduationDurationCount) * 10) / 10 : null,
     }))
     .sort((a, b) => b.count - a.count);
 
@@ -194,7 +217,7 @@ export async function getRegionCities(req: Request, res: Response) {
 
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date"],
+    attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date"],
   });
 
   const groups = new Map<string, any>();
@@ -221,6 +244,10 @@ export async function getRegionCities(req: Request, res: Response) {
       female: 0,
       ageSum: 0,
       ageCount: 0,
+      gradeSum: 0,
+      gradeCount: 0,
+      graduationDurationSum: 0,
+      graduationDurationCount: 0,
     };
 
     cur.count += 1;
@@ -233,6 +260,19 @@ export async function getRegionCities(req: Request, res: Response) {
       cur.ageCount += 1;
     }
 
+    const degreeGrade = Number(g.degree_grade);
+    if (Number.isFinite(degreeGrade) && degreeGrade >= 0) {
+      cur.gradeSum += degreeGrade;
+      cur.gradeCount += 1;
+    }
+
+    const entryYear = Number(g.entry_year);
+    const graduationYear = Number(String(g.graduation_date ?? "").slice(0, 4));
+    if (Number.isFinite(entryYear) && Number.isFinite(graduationYear) && entryYear > 1900 && graduationYear >= entryYear) {
+      cur.graduationDurationSum += graduationYear - entryYear;
+      cur.graduationDurationCount += 1;
+    }
+
     groups.set(key, cur);
   }
 
@@ -243,6 +283,8 @@ export async function getRegionCities(req: Request, res: Response) {
       male_pct: x.count ? Math.round((x.male / x.count) * 1000) / 10 : 0,
       female_pct: x.count ? Math.round((x.female / x.count) * 1000) / 10 : 0,
       avg_age: x.ageCount ? Math.round((x.ageSum / x.ageCount) * 10) / 10 : null,
+      avg_grade: x.gradeCount ? Math.round((x.gradeSum / x.gradeCount) * 100) / 100 : null,
+      avg_graduation_years: x.graduationDurationCount ? Math.round((x.graduationDurationSum / x.graduationDurationCount) * 10) / 10 : null,
     }))
     .sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
