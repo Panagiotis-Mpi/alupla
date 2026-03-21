@@ -3,6 +3,7 @@ import { QueryTypes } from "sequelize";
 import XLSX from "xlsx";
 import { sequelize } from "../config/sequelize";
 import { StudyProgram } from "../models/StudyProgram";
+import { Region } from "../models/Region";
 import { verifyToken } from "../utils/jwt";
 import { logAction } from "../services/log.service";
 
@@ -38,6 +39,65 @@ async function getBirthDateExpr(): Promise<string> {
 async function getBirthYearExpr(): Promise<string> {
   const birthExpr = await getBirthDateExpr();
   return `EXTRACT(YEAR FROM ${birthExpr})::int`;
+}
+
+
+function normalizePlaceName(value: unknown) {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\./g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+let regionRowsCache: Promise<any[]> | null = null;
+
+async function loadRegionRows() {
+  if (!regionRowsCache) {
+    regionRowsCache = Region.findAll({
+      attributes: ["id", "name", "type", "parent_id", "latitude", "longitude"],
+      order: [["name", "ASC"]],
+    }).then((rows) => (rows as any[]).map((row) => ({
+      id: Number(row.id),
+      name: String(row.name ?? ""),
+      type: String(row.type ?? ""),
+      parent_id: row.parent_id != null ? Number(row.parent_id) : null,
+      latitude: row.latitude != null ? Number(row.latitude) : null,
+      longitude: row.longitude != null ? Number(row.longitude) : null,
+    })));
+  }
+  return regionRowsCache;
+}
+
+async function buildRegionLookup() {
+  const rows = await loadRegionRows();
+  const byId = new Map<number, any>();
+  const cityByName = new Map<string, any>();
+
+  for (const row of rows) {
+    byId.set(row.id, row);
+    if (row.type === "CITY") {
+      const key = normalizePlaceName(row.name);
+      if (key && !cityByName.has(key)) cityByName.set(key, row);
+    }
+  }
+
+  const findPeriphery = (regionId: number | null | undefined) => {
+    if (!regionId) return null;
+    let current = byId.get(Number(regionId)) ?? null;
+    let steps = 0;
+    while (current && steps < 25) {
+      steps += 1;
+      if (current.type === "PERIPHERY") return current;
+      if (!current.parent_id) return null;
+      current = byId.get(current.parent_id) ?? null;
+    }
+    return null;
+  };
+
+  return { byId, cityByName, findPeriphery };
 }
 
 function getOptionalUserId(req: Request): number | null {
@@ -448,15 +508,34 @@ export async function publicStats(req: Request, res: Response) {
       ? `${sqlWhere} AND g.origin_municipality IS NOT NULL AND btrim(g.origin_municipality) <> ''`
       : `WHERE g.origin_municipality IS NOT NULL AND btrim(g.origin_municipality) <> ''`;
 
-    const originMunicipalityDistribution = await sequelize.query<{ name: string; count: number }>(
+    const rawOriginMunicipalityDistribution = await sequelize.query<{ name: string; count: number }>(
       `SELECT g.origin_municipality as name,
               COUNT(*)::int as count
        FROM graduates g ${municipalityWhere}
        GROUP BY g.origin_municipality
-       ORDER BY count DESC, g.origin_municipality ASC
-       LIMIT 10`,
+       ORDER BY count DESC, g.origin_municipality ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
+
+    const { cityByName } = await buildRegionLookup();
+    const municipalityGroups = new Map<string, { name: string; count: number }>();
+    for (const row of rawOriginMunicipalityDistribution) {
+      const rawName = String(row.name ?? "").trim();
+      if (!rawName) continue;
+      const canonical = cityByName.get(normalizePlaceName(rawName));
+      const label = canonical ? String(canonical.name) : rawName;
+      const key = normalizePlaceName(label);
+      const current = municipalityGroups.get(key) ?? { name: label, count: 0 };
+      current.count += Number(row.count) || 0;
+      municipalityGroups.set(key, current);
+    }
+
+    const originMunicipalityDistribution = Array.from(municipalityGroups.values())
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.name.localeCompare(b.name, "el");
+      })
+      .slice(0, 10);
 
     const oathYearDistribution = await sequelize.query<{ year: number; count: number }>(
       `SELECT EXTRACT(YEAR FROM g.oath_date)::int as year,
@@ -517,6 +596,7 @@ export async function publicStats(req: Request, res: Response) {
 
 export async function publicMap(req: Request, res: Response) {
   const { sqlWhere, repl } = await buildWhere(req);
+  const { byId, findPeriphery } = await buildRegionLookup();
 
   const rows = await sequelize.query<any>(
     `SELECT
@@ -534,7 +614,24 @@ export async function publicMap(req: Request, res: Response) {
     { replacements: repl, type: QueryTypes.SELECT }
   );
 
-  res.json({ ok: true, rows });
+  const items = rows.map((row) => {
+    const regionId = Number(row.region_id) || null;
+    const rawRegion = regionId ? byId.get(regionId) ?? null : null;
+    const periphery = rawRegion ? findPeriphery(regionId) : null;
+    const region = periphery ?? rawRegion;
+    return {
+      region_id: region ? Number(region.id) : regionId,
+      region_name: region ? String(region.name) : String(row.region_name ?? 'Unknown'),
+      region_type: region ? String(region.type) : String(row.region_type ?? 'UNKNOWN'),
+      latitude: region?.latitude ?? null,
+      longitude: region?.longitude ?? null,
+      count: Number(row.count) || 0,
+      male: Number(row.male) || 0,
+      female: Number(row.female) || 0,
+    };
+  });
+
+  res.json({ ok: true, rows: items });
 }
 
 export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
