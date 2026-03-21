@@ -208,6 +208,57 @@ export async function getGraduatesMap(req: Request, res: Response) {
   return res.json({ ok: true, items, total });
 }
 
+export async function getMapCities(req: Request, res: Response) {
+  const { where } = buildMapWhere(req);
+  const { regions, findPeriphery, resolveRegionIdFromMunicipalityName } = await loadRegions();
+
+  const cityRegions = (regions as any[]).filter((region) => String(region.type) === "CITY" && region.latitude !== null && region.longitude !== null);
+  const cityById = new Map<number, any>();
+  const groups = new Map<number, any>();
+
+  for (const city of cityRegions) {
+    const cityId = Number(city.id);
+    if (!cityId) continue;
+    const per = findPeriphery(city.parent_id ? Number(city.parent_id) : cityId);
+    cityById.set(cityId, city);
+    groups.set(cityId, {
+      city_id: cityId,
+      city_name: String(city.name),
+      periphery_id: per ? Number(per.id) : null,
+      periphery_name: per ? String(per.name) : "",
+      latitude: city.latitude ?? null,
+      longitude: city.longitude ?? null,
+      count: 0,
+    });
+  }
+
+  const grads = await Graduate.findAll({
+    where,
+    attributes: ["origin_region_id", "origin_municipality"],
+  });
+
+  for (const g of grads as any[]) {
+    let cityId = Number(g.origin_region_id) || 0;
+    const directHit = cityById.get(cityId);
+    if (!directHit) {
+      cityId = resolveRegionIdFromMunicipalityName(g.origin_municipality) || 0;
+    }
+    if (!cityId || !groups.has(cityId)) continue;
+    const cur = groups.get(cityId);
+    cur.count += 1;
+  }
+
+  const items = Array.from(groups.values())
+    .filter((item) => item.count > 0)
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      if (a.periphery_name !== b.periphery_name) return a.periphery_name.localeCompare(b.periphery_name, "el");
+      return a.city_name.localeCompare(b.city_name, "el");
+    });
+
+  return res.json({ ok: true, items });
+}
+
 export async function getRegionCities(req: Request, res: Response) {
   const peripheryId = toInt(req.query.periphery_id);
   if (!peripheryId) return res.status(400).json({ ok: false, error: "periphery_id is required" });

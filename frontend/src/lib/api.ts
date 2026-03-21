@@ -202,6 +202,17 @@ export type GraduatesMapItem = {
   avg_graduation_years: number | null;
 };
 
+
+export type MapCityPoint = {
+  city_id: number;
+  city_name: string;
+  periphery_id: number | null;
+  periphery_name: string;
+  latitude: number;
+  longitude: number;
+  count: number;
+};
+
 export type RegionCityMapItem = {
   city: string;
   count: number;
@@ -442,6 +453,16 @@ export async function getGraduatesMap(params: Record<string, any> = {}): Promise
   });
   const qs = q.toString();
   return api(`/map/graduates${qs ? `?${qs}` : ""}`, { method: "GET" });
+}
+
+export async function getMapCities(params: Record<string, any> = {}): Promise<{ ok: true; items: MapCityPoint[] } | any> {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v === undefined || v === null || v === "") return;
+    q.set(k, String(v));
+  });
+  const qs = q.toString();
+  return api(`/map/cities${qs ? `?${qs}` : ""}`, { method: "GET" });
 }
 
 export async function getRegionCitiesMap(params: Record<string, any> = {}): Promise<{ ok: true; items: RegionCityMapItem[] } | any> {

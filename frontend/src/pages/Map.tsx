@@ -6,10 +6,12 @@ import "leaflet/dist/leaflet.css";
 
 import {
   getGraduatesMap,
+  getMapCities,
   getMapFilterOptions,
   getRegionCitiesMap,
   logPublicExport,
   type GraduatesMapItem,
+  type MapCityPoint,
   type ProgramDirection,
   type Region,
   type RegionCityMapItem,
@@ -325,6 +327,7 @@ export default function Map() {
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<GraduatesMapItem[]>([]);
+  const [cityPoints, setCityPoints] = useState<MapCityPoint[]>([]);
   const [selected, setSelected] = useState<GraduatesMapItem | null>(null);
   const [selectedCityStats, setSelectedCityStats] = useState<RegionCityMapItem[]>([]);
   const [cityStatsLoading, setCityStatsLoading] = useState(false);
@@ -424,8 +427,12 @@ export default function Map() {
     setSelected(null);
     setSelectedCityStats([]);
     try {
-      const res = await getGraduatesMap(nextParams ?? params);
-      setItems(Array.isArray(res?.items) ? res.items : []);
+      const [mapRes, citiesRes] = await Promise.all([
+        getGraduatesMap(nextParams ?? params),
+        getMapCities(nextParams ?? params),
+      ]);
+      setItems(Array.isArray(mapRes?.items) ? mapRes.items : []);
+      setCityPoints(Array.isArray(citiesRes?.items) ? citiesRes.items : []);
     } finally {
       setLoading(false);
     }
@@ -535,6 +542,35 @@ export default function Map() {
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
   const visibleCities = useMemo(() => {
+    if (cityPoints.length > 0) {
+      const grouped = new (globalThis as any).Map<string, MapCityPoint[]>();
+
+      for (const city of cityPoints) {
+        const key = normalizeKey(city.periphery_name);
+        const list = grouped.get(key) || [];
+        list.push(city);
+        grouped.set(key, list);
+      }
+
+      const expanded = mapZoom >= 7;
+      const next: Array<MapCityPoint | RegionCity> = [];
+
+      grouped.forEach((list) => {
+        const sorted = [...list].sort((a, b) => {
+          if (b.count !== a.count) return b.count - a.count;
+          return a.city_name.localeCompare(b.city_name, "el");
+        });
+        if (!expanded) {
+          if (sorted[0]) next.push(sorted[0]);
+          return;
+        }
+        const insideBounds = mapBounds ? sorted.filter((city) => mapBounds.contains(L.latLng(Number(city.latitude), Number(city.longitude)))) : sorted;
+        next.push(...(insideBounds.length ? insideBounds : sorted).slice(0, 3));
+      });
+
+      return next;
+    }
+
     const grouped = new (globalThis as any).Map<string, RegionCity[]>();
 
     for (const city of regionCities) {
@@ -545,7 +581,7 @@ export default function Map() {
     }
 
     const expanded = mapZoom >= 7;
-    const next: RegionCity[] = [];
+    const next: Array<MapCityPoint | RegionCity> = [];
 
     grouped.forEach((list) => {
       const sorted = [...list].sort((a, b) => b.population - a.population);
@@ -558,7 +594,7 @@ export default function Map() {
     });
 
     return next;
-  }, [mapBounds, mapZoom]);
+  }, [cityPoints, mapBounds, mapZoom]);
 
   function currentFilterRows() {
     const regionName = regions.find((item) => String((item as any).id) === filters.origin_region_id)?.name || "";
