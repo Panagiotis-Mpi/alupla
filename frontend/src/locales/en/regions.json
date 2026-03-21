@@ -1,17 +1,12 @@
 {
-  "title": "Regions (hierarchy)",
-  "parentId": "parent_id",
-  "null": "null",
-  "breadcrumb": "Breadcrumb:",
+  "title": "Regions",
   "table": {
     "id": "ID",
     "type": "Type",
     "name": "Name",
-    "go": "Go"
+    "go": "Go",
+    "number": "#"
   },
-  "root": "Root",
-  "children": "Children",
-  "empty": "No children at this level.",
   "manage": {
     "title": "City management",
     "new": "New city",
@@ -20,7 +15,7 @@
     "clear": "Clear",
     "search": "Search city",
     "searchButton": "Search",
-    "listTitle": "Stored cities",
+    "listTitle": "All cities",
     "edit": "Edit",
     "actions": "Action",
     "emptyCities": "No cities found.",
@@ -51,5 +46,9 @@
       "periphery": "Suggested periphery",
       "actions": "Action"
     }
+  },
+  "peripheries": {
+    "title": "Peripheries",
+    "empty": "No peripheries found."
   }
 }

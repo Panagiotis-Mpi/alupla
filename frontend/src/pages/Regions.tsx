@@ -13,9 +13,6 @@ const emptyForm = {
 export default function Regions() {
   const { t } = useTranslation("regions");
 
-  const [parentId, setParentId] = useState<number | null>(null);
-  const [items, setItems] = useState<Region[]>([]);
-  const [stack, setStack] = useState<Array<{ id: number | null; label: string }>>([{ id: null, label: "" }]);
   const [peripheries, setPeripheries] = useState<Region[]>([]);
   const [cities, setCities] = useState<Region[]>([]);
   const [cityQuery, setCityQuery] = useState("");
@@ -25,11 +22,6 @@ export default function Regions() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-
-  async function load(pid: number | null) {
-    const r = await listRegions(pid);
-    setItems(r.items);
-  }
 
   async function loadPeripheries() {
     const r = await listRegions({ type: "PERIPHERY" });
@@ -46,10 +38,6 @@ export default function Regions() {
     const r = await listRegions({ type: "CITY" });
     setCities(r.items);
   }
-
-  useEffect(() => {
-    void load(parentId);
-  }, [parentId]);
 
   async function loadUnmatched(query?: string) {
     const q = (query ?? unmatchedQuery).trim();
@@ -120,7 +108,7 @@ export default function Regions() {
       }
 
       resetForm();
-      await Promise.all([loadCities(), load(parentId), loadPeripheries(), loadUnmatched()]);
+      await Promise.all([loadCities(), loadPeripheries(), loadUnmatched()]);
     } catch (err: any) {
       setError(err?.message || t("messages.error"));
     } finally {
@@ -132,78 +120,54 @@ export default function Regions() {
     <div className="grid" style={{ gap: 14 }}>
       <div className="topbar">
         <h2 style={{ margin: 0 }}>{t("title")}</h2>
-        <div className="spacer" />
-        <span className="badge">
-          {t("parentId")}: {parentId ?? t("null")}
-        </span>
       </div>
 
-      <div className="grid cols2" style={{ alignItems: "start" }}>
-        <div className="card">
-          <div className="muted">{t("breadcrumb")}</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-            {stack.map((s, idx) => (
-              <button
-                key={idx}
-                className="btn"
-                onClick={() => {
-                  setParentId(s.id);
-                  setStack(stack.slice(0, idx + 1));
-                }}
-              >
-                {s.id === null ? t("root") : s.label}
-              </button>
-            ))}
-          </div>
+      <div className="card">
+        <div className="topbar" style={{ alignItems: "center" }}>
+          <h3 style={{ margin: 0 }}>{t("manage.title")}</h3>
+          <div className="spacer" />
+          {form.id ? (
+            <button className="btn" type="button" onClick={resetForm}>
+              {t("manage.new")}
+            </button>
+          ) : null}
         </div>
 
-        <div className="card">
-          <div className="topbar" style={{ alignItems: "center" }}>
-            <h3 style={{ margin: 0 }}>{t("manage.title")}</h3>
-            <div className="spacer" />
-            {form.id ? (
-              <button className="btn" type="button" onClick={resetForm}>
-                {t("manage.new")}
-              </button>
-            ) : null}
+        <form className="grid" style={{ marginTop: 12, gap: 10 }} onSubmit={onSubmit}>
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{t("manage.fields.name")}</div>
+            <input className="input" value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} />
           </div>
-
-          <form className="grid" style={{ marginTop: 12, gap: 10 }} onSubmit={onSubmit}>
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{t("manage.fields.periphery")}</div>
+            <select className="input" value={form.parent_id} onChange={(e) => setForm((s) => ({ ...s, parent_id: e.target.value }))}>
+              <option value="">{t("manage.placeholders.periphery")}</option>
+              {peripheries.map((item) => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="grid cols2" style={{ gap: 10 }}>
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{t("manage.fields.name")}</div>
-              <input className="input" value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} />
+              <div className="muted" style={{ marginBottom: 6 }}>{t("manage.fields.latitude")}</div>
+              <input className="input" value={form.latitude} onChange={(e) => setForm((s) => ({ ...s, latitude: e.target.value }))} />
             </div>
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{t("manage.fields.periphery")}</div>
-              <select className="input" value={form.parent_id} onChange={(e) => setForm((s) => ({ ...s, parent_id: e.target.value }))}>
-                <option value="">{t("manage.placeholders.periphery")}</option>
-                {peripheries.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
+              <div className="muted" style={{ marginBottom: 6 }}>{t("manage.fields.longitude")}</div>
+              <input className="input" value={form.longitude} onChange={(e) => setForm((s) => ({ ...s, longitude: e.target.value }))} />
             </div>
-            <div className="grid cols2" style={{ gap: 10 }}>
-              <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{t("manage.fields.latitude")}</div>
-                <input className="input" value={form.latitude} onChange={(e) => setForm((s) => ({ ...s, latitude: e.target.value }))} />
-              </div>
-              <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{t("manage.fields.longitude")}</div>
-                <input className="input" value={form.longitude} onChange={(e) => setForm((s) => ({ ...s, longitude: e.target.value }))} />
-              </div>
-            </div>
-            {error ? <div style={{ color: "#b91c1c" }}>{error}</div> : null}
-            {message ? <div style={{ color: "#166534" }}>{message}</div> : null}
-            <div className="row-actions">
-              <button className="btn primary" type="submit" disabled={saving}>
-                {form.id ? t("manage.save") : t("manage.create")}
-              </button>
-              <button className="btn" type="button" onClick={resetForm} disabled={saving}>
-                {t("manage.clear")}
-              </button>
-            </div>
-          </form>
-        </div>
+          </div>
+          {error ? <div style={{ color: "#b91c1c" }}>{error}</div> : null}
+          {message ? <div style={{ color: "#166534" }}>{message}</div> : null}
+          <div className="row-actions">
+            <button className="btn primary" type="submit" disabled={saving}>
+              {form.id ? t("manage.save") : t("manage.create")}
+            </button>
+            <button className="btn" type="button" onClick={resetForm} disabled={saving}>
+              {t("manage.clear")}
+            </button>
+          </div>
+        </form>
       </div>
 
       <div className="card">
@@ -224,6 +188,7 @@ export default function Regions() {
           <table className="table">
             <thead>
               <tr>
+                <th>{t("table.number")}</th>
                 <th>{t("unmatched.columns.name")}</th>
                 <th>{t("unmatched.columns.count")}</th>
                 <th>{t("unmatched.columns.periphery")}</th>
@@ -231,8 +196,9 @@ export default function Regions() {
               </tr>
             </thead>
             <tbody>
-              {unmatchedItems.map((item) => (
+              {unmatchedItems.map((item, index) => (
                 <tr key={`${item.name}-${item.periphery_id ?? "none"}`}>
+                  <td>{index + 1}</td>
                   <td>{item.name}</td>
                   <td>{item.count}</td>
                   <td>{item.periphery_name ?? "-"}</td>
@@ -258,7 +224,41 @@ export default function Regions() {
               ))}
               {!unmatchedItems.length && (
                 <tr>
-                  <td colSpan={4} className="muted">{t("unmatched.empty")}</td>
+                  <td colSpan={5} className="muted">{t("unmatched.empty")}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="topbar">
+          <h3 style={{ margin: 0 }}>{t("peripheries.title")}</h3>
+        </div>
+
+        <div style={{ overflowX: "auto", marginTop: 12 }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t("table.number")}</th>
+                <th>{t("table.name")}</th>
+                <th>{t("manage.fields.latitude")}</th>
+                <th>{t("manage.fields.longitude")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {peripheries.map((item, index) => (
+                <tr key={item.id}>
+                  <td>{index + 1}</td>
+                  <td>{item.name}</td>
+                  <td>{item.latitude ?? "-"}</td>
+                  <td>{item.longitude ?? "-"}</td>
+                </tr>
+              ))}
+              {!peripheries.length && (
+                <tr>
+                  <td colSpan={4} className="muted">{t("peripheries.empty")}</td>
                 </tr>
               )}
             </tbody>
@@ -284,7 +284,7 @@ export default function Regions() {
           <table className="table">
             <thead>
               <tr>
-                <th>{t("table.id")}</th>
+                <th>{t("table.number")}</th>
                 <th>{t("table.name")}</th>
                 <th>{t("manage.fields.periphery")}</th>
                 <th>{t("manage.fields.latitude")}</th>
@@ -293,9 +293,9 @@ export default function Regions() {
               </tr>
             </thead>
             <tbody>
-              {cityRows.map((city) => (
+              {cityRows.map((city, index) => (
                 <tr key={city.id}>
-                  <td>{city.id}</td>
+                  <td>{index + 1}</td>
                   <td>{city.name}</td>
                   <td>{peripheryNameById.get(Number(city.parent_id)) ?? "-"}</td>
                   <td>{city.latitude ?? "-"}</td>
@@ -313,46 +313,6 @@ export default function Regions() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      <div className="card">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t("table.id")}</th>
-              <th>{t("table.type")}</th>
-              <th>{t("table.name")}</th>
-              <th>{t("table.go")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((r) => (
-              <tr key={r.id}>
-                <td>{r.id}</td>
-                <td>{r.type}</td>
-                <td>{r.name}</td>
-                <td>
-                  <button
-                    className="btn"
-                    onClick={() => {
-                      setParentId(r.id);
-                      setStack([...stack, { id: r.id, label: r.name }]);
-                    }}
-                  >
-                    {t("children")}
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {!items.length && (
-              <tr>
-                <td colSpan={4} className="muted">
-                  {t("empty")}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
       </div>
     </div>
   );
