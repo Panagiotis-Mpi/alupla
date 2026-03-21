@@ -38,5 +38,18 @@
     "created": "City created.",
     "updated": "City updated.",
     "error": "The action could not be completed."
+  },
+  "unmatched": {
+    "title": "Unmatched cities",
+    "search": "Search unmatched city",
+    "searchButton": "Search",
+    "empty": "No unmatched cities found.",
+    "useInForm": "Use in form",
+    "columns": {
+      "name": "City",
+      "count": "Occurrences",
+      "periphery": "Suggested periphery",
+      "actions": "Action"
+    }
   }
 }

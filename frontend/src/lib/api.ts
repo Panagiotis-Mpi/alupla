@@ -442,6 +442,16 @@ export async function searchRegions(params: { q?: string; type?: string; parent_
   return api(`/regions/search${qs ? `?${qs}` : ""}`, { method: "GET" });
 }
 
+export async function listUnmatchedCities(params: { q?: string } = {}): Promise<any> {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v === undefined || v === null || v === "") return;
+    q.set(k, String(v));
+  });
+  const qs = q.toString();
+  return api(`/regions/unmatched-cities${qs ? `?${qs}` : ""}`, { method: "GET" });
+}
+
 export async function listActivityLogs(params: Record<string, any> = {}): Promise<any> {
   const q = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {

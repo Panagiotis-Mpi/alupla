@@ -1,9 +1,21 @@
 import type { NextFunction, Request, Response } from "express";
 import { Op } from "sequelize";
+import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
 import { logAction } from "../services/log.service";
 
 function normalizeRegionName(value: unknown) {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\./g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+
+function normalizeLookupKey(value: unknown) {
   return String(value ?? "")
     .toLowerCase()
     .normalize("NFD")
@@ -115,6 +127,80 @@ export async function searchRegions(req: Request, res: Response, next: NextFunct
       where,
       order: [["name", "ASC"]],
       limit: 50
+    });
+
+    res.json({ ok: true, items });
+  } catch (err) {
+    next(err);
+  }
+}
+
+
+export async function listUnmatchedCities(req: Request, res: Response, next: NextFunction) {
+  try {
+    const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+
+    const [regions, graduates] = await Promise.all([
+      Region.findAll({ attributes: ["id", "name", "type", "parent_id"] }),
+      Graduate.findAll({ attributes: ["origin_municipality", "origin_region_id"] }),
+    ]);
+
+    const peripheryById = new Map<number, { id: number; name: string }>();
+    const cityKeys = new Set<string>();
+
+    for (const row of regions as any[]) {
+      const id = Number(row.id);
+      const type = String(row.type ?? "");
+      const name = String(row.name ?? "").trim();
+      if (!name) continue;
+      if (type === "PERIPHERY") peripheryById.set(id, { id, name });
+      if (type === "CITY") cityKeys.add(normalizeLookupKey(name));
+    }
+
+    const grouped = new Map<string, {
+      name: string;
+      count: number;
+      periphery_id: number | null;
+      periphery_name: string | null;
+    }>();
+
+    for (const row of graduates as any[]) {
+      const rawName = String(row.origin_municipality ?? "").trim();
+      if (!rawName) continue;
+      const key = normalizeLookupKey(rawName);
+      if (!key || cityKeys.has(key)) continue;
+
+      const regionId = row.origin_region_id != null ? Number(row.origin_region_id) : null;
+      const periphery = regionId ? peripheryById.get(regionId) ?? null : null;
+      const existing = grouped.get(key);
+
+      if (existing) {
+        existing.count += 1;
+        if (!existing.periphery_id && periphery) {
+          existing.periphery_id = periphery.id;
+          existing.periphery_name = periphery.name;
+        }
+        continue;
+      }
+
+      grouped.set(key, {
+        name: rawName,
+        count: 1,
+        periphery_id: periphery?.id ?? null,
+        periphery_name: periphery?.name ?? null,
+      });
+    }
+
+    let items = Array.from(grouped.values());
+
+    if (q) {
+      const qKey = normalizeLookupKey(q);
+      items = items.filter((item) => normalizeLookupKey(item.name).includes(qKey));
+    }
+
+    items.sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.name.localeCompare(b.name, "el");
     });
 
     res.json({ ok: true, items });

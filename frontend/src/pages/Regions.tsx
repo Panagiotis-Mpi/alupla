@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { createRegion, listRegions, searchRegions, updateRegion, type Region } from "../lib/api";
+import { createRegion, listRegions, listUnmatchedCities, searchRegions, updateRegion, type Region } from "../lib/api";
 
 const emptyForm = {
   id: null as number | null,
@@ -19,6 +19,8 @@ export default function Regions() {
   const [peripheries, setPeripheries] = useState<Region[]>([]);
   const [cities, setCities] = useState<Region[]>([]);
   const [cityQuery, setCityQuery] = useState("");
+  const [unmatchedQuery, setUnmatchedQuery] = useState("");
+  const [unmatchedItems, setUnmatchedItems] = useState<Array<{ name: string; count: number; periphery_id: number | null; periphery_name: string | null }>>([]);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -49,9 +51,16 @@ export default function Regions() {
     void load(parentId);
   }, [parentId]);
 
+  async function loadUnmatched(query?: string) {
+    const q = (query ?? unmatchedQuery).trim();
+    const r = await listUnmatchedCities({ q });
+    setUnmatchedItems(r.items);
+  }
+
   useEffect(() => {
     void loadPeripheries();
     void loadCities("");
+    void loadUnmatched("");
   }, []);
 
   const peripheryNameById = useMemo(() => {
@@ -111,7 +120,7 @@ export default function Regions() {
       }
 
       resetForm();
-      await Promise.all([loadCities(), load(parentId), loadPeripheries()]);
+      await Promise.all([loadCities(), load(parentId), loadPeripheries(), loadUnmatched()]);
     } catch (err: any) {
       setError(err?.message || t("messages.error"));
     } finally {
@@ -194,6 +203,66 @@ export default function Regions() {
               </button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="topbar">
+          <h3 style={{ margin: 0 }}>{t("unmatched.title")}</h3>
+          <div className="spacer" />
+          <input
+            className="input"
+            style={{ maxWidth: 280 }}
+            value={unmatchedQuery}
+            placeholder={t("unmatched.search")}
+            onChange={(e) => setUnmatchedQuery(e.target.value)}
+          />
+          <button className="btn" onClick={() => void loadUnmatched()}>{t("unmatched.searchButton")}</button>
+        </div>
+
+        <div style={{ overflowX: "auto", marginTop: 12 }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t("unmatched.columns.name")}</th>
+                <th>{t("unmatched.columns.count")}</th>
+                <th>{t("unmatched.columns.periphery")}</th>
+                <th>{t("unmatched.columns.actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {unmatchedItems.map((item) => (
+                <tr key={`${item.name}-${item.periphery_id ?? "none"}`}>
+                  <td>{item.name}</td>
+                  <td>{item.count}</td>
+                  <td>{item.periphery_name ?? "-"}</td>
+                  <td>
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        setForm((s) => ({
+                          ...s,
+                          id: null,
+                          name: item.name,
+                          parent_id: item.periphery_id != null ? String(item.periphery_id) : s.parent_id,
+                        }));
+                        setError("");
+                        setMessage("");
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                    >
+                      {t("unmatched.useInForm")}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {!unmatchedItems.length && (
+                <tr>
+                  <td colSpan={4} className="muted">{t("unmatched.empty")}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
