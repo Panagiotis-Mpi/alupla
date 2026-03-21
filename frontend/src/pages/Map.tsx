@@ -187,9 +187,9 @@ function Field(props: { label: string; children: React.ReactNode; span?: number 
 
 function FilterSection(props: { title: string; children: React.ReactNode }) {
   return (
-    <section style={{ display: "grid", gap: 12 }}>
-      <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", letterSpacing: ".01em" }}>{props.title}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>{props.children}</div>
+    <section style={{ display: "grid", gap: props.title ? 10 : 0 }}>
+      {props.title ? <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", letterSpacing: ".01em" }}>{props.title}</div> : null}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>{props.children}</div>
     </section>
   );
 }
@@ -714,22 +714,30 @@ export default function Map() {
           top: 108px;
           left: 50%;
           transform: translateX(-50%);
-          width: min(1120px, calc(100vw - 48px));
-          max-height: calc(100vh - 140px);
+          width: min(980px, calc(100vw - 72px));
+          max-height: calc(100vh - 160px);
           overflow: auto;
           z-index: 1200;
-          padding: 18px;
+          padding: 16px;
           display: grid;
-          gap: 18px;
+          gap: 14px;
         }
         .map-filters-modal .label {
-          font-size: 13px;
+          font-size: 12px;
+        }
+        .map-filters-grid {
+          display: grid;
+          gap: 14px;
+        }
+        .map-filters-grid input,
+        .map-filters-grid select {
+          min-height: 42px;
         }
         @media (max-width: 900px) {
           .map-filters-modal {
             top: 88px;
             width: calc(100vw - 24px);
-            max-height: calc(100vh - 104px);
+            max-height: calc(100vh - 112px);
             padding: 14px;
           }
         }
@@ -882,8 +890,8 @@ export default function Map() {
                   </button>
                 </div>
 
-                <div style={{ display: "grid", gap: 18 }}>
-                  <FilterSection title={t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}>
+                <div className="map-filters-grid">
+                  <FilterSection title="">
                     <Field label={t("graduates.filters.adCode", { defaultValue: "Α.Δ." })} span={1}>
                       <input className="input" value={filters.ad_code_like} onChange={(e) => updateFilter("ad_code_like", e.target.value)} />
                     </Field>
@@ -904,7 +912,7 @@ export default function Map() {
                     </Field>
                   </FilterSection>
 
-                  <FilterSection title={t("common.demographics", { defaultValue: "Δημογραφικά" })}>
+                  <FilterSection title="">
                     <Field label={t("graduates.filters.gender", { defaultValue: "Φύλο" })} span={1}>
                       <select className="input" value={filters.gender} onChange={(e) => updateFilter("gender", e.target.value)}>
                         <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
@@ -932,7 +940,7 @@ export default function Map() {
                     </Field>
                   </FilterSection>
 
-                  <FilterSection title={t("common.academicInfo", { defaultValue: "Ακαδημαϊκά στοιχεία" })}>
+                  <FilterSection title="">
                     <RangeField label={t("graduates.filters.entryYear", { defaultValue: "Έτος εισαγωγής" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.entry_year_min} toValue={filters.entry_year_max} onFromChange={(value) => updateFilter("entry_year_min", value)} onToChange={(value) => updateFilter("entry_year_max", value)} type="number" span={1} />
                     <Field label={t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" })} span={1}>
                       <input className="input" value={filters.graduation_year} onChange={(e) => updateFilter("graduation_year", e.target.value)} />

@@ -91,11 +91,11 @@ function TopNav() {
 
     if (role === "super_admin") {
       return [
-        { to: "/users", label: usersLabel },
         { to: "/graduates", label: gradsLabel },
         { to: "/academic-data", label: academicDataLabel },
         { to: "/statistics", label: statsLabel },
         { to: "/map", label: mapLabel },
+        { to: "/users", label: usersLabel },
         { to: "/logs", label: logsLabel },
       ];
     }
