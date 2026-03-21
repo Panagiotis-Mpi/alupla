@@ -95,6 +95,7 @@ function TopNav() {
         { to: "/academic-data", label: academicDataLabel },
         { to: "/statistics", label: statsLabel },
         { to: "/map", label: mapLabel },
+        { to: "/regions", label: t("nav.regions", { defaultValue: "Περιοχές" }) },
         { to: "/users", label: usersLabel },
         { to: "/logs", label: logsLabel },
       ];
