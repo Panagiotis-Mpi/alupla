@@ -74,10 +74,64 @@ const EMPTY_FILTERS: FiltersState = {
 function cityLabelIcon(label: string) {
   return L.divIcon({
     className: "alupla-city-label-icon",
-    html: `<span class="alupla-city-label-wrap"><span class="alupla-city-label-text">${label}</span><span class="alupla-city-label-dot"></span></span>`,
-    iconSize: [12, 18],
-    iconAnchor: [6, 18],
+    html: `<span class="alupla-city-point"><span class="alupla-city-label-text">${label}</span><span class="alupla-city-label-dot"></span></span>`,
+    iconSize: [1, 1],
+    iconAnchor: [0, 0],
   });
+}
+
+
+function DetailStatsCard(props: {
+  title: string;
+  total: number | string;
+  avgAge: number | string | null | undefined;
+  malePct: number | string | null | undefined;
+  femalePct: number | string | null | undefined;
+  avgGrade: number | string | null | undefined;
+  avgGraduationYears: number | string | null | undefined;
+  totalText: string;
+  totalLabel: string;
+  avgAgeLabel: string;
+  malePctLabel: string;
+  femalePctLabel: string;
+  avgGradeLabel: string;
+  avgGraduationYearsLabel: string;
+}) {
+  return (
+    <div style={{ padding: "14px", border: "1px solid var(--border)", borderRadius: 12, background: "rgba(248,250,252,.8)", display: "grid", gap: 12 }}>
+      <div style={{ display: "grid", gap: 4 }}>
+        <div style={{ fontWeight: 700 }}>{props.title}</div>
+        <div className="muted">{props.totalText}</div>
+      </div>
+
+      <div className="grid cols2">
+        <div>
+          <label className="label">{props.totalLabel}</label>
+          <div style={{ fontWeight: 700 }}>{props.total}</div>
+        </div>
+        <div>
+          <label className="label">{props.avgAgeLabel}</label>
+          <div style={{ fontWeight: 700 }}>{props.avgAge ?? "-"}</div>
+        </div>
+        <div>
+          <label className="label">{props.malePctLabel}</label>
+          <div style={{ fontWeight: 700 }}>{props.malePct ?? 0}%</div>
+        </div>
+        <div>
+          <label className="label">{props.femalePctLabel}</label>
+          <div style={{ fontWeight: 700 }}>{props.femalePct ?? 0}%</div>
+        </div>
+        <div>
+          <label className="label">{props.avgGradeLabel}</label>
+          <div style={{ fontWeight: 700 }}>{props.avgGrade ?? "-"}</div>
+        </div>
+        <div>
+          <label className="label">{props.avgGraduationYearsLabel}</label>
+          <div style={{ fontWeight: 700 }}>{props.avgGraduationYears ?? "-"}</div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function normalizeKey(s: string): string {
@@ -625,16 +679,19 @@ export default function Map() {
         .alupla-map .leaflet-container { background: transparent !important; }
         .alupla-map-card { padding: 0; overflow: hidden; position: relative; }
         .alupla-city-label-icon { background: transparent !important; border: 0 !important; }
-        .alupla-city-label-wrap {
+        .alupla-city-point {
           position: relative;
-          display: inline-flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          transform: translate(-50%, -100%);
+          display: block;
+          width: 1px;
+          height: 1px;
+          overflow: visible;
           pointer-events: none;
         }
         .alupla-city-label-text {
+          position: absolute;
+          left: 50%;
+          bottom: 7px;
+          transform: translateX(-50%);
           color: #1e293b;
           font-size: 12px;
           font-weight: 600;
@@ -644,6 +701,10 @@ export default function Map() {
           display: inline-block;
         }
         .alupla-city-label-dot {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
           width: 5px;
           height: 5px;
           border-radius: 999px;
@@ -1004,58 +1065,49 @@ export default function Map() {
               <div className="muted">{t("map.detailsHint", { defaultValue: "Κάνε κλικ σε μία περιφέρεια για λεπτομέρειες." })}</div>
             ) : (
               <div className="grid" style={{ gap: 10 }}>
-                <div style={{ padding: "14px", border: "1px solid var(--border)", borderRadius: 12, background: "rgba(248,250,252,.8)", display: "grid", gap: 12 }}>
-                  <div style={{ display: "grid", gap: 4 }}>
-                    <div style={{ fontWeight: 700 }}>{(selected as any).periphery_name}</div>
-                    <div className="muted">{t("map.total", { total: (selected as any).count ?? 0, defaultValue: "Σύνολο: {{total}}" })}</div>
-                  </div>
+                <DetailStatsCard
+                  title={(selected as any).periphery_name}
+                  total={(selected as any).count ?? 0}
+                  avgAge={(selected as any).avg_age}
+                  malePct={(selected as any).male_pct}
+                  femalePct={(selected as any).female_pct}
+                  avgGrade={(selected as any).avg_grade}
+                  avgGraduationYears={(selected as any).avg_graduation_years}
+                  totalText={t("map.total", { total: (selected as any).count ?? 0, defaultValue: "Σύνολο: {{total}}" })}
+                  totalLabel={t("map.totalLabel", { defaultValue: "Σύνολο" })}
+                  avgAgeLabel={t("map.avgAge", { defaultValue: "Μέση ηλικία" })}
+                  malePctLabel={t("map.malePct", { defaultValue: "% Άνδρες" })}
+                  femalePctLabel={t("map.femalePct", { defaultValue: "% Γυναίκες" })}
+                  avgGradeLabel={t("map.avgGrade", { defaultValue: "Μέσος βαθμός" })}
+                  avgGraduationYearsLabel={t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" })}
+                />
 
-                  <div className="grid cols2">
-                    <div>
-                      <label className="label">{t("map.totalLabel", { defaultValue: "Σύνολο" })}</label>
-                      <div style={{ fontWeight: 700 }}>{(selected as any).count ?? 0}</div>
-                    </div>
-                    <div>
-                      <label className="label">{t("map.avgAge", { defaultValue: "Μέση ηλικία" })}</label>
-                      <div style={{ fontWeight: 700 }}>{(selected as any).avg_age ?? "-"}</div>
-                    </div>
-                    <div>
-                      <label className="label">{t("map.malePct", { defaultValue: "% Άνδρες" })}</label>
-                      <div style={{ fontWeight: 700 }}>{(selected as any).male_pct ?? 0}%</div>
-                    </div>
-                    <div>
-                      <label className="label">{t("map.femalePct", { defaultValue: "% Γυναίκες" })}</label>
-                      <div style={{ fontWeight: 700 }}>{(selected as any).female_pct ?? 0}%</div>
-                    </div>
-                    <div>
-                      <label className="label">{t("map.avgGrade", { defaultValue: "Μέσος βαθμός" })}</label>
-                      <div style={{ fontWeight: 700 }}>{(selected as any).avg_grade ?? "-"}</div>
-                    </div>
-                    <div>
-                      <label className="label">{t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" })}</label>
-                      <div style={{ fontWeight: 700 }}>{(selected as any).avg_graduation_years ?? "-"}</div>
-                    </div>
-                  </div>
-
-                  {cityStatsLoading ? (
+                {cityStatsLoading ? (
                     <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
                   ) : selectedCityStats.length > 0 ? (
                     <div style={{ display: "grid", gap: 10 }}>
                       <label className="label">{t("map.cities", { defaultValue: "Πόλεις" })}</label>
                       {selectedCityStats.map((city) => (
-                        <div key={`${selected?.periphery_id}-${city.city}`} style={{ padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 12, background: "rgba(255,255,255,.72)" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                            <div style={{ fontWeight: 700 }}>{city.city}</div>
-                            <div style={{ fontWeight: 700 }}>{city.count}</div>
-                          </div>
-                          <div className="muted" style={{ marginTop: 6 }}>
-                            {t("map.avgAge", { defaultValue: "Μέση ηλικία" })}: {city.avg_age ?? "-"} · {t("map.malePct", { defaultValue: "% Άνδρες" })}: {city.male_pct}% · {t("map.femalePct", { defaultValue: "% Γυναίκες" })}: {city.female_pct}% · {t("map.avgGrade", { defaultValue: "Μέσος βαθμός" })}: {city.avg_grade ?? "-"} · {t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" })}: {city.avg_graduation_years ?? "-"}
-                          </div>
-                        </div>
+                        <DetailStatsCard
+                          key={`${selected?.periphery_id}-${city.city}`}
+                          title={city.city}
+                          total={city.count}
+                          avgAge={city.avg_age}
+                          malePct={city.male_pct}
+                          femalePct={city.female_pct}
+                          avgGrade={city.avg_grade}
+                          avgGraduationYears={city.avg_graduation_years}
+                          totalText={t("map.total", { total: city.count ?? 0, defaultValue: "Σύνολο: {{total}}" })}
+                          totalLabel={t("map.totalLabel", { defaultValue: "Σύνολο" })}
+                          avgAgeLabel={t("map.avgAge", { defaultValue: "Μέση ηλικία" })}
+                          malePctLabel={t("map.malePct", { defaultValue: "% Άνδρες" })}
+                          femalePctLabel={t("map.femalePct", { defaultValue: "% Γυναίκες" })}
+                          avgGradeLabel={t("map.avgGrade", { defaultValue: "Μέσος βαθμός" })}
+                          avgGraduationYearsLabel={t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" })}
+                        />
                       ))}
                     </div>
                   ) : null}
-                </div>
               </div>
             )}
           </div>
