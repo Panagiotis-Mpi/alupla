@@ -8,7 +8,7 @@ import { clamp, toInt as toIntParam } from "../utils/pagination";
 import { logAction } from "../services/log.service";
 import * as XLSX from "xlsx";
 import { normHeader, toDateOnly, toInt, toNumber } from "../utils/importUtils";
-import { normalizeOriginLocation } from "../utils/resolvePeripheryRegionId";
+import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
 
 const EXPORT_LANGS = new Set(["gr", "en"]);
 
@@ -279,6 +279,20 @@ function resolveProgramDirectionId(value: unknown, directionsById: Map<number, a
   return null;
 }
 
+function hasOriginValue(origin_region_id: number | null | undefined, origin_municipality: string | null | undefined) {
+  return origin_region_id != null || String(origin_municipality ?? "").trim().length > 0;
+}
+
+function ensureManagedOrigin(
+  normalizedOrigin: NormalizedOriginResult,
+  origin_region_id: number | null | undefined,
+  origin_municipality: string | null | undefined
+) {
+  if (!hasOriginValue(origin_region_id, origin_municipality)) return null;
+  if (normalizedOrigin.city_region_id) return null;
+  return "origin_municipality must match an existing city";
+}
+
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
   try {
     const page = clamp(toIntParam(req.query.page, 1), 1, 1_000_000);
@@ -483,6 +497,13 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         origin_municipality,
       });
 
+      const managedOriginError = ensureManagedOrigin(normalizedOrigin, origin_region_id ?? null, origin_municipality);
+      if (managedOriginError) {
+        errors.push({ row: rowNum, column: "origin_municipality", message: managedOriginError, value: origin_municipality });
+        skipped++;
+        continue;
+      }
+
       const payload: any = {
         student_number,
         ad_code,
@@ -624,6 +645,9 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
       origin_municipality,
     });
 
+    const managedOriginError = ensureManagedOrigin(normalizedOrigin, origin_region_id ?? null, origin_municipality);
+    if (managedOriginError) return bad(res, managedOriginError);
+
     const created = await Graduate.create({
       ad_code: ad_code_in || `AD-${student_number}`,
       last_name,
@@ -728,6 +752,12 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
         origin_region_id: (item as any).origin_region_id ?? null,
         origin_municipality: (item as any).origin_municipality ?? null,
       });
+      const managedOriginError = ensureManagedOrigin(
+        normalized,
+        (item as any).origin_region_id ?? null,
+        (item as any).origin_municipality ?? null
+      );
+      if (managedOriginError) return bad(res, managedOriginError);
       (item as any).origin_region_id = normalized.origin_region_id;
       (item as any).origin_municipality = normalized.origin_municipality;
     }

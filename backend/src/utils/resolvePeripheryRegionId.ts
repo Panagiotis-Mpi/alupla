@@ -12,7 +12,7 @@ type RegionLite = {
   parent_id: number | null;
 };
 
-type NormalizedOriginResult = {
+export type NormalizedOriginResult = {
   origin_region_id: number | null;
   origin_municipality: string | null;
   city_region_id: number | null;
