@@ -18,7 +18,6 @@ import {
   type StudyProgram,
 } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
-import { regionCities, type RegionCity } from "../data/regionCities";
 import * as XLSX from "xlsx";
 
 type AgeGroup = "" | "18-22" | "23-26" | "27-30" | "31+";
@@ -146,7 +145,7 @@ function normalizeKey(s: string): string {
 }
 
 
-function mapCityLatitude(city: MapCityPoint | RegionCity): number | null {
+function mapCityLatitude(city: MapCityPoint): number | null {
   if ("latitude" in city) {
     const value = Number(city.latitude);
     return Number.isFinite(value) ? value : null;
@@ -155,7 +154,7 @@ function mapCityLatitude(city: MapCityPoint | RegionCity): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
-function mapCityLongitude(city: MapCityPoint | RegionCity): number | null {
+function mapCityLongitude(city: MapCityPoint): number | null {
   if ("longitude" in city) {
     const value = Number(city.longitude);
     return Number.isFinite(value) ? value : null;
@@ -164,14 +163,12 @@ function mapCityLongitude(city: MapCityPoint | RegionCity): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
-function mapCityLabel(city: MapCityPoint | RegionCity, lang: "gr" | "en"): string {
-  if ("city_name" in city) return city.city_name;
-  return lang === "en" ? city.nameEn : city.nameEl;
+function mapCityLabel(city: MapCityPoint): string {
+  return city.city_name;
 }
 
-function mapCityKey(city: MapCityPoint | RegionCity): string {
-  if ("city_id" in city) return `db-${city.city_id}`;
-  return `static-${city.region}-${city.nameEl}`;
+function mapCityKey(city: MapCityPoint): string {
+  return `db-${city.city_id}`;
 }
 
 function tryParseGeoJson(raw: string): any | null {
@@ -571,63 +568,37 @@ export default function Map() {
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
   const visibleCities = useMemo(() => {
-    if (cityPoints.length > 0) {
-      const grouped = new (globalThis as any).Map<string, MapCityPoint[]>();
+    const grouped = new (globalThis as any).Map<string, MapCityPoint[]>();
 
-      for (const city of cityPoints) {
-        const lat = mapCityLatitude(city);
-        const lng = mapCityLongitude(city);
-        if (lat === null || lng === null) continue;
-        const key = normalizeKey(city.periphery_name);
-        const list = grouped.get(key) || [];
-        list.push(city);
-        grouped.set(key, list);
-      }
-
-      const expanded = mapZoom >= 7;
-      const next: Array<MapCityPoint | RegionCity> = [];
-
-      grouped.forEach((list) => {
-        const sorted = [...list].sort((a, b) => {
-          if (b.count !== a.count) return b.count - a.count;
-          return a.city_name.localeCompare(b.city_name, "el");
-        });
-        if (!expanded) {
-          if (sorted[0]) next.push(sorted[0]);
-          return;
-        }
-        const insideBounds = mapBounds
-          ? sorted.filter((city) => {
-              const lat = mapCityLatitude(city);
-              const lng = mapCityLongitude(city);
-              return lat !== null && lng !== null && mapBounds.contains(L.latLng(lat, lng));
-            })
-          : sorted;
-        next.push(...(insideBounds.length ? insideBounds : sorted).slice(0, 3));
-      });
-
-      return next;
-    }
-
-    const grouped = new (globalThis as any).Map<string, RegionCity[]>();
-
-    for (const city of regionCities) {
-      const key = normalizeKey(city.region);
+    for (const city of cityPoints) {
+      const lat = mapCityLatitude(city);
+      const lng = mapCityLongitude(city);
+      if (lat === null || lng === null) continue;
+      const key = normalizeKey(city.periphery_name);
       const list = grouped.get(key) || [];
       list.push(city);
       grouped.set(key, list);
     }
 
     const expanded = mapZoom >= 7;
-    const next: Array<MapCityPoint | RegionCity> = [];
+    const next: MapCityPoint[] = [];
 
     grouped.forEach((list) => {
-      const sorted = [...list].sort((a, b) => b.population - a.population);
+      const sorted = [...list].sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.city_name.localeCompare(b.city_name, "el");
+      });
       if (!expanded) {
         if (sorted[0]) next.push(sorted[0]);
         return;
       }
-      const insideBounds = mapBounds ? sorted.filter((city) => mapBounds.contains(L.latLng(city.lat, city.lng))) : sorted;
+      const insideBounds = mapBounds
+        ? sorted.filter((city) => {
+            const lat = mapCityLatitude(city);
+            const lng = mapCityLongitude(city);
+            return lat !== null && lng !== null && mapBounds.contains(L.latLng(lat, lng));
+          })
+        : sorted;
       next.push(...(insideBounds.length ? insideBounds : sorted).slice(0, 3));
     });
 
