@@ -85,7 +85,12 @@ async function loadRegions() {
     return hit ? (Number(hit.id) || null) : null;
   }
 
-  return { regions, findPeriphery, resolveRegionIdFromMunicipalityName };
+  function findRegion(regionId: number | null | undefined): any | null {
+    if (!regionId) return null;
+    return byId.get(Number(regionId)) ?? null;
+  }
+
+  return { regions, findPeriphery, findRegion, resolveRegionIdFromMunicipalityName };
 }
 
 export async function getMapFilterOptions(_req: Request, res: Response) {
@@ -264,7 +269,7 @@ export async function getRegionCities(req: Request, res: Response) {
   if (!peripheryId) return res.status(400).json({ ok: false, error: "periphery_id is required" });
 
   const { where, currentYear } = buildMapWhere(req);
-  const { findPeriphery, resolveRegionIdFromMunicipalityName } = await loadRegions();
+  const { findPeriphery, findRegion, resolveRegionIdFromMunicipalityName } = await loadRegions();
 
   const grads = await Graduate.findAll({
     where,
@@ -274,11 +279,13 @@ export async function getRegionCities(req: Request, res: Response) {
   const groups = new Map<string, any>();
 
   for (const g of grads as any[]) {
-    const originId = Number(g.origin_region_id) || resolveRegionIdFromMunicipalityName(g.origin_municipality);
+    const resolvedCityId = resolveRegionIdFromMunicipalityName(g.origin_municipality);
+    const originId = Number(g.origin_region_id) || resolvedCityId;
     const per = findPeriphery(originId);
     if (!per || Number(per.id) !== peripheryId) continue;
 
-    const name = String(g.origin_municipality || "").trim();
+    const regionCity = findRegion(resolvedCityId);
+    const name = String(regionCity?.type === "CITY" ? regionCity.name : g.origin_municipality || "").trim();
     if (!name) continue;
 
     const key = name

@@ -8,7 +8,7 @@ import { clamp, toInt as toIntParam } from "../utils/pagination";
 import { logAction } from "../services/log.service";
 import * as XLSX from "xlsx";
 import { normHeader, toDateOnly, toInt, toNumber } from "../utils/importUtils";
-import { resolvePeripheryRegionId } from "../utils/resolvePeripheryRegionId";
+import { normalizeOriginLocation } from "../utils/resolvePeripheryRegionId";
 
 const EXPORT_LANGS = new Set(["gr", "en"]);
 
@@ -478,6 +478,11 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         continue;
       }
 
+      const normalizedOrigin = await normalizeOriginLocation({
+        origin_region_id: origin_region_id ?? null,
+        origin_municipality,
+      });
+
       const payload: any = {
         student_number,
         ad_code,
@@ -492,11 +497,8 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         birth_date,
         study_program_id,
         program_direction_id: program_direction_id ?? null,
-        origin_region_id: await resolvePeripheryRegionId({
-          origin_region_id: origin_region_id ?? null,
-          origin_municipality,
-        }),
-        origin_municipality,
+        origin_region_id: normalizedOrigin.origin_region_id,
+        origin_municipality: normalizedOrigin.origin_municipality,
       };
 
       const existing = await Graduate.findOne({ where: { student_number } });
@@ -617,7 +619,7 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     const origin_municipality = String(body.origin_municipality ?? "").trim();
     if (!origin_municipality) return bad(res, "origin_municipality is required");
 
-    const periphery_origin_region_id = await resolvePeripheryRegionId({
+    const normalizedOrigin = await normalizeOriginLocation({
       origin_region_id: origin_region_id ?? null,
       origin_municipality,
     });
@@ -636,8 +638,8 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
       gender,
       study_program_id,
       program_direction_id,
-      origin_region_id: periphery_origin_region_id,
-      origin_municipality
+      origin_region_id: normalizedOrigin.origin_region_id,
+      origin_municipality: normalizedOrigin.origin_municipality
     } as any);
 
     await logAction({
@@ -722,11 +724,12 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     setIf("origin_municipality", (v) => (v === "" ? null : String(v ?? "").trim()));
 
     if (originRegionTouched) {
-      const normalized = await resolvePeripheryRegionId({
+      const normalized = await normalizeOriginLocation({
         origin_region_id: (item as any).origin_region_id ?? null,
         origin_municipality: (item as any).origin_municipality ?? null,
       });
-      (item as any).origin_region_id = normalized;
+      (item as any).origin_region_id = normalized.origin_region_id;
+      (item as any).origin_municipality = normalized.origin_municipality;
     }
 
     if (body.study_program_id !== undefined) (item as any).study_program_id = nextStudyProgramId;    if (!String((item as any).ad_code ?? "").trim()) return bad(res, "ad_code cannot be empty");
@@ -797,15 +800,19 @@ export async function normalizeGraduateOrigins(req: Request, res: Response, next
     let unchanged = 0;
 
     for (const g of grads as any[]) {
-      const normalized = await resolvePeripheryRegionId({
+      const normalized = await normalizeOriginLocation({
         origin_region_id: g.origin_region_id != null ? Number(g.origin_region_id) : null,
         origin_municipality: g.origin_municipality ? String(g.origin_municipality) : null,
       });
 
-      const cur = g.origin_region_id != null ? Number(g.origin_region_id) : null;
-      if (normalized !== cur) {
+      const curRegion = g.origin_region_id != null ? Number(g.origin_region_id) : null;
+      const curMunicipality = g.origin_municipality ? String(g.origin_municipality) : null;
+      if (normalized.origin_region_id !== curRegion || (normalized.origin_municipality ?? null) !== curMunicipality) {
         await Graduate.update(
-          { origin_region_id: normalized },
+          {
+            origin_region_id: normalized.origin_region_id,
+            origin_municipality: normalized.origin_municipality,
+          },
           { where: { id: Number(g.id) } }
         );
         changed++;
