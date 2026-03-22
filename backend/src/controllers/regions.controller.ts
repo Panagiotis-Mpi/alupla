@@ -4,6 +4,36 @@ import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
 import { logAction } from "../services/log.service";
 
+const REGION_TYPES = ["PERIPHERY", "NOMOS", "DIMOS", "CITY"] as const;
+
+type RegionType = typeof REGION_TYPES[number];
+type CityPayload = {
+  name: string;
+  type: "CITY";
+  parent_id: number;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+type CityValidation = { value: CityPayload } | { error: string };
+
+function badRequest(res: Response, message: string) {
+  return res.status(400).json({ ok: false, error: { message } });
+}
+
+function notFound(res: Response) {
+  return res.status(404).json({ ok: false, error: { message: "Not found" } });
+}
+
+function parseId(value: unknown) {
+  const id = Number(value);
+  return Number.isFinite(id) ? id : null;
+}
+
+function isRegionType(value: unknown): value is RegionType {
+  return typeof value === "string" && (REGION_TYPES as readonly string[]).includes(value);
+}
+
 function normalizeRegionName(value: unknown) {
   return String(value ?? "")
     .toLowerCase()
@@ -13,7 +43,6 @@ function normalizeRegionName(value: unknown) {
     .replace(/\s+/g, " ")
     .trim();
 }
-
 
 function normalizeLookupKey(value: unknown) {
   return String(value ?? "")
@@ -31,18 +60,44 @@ function toNullableCoord(value: unknown) {
   return Number.isFinite(num) ? num : NaN;
 }
 
-async function validateCityInput(body: any, currentId?: number) {
+async function findRegionById(idValue: unknown) {
+  const id = parseId(idValue);
+  if (id === null) return { id: null, item: null };
+  const item = await Region.findByPk(id);
+  return { id, item };
+}
+
+function parseListFilters(req: Request) {
+  const where: Record<string, unknown> = {};
+  const parentRaw = req.query.parent_id;
+  const typeRaw = req.query.type;
+
+  if (parentRaw === "null" || parentRaw === "") {
+    where.parent_id = null;
+  } else if (typeof parentRaw === "string" && parentRaw.trim()) {
+    const parentId = parseId(parentRaw);
+    if (parentId !== null) where.parent_id = parentId;
+  }
+
+  if (isRegionType(typeRaw)) {
+    where.type = typeRaw;
+  }
+
+  return where;
+}
+
+async function validateCityInput(body: any, currentId?: number): Promise<CityValidation> {
   const name = String(body?.name ?? "").trim();
-  const parentRaw = Number(body?.parent_id);
+  const parentId = Number(body?.parent_id);
   const latitude = toNullableCoord(body?.latitude);
   const longitude = toNullableCoord(body?.longitude);
 
   if (!name) return { error: "name is required" };
-  if (!Number.isFinite(parentRaw) || parentRaw <= 0) return { error: "parent_id is required" };
-  if (Number.isNaN(latitude as any)) return { error: "latitude must be a number" };
-  if (Number.isNaN(longitude as any)) return { error: "longitude must be a number" };
+  if (!Number.isFinite(parentId) || parentId <= 0) return { error: "parent_id is required" };
+  if (Number.isNaN(latitude as number)) return { error: "latitude must be a number" };
+  if (Number.isNaN(longitude as number)) return { error: "longitude must be a number" };
 
-  const parent = await Region.findByPk(parentRaw);
+  const parent = await Region.findByPk(parentId);
   if (!parent || String((parent as any).type) !== "PERIPHERY") {
     return { error: "parent_id must point to a periphery" };
   }
@@ -50,7 +105,7 @@ async function validateCityInput(body: any, currentId?: number) {
   const siblings = await Region.findAll({
     where: {
       type: "CITY",
-      parent_id: parentRaw,
+      parent_id: parentId,
       ...(currentId ? { id: { [Op.ne]: currentId } } : {}),
     },
     attributes: ["id", "name"],
@@ -58,13 +113,15 @@ async function validateCityInput(body: any, currentId?: number) {
 
   const normalizedName = normalizeRegionName(name);
   const duplicate = (siblings as any[]).find((item) => normalizeRegionName(item.name) === normalizedName);
-  if (duplicate) return { error: "A city with this name already exists in the selected periphery" };
+  if (duplicate) {
+    return { error: "A city with this name already exists in the selected periphery" };
+  }
 
   return {
     value: {
       name,
       type: "CITY",
-      parent_id: parentRaw,
+      parent_id: parentId,
       latitude,
       longitude,
     },
@@ -73,25 +130,9 @@ async function validateCityInput(body: any, currentId?: number) {
 
 export async function listRegions(req: Request, res: Response, next: NextFunction) {
   try {
-    const parentRaw = req.query.parent_id;
-    const typeRaw = req.query.type;
-
-    const where: any = {};
-
-    if (parentRaw === "null" || parentRaw === "") {
-      where.parent_id = null;
-    } else if (typeof parentRaw === "string" && parentRaw.trim().length) {
-      const n = Number(parentRaw);
-      if (Number.isFinite(n)) where.parent_id = n;
-    }
-
-    if (typeof typeRaw === "string" && ["PERIPHERY", "NOMOS", "DIMOS", "CITY"].includes(typeRaw)) {
-      where.type = typeRaw;
-    }
-
     const items = await Region.findAll({
-      where,
-      order: [["name", "ASC"]]
+      where: parseListFilters(req),
+      order: [["name", "ASC"]],
     });
 
     res.json({ ok: true, items });
@@ -102,11 +143,9 @@ export async function listRegions(req: Request, res: Response, next: NextFunctio
 
 export async function getRegion(req: Request, res: Response, next: NextFunction) {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: { message: "Invalid id" } });
-
-    const item = await Region.findByPk(id);
-    if (!item) return res.status(404).json({ ok: false, error: { message: "Not found" } });
+    const { id, item } = await findRegionById(req.params.id);
+    if (id === null) return badRequest(res, "Invalid id");
+    if (!item) return notFound(res);
 
     res.json({ ok: true, item });
   } catch (err) {
@@ -118,15 +157,21 @@ export async function searchRegions(req: Request, res: Response, next: NextFunct
   try {
     const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
     const type = typeof req.query.type === "string" ? req.query.type.trim() : "";
+
     if (!q) return res.json({ ok: true, items: [] });
 
-    const where: any = { name: { [Op.like]: `%${q}%` } };
-    if (["PERIPHERY", "NOMOS", "DIMOS", "CITY"].includes(type)) where.type = type;
+    const where: Record<string, unknown> = {
+      name: { [Op.like]: `%${q}%` },
+    };
+
+    if (isRegionType(type)) {
+      where.type = type;
+    }
 
     const items = await Region.findAll({
       where,
       order: [["name", "ASC"]],
-      limit: 50
+      limit: 50,
     });
 
     res.json({ ok: true, items });
@@ -134,7 +179,6 @@ export async function searchRegions(req: Request, res: Response, next: NextFunct
     next(err);
   }
 }
-
 
 export async function listUnmatchedCities(req: Request, res: Response, next: NextFunction) {
   try {
@@ -167,18 +211,19 @@ export async function listUnmatchedCities(req: Request, res: Response, next: Nex
     for (const row of graduates as any[]) {
       const rawName = String(row.origin_municipality ?? "").trim();
       if (!rawName) continue;
+
       const key = normalizeLookupKey(rawName);
       if (!key || cityKeys.has(key)) continue;
 
       const regionId = row.origin_region_id != null ? Number(row.origin_region_id) : null;
       const periphery = regionId ? peripheryById.get(regionId) ?? null : null;
-      const existing = grouped.get(key);
+      const current = grouped.get(key);
 
-      if (existing) {
-        existing.count += 1;
-        if (!existing.periphery_id && periphery) {
-          existing.periphery_id = periphery.id;
-          existing.periphery_name = periphery.name;
+      if (current) {
+        current.count += 1;
+        if (!current.periphery_id && periphery) {
+          current.periphery_id = periphery.id;
+          current.periphery_name = periphery.name;
         }
         continue;
       }
@@ -212,10 +257,10 @@ export async function listUnmatchedCities(req: Request, res: Response, next: Nex
 export async function createRegion(req: Request, res: Response, next: NextFunction) {
   try {
     const type = String(req.body?.type ?? "").trim();
-    if (type !== "CITY") return res.status(400).json({ ok: false, error: { message: "Only CITY creation is supported" } });
+    if (type !== "CITY") return badRequest(res, "Only CITY creation is supported");
 
     const validated = await validateCityInput(req.body);
-    if ('error' in validated) return res.status(400).json({ ok: false, error: { message: validated.error } });
+    if ("error" in validated) return badRequest(res, validated.error);
 
     const item = await Region.create(validated.value as any);
 
@@ -238,17 +283,15 @@ export async function createRegion(req: Request, res: Response, next: NextFuncti
 
 export async function updateRegion(req: Request, res: Response, next: NextFunction) {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: { message: "Invalid id" } });
-
-    const item = await Region.findByPk(id);
-    if (!item) return res.status(404).json({ ok: false, error: { message: "Not found" } });
+    const { id, item } = await findRegionById(req.params.id);
+    if (id === null) return badRequest(res, "Invalid id");
+    if (!item) return notFound(res);
     if (String((item as any).type) !== "CITY") {
-      return res.status(400).json({ ok: false, error: { message: "Only CITY update is supported" } });
+      return badRequest(res, "Only CITY update is supported");
     }
 
     const validated = await validateCityInput({ ...req.body, type: "CITY" }, id);
-    if ('error' in validated) return res.status(400).json({ ok: false, error: { message: validated.error } });
+    if ("error" in validated) return badRequest(res, validated.error);
 
     await item.update(validated.value as any);
 
