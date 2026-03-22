@@ -118,6 +118,39 @@ function toNullableNumber(v: any): number | null {
   return Number.isFinite(n) ? n : NaN;
 }
 
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function notFound(res: Response) {
+  return res.status(404).json({ ok: false, error: { message: "Not found" } });
+}
+
+function requireNumberField(res: Response, value: number, field: string) {
+  if (!Number.isFinite(value)) return bad(res, `${field} is required (number)`);
+  return null;
+}
+
+function requireNonEmptyString(res: Response, value: string, field: string) {
+  if (!value) return bad(res, `${field} is required`);
+  return null;
+}
+
+function requireDateOnly(res: Response, value: string, field: string) {
+  if (!DATE_ONLY_RE.test(value)) return bad(res, `${field} must be YYYY-MM-DD`);
+  return null;
+}
+
+function parseStoredGender(value: unknown) {
+  const raw = String(value ?? "").trim();
+  return raw === "M" || raw === "F" ? raw : null;
+}
+
+function parseImportGender(value: unknown) {
+  const normalized = normHeader(String(value ?? "").trim()).replace(/\./g, "");
+  if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) return "M";
+  if (["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalized)) return "F";
+  return null;
+}
+
 function parseIds(idsRaw: unknown): number[] {
   if (typeof idsRaw !== "string") return [];
   return Array.from(
@@ -288,6 +321,7 @@ function ensureManagedOrigin(
   origin_region_id: number | null | undefined,
   origin_municipality: string | null | undefined
 ) {
+  void normalizedOrigin;
   if (!hasOriginValue(origin_region_id, origin_municipality)) return null;
   return null;
 }
@@ -448,12 +482,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const first_name = String(get("first_name")).trim();
       const father_name = String(get("father_name")).trim();
       const genderRaw = String(get("gender")).trim();
-      const normalizedGender = normHeader(genderRaw).replace(/\./g, "");
-      const gender = ["m", "male", "man", "άνδρας", "ανδρας"].includes(normalizedGender)
-        ? "M"
-        : ["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalizedGender)
-          ? "F"
-          : null;
+      const gender = parseImportGender(genderRaw);
       const entry_year = toInt(get("entry_year"));
       const graduation_date = toDateOnly(get("graduation_date"));
       const oath_date = toDateOnly(get("oath_date"));
@@ -578,7 +607,7 @@ export async function getGraduate(req: Request, res: Response, next: NextFunctio
     if (!Number.isFinite(id)) return bad(res, "Invalid id");
 
     const item = await Graduate.findByPk(id);
-    if (!item) return res.status(404).json({ ok: false, error: { message: "Not found" } });
+    if (!item) return notFound(res);
 
     res.json({ ok: true, item });
   } catch (err) {
@@ -605,20 +634,26 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     const oath_date = String(body.oath_date ?? "").trim(); // YYYY-MM-DD
     const birth_date = String(body.birth_date ?? "").trim(); // YYYY-MM-DD
 
-    if (!last_name) return bad(res, "last_name is required");
-    if (!first_name) return bad(res, "first_name is required");
-    if (!father_name) return bad(res, "father_name is required");
-    if (!student_number) return bad(res, "student_number is required");
-    if (gender !== "M" && gender !== "F") return bad(res, "gender must be 'M' or 'F'");
+    const requiredStringError =
+      requireNonEmptyString(res, last_name, "last_name") ??
+      requireNonEmptyString(res, first_name, "first_name") ??
+      requireNonEmptyString(res, father_name, "father_name") ??
+      requireNonEmptyString(res, student_number, "student_number");
+    if (requiredStringError) return requiredStringError;
 
-    if (!Number.isFinite(study_program_id)) return bad(res, "study_program_id is required (number)");
-    if (!Number.isFinite(entry_year)) return bad(res, "entry_year is required (number)");
-    if (!Number.isFinite(degree_grade)) return bad(res, "degree_grade is required (number)");
+    if (!parseStoredGender(gender)) return bad(res, "gender must be 'M' or 'F'");
 
-    const dateRe = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRe.test(graduation_date)) return bad(res, "graduation_date must be YYYY-MM-DD");
-    if (!dateRe.test(oath_date)) return bad(res, "oath_date must be YYYY-MM-DD");
-    if (!dateRe.test(birth_date)) return bad(res, "birth_date must be YYYY-MM-DD");
+    const requiredNumberError =
+      requireNumberField(res, study_program_id, "study_program_id") ??
+      requireNumberField(res, entry_year, "entry_year") ??
+      requireNumberField(res, degree_grade, "degree_grade");
+    if (requiredNumberError) return requiredNumberError;
+
+    const dateError =
+      requireDateOnly(res, graduation_date, "graduation_date") ??
+      requireDateOnly(res, oath_date, "oath_date") ??
+      requireDateOnly(res, birth_date, "birth_date");
+    if (dateError) return dateError;
 
     const program = await StudyProgram.findByPk(study_program_id);
     if (!program) return bad(res, "study_program_id not found");
@@ -686,7 +721,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     if (!Number.isFinite(id)) return bad(res, "Invalid id");
 
     const item = await Graduate.findByPk(id);
-    if (!item) return res.status(404).json({ ok: false, error: { message: "Not found" } });
+    if (!item) return notFound(res);
 
     const body = req.body ?? {};
 
@@ -761,7 +796,8 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       (item as any).origin_municipality = normalized.origin_municipality;
     }
 
-    if (body.study_program_id !== undefined) (item as any).study_program_id = nextStudyProgramId;    if (!String((item as any).ad_code ?? "").trim()) return bad(res, "ad_code cannot be empty");
+    if (body.study_program_id !== undefined) (item as any).study_program_id = nextStudyProgramId;
+    if (!String((item as any).ad_code ?? "").trim()) return bad(res, "ad_code cannot be empty");
     if (!String((item as any).last_name ?? "").trim()) return bad(res, "last_name cannot be empty");
     if (!String((item as any).first_name ?? "").trim()) return bad(res, "first_name cannot be empty");
     if (!String((item as any).father_name ?? "").trim()) return bad(res, "father_name cannot be empty");
@@ -770,10 +806,9 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     if (!Number.isFinite(Number((item as any).entry_year))) return bad(res, "entry_year must be a number");
     if (!Number.isFinite(Number((item as any).degree_grade))) return bad(res, "degree_grade must be a number");
 
-    const dateRe = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRe.test(String((item as any).graduation_date ?? ""))) return bad(res, "graduation_date must be YYYY-MM-DD");
-    if (!dateRe.test(String((item as any).oath_date ?? ""))) return bad(res, "oath_date must be YYYY-MM-DD");
-    if (!dateRe.test(String((item as any).birth_date ?? ""))) return bad(res, "birth_date must be YYYY-MM-DD");
+    if (!DATE_ONLY_RE.test(String((item as any).graduation_date ?? ""))) return bad(res, "graduation_date must be YYYY-MM-DD");
+    if (!DATE_ONLY_RE.test(String((item as any).oath_date ?? ""))) return bad(res, "oath_date must be YYYY-MM-DD");
+    if (!DATE_ONLY_RE.test(String((item as any).birth_date ?? ""))) return bad(res, "birth_date must be YYYY-MM-DD");
 
     await item.save();
 
@@ -797,7 +832,7 @@ export async function deleteGraduate(req: Request, res: Response, next: NextFunc
     if (!Number.isFinite(id)) return bad(res, "Invalid id");
 
     const item = await Graduate.findByPk(id);
-    if (!item) return res.status(404).json({ ok: false, error: { message: "Not found" } });
+    if (!item) return notFound(res);
 
     await item.destroy();
 
