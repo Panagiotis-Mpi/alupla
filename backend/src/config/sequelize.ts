@@ -1,34 +1,37 @@
 import { Sequelize } from "sequelize";
 import { env } from "./env";
 
-export const sequelize = env.db.url
-  ? new Sequelize(env.db.url, {
-      dialect: "postgres",
-      logging: false,
-      dialectOptions: env.db.ssl
-        ? {
-            ssl: {
-              require: true,
-              rejectUnauthorized: false
-            }
-          }
-        : undefined,
-      define: {
-        underscored: true,
-        timestamps: true,
-        createdAt: "created_at",
-        updatedAt: "updated_at"
+const databaseUrl = env.db.url ? new URL(env.db.url) : null;
+const useSsl = env.db.ssl || Boolean(databaseUrl?.searchParams.get("sslmode"));
+
+if (databaseUrl) {
+  databaseUrl.searchParams.delete("sslmode");
+  databaseUrl.searchParams.delete("channel_binding");
+}
+
+const commonOptions = {
+  dialect: "postgres" as const,
+  logging: false,
+  define: {
+    underscored: true,
+    timestamps: true,
+    createdAt: "created_at",
+    updatedAt: "updated_at"
+  },
+  dialectOptions: useSsl
+    ? {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false
+        }
       }
-    })
+    : undefined
+};
+
+export const sequelize = databaseUrl
+  ? new Sequelize(databaseUrl.toString(), commonOptions)
   : new Sequelize(env.db.name, env.db.user, env.db.pass, {
+      ...commonOptions,
       host: env.db.host,
-      port: env.db.port,
-      dialect: "postgres",
-      logging: false,
-      define: {
-        underscored: true,
-        timestamps: true,
-        createdAt: "created_at",
-        updatedAt: "updated_at"
-      }
+      port: env.db.port
     });

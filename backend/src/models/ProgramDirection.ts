@@ -12,8 +12,8 @@ export class ProgramDirection extends Model {
 
 ProgramDirection.init(
   {
-    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
-    study_program_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    study_program_id: { type: DataTypes.INTEGER, allowNull: false },
     code: { type: DataTypes.STRING(50), allowNull: false },
     name_el: { type: DataTypes.STRING(255), allowNull: false },
     name_en: { type: DataTypes.STRING(255), allowNull: true },

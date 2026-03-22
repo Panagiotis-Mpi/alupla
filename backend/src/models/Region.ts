@@ -14,10 +14,10 @@ export class Region extends Model {
 
 Region.init(
   {
-    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     name: { type: DataTypes.STRING(255), allowNull: false },
     type: { type: DataTypes.ENUM("PERIPHERY", "NOMOS", "DIMOS", "CITY"), allowNull: false },
-    parent_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+    parent_id: { type: DataTypes.INTEGER, allowNull: true },
     latitude: { type: DataTypes.DECIMAL(10, 7), allowNull: true },
     longitude: { type: DataTypes.DECIMAL(10, 7), allowNull: true }
   },

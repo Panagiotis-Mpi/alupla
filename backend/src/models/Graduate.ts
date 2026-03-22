@@ -26,7 +26,7 @@ export class Graduate extends Model {
 
 Graduate.init(
   {
-    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     ad_code: { type: DataTypes.STRING(20), allowNull: false },
     last_name: { type: DataTypes.STRING(100), allowNull: false },
     first_name: { type: DataTypes.STRING(100), allowNull: false },
@@ -39,10 +39,10 @@ Graduate.init(
     // DB column: birth_date (DATE)
     birth_date: { type: DataTypes.DATEONLY, allowNull: false },
     gender: { type: DataTypes.ENUM("M", "F"), allowNull: false },
-    study_program_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
-    program_direction_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+    study_program_id: { type: DataTypes.INTEGER, allowNull: false },
+    program_direction_id: { type: DataTypes.INTEGER, allowNull: true },
 
-    origin_region_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+    origin_region_id: { type: DataTypes.INTEGER, allowNull: true },
 
     origin_municipality: { type: DataTypes.STRING(150), allowNull: true }
   },

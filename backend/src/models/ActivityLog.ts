@@ -12,11 +12,11 @@ export class ActivityLog extends Model {
 
 ActivityLog.init(
   {
-    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
-    user_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    user_id: { type: DataTypes.INTEGER, allowNull: true },
     action: { type: DataTypes.STRING(100), allowNull: false },
     entity_type: { type: DataTypes.STRING(50), allowNull: true },
-    entity_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+    entity_id: { type: DataTypes.INTEGER, allowNull: true },
     details: { type: DataTypes.JSON, allowNull: true }
   },
   {
