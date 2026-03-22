@@ -80,32 +80,36 @@ const IMPORT_HEADER_ALIASES = {
   origin_municipality: ["origin_municipality","δημος","δήμος","πόλη","municipality","city","δήμος προέλευσης","municipality of origin"],
 } as const;
 
+const GRADUATE_SORT_FIELDS = new Set([
+  "id",
+  "last_name",
+  "first_name",
+  "entry_year",
+  "graduation_date",
+  "oath_date",
+  "degree_grade",
+  "birth_date",
+  "study_program_id",
+  "program_direction_id",
+  "origin_region_id",
+  "gender",
+  "student_number",
+  "ad_code"
+]);
+
+function toSortDirection(value: unknown): "ASC" | "DESC" {
+  return String(value ?? "asc").trim().toLowerCase() === "desc" ? "DESC" : "ASC";
+}
+
 function parseSort(sortRaw: unknown): Array<[string, "ASC" | "DESC"]> {
-  const s = typeof sortRaw === "string" ? sortRaw.trim() : "";
-  if (!s) return [["id", "ASC"]];
+  const raw = typeof sortRaw === "string" ? sortRaw.trim() : "";
+  if (!raw) return [["id", "ASC"]];
 
-  const [field, dirRaw] = s.split(":");
-  const dir = (dirRaw ?? "asc").toLowerCase() === "desc" ? "DESC" : "ASC";
+  const parts = raw.split(":");
+  const field = String(parts[0] ?? "").trim();
+  if (!GRADUATE_SORT_FIELDS.has(field)) return [["id", "ASC"]];
 
-  const allowed = new Set([
-    "id",
-    "last_name",
-    "first_name",
-    "entry_year",
-    "graduation_date",
-    "oath_date",
-    "degree_grade",
-    "birth_date",
-    "study_program_id",
-    "program_direction_id",
-    "origin_region_id",
-    "gender",
-    "student_number",
-    "ad_code"
-  ]);
-
-  if (!allowed.has(field)) return [["id", "ASC"]];
-  return [[field, dir]];
+  return [[field, toSortDirection(parts[1])]];
 }
 
 function bad(res: Response, message: string) {

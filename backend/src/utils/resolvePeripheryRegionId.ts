@@ -20,14 +20,27 @@ export type NormalizedOriginResult = {
 
 const MAX_PARENT_STEPS = 25;
 
+function toName(value: unknown) {
+  return String(value ?? "").trim();
+}
+
 function normalizeName(value: unknown) {
-  return String(value ?? "")
+  return toName(value)
     .toLowerCase()
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .replace(/\./g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function pushMatch(map: Map<string, RegionLite[]>, key: string, region: RegionLite) {
+  const items = map.get(key);
+  if (items) {
+    items.push(region);
+    return;
+  }
+  map.set(key, [region]);
 }
 
 let regionsCache: Promise<RegionLite[]> | null = null;
@@ -103,17 +116,11 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
     byId.set(region.id, region);
     const key = normalizeName(region.name);
     if (!key) continue;
-    const all = regionByName.get(key) ?? [];
-    all.push(region);
-    regionByName.set(key, all);
-    if (region.type === "CITY") {
-      const cities = cityByName.get(key) ?? [];
-      cities.push(region);
-      cityByName.set(key, cities);
-    }
+    pushMatch(regionByName, key, region);
+    if (region.type === "CITY") pushMatch(cityByName, key, region);
   }
 
-  const rawMunicipality = String(input.origin_municipality ?? "").trim();
+  const rawMunicipality = toName(input.origin_municipality);
   const normalizedMunicipality = normalizeName(rawMunicipality);
   const currentRegion = input.origin_region_id != null ? byId.get(Number(input.origin_region_id)) ?? null : null;
   const currentPeriphery = currentRegion ? getPeripheryFromRegion(currentRegion.id, byId) : null;
