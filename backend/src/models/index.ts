@@ -8,42 +8,39 @@ import { Region } from "./Region";
 import { ensurePeripheriesSeeded } from "../seed/peripheries";
 import { ensureRegionCitiesSeeded } from "../seed/regionCities";
 
-// Study Programs / Directions
-StudyProgram.hasMany(ProgramDirection, { foreignKey: "study_program_id" });
-ProgramDirection.belongsTo(StudyProgram, { foreignKey: "study_program_id" });
+function setupAssociations() {
+  StudyProgram.hasMany(ProgramDirection, { foreignKey: "study_program_id" });
+  ProgramDirection.belongsTo(StudyProgram, { foreignKey: "study_program_id" });
 
-// Graduates -> programs/directions
-StudyProgram.hasMany(Graduate, { foreignKey: "study_program_id" });
-Graduate.belongsTo(StudyProgram, { foreignKey: "study_program_id" });
+  StudyProgram.hasMany(Graduate, { foreignKey: "study_program_id" });
+  Graduate.belongsTo(StudyProgram, { foreignKey: "study_program_id" });
 
-ProgramDirection.hasMany(Graduate, { foreignKey: "program_direction_id" });
-Graduate.belongsTo(ProgramDirection, { foreignKey: "program_direction_id" });
+  ProgramDirection.hasMany(Graduate, { foreignKey: "program_direction_id" });
+  Graduate.belongsTo(ProgramDirection, { foreignKey: "program_direction_id" });
 
-// Regions hierarchy
-Region.hasMany(Region, { as: "children", foreignKey: "parent_id" });
-Region.belongsTo(Region, { as: "parent", foreignKey: "parent_id" });
+  Region.hasMany(Region, { as: "children", foreignKey: "parent_id" });
+  Region.belongsTo(Region, { as: "parent", foreignKey: "parent_id" });
 
-// Graduates -> regions
-Region.hasMany(Graduate, { foreignKey: "origin_region_id" });
-Graduate.belongsTo(Region, { foreignKey: "origin_region_id" });
+  Region.hasMany(Graduate, { foreignKey: "origin_region_id" });
+  Graduate.belongsTo(Region, { foreignKey: "origin_region_id" });
 
-// Users -> logs
-User.hasMany(ActivityLog, { foreignKey: "user_id" });
-ActivityLog.belongsTo(User, { foreignKey: "user_id", as: "user" });
+  User.hasMany(ActivityLog, { foreignKey: "user_id" });
+  ActivityLog.belongsTo(User, { foreignKey: "user_id", as: "user" });
+}
 
-export async function initDb() {
-  await sequelize.authenticate();
+setupAssociations();
 
-  // Create tables if missing (fresh DB in production).
-  // Safe for first deploy and keeps setup simple.
-  await sequelize.sync();
-
-  // Public map expects PERIPHERY regions to exist. Seed once if missing.
+async function seedRegions() {
   try {
     await ensurePeripheriesSeeded();
     await ensureRegionCitiesSeeded();
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn("[db] periphery seed skipped:", (e as any)?.message ?? e);
+  } catch (error) {
+    console.warn("[db] periphery seed skipped:", (error as any)?.message ?? error);
   }
+}
+
+export async function initDb() {
+  await sequelize.authenticate();
+  await sequelize.sync();
+  await seedRegions();
 }
