@@ -1,12 +1,54 @@
 import type { NextFunction, Request, Response } from "express";
 import { Op } from "sequelize";
-import { StudyProgram } from "../models/StudyProgram";
-import { ProgramDirection } from "../models/ProgramDirection";
 import { Graduate } from "../models/Graduate";
+import { ProgramDirection } from "../models/ProgramDirection";
+import { StudyProgram } from "../models/StudyProgram";
 import { logAction } from "../services/log.service";
 
-function normalizeString(value: unknown) {
+type StudyProgramPatch = {
+  code?: string;
+  name_el?: string;
+  name_en?: string | null;
+  is_active?: boolean;
+};
+
+function readText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function invalid(res: Response, message: string) {
+  return res.status(400).json({ ok: false, error: { message } });
+}
+
+function missing(res: Response, message: string) {
+  return res.status(404).json({ ok: false, error: { message } });
+}
+
+function parseId(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+async function findStudyProgramOrFail(id: number, res: Response) {
+  const item = await StudyProgram.findByPk(id);
+  if (!item) {
+    missing(res, "Study program not found");
+    return null;
+  }
+  return item;
+}
+
+async function findDuplicateStudyProgram(code: string, nameEl: string, excludedId?: number) {
+  return StudyProgram.findOne({
+    where: {
+      ...(excludedId !== undefined ? { id: { [Op.ne]: excludedId } } : {}),
+      [Op.or]: [{ code }, { name_el: nameEl }]
+    }
+  });
+}
+
+function hasChanges(patch: StudyProgramPatch) {
+  return Object.keys(patch).length > 0;
 }
 
 export async function listStudyPrograms(_req: Request, res: Response, next: NextFunction) {
@@ -16,98 +58,96 @@ export async function listStudyPrograms(_req: Request, res: Response, next: Next
     });
 
     res.json({ ok: true, items });
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 }
 
 export async function createStudyProgram(req: Request, res: Response, next: NextFunction) {
   try {
-    const code = normalizeString(req.body?.code);
-    const name_el = normalizeString(req.body?.name_el);
-    const name_en = normalizeString(req.body?.name_en) || null;
-    const is_active = req.body?.is_active === undefined ? true : Boolean(req.body.is_active);
+    const code = readText(req.body?.code);
+    const nameEl = readText(req.body?.name_el);
+    const nameEn = readText(req.body?.name_en) || null;
+    const isActive = req.body?.is_active === undefined ? true : Boolean(req.body.is_active);
 
-    if (!code || !name_el) {
-      return res.status(400).json({ ok: false, error: { message: "code and name_el are required" } });
+    if (!code || !nameEl) {
+      return invalid(res, "code and name_el are required");
     }
 
-    const existing = await StudyProgram.findOne({
-      where: {
-        [Op.or]: [{ code }, { name_el }]
-      }
-    });
-
+    const existing = await findDuplicateStudyProgram(code, nameEl);
     if (existing) {
-      return res.status(400).json({ ok: false, error: { message: "Study program already exists" } });
+      return invalid(res, "Study program already exists");
     }
 
-    const item = await StudyProgram.create({ code, name_el, name_en, is_active });
+    const item = await StudyProgram.create({
+      code,
+      name_el: nameEl,
+      name_en: nameEn,
+      is_active: isActive
+    });
 
     await logAction({
       user_id: req.user?.id ?? null,
       action: "create_study_program",
       entity_type: "study_program",
       entity_id: item.id,
-      details: { code, name_el }
+      details: { code, name_el: nameEl }
     });
 
     res.status(201).json({ ok: true, item });
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 }
 
 export async function updateStudyProgram(req: Request, res: Response, next: NextFunction) {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isFinite(id)) {
-      return res.status(400).json({ ok: false, error: { message: "Invalid id" } });
+    const id = parseId(req.params.id);
+    if (id === undefined) {
+      return invalid(res, "Invalid id");
     }
 
-    const item = await StudyProgram.findByPk(id);
+    const item = await findStudyProgramOrFail(id, res);
     if (!item) {
-      return res.status(404).json({ ok: false, error: { message: "Study program not found" } });
+      return;
     }
 
-    const patch: Record<string, unknown> = {};
+    const patch: StudyProgramPatch = {};
 
     if (req.body?.code !== undefined) {
-      const code = normalizeString(req.body.code);
-      if (!code) return res.status(400).json({ ok: false, error: { message: "code is required" } });
+      const code = readText(req.body.code);
+      if (!code) {
+        return invalid(res, "code is required");
+      }
       patch.code = code;
     }
 
     if (req.body?.name_el !== undefined) {
-      const name_el = normalizeString(req.body.name_el);
-      if (!name_el) return res.status(400).json({ ok: false, error: { message: "name_el is required" } });
-      patch.name_el = name_el;
+      const nameEl = readText(req.body.name_el);
+      if (!nameEl) {
+        return invalid(res, "name_el is required");
+      }
+      patch.name_el = nameEl;
     }
 
     if (req.body?.name_en !== undefined) {
-      patch.name_en = normalizeString(req.body.name_en) || null;
+      patch.name_en = readText(req.body.name_en) || null;
     }
 
     if (req.body?.is_active !== undefined) {
       patch.is_active = Boolean(req.body.is_active);
     }
 
-    if (!Object.keys(patch).length) {
-      return res.status(400).json({ ok: false, error: { message: "No changes provided" } });
+    if (!hasChanges(patch)) {
+      return invalid(res, "No changes provided");
     }
 
-    const nextCode = (patch.code as string | undefined) ?? item.code;
-    const nextNameEl = (patch.name_el as string | undefined) ?? item.name_el;
+    const nextCode = patch.code ?? item.code;
+    const nextNameEl = patch.name_el ?? item.name_el;
 
-    const existing = await StudyProgram.findOne({
-      where: {
-        id: { [Op.ne]: id },
-        [Op.or]: [{ code: nextCode }, { name_el: nextNameEl }]
-      }
-    });
-
+    const existing = await findDuplicateStudyProgram(nextCode, nextNameEl, id);
     if (existing) {
-      return res.status(400).json({ ok: false, error: { message: "Study program already exists" } });
+      return invalid(res, "Study program already exists");
     }
 
     await item.update(patch);
@@ -121,34 +161,38 @@ export async function updateStudyProgram(req: Request, res: Response, next: Next
     });
 
     res.json({ ok: true, item });
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 }
 
 export async function deleteStudyProgram(req: Request, res: Response, next: NextFunction) {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isFinite(id)) {
-      return res.status(400).json({ ok: false, error: { message: "Invalid id" } });
+    const id = parseId(req.params.id);
+    if (id === undefined) {
+      return invalid(res, "Invalid id");
     }
 
-    const item = await StudyProgram.findByPk(id);
+    const item = await findStudyProgramOrFail(id, res);
     if (!item) {
-      return res.status(404).json({ ok: false, error: { message: "Study program not found" } });
+      return;
     }
 
     const graduatesCount = await Graduate.count({ where: { study_program_id: id } });
     if (graduatesCount > 0) {
-      return res.status(400).json({ ok: false, error: { message: "Το πρόγραμμα χρησιμοποιείται ήδη σε αποφοίτους" } });
+      return invalid(res, "Το πρόγραμμα χρησιμοποιείται ήδη σε αποφοίτους");
     }
 
     const directionsCount = await ProgramDirection.count({ where: { study_program_id: id } });
     if (directionsCount > 0) {
-      return res.status(400).json({ ok: false, error: { message: "Διαγράψτε πρώτα τις κατευθύνσεις του προγράμματος" } });
+      return invalid(res, "Διαγράψτε πρώτα τις κατευθύνσεις του προγράμματος");
     }
 
-    const details = { code: item.code, name_el: item.name_el };
+    const details = {
+      code: item.code,
+      name_el: item.name_el
+    };
+
     await item.destroy();
 
     await logAction({
@@ -160,7 +204,7 @@ export async function deleteStudyProgram(req: Request, res: Response, next: Next
     });
 
     res.json({ ok: true });
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 }
