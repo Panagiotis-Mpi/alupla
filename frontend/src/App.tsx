@@ -42,21 +42,29 @@ function TopNav() {
   };
 
   const onBrandClick = () => {
-    // If not logged in, send the user to the public landing page.
     if (!user) {
       nav("/");
       return;
     }
-    // If logged in, send the user to the first page based on role.
-    if (role === "super_admin") {
-      nav("/graduates");
-      return;
-    }
-    // secretariat
     nav("/graduates");
   };
 
   const lang = i18n.language?.startsWith("en") ? "en" : "gr";
+
+  const authLinks = [
+    { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) },
+    { to: "/map", label: t("nav.map") },
+  ];
+
+  const academicDataLabel = (() => {
+    const value = t("nav.academicData", {
+      defaultValue: role === "super_admin" ? "Ακαδημαϊκά προγράμματα" : undefined,
+    });
+    if (role !== "super_admin") return value;
+    return value
+      .replace("Διαχείριση Ακαδημαϊκών Δεδομένων", "Ακαδημαϊκά προγράμματα")
+      .replace("Academic Data", "Academic Programs");
+  })();
 
   React.useEffect(() => {
     const onResize = () => {
@@ -73,19 +81,12 @@ function TopNav() {
     setMenuOpen(false);
   }, [loc.pathname]);
 
-  // Nav order must match mockups per role.
-  // Guest & auth pages:   Στατιστικά, Χάρτης
-  // Secretariat user:     Απόφοιτοι, Στατιστικά, Χάρτης
-  // Super admin:          Χρήστες, Απόφοιτοι, Στατιστικά, Χάρτης, Logs
   const navLinks: Array<{ to: string; label: string }> = React.useMemo(() => {
     const statsLabel = t("nav.statistics", { defaultValue: "Στατιστικά" });
     const mapLabel = t("nav.map");
     const gradsLabel = t("nav.graduates");
     const usersLabel = t("nav.users");
     const logsLabel = t("nav.logs");
-    const academicDataLabel = role === "super_admin"
-      ? t("nav.academicData", { defaultValue: "Ακαδημαϊκά προγράμματα" }).replace("Διαχείριση Ακαδημαϊκών Δεδομένων", "Ακαδημαϊκά προγράμματα").replace("Academic Data", "Academic Programs")
-      : t("nav.academicData");
 
     if (!user) return [{ to: "/statistics", label: statsLabel }, { to: "/map", label: mapLabel }];
 
@@ -101,13 +102,12 @@ function TopNav() {
       ];
     }
 
-    // secretariat
     return [
       { to: "/graduates", label: gradsLabel },
       { to: "/statistics", label: statsLabel },
       { to: "/map", label: mapLabel },
     ];
-  }, [t, user, role]);
+  }, [academicDataLabel, role, t, user]);
 
   return (
     <div className="nav">
@@ -130,15 +130,13 @@ function TopNav() {
       </button>
 
       <div className="nav-links desktop-only">
-        {/* In mockups, auth pages also show: Στατιστικά, Χάρτης */}
         {isAuthRoute ? (
           <>
-            <Link className="btn" to="/statistics">
-              {t("nav.statistics", { defaultValue: "Στατιστικά" })}
-            </Link>
-            <Link className="btn" to="/map">
-              {t("nav.map")}
-            </Link>
+            {authLinks.map((link) => (
+              <Link key={link.to} className="btn" to={link.to}>
+                {link.label}
+              </Link>
+            ))}
           </>
         ) : (
           <>
@@ -174,7 +172,6 @@ function TopNav() {
         </button>
         </div>
 
-        {/* Right-side actions */}
         {!isAuthRoute && (
           <div className="nav-actions">
             {user ? (
@@ -251,7 +248,6 @@ export default function App() {
           <Route path="/forgot" element={<ForgotPassword />} />
           <Route path="/reset" element={<ResetPassword />} />
 
-          {/* Public anonymous pages (no login required) */}
           <Route path="/map" element={<Map />} />
           <Route path="/statistics" element={<Statistics />} />
 
