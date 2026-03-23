@@ -61,8 +61,7 @@ export default function GraduateForm(props: { mode: Mode }) {
       setPrograms(sp.items);
 
       if (!isEdit) {
-        // set default program id if exists
-        if (sp.items.length) setForm(f => ({ ...f, study_program_id: sp.items[0].id }));
+        if (sp.items.length) setForm((f) => ({ ...f, study_program_id: sp.items[0].id }));
         return;
       }
 
@@ -75,37 +74,35 @@ export default function GraduateForm(props: { mode: Mode }) {
     })();
   }, [gradId, isEdit]);
 
-  // when study_program changes, reload directions
   useEffect(() => {
     const spid = Number(form.study_program_id);
     if (!Number.isFinite(spid)) return;
     (async () => {
       const dirs = await listProgramDirections(spid);
       setDirections(dirs.items);
-      // if current direction doesn't belong, reset
       if (form.program_direction_id) {
         const ok = dirs.items.some(d => d.id === form.program_direction_id);
-        if (!ok) setForm(f => ({ ...f, program_direction_id: null }));
+        if (!ok) setForm((f) => ({ ...f, program_direction_id: null }));
       }
     })();
   }, [form.study_program_id]);
 
-  // load the 13 peripheries once (top-level regions)
   useEffect(() => {
     (async () => {
       try {
         const r = await listRegions({ parent_id: null, type: "PERIPHERY" });
         setPeripheries(r.items || []);
       } catch {
-        // keep empty; UI will still allow manual typing (but won't set id)
         setPeripheries([]);
       }
     })();
   }, []);
 
-  // periphery typeahead (local filter)
   useEffect(() => {
-    if (!regionOpen) { setRegionHits([]); return; }
+    if (!regionOpen) {
+      setRegionHits([]);
+      return;
+    }
     const q = regionQ.trim().toLowerCase();
     const items = peripheries || [];
     if (!q) {
@@ -116,7 +113,6 @@ export default function GraduateForm(props: { mode: Mode }) {
   }, [regionQ, peripheries, regionOpen]);
 
   const validateRequired = (): string | null => {
-    // On create: user requested all graduates columns except id/ad_code/created_at/updated_at to be required.
     if (isEdit) return null;
     const required: Array<[keyof Graduate | string, any, string]> = [
       ["ad_code", form.ad_code, t("labels.adCode")],
@@ -181,25 +177,25 @@ export default function GraduateForm(props: { mode: Mode }) {
         <div className="grid cols2">
           <div>
             <label className="label">{t("labels.adCode")}</label>
-            <input className="input" value={form.ad_code ?? ""} onChange={(e) => setForm(f => ({...f, ad_code: e.target.value}))} required={!isEdit} />
+            <input className="input" value={form.ad_code ?? ""} onChange={(e) => setForm((f) => ({ ...f, ad_code: e.target.value }))} required={!isEdit} />
           </div>
 
           <div>
             <label className="label">{t("labels.lastName")}</label>
-            <input className="input" value={form.last_name ?? ""} onChange={(e) => setForm(f => ({...f, last_name: e.target.value}))} />
+            <input className="input" value={form.last_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} />
           </div>
           <div>
             <label className="label">{t("labels.firstName")}</label>
-            <input className="input" value={form.first_name ?? ""} onChange={(e) => setForm(f => ({...f, first_name: e.target.value}))} />
+            <input className="input" value={form.first_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} />
           </div>
 
           <div>
             <label className="label">{t("labels.fatherName")}</label>
-            <input className="input" value={form.father_name ?? ""} onChange={(e) => setForm(f => ({...f, father_name: e.target.value}))} />
+            <input className="input" value={form.father_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, father_name: e.target.value }))} />
           </div>
           <div>
             <label className="label">{t("labels.gender")}</label>
-            <select className="input" value={form.gender ?? "M"} onChange={(e) => setForm(f => ({...f, gender: e.target.value as any}))}>
+            <select className="input" value={form.gender ?? "M"} onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value as any }))}>
               <option value="M">M</option>
               <option value="F">F</option>
             </select>
@@ -207,12 +203,12 @@ export default function GraduateForm(props: { mode: Mode }) {
 
           <div>
             <label className="label">{t("labels.studentNumber")}</label>
-            <input className="input" value={form.student_number ?? ""} onChange={(e) => setForm(f => ({...f, student_number: e.target.value}))} />
+            <input className="input" value={form.student_number ?? ""} onChange={(e) => setForm((f) => ({ ...f, student_number: e.target.value }))} />
           </div>
 
           <div>
             <label className="label">{t("labels.entryYearReq")}</label>
-            <input className="input" value={form.entry_year ?? ""} onChange={(e) => setForm(f => ({...f, entry_year: e.target.value ? Number(e.target.value) : ("" as any)}))} />
+            <input className="input" value={form.entry_year ?? ""} onChange={(e) => setForm((f) => ({ ...f, entry_year: e.target.value ? Number(e.target.value) : ("" as any) }))} />
           </div>
 
           <div>
