@@ -53,7 +53,7 @@ function buildParams(filters: MapFiltersState) {
 }
 
 function countByPeriphery(items: GraduatesMapItem[]) {
-  const counts = new Map<string, number>();
+  const counts = new globalThis.Map<string, number>();
   for (const item of items) {
     counts.set(normalizeKey(String(item.periphery_name ?? "")), Number(item.count ?? 0) || 0);
   }
@@ -89,7 +89,7 @@ function MapViewportWatcher(props: {
 }
 
 function visibleMapCities(cityPoints: MapCityPoint[], mapBounds: L.LatLngBounds | null, mapZoom: number) {
-  const grouped = new Map<string, MapCityPoint[]>();
+  const grouped = new globalThis.Map<string, MapCityPoint[]>();
 
   for (const city of cityPoints) {
     const lat = Number(city.latitude);
