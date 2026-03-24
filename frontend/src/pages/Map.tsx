@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { GeoJSON, MapContainer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer } from "react-leaflet";
 import { useTranslation } from "react-i18next";
 import L from "leaflet";
 
@@ -18,7 +18,10 @@ import {
 } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
 import { buildMapFilterRows, exportElementAsPng, exportMapCsv, exportMapExcel } from "./map/mapExport";
-import { DetailStatsCard, EMPTY_MAP_FILTERS, MapFiltersForm, cityLabelIcon, mapCityKey, mapCityLabel, mapCityLatitude, mapCityLongitude, normalizeKey, tryParseGeoJson, type MapFiltersState } from "./map/shared";
+import { DetailStatsCard, EMPTY_MAP_FILTERS, MapFiltersForm, MapViewportWatcher, tryParseGeoJson, type MapFiltersState } from "./map/shared";
+import { normalizeKey, regionMatches } from "./map/regionNames";
+import { MapRegionLayer } from "./map/MapRegionLayer";
+import { MapCityMarkers } from "./map/MapCityMarkers";
 
 const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
 
@@ -61,74 +64,21 @@ function countByPeriphery(items: GraduatesMapItem[]) {
 }
 
 
-function MapViewportWatcher(props: {
-  onZoomChange: (zoom: number) => void;
-  onBoundsChange: (bounds: L.LatLngBounds) => void;
-}) {
-  const map = useMapEvents({
-    zoomend() {
-      props.onZoomChange(map.getZoom());
-      props.onBoundsChange(map.getBounds());
-    },
-    moveend() {
-      props.onZoomChange(map.getZoom());
-      props.onBoundsChange(map.getBounds());
-    },
-    resize() {
-      props.onZoomChange(map.getZoom());
-      props.onBoundsChange(map.getBounds());
-    },
-  });
+function visibleMapCities(cityPoints: MapCityPoint[], mapBounds: L.LatLngBounds | null) {
+  const filtered = mapBounds
+    ? cityPoints.filter((city) => {
+        const lat = Number(city.latitude);
+        const lng = Number(city.longitude);
+        return Number.isFinite(lat) && Number.isFinite(lng) && mapBounds.contains(L.latLng(lat, lng));
+      })
+    : cityPoints.filter((city) => Number.isFinite(Number(city.latitude)) && Number.isFinite(Number(city.longitude)));
 
-  useEffect(() => {
-    props.onZoomChange(map.getZoom());
-    props.onBoundsChange(map.getBounds());
-  }, [map, props.onBoundsChange, props.onZoomChange]);
-
-  return null;
-}
-
-function visibleMapCities(cityPoints: MapCityPoint[], mapBounds: L.LatLngBounds | null, mapZoom: number) {
-  const grouped = new globalThis.Map<string, MapCityPoint[]>();
-
-  for (const city of cityPoints) {
-    const lat = Number(city.latitude);
-    const lng = Number(city.longitude);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      continue;
+  return [...filtered].sort((a, b) => {
+    if ((b.count || 0) !== (a.count || 0)) {
+      return (b.count || 0) - (a.count || 0);
     }
-    const key = normalizeKey(city.periphery_name);
-    const current = grouped.get(key) || [];
-    current.push(city);
-    grouped.set(key, current);
-  }
-
-  const expanded = mapZoom >= 7;
-  const visible: MapCityPoint[] = [];
-
-  grouped.forEach((list) => {
-    const sorted = [...list].sort((a, b) => {
-      if (b.count !== a.count) {
-        return b.count - a.count;
-      }
-      return a.city_name.localeCompare(b.city_name, "el");
-    });
-
-    if (!expanded) {
-      if (sorted[0]) {
-        visible.push(sorted[0]);
-      }
-      return;
-    }
-
-    const inBounds = mapBounds
-      ? sorted.filter((city) => mapBounds.contains(L.latLng(Number(city.latitude), Number(city.longitude))))
-      : sorted;
-
-    visible.push(...(inBounds.length ? inBounds : sorted).slice(0, 3));
+    return a.city_name.localeCompare(b.city_name, "el");
   });
-
-  return visible;
 }
 
 export default function Map() {
@@ -144,7 +94,7 @@ export default function Map() {
   const [studyPrograms, setStudyPrograms] = useState<StudyProgram[]>([]);
   const [programDirections, setProgramDirections] = useState<ProgramDirection[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
-  const [mapZoom, setMapZoom] = useState(6.5);
+  const [, setMapZoom] = useState(6.5);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<GraduatesMapItem[]>([]);
@@ -170,7 +120,7 @@ export default function Map() {
   const total = useMemo(() => items.reduce((sum, item) => sum + (Number(item.count) || 0), 0), [items]);
   const buckets = useMemo(() => legendBuckets(maxCount), [maxCount]);
   const geoRenderKey = useMemo(() => `${i18n.language}:${items.length}:${maxCount}`, [i18n.language, items.length, maxCount]);
-  const visibleCities = useMemo(() => visibleMapCities(cityPoints, mapBounds, mapZoom), [cityPoints, mapBounds, mapZoom]);
+  const visibleCities = useMemo(() => visibleMapCities(cityPoints, mapBounds), [cityPoints, mapBounds]);
   const availableDirections = useMemo(() => {
     if (!filters.study_program_id) {
       return programDirections;
@@ -178,7 +128,6 @@ export default function Map() {
     return programDirections.filter((item) => Number(item.study_program_id) === Number(filters.study_program_id));
   }, [filters.study_program_id, programDirections]);
   const countsRef = useRef<Map<string, number>>(countsByGreekName);
-  const itemsRef = useRef<GraduatesMapItem[]>(items);
 
   useEffect(() => {
     if (!geojson || !mapRef.current) {
@@ -199,9 +148,6 @@ export default function Map() {
     countsRef.current = countsByGreekName;
   }, [countsByGreekName]);
 
-  useEffect(() => {
-    itemsRef.current = items;
-  }, [items]);
 
   useEffect(() => {
     let active = true;
@@ -329,7 +275,13 @@ export default function Map() {
   }
 
   function currentCountForFeature(feature: any): number {
-    return countsRef.current.get(normalizeKey(featureGreekName(feature))) ?? 0;
+    const featureName = featureGreekName(feature);
+    for (const [key, value] of countsRef.current.entries()) {
+      if (regionMatches(key, featureName)) {
+        return value;
+      }
+    }
+    return countsRef.current.get(normalizeKey(featureName)) ?? 0;
   }
 
   function renderTooltipHtml(feature: any): string {
@@ -554,53 +506,21 @@ export default function Map() {
               <MapViewportWatcher onZoomChange={setMapZoom} onBoundsChange={setMapBounds} />
 
               {geojson ? (
-                <GeoJSON
-                  key={geoRenderKey}
-                  data={geojson as any}
-                  style={(feature: any) => {
-                    const count = currentCountForFeature(feature);
-                    return {
-                      color: "#334155",
-                      weight: 1,
-                      fillColor: fillColorForCount(count),
-                      fillOpacity: fillOpacityForCount(count),
-                    } as any;
-                  }}
-                  onEachFeature={(feature: any, layer: any) => {
-                    layer.bindTooltip(renderTooltipHtml(feature), { sticky: true, className: "alupla-region-tooltip" });
-                    layer.on({
-                      mouseover: () => {
-                        layer.setStyle({ weight: 2 });
-                        layer.bringToFront();
-                        layer.setTooltipContent(renderTooltipHtml(feature));
-                      },
-                      mouseout: () => {
-                        layer.setStyle({ weight: 1 });
-                      },
-                      click: () => {
-                        const key = normalizeKey(featureGreekName(feature));
-                        const match = itemsRef.current.find((item) => normalizeKey(String(item.periphery_name || "")) === key) || null;
-                        setSelected(match);
-                        layer.setTooltipContent(renderTooltipHtml(feature));
-                      },
-                    });
-                  }}
+                <MapRegionLayer
+                  geojson={geojson}
+                  geoRenderKey={geoRenderKey}
+                  items={items}
+                  selectedPeripheryId={selected?.periphery_id ?? null}
+                  featureGreekName={featureGreekName}
+                  renderTooltipHtml={renderTooltipHtml}
+                  currentCountForFeature={currentCountForFeature}
+                  fillColorForCount={fillColorForCount}
+                  fillOpacityForCount={fillOpacityForCount}
+                  onSelect={setSelected}
                 />
               ) : null}
 
-              {visibleCities.map((city) => {
-                const lat = mapCityLatitude(city);
-                const lng = mapCityLongitude(city);
-                if (lat === null || lng === null) return null;
-                return (
-                  <Marker
-                    key={mapCityKey(city)}
-                    position={[lat, lng]}
-                    icon={cityLabelIcon(mapCityLabel(city))}
-                    interactive={false}
-                  />
-                );
-              })}
+              <MapCityMarkers cities={visibleCities} />
             </MapContainer>
           </div>
 

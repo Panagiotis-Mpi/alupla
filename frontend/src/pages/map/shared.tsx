@@ -55,6 +55,33 @@ export const EMPTY_MAP_FILTERS: MapFiltersState = {
   age_group: "",
 };
 
+
+export function MapViewportWatcher(props: {
+  onZoomChange: (zoom: number) => void;
+  onBoundsChange: (bounds: L.LatLngBounds) => void;
+}) {
+  const map = useMapEvents({
+    zoomend() {
+      props.onZoomChange(map.getZoom());
+      props.onBoundsChange(map.getBounds());
+    },
+    moveend() {
+      props.onZoomChange(map.getZoom());
+      props.onBoundsChange(map.getBounds());
+    },
+    resize() {
+      props.onZoomChange(map.getZoom());
+      props.onBoundsChange(map.getBounds());
+    },
+  });
+
+  useEffect(() => {
+    props.onZoomChange(map.getZoom());
+    props.onBoundsChange(map.getBounds());
+  }, [map, props.onBoundsChange, props.onZoomChange]);
+
+  return null;
+}
 export function cityLabelIcon(label: string) {
   return L.divIcon({
     className: "alupla-city-label-icon",
@@ -115,15 +142,6 @@ export function DetailStatsCard(props: {
       </div>
     </div>
   );
-}
-
-export function normalizeKey(s: string): string {
-  return (s || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 export function mapCityLatitude(city: MapCityPoint): number | null {
@@ -324,29 +342,3 @@ export function MapFiltersForm(props: {
   );
 }
 
-export function MapViewportWatcher(props: {
-  onZoomChange: (zoom: number) => void;
-  onBoundsChange: (bounds: L.LatLngBounds) => void;
-}) {
-  const map = useMapEvents({
-    zoomend() {
-      props.onZoomChange(map.getZoom());
-      props.onBoundsChange(map.getBounds());
-    },
-    moveend() {
-      props.onZoomChange(map.getZoom());
-      props.onBoundsChange(map.getBounds());
-    },
-    resize() {
-      props.onZoomChange(map.getZoom());
-      props.onBoundsChange(map.getBounds());
-    },
-  });
-
-  useEffect(() => {
-    props.onZoomChange(map.getZoom());
-    props.onBoundsChange(map.getBounds());
-  }, [map, props.onBoundsChange, props.onZoomChange]);
-
-  return null;
-}
