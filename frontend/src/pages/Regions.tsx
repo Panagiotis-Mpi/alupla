@@ -2,13 +2,49 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createRegion, listRegions, listUnmatchedCities, searchRegions, updateRegion, type Region } from "../lib/api";
 
-const emptyForm = {
-  id: null as number | null,
+type RegionFormState = {
+  id: number | null;
+  name: string;
+  parent_id: string;
+  latitude: string;
+  longitude: string;
+};
+
+type UnmatchedCityItem = {
+  name: string;
+  count: number;
+  periphery_id: number | null;
+  periphery_name: string | null;
+};
+
+const emptyForm: RegionFormState = {
+  id: null,
   name: "",
   parent_id: "",
   latitude: "",
   longitude: "",
 };
+
+const pageGapStyle: React.CSSProperties = { gap: 14 };
+const zeroMarginStyle: React.CSSProperties = { margin: 0 };
+const alignedTopbarStyle: React.CSSProperties = { alignItems: "center" };
+const formGridStyle: React.CSSProperties = { marginTop: 12, gap: 10 };
+const fieldLabelStyle: React.CSSProperties = { marginBottom: 6 };
+const dualGridStyle: React.CSSProperties = { gap: 10 };
+const searchInputStyle: React.CSSProperties = { maxWidth: 280 };
+const tableWrapStyle: React.CSSProperties = { overflowX: "auto", marginTop: 12 };
+const errorStyle: React.CSSProperties = { color: "#b91c1c" };
+const successStyle: React.CSSProperties = { color: "#166534" };
+
+function toFormState(city: Region): RegionFormState {
+  return {
+    id: city.id,
+    name: city.name,
+    parent_id: city.parent_id != null ? String(city.parent_id) : "",
+    latitude: city.latitude != null ? String(city.latitude) : "",
+    longitude: city.longitude != null ? String(city.longitude) : "",
+  };
+}
 
 export default function Regions() {
   const { t } = useTranslation("regions");
@@ -17,32 +53,36 @@ export default function Regions() {
   const [cities, setCities] = useState<Region[]>([]);
   const [cityQuery, setCityQuery] = useState("");
   const [unmatchedQuery, setUnmatchedQuery] = useState("");
-  const [unmatchedItems, setUnmatchedItems] = useState<Array<{ name: string; count: number; periphery_id: number | null; periphery_name: string | null }>>([]);
-  const [form, setForm] = useState(emptyForm);
+  const [unmatchedItems, setUnmatchedItems] = useState<UnmatchedCityItem[]>([]);
+  const [form, setForm] = useState<RegionFormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  const setFormValue = <K extends keyof RegionFormState>(key: K, value: RegionFormState[K]) => {
+    setForm((state) => ({ ...state, [key]: value }));
+  };
+
   async function loadPeripheries() {
-    const r = await listRegions({ type: "PERIPHERY" });
-    setPeripheries(r.items);
+    const response = await listRegions({ type: "PERIPHERY" });
+    setPeripheries(response.items);
   }
 
   async function loadCities(query?: string) {
-    const q = (query ?? cityQuery).trim();
-    if (q) {
-      const r = await searchRegions({ q, type: "CITY" });
-      setCities(r.items);
+    const value = (query ?? cityQuery).trim();
+    if (value) {
+      const response = await searchRegions({ q: value, type: "CITY" });
+      setCities(response.items);
       return;
     }
-    const r = await listRegions({ type: "CITY" });
-    setCities(r.items);
+    const response = await listRegions({ type: "CITY" });
+    setCities(response.items);
   }
 
   async function loadUnmatched(query?: string) {
-    const q = (query ?? unmatchedQuery).trim();
-    const r = await listUnmatchedCities({ q });
-    setUnmatchedItems(r.items);
+    const value = (query ?? unmatchedQuery).trim();
+    const response = await listUnmatchedCities({ q: value });
+    setUnmatchedItems(response.items);
   }
 
   useEffect(() => {
@@ -52,9 +92,9 @@ export default function Regions() {
   }, []);
 
   const peripheryNameById = useMemo(() => {
-    const map = new Map<number, string>();
-    peripheries.forEach((item) => map.set(item.id, item.name));
-    return map;
+    const names = new Map<number, string>();
+    peripheries.forEach((item) => names.set(item.id, item.name));
+    return names;
   }, [peripheries]);
 
   const cityRows = useMemo(() => {
@@ -66,30 +106,41 @@ export default function Regions() {
     });
   }, [cities, peripheryNameById]);
 
-  const resetForm = () => {
-    setForm(emptyForm);
+  function clearFeedback() {
     setError("");
     setMessage("");
-  };
+  }
 
-  const onEdit = (city: Region) => {
-    setForm({
-      id: city.id,
-      name: city.name,
-      parent_id: city.parent_id != null ? String(city.parent_id) : "",
-      latitude: city.latitude != null ? String(city.latitude) : "",
-      longitude: city.longitude != null ? String(city.longitude) : "",
-    });
-    setError("");
-    setMessage("");
+  function resetForm() {
+    setForm(emptyForm);
+    clearFeedback();
+  }
+
+  function scrollToTop() {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  }
+
+  function onEdit(city: Region) {
+    setForm(toFormState(city));
+    clearFeedback();
+    scrollToTop();
+  }
+
+  function useUnmatchedCity(item: UnmatchedCityItem) {
+    setForm((state) => ({
+      ...state,
+      id: null,
+      name: item.name,
+      parent_id: item.periphery_id != null ? String(item.periphery_id) : state.parent_id,
+    }));
+    clearFeedback();
+    scrollToTop();
+  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setError("");
-    setMessage("");
+    clearFeedback();
     try {
       const payload = {
         name: form.name.trim(),
@@ -117,14 +168,14 @@ export default function Regions() {
   };
 
   return (
-    <div className="grid" style={{ gap: 14 }}>
+    <div className="grid" style={pageGapStyle}>
       <div className="topbar">
-        <h2 style={{ margin: 0 }}>{t("title")}</h2>
+        <h2 style={zeroMarginStyle}>{t("title")}</h2>
       </div>
 
       <div className="card">
-        <div className="topbar" style={{ alignItems: "center" }}>
-          <h3 style={{ margin: 0 }}>{t("manage.title")}</h3>
+        <div className="topbar" style={alignedTopbarStyle}>
+          <h3 style={zeroMarginStyle}>{t("manage.title")}</h3>
           <div className="spacer" />
           {form.id ? (
             <button className="btn" type="button" onClick={resetForm}>
@@ -133,32 +184,32 @@ export default function Regions() {
           ) : null}
         </div>
 
-        <form className="grid" style={{ marginTop: 12, gap: 10 }} onSubmit={onSubmit}>
+        <form className="grid" style={formGridStyle} onSubmit={onSubmit}>
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{t("manage.fields.name")}</div>
-            <input className="input" value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} />
+            <div className="muted" style={fieldLabelStyle}>{t("manage.fields.name")}</div>
+            <input className="input" value={form.name} onChange={(e) => setFormValue("name", e.target.value)} />
           </div>
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{t("manage.fields.periphery")}</div>
-            <select className="input" value={form.parent_id} onChange={(e) => setForm((s) => ({ ...s, parent_id: e.target.value }))}>
+            <div className="muted" style={fieldLabelStyle}>{t("manage.fields.periphery")}</div>
+            <select className="input" value={form.parent_id} onChange={(e) => setFormValue("parent_id", e.target.value)}>
               <option value="">{t("manage.placeholders.periphery")}</option>
               {peripheries.map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
           </div>
-          <div className="grid cols2" style={{ gap: 10 }}>
+          <div className="grid cols2" style={dualGridStyle}>
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{t("manage.fields.latitude")}</div>
-              <input className="input" value={form.latitude} onChange={(e) => setForm((s) => ({ ...s, latitude: e.target.value }))} />
+              <div className="muted" style={fieldLabelStyle}>{t("manage.fields.latitude")}</div>
+              <input className="input" value={form.latitude} onChange={(e) => setFormValue("latitude", e.target.value)} />
             </div>
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{t("manage.fields.longitude")}</div>
-              <input className="input" value={form.longitude} onChange={(e) => setForm((s) => ({ ...s, longitude: e.target.value }))} />
+              <div className="muted" style={fieldLabelStyle}>{t("manage.fields.longitude")}</div>
+              <input className="input" value={form.longitude} onChange={(e) => setFormValue("longitude", e.target.value)} />
             </div>
           </div>
-          {error ? <div style={{ color: "#b91c1c" }}>{error}</div> : null}
-          {message ? <div style={{ color: "#166534" }}>{message}</div> : null}
+          {error ? <div style={errorStyle}>{error}</div> : null}
+          {message ? <div style={successStyle}>{message}</div> : null}
           <div className="row-actions">
             <button className="btn primary" type="submit" disabled={saving}>
               {form.id ? t("manage.save") : t("manage.create")}
@@ -172,11 +223,11 @@ export default function Regions() {
 
       <div className="card">
         <div className="topbar">
-          <h3 style={{ margin: 0 }}>{t("unmatched.title")}</h3>
+          <h3 style={zeroMarginStyle}>{t("unmatched.title")}</h3>
           <div className="spacer" />
           <input
             className="input"
-            style={{ maxWidth: 280 }}
+            style={searchInputStyle}
             value={unmatchedQuery}
             placeholder={t("unmatched.search")}
             onChange={(e) => setUnmatchedQuery(e.target.value)}
@@ -184,7 +235,7 @@ export default function Regions() {
           <button className="btn" onClick={() => void loadUnmatched()}>{t("unmatched.searchButton")}</button>
         </div>
 
-        <div style={{ overflowX: "auto", marginTop: 12 }}>
+        <div style={tableWrapStyle}>
           <table className="table">
             <thead>
               <tr>
@@ -203,20 +254,7 @@ export default function Regions() {
                   <td>{item.count}</td>
                   <td>{item.periphery_name ?? "-"}</td>
                   <td>
-                    <button
-                      className="btn"
-                      onClick={() => {
-                        setForm((s) => ({
-                          ...s,
-                          id: null,
-                          name: item.name,
-                          parent_id: item.periphery_id != null ? String(item.periphery_id) : s.parent_id,
-                        }));
-                        setError("");
-                        setMessage("");
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                    >
+                    <button className="btn" onClick={() => useUnmatchedCity(item)}>
                       {t("unmatched.useInForm")}
                     </button>
                   </td>
@@ -234,10 +272,10 @@ export default function Regions() {
 
       <div className="card">
         <div className="topbar">
-          <h3 style={{ margin: 0 }}>{t("peripheries.title")}</h3>
+          <h3 style={zeroMarginStyle}>{t("peripheries.title")}</h3>
         </div>
 
-        <div style={{ overflowX: "auto", marginTop: 12 }}>
+        <div style={tableWrapStyle}>
           <table className="table">
             <thead>
               <tr>
@@ -268,11 +306,11 @@ export default function Regions() {
 
       <div className="card">
         <div className="topbar">
-          <h3 style={{ margin: 0 }}>{t("manage.listTitle")}</h3>
+          <h3 style={zeroMarginStyle}>{t("manage.listTitle")}</h3>
           <div className="spacer" />
           <input
             className="input"
-            style={{ maxWidth: 280 }}
+            style={searchInputStyle}
             value={cityQuery}
             placeholder={t("manage.search")}
             onChange={(e) => setCityQuery(e.target.value)}
@@ -280,7 +318,7 @@ export default function Regions() {
           <button className="btn" onClick={() => void loadCities()}>{t("manage.searchButton")}</button>
         </div>
 
-        <div style={{ overflowX: "auto", marginTop: 12 }}>
+        <div style={tableWrapStyle}>
           <table className="table">
             <thead>
               <tr>
