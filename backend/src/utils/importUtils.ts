@@ -20,7 +20,6 @@ export function toNumber(v: any): number | null {
 
 export function toDateOnly(v: any): string | null {
   if (!v && v !== 0) return null;
-  // XLSX may give Date objects if cellDates:true
   if (v instanceof Date && !isNaN(v.getTime())) {
     const yyyy = v.getFullYear();
     const mm = String(v.getMonth() + 1).padStart(2, "0");
@@ -30,7 +29,6 @@ export function toDateOnly(v: any): string | null {
   const s = String(v).trim();
   if (!s) return null;
 
-  // Try YYYY-MM-DD or DD-MM-YY/ DD-MM-YYYY
   const m1 = s.match(/^\d{4}-\d{2}-\d{2}$/);
   if (m1) return s;
 

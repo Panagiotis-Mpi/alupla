@@ -1,7 +1,3 @@
--- ALUPLA migration: replace graduates.birth_year with graduates.birth_date (DATE)
--- Dialect: MySQL/MariaDB
--- Safe-ish: keeps existing data by mapping birth_year -> YYYY-01-01
-
 START TRANSACTION;
 
 ALTER TABLE graduates

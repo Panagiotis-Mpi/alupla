@@ -19,7 +19,6 @@ export class Graduate extends Model {
   declare study_program_id: number;
   declare program_direction_id: number | null;
 
-  // NEW: hierarchical region id (nullable)
   declare origin_region_id: number | null;
   declare origin_municipality: string | null;
 }
@@ -36,7 +35,6 @@ Graduate.init(
     oath_date: { type: DataTypes.DATEONLY, allowNull: false },
     entry_year: { type: DataTypes.SMALLINT, allowNull: false },
     student_number: { type: DataTypes.STRING(50), allowNull: false },
-    // DB column: birth_date (DATE)
     birth_date: { type: DataTypes.DATEONLY, allowNull: false },
     gender: { type: DataTypes.ENUM("M", "F"), allowNull: false },
     study_program_id: { type: DataTypes.INTEGER, allowNull: false },

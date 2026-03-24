@@ -1,8 +1,5 @@
 import { Region } from "../models/Region";
 
-// Seed the 13 administrative regions (Περιφέρειες) of Greece.
-// We keep one row per periphery in the existing `regions` table (type = PERIPHERY)
-// so the public map can aggregate graduates per periphery.
 
 type PeripherySeed = {
   name: string;
@@ -10,7 +7,6 @@ type PeripherySeed = {
   longitude: number;
 };
 
-// Approximate centroids (capital/city coordinates) – good enough for map bubbles.
 const PERIPHERIES: PeripherySeed[] = [
   { name: "Αττική", latitude: 37.9838, longitude: 23.7275 },
   { name: "Κεντρική Μακεδονία", latitude: 40.6401, longitude: 22.9444 },

@@ -53,7 +53,6 @@ app.use(
   app.use("/presence", presenceRouter);
   app.use("/map", mapRouter);
 
-  // Public (no-auth) endpoints for anonymous statistics/map + anonymous CSV export
   app.use("/public", publicRouter);
 
   app.use("/study-programs", studyProgramsRouter);
