@@ -49,6 +49,25 @@ const errorCardStyle: React.CSSProperties = {
   borderColor: "#b00020",
   color: "#b00020",
 };
+const sortableHeaderStyle: React.CSSProperties = {
+  background: "transparent",
+  border: 0,
+  padding: 0,
+  font: "inherit",
+  fontWeight: 600,
+  color: "inherit",
+  cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+};
+
+type ProgramSortKey = "code" | "name" | "status";
+type DirectionSortKey = "code" | "name" | "status";
+type SortState<T extends string> = {
+  key: T;
+  direction: "asc" | "desc";
+};
 
 export default function AcademicData() {
   const { t, i18n } = useTranslation("academicData");
@@ -71,6 +90,14 @@ export default function AcademicData() {
     number | null
   >(null);
   const [selectedProgramId, setSelectedProgramId] = React.useState<string>("");
+  const [programSort, setProgramSort] = React.useState<SortState<ProgramSortKey>>({
+    key: "code",
+    direction: "asc",
+  });
+  const [directionSort, setDirectionSort] = React.useState<SortState<DirectionSortKey>>({
+    key: "code",
+    direction: "asc",
+  });
 
   const inFlight = React.useRef(false);
 
@@ -131,6 +158,81 @@ export default function AcademicData() {
       (item) => Number(item.study_program_id) === Number(selectedProgramId),
     );
   }, [directions, selectedProgramId]);
+
+  const sortedPrograms = React.useMemo(() => {
+    const items = [...programs];
+    const factor = programSort.direction === "asc" ? 1 : -1;
+    items.sort((left, right) => {
+      let a = "";
+      let b = "";
+      if (programSort.key === "code") {
+        a = left.code ?? "";
+        b = right.code ?? "";
+      } else if (programSort.key === "name") {
+        a = getProgramName(left) ?? "";
+        b = getProgramName(right) ?? "";
+      } else {
+        a = left.is_active ? "1" : "0";
+        b = right.is_active ? "1" : "0";
+      }
+      return a.localeCompare(b, lang === "en" ? "en" : "el", {
+        numeric: true,
+        sensitivity: "base",
+      }) * factor;
+    });
+    return items;
+  }, [getProgramName, lang, programSort, programs]);
+
+  const sortedDirections = React.useMemo(() => {
+    const items = [...filteredDirections];
+    const factor = directionSort.direction === "asc" ? 1 : -1;
+    items.sort((left, right) => {
+      let a = "";
+      let b = "";
+      if (directionSort.key === "code") {
+        a = left.code ?? "";
+        b = right.code ?? "";
+      } else if (directionSort.key === "name") {
+        a = lang === "en" && left.name_en ? left.name_en : left.name_el;
+        b = lang === "en" && right.name_en ? right.name_en : right.name_el;
+      } else {
+        a = left.is_active ? "1" : "0";
+        b = right.is_active ? "1" : "0";
+      }
+      return a.localeCompare(b, lang === "en" ? "en" : "el", {
+        numeric: true,
+        sensitivity: "base",
+      }) * factor;
+    });
+    return items;
+  }, [directionSort, filteredDirections, lang]);
+
+  function toggleProgramSort(key: ProgramSortKey) {
+    setProgramSort((current) =>
+      current.key === key
+        ? {
+            key,
+            direction: current.direction === "asc" ? "desc" : "asc",
+          }
+        : { key, direction: "asc" },
+    );
+  }
+
+  function toggleDirectionSort(key: DirectionSortKey) {
+    setDirectionSort((current) =>
+      current.key === key
+        ? {
+            key,
+            direction: current.direction === "asc" ? "desc" : "asc",
+          }
+        : { key, direction: "asc" },
+    );
+  }
+
+  function sortMark(active: boolean, direction: "asc" | "desc") {
+    if (!active) return "";
+    return direction === "asc" ? " ▲" : " ▼";
+  }
 
   const hasProgramDraft = Boolean(
     editingProgramId ||
@@ -231,7 +333,7 @@ export default function AcademicData() {
           <div className="topbar" style={{ justifyContent: "space-between" }}>
             <h3 style={{ margin: 0 }}>{t("programs.title")}</h3>
             <span className="badge">
-              {t("programs.count", { count: programs.length })}
+              {t("programs.count", { count: sortedPrograms.length })}
             </span>
           </div>
 
@@ -290,14 +392,41 @@ export default function AcademicData() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>{t("table.code")}</th>
-                  <th>{t("table.name")}</th>
-                  <th>{t("table.status")}</th>
+                  <th>
+                    <button
+                      type="button"
+                      style={sortableHeaderStyle}
+                      onClick={() => toggleProgramSort("code")}
+                    >
+                      {t("table.code")}
+                      {sortMark(programSort.key === "code", programSort.direction)}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      style={sortableHeaderStyle}
+                      onClick={() => toggleProgramSort("name")}
+                    >
+                      {t("table.name")}
+                      {sortMark(programSort.key === "name", programSort.direction)}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      style={sortableHeaderStyle}
+                      onClick={() => toggleProgramSort("status")}
+                    >
+                      {t("table.status")}
+                      {sortMark(programSort.key === "status", programSort.direction)}
+                    </button>
+                  </th>
                   <th>{t("table.actions")}</th>
                 </tr>
               </thead>
               <tbody>
-                {programs.map((item) => (
+                {sortedPrograms.map((item) => (
                   <tr key={item.id}>
                     <td>{item.code}</td>
                     <td>{getProgramName(item)}</td>
@@ -366,7 +495,7 @@ export default function AcademicData() {
           <div className="topbar" style={{ justifyContent: "space-between" }}>
             <h3 style={{ margin: 0 }}>{t("directions.title")}</h3>
             <span className="badge">
-              {t("directions.count", { count: filteredDirections.length })}
+              {t("directions.count", { count: sortedDirections.length })}
             </span>
           </div>
 
@@ -457,14 +586,41 @@ export default function AcademicData() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>{t("table.code")}</th>
-                  <th>{t("table.name")}</th>
-                  <th>{t("table.status")}</th>
+                  <th>
+                    <button
+                      type="button"
+                      style={sortableHeaderStyle}
+                      onClick={() => toggleDirectionSort("code")}
+                    >
+                      {t("table.code")}
+                      {sortMark(directionSort.key === "code", directionSort.direction)}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      style={sortableHeaderStyle}
+                      onClick={() => toggleDirectionSort("name")}
+                    >
+                      {t("table.name")}
+                      {sortMark(directionSort.key === "name", directionSort.direction)}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      style={sortableHeaderStyle}
+                      onClick={() => toggleDirectionSort("status")}
+                    >
+                      {t("table.status")}
+                      {sortMark(directionSort.key === "status", directionSort.direction)}
+                    </button>
+                  </th>
                   <th>{t("table.actions")}</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredDirections.map((item) => (
+                {sortedDirections.map((item) => (
                   <tr key={item.id}>
                     <td>{item.code}</td>
                     <td>
@@ -525,7 +681,7 @@ export default function AcademicData() {
                     </td>
                   </tr>
                 ))}
-                {!filteredDirections.length && (
+                {!sortedDirections.length && (
                   <tr>
                     <td colSpan={4} className="muted">
                       {t("table.empty")}
