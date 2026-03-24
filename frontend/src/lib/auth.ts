@@ -8,63 +8,66 @@ export type SessionUser = {
   role: Role;
 };
 
-const KEY_TOKEN = "alupla_token";
-const KEY_USER = "alupla_user";
+const TOKEN_KEY = "alupla_token";
+const USER_KEY = "alupla_user";
 
-function migrateLegacyLocalStorageToSessionStorage() {
+function clearLegacyStorage() {
   try {
-    const legacyToken = localStorage.getItem(KEY_TOKEN);
-    const legacyUser = localStorage.getItem(KEY_USER);
-    if (legacyToken && !sessionStorage.getItem(KEY_TOKEN)) {
-      sessionStorage.setItem(KEY_TOKEN, legacyToken);
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+  } catch {}
+}
+
+function moveLegacySessionData() {
+  try {
+    const legacyToken = localStorage.getItem(TOKEN_KEY);
+    const legacyUser = localStorage.getItem(USER_KEY);
+
+    if (legacyToken && !sessionStorage.getItem(TOKEN_KEY)) {
+      sessionStorage.setItem(TOKEN_KEY, legacyToken);
     }
-    if (legacyUser && !sessionStorage.getItem(KEY_USER)) {
-      sessionStorage.setItem(KEY_USER, legacyUser);
+
+    if (legacyUser && !sessionStorage.getItem(USER_KEY)) {
+      sessionStorage.setItem(USER_KEY, legacyUser);
     }
+
     if (legacyToken || legacyUser) {
-      localStorage.removeItem(KEY_TOKEN);
-      localStorage.removeItem(KEY_USER);
+      clearLegacyStorage();
     }
-  } catch {
-  }
+  } catch {}
 }
 
 export function getToken(): string | null {
-  migrateLegacyLocalStorageToSessionStorage();
-  return sessionStorage.getItem(KEY_TOKEN);
+  moveLegacySessionData();
+  return sessionStorage.getItem(TOKEN_KEY);
 }
 
 export function getUser(): SessionUser | null {
-  migrateLegacyLocalStorageToSessionStorage();
-  const raw = sessionStorage.getItem(KEY_USER);
-  if (!raw) return null;
-  try {
-    const u = JSON.parse(raw) as SessionUser;
-    if (u && (u.role === "secretariat" || u.role === "super_admin")) return u;
+  moveLegacySessionData();
+  const raw = sessionStorage.getItem(USER_KEY);
+
+  if (!raw) {
     return null;
+  }
+
+  try {
+    const user = JSON.parse(raw) as SessionUser;
+    return user && (user.role === "secretariat" || user.role === "super_admin") ? user : null;
   } catch {
     return null;
   }
 }
 
 export function setSession(token: string, user: SessionUser) {
-  sessionStorage.setItem(KEY_TOKEN, token);
-  sessionStorage.setItem(KEY_USER, JSON.stringify(user));
-  try {
-    localStorage.removeItem(KEY_TOKEN);
-    localStorage.removeItem(KEY_USER);
-  } catch {
-  }
+  sessionStorage.setItem(TOKEN_KEY, token);
+  sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+  clearLegacyStorage();
 }
 
 export function logout() {
-  sessionStorage.removeItem(KEY_TOKEN);
-  sessionStorage.removeItem(KEY_USER);
-  try {
-    localStorage.removeItem(KEY_TOKEN);
-    localStorage.removeItem(KEY_USER);
-  } catch {
-  }
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(USER_KEY);
+  clearLegacyStorage();
 }
 
 export function clearSession() {

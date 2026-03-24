@@ -1,121 +1,134 @@
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { verifyEmail, resendVerification } from "../lib/api";
+import { resendVerification, verifyEmail } from "../lib/api";
+
+function readErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) {
+      return message;
+    }
+  }
+  return fallback;
+}
 
 export default function Verify() {
   const { t } = useTranslation("auth");
-  const [sp] = useSearchParams();
-  const token = sp.get("token") || "";
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token") || "";
   const [status, setStatus] = React.useState<"idle" | "ok" | "err">("idle");
-  const [msg, setMsg] = React.useState<string>("");
-
+  const [message, setMessage] = React.useState("");
   const [email, setEmail] = React.useState("");
-  const [resendLoading, setResendLoading] = React.useState(false);
-  const [resendErr, setResendErr] = React.useState<string | null>(null);
+  const [resending, setResending] = React.useState(false);
+  const [resendError, setResendError] = React.useState<string | null>(null);
   const [resendInfo, setResendInfo] = React.useState<string | null>(null);
-  const [newToken, setNewToken] = React.useState<string | null>(null);
+  const [replacementToken, setReplacementToken] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    let alive = true;
-    async function run() {
-      setNewToken(null);
-      setResendErr(null);
+    let active = true;
+
+    async function runVerification() {
+      setReplacementToken(null);
+      setResendError(null);
       setResendInfo(null);
 
       if (!token) {
         setStatus("err");
-        setMsg(t("verify.missingToken"));
+        setMessage(t("verify.missingToken"));
         return;
       }
+
       try {
         await verifyEmail(token);
-        if (!alive) return;
+        if (!active) {
+          return;
+        }
         setStatus("ok");
-        setMsg(t("verify.ok"));
-      } catch (e: any) {
-        if (!alive) return;
+        setMessage(t("verify.ok"));
+      } catch (err) {
+        if (!active) {
+          return;
+        }
         setStatus("err");
-        setMsg(e?.message ?? t("verify.failed"));
+        setMessage(readErrorMessage(err, t("verify.failed")));
       }
     }
-    run();
+
+    runVerification();
+
     return () => {
-      alive = false;
+      active = false;
     };
-  }, [token, t]);
+  }, [t, token]);
 
-  async function onResend() {
-    setResendErr(null);
+  async function handleResend() {
+    setResendError(null);
     setResendInfo(null);
-    setNewToken(null);
+    setReplacementToken(null);
 
-    if (!email.trim()) {
-      setResendErr(t("verify.needEmail"));
+    const value = email.trim();
+    if (!value) {
+      setResendError(t("verify.needEmail"));
       return;
     }
 
-    setResendLoading(true);
+    setResending(true);
     try {
-      const res = await resendVerification(email.trim());
-      if (res?.already_verified) {
+      const result = await resendVerification(value);
+      if (result?.already_verified) {
         setResendInfo(t("verify.alreadyVerified"));
-      } else if (res?.verification_token) {
-        setNewToken(String(res.verification_token));
+      } else if (result?.verification_token) {
+        setReplacementToken(String(result.verification_token));
         setResendInfo(t("verify.newTokenInfo"));
       } else {
         setResendInfo(t("verify.sentInfo"));
       }
-    } catch (e: any) {
-      setResendErr(e?.message ?? t("verify.resendFailed"));
+    } catch (err) {
+      setResendError(readErrorMessage(err, t("verify.resendFailed")));
     } finally {
-      setResendLoading(false);
+      setResending(false);
     }
   }
 
   return (
     <div className="container">
-      <div className="card" style={{ maxWidth: 560, margin: "48px auto" }}>
-        <h2 style={{ marginTop: 0 }}>{t("verify.title")}</h2>
+      <div className="card auth-panel auth-panel-md">
+        <h2 className="auth-panel-title">{t("verify.title")}</h2>
 
-        <p style={{ opacity: 0.85 }}>
-          {status === "idle" && t("verify.verifying")}
-          {status !== "idle" && msg}
+        <p className="auth-panel-text">
+          {status === "idle" ? t("verify.verifying") : message}
         </p>
 
         {status === "err" && (
-          <div className="card" style={{ background: "#fafafa" }}>
-            <div style={{ fontSize: 13, marginBottom: 8, opacity: 0.9 }}>{t("verify.resendHint")}</div>
+          <div className="card auth-subcard auth-subcard-muted">
+            <div className="auth-note auth-note-spaced">{t("verify.resendHint")}</div>
 
             <label>
               <span className="label">{t("verify.email")}</span>
               <input
                 className="input"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(event) => setEmail(event.target.value)}
                 placeholder={t("verify.emailPlaceholder")}
               />
             </label>
 
-            <div style={{ marginTop: 10 }}>
-              <button className="btn" type="button" onClick={onResend} disabled={resendLoading}>
-                {resendLoading ? t("common.loading") : t("verify.resendButton")}
+            <div className="auth-button-row">
+              <button className="btn" type="button" onClick={handleResend} disabled={resending}>
+                {resending ? t("common.loading") : t("verify.resendButton")}
               </button>
             </div>
 
-            {resendErr && (
-              <div className="error" style={{ marginTop: 10 }}>
-                {resendErr}
-              </div>
-            )}
-            {resendInfo && <div style={{ fontSize: 12, opacity: 0.85, marginTop: 10 }}>{resendInfo}</div>}
+            {resendError && <div className="error auth-stack-gap">{resendError}</div>}
+            {resendInfo && <div className="auth-note auth-stack-gap">{resendInfo}</div>}
 
-            {newToken && (
-              <div className="card" style={{ background: "#fff", marginTop: 10 }}>
-                <div style={{ fontSize: 12, marginBottom: 6, opacity: 0.85 }}>{t("verify.newTokenLabel")}</div>
-                <code style={{ wordBreak: "break-all" }}>{newToken}</code>
-                <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
-                  <a className="btn primary" href={`/verify?token=${encodeURIComponent(newToken)}`}>
+            {replacementToken && (
+              <div className="card auth-subcard auth-subcard-white auth-stack-gap">
+                <div className="auth-note auth-note-spaced">{t("verify.newTokenLabel")}</div>
+                <code className="auth-code">{replacementToken}</code>
+                <div className="auth-action-row auth-stack-gap">
+                  <a className="btn primary" href={`/verify?token=${encodeURIComponent(replacementToken)}`}>
                     {t("verify.verifyNow")}
                   </a>
                   <Link className="btn" to="/login">
@@ -127,7 +140,7 @@ export default function Verify() {
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+        <div className="auth-action-row auth-stack-gap">
           <Link className="btn primary" to="/login">
             {t("verify.goLogin")}
           </Link>
