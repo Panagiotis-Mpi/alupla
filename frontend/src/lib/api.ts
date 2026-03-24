@@ -72,6 +72,41 @@ function isJsonString(s: string): boolean {
   return (t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"));
 }
 
+function appendQuery(q: URLSearchParams, params: Record<string, any> = {}) {
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === "") continue;
+    q.set(key, Array.isArray(value) ? value.join(",") : String(value));
+  }
+}
+
+function toQueryString(params: Record<string, any> = {}) {
+  const q = new URLSearchParams();
+  appendQuery(q, params);
+  const qs = q.toString();
+  return qs ? `?${qs}` : "";
+}
+
+async function fetchBlob(path: string, params: Record<string, any> = {}, lang?: string): Promise<Blob> {
+  const q = new URLSearchParams();
+  appendQuery(q, params);
+  if (lang) q.set("lang", lang);
+
+  const token = getToken();
+  const qs = q.toString();
+  const res = await fetch(`${API_URL}${path}${qs ? `?${qs}` : ""}`, {
+    method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+
+  if (!res.ok) {
+    const j = await parseJsonSafe(res);
+    const msg = (j as any)?.error?.message || (j as any)?.message || res.statusText;
+    throw new Error(msg);
+  }
+
+  return res.blob();
+}
+
 async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers = new Headers(init.headers || {});
@@ -168,7 +203,7 @@ export type Graduate = {
   oath_date: string;
   entry_year: number;
   student_number: string;
-  birth_date: string; // YYYY-MM-DD
+  birth_date: string;
   gender: "M" | "F";
   study_program_id: number;
   program_direction_id?: number | null;
@@ -243,7 +278,7 @@ export async function updateRegion(id: number, payload: { name: string; type: Re
 export async function login(email: string, password: string): Promise<{ ok: true; token: string; user: any } | any> {
   return api("/auth/login", {
     method: "POST",
-    body: { email, password }, // object is ok; api() will JSON.stringify + set Content-Type
+    body: { email, password },
   });
 }
 
@@ -392,13 +427,7 @@ export async function deleteProgramDirection(id: number): Promise<any> {
 }
 
 export async function listGraduates(params: Record<string, any> = {}): Promise<any> {
-  const q = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
-    q.set(k, String(v));
-  });
-  const qs = q.toString();
-  return api(`/graduates${qs ? `?${qs}` : ""}`, { method: "GET" });
+  return api(`/graduates${toQueryString(params)}`, { method: "GET" });
 }
 
 export async function getGraduate(id: number | string): Promise<any> {
@@ -423,43 +452,19 @@ export async function listRegions(parentIdOrParams: any = {}): Promise<any> {
       ? { parent_id: parentIdOrParams }
       : parentIdOrParams || {};
 
-  const q = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
-    q.set(k, String(v));
-  });
-  const qs = q.toString();
-  return api(`/regions${qs ? `?${qs}` : ""}`, { method: "GET" });
+  return api(`/regions${toQueryString(params)}`, { method: "GET" });
 }
 
 export async function searchRegions(params: { q?: string; type?: string; parent_id?: number | null } = {}): Promise<any> {
-  const q = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
-    q.set(k, String(v));
-  });
-  const qs = q.toString();
-  return api(`/regions/search${qs ? `?${qs}` : ""}`, { method: "GET" });
+  return api(`/regions/search${toQueryString(params)}`, { method: "GET" });
 }
 
 export async function listUnmatchedCities(params: { q?: string } = {}): Promise<any> {
-  const q = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
-    q.set(k, String(v));
-  });
-  const qs = q.toString();
-  return api(`/regions/unmatched-cities${qs ? `?${qs}` : ""}`, { method: "GET" });
+  return api(`/regions/unmatched-cities${toQueryString(params)}`, { method: "GET" });
 }
 
 export async function listActivityLogs(params: Record<string, any> = {}): Promise<any> {
-  const q = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
-    q.set(k, String(v));
-  });
-  const qs = q.toString();
-  return api(`/activity-logs${qs ? `?${qs}` : ""}`, { method: "GET" });
+  return api(`/activity-logs${toQueryString(params)}`, { method: "GET" });
 }
 
 export async function getMapFilterOptions(): Promise<{ ok: true } & MapFilterOptions | any> {
@@ -467,41 +472,20 @@ export async function getMapFilterOptions(): Promise<{ ok: true } & MapFilterOpt
 }
 
 export async function getGraduatesMap(params: Record<string, any> = {}): Promise<{ ok: true; items: GraduatesMapItem[]; total: number } | any> {
-  const q = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
-    q.set(k, String(v));
-  });
-  const qs = q.toString();
-  return api(`/map/graduates${qs ? `?${qs}` : ""}`, { method: "GET" });
+  return api(`/map/graduates${toQueryString(params)}`, { method: "GET" });
 }
 
 export async function getMapCities(params: Record<string, any> = {}): Promise<{ ok: true; items: MapCityPoint[] } | any> {
-  const q = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
-    q.set(k, String(v));
-  });
-  const qs = q.toString();
-  return api(`/map/cities${qs ? `?${qs}` : ""}`, { method: "GET" });
+  return api(`/map/cities${toQueryString(params)}`, { method: "GET" });
 }
 
 export async function getRegionCitiesMap(params: Record<string, any> = {}): Promise<{ ok: true; items: RegionCityMapItem[] } | any> {
-  const q = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
-    q.set(k, String(v));
-  });
-  const qs = q.toString();
-  return api(`/map/region-cities${qs ? `?${qs}` : ""}`, { method: "GET" });
+  return api(`/map/region-cities${toQueryString(params)}`, { method: "GET" });
 }
 
 export function activityLogsExportUrl(params: Record<string, any> = {}): string {
   const q = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
-    q.set(k, String(v));
-  });
+  appendQuery(q, params);
 
   const token = getToken();
   if (token) q.set("token", token);
@@ -518,25 +502,7 @@ export async function resendVerification(email: string): Promise<any> {
 
 
 export async function exportGraduatesXlsx(params: Record<string, any>, lang?: string): Promise<Blob> {
-  const q = new URLSearchParams();
-  for (const [k, v] of Object.entries(params ?? {})) {
-    if (v === undefined || v === null || v === "") continue;
-    q.set(k, Array.isArray(v) ? v.join(",") : String(v));
-  }
-  if (lang) q.set("lang", lang);
-  const token = getToken();
-  const res = await fetch(`${API_URL}/graduates/export?${q.toString()}`, {
-    method: "GET",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    }
-  });
-  if (!res.ok) {
-    const j = await parseJsonSafe(res);
-    const msg = (j as any)?.error?.message || (j as any)?.message || res.statusText;
-    throw new Error(msg);
-  }
-  return await res.blob();
+  return fetchBlob("/graduates/export", params, lang);
 }
 
 
@@ -544,21 +510,7 @@ export async function exportGraduatesXlsx(params: Record<string, any>, lang?: st
 
 
 export async function downloadGraduatesImportTemplateXlsx(lang?: string): Promise<Blob> {
-  const token = getToken();
-  const q = new URLSearchParams();
-  if (lang) q.set("lang", lang);
-  const res = await fetch(`${API_URL}/graduates/import-template${q.toString() ? `?${q.toString()}` : ""}`, {
-    method: "GET",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    }
-  });
-  if (!res.ok) {
-    const j = await parseJsonSafe(res);
-    const msg = (j as any)?.error?.message || (j as any)?.message || res.statusText;
-    throw new Error(msg);
-  }
-  return await res.blob();
+  return fetchBlob("/graduates/import-template", {}, lang);
 }
 
 export async function importGraduatesXlsx(file: File, lang?: string): Promise<any> {
@@ -590,14 +542,8 @@ export async function getPublicStats(params: {
   study_program_id?: string;
   gender?: string;
   age_group?: string;
-}): Promise<any> {
-  const q = new URLSearchParams();
-  for (const [k, v] of Object.entries(params ?? {})) {
-    if (v === undefined || v === null || v === "") continue;
-    q.set(k, String(v));
-  }
-  const qs = q.toString();
-  return api(`/public/stats${qs ? `?${qs}` : ""}`, { method: "GET" });
+} = {}): Promise<any> {
+  return api(`/public/stats${toQueryString(params)}`, { method: "GET" });
 }
 
 export async function getPublicMap(params: {
@@ -605,14 +551,8 @@ export async function getPublicMap(params: {
   study_program_id?: string;
   gender?: string;
   age_group?: string;
-}): Promise<any> {
-  const q = new URLSearchParams();
-  for (const [k, v] of Object.entries(params ?? {})) {
-    if (v === undefined || v === null || v === "") continue;
-    q.set(k, String(v));
-  }
-  const qs = q.toString();
-  return api(`/public/map${qs ? `?${qs}` : ""}`, { method: "GET" });
+} = {}): Promise<any> {
+  return api(`/public/map${toQueryString(params)}`, { method: "GET" });
 }
 
 export function publicAnonExportUrl(params: {
@@ -624,10 +564,7 @@ export function publicAnonExportUrl(params: {
   gender_mode?: string;
 }) {
   const q = new URLSearchParams();
-  for (const [k, v] of Object.entries(params ?? {})) {
-    if (v === undefined || v === null || v === "") continue;
-    q.set(k, String(v));
-  }
+  appendQuery(q, params);
   const token = getToken();
   if (token) q.set("token", token);
   const qs = q.toString();

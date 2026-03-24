@@ -31,6 +31,25 @@ type NamedCountRow = {
   entry_year?: number | null;
 };
 
+const cardInnerStyle = { minWidth: 0 };
+const compactTopbarStyle = { marginBottom: 12 };
+const metricValueStyle = { fontSize: 28, fontWeight: 800, marginTop: 6 };
+const yTicks = { precision: 0 as any };
+
+function buildLineDataset(label: string, data: number[], color: string, background: string, fill = true) {
+  return {
+    label,
+    data,
+    borderColor: color,
+    backgroundColor: background,
+    fill,
+    tension: 0.38,
+    pointRadius: 3,
+    pointHoverRadius: 4,
+    borderWidth: 3,
+  };
+}
+
 function ToggleButtons(props: {
   value: ViewMode;
   onChange: (value: ViewMode) => void;
@@ -90,8 +109,8 @@ function ChartCard(props: {
   datasetCount?: number;
 }) {
   return (
-    <div className="card" style={{ minWidth: 0 }}>
-      <div className="topbar" style={{ marginBottom: 12 }}>
+    <div className="card" style={cardInnerStyle}>
+      <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
       <ScrollableLineChart
@@ -100,19 +119,7 @@ function ChartCard(props: {
         datasetCount={props.datasetCount}
         data={{
           labels: props.labels,
-          datasets: [
-            {
-              label: props.datasetLabel ?? props.title,
-              data: props.values,
-              borderColor: "#2563eb",
-              backgroundColor: "rgba(37, 99, 235, 0.28)",
-              fill: true,
-              tension: 0.38,
-              pointRadius: 3,
-              pointHoverRadius: 4,
-              borderWidth: 3,
-            },
-          ],
+          datasets: [buildLineDataset(props.datasetLabel ?? props.title, props.values, "#2563eb", "rgba(37, 99, 235, 0.28)")],
         }}
         options={{
           responsive: true,
@@ -120,7 +127,7 @@ function ChartCard(props: {
           plugins: { legend: { display: false } },
           scales: {
             x: { ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
-            y: { beginAtZero: true, ticks: { precision: 0 as any } },
+            y: { beginAtZero: true, ticks: yTicks },
           },
         } as any}
       />
@@ -220,17 +227,12 @@ export default function Statistics() {
       return {
         labels: byYearRows.map((r) => r.label),
         datasets: [
-          {
-            label: t("sections.byYear", { defaultValue: "Πλήθος αποφοίτων ανά έτος" }),
-            data: byYearRows.map((r) => r.value),
-            borderColor: "#2563eb",
-            backgroundColor: "rgba(37, 99, 235, 0.28)",
-            fill: true,
-            tension: 0.38,
-            pointRadius: 3,
-            pointHoverRadius: 4,
-            borderWidth: 3,
-          },
+          buildLineDataset(
+            t("sections.byYear", { defaultValue: "Πλήθος αποφοίτων ανά έτος" }),
+            byYearRows.map((r) => r.value),
+            "#2563eb",
+            "rgba(37, 99, 235, 0.28)"
+          ),
         ],
       };
     }
@@ -245,17 +247,15 @@ export default function Statistics() {
 
     return {
       labels,
-      datasets: termOrder.map((term) => ({
-        label: termLabel(term),
-        data: labels.map((year) => bySemesterRows.find((r) => r.year === year && r.term === term)?.value ?? 0),
-        borderColor: termColors[term],
-        backgroundColor: `${termColors[term]}33`,
-        fill: false,
-        tension: 0.38,
-        pointRadius: 3,
-        pointHoverRadius: 4,
-        borderWidth: 3,
-      })),
+      datasets: termOrder.map((term) =>
+        buildLineDataset(
+          termLabel(term),
+          labels.map((year) => bySemesterRows.find((r) => r.year === year && r.term === term)?.value ?? 0),
+          termColors[term],
+          `${termColors[term]}33`,
+          false
+        )
+      ),
     };
   }, [bySemesterRows, byYearRows, countsMode, t, termLabel]);
 
@@ -272,7 +272,7 @@ export default function Statistics() {
         },
         scales: {
           x: { ticks: { autoSkip: false, maxRotation: 0 } },
-          y: { beginAtZero: true, ticks: { precision: 0 as any } },
+          y: { beginAtZero: true, ticks: yTicks },
         },
       }) as const,
     [countsMode]
@@ -289,28 +289,19 @@ export default function Statistics() {
       return {
         labels: rows.map((r: any) => r.label),
         datasets: [
-          {
-            label: t("table.male", { defaultValue: "Άνδρες" }),
-            data: rows.map((r: any) => r.male),
-            borderColor: "#2563eb",
-            backgroundColor: "rgba(37, 99, 235, 0.28)",
-            fill: true,
-            tension: 0.38,
-            pointRadius: 3,
-            pointHoverRadius: 4,
-            borderWidth: 3,
-          },
-          {
-            label: t("table.female", { defaultValue: "Γυναίκες" }),
-            data: rows.map((r: any) => r.female),
-            borderColor: "#60a5fa",
-            backgroundColor: "rgba(96, 165, 250, 0.22)",
-            fill: false,
-            tension: 0.38,
-            pointRadius: 3,
-            pointHoverRadius: 4,
-            borderWidth: 3,
-          },
+          buildLineDataset(
+            t("table.male", { defaultValue: "Άνδρες" }),
+            rows.map((r: any) => r.male),
+            "#2563eb",
+            "rgba(37, 99, 235, 0.28)"
+          ),
+          buildLineDataset(
+            t("table.female", { defaultValue: "Γυναίκες" }),
+            rows.map((r: any) => r.female),
+            "#60a5fa",
+            "rgba(96, 165, 250, 0.22)",
+            false
+          ),
         ],
       };
     }
@@ -320,34 +311,26 @@ export default function Statistics() {
     return {
       labels,
       datasets: termOrder.flatMap((term) => [
-        {
-          label: `${t("table.male", { defaultValue: "Άνδρες" })} ${termLabel(term)}`,
-          data: labels.map(
+        buildLineDataset(
+          `${t("table.male", { defaultValue: "Άνδρες" })} ${termLabel(term)}`,
+          labels.map(
             (year) =>
               (data?.gender_by_term ?? []).find((r: any) => String(r.year) === year && String(r.term) === term)?.male ?? 0
           ),
-          borderColor: "#2563eb",
-          backgroundColor: "rgba(37, 99, 235, 0.22)",
-          fill: false,
-          tension: 0.38,
-          pointRadius: 3,
-          pointHoverRadius: 4,
-          borderWidth: 3,
-        },
-        {
-          label: `${t("table.female", { defaultValue: "Γυναίκες" })} ${termLabel(term)}`,
-          data: labels.map(
+          "#2563eb",
+          "rgba(37, 99, 235, 0.22)",
+          false
+        ),
+        buildLineDataset(
+          `${t("table.female", { defaultValue: "Γυναίκες" })} ${termLabel(term)}`,
+          labels.map(
             (year) =>
               (data?.gender_by_term ?? []).find((r: any) => String(r.year) === year && String(r.term) === term)?.female ?? 0
           ),
-          borderColor: "#60a5fa",
-          backgroundColor: "rgba(96, 165, 250, 0.22)",
-          fill: false,
-          tension: 0.38,
-          pointRadius: 3,
-          pointHoverRadius: 4,
-          borderWidth: 3,
-        },
+          "#60a5fa",
+          "rgba(96, 165, 250, 0.22)",
+          false
+        ),
       ]),
     };
   }, [data, genderMode, t, termLabel]);
@@ -394,23 +377,23 @@ export default function Statistics() {
       </div>
 
       <div className="grid cols3" style={{ gap: 14 }}>
-        <div className="card" style={{ minWidth: 0 }}>
+        <div className="card" style={cardInnerStyle}>
           <div className="muted">{t("cards.total")}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{total}</div>
+          <div style={metricValueStyle}>{total}</div>
         </div>
-        <div className="card" style={{ minWidth: 0 }}>
+        <div className="card" style={cardInnerStyle}>
           <div className="muted">{t("cards.avgAge")}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{avgAge || "-"}</div>
+          <div style={metricValueStyle}>{avgAge || "-"}</div>
         </div>
-        <div className="card" style={{ minWidth: 0 }}>
+        <div className="card" style={cardInnerStyle}>
           <div className="muted">{t("cards.avgGrade")}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{avgGrade || "-"}</div>
+          <div style={metricValueStyle}>{avgGrade || "-"}</div>
         </div>
       </div>
 
       <div className="grid cols2" style={{ gap: 14 }}>
-        <div className="card" style={{ minWidth: 0 }}>
-          <div className="topbar" style={{ marginBottom: 12 }}>
+        <div className="card" style={cardInnerStyle}>
+          <div className="topbar" style={compactTopbarStyle}>
             <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
             <div className="spacer" />
             <ToggleButtons
@@ -423,8 +406,8 @@ export default function Statistics() {
           <ScrollableLineChart height={260} labels={(countChartData as any).labels ?? []} datasetCount={((countChartData as any).datasets ?? []).length} data={countChartData as any} options={countChartOptions as any} />
         </div>
 
-        <div className="card" style={{ minWidth: 0 }}>
-          <div className="topbar" style={{ marginBottom: 12 }}>
+        <div className="card" style={cardInnerStyle}>
+          <div className="topbar" style={compactTopbarStyle}>
             <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
             <div className="spacer" />
             <ToggleButtons
@@ -443,7 +426,7 @@ export default function Statistics() {
               responsive: true,
               maintainAspectRatio: false,
               plugins: { legend: { position: "bottom" as const } },
-              scales: { x: { stacked: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } }, y: { beginAtZero: true, ticks: { precision: 0 as any } } },
+              scales: { x: { stacked: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } }, y: { beginAtZero: true, ticks: yTicks } },
             } as any}
           />
         </div>
