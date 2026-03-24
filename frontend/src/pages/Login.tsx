@@ -4,9 +4,53 @@ import { useTranslation } from "react-i18next";
 import { login as apiLogin } from "../lib/api";
 import { setSession } from "../lib/auth";
 
+const pageStyle: React.CSSProperties = {
+  minHeight: "calc(100vh - 70px)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "1.2rem 1.5rem",
+  paddingBottom: "4rem",
+  background: "linear-gradient(180deg, #eef4ff 0%, #ffffff 65%)",
+};
+
+const cardStyle: React.CSSProperties = {
+  width: "100%",
+  maxWidth: 520,
+  background: "white",
+  borderRadius: 18,
+  border: "1px solid #e5edff",
+  boxShadow: "0 10px 30px rgba(59,130,246,0.08)",
+  padding: "2.2rem 2.4rem",
+};
+
+const labelStyle: React.CSSProperties = { display: "grid", gap: 8 };
+const labelTextStyle: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 700,
+  color: "#334155",
+};
+const inputStyle: React.CSSProperties = {
+  height: 44,
+  borderRadius: 12,
+  border: "1px solid #dbeafe",
+  background: "#ffffff",
+  padding: "0 12px",
+  outline: "none",
+};
+const linksRowStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 10,
+  fontSize: 13,
+  color: "#1e3a8a",
+  alignItems: "center",
+  flexWrap: "wrap",
+  marginTop: 4,
+};
+
 function Login() {
   const { t } = useTranslation("auth");
-  const nav = useNavigate();
+  const navigate = useNavigate();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -20,90 +64,54 @@ function Login() {
       const res = await apiLogin(email.trim(), password);
       if (!res?.token || !res?.user) throw new Error("Bad login response");
       setSession(res.token, res.user);
-      nav("/graduates");
+      navigate("/graduates");
     } catch (e: any) {
       const message = e?.message;
-      if (message === "Account pending admin approval") setErr(t("login.pendingApproval"));
-      else setErr(message ?? t("login.failed"));
+      if (message === "Account pending admin approval") {
+        setErr(t("login.pendingApproval"));
+      } else {
+        setErr(message ?? t("login.failed"));
+      }
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div
-      style={{
-        minHeight: "calc(100vh - 70px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1.2rem 1.5rem",
-        background: "linear-gradient(180deg, #eef4ff 0%, #ffffff 65%)",
-        // leave space for the pinned footer on static pages
-        paddingBottom: "4rem",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 520,
-          background: "white",
-          borderRadius: 18,
-          border: "1px solid #e5edff",
-          boxShadow: "0 10px 30px rgba(59,130,246,0.08)",
-          padding: "2.2rem 2.4rem",
-        }}
-      >
+    <div style={pageStyle}>
+      <div style={cardStyle}>
         <h2
           style={{
             margin: 0,
+            marginBottom: "1.6rem",
             fontSize: "2rem",
             fontWeight: 800,
             color: "#1e3a8a",
             letterSpacing: "-0.02em",
-            marginBottom: "1.6rem",
           }}
         >
           ALUPLA
         </h2>
 
         <form onSubmit={onSubmit} style={{ display: "grid", gap: "1.05rem" }}>
-          <label style={{ display: "grid", gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>
-              {t("login.email")}
-            </span>
+          <label style={labelStyle}>
+            <span style={labelTextStyle}>{t("login.email")}</span>
             <input
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{
-                height: 44,
-                borderRadius: 12,
-                border: "1px solid #dbeafe",
-                background: "#ffffff",
-                padding: "0 12px",
-                outline: "none",
-              }}
+              style={inputStyle}
             />
           </label>
 
-          <label style={{ display: "grid", gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>
-              {t("login.password")}
-            </span>
+          <label style={labelStyle}>
+            <span style={labelTextStyle}>{t("login.password")}</span>
             <input
               type="password"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{
-                height: 44,
-                borderRadius: 12,
-                border: "1px solid #dbeafe",
-                background: "#ffffff",
-                padding: "0 12px",
-                outline: "none",
-              }}
+              style={inputStyle}
             />
           </label>
 
@@ -139,17 +147,7 @@ function Login() {
             {loading ? t("common.loading") : t("login.button")}
           </button>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              fontSize: 13,
-              color: "#1e3a8a",
-              alignItems: "center",
-              flexWrap: "wrap",
-              marginTop: 4,
-            }}
-          >
+          <div style={linksRowStyle}>
             <Link to="/register" style={{ color: "#1e3a8a", fontWeight: 700 }}>
               {t("login.register")}
             </Link>
