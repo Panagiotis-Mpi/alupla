@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { GeoJSON, MapContainer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 
 import {
   getGraduatesMap,
@@ -18,319 +16,91 @@ import {
   type StudyProgram,
 } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
-import * as XLSX from "xlsx";
+import { MapCanvasCard } from "./map/MapCanvasCard";
+import { buildMapFilterRows, exportElementAsPng, exportMapCsv, exportMapExcel } from "./map/mapExport";
+import { DetailStatsCard, EMPTY_MAP_FILTERS, MapFiltersForm, normalizeKey, tryParseGeoJson, type MapFiltersState } from "./map/shared";
 
-type AgeGroup = "" | "18-22" | "23-26" | "27-30" | "31+";
+const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
 
-type FiltersState = {
-  ad_code_like: string;
-  student_number_like: string;
-  last_name_like: string;
-  first_name_like: string;
-  father_name_like: string;
-  gender: string;
-  entry_year_min: string;
-  entry_year_max: string;
-  birth_year_min: string;
-  birth_year_max: string;
-  degree_grade_min: string;
-  degree_grade_max: string;
-  graduation_year: string;
-  graduation_date_from: string;
-  graduation_date_to: string;
-  oath_date_from: string;
-  oath_date_to: string;
-  study_program_id: string;
-  program_direction_id: string;
-  origin_region_id: string;
-  origin_municipality_like: string;
-  age_group: AgeGroup;
-};
+function thresholdsForMax(max: number) {
+  const safeMax = Math.max(1, max || 1);
+  const first = Math.ceil(safeMax * 0.2);
+  const second = Math.ceil(safeMax * 0.4);
+  const third = Math.ceil(safeMax * 0.6);
+  const fourth = Math.ceil(safeMax * 0.8);
+  return [0, first, second, third, fourth, safeMax];
+}
 
-const EMPTY_FILTERS: FiltersState = {
-  ad_code_like: "",
-  student_number_like: "",
-  last_name_like: "",
-  first_name_like: "",
-  father_name_like: "",
-  gender: "",
-  entry_year_min: "",
-  entry_year_max: "",
-  birth_year_min: "",
-  birth_year_max: "",
-  degree_grade_min: "",
-  degree_grade_max: "",
-  graduation_year: "",
-  graduation_date_from: "",
-  graduation_date_to: "",
-  oath_date_from: "",
-  oath_date_to: "",
-  study_program_id: "",
-  program_direction_id: "",
-  origin_region_id: "",
-  origin_municipality_like: "",
-  age_group: "",
-};
+function legendBuckets(max: number) {
+  const safeMax = Math.max(1, max);
+  const first = Math.ceil(safeMax * 0.2);
+  const second = Math.ceil(safeMax * 0.4);
+  const third = Math.ceil(safeMax * 0.6);
+  const fourth = Math.ceil(safeMax * 0.8);
+  return [0, first, second, third, fourth, safeMax];
+}
 
-function cityLabelIcon(label: string) {
-  return L.divIcon({
-    className: "alupla-city-label-icon",
-    html: `<span class="alupla-city-point"><span class="alupla-city-label-text">${label}</span><span class="alupla-city-label-dot"></span></span>`,
-    iconSize: [1, 1],
-    iconAnchor: [0, 0],
+function buildParams(filters: MapFiltersState) {
+  const params: Record<string, string> = {};
+  Object.entries(filters).forEach(([key, value]) => {
+    const trimmed = typeof value === "string" ? value.trim() : value;
+    if (trimmed === undefined || trimmed === null || trimmed === "") {
+      return;
+    }
+    params[key] = String(trimmed);
   });
+  return params;
 }
 
-function DetailStatsCard(props: {
-  title: string;
-  total: number | string;
-  avgAge: number | string | null | undefined;
-  malePct: number | string | null | undefined;
-  femalePct: number | string | null | undefined;
-  avgGrade: number | string | null | undefined;
-  avgGraduationYears: number | string | null | undefined;
-  totalText: string;
-  totalLabel: string;
-  avgAgeLabel: string;
-  malePctLabel: string;
-  femalePctLabel: string;
-  avgGradeLabel: string;
-  avgGraduationYearsLabel: string;
-}) {
-  return (
-    <div style={{ padding: "14px", border: "1px solid var(--border)", borderRadius: 12, background: "rgba(248,250,252,.8)", display: "grid", gap: 12 }}>
-      <div style={{ display: "grid", gap: 4 }}>
-        <div style={{ fontWeight: 700 }}>{props.title}</div>
-        <div className="muted">{props.totalText}</div>
-      </div>
-
-      <div className="grid cols2">
-        <div>
-          <label className="label">{props.totalLabel}</label>
-          <div style={{ fontWeight: 700 }}>{props.total}</div>
-        </div>
-        <div>
-          <label className="label">{props.avgAgeLabel}</label>
-          <div style={{ fontWeight: 700 }}>{props.avgAge ?? "-"}</div>
-        </div>
-        <div>
-          <label className="label">{props.malePctLabel}</label>
-          <div style={{ fontWeight: 700 }}>{props.malePct ?? 0}%</div>
-        </div>
-        <div>
-          <label className="label">{props.femalePctLabel}</label>
-          <div style={{ fontWeight: 700 }}>{props.femalePct ?? 0}%</div>
-        </div>
-        <div>
-          <label className="label">{props.avgGradeLabel}</label>
-          <div style={{ fontWeight: 700 }}>{props.avgGrade ?? "-"}</div>
-        </div>
-        <div>
-          <label className="label">{props.avgGraduationYearsLabel}</label>
-          <div style={{ fontWeight: 700 }}>{props.avgGraduationYears ?? "-"}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function normalizeKey(s: string): string {
-  return (s || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function mapCityLatitude(city: MapCityPoint): number | null {
-  if ("latitude" in city) {
-    const value = Number(city.latitude);
-    return Number.isFinite(value) ? value : null;
+function countByPeriphery(items: GraduatesMapItem[]) {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    counts.set(normalizeKey(String(item.periphery_name ?? "")), Number(item.count ?? 0) || 0);
   }
-  const value = Number(city.lat);
-  return Number.isFinite(value) ? value : null;
+  return counts;
 }
 
-function mapCityLongitude(city: MapCityPoint): number | null {
-  if ("longitude" in city) {
-    const value = Number(city.longitude);
-    return Number.isFinite(value) ? value : null;
+function visibleMapCities(cityPoints: MapCityPoint[], mapBounds: L.LatLngBounds | null, mapZoom: number) {
+  const grouped = new Map<string, MapCityPoint[]>();
+
+  for (const city of cityPoints) {
+    const lat = Number(city.latitude);
+    const lng = Number(city.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      continue;
+    }
+    const key = normalizeKey(city.periphery_name);
+    const current = grouped.get(key) || [];
+    current.push(city);
+    grouped.set(key, current);
   }
-  const value = Number(city.lng);
-  return Number.isFinite(value) ? value : null;
-}
 
-function mapCityLabel(city: MapCityPoint): string {
-  return city.city_name;
-}
+  const expanded = mapZoom >= 7;
+  const visible: MapCityPoint[] = [];
 
-function mapCityKey(city: MapCityPoint): string {
-  return `db-${city.city_id}`;
-}
+  grouped.forEach((list) => {
+    const sorted = [...list].sort((a, b) => {
+      if (b.count !== a.count) {
+        return b.count - a.count;
+      }
+      return a.city_name.localeCompare(b.city_name, "el");
+    });
 
-function tryParseGeoJson(raw: string): any | null {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-function downloadBlob(filename: string, blob: Blob) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-function excelCellValue(v: any) {
-  return v === null || v === undefined || v === "" ? "" : v;
-}
-
-function copyComputedStyles(source: Element, target: Element) {
-  const sourceChildren = Array.from(source.children);
-  const targetChildren = Array.from(target.children);
-  const computed = window.getComputedStyle(source as HTMLElement);
-  const styleText = Array.from(computed)
-    .map((name) => `${name}:${computed.getPropertyValue(name)};`)
-    .join("");
-  target.setAttribute("style", styleText);
-  for (let i = 0; i < sourceChildren.length; i += 1) {
-    if (targetChildren[i]) copyComputedStyles(sourceChildren[i], targetChildren[i]);
-  }
-}
-
-async function exportElementAsPng(element: HTMLElement, filename: string) {
-  const rect = element.getBoundingClientRect();
-  const clone = element.cloneNode(true) as HTMLElement;
-  clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-  copyComputedStyles(element, clone);
-  clone.style.margin = "0";
-  clone.style.width = `${Math.ceil(rect.width)}px`;
-  clone.style.height = `${Math.ceil(rect.height)}px`;
-
-  const wrapper = document.createElement("div");
-  wrapper.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-  wrapper.style.width = `${Math.ceil(rect.width)}px`;
-  wrapper.style.height = `${Math.ceil(rect.height)}px`;
-  wrapper.style.background = "#ffffff";
-  wrapper.appendChild(clone);
-
-  const serialized = new XMLSerializer().serializeToString(wrapper);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(rect.width)}" height="${Math.ceil(rect.height)}"><foreignObject width="100%" height="100%">${serialized}</foreignObject></svg>`;
-
-  await new Promise<void>((resolve, reject) => {
-    const img = new Image();
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.ceil(rect.width * 2);
-    canvas.height = Math.ceil(rect.height * 2);
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      reject(new Error("canvas_error"));
+    if (!expanded) {
+      if (sorted[0]) {
+        visible.push(sorted[0]);
+      }
       return;
     }
 
-    img.onload = () => {
-      ctx.scale(2, 2);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, Math.ceil(rect.width), Math.ceil(rect.height));
-      ctx.drawImage(img, 0, 0, Math.ceil(rect.width), Math.ceil(rect.height));
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error("blob_error"));
-          return;
-        }
-        downloadBlob(filename, blob);
-        resolve();
-      }, "image/png");
-    };
+    const inBounds = mapBounds
+      ? sorted.filter((city) => mapBounds.contains(L.latLng(Number(city.latitude), Number(city.longitude))))
+      : sorted;
 
-    img.onerror = () => reject(new Error("image_error"));
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  });
-}
-
-function Field(props: { label: string; children: React.ReactNode; span?: number }) {
-  return (
-    <div style={{ gridColumn: `span ${props.span ?? 4}`, display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-      <label className="label">{props.label}</label>
-      {props.children}
-    </div>
-  );
-}
-
-function FilterSection(props: { title: string; children: React.ReactNode }) {
-  return (
-    <section style={{ display: "grid", gap: props.title ? 10 : 0 }}>
-      {props.title ? <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", letterSpacing: ".01em" }}>{props.title}</div> : null}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>{props.children}</div>
-    </section>
-  );
-}
-
-function RangeField(props: {
-  label: string;
-  fromLabel: string;
-  toLabel: string;
-  fromValue: string;
-  toValue: string;
-  onFromChange: (value: string) => void;
-  onToChange: (value: string) => void;
-  type?: string;
-  min?: string;
-  max?: string;
-  step?: string;
-  span?: number;
-}) {
-  return (
-    <Field label={props.label} span={props.span}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <div>
-          <label className="label" style={{ fontSize: 12, marginBottom: 6 }}>{props.fromLabel}</label>
-          <input className="input" type={props.type ?? "text"} value={props.fromValue} min={props.min} max={props.max} step={props.step} onChange={(e) => props.onFromChange(e.target.value)} />
-        </div>
-        <div>
-          <label className="label" style={{ fontSize: 12, marginBottom: 6 }}>{props.toLabel}</label>
-          <input className="input" type={props.type ?? "text"} value={props.toValue} min={props.min} max={props.max} step={props.step} onChange={(e) => props.onToChange(e.target.value)} />
-        </div>
-      </div>
-    </Field>
-  );
-}
-
-function MapViewportWatcher({
-  onZoomChange,
-  onBoundsChange,
-}: {
-  onZoomChange: (zoom: number) => void;
-  onBoundsChange: (bounds: L.LatLngBounds) => void;
-}) {
-  const map = useMapEvents({
-    zoomend() {
-      onZoomChange(map.getZoom());
-      onBoundsChange(map.getBounds());
-    },
-    moveend() {
-      onZoomChange(map.getZoom());
-      onBoundsChange(map.getBounds());
-    },
-    resize() {
-      onZoomChange(map.getZoom());
-      onBoundsChange(map.getBounds());
-    },
+    visible.push(...(inBounds.length ? inBounds : sorted).slice(0, 3));
   });
 
-  useEffect(() => {
-    onZoomChange(map.getZoom());
-    onBoundsChange(map.getBounds());
-  }, [map, onZoomChange, onBoundsChange]);
-
-  return null;
+  return visible;
 }
 
 export default function Map() {
@@ -340,7 +110,7 @@ export default function Map() {
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const [filters, setFilters] = useState<FiltersState>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<MapFiltersState>(EMPTY_MAP_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [studyPrograms, setStudyPrograms] = useState<StudyProgram[]>([]);
@@ -356,9 +126,36 @@ export default function Map() {
   const [cityStatsLoading, setCityStatsLoading] = useState(false);
 
   const geojson = useMemo(() => tryParseGeoJson(greeceRegionsRaw), []);
+  const activeLang: "gr" | "en" = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
+  const params = useMemo(() => buildParams(filters), [filters]);
+  const countsByGreekName = useMemo(() => countByPeriphery(items), [items]);
+  const maxCount = useMemo(() => {
+    let currentMax = 1;
+    for (const item of items) {
+      const count = Number(item.count ?? 0) || 0;
+      if (count > currentMax) {
+        currentMax = count;
+      }
+    }
+    return currentMax;
+  }, [items]);
+  const total = useMemo(() => items.reduce((sum, item) => sum + (Number(item.count) || 0), 0), [items]);
+  const buckets = useMemo(() => legendBuckets(maxCount), [maxCount]);
+  const geoRenderKey = useMemo(() => `${i18n.language}:${items.length}:${maxCount}`, [i18n.language, items.length, maxCount]);
+  const visibleCities = useMemo(() => visibleMapCities(cityPoints, mapBounds, mapZoom), [cityPoints, mapBounds, mapZoom]);
+  const availableDirections = useMemo(() => {
+    if (!filters.study_program_id) {
+      return programDirections;
+    }
+    return programDirections.filter((item) => Number(item.study_program_id) === Number(filters.study_program_id));
+  }, [filters.study_program_id, programDirections]);
+  const countsRef = useRef<Map<string, number>>(countsByGreekName);
+  const itemsRef = useRef<GraduatesMapItem[]>(items);
 
   useEffect(() => {
-    if (!geojson || !mapRef.current) return;
+    if (!geojson || !mapRef.current) {
+      return;
+    }
     try {
       const layer = L.geoJSON(geojson as any);
       const bounds = layer.getBounds();
@@ -367,44 +164,8 @@ export default function Map() {
         setMapZoom(mapRef.current.getZoom());
         setMapBounds(mapRef.current.getBounds());
       }
-    } catch {
-    }
+    } catch {}
   }, [geojson]);
-
-  const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
-
-  const availableDirections = useMemo(() => {
-    if (!filters.study_program_id) return programDirections;
-    return programDirections.filter((item) => Number((item as any).study_program_id) === Number(filters.study_program_id));
-  }, [filters.study_program_id, programDirections]);
-
-  const params = useMemo(() => {
-    const p: Record<string, string> = {};
-    Object.entries(filters).forEach(([key, value]) => {
-      const trimmed = typeof value === "string" ? value.trim() : value;
-      if (trimmed === undefined || trimmed === null || trimmed === "") return;
-      p[key] = String(trimmed);
-    });
-    return p;
-  }, [filters]);
-
-  const countsByGreekName = useMemo(() => {
-    const next = new (globalThis as any).Map<string, number>();
-    for (const it of items) next.set(normalizeKey(String((it as any).periphery_name ?? "")), Number((it as any).count ?? 0) || 0);
-    return next;
-  }, [items]);
-
-  const maxCount = useMemo(() => {
-    let m = 1;
-    for (const it of items) {
-      const c = Number((it as any).count ?? 0) || 0;
-      if (c > m) m = c;
-    }
-    return m;
-  }, [items]);
-
-  const countsRef = useRef<Map<string, number>>(countsByGreekName);
-  const itemsRef = useRef<GraduatesMapItem[]>(items);
 
   useEffect(() => {
     countsRef.current = countsByGreekName;
@@ -418,11 +179,11 @@ export default function Map() {
     let active = true;
     (async () => {
       try {
-        const res = await getMapFilterOptions();
+        const response = await getMapFilterOptions();
         if (!active) return;
-        setStudyPrograms(Array.isArray(res?.studyPrograms) ? res.studyPrograms : []);
-        setProgramDirections(Array.isArray(res?.programDirections) ? res.programDirections : []);
-        setRegions(Array.isArray(res?.regions) ? res.regions : []);
+        setStudyPrograms(Array.isArray(response?.studyPrograms) ? response.studyPrograms : []);
+        setProgramDirections(Array.isArray(response?.programDirections) ? response.programDirections : []);
+        setRegions(Array.isArray(response?.regions) ? response.regions : []);
       } catch {
         if (!active) return;
         setStudyPrograms([]);
@@ -436,9 +197,13 @@ export default function Map() {
   }, []);
 
   useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (!exportMenuRef.current) return;
-      if (exportMenuRef.current.contains(e.target as Node)) return;
+    function onDocClick(event: MouseEvent) {
+      if (!exportMenuRef.current) {
+        return;
+      }
+      if (exportMenuRef.current.contains(event.target as Node)) {
+        return;
+      }
       setShowExportMenu(false);
     }
     document.addEventListener("mousedown", onDocClick);
@@ -450,19 +215,19 @@ export default function Map() {
     setSelected(null);
     setSelectedCityStats([]);
     try {
-      const [mapRes, citiesRes] = await Promise.all([
+      const [mapResponse, citiesResponse] = await Promise.all([
         getGraduatesMap(nextParams ?? params),
         getMapCities(nextParams ?? params),
       ]);
-      setItems(Array.isArray(mapRes?.items) ? mapRes.items : []);
-      setCityPoints(Array.isArray(citiesRes?.items) ? citiesRes.items : []);
+      setItems(Array.isArray(mapResponse?.items) ? mapResponse.items : []);
+      setCityPoints(Array.isArray(citiesResponse?.items) ? citiesResponse.items : []);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    fetchMap({});
+    void fetchMap({});
   }, []);
 
   useEffect(() => {
@@ -476,14 +241,16 @@ export default function Map() {
 
     (async () => {
       try {
-        const res = await getRegionCitiesMap({ ...params, periphery_id: selected.periphery_id });
+        const response = await getRegionCitiesMap({ ...params, periphery_id: selected.periphery_id });
         if (!active) return;
-        setSelectedCityStats(Array.isArray(res?.items) ? res.items : []);
+        setSelectedCityStats(Array.isArray(response?.items) ? response.items : []);
       } catch {
         if (!active) return;
         setSelectedCityStats([]);
       } finally {
-        if (active) setCityStatsLoading(false);
+        if (active) {
+          setCityStatsLoading(false);
+        }
       }
     })();
 
@@ -492,62 +259,44 @@ export default function Map() {
     };
   }, [params, selected?.periphery_id]);
 
-  function updateFilter<K extends keyof FiltersState>(key: K, value: FiltersState[K]) {
-    setFilters((prev) => {
-      const next = { ...prev, [key]: value };
-      if (key === "study_program_id") next.program_direction_id = "";
+  function updateFilter<K extends keyof MapFiltersState>(key: K, value: MapFiltersState[K]) {
+    setFilters((current) => {
+      const next = { ...current, [key]: value };
+      if (key === "study_program_id") {
+        next.program_direction_id = "";
+      }
       return next;
     });
   }
 
-  async function onApply() {
-    await fetchMap(params);
-  }
-
-  function onReset() {
-    setFilters(EMPTY_FILTERS);
-    setSelected(null);
-    setSelectedCityStats([]);
-    fetchMap({});
-  }
-
-  const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
-
-  function thresholdsForMax(m: number) {
-    const mm = Math.max(1, m || 1);
-    const b1 = Math.ceil(mm * 0.2);
-    const b2 = Math.ceil(mm * 0.4);
-    const b3 = Math.ceil(mm * 0.6);
-    const b4 = Math.ceil(mm * 0.8);
-    return [0, b1, b2, b3, b4, mm];
-  }
-
-  function bucketIndexForCount(c: number) {
-    const threshold = thresholdsForMax(maxCount);
-    for (let i = 0; i < 5; i += 1) {
-      const from = threshold[i];
-      const to = threshold[i + 1];
-      if (c >= from && c <= to) return i;
+  function fillColorForCount(count: number) {
+    const thresholds = thresholdsForMax(maxCount);
+    let bucketIndex = 4;
+    for (let index = 0; index < 5; index += 1) {
+      const from = thresholds[index];
+      const to = thresholds[index + 1];
+      if (count >= from && count <= to) {
+        bucketIndex = index;
+        break;
+      }
     }
-    return 4;
+    return fillColors[Math.max(0, Math.min(fillColors.length - 1, bucketIndex))];
   }
 
-  function fillColorForCount(c: number) {
-    return fillColors[Math.max(0, Math.min(fillColors.length - 1, bucketIndexForCount(c)))];
-  }
-
-  function fillOpacityForCount(c: number) {
-    return c <= 0 ? 0.18 : 0.75;
+  function fillOpacityForCount(count: number) {
+    return count <= 0 ? 0.18 : 0.75;
   }
 
   function featureGreekName(feature: any): string {
-    const p = feature?.properties || {};
-    return String(p.name_greek || p.name_el || p.name || p.NAME || "");
+    const properties = feature?.properties || {};
+    return String(properties.name_greek || properties.name_el || properties.name || properties.NAME || "");
   }
 
   function featureDisplayName(feature: any): string {
-    const p = feature?.properties || {};
-    if (activeLang === "en") return String(p.name_en || p.name || p.NAME || p.name_greek || "");
+    const properties = feature?.properties || {};
+    if (activeLang === "en") {
+      return String(properties.name_en || properties.name || properties.NAME || properties.name_greek || "");
+    }
     return featureGreekName(feature);
   }
 
@@ -557,160 +306,33 @@ export default function Map() {
 
   function renderTooltipHtml(feature: any): string {
     const label = featureDisplayName(feature);
-    const c = currentCountForFeature(feature);
-    const totalLabel = t("map.total", { total: c, defaultValue: "Σύνολο: {{total}}" });
+    const count = currentCountForFeature(feature);
+    const totalLabel = t("map.total", { total: count, defaultValue: "Σύνολο: {{total}}" });
     return `<div class="alupla-region-tip-title">${label}</div><div class="alupla-region-tip-sub">${totalLabel}</div>`;
   }
 
-  const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
-
-  const visibleCities = useMemo(() => {
-    const grouped = new (globalThis as any).Map<string, MapCityPoint[]>();
-
-    for (const city of cityPoints) {
-      const lat = mapCityLatitude(city);
-      const lng = mapCityLongitude(city);
-      if (lat === null || lng === null) continue;
-      const key = normalizeKey(city.periphery_name);
-      const list = grouped.get(key) || [];
-      list.push(city);
-      grouped.set(key, list);
-    }
-
-    const expanded = mapZoom >= 7;
-    const next: MapCityPoint[] = [];
-
-    grouped.forEach((list) => {
-      const sorted = [...list].sort((a, b) => {
-        if (b.count !== a.count) return b.count - a.count;
-        return a.city_name.localeCompare(b.city_name, "el");
-      });
-      if (!expanded) {
-        if (sorted[0]) next.push(sorted[0]);
-        return;
-      }
-      const insideBounds = mapBounds
-        ? sorted.filter((city) => {
-            const lat = mapCityLatitude(city);
-            const lng = mapCityLongitude(city);
-            return lat !== null && lng !== null && mapBounds.contains(L.latLng(lat, lng));
-          })
-        : sorted;
-      next.push(...(insideBounds.length ? insideBounds : sorted).slice(0, 3));
-    });
-
-    return next;
-  }, [cityPoints, mapBounds, mapZoom]);
-
-  function currentFilterRows() {
-    const regionName = regions.find((item) => String((item as any).id) === filters.origin_region_id)?.name || "";
-    const program = studyPrograms.find((item) => String((item as any).id) === filters.study_program_id);
-    const direction = programDirections.find((item) => String((item as any).id) === filters.program_direction_id);
-    return [
-      [t("graduates.filters.adCode", { defaultValue: "Α.Δ." }), filters.ad_code_like],
-      [t("graduates.filters.studentNumber", { defaultValue: "Α.Μ." }), filters.student_number_like],
-      [t("graduates.filters.lastName", { defaultValue: "Επώνυμο" }), filters.last_name_like],
-      [t("graduates.filters.firstName", { defaultValue: "Όνομα" }), filters.first_name_like],
-      [t("graduates.filters.fatherName", { defaultValue: "Πατρώνυμο" }), filters.father_name_like],
-      [t("graduates.filters.gender", { defaultValue: "Φύλο" }), filters.gender === "M" ? t("common.male", { defaultValue: "Άνδρας" }) : filters.gender === "F" ? t("common.female", { defaultValue: "Γυναίκα" }) : ""],
-      [t("graduates.filters.entryYear", { defaultValue: "Έτος εισαγωγής" }), [filters.entry_year_min, filters.entry_year_max].filter(Boolean).join(" - ")],
-      [t("graduates.filters.birthYear", { defaultValue: "Έτος γέννησης" }), [filters.birth_year_min, filters.birth_year_max].filter(Boolean).join(" - ")],
-      [t("graduates.filters.degreeGrade", { defaultValue: "Βαθμός πτυχίου" }), [filters.degree_grade_min, filters.degree_grade_max].filter(Boolean).join(" - ")],
-      [t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" }), filters.graduation_year],
-      [t("graduates.filters.graduationDate", { defaultValue: "Ημερομηνία αποφοίτησης" }), [filters.graduation_date_from, filters.graduation_date_to].filter(Boolean).join(" - ")],
-      [t("graduates.filters.oathDate", { defaultValue: "Ημερομηνία ορκωμοσίας" }), [filters.oath_date_from, filters.oath_date_to].filter(Boolean).join(" - ")],
-      [t("map.filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" }), program ? (activeLang === "en" ? program.name_en || program.name_el || program.code : program.name_el || program.name_en || program.code) : ""],
-      [t("graduates.filters.direction", { defaultValue: "Κατεύθυνση" }), direction ? (activeLang === "en" ? (direction as any).name_en || (direction as any).name_el || (direction as any).code : (direction as any).name_el || (direction as any).name_en || (direction as any).code) : ""],
-      [t("graduates.filters.region", { defaultValue: "Περιφέρεια" }), regionName],
-      [t("graduates.filters.city", { defaultValue: "Πόλη" }), filters.origin_municipality_like],
-      [t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" }), filters.age_group],
-    ].filter((row) => row[1]);
+  async function onApply() {
+    await fetchMap(params);
   }
 
-  function exportRows() {
-    return items.map((it: any) => ({
-      [t("map.export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(it.periphery_name ?? ""),
-      [t("map.export.count", { defaultValue: "Απόφοιτοι" })]: excelCellValue(it.count ?? 0),
-      [t("map.export.avgAge", { defaultValue: "Μέση Ηλικία" })]: excelCellValue(it.avg_age ?? ""),
-      [t("map.export.malePct", { defaultValue: "% Άνδρες" })]: excelCellValue(it.male_pct ?? ""),
-      [t("map.export.femalePct", { defaultValue: "% Γυναίκες" })]: excelCellValue(it.female_pct ?? ""),
-    }));
-  }
-
-  async function onExportExcel() {
-    const workbook = XLSX.utils.book_new();
-    const rows = exportRows();
-    const filtersRows = currentFilterRows();
-
-    const mapSheet = XLSX.utils.json_to_sheet(rows);
-    mapSheet["!cols"] = [{ wch: 28 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
-    XLSX.utils.book_append_sheet(workbook, mapSheet, "Map");
-
-    const filtersSheet = XLSX.utils.aoa_to_sheet([
-      [t("graduates.filters.toggle", { defaultValue: "Φίλτρα" }), t("common.value", { defaultValue: "Τιμή" })],
-      ...filtersRows,
-    ]);
-    filtersSheet["!cols"] = [{ wch: 28 }, { wch: 28 }];
-    XLSX.utils.book_append_sheet(workbook, filtersSheet, "Filters");
-
-    const output = XLSX.write(workbook, { bookType: "xlsx", type: "array", compression: true });
-    downloadBlob("alupla_map_export.xlsx", new Blob([output], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
-
-    try {
-      await logPublicExport("map_export", "xlsx");
-    } catch {
-    }
-  }
-
-  async function onExportCsv() {
-    const rows = exportRows();
-    const filtersRows = currentFilterRows();
-    const headers = Object.keys(rows[0] || {
-      [t("map.export.periphery", { defaultValue: "Περιφέρεια" })]: "",
-      [t("map.export.count", { defaultValue: "Απόφοιτοι" })]: "",
-      [t("map.export.avgAge", { defaultValue: "Μέση Ηλικία" })]: "",
-      [t("map.export.malePct", { defaultValue: "% Άνδρες" })]: "",
-      [t("map.export.femalePct", { defaultValue: "% Γυναίκες" })]: "",
-    });
-    const esc = (value: any) => {
-      const s = String(value ?? "");
-      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-      return s;
-    };
-    const lines = [
-      `${esc(t("graduates.filters.toggle", { defaultValue: "Φίλτρα" }))},${esc(t("common.value", { defaultValue: "Τιμή" }))}`,
-      ...filtersRows.map((row) => `${esc(row[0])},${esc(row[1])}`),
-      "",
-      headers.map(esc).join(","),
-      ...rows.map((row) => headers.map((header) => esc((row as any)[header])).join(",")),
-    ];
-    downloadBlob("alupla_map_export.csv", new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" }));
-    try {
-      await logPublicExport("map_export", "csv");
-    } catch {
-    }
+  function onReset() {
+    setFilters(EMPTY_MAP_FILTERS);
+    setSelected(null);
+    setSelectedCityStats([]);
+    void fetchMap({});
   }
 
   async function onExportPng() {
-    if (!mapCanvasRef.current) return;
+    if (!mapCanvasRef.current) {
+      return;
+    }
     await exportElementAsPng(mapCanvasRef.current, "alupla_map_export.png");
     try {
       await logPublicExport("map_export", "png");
-    } catch {
-    }
+    } catch {}
   }
 
-  function legendBuckets(max: number) {
-    const m = Math.max(1, max);
-    const b1 = Math.ceil(m * 0.2);
-    const b2 = Math.ceil(m * 0.4);
-    const b3 = Math.ceil(m * 0.6);
-    const b4 = Math.ceil(m * 0.8);
-    return [0, b1, b2, b3, b4, m];
-  }
-
-  const buckets = useMemo(() => legendBuckets(maxCount), [maxCount]);
-  const geoRenderKey = useMemo(() => `${i18n.language}:${items.length}:${maxCount}`, [i18n.language, items.length, maxCount]);
+  const filterRows = useMemo(() => buildMapFilterRows({ t, filters, activeLang, studyPrograms, programDirections, regions }), [t, filters, activeLang, studyPrograms, programDirections, regions]);
 
   return (
     <div className="container">
@@ -887,100 +509,29 @@ export default function Map() {
       </div>
 
       <div className="page-two-col" style={{ marginTop: 12 }}>
-        <div className="card alupla-map-card">
-          <div className="alupla-map map-canvas" ref={mapCanvasRef}>
-            <MapContainer
-              center={[38.6, 24.0]}
-              zoom={6.5 as any}
-              zoomSnap={0.5}
-              whenCreated={(m) => {
-                mapRef.current = m;
-                setMapZoom(m.getZoom());
-                setMapBounds(m.getBounds());
-              }}
-              style={{ height: "100%", width: "100%", background: "transparent" }}
-              scrollWheelZoom
-            >
-              <MapViewportWatcher onZoomChange={setMapZoom} onBoundsChange={setMapBounds} />
-
-              {geojson ? (
-                <GeoJSON
-                  key={geoRenderKey}
-                  data={geojson as any}
-                  style={(feature: any) => {
-                    const c = currentCountForFeature(feature);
-                    return {
-                      color: "#334155",
-                      weight: 1,
-                      fillColor: fillColorForCount(c),
-                      fillOpacity: fillOpacityForCount(c),
-                    } as any;
-                  }}
-                  onEachFeature={(feature: any, layer: any) => {
-                    layer.bindTooltip(renderTooltipHtml(feature), { sticky: true, className: "alupla-region-tooltip" });
-                    layer.on({
-                      mouseover: () => {
-                        layer.setStyle({ weight: 2 });
-                        layer.bringToFront();
-                        layer.setTooltipContent(renderTooltipHtml(feature));
-                      },
-                      mouseout: () => {
-                        layer.setStyle({ weight: 1 });
-                      },
-                      click: () => {
-                        const key = normalizeKey(featureGreekName(feature));
-                        const match = itemsRef.current.find((it: any) => normalizeKey(String(it.periphery_name || "")) === key) || null;
-                        setSelected(match);
-                        layer.setTooltipContent(renderTooltipHtml(feature));
-                      },
-                    });
-                  }}
-                />
-              ) : null}
-
-              {visibleCities.map((city) => {
-                const lat = mapCityLatitude(city);
-                const lng = mapCityLongitude(city);
-                if (lat === null || lng === null) return null;
-                return (
-                  <Marker
-                    key={mapCityKey(city)}
-                    position={[lat, lng]}
-                    icon={cityLabelIcon(mapCityLabel(city, activeLang))}
-                    interactive={false}
-                  />
-                );
-              })}
-            </MapContainer>
-          </div>
-
-          <div style={{ position: "absolute", left: 12, bottom: 12, background: "rgba(255,255,255,.94)", border: "1px solid var(--border)", borderRadius: 14, padding: "10px 12px", fontSize: 12, boxShadow: "var(--shadow)", maxWidth: 220 }}>
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>{t("map.legend", { defaultValue: "Υπόμνημα" })}</div>
-            <div className="muted" style={{ marginBottom: 8 }}>
-              {t("map.legendCounts", { defaultValue: "Αριθμός αποφοίτων" })}
-            </div>
-            <div style={{ display: "grid", gap: 6 }}>
-              {Array.from({ length: 5 }).map((_, idx) => {
-                const from = buckets[idx];
-                const to = buckets[idx + 1];
-                const mid = (from + to) / 2;
-                const opacity = fillOpacityForCount(mid);
-                const color = fillColorForCount(mid);
-                return (
-                  <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 16, height: 12, display: "inline-block", border: "1px solid #334155", background: color, opacity, borderRadius: 3 }} />
-                    <span>{from}–{to}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <MapCanvasCard
+          mapCanvasRef={mapCanvasRef}
+          mapRef={mapRef}
+          geojson={geojson}
+          geoRenderKey={geoRenderKey}
+          itemsRef={itemsRef}
+          visibleCities={visibleCities}
+          buckets={buckets}
+          t={t}
+          onZoomChange={setMapZoom}
+          onBoundsChange={setMapBounds}
+          setSelected={setSelected}
+          featureGreekName={featureGreekName}
+          currentCountForFeature={currentCountForFeature}
+          renderTooltipHtml={renderTooltipHtml}
+          fillColorForCount={fillColorForCount}
+          fillOpacityForCount={fillOpacityForCount}
+        />
 
         <div className="map-panel-stack">
           <div className="map-actions-bar">
             <div style={{ position: "relative" }} ref={exportMenuRef}>
-              <button className="btn map-action-button" type="button" onClick={() => setShowExportMenu((prev) => !prev)} disabled={loading || items.length === 0}>
+              <button className="btn map-action-button" type="button" onClick={() => setShowExportMenu((current) => !current)} disabled={loading || items.length === 0}>
                 {t("common.export", { defaultValue: "Export" })}
               </button>
               {showExportMenu ? (
@@ -988,122 +539,34 @@ export default function Map() {
                   <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>
                     {t("map.exportPng", { defaultValue: "Export map as PNG" })}
                   </button>
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>
+                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void exportMapExcel({ items, filtersRows: filterRows, t }); }}>
                     {t("map.exportExcel", { defaultValue: "Export Excel" })}
                   </button>
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>
+                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void exportMapCsv({ items, filtersRows: filterRows, t }); }}>
                     {t("map.exportCsv", { defaultValue: "Export CSV" })}
                   </button>
                 </div>
               ) : null}
             </div>
-            <button className="btn map-action-button" type="button" onClick={() => setShowFilters((prev) => !prev)}>
+            <button className="btn map-action-button" type="button" onClick={() => setShowFilters((current) => !current)}>
               {showFilters ? t("common.hide", { defaultValue: "Απόκρυψη" }) : t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}
             </button>
           </div>
 
           {showFilters ? (
-            <>
-              <button className="map-filters-overlay" type="button" aria-label={t("common.close", { defaultValue: "Κλείσιμο" })} onClick={() => setShowFilters(false)} />
-              <div className="card map-filters-modal">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <h3 style={{ margin: 0 }}>{t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}</h3>
-                  <button className="btn" type="button" onClick={() => setShowFilters(false)}>
-                    {t("common.hide", { defaultValue: "Απόκρυψη" })}
-                  </button>
-                </div>
-
-                <div className="map-filters-grid">
-                  <FilterSection title="">
-                    <Field label={t("graduates.filters.adCode", { defaultValue: "Α.Δ." })} span={1}>
-                      <input className="input" value={filters.ad_code_like} onChange={(e) => updateFilter("ad_code_like", e.target.value)} />
-                    </Field>
-                    <Field label={t("graduates.filters.studentNumber", { defaultValue: "Α.Μ." })} span={1}>
-                      <input className="input" value={filters.student_number_like} onChange={(e) => updateFilter("student_number_like", e.target.value)} />
-                    </Field>
-                    <Field label={t("graduates.filters.lastName", { defaultValue: "Επώνυμο" })} span={1}>
-                      <input className="input" value={filters.last_name_like} onChange={(e) => updateFilter("last_name_like", e.target.value)} />
-                    </Field>
-                    <Field label={t("graduates.filters.firstName", { defaultValue: "Όνομα" })} span={1}>
-                      <input className="input" value={filters.first_name_like} onChange={(e) => updateFilter("first_name_like", e.target.value)} />
-                    </Field>
-                    <Field label={t("graduates.filters.fatherName", { defaultValue: "Πατρώνυμο" })} span={1}>
-                      <input className="input" value={filters.father_name_like} onChange={(e) => updateFilter("father_name_like", e.target.value)} />
-                    </Field>
-                    <Field label={t("graduates.filters.city", { defaultValue: "Πόλη" })} span={1}>
-                      <input className="input" value={filters.origin_municipality_like} onChange={(e) => updateFilter("origin_municipality_like", e.target.value)} />
-                    </Field>
-                  </FilterSection>
-
-                  <FilterSection title="">
-                    <Field label={t("graduates.filters.gender", { defaultValue: "Φύλο" })} span={1}>
-                      <select className="input" value={filters.gender} onChange={(e) => updateFilter("gender", e.target.value)}>
-                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                        <option value="M">{t("common.male", { defaultValue: "Άνδρας" })}</option>
-                        <option value="F">{t("common.female", { defaultValue: "Γυναίκα" })}</option>
-                      </select>
-                    </Field>
-                    <RangeField label={t("graduates.filters.birthYear", { defaultValue: "Έτος γέννησης" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.birth_year_min} toValue={filters.birth_year_max} onFromChange={(value) => updateFilter("birth_year_min", value)} onToChange={(value) => updateFilter("birth_year_max", value)} type="number" span={1} />
-                    <Field label={t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" })} span={1}>
-                      <select className="input" value={filters.age_group} onChange={(e) => updateFilter("age_group", e.target.value as AgeGroup)}>
-                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                        <option value="18-22">18-22</option>
-                        <option value="23-26">23-26</option>
-                        <option value="27-30">27-30</option>
-                        <option value="31+">31+</option>
-                      </select>
-                    </Field>
-                    <Field label={t("graduates.filters.region", { defaultValue: "Περιφέρεια" })} span={1}>
-                      <select className="input" value={filters.origin_region_id} onChange={(e) => updateFilter("origin_region_id", e.target.value)}>
-                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                        {regions.map((region) => (
-                          <option key={region.id} value={String(region.id)}>{region.name}</option>
-                        ))}
-                      </select>
-                    </Field>
-                  </FilterSection>
-
-                  <FilterSection title="">
-                    <RangeField label={t("graduates.filters.entryYear", { defaultValue: "Έτος εισαγωγής" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.entry_year_min} toValue={filters.entry_year_max} onFromChange={(value) => updateFilter("entry_year_min", value)} onToChange={(value) => updateFilter("entry_year_max", value)} type="number" span={1} />
-                    <Field label={t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" })} span={1}>
-                      <input className="input" value={filters.graduation_year} onChange={(e) => updateFilter("graduation_year", e.target.value)} />
-                    </Field>
-                    <RangeField label={t("graduates.filters.degreeGrade", { defaultValue: "Βαθμός πτυχίου" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.degree_grade_min} toValue={filters.degree_grade_max} onFromChange={(value) => updateFilter("degree_grade_min", value)} onToChange={(value) => updateFilter("degree_grade_max", value)} type="number" step="0.1" span={1} />
-                    <RangeField label={t("graduates.filters.graduationDate", { defaultValue: "Ημερομηνία αποφοίτησης" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.graduation_date_from} toValue={filters.graduation_date_to} onFromChange={(value) => updateFilter("graduation_date_from", value)} onToChange={(value) => updateFilter("graduation_date_to", value)} type="date" span={1} />
-                    <RangeField label={t("graduates.filters.oathDate", { defaultValue: "Ημερομηνία ορκωμοσίας" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.oath_date_from} toValue={filters.oath_date_to} onFromChange={(value) => updateFilter("oath_date_from", value)} onToChange={(value) => updateFilter("oath_date_to", value)} type="date" span={1} />
-                    <Field label={t("map.filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })} span={1}>
-                      <select className="input" value={filters.study_program_id} onChange={(e) => updateFilter("study_program_id", e.target.value)}>
-                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                        {studyPrograms.map((program) => (
-                          <option key={program.id} value={String(program.id)}>
-                            {activeLang === "en" ? program.name_en || program.name_el || program.code : program.name_el || program.name_en || program.code}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                    <Field label={t("graduates.filters.direction", { defaultValue: "Κατεύθυνση" })} span={1}>
-                      <select className="input" value={filters.program_direction_id} onChange={(e) => updateFilter("program_direction_id", e.target.value)}>
-                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                        {availableDirections.map((direction) => (
-                          <option key={direction.id} value={String(direction.id)}>
-                            {activeLang === "en" ? (direction as any).name_en || (direction as any).name_el || (direction as any).code : (direction as any).name_el || (direction as any).name_en || (direction as any).code}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                  </FilterSection>
-                </div>
-
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                  <button className="btn" type="button" onClick={onReset} disabled={loading}>
-                    {t("common.reset", { defaultValue: "Reset" })}
-                  </button>
-                  <button className="btn primary" type="button" onClick={onApply} disabled={loading}>
-                    {t("common.apply", { defaultValue: "Εφαρμογή" })}
-                  </button>
-                </div>
-              </div>
-            </>
+            <MapFiltersForm
+              filters={filters}
+              regions={regions}
+              studyPrograms={studyPrograms}
+              availableDirections={availableDirections}
+              activeLang={activeLang}
+              t={t}
+              loading={loading}
+              onClose={() => setShowFilters(false)}
+              onApply={() => void onApply()}
+              onReset={onReset}
+              onChange={updateFilter}
+            />
           ) : null}
 
           <div className="card">
@@ -1113,14 +576,14 @@ export default function Map() {
             ) : (
               <div className="grid" style={{ gap: 10 }}>
                 <DetailStatsCard
-                  title={(selected as any).periphery_name}
-                  total={(selected as any).count ?? 0}
-                  avgAge={(selected as any).avg_age}
-                  malePct={(selected as any).male_pct}
-                  femalePct={(selected as any).female_pct}
-                  avgGrade={(selected as any).avg_grade}
-                  avgGraduationYears={(selected as any).avg_graduation_years}
-                  totalText={t("map.total", { total: (selected as any).count ?? 0, defaultValue: "Σύνολο: {{total}}" })}
+                  title={selected.periphery_name}
+                  total={selected.count ?? 0}
+                  avgAge={selected.avg_age}
+                  malePct={selected.male_pct}
+                  femalePct={selected.female_pct}
+                  avgGrade={selected.avg_grade}
+                  avgGraduationYears={selected.avg_graduation_years}
+                  totalText={t("map.total", { total: selected.count ?? 0, defaultValue: "Σύνολο: {{total}}" })}
                   totalLabel={t("map.totalLabel", { defaultValue: "Σύνολο" })}
                   avgAgeLabel={t("map.avgAge", { defaultValue: "Μέση ηλικία" })}
                   malePctLabel={t("map.malePct", { defaultValue: "% Άνδρες" })}
@@ -1130,31 +593,31 @@ export default function Map() {
                 />
 
                 {cityStatsLoading ? (
-                    <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
-                  ) : selectedCityStats.length > 0 ? (
-                    <div style={{ display: "grid", gap: 10 }}>
-                      <label className="label">{t("map.cities", { defaultValue: "Πόλεις" })}</label>
-                      {selectedCityStats.map((city) => (
-                        <DetailStatsCard
-                          key={`${selected?.periphery_id}-${city.city}`}
-                          title={city.city}
-                          total={city.count}
-                          avgAge={city.avg_age}
-                          malePct={city.male_pct}
-                          femalePct={city.female_pct}
-                          avgGrade={city.avg_grade}
-                          avgGraduationYears={city.avg_graduation_years}
-                          totalText={t("map.total", { total: city.count ?? 0, defaultValue: "Σύνολο: {{total}}" })}
-                          totalLabel={t("map.totalLabel", { defaultValue: "Σύνολο" })}
-                          avgAgeLabel={t("map.avgAge", { defaultValue: "Μέση ηλικία" })}
-                          malePctLabel={t("map.malePct", { defaultValue: "% Άνδρες" })}
-                          femalePctLabel={t("map.femalePct", { defaultValue: "% Γυναίκες" })}
-                          avgGradeLabel={t("map.avgGrade", { defaultValue: "Μέσος βαθμός" })}
-                          avgGraduationYearsLabel={t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" })}
-                        />
-                      ))}
-                    </div>
-                  ) : null}
+                  <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
+                ) : selectedCityStats.length > 0 ? (
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <label className="label">{t("map.cities", { defaultValue: "Πόλεις" })}</label>
+                    {selectedCityStats.map((city) => (
+                      <DetailStatsCard
+                        key={`${selected.periphery_id}-${city.city}`}
+                        title={city.city}
+                        total={city.count}
+                        avgAge={city.avg_age}
+                        malePct={city.male_pct}
+                        femalePct={city.female_pct}
+                        avgGrade={city.avg_grade}
+                        avgGraduationYears={city.avg_graduation_years}
+                        totalText={t("map.total", { total: city.count ?? 0, defaultValue: "Σύνολο: {{total}}" })}
+                        totalLabel={t("map.totalLabel", { defaultValue: "Σύνολο" })}
+                        avgAgeLabel={t("map.avgAge", { defaultValue: "Μέση ηλικία" })}
+                        malePctLabel={t("map.malePct", { defaultValue: "% Άνδρες" })}
+                        femalePctLabel={t("map.femalePct", { defaultValue: "% Γυναίκες" })}
+                        avgGradeLabel={t("map.avgGrade", { defaultValue: "Μέσος βαθμός" })}
+                        avgGraduationYearsLabel={t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" })}
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
