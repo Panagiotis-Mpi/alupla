@@ -21,109 +21,142 @@ import PublicHome from "./pages/PublicHome";
 import Footer from "./components/Footer";
 import AcademicData from "./pages/AcademicData";
 
+type NavLinkItem = {
+  to: string;
+  label: string;
+};
+
+const AUTH_PATHS = ["/login", "/register", "/verify", "/forgot", "/reset"];
+const COMPACT_WIDTH = 820;
+const SUPER_ADMIN_ROLE = "super_admin";
+
+function isCompactViewport() {
+  return typeof window !== "undefined" ? window.innerWidth <= COMPACT_WIDTH : false;
+}
+
+function isAuthPath(pathname: string) {
+  return AUTH_PATHS.some((path) => pathname.startsWith(path));
+}
+
+function buildPublicLinks(t: ReturnType<typeof useTranslation>["t"]): NavLinkItem[] {
+  return [
+    { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) },
+    { to: "/map", label: t("nav.map") },
+  ];
+}
+
+function getAcademicDataLabel(
+  role: string | undefined,
+  lang: "gr" | "en",
+  t: ReturnType<typeof useTranslation>["t"]
+) {
+  if (role !== SUPER_ADMIN_ROLE) {
+    return t("nav.academicData");
+  }
+
+  const translated = t("nav.academicPrograms", { defaultValue: "" });
+  if (translated && translated !== "nav.academicPrograms") {
+    return translated;
+  }
+
+  return lang === "en" ? "Academic Programs" : "Ακαδημαϊκά προγράμματα";
+}
+
+function buildNavLinks(
+  user: ReturnType<typeof getUser>,
+  role: string | undefined,
+  academicDataLabel: string,
+  t: ReturnType<typeof useTranslation>["t"]
+): NavLinkItem[] {
+  const statisticsLink = { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) };
+  const mapLink = { to: "/map", label: t("nav.map") };
+
+  if (!user) {
+    return [statisticsLink, mapLink];
+  }
+
+  const graduateLinks: NavLinkItem[] = [
+    { to: "/graduates", label: t("nav.graduates") },
+    statisticsLink,
+    mapLink,
+  ];
+
+  if (role !== SUPER_ADMIN_ROLE) {
+    return graduateLinks;
+  }
+
+  return [
+    graduateLinks[0],
+    { to: "/academic-data", label: academicDataLabel },
+    graduateLinks[1],
+    graduateLinks[2],
+    { to: "/regions", label: t("nav.regions", { defaultValue: "Περιοχές" }) },
+    { to: "/users", label: t("nav.users") },
+    { to: "/logs", label: t("nav.logs") },
+  ];
+}
+
 function TopNav() {
   const { t } = useTranslation();
   const user = getUser();
   const role = user?.role;
-  const nav = useNavigate();
-  const loc = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [isCompact, setIsCompact] = React.useState(() =>
-    typeof window !== "undefined" ? window.innerWidth <= 820 : false
+  const [isCompact, setIsCompact] = React.useState(isCompactViewport);
+
+  const authRoute = React.useMemo(() => isAuthPath(location.pathname), [location.pathname]);
+  const lang: "gr" | "en" = i18n.language?.startsWith("en") ? "en" : "gr";
+
+  const authLinks = React.useMemo(() => buildPublicLinks(t), [t]);
+  const academicDataLabel = React.useMemo(() => getAcademicDataLabel(role, lang, t), [lang, role, t]);
+  const navLinks = React.useMemo(
+    () => buildNavLinks(user, role, academicDataLabel, t),
+    [academicDataLabel, role, t, user]
   );
 
-  const isAuthRoute = ["/login", "/register", "/verify", "/forgot", "/reset"].some((p) =>
-    loc.pathname.startsWith(p)
-  );
+  const closeMenu = React.useCallback(() => setMenuOpen(false), []);
 
-  const onLogout = () => {
+  const handleLogout = React.useCallback(() => {
     logout();
-    nav("/login");
-  };
+    navigate("/login");
+  }, [navigate]);
 
-  const onBrandClick = () => {
-    if (!user) {
-      nav("/");
+  const handleBrandClick = React.useCallback(() => {
+    if (isCompact) {
+      setMenuOpen((open) => !open);
       return;
     }
-    nav("/graduates");
-  };
 
-  const lang = i18n.language?.startsWith("en") ? "en" : "gr";
+    navigate(user ? "/graduates" : "/");
+  }, [isCompact, navigate, user]);
 
-  const authLinks = [
-    { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) },
-    { to: "/map", label: t("nav.map") },
-  ];
-
-  const academicDataLabel = React.useMemo(() => {
-    if (role !== "super_admin") {
-      return t("nav.academicData");
+  const handleResize = React.useCallback(() => {
+    const compact = isCompactViewport();
+    setIsCompact(compact);
+    if (!compact) {
+      setMenuOpen(false);
     }
-
-    const customLabel = t("nav.academicPrograms", { defaultValue: "" });
-    if (customLabel && customLabel !== "nav.academicPrograms") {
-      return customLabel;
-    }
-
-    return lang === "en" ? "Academic Programs" : "Ακαδημαϊκά προγράμματα";
-  }, [lang, role, t]);
-
-  React.useEffect(() => {
-    const onResize = () => {
-      const compact = window.innerWidth <= 820;
-      setIsCompact(compact);
-      if (!compact) setMenuOpen(false);
-    };
-    onResize();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   React.useEffect(() => {
-    setMenuOpen(false);
-  }, [loc.pathname]);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [handleResize]);
 
-  const navLinks: Array<{ to: string; label: string }> = React.useMemo(() => {
-    const statsLabel = t("nav.statistics", { defaultValue: "Στατιστικά" });
-    const mapLabel = t("nav.map");
-    const gradsLabel = t("nav.graduates");
-    const usersLabel = t("nav.users");
-    const logsLabel = t("nav.logs");
+  React.useEffect(() => {
+    closeMenu();
+  }, [closeMenu, location.pathname]);
 
-    if (!user) return [{ to: "/statistics", label: statsLabel }, { to: "/map", label: mapLabel }];
-
-    if (role === "super_admin") {
-      return [
-        { to: "/graduates", label: gradsLabel },
-        { to: "/academic-data", label: academicDataLabel },
-        { to: "/statistics", label: statsLabel },
-        { to: "/map", label: mapLabel },
-        { to: "/regions", label: t("nav.regions", { defaultValue: "Περιοχές" }) },
-        { to: "/users", label: usersLabel },
-        { to: "/logs", label: logsLabel },
-      ];
-    }
-
-    return [
-      { to: "/graduates", label: gradsLabel },
-      { to: "/statistics", label: statsLabel },
-      { to: "/map", label: mapLabel },
-    ];
-  }, [academicDataLabel, role, t, user]);
+  const visibleLinks = authRoute ? authLinks : navLinks;
 
   return (
     <div className="nav">
       <button
         className={`brand ${isCompact ? "brand-compact" : ""}`}
         type="button"
-        onClick={() => {
-          if (isCompact) {
-            setMenuOpen((v) => !v);
-            return;
-          }
-          onBrandClick();
-        }}
+        onClick={handleBrandClick}
         aria-label={isCompact ? "ALUPLA menu" : "ALUPLA Home"}
         aria-expanded={isCompact ? menuOpen : undefined}
         aria-controls={isCompact ? "mobile-drawer" : undefined}
@@ -133,29 +166,17 @@ function TopNav() {
       </button>
 
       <div className="nav-links desktop-only">
-        {isAuthRoute ? (
-          <>
-            {authLinks.map((link) => (
-              <Link key={link.to} className="btn" to={link.to}>
-                {link.label}
-              </Link>
-            ))}
-          </>
-        ) : (
-          <>
-            {navLinks.map((l) => (
-              <Link key={l.to} className="btn" to={l.to}>
-                {l.label}
-              </Link>
-            ))}
-          </>
-        )}
+        {visibleLinks.map((link) => (
+          <Link key={link.to} className="btn" to={link.to}>
+            {link.label}
+          </Link>
+        ))}
       </div>
 
       <div className="spacer" />
 
       <div className="nav-right">
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div className="lang-switcher">
           <button
             className="btn"
             onClick={() => i18n.changeLanguage("gr")}
@@ -164,7 +185,7 @@ function TopNav() {
           >
             GR
           </button>
-          <span style={{ opacity: 0.6 }}>|</span>
+          <span className="lang-switcher-separator">|</span>
           <button
             className="btn"
             onClick={() => i18n.changeLanguage("en")}
@@ -175,26 +196,26 @@ function TopNav() {
           </button>
         </div>
 
-        {!isAuthRoute && (
+        {!authRoute && (
           <div className="nav-actions">
             {user ? (
-              <button className="btn user-profile-btn" onClick={() => nav("/profile")}>
+              <button className="btn user-profile-btn" onClick={() => navigate("/profile")}>
                 {`${user.first_name} ${user.last_name}`}
               </button>
             ) : null}
             <div className="desktop-only nav-actions-desktop">
               {user ? (
-                <button className="btn" onClick={onLogout}>
+                <button className="btn" onClick={handleLogout}>
                   {t("nav.logout")}
                 </button>
               ) : (
-                <button className="btn" onClick={() => nav("/login")}>
+                <button className="btn" onClick={() => navigate("/login")}>
                   {t("nav.login", { defaultValue: "Σύνδεση" })}
                 </button>
               )}
             </div>
             {!user ? (
-              <button className="btn mobile-login" onClick={() => nav("/login")}>
+              <button className="btn mobile-login" onClick={() => navigate("/login")}>
                 {t("nav.login", { defaultValue: "Σύνδεση" })}
               </button>
             ) : null}
@@ -207,28 +228,30 @@ function TopNav() {
           className="drawer-backdrop"
           type="button"
           aria-label="Close menu"
-          onClick={() => setMenuOpen(false)}
+          onClick={closeMenu}
         />
       )}
       <aside id="mobile-drawer" className={`mobile-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
         <div className="mobile-drawer-header">
-          <strong style={{ cursor: "pointer" }} onClick={() => setMenuOpen(false)}>ALUPLA</strong>
+          <button className="brand mobile-drawer-brand" type="button" onClick={closeMenu}>
+            ALUPLA
+          </button>
         </div>
 
         <div className="mobile-drawer-section">
-          {(isAuthRoute ? authLinks : navLinks).map((l) => (
-            <Link key={l.to} className="btn" to={l.to}>
-              {l.label}
+          {visibleLinks.map((link) => (
+            <Link key={link.to} className="btn" to={link.to}>
+              {link.label}
             </Link>
           ))}
         </div>
 
-        {!isAuthRoute && user && (
+        {!authRoute && user && (
           <div className="mobile-drawer-section">
-            <button className="btn" onClick={() => nav("/profile")}>
+            <button className="btn" onClick={() => navigate("/profile")}>
               {`${user.first_name} ${user.last_name}`}
             </button>
-            <button className="btn" onClick={onLogout}>
+            <button className="btn" onClick={handleLogout}>
               {t("nav.logout")}
             </button>
           </div>
@@ -240,9 +263,9 @@ function TopNav() {
 
 export default function App() {
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div className="app-shell">
       <TopNav />
-      <div className="container" style={{ flex: 1, width: "100%" }}>
+      <div className="container app-content">
         <Routes>
           <Route path="/" element={<PublicHome />} />
           <Route path="/login" element={<Login />} />
