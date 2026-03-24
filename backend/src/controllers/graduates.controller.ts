@@ -332,12 +332,26 @@ function ensureManagedOrigin(
 
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
   try {
+    const where = buildGraduateWhere(req.query as Record<string, unknown>);
+    const order = parseSort(req.query.sort);
+    const hasPaging = req.query.page != null || req.query.pageSize != null;
+
+    if (!hasPaging) {
+      const rows = await Graduate.findAll({ where, order });
+      const total = rows.length;
+      res.json({
+        ok: true,
+        page: 1,
+        pageSize: total,
+        total,
+        items: rows
+      });
+      return;
+    }
+
     const page = clamp(toIntParam(req.query.page, 1), 1, 1_000_000);
     const pageSize = clamp(toIntParam(req.query.pageSize, 20), 1, 10000);
     const offset = (page - 1) * pageSize;
-
-    const where = buildGraduateWhere(req.query as Record<string, unknown>);
-    const order = parseSort(req.query.sort);
 
     const { rows, count } = await Graduate.findAndCountAll({
       where,

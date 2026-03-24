@@ -105,7 +105,7 @@ function RangeField(props: {
 }
 
 export function buildGraduatesParams(filters: GraduatesFiltersState) {
-  const params: Record<string, string | number> = { page: 1, pageSize: 10000 };
+  const params: Record<string, string | number> = {};
   Object.entries(filters).forEach(([key, value]) => {
     const trimmed = typeof value === "string" ? value.trim() : value;
     if (trimmed === undefined || trimmed === null || trimmed === "") {
