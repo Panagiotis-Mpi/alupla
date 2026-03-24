@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import XLSX from "xlsx";
 import { Op } from "sequelize";
 import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
@@ -25,6 +26,7 @@ type PeripheryPayload = {
 
 type CityValidation = { value: CityPayload } | { error: string };
 type PeripheryValidation = { value: PeripheryPayload } | { error: string };
+type RegionImportMode = "PERIPHERY" | "CITY";
 
 function badRequest(res: Response, message: string) {
   return res.status(400).json({ ok: false, error: { message } });
@@ -67,6 +69,173 @@ function toNullableCoord(value: unknown) {
   if (value === null || value === undefined || value === "") return null;
   const num = Number(value);
   return Number.isFinite(num) ? num : NaN;
+}
+
+
+function getCellValue(row: Record<string, unknown>, names: string[]) {
+  for (const name of names) {
+    if (row[name] !== undefined && row[name] !== null && String(row[name]).trim() !== "") return row[name];
+  }
+  return undefined;
+}
+
+function getTextCell(row: Record<string, unknown>, names: string[]) {
+  const value = getCellValue(row, names);
+  return String(value ?? "").trim();
+}
+
+function getCoordCell(row: Record<string, unknown>, names: string[]) {
+  const value = getCellValue(row, names);
+  if (value === undefined || value === null || String(value).trim() === "") return null;
+  const num = Number(String(value).replace(/,/g, "."));
+  return Number.isFinite(num) ? num : NaN;
+}
+
+function parseRegionRows(file: Express.Multer.File | undefined) {
+  if (!file) return [];
+  const workbook = XLSX.read(file.buffer, { type: "buffer" });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return [];
+  const sheet = workbook.Sheets[sheetName];
+  return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+}
+
+async function importPeripheryRows(rows: Record<string, unknown>[], userId: number | null) {
+  let inserted = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  const existingItems = await Region.findAll({
+    where: { type: "PERIPHERY" },
+    attributes: ["id", "name"],
+  });
+  const existingByName = new Map<string, number>();
+  for (const item of existingItems as any[]) {
+    existingByName.set(normalizeRegionName(item.name), Number(item.id));
+  }
+
+  for (const row of rows) {
+    const name = getTextCell(row, ["name", "Name", "όνομα", "Όνομα"]);
+    const latitude = getCoordCell(row, ["latitude", "Latitude", "lat", "Lat"]);
+    const longitude = getCoordCell(row, ["longitude", "Longitude", "lng", "Lng", "lon", "Lon"]);
+
+    if (!name) {
+      skipped += 1;
+      continue;
+    }
+
+    const existingId = existingByName.get(normalizeRegionName(name));
+
+    if (existingId) {
+      const validatedExisting = await validatePeripheryInput({ name, latitude, longitude }, existingId);
+      if ("error" in validatedExisting) {
+        skipped += 1;
+        continue;
+      }
+      const item = await Region.findByPk(existingId);
+      if (!item) {
+        skipped += 1;
+        continue;
+      }
+      await item.update(validatedExisting.value as any);
+      updated += 1;
+      continue;
+    }
+
+    const validatedNew = await validatePeripheryInput({ name, latitude, longitude });
+    if ("error" in validatedNew) {
+      skipped += 1;
+      continue;
+    }
+    const item = await Region.create(validatedNew.value as any);
+    existingByName.set(normalizeRegionName(name), Number((item as any).id));
+    inserted += 1;
+  }
+
+  await logAction({
+    user_id: userId,
+    action: "import_region_peripheries",
+    entity_type: "region",
+    entity_id: null,
+    details: { inserted, updated, skipped },
+  });
+
+  return { inserted, updated, skipped };
+}
+
+async function importCityRows(rows: Record<string, unknown>[], userId: number | null) {
+  let inserted = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  const peripheries = await Region.findAll({
+    where: { type: "PERIPHERY" },
+    attributes: ["id", "name"],
+  });
+  const peripheryByName = new Map<string, { id: number; name: string }>();
+  for (const item of peripheries as any[]) {
+    peripheryByName.set(normalizeRegionName(item.name), { id: Number(item.id), name: String(item.name) });
+  }
+
+  for (const row of rows) {
+    const name = getTextCell(row, ["name", "Name", "city", "City", "πόλη", "Πόλη", "όνομα", "Όνομα", "όνομα πόλης", "Όνομα πόλης"]);
+    const peripheryName = getTextCell(row, ["periphery", "Periphery", "region", "Region", "περιφέρεια", "Περιφέρεια"]);
+    const latitude = getCoordCell(row, ["latitude", "Latitude", "lat", "Lat"]);
+    const longitude = getCoordCell(row, ["longitude", "Longitude", "lng", "Lng", "lon", "Lon"]);
+
+    if (!name || !peripheryName) {
+      skipped += 1;
+      continue;
+    }
+
+    const periphery = peripheryByName.get(normalizeRegionName(peripheryName));
+    if (!periphery) {
+      skipped += 1;
+      continue;
+    }
+
+    const cityItems = await Region.findAll({
+      where: { type: "CITY", parent_id: periphery.id },
+      attributes: ["id", "name"],
+    });
+    const existingId = (cityItems as any[])
+      .map((item) => ({ id: Number(item.id), key: normalizeRegionName(item.name) }))
+      .find((item) => item.key === normalizeRegionName(name))?.id;
+
+    if (existingId) {
+      const validatedExisting = await validateCityInput({ name, parent_id: periphery.id, latitude, longitude }, existingId);
+      if ("error" in validatedExisting) {
+        skipped += 1;
+        continue;
+      }
+      const item = await Region.findByPk(existingId);
+      if (!item) {
+        skipped += 1;
+        continue;
+      }
+      await item.update(validatedExisting.value as any);
+      updated += 1;
+      continue;
+    }
+
+    const validatedNew = await validateCityInput({ name, parent_id: periphery.id, latitude, longitude });
+    if ("error" in validatedNew) {
+      skipped += 1;
+      continue;
+    }
+    await Region.create(validatedNew.value as any);
+    inserted += 1;
+  }
+
+  await logAction({
+    user_id: userId,
+    action: "import_region_cities",
+    entity_type: "region",
+    entity_id: null,
+    details: { inserted, updated, skipped },
+  });
+
+  return { inserted, updated, skipped };
 }
 
 async function findRegionById(idValue: unknown) {
@@ -300,25 +469,47 @@ export async function listUnmatchedCities(req: Request, res: Response, next: Nex
 export async function createRegion(req: Request, res: Response, next: NextFunction) {
   try {
     const type = String(req.body?.type ?? "").trim();
-    if (type !== "CITY") return badRequest(res, "Only CITY creation is supported");
 
-    const validated = await validateCityInput(req.body);
-    if ("error" in validated) return badRequest(res, validated.error);
+    if (type === "CITY") {
+      const validated = await validateCityInput(req.body);
+      if ("error" in validated) return badRequest(res, validated.error);
 
-    const item = await Region.create(validated.value as any);
+      const item = await Region.create(validated.value as any);
 
-    await logAction({
-      user_id: req.user?.id ?? null,
-      action: "create_region_city",
-      entity_type: "region",
-      entity_id: Number((item as any).id),
-      details: {
-        name: validated.value.name,
-        parent_id: validated.value.parent_id,
-      },
-    });
+      await logAction({
+        user_id: req.user?.id ?? null,
+        action: "create_region_city",
+        entity_type: "region",
+        entity_id: Number((item as any).id),
+        details: {
+          name: validated.value.name,
+          parent_id: validated.value.parent_id,
+        },
+      });
 
-    res.status(201).json({ ok: true, item });
+      return res.status(201).json({ ok: true, item });
+    }
+
+    if (type === "PERIPHERY") {
+      const validated = await validatePeripheryInput(req.body);
+      if ("error" in validated) return badRequest(res, validated.error);
+
+      const item = await Region.create(validated.value as any);
+
+      await logAction({
+        user_id: req.user?.id ?? null,
+        action: "create_region_periphery",
+        entity_type: "region",
+        entity_id: Number((item as any).id),
+        details: {
+          name: validated.value.name,
+        },
+      });
+
+      return res.status(201).json({ ok: true, item });
+    }
+
+    return badRequest(res, "Only CITY or PERIPHERY creation is supported");
   } catch (err) {
     next(err);
   }
@@ -372,6 +563,24 @@ export async function updateRegion(req: Request, res: Response, next: NextFuncti
     }
 
     return badRequest(res, "Only CITY or PERIPHERY update is supported");
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function importRegions(req: Request, res: Response, next: NextFunction) {
+  try {
+    const mode = String(req.body?.mode ?? "").trim() as RegionImportMode;
+    if (mode !== "PERIPHERY" && mode !== "CITY") return badRequest(res, "Invalid import mode");
+
+    const rows = parseRegionRows(req.file);
+    if (!rows.length) return badRequest(res, "The file does not contain rows");
+
+    const summary = mode === "PERIPHERY"
+      ? await importPeripheryRows(rows, req.user?.id ?? null)
+      : await importCityRows(rows, req.user?.id ?? null);
+
+    res.json({ ok: true, summary });
   } catch (err) {
     next(err);
   }

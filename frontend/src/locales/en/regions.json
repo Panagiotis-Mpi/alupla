@@ -27,12 +27,17 @@
     },
     "placeholders": {
       "periphery": "Select periphery"
-    }
+    },
+    "import": "Import",
+    "importing": "Importing..."
   },
   "messages": {
     "created": "City created.",
     "updated": "City updated.",
-    "error": "The action could not be completed."
+    "error": "The action could not be completed.",
+    "peripheryCreated": "Periphery created.",
+    "importError": "Import could not be completed.",
+    "importDone": "Inserted {{inserted}}, updated {{updated}}, skipped {{skipped}}."
   },
   "unmatched": {
     "title": "Unmatched cities",

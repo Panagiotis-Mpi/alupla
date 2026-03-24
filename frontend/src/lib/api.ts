@@ -463,6 +463,27 @@ export async function listUnmatchedCities(params: { q?: string } = {}): Promise<
   return api(`/regions/unmatched-cities${toQueryString(params)}`, { method: "GET" });
 }
 
+
+export async function importRegionsFile(file: File, mode: "PERIPHERY" | "CITY"): Promise<any> {
+  const token = getToken();
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("mode", mode);
+  const res = await fetch(`${API_URL}/regions/import`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: fd
+  });
+  if (!res.ok) {
+    const j = await parseJsonSafe(res);
+    const msg = (j as any)?.error?.message || (j as any)?.message || res.statusText;
+    throw new Error(msg);
+  }
+  return await res.json();
+}
+
 export async function listActivityLogs(params: Record<string, any> = {}): Promise<any> {
   return api(`/activity-logs${toQueryString(params)}`, { method: "GET" });
 }

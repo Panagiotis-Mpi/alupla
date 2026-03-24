@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { createRegion, listRegions, listUnmatchedCities, searchRegions, updateRegion, type Region } from "../lib/api";
+import { createRegion, importRegionsFile, listRegions, listUnmatchedCities, searchRegions, updateRegion, type Region } from "../lib/api";
 
 type RegionFormState = {
   id: number | null;
@@ -31,6 +31,12 @@ type UnmatchedSortKey = "number" | "name" | "count" | "periphery";
 type PeripherySortKey = "number" | "name" | "latitude" | "longitude";
 type CitySortKey = "number" | "name" | "periphery" | "latitude" | "longitude";
 
+type ImportSummary = {
+  inserted?: number;
+  updated?: number;
+  skipped?: number;
+};
+
 const emptyForm: RegionFormState = {
   id: null,
   name: "",
@@ -59,8 +65,17 @@ const errorStyle: React.CSSProperties = { color: "#b91c1c" };
 const successStyle: React.CSSProperties = { color: "#166534" };
 const sortableHeaderStyle: React.CSSProperties = { cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" };
 const switcherWrapStyle: React.CSSProperties = { gap: 10 };
-const switcherButtonStyle: React.CSSProperties = { minWidth: 150 };
 const countStyle: React.CSSProperties = { fontSize: 13 };
+const topButtonStyle: React.CSSProperties = {
+  minWidth: 136,
+  height: 40,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  boxSizing: "border-box",
+  padding: "0 12px",
+  fontSize: 14,
+};
 
 function toFormState(city: Region): RegionFormState {
   return {
@@ -111,6 +126,13 @@ function sectionLabel(section: RegionSection, t: ReturnType<typeof useTranslatio
   return t("sections.unmatched");
 }
 
+function formatImportSummary(summary: ImportSummary | undefined, t: ReturnType<typeof useTranslation>["t"]) {
+  const inserted = Number(summary?.inserted ?? 0);
+  const updated = Number(summary?.updated ?? 0);
+  const skipped = Number(summary?.skipped ?? 0);
+  return t("messages.importDone", { inserted, updated, skipped });
+}
+
 export default function Regions() {
   const { t } = useTranslation("regions");
 
@@ -124,6 +146,8 @@ export default function Regions() {
   const [peripheryForm, setPeripheryForm] = useState<PeripheryFormState>(emptyPeripheryForm);
   const [saving, setSaving] = useState(false);
   const [peripherySaving, setPeripherySaving] = useState(false);
+  const [cityImporting, setCityImporting] = useState(false);
+  const [peripheryImporting, setPeripheryImporting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [peripheryMessage, setPeripheryMessage] = useState("");
@@ -134,6 +158,9 @@ export default function Regions() {
   const [peripherySortDirection, setPeripherySortDirection] = useState<SortDirection>("asc");
   const [citySortKey, setCitySortKey] = useState<CitySortKey>("periphery");
   const [citySortDirection, setCitySortDirection] = useState<SortDirection>("asc");
+
+  const cityImportRef = useRef<HTMLInputElement | null>(null);
+  const peripheryImportRef = useRef<HTMLInputElement | null>(null);
 
   const setFormValue = <K extends keyof RegionFormState>(key: K, value: RegionFormState[K]) => {
     setForm((state) => ({ ...state, [key]: value }));
@@ -287,6 +314,10 @@ export default function Regions() {
     scrollToTop();
   }
 
+  async function refreshLists() {
+    await Promise.all([loadCities(), loadPeripheries(), loadUnmatched()]);
+  }
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -296,8 +327,8 @@ export default function Regions() {
         name: form.name.trim(),
         type: "CITY" as const,
         parent_id: Number(form.parent_id),
-        latitude: Number(form.latitude),
-        longitude: Number(form.longitude),
+        latitude: form.latitude === "" ? null : Number(form.latitude),
+        longitude: form.longitude === "" ? null : Number(form.longitude),
       };
 
       if (form.id) {
@@ -309,7 +340,7 @@ export default function Regions() {
       }
 
       resetForm();
-      await Promise.all([loadCities(), loadPeripheries(), loadUnmatched()]);
+      await refreshLists();
     } catch (err: any) {
       setError(err?.message || t("messages.error"));
     } finally {
@@ -319,23 +350,63 @@ export default function Regions() {
 
   const onPeripherySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!peripheryForm.id) return;
     setPeripherySaving(true);
     clearPeripheryFeedback();
     try {
-      await updateRegion(peripheryForm.id, {
+      const payload = {
         name: peripheryForm.name.trim(),
-        type: "PERIPHERY",
+        type: "PERIPHERY" as const,
         parent_id: null,
         latitude: peripheryForm.latitude === "" ? null : Number(peripheryForm.latitude),
         longitude: peripheryForm.longitude === "" ? null : Number(peripheryForm.longitude),
-      });
-      setPeripheryMessage(t("messages.updated"));
-      await Promise.all([loadPeripheries(), loadCities(), loadUnmatched()]);
+      };
+
+      if (peripheryForm.id) {
+        await updateRegion(peripheryForm.id, payload);
+        setPeripheryMessage(t("messages.updated"));
+      } else {
+        await createRegion(payload);
+        setPeripheryMessage(t("messages.peripheryCreated"));
+      }
+      resetPeripheryForm();
+      await refreshLists();
     } catch (err: any) {
       setPeripheryError(err?.message || t("messages.error"));
     } finally {
       setPeripherySaving(false);
+    }
+  };
+
+  const onImport = async (file: File, mode: "PERIPHERY" | "CITY") => {
+    if (mode === "PERIPHERY") {
+      setPeripheryImporting(true);
+      clearPeripheryFeedback();
+    } else {
+      setCityImporting(true);
+      clearFeedback();
+    }
+
+    try {
+      const response = await importRegionsFile(file, mode);
+      const text = formatImportSummary(response?.summary, t);
+      if (mode === "PERIPHERY") {
+        setPeripheryMessage(text);
+      } else {
+        setMessage(text);
+      }
+      await refreshLists();
+    } catch (err: any) {
+      if (mode === "PERIPHERY") {
+        setPeripheryError(err?.message || t("messages.importError"));
+      } else {
+        setError(err?.message || t("messages.importError"));
+      }
+    } finally {
+      if (mode === "PERIPHERY") {
+        setPeripheryImporting(false);
+      } else {
+        setCityImporting(false);
+      }
     }
   };
 
@@ -346,11 +417,34 @@ export default function Regions() {
 
   return (
     <div className="grid" style={pageGapStyle}>
+      <input
+        ref={peripheryImportRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void onImport(file, "PERIPHERY");
+          e.currentTarget.value = "";
+        }}
+      />
+      <input
+        ref={cityImportRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void onImport(file, "CITY");
+          e.currentTarget.value = "";
+        }}
+      />
+
       <div className="topbar">
         <h2 style={zeroMarginStyle}>{t("title")}</h2>
       </div>
 
-      <div className="card">
+      <div className="card" style={{ padding: 14 }}>
         <div className="topbar" style={sectionHeaderStyle}>
           <div>
             <h3 style={zeroMarginStyle}>{t("switcher.title")}</h3>
@@ -368,7 +462,7 @@ export default function Regions() {
                 key={section}
                 type="button"
                 className={`btn${active ? " primary" : ""}`}
-                style={switcherButtonStyle}
+                style={topButtonStyle}
                 onClick={() => setActiveSection(section)}
               >
                 {sectionLabel(section, t)}
@@ -383,11 +477,12 @@ export default function Regions() {
           <div className="topbar" style={alignedTopbarStyle}>
             <h3 style={zeroMarginStyle}>{t("peripheries.title")}</h3>
             <div className="spacer" />
-            {peripheryForm.id ? (
-              <button className="btn" type="button" onClick={resetPeripheryForm}>
-                {t("manage.clear")}
-              </button>
-            ) : null}
+            <button className="btn" type="button" style={topButtonStyle} onClick={() => peripheryImportRef.current?.click()} disabled={peripheryImporting}>
+              {peripheryImporting ? t("manage.importing") : t("manage.import")}
+            </button>
+            <button className="btn" type="button" onClick={resetPeripheryForm}>
+              {t("manage.clear")}
+            </button>
           </div>
 
           <form className="grid" style={formGridStyle} onSubmit={onPeripherySubmit}>
@@ -397,7 +492,6 @@ export default function Regions() {
                 className="input"
                 value={peripheryForm.name}
                 onChange={(e) => setPeripheryFormValue("name", e.target.value)}
-                disabled={!peripheryForm.id}
               />
             </div>
             <div className="grid cols2" style={dualGridStyle}>
@@ -407,7 +501,6 @@ export default function Regions() {
                   className="input"
                   value={peripheryForm.latitude}
                   onChange={(e) => setPeripheryFormValue("latitude", e.target.value)}
-                  disabled={!peripheryForm.id}
                 />
               </div>
               <div>
@@ -416,15 +509,14 @@ export default function Regions() {
                   className="input"
                   value={peripheryForm.longitude}
                   onChange={(e) => setPeripheryFormValue("longitude", e.target.value)}
-                  disabled={!peripheryForm.id}
                 />
               </div>
             </div>
             {peripheryError ? <div style={errorStyle}>{peripheryError}</div> : null}
             {peripheryMessage ? <div style={successStyle}>{peripheryMessage}</div> : null}
             <div className="row-actions">
-              <button className="btn primary" type="submit" disabled={peripherySaving || !peripheryForm.id}>
-                {t("manage.save")}
+              <button className="btn primary" type="submit" disabled={peripherySaving}>
+                {peripheryForm.id ? t("manage.save") : t("manage.create")}
               </button>
               <button className="btn" type="button" onClick={resetPeripheryForm} disabled={peripherySaving}>
                 {t("manage.clear")}
@@ -456,7 +548,7 @@ export default function Regions() {
                     setPeripherySortKey("longitude");
                     setPeripherySortDirection(direction);
                   }}>{t("manage.fields.longitude")}{sortIndicator(peripherySortKey === "longitude", peripherySortDirection)}</th>
-                  <th>{t("manage.actions")}</th>
+                  <th aria-label={t("manage.actions")}></th>
                 </tr>
               </thead>
               <tbody>
@@ -487,6 +579,9 @@ export default function Regions() {
           <div className="topbar" style={alignedTopbarStyle}>
             <h3 style={zeroMarginStyle}>{t("manage.title")}</h3>
             <div className="spacer" />
+            <button className="btn" type="button" style={topButtonStyle} onClick={() => cityImportRef.current?.click()} disabled={cityImporting}>
+              {cityImporting ? t("manage.importing") : t("manage.import")}
+            </button>
             {form.id ? (
               <button className="btn" type="button" onClick={resetForm}>
                 {t("manage.new")}
@@ -572,7 +667,7 @@ export default function Regions() {
                     setCitySortKey("longitude");
                     setCitySortDirection(direction);
                   }}>{t("manage.fields.longitude")}{sortIndicator(citySortKey === "longitude", citySortDirection)}</th>
-                  <th>{t("manage.actions")}</th>
+                  <th aria-label={t("manage.actions")}></th>
                 </tr>
               </thead>
               <tbody>
@@ -604,6 +699,9 @@ export default function Regions() {
           <div className="topbar">
             <h3 style={zeroMarginStyle}>{t("unmatched.title")}</h3>
             <div className="spacer" />
+            <button className="btn" type="button" style={topButtonStyle} onClick={() => cityImportRef.current?.click()} disabled={cityImporting}>
+              {cityImporting ? t("manage.importing") : t("manage.import")}
+            </button>
             <input
               className="input"
               style={searchInputStyle}
@@ -638,7 +736,7 @@ export default function Regions() {
                     setUnmatchedSortKey("periphery");
                     setUnmatchedSortDirection(direction);
                   }}>{t("unmatched.columns.periphery")}{sortIndicator(unmatchedSortKey === "periphery", unmatchedSortDirection)}</th>
-                  <th>{t("unmatched.columns.actions")}</th>
+                  <th aria-label={t("unmatched.columns.actions")}></th>
                 </tr>
               </thead>
               <tbody>
