@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { GeoJSON, MapContainer, Marker, useMapEvents } from "react-leaflet";
 import { useTranslation } from "react-i18next";
 import L from "leaflet";
 
@@ -16,9 +17,8 @@ import {
   type StudyProgram,
 } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
-import { MapCanvasCard } from "./map/MapCanvasCard";
 import { buildMapFilterRows, exportElementAsPng, exportMapCsv, exportMapExcel } from "./map/mapExport";
-import { DetailStatsCard, EMPTY_MAP_FILTERS, MapFiltersForm, normalizeKey, tryParseGeoJson, type MapFiltersState } from "./map/shared";
+import { DetailStatsCard, EMPTY_MAP_FILTERS, MapFiltersForm, cityLabelIcon, mapCityKey, mapCityLabel, mapCityLatitude, mapCityLongitude, normalizeKey, tryParseGeoJson, type MapFiltersState } from "./map/shared";
 
 const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
 
@@ -58,6 +58,34 @@ function countByPeriphery(items: GraduatesMapItem[]) {
     counts.set(normalizeKey(String(item.periphery_name ?? "")), Number(item.count ?? 0) || 0);
   }
   return counts;
+}
+
+
+function MapViewportWatcher(props: {
+  onZoomChange: (zoom: number) => void;
+  onBoundsChange: (bounds: L.LatLngBounds) => void;
+}) {
+  const map = useMapEvents({
+    zoomend() {
+      props.onZoomChange(map.getZoom());
+      props.onBoundsChange(map.getBounds());
+    },
+    moveend() {
+      props.onZoomChange(map.getZoom());
+      props.onBoundsChange(map.getBounds());
+    },
+    resize() {
+      props.onZoomChange(map.getZoom());
+      props.onBoundsChange(map.getBounds());
+    },
+  });
+
+  useEffect(() => {
+    props.onZoomChange(map.getZoom());
+    props.onBoundsChange(map.getBounds());
+  }, [map, props.onBoundsChange, props.onZoomChange]);
+
+  return null;
 }
 
 function visibleMapCities(cityPoints: MapCityPoint[], mapBounds: L.LatLngBounds | null, mapZoom: number) {
@@ -509,24 +537,95 @@ export default function Map() {
       </div>
 
       <div className="page-two-col" style={{ marginTop: 12 }}>
-        <MapCanvasCard
-          mapCanvasRef={mapCanvasRef}
-          mapRef={mapRef}
-          geojson={geojson}
-          geoRenderKey={geoRenderKey}
-          itemsRef={itemsRef}
-          visibleCities={visibleCities}
-          buckets={buckets}
-          t={t}
-          onZoomChange={setMapZoom}
-          onBoundsChange={setMapBounds}
-          setSelected={setSelected}
-          featureGreekName={featureGreekName}
-          currentCountForFeature={currentCountForFeature}
-          renderTooltipHtml={renderTooltipHtml}
-          fillColorForCount={fillColorForCount}
-          fillOpacityForCount={fillOpacityForCount}
-        />
+        <div className="card alupla-map-card">
+          <div className="alupla-map map-canvas" ref={mapCanvasRef}>
+            <MapContainer
+              center={[38.6, 24.0]}
+              zoom={6.5 as any}
+              zoomSnap={0.5}
+              whenCreated={(map) => {
+                mapRef.current = map;
+                setMapZoom(map.getZoom());
+                setMapBounds(map.getBounds());
+              }}
+              style={{ height: "100%", width: "100%", background: "transparent" }}
+              scrollWheelZoom
+            >
+              <MapViewportWatcher onZoomChange={setMapZoom} onBoundsChange={setMapBounds} />
+
+              {geojson ? (
+                <GeoJSON
+                  key={geoRenderKey}
+                  data={geojson as any}
+                  style={(feature: any) => {
+                    const count = currentCountForFeature(feature);
+                    return {
+                      color: "#334155",
+                      weight: 1,
+                      fillColor: fillColorForCount(count),
+                      fillOpacity: fillOpacityForCount(count),
+                    } as any;
+                  }}
+                  onEachFeature={(feature: any, layer: any) => {
+                    layer.bindTooltip(renderTooltipHtml(feature), { sticky: true, className: "alupla-region-tooltip" });
+                    layer.on({
+                      mouseover: () => {
+                        layer.setStyle({ weight: 2 });
+                        layer.bringToFront();
+                        layer.setTooltipContent(renderTooltipHtml(feature));
+                      },
+                      mouseout: () => {
+                        layer.setStyle({ weight: 1 });
+                      },
+                      click: () => {
+                        const key = normalizeKey(featureGreekName(feature));
+                        const match = itemsRef.current.find((item) => normalizeKey(String(item.periphery_name || "")) === key) || null;
+                        setSelected(match);
+                        layer.setTooltipContent(renderTooltipHtml(feature));
+                      },
+                    });
+                  }}
+                />
+              ) : null}
+
+              {visibleCities.map((city) => {
+                const lat = mapCityLatitude(city);
+                const lng = mapCityLongitude(city);
+                if (lat === null || lng === null) return null;
+                return (
+                  <Marker
+                    key={mapCityKey(city)}
+                    position={[lat, lng]}
+                    icon={cityLabelIcon(mapCityLabel(city))}
+                    interactive={false}
+                  />
+                );
+              })}
+            </MapContainer>
+          </div>
+
+          <div style={{ position: "absolute", left: 12, bottom: 12, background: "rgba(255,255,255,.94)", border: "1px solid var(--border)", borderRadius: 14, padding: "10px 12px", fontSize: 12, boxShadow: "var(--shadow)", maxWidth: 220 }}>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>{t("map.legend", { defaultValue: "Υπόμνημα" })}</div>
+            <div className="muted" style={{ marginBottom: 8 }}>
+              {t("map.legendCounts", { defaultValue: "Αριθμός αποφοίτων" })}
+            </div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {Array.from({ length: 5 }).map((_, index) => {
+                const from = buckets[index];
+                const to = buckets[index + 1];
+                const mid = (from + to) / 2;
+                const opacity = fillOpacityForCount(mid);
+                const color = fillColorForCount(mid);
+                return (
+                  <div key={index} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 16, height: 12, display: "inline-block", border: "1px solid #334155", background: color, opacity, borderRadius: 3 }} />
+                    <span>{from}–{to}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
         <div className="map-panel-stack">
           <div className="map-actions-bar">
