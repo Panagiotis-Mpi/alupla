@@ -3,6 +3,17 @@ import { useTranslation } from "react-i18next";
 import { changePassword, getToken, me, updateProfile } from "../lib/api";
 import { setSession } from "../lib/auth";
 
+const cardGridStyle: React.CSSProperties = { display: "grid", gap: 20 };
+const sectionStyle: React.CSSProperties = { display: "grid", gap: 16 };
+const passwordSectionStyle: React.CSSProperties = { display: "grid", gap: 12, paddingTop: 4 };
+const helperTextStyle: React.CSSProperties = {
+  marginTop: 8,
+  color: "#52627a",
+  fontSize: 14,
+  lineHeight: 1.4,
+  whiteSpace: "pre-line",
+};
+
 export default function Profile() {
   const { t } = useTranslation("profile");
 
@@ -49,9 +60,7 @@ export default function Profile() {
 
       const passwordChanged = Boolean(currentPassword.trim() || newPassword.trim());
 
-      if (!profileChanged && !passwordChanged) {
-        return;
-      }
+      if (!profileChanged && !passwordChanged) return;
 
       let nextUser = user;
 
@@ -83,26 +92,33 @@ export default function Profile() {
   if (!user) return null;
 
   const roleLabel = t(`roles.${user.role}`, { defaultValue: user.role });
+  const toggleEditing = () => setIsEditing((open) => !open);
 
   return (
     <div className="grid" style={{ gap: 16 }}>
       <h2>{t("title")}</h2>
 
       <div className="card">
-        <div><strong>{t("info.email")}:</strong> {user.email}</div>
-        <div><strong>{t("info.name")}:</strong> {user.first_name} {user.last_name}</div>
-        <div><strong>{t("info.role")}:</strong> {roleLabel}</div>
+        <div>
+          <strong>{t("info.email")}:</strong> {user.email}
+        </div>
+        <div>
+          <strong>{t("info.name")}:</strong> {user.first_name} {user.last_name}
+        </div>
+        <div>
+          <strong>{t("info.role")}:</strong> {roleLabel}
+        </div>
 
         <div style={{ marginTop: 12 }}>
-          <button className="btn primary" onClick={() => setIsEditing((v) => !v)}>
+          <button className="btn primary" onClick={toggleEditing}>
             {t("editProfile.button")}
           </button>
         </div>
       </div>
 
       {isEditing && (
-        <div className="card" style={{ display: "grid", gap: 20 }}>
-          <div style={{ display: "grid", gap: 16 }}>
+        <div className="card" style={cardGridStyle}>
+          <div style={sectionStyle}>
             <h3 style={{ margin: 0 }}>{t("editProfile.title")}</h3>
 
             <div className="grid cols2">
@@ -138,7 +154,7 @@ export default function Profile() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gap: 12, paddingTop: 4 }}>
+          <div style={passwordSectionStyle}>
             <h3 style={{ margin: 0 }}>{t("changePassword.title")}</h3>
 
             <div className="grid cols2">
@@ -160,9 +176,7 @@ export default function Profile() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
-                <div style={{ marginTop: 8, color: "#52627a", fontSize: 14, lineHeight: 1.4, whiteSpace: "pre-line" }}>
-                  {t("changePassword.hint")}
-                </div>
+                <div style={helperTextStyle}>{t("changePassword.hint")}</div>
               </div>
             </div>
           </div>
