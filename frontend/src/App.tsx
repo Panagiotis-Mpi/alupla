@@ -46,14 +46,10 @@ function buildPublicLinks(t: ReturnType<typeof useTranslation>["t"]): NavLinkIte
 }
 
 function getAcademicDataLabel(
-  role: string | undefined,
+  _role: string | undefined,
   lang: "gr" | "en",
   t: ReturnType<typeof useTranslation>["t"]
 ) {
-  if (role !== SUPER_ADMIN_ROLE) {
-    return t("nav.academicData");
-  }
-
   const translated = t("nav.academicPrograms", { defaultValue: "" });
   if (translated && translated !== "nav.academicPrograms") {
     return translated;

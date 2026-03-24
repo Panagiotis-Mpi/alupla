@@ -9,7 +9,8 @@
     "academicData": "Academic Data",
     "logout": "Logout",
     "statistics": "Statistics",
-    "login": "Login"
+    "login": "Login",
+    "academicPrograms": "Academic Programs"
   },
   "login": {
     "title": "Login",

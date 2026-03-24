@@ -25,6 +25,7 @@ type UnmatchedCityItem = {
 };
 
 type SortDirection = "asc" | "desc";
+type RegionSection = "peripheries" | "cities" | "unmatched";
 
 type UnmatchedSortKey = "number" | "name" | "count" | "periphery";
 type PeripherySortKey = "number" | "name" | "latitude" | "longitude";
@@ -48,6 +49,7 @@ const emptyPeripheryForm: PeripheryFormState = {
 const pageGapStyle: React.CSSProperties = { gap: 14 };
 const zeroMarginStyle: React.CSSProperties = { margin: 0 };
 const alignedTopbarStyle: React.CSSProperties = { alignItems: "center" };
+const sectionHeaderStyle: React.CSSProperties = { alignItems: "flex-start" };
 const formGridStyle: React.CSSProperties = { marginTop: 12, gap: 10 };
 const fieldLabelStyle: React.CSSProperties = { marginBottom: 6 };
 const dualGridStyle: React.CSSProperties = { gap: 10 };
@@ -56,6 +58,9 @@ const tableWrapStyle: React.CSSProperties = { overflowX: "auto", marginTop: 12 }
 const errorStyle: React.CSSProperties = { color: "#b91c1c" };
 const successStyle: React.CSSProperties = { color: "#166534" };
 const sortableHeaderStyle: React.CSSProperties = { cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" };
+const switcherWrapStyle: React.CSSProperties = { gap: 10 };
+const switcherButtonStyle: React.CSSProperties = { minWidth: 150 };
+const countStyle: React.CSSProperties = { fontSize: 13 };
 
 function toFormState(city: Region): RegionFormState {
   return {
@@ -100,9 +105,16 @@ function sortIndicator(active: boolean, direction: SortDirection) {
   return direction === "asc" ? " ▲" : " ▼";
 }
 
+function sectionLabel(section: RegionSection, t: ReturnType<typeof useTranslation>["t"]) {
+  if (section === "peripheries") return t("sections.peripheries");
+  if (section === "cities") return t("sections.cities");
+  return t("sections.unmatched");
+}
+
 export default function Regions() {
   const { t } = useTranslation("regions");
 
+  const [activeSection, setActiveSection] = useState<RegionSection>("peripheries");
   const [peripheries, setPeripheries] = useState<Region[]>([]);
   const [cities, setCities] = useState<Region[]>([]);
   const [cityQuery, setCityQuery] = useState("");
@@ -250,12 +262,14 @@ export default function Regions() {
   }
 
   function onEdit(city: Region) {
+    setActiveSection("cities");
     setForm(toFormState(city));
     clearFeedback();
     scrollToTop();
   }
 
   function onEditPeriphery(item: Region) {
+    setActiveSection("peripheries");
     setPeripheryForm(toPeripheryFormState(item));
     clearPeripheryFeedback();
     scrollToTop();
@@ -269,6 +283,7 @@ export default function Regions() {
       parent_id: item.periphery_id != null ? String(item.periphery_id) : state.parent_id,
     }));
     clearFeedback();
+    setActiveSection("cities");
     scrollToTop();
   }
 
@@ -324,6 +339,11 @@ export default function Regions() {
     }
   };
 
+  const sectionButtons: RegionSection[] = ["peripheries", "cities", "unmatched"];
+  const activeSectionTitle = sectionLabel(activeSection, t);
+  const activeSectionCount =
+    activeSection === "peripheries" ? peripheryRows.length : activeSection === "cities" ? cityRows.length : unmatchedRows.length;
+
   return (
     <div className="grid" style={pageGapStyle}>
       <div className="topbar">
@@ -331,288 +351,320 @@ export default function Regions() {
       </div>
 
       <div className="card">
-        <div className="topbar" style={alignedTopbarStyle}>
-          <h3 style={zeroMarginStyle}>{t("manage.title")}</h3>
+        <div className="topbar" style={sectionHeaderStyle}>
+          <div>
+            <h3 style={zeroMarginStyle}>{t("switcher.title")}</h3>
+            <div className="muted" style={{ marginTop: 6 }}>{t("switcher.description")}</div>
+          </div>
           <div className="spacer" />
-          {form.id ? (
-            <button className="btn" type="button" onClick={resetForm}>
-              {t("manage.new")}
-            </button>
-          ) : null}
+          <div className="muted" style={countStyle}>{t("switcher.total", { title: activeSectionTitle, count: activeSectionCount })}</div>
         </div>
 
-        <form className="grid" style={formGridStyle} onSubmit={onSubmit}>
-          <div>
-            <div className="muted" style={fieldLabelStyle}>{t("manage.fields.name")}</div>
-            <input className="input" value={form.name} onChange={(e) => setFormValue("name", e.target.value)} />
-          </div>
-          <div>
-            <div className="muted" style={fieldLabelStyle}>{t("manage.fields.periphery")}</div>
-            <select className="input" value={form.parent_id} onChange={(e) => setFormValue("parent_id", e.target.value)}>
-              <option value="">{t("manage.placeholders.periphery")}</option>
-              {peripheries.map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="grid cols2" style={dualGridStyle}>
-            <div>
-              <div className="muted" style={fieldLabelStyle}>{t("manage.fields.latitude")}</div>
-              <input className="input" value={form.latitude} onChange={(e) => setFormValue("latitude", e.target.value)} />
-            </div>
-            <div>
-              <div className="muted" style={fieldLabelStyle}>{t("manage.fields.longitude")}</div>
-              <input className="input" value={form.longitude} onChange={(e) => setFormValue("longitude", e.target.value)} />
-            </div>
-          </div>
-          {error ? <div style={errorStyle}>{error}</div> : null}
-          {message ? <div style={successStyle}>{message}</div> : null}
-          <div className="row-actions">
-            <button className="btn primary" type="submit" disabled={saving}>
-              {form.id ? t("manage.save") : t("manage.create")}
-            </button>
-            <button className="btn" type="button" onClick={resetForm} disabled={saving}>
-              {t("manage.clear")}
-            </button>
-          </div>
-        </form>
+        <div className="topbar" style={{ ...switcherWrapStyle, marginTop: 14 }}>
+          {sectionButtons.map((section) => {
+            const active = activeSection === section;
+            return (
+              <button
+                key={section}
+                type="button"
+                className={`btn${active ? " primary" : ""}`}
+                style={switcherButtonStyle}
+                onClick={() => setActiveSection(section)}
+              >
+                {sectionLabel(section, t)}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="card">
-        <div className="topbar" style={alignedTopbarStyle}>
-          <h3 style={zeroMarginStyle}>{t("peripheries.title")}</h3>
-          <div className="spacer" />
-          {peripheryForm.id ? (
-            <button className="btn" type="button" onClick={resetPeripheryForm}>
-              {t("manage.clear")}
-            </button>
-          ) : null}
-        </div>
+      {activeSection === "peripheries" ? (
+        <div className="card">
+          <div className="topbar" style={alignedTopbarStyle}>
+            <h3 style={zeroMarginStyle}>{t("peripheries.title")}</h3>
+            <div className="spacer" />
+            {peripheryForm.id ? (
+              <button className="btn" type="button" onClick={resetPeripheryForm}>
+                {t("manage.clear")}
+              </button>
+            ) : null}
+          </div>
 
-        <form className="grid" style={formGridStyle} onSubmit={onPeripherySubmit}>
-          <div>
-            <div className="muted" style={fieldLabelStyle}>{t("table.name")}</div>
+          <form className="grid" style={formGridStyle} onSubmit={onPeripherySubmit}>
+            <div>
+              <div className="muted" style={fieldLabelStyle}>{t("table.name")}</div>
+              <input
+                className="input"
+                value={peripheryForm.name}
+                onChange={(e) => setPeripheryFormValue("name", e.target.value)}
+                disabled={!peripheryForm.id}
+              />
+            </div>
+            <div className="grid cols2" style={dualGridStyle}>
+              <div>
+                <div className="muted" style={fieldLabelStyle}>{t("manage.fields.latitude")}</div>
+                <input
+                  className="input"
+                  value={peripheryForm.latitude}
+                  onChange={(e) => setPeripheryFormValue("latitude", e.target.value)}
+                  disabled={!peripheryForm.id}
+                />
+              </div>
+              <div>
+                <div className="muted" style={fieldLabelStyle}>{t("manage.fields.longitude")}</div>
+                <input
+                  className="input"
+                  value={peripheryForm.longitude}
+                  onChange={(e) => setPeripheryFormValue("longitude", e.target.value)}
+                  disabled={!peripheryForm.id}
+                />
+              </div>
+            </div>
+            {peripheryError ? <div style={errorStyle}>{peripheryError}</div> : null}
+            {peripheryMessage ? <div style={successStyle}>{peripheryMessage}</div> : null}
+            <div className="row-actions">
+              <button className="btn primary" type="submit" disabled={peripherySaving || !peripheryForm.id}>
+                {t("manage.save")}
+              </button>
+              <button className="btn" type="button" onClick={resetPeripheryForm} disabled={peripherySaving}>
+                {t("manage.clear")}
+              </button>
+            </div>
+          </form>
+
+          <div style={tableWrapStyle}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th style={sortableHeaderStyle} onClick={() => {
+                    const direction = nextDirection(peripherySortKey, "number", peripherySortDirection);
+                    setPeripherySortKey("number");
+                    setPeripherySortDirection(direction);
+                  }}>{t("table.number")}{sortIndicator(peripherySortKey === "number", peripherySortDirection)}</th>
+                  <th style={sortableHeaderStyle} onClick={() => {
+                    const direction = nextDirection(peripherySortKey, "name", peripherySortDirection);
+                    setPeripherySortKey("name");
+                    setPeripherySortDirection(direction);
+                  }}>{t("table.name")}{sortIndicator(peripherySortKey === "name", peripherySortDirection)}</th>
+                  <th style={sortableHeaderStyle} onClick={() => {
+                    const direction = nextDirection(peripherySortKey, "latitude", peripherySortDirection);
+                    setPeripherySortKey("latitude");
+                    setPeripherySortDirection(direction);
+                  }}>{t("manage.fields.latitude")}{sortIndicator(peripherySortKey === "latitude", peripherySortDirection)}</th>
+                  <th style={sortableHeaderStyle} onClick={() => {
+                    const direction = nextDirection(peripherySortKey, "longitude", peripherySortDirection);
+                    setPeripherySortKey("longitude");
+                    setPeripherySortDirection(direction);
+                  }}>{t("manage.fields.longitude")}{sortIndicator(peripherySortKey === "longitude", peripherySortDirection)}</th>
+                  <th>{t("manage.actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {peripheryRows.map(({ item }, index) => (
+                  <tr key={item.id}>
+                    <td>{index + 1}</td>
+                    <td>{item.name}</td>
+                    <td>{item.latitude ?? "-"}</td>
+                    <td>{item.longitude ?? "-"}</td>
+                    <td>
+                      <button className="btn" onClick={() => onEditPeriphery(item)}>{t("manage.edit")}</button>
+                    </td>
+                  </tr>
+                ))}
+                {!peripheryRows.length && (
+                  <tr>
+                    <td colSpan={5} className="muted">{t("peripheries.empty")}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+
+      {activeSection === "cities" ? (
+        <div className="card">
+          <div className="topbar" style={alignedTopbarStyle}>
+            <h3 style={zeroMarginStyle}>{t("manage.title")}</h3>
+            <div className="spacer" />
+            {form.id ? (
+              <button className="btn" type="button" onClick={resetForm}>
+                {t("manage.new")}
+              </button>
+            ) : null}
+          </div>
+
+          <form className="grid" style={formGridStyle} onSubmit={onSubmit}>
+            <div>
+              <div className="muted" style={fieldLabelStyle}>{t("manage.fields.name")}</div>
+              <input className="input" value={form.name} onChange={(e) => setFormValue("name", e.target.value)} />
+            </div>
+            <div>
+              <div className="muted" style={fieldLabelStyle}>{t("manage.fields.periphery")}</div>
+              <select className="input" value={form.parent_id} onChange={(e) => setFormValue("parent_id", e.target.value)}>
+                <option value="">{t("manage.placeholders.periphery")}</option>
+                {peripheries.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid cols2" style={dualGridStyle}>
+              <div>
+                <div className="muted" style={fieldLabelStyle}>{t("manage.fields.latitude")}</div>
+                <input className="input" value={form.latitude} onChange={(e) => setFormValue("latitude", e.target.value)} />
+              </div>
+              <div>
+                <div className="muted" style={fieldLabelStyle}>{t("manage.fields.longitude")}</div>
+                <input className="input" value={form.longitude} onChange={(e) => setFormValue("longitude", e.target.value)} />
+              </div>
+            </div>
+            {error ? <div style={errorStyle}>{error}</div> : null}
+            {message ? <div style={successStyle}>{message}</div> : null}
+            <div className="row-actions">
+              <button className="btn primary" type="submit" disabled={saving}>
+                {form.id ? t("manage.save") : t("manage.create")}
+              </button>
+              <button className="btn" type="button" onClick={resetForm} disabled={saving}>
+                {t("manage.clear")}
+              </button>
+            </div>
+          </form>
+
+          <div className="topbar" style={{ marginTop: 16 }}>
+            <h3 style={zeroMarginStyle}>{t("manage.listTitle")}</h3>
+            <div className="spacer" />
             <input
               className="input"
-              value={peripheryForm.name}
-              onChange={(e) => setPeripheryFormValue("name", e.target.value)}
-              disabled={!peripheryForm.id}
+              style={searchInputStyle}
+              value={cityQuery}
+              placeholder={t("manage.search")}
+              onChange={(e) => setCityQuery(e.target.value)}
             />
+            <button className="btn" onClick={() => void loadCities()}>{t("manage.searchButton")}</button>
           </div>
-          <div className="grid cols2" style={dualGridStyle}>
-            <div>
-              <div className="muted" style={fieldLabelStyle}>{t("manage.fields.latitude")}</div>
-              <input
-                className="input"
-                value={peripheryForm.latitude}
-                onChange={(e) => setPeripheryFormValue("latitude", e.target.value)}
-                disabled={!peripheryForm.id}
-              />
-            </div>
-            <div>
-              <div className="muted" style={fieldLabelStyle}>{t("manage.fields.longitude")}</div>
-              <input
-                className="input"
-                value={peripheryForm.longitude}
-                onChange={(e) => setPeripheryFormValue("longitude", e.target.value)}
-                disabled={!peripheryForm.id}
-              />
-            </div>
+
+          <div style={tableWrapStyle}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th style={sortableHeaderStyle} onClick={() => {
+                    const direction = nextDirection(citySortKey, "number", citySortDirection);
+                    setCitySortKey("number");
+                    setCitySortDirection(direction);
+                  }}>{t("table.number")}{sortIndicator(citySortKey === "number", citySortDirection)}</th>
+                  <th style={sortableHeaderStyle} onClick={() => {
+                    const direction = nextDirection(citySortKey, "name", citySortDirection);
+                    setCitySortKey("name");
+                    setCitySortDirection(direction);
+                  }}>{t("table.name")}{sortIndicator(citySortKey === "name", citySortDirection)}</th>
+                  <th style={sortableHeaderStyle} onClick={() => {
+                    const direction = nextDirection(citySortKey, "periphery", citySortDirection);
+                    setCitySortKey("periphery");
+                    setCitySortDirection(direction);
+                  }}>{t("manage.fields.periphery")}{sortIndicator(citySortKey === "periphery", citySortDirection)}</th>
+                  <th style={sortableHeaderStyle} onClick={() => {
+                    const direction = nextDirection(citySortKey, "latitude", citySortDirection);
+                    setCitySortKey("latitude");
+                    setCitySortDirection(direction);
+                  }}>{t("manage.fields.latitude")}{sortIndicator(citySortKey === "latitude", citySortDirection)}</th>
+                  <th style={sortableHeaderStyle} onClick={() => {
+                    const direction = nextDirection(citySortKey, "longitude", citySortDirection);
+                    setCitySortKey("longitude");
+                    setCitySortDirection(direction);
+                  }}>{t("manage.fields.longitude")}{sortIndicator(citySortKey === "longitude", citySortDirection)}</th>
+                  <th>{t("manage.actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cityRows.map(({ item: city }, index) => (
+                  <tr key={city.id}>
+                    <td>{index + 1}</td>
+                    <td>{city.name}</td>
+                    <td>{peripheryNameById.get(Number(city.parent_id)) ?? "-"}</td>
+                    <td>{city.latitude ?? "-"}</td>
+                    <td>{city.longitude ?? "-"}</td>
+                    <td>
+                      <button className="btn" onClick={() => onEdit(city)}>{t("manage.edit")}</button>
+                    </td>
+                  </tr>
+                ))}
+                {!cityRows.length && (
+                  <tr>
+                    <td colSpan={6} className="muted">{t("manage.emptyCities")}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-          {peripheryError ? <div style={errorStyle}>{peripheryError}</div> : null}
-          {peripheryMessage ? <div style={successStyle}>{peripheryMessage}</div> : null}
-          <div className="row-actions">
-            <button className="btn primary" type="submit" disabled={peripherySaving || !peripheryForm.id}>
-              {t("manage.save")}
-            </button>
-            <button className="btn" type="button" onClick={resetPeripheryForm} disabled={peripherySaving}>
-              {t("manage.clear")}
-            </button>
+        </div>
+      ) : null}
+
+      {activeSection === "unmatched" ? (
+        <div className="card">
+          <div className="topbar">
+            <h3 style={zeroMarginStyle}>{t("unmatched.title")}</h3>
+            <div className="spacer" />
+            <input
+              className="input"
+              style={searchInputStyle}
+              value={unmatchedQuery}
+              placeholder={t("unmatched.search")}
+              onChange={(e) => setUnmatchedQuery(e.target.value)}
+            />
+            <button className="btn" onClick={() => void loadUnmatched()}>{t("unmatched.searchButton")}</button>
           </div>
-        </form>
 
-        <div style={tableWrapStyle}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th style={sortableHeaderStyle} onClick={() => {
-                  const direction = nextDirection(peripherySortKey, "number", peripherySortDirection);
-                  setPeripherySortKey("number");
-                  setPeripherySortDirection(direction);
-                }}>{t("table.number")}{sortIndicator(peripherySortKey === "number", peripherySortDirection)}</th>
-                <th style={sortableHeaderStyle} onClick={() => {
-                  const direction = nextDirection(peripherySortKey, "name", peripherySortDirection);
-                  setPeripherySortKey("name");
-                  setPeripherySortDirection(direction);
-                }}>{t("table.name")}{sortIndicator(peripherySortKey === "name", peripherySortDirection)}</th>
-                <th style={sortableHeaderStyle} onClick={() => {
-                  const direction = nextDirection(peripherySortKey, "latitude", peripherySortDirection);
-                  setPeripherySortKey("latitude");
-                  setPeripherySortDirection(direction);
-                }}>{t("manage.fields.latitude")}{sortIndicator(peripherySortKey === "latitude", peripherySortDirection)}</th>
-                <th style={sortableHeaderStyle} onClick={() => {
-                  const direction = nextDirection(peripherySortKey, "longitude", peripherySortDirection);
-                  setPeripherySortKey("longitude");
-                  setPeripherySortDirection(direction);
-                }}>{t("manage.fields.longitude")}{sortIndicator(peripherySortKey === "longitude", peripherySortDirection)}</th>
-                <th>{t("manage.actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {peripheryRows.map(({ item }, index) => (
-                <tr key={item.id}>
-                  <td>{index + 1}</td>
-                  <td>{item.name}</td>
-                  <td>{item.latitude ?? "-"}</td>
-                  <td>{item.longitude ?? "-"}</td>
-                  <td>
-                    <button className="btn" onClick={() => onEditPeriphery(item)}>{t("manage.edit")}</button>
-                  </td>
-                </tr>
-              ))}
-              {!peripheryRows.length && (
+          <div style={tableWrapStyle}>
+            <table className="table">
+              <thead>
                 <tr>
-                  <td colSpan={5} className="muted">{t("peripheries.empty")}</td>
+                  <th style={sortableHeaderStyle} onClick={() => {
+                    const direction = nextDirection(unmatchedSortKey, "number", unmatchedSortDirection);
+                    setUnmatchedSortKey("number");
+                    setUnmatchedSortDirection(direction);
+                  }}>{t("table.number")}{sortIndicator(unmatchedSortKey === "number", unmatchedSortDirection)}</th>
+                  <th style={sortableHeaderStyle} onClick={() => {
+                    const direction = nextDirection(unmatchedSortKey, "name", unmatchedSortDirection);
+                    setUnmatchedSortKey("name");
+                    setUnmatchedSortDirection(direction);
+                  }}>{t("unmatched.columns.name")}{sortIndicator(unmatchedSortKey === "name", unmatchedSortDirection)}</th>
+                  <th style={sortableHeaderStyle} onClick={() => {
+                    const direction = nextDirection(unmatchedSortKey, "count", unmatchedSortDirection);
+                    setUnmatchedSortKey("count");
+                    setUnmatchedSortDirection(direction);
+                  }}>{t("unmatched.columns.count")}{sortIndicator(unmatchedSortKey === "count", unmatchedSortDirection)}</th>
+                  <th style={sortableHeaderStyle} onClick={() => {
+                    const direction = nextDirection(unmatchedSortKey, "periphery", unmatchedSortDirection);
+                    setUnmatchedSortKey("periphery");
+                    setUnmatchedSortDirection(direction);
+                  }}>{t("unmatched.columns.periphery")}{sortIndicator(unmatchedSortKey === "periphery", unmatchedSortDirection)}</th>
+                  <th>{t("unmatched.columns.actions")}</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {unmatchedRows.map(({ item }, index) => (
+                  <tr key={`${item.name}-${item.periphery_id ?? "none"}`}>
+                    <td>{index + 1}</td>
+                    <td>{item.name}</td>
+                    <td>{item.count}</td>
+                    <td>{item.periphery_name ?? "-"}</td>
+                    <td>
+                      <button className="btn" onClick={() => useUnmatchedCity(item)}>
+                        {t("unmatched.useInForm")}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {!unmatchedRows.length && (
+                  <tr>
+                    <td colSpan={5} className="muted">{t("unmatched.empty")}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-
-      <div className="card">
-        <div className="topbar">
-          <h3 style={zeroMarginStyle}>{t("unmatched.title")}</h3>
-          <div className="spacer" />
-          <input
-            className="input"
-            style={searchInputStyle}
-            value={unmatchedQuery}
-            placeholder={t("unmatched.search")}
-            onChange={(e) => setUnmatchedQuery(e.target.value)}
-          />
-          <button className="btn" onClick={() => void loadUnmatched()}>{t("unmatched.searchButton")}</button>
-        </div>
-
-        <div style={tableWrapStyle}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th style={sortableHeaderStyle} onClick={() => {
-                  const direction = nextDirection(unmatchedSortKey, "number", unmatchedSortDirection);
-                  setUnmatchedSortKey("number");
-                  setUnmatchedSortDirection(direction);
-                }}>{t("table.number")}{sortIndicator(unmatchedSortKey === "number", unmatchedSortDirection)}</th>
-                <th style={sortableHeaderStyle} onClick={() => {
-                  const direction = nextDirection(unmatchedSortKey, "name", unmatchedSortDirection);
-                  setUnmatchedSortKey("name");
-                  setUnmatchedSortDirection(direction);
-                }}>{t("unmatched.columns.name")}{sortIndicator(unmatchedSortKey === "name", unmatchedSortDirection)}</th>
-                <th style={sortableHeaderStyle} onClick={() => {
-                  const direction = nextDirection(unmatchedSortKey, "count", unmatchedSortDirection);
-                  setUnmatchedSortKey("count");
-                  setUnmatchedSortDirection(direction);
-                }}>{t("unmatched.columns.count")}{sortIndicator(unmatchedSortKey === "count", unmatchedSortDirection)}</th>
-                <th style={sortableHeaderStyle} onClick={() => {
-                  const direction = nextDirection(unmatchedSortKey, "periphery", unmatchedSortDirection);
-                  setUnmatchedSortKey("periphery");
-                  setUnmatchedSortDirection(direction);
-                }}>{t("unmatched.columns.periphery")}{sortIndicator(unmatchedSortKey === "periphery", unmatchedSortDirection)}</th>
-                <th>{t("unmatched.columns.actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {unmatchedRows.map(({ item }, index) => (
-                <tr key={`${item.name}-${item.periphery_id ?? "none"}`}>
-                  <td>{index + 1}</td>
-                  <td>{item.name}</td>
-                  <td>{item.count}</td>
-                  <td>{item.periphery_name ?? "-"}</td>
-                  <td>
-                    <button className="btn" onClick={() => useUnmatchedCity(item)}>
-                      {t("unmatched.useInForm")}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {!unmatchedRows.length && (
-                <tr>
-                  <td colSpan={5} className="muted">{t("unmatched.empty")}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="topbar">
-          <h3 style={zeroMarginStyle}>{t("manage.listTitle")}</h3>
-          <div className="spacer" />
-          <input
-            className="input"
-            style={searchInputStyle}
-            value={cityQuery}
-            placeholder={t("manage.search")}
-            onChange={(e) => setCityQuery(e.target.value)}
-          />
-          <button className="btn" onClick={() => void loadCities()}>{t("manage.searchButton")}</button>
-        </div>
-
-        <div style={tableWrapStyle}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th style={sortableHeaderStyle} onClick={() => {
-                  const direction = nextDirection(citySortKey, "number", citySortDirection);
-                  setCitySortKey("number");
-                  setCitySortDirection(direction);
-                }}>{t("table.number")}{sortIndicator(citySortKey === "number", citySortDirection)}</th>
-                <th style={sortableHeaderStyle} onClick={() => {
-                  const direction = nextDirection(citySortKey, "name", citySortDirection);
-                  setCitySortKey("name");
-                  setCitySortDirection(direction);
-                }}>{t("table.name")}{sortIndicator(citySortKey === "name", citySortDirection)}</th>
-                <th style={sortableHeaderStyle} onClick={() => {
-                  const direction = nextDirection(citySortKey, "periphery", citySortDirection);
-                  setCitySortKey("periphery");
-                  setCitySortDirection(direction);
-                }}>{t("manage.fields.periphery")}{sortIndicator(citySortKey === "periphery", citySortDirection)}</th>
-                <th style={sortableHeaderStyle} onClick={() => {
-                  const direction = nextDirection(citySortKey, "latitude", citySortDirection);
-                  setCitySortKey("latitude");
-                  setCitySortDirection(direction);
-                }}>{t("manage.fields.latitude")}{sortIndicator(citySortKey === "latitude", citySortDirection)}</th>
-                <th style={sortableHeaderStyle} onClick={() => {
-                  const direction = nextDirection(citySortKey, "longitude", citySortDirection);
-                  setCitySortKey("longitude");
-                  setCitySortDirection(direction);
-                }}>{t("manage.fields.longitude")}{sortIndicator(citySortKey === "longitude", citySortDirection)}</th>
-                <th>{t("manage.actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cityRows.map(({ item: city }, index) => (
-                <tr key={city.id}>
-                  <td>{index + 1}</td>
-                  <td>{city.name}</td>
-                  <td>{peripheryNameById.get(Number(city.parent_id)) ?? "-"}</td>
-                  <td>{city.latitude ?? "-"}</td>
-                  <td>{city.longitude ?? "-"}</td>
-                  <td>
-                    <button className="btn" onClick={() => onEdit(city)}>{t("manage.edit")}</button>
-                  </td>
-                </tr>
-              ))}
-              {!cityRows.length && (
-                <tr>
-                  <td colSpan={6} className="muted">{t("manage.emptyCities")}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }

@@ -50,5 +50,15 @@
   "peripheries": {
     "title": "Peripheries",
     "empty": "No peripheries found."
+  },
+  "switcher": {
+    "title": "Region sections",
+    "description": "Choose the list you want to manage.",
+    "total": "{{title}} · {{count}} records"
+  },
+  "sections": {
+    "peripheries": "Peripheries",
+    "cities": "Cities",
+    "unmatched": "New region"
   }
 }
