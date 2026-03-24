@@ -56,15 +56,18 @@ function TopNav() {
     { to: "/map", label: t("nav.map") },
   ];
 
-  const academicDataLabel = (() => {
-    const value = t("nav.academicData", {
-      defaultValue: role === "super_admin" ? "Ακαδημαϊκά προγράμματα" : undefined,
-    });
-    if (role !== "super_admin") return value;
-    return value
-      .replace("Διαχείριση Ακαδημαϊκών Δεδομένων", "Ακαδημαϊκά προγράμματα")
-      .replace("Academic Data", "Academic Programs");
-  })();
+  const academicDataLabel = React.useMemo(() => {
+    if (role !== "super_admin") {
+      return t("nav.academicData");
+    }
+
+    const customLabel = t("nav.academicPrograms", { defaultValue: "" });
+    if (customLabel && customLabel !== "nav.academicPrograms") {
+      return customLabel;
+    }
+
+    return lang === "en" ? "Academic Programs" : "Ακαδημαϊκά προγράμματα";
+  }, [lang, role, t]);
 
   React.useEffect(() => {
     const onResize = () => {
@@ -153,23 +156,23 @@ function TopNav() {
 
       <div className="nav-right">
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <button
-          className="btn"
-          onClick={() => i18n.changeLanguage("gr")}
-          aria-pressed={lang === "gr"}
-          title="Ελληνικά"
-        >
-          GR
-        </button>
-        <span style={{ opacity: 0.6 }}>|</span>
-        <button
-          className="btn"
-          onClick={() => i18n.changeLanguage("en")}
-          aria-pressed={lang === "en"}
-          title="English"
-        >
-          EN
-        </button>
+          <button
+            className="btn"
+            onClick={() => i18n.changeLanguage("gr")}
+            aria-pressed={lang === "gr"}
+            title="Ελληνικά"
+          >
+            GR
+          </button>
+          <span style={{ opacity: 0.6 }}>|</span>
+          <button
+            className="btn"
+            onClick={() => i18n.changeLanguage("en")}
+            aria-pressed={lang === "en"}
+            title="English"
+          >
+            EN
+          </button>
         </div>
 
         {!isAuthRoute && (
@@ -199,20 +202,21 @@ function TopNav() {
         )}
       </div>
 
-      {isCompact && menuOpen && <button className="drawer-backdrop" type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
+      {isCompact && menuOpen && (
+        <button
+          className="drawer-backdrop"
+          type="button"
+          aria-label="Close menu"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
       <aside id="mobile-drawer" className={`mobile-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
         <div className="mobile-drawer-header">
-          <strong style={{cursor:"pointer"}} onClick={() => setMenuOpen(false)}>ALUPLA</strong>
+          <strong style={{ cursor: "pointer" }} onClick={() => setMenuOpen(false)}>ALUPLA</strong>
         </div>
 
         <div className="mobile-drawer-section">
-          {(isAuthRoute
-            ? [
-                { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) },
-                { to: "/map", label: t("nav.map") },
-              ]
-            : navLinks
-          ).map((l) => (
+          {(isAuthRoute ? authLinks : navLinks).map((l) => (
             <Link key={l.to} className="btn" to={l.to}>
               {l.label}
             </Link>
@@ -241,16 +245,13 @@ export default function App() {
       <div className="container" style={{ flex: 1, width: "100%" }}>
         <Routes>
           <Route path="/" element={<PublicHome />} />
-
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify" element={<Verify />} />
           <Route path="/forgot" element={<ForgotPassword />} />
           <Route path="/reset" element={<ResetPassword />} />
-
           <Route path="/map" element={<Map />} />
           <Route path="/statistics" element={<Statistics />} />
-
           <Route
             path="/graduates"
             element={
@@ -275,7 +276,6 @@ export default function App() {
               </Guard>
             }
           />
-
           <Route
             path="/profile"
             element={
@@ -284,7 +284,6 @@ export default function App() {
               </Guard>
             }
           />
-
           <Route
             path="/users"
             element={
@@ -293,7 +292,6 @@ export default function App() {
               </Guard>
             }
           />
-
           <Route
             path="/logs"
             element={
@@ -302,7 +300,6 @@ export default function App() {
               </Guard>
             }
           />
-
           <Route
             path="/academic-data"
             element={
@@ -311,7 +308,6 @@ export default function App() {
               </Guard>
             }
           />
-
           <Route
             path="/regions"
             element={
@@ -320,7 +316,6 @@ export default function App() {
               </Guard>
             }
           />
-
           <Route path="*" element={<Login />} />
         </Routes>
       </div>
