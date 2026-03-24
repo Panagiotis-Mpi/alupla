@@ -267,11 +267,11 @@ export type MapFilterOptions = {
 };
 
 
-export async function createRegion(payload: { name: string; type: RegionType; parent_id: number; latitude: number; longitude: number }): Promise<{ ok: true; item: Region }> {
+export async function createRegion(payload: { name: string; type: RegionType; parent_id: number | null; latitude: number | null; longitude: number | null }): Promise<{ ok: true; item: Region }> {
   return api("/regions", { method: "POST", body: payload });
 }
 
-export async function updateRegion(id: number, payload: { name: string; type: RegionType; parent_id: number; latitude: number; longitude: number }): Promise<{ ok: true; item: Region }> {
+export async function updateRegion(id: number, payload: { name: string; type: RegionType; parent_id: number | null; latitude: number | null; longitude: number | null }): Promise<{ ok: true; item: Region }> {
   return api(`/regions/${id}`, { method: "PUT", body: payload });
 }
 

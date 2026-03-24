@@ -15,7 +15,16 @@ type CityPayload = {
   longitude: number | null;
 };
 
+type PeripheryPayload = {
+  name: string;
+  type: "PERIPHERY";
+  parent_id: null;
+  latitude: number | null;
+  longitude: number | null;
+};
+
 type CityValidation = { value: CityPayload } | { error: string };
+type PeripheryValidation = { value: PeripheryPayload } | { error: string };
 
 function badRequest(res: Response, message: string) {
   return res.status(400).json({ ok: false, error: { message } });
@@ -122,6 +131,40 @@ async function validateCityInput(body: any, currentId?: number): Promise<CityVal
       name,
       type: "CITY",
       parent_id: parentId,
+      latitude,
+      longitude,
+    },
+  };
+}
+
+async function validatePeripheryInput(body: any, currentId?: number): Promise<PeripheryValidation> {
+  const name = String(body?.name ?? "").trim();
+  const latitude = toNullableCoord(body?.latitude);
+  const longitude = toNullableCoord(body?.longitude);
+
+  if (!name) return { error: "name is required" };
+  if (Number.isNaN(latitude as number)) return { error: "latitude must be a number" };
+  if (Number.isNaN(longitude as number)) return { error: "longitude must be a number" };
+
+  const peers = await Region.findAll({
+    where: {
+      type: "PERIPHERY",
+      ...(currentId ? { id: { [Op.ne]: currentId } } : {}),
+    },
+    attributes: ["id", "name"],
+  });
+
+  const normalizedName = normalizeRegionName(name);
+  const duplicate = (peers as any[]).find((item) => normalizeRegionName(item.name) === normalizedName);
+  if (duplicate) {
+    return { error: "A periphery with this name already exists" };
+  }
+
+  return {
+    value: {
+      name,
+      type: "PERIPHERY",
+      parent_id: null,
       latitude,
       longitude,
     },
@@ -286,27 +329,49 @@ export async function updateRegion(req: Request, res: Response, next: NextFuncti
     const { id, item } = await findRegionById(req.params.id);
     if (id === null) return badRequest(res, "Invalid id");
     if (!item) return notFound(res);
-    if (String((item as any).type) !== "CITY") {
-      return badRequest(res, "Only CITY update is supported");
+
+    const itemType = String((item as any).type ?? "");
+
+    if (itemType === "CITY") {
+      const validated = await validateCityInput({ ...req.body, type: "CITY" }, id);
+      if ("error" in validated) return badRequest(res, validated.error);
+
+      await item.update(validated.value as any);
+
+      await logAction({
+        user_id: req.user?.id ?? null,
+        action: "update_region_city",
+        entity_type: "region",
+        entity_id: id,
+        details: {
+          name: validated.value.name,
+          parent_id: validated.value.parent_id,
+        },
+      });
+
+      return res.json({ ok: true, item });
     }
 
-    const validated = await validateCityInput({ ...req.body, type: "CITY" }, id);
-    if ("error" in validated) return badRequest(res, validated.error);
+    if (itemType === "PERIPHERY") {
+      const validated = await validatePeripheryInput({ ...req.body, type: "PERIPHERY" }, id);
+      if ("error" in validated) return badRequest(res, validated.error);
 
-    await item.update(validated.value as any);
+      await item.update(validated.value as any);
 
-    await logAction({
-      user_id: req.user?.id ?? null,
-      action: "update_region_city",
-      entity_type: "region",
-      entity_id: id,
-      details: {
-        name: validated.value.name,
-        parent_id: validated.value.parent_id,
-      },
-    });
+      await logAction({
+        user_id: req.user?.id ?? null,
+        action: "update_region_periphery",
+        entity_type: "region",
+        entity_id: id,
+        details: {
+          name: validated.value.name,
+        },
+      });
 
-    res.json({ ok: true, item });
+      return res.json({ ok: true, item });
+    }
+
+    return badRequest(res, "Only CITY or PERIPHERY update is supported");
   } catch (err) {
     next(err);
   }
