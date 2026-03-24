@@ -77,8 +77,10 @@ function buildNavLinks(
 
   const graduateLinks: NavLinkItem[] = [
     { to: "/graduates", label: t("nav.graduates") },
+    { to: "/academic-data", label: academicDataLabel },
     statisticsLink,
     mapLink,
+    { to: "/regions", label: t("nav.regions", { defaultValue: "Περιοχές" }) },
   ];
 
   if (role !== SUPER_ADMIN_ROLE) {
@@ -87,10 +89,10 @@ function buildNavLinks(
 
   return [
     graduateLinks[0],
-    { to: "/academic-data", label: academicDataLabel },
     graduateLinks[1],
     graduateLinks[2],
-    { to: "/regions", label: t("nav.regions", { defaultValue: "Περιοχές" }) },
+    graduateLinks[3],
+    graduateLinks[4],
     { to: "/users", label: t("nav.users") },
     { to: "/logs", label: t("nav.logs") },
   ];
@@ -326,7 +328,7 @@ export default function App() {
           <Route
             path="/academic-data"
             element={
-              <Guard allow={["super_admin"]}>
+              <Guard allow={["secretariat", "super_admin"]}>
                 <AcademicData />
               </Guard>
             }
