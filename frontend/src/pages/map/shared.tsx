@@ -55,33 +55,6 @@ export const EMPTY_MAP_FILTERS: MapFiltersState = {
   age_group: "",
 };
 
-
-export function MapViewportWatcher(props: {
-  onZoomChange: (zoom: number) => void;
-  onBoundsChange: (bounds: L.LatLngBounds) => void;
-}) {
-  const map = useMapEvents({
-    zoomend() {
-      props.onZoomChange(map.getZoom());
-      props.onBoundsChange(map.getBounds());
-    },
-    moveend() {
-      props.onZoomChange(map.getZoom());
-      props.onBoundsChange(map.getBounds());
-    },
-    resize() {
-      props.onZoomChange(map.getZoom());
-      props.onBoundsChange(map.getBounds());
-    },
-  });
-
-  useEffect(() => {
-    props.onZoomChange(map.getZoom());
-    props.onBoundsChange(map.getBounds());
-  }, [map, props.onBoundsChange, props.onZoomChange]);
-
-  return null;
-}
 export function cityLabelIcon(label: string) {
   return L.divIcon({
     className: "alupla-city-label-icon",
@@ -144,25 +117,42 @@ export function DetailStatsCard(props: {
   );
 }
 
+export function normalizeKey(value: string): string {
+  return (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function mapCityLatitude(city: MapCityPoint): number | null {
-  const value = Number(city.latitude);
+  if ("latitude" in city) {
+    const value = Number(city.latitude);
+    return Number.isFinite(value) ? value : null;
+  }
+  const value = Number((city as any).lat);
   return Number.isFinite(value) ? value : null;
 }
 
 export function mapCityLongitude(city: MapCityPoint): number | null {
-  const value = Number(city.longitude);
+  if ("longitude" in city) {
+    const value = Number(city.longitude);
+    return Number.isFinite(value) ? value : null;
+  }
+  const value = Number((city as any).lng);
   return Number.isFinite(value) ? value : null;
 }
 
-export function mapCityLabel(city: MapCityPoint): string {
+export function mapCityLabel(city: MapCityPoint) {
   return city.city_name;
 }
 
-export function mapCityKey(city: MapCityPoint): string {
+export function mapCityKey(city: MapCityPoint) {
   return `db-${city.city_id}`;
 }
 
-export function tryParseGeoJson(raw: string): unknown | null {
+export function tryParseGeoJson(raw: string): any | null {
   try {
     return JSON.parse(raw);
   } catch {
@@ -174,7 +164,7 @@ export function excelCellValue(value: unknown) {
   return value === null || value === undefined || value === "" ? "" : value;
 }
 
-function Field(props: { label: string; children: React.ReactNode; span?: number }) {
+export function Field(props: { label: string; children: React.ReactNode; span?: number }) {
   return (
     <div style={{ gridColumn: `span ${props.span ?? 4}`, display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
       <label className="label">{props.label}</label>
@@ -183,7 +173,7 @@ function Field(props: { label: string; children: React.ReactNode; span?: number 
   );
 }
 
-function FilterSection(props: { title: string; children: React.ReactNode }) {
+export function FilterSection(props: { title: string; children: React.ReactNode }) {
   return (
     <section style={{ display: "grid", gap: props.title ? 10 : 0 }}>
       {props.title ? <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", letterSpacing: ".01em" }}>{props.title}</div> : null}
@@ -192,7 +182,7 @@ function FilterSection(props: { title: string; children: React.ReactNode }) {
   );
 }
 
-function RangeField(props: {
+export function RangeField(props: {
   label: string;
   fromLabel: string;
   toLabel: string;
@@ -211,134 +201,40 @@ function RangeField(props: {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div>
           <label className="label" style={{ fontSize: 12, marginBottom: 6 }}>{props.fromLabel}</label>
-          <input className="input" type={props.type ?? "text"} value={props.fromValue} min={props.min} max={props.max} step={props.step} onChange={(e) => props.onFromChange(e.target.value)} />
+          <input className="input" type={props.type ?? "text"} value={props.fromValue} min={props.min} max={props.max} step={props.step} onChange={(event) => props.onFromChange(event.target.value)} />
         </div>
         <div>
           <label className="label" style={{ fontSize: 12, marginBottom: 6 }}>{props.toLabel}</label>
-          <input className="input" type={props.type ?? "text"} value={props.toValue} min={props.min} max={props.max} step={props.step} onChange={(e) => props.onToChange(e.target.value)} />
+          <input className="input" type={props.type ?? "text"} value={props.toValue} min={props.min} max={props.max} step={props.step} onChange={(event) => props.onToChange(event.target.value)} />
         </div>
       </div>
     </Field>
   );
 }
 
-export function MapFiltersForm(props: {
-  filters: MapFiltersState;
-  regions: Array<{ id: number; name: string }>;
-  studyPrograms: Array<{ id: number; code: string; name_el: string; name_en?: string | null }>;
-  availableDirections: Array<{ id: number; code: string; name_el: string; name_en?: string | null }>;
-  activeLang: "gr" | "en";
-  t: (key: string, options?: Record<string, unknown>) => string;
-  loading: boolean;
-  onClose: () => void;
-  onApply: () => void;
-  onReset: () => void;
-  onChange: <K extends keyof MapFiltersState>(key: K, value: MapFiltersState[K]) => void;
+export function MapViewportWatcher(props: {
+  onZoomChange: (zoom: number) => void;
+  onBoundsChange: (bounds: L.LatLngBounds) => void;
 }) {
-  const { filters, regions, studyPrograms, availableDirections, activeLang, t, loading, onClose, onApply, onReset, onChange } = props;
+  const map = useMapEvents({
+    zoomend() {
+      props.onZoomChange(map.getZoom());
+      props.onBoundsChange(map.getBounds());
+    },
+    moveend() {
+      props.onZoomChange(map.getZoom());
+      props.onBoundsChange(map.getBounds());
+    },
+    resize() {
+      props.onZoomChange(map.getZoom());
+      props.onBoundsChange(map.getBounds());
+    },
+  });
 
-  return (
-    <>
-      <button className="map-filters-overlay" type="button" aria-label={t("common.close", { defaultValue: "Κλείσιμο" })} onClick={onClose} />
-      <div className="card map-filters-modal">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <h3 style={{ margin: 0 }}>{t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}</h3>
-          <button className="btn" type="button" onClick={onClose}>
-            {t("common.hide", { defaultValue: "Απόκρυψη" })}
-          </button>
-        </div>
+  useEffect(() => {
+    props.onZoomChange(map.getZoom());
+    props.onBoundsChange(map.getBounds());
+  }, [map, props.onBoundsChange, props.onZoomChange]);
 
-        <div className="map-filters-grid">
-          <FilterSection title="">
-            <Field label={t("graduates.filters.adCode", { defaultValue: "Α.Δ." })} span={1}>
-              <input className="input" value={filters.ad_code_like} onChange={(e) => onChange("ad_code_like", e.target.value)} />
-            </Field>
-            <Field label={t("graduates.filters.studentNumber", { defaultValue: "Α.Μ." })} span={1}>
-              <input className="input" value={filters.student_number_like} onChange={(e) => onChange("student_number_like", e.target.value)} />
-            </Field>
-            <Field label={t("graduates.filters.lastName", { defaultValue: "Επώνυμο" })} span={1}>
-              <input className="input" value={filters.last_name_like} onChange={(e) => onChange("last_name_like", e.target.value)} />
-            </Field>
-            <Field label={t("graduates.filters.firstName", { defaultValue: "Όνομα" })} span={1}>
-              <input className="input" value={filters.first_name_like} onChange={(e) => onChange("first_name_like", e.target.value)} />
-            </Field>
-            <Field label={t("graduates.filters.fatherName", { defaultValue: "Πατρώνυμο" })} span={1}>
-              <input className="input" value={filters.father_name_like} onChange={(e) => onChange("father_name_like", e.target.value)} />
-            </Field>
-            <Field label={t("graduates.filters.city", { defaultValue: "Πόλη" })} span={1}>
-              <input className="input" value={filters.origin_municipality_like} onChange={(e) => onChange("origin_municipality_like", e.target.value)} />
-            </Field>
-          </FilterSection>
-
-          <FilterSection title="">
-            <Field label={t("graduates.filters.gender", { defaultValue: "Φύλο" })} span={1}>
-              <select className="input" value={filters.gender} onChange={(e) => onChange("gender", e.target.value)}>
-                <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                <option value="M">{t("common.male", { defaultValue: "Άνδρας" })}</option>
-                <option value="F">{t("common.female", { defaultValue: "Γυναίκα" })}</option>
-              </select>
-            </Field>
-            <RangeField label={t("graduates.filters.birthYear", { defaultValue: "Έτος γέννησης" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.birth_year_min} toValue={filters.birth_year_max} onFromChange={(value) => onChange("birth_year_min", value)} onToChange={(value) => onChange("birth_year_max", value)} type="number" span={1} />
-            <Field label={t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" })} span={1}>
-              <select className="input" value={filters.age_group} onChange={(e) => onChange("age_group", e.target.value as AgeGroup)}>
-                <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                <option value="18-22">18-22</option>
-                <option value="23-26">23-26</option>
-                <option value="27-30">27-30</option>
-                <option value="31+">31+</option>
-              </select>
-            </Field>
-            <Field label={t("graduates.filters.region", { defaultValue: "Περιφέρεια" })} span={1}>
-              <select className="input" value={filters.origin_region_id} onChange={(e) => onChange("origin_region_id", e.target.value)}>
-                <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                {regions.map((region) => (
-                  <option key={region.id} value={String(region.id)}>{region.name}</option>
-                ))}
-              </select>
-            </Field>
-          </FilterSection>
-
-          <FilterSection title="">
-            <RangeField label={t("graduates.filters.entryYear", { defaultValue: "Έτος εισαγωγής" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.entry_year_min} toValue={filters.entry_year_max} onFromChange={(value) => onChange("entry_year_min", value)} onToChange={(value) => onChange("entry_year_max", value)} type="number" span={1} />
-            <Field label={t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" })} span={1}>
-              <input className="input" value={filters.graduation_year} onChange={(e) => onChange("graduation_year", e.target.value)} />
-            </Field>
-            <RangeField label={t("graduates.filters.degreeGrade", { defaultValue: "Βαθμός πτυχίου" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.degree_grade_min} toValue={filters.degree_grade_max} onFromChange={(value) => onChange("degree_grade_min", value)} onToChange={(value) => onChange("degree_grade_max", value)} type="number" step="0.1" span={1} />
-            <RangeField label={t("graduates.filters.graduationDate", { defaultValue: "Ημερομηνία αποφοίτησης" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.graduation_date_from} toValue={filters.graduation_date_to} onFromChange={(value) => onChange("graduation_date_from", value)} onToChange={(value) => onChange("graduation_date_to", value)} type="date" span={1} />
-            <RangeField label={t("graduates.filters.oathDate", { defaultValue: "Ημερομηνία ορκωμοσίας" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.oath_date_from} toValue={filters.oath_date_to} onFromChange={(value) => onChange("oath_date_from", value)} onToChange={(value) => onChange("oath_date_to", value)} type="date" span={1} />
-            <Field label={t("map.filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })} span={1}>
-              <select className="input" value={filters.study_program_id} onChange={(e) => onChange("study_program_id", e.target.value)}>
-                <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                {studyPrograms.map((program) => (
-                  <option key={program.id} value={String(program.id)}>
-                    {activeLang === "en" ? program.name_en || program.name_el || program.code : program.name_el || program.name_en || program.code}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label={t("graduates.filters.direction", { defaultValue: "Κατεύθυνση" })} span={1}>
-              <select className="input" value={filters.program_direction_id} onChange={(e) => onChange("program_direction_id", e.target.value)}>
-                <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                {availableDirections.map((direction) => (
-                  <option key={direction.id} value={String(direction.id)}>
-                    {activeLang === "en" ? direction.name_en || direction.name_el || direction.code : direction.name_el || direction.name_en || direction.code}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </FilterSection>
-        </div>
-
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <button className="btn" type="button" onClick={onReset} disabled={loading}>
-            {t("common.reset", { defaultValue: "Reset" })}
-          </button>
-          <button className="btn primary" type="button" onClick={onApply} disabled={loading}>
-            {t("common.apply", { defaultValue: "Εφαρμογή" })}
-          </button>
-        </div>
-      </div>
-    </>
-  );
+  return null;
 }
-

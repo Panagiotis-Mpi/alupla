@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer } from "react-leaflet";
 import { useTranslation } from "react-i18next";
 import L from "leaflet";
 
@@ -8,7 +7,6 @@ import {
   getMapCities,
   getMapFilterOptions,
   getRegionCitiesMap,
-  logPublicExport,
   type GraduatesMapItem,
   type MapCityPoint,
   type ProgramDirection,
@@ -17,11 +15,19 @@ import {
   type StudyProgram,
 } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
+import { MapCanvasCard } from "./map/MapCanvasCard";
 import { buildMapFilterRows, exportElementAsPng, exportMapCsv, exportMapExcel } from "./map/mapExport";
-import { DetailStatsCard, EMPTY_MAP_FILTERS, MapFiltersForm, MapViewportWatcher, tryParseGeoJson, type MapFiltersState } from "./map/shared";
-import { normalizeKey, regionMatches } from "./map/regionNames";
-import { MapRegionLayer } from "./map/MapRegionLayer";
-import { MapCityMarkers } from "./map/MapCityMarkers";
+import {
+  DetailStatsCard,
+  EMPTY_MAP_FILTERS,
+  FilterSection,
+  Field,
+  RangeField,
+  normalizeKey,
+  tryParseGeoJson,
+  type MapFiltersState,
+  type AgeGroup,
+} from "./map/shared";
 
 const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
 
@@ -34,22 +40,11 @@ function thresholdsForMax(max: number) {
   return [0, first, second, third, fourth, safeMax];
 }
 
-function legendBuckets(max: number) {
-  const safeMax = Math.max(1, max);
-  const first = Math.ceil(safeMax * 0.2);
-  const second = Math.ceil(safeMax * 0.4);
-  const third = Math.ceil(safeMax * 0.6);
-  const fourth = Math.ceil(safeMax * 0.8);
-  return [0, first, second, third, fourth, safeMax];
-}
-
 function buildParams(filters: MapFiltersState) {
   const params: Record<string, string> = {};
   Object.entries(filters).forEach(([key, value]) => {
     const trimmed = typeof value === "string" ? value.trim() : value;
-    if (trimmed === undefined || trimmed === null || trimmed === "") {
-      return;
-    }
+    if (trimmed === undefined || trimmed === null || trimmed === "") return;
     params[key] = String(trimmed);
   });
   return params;
@@ -61,24 +56,6 @@ function countByPeriphery(items: GraduatesMapItem[]) {
     counts.set(normalizeKey(String(item.periphery_name ?? "")), Number(item.count ?? 0) || 0);
   }
   return counts;
-}
-
-
-function visibleMapCities(cityPoints: MapCityPoint[], mapBounds: L.LatLngBounds | null) {
-  const filtered = mapBounds
-    ? cityPoints.filter((city) => {
-        const lat = Number(city.latitude);
-        const lng = Number(city.longitude);
-        return Number.isFinite(lat) && Number.isFinite(lng) && mapBounds.contains(L.latLng(lat, lng));
-      })
-    : cityPoints.filter((city) => Number.isFinite(Number(city.latitude)) && Number.isFinite(Number(city.longitude)));
-
-  return [...filtered].sort((a, b) => {
-    if ((b.count || 0) !== (a.count || 0)) {
-      return (b.count || 0) - (a.count || 0);
-    }
-    return a.city_name.localeCompare(b.city_name, "el");
-  });
 }
 
 export default function Map() {
@@ -94,7 +71,7 @@ export default function Map() {
   const [studyPrograms, setStudyPrograms] = useState<StudyProgram[]>([]);
   const [programDirections, setProgramDirections] = useState<ProgramDirection[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
-  const [, setMapZoom] = useState(6.5);
+  const [mapZoom, setMapZoom] = useState(6.5);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<GraduatesMapItem[]>([]);
@@ -111,28 +88,22 @@ export default function Map() {
     let currentMax = 1;
     for (const item of items) {
       const count = Number(item.count ?? 0) || 0;
-      if (count > currentMax) {
-        currentMax = count;
-      }
+      if (count > currentMax) currentMax = count;
     }
     return currentMax;
   }, [items]);
   const total = useMemo(() => items.reduce((sum, item) => sum + (Number(item.count) || 0), 0), [items]);
-  const buckets = useMemo(() => legendBuckets(maxCount), [maxCount]);
+  const buckets = useMemo(() => thresholdsForMax(maxCount), [maxCount]);
   const geoRenderKey = useMemo(() => `${i18n.language}:${items.length}:${maxCount}`, [i18n.language, items.length, maxCount]);
-  const visibleCities = useMemo(() => visibleMapCities(cityPoints, mapBounds), [cityPoints, mapBounds]);
   const availableDirections = useMemo(() => {
-    if (!filters.study_program_id) {
-      return programDirections;
-    }
+    if (!filters.study_program_id) return programDirections;
     return programDirections.filter((item) => Number(item.study_program_id) === Number(filters.study_program_id));
   }, [filters.study_program_id, programDirections]);
   const countsRef = useRef<Map<string, number>>(countsByGreekName);
+  const itemsRef = useRef<GraduatesMapItem[]>(items);
 
   useEffect(() => {
-    if (!geojson || !mapRef.current) {
-      return;
-    }
+    if (!geojson || !mapRef.current) return;
     try {
       const layer = L.geoJSON(geojson as any);
       const bounds = layer.getBounds();
@@ -141,13 +112,17 @@ export default function Map() {
         setMapZoom(mapRef.current.getZoom());
         setMapBounds(mapRef.current.getBounds());
       }
-    } catch {}
+    } catch {
+    }
   }, [geojson]);
 
   useEffect(() => {
     countsRef.current = countsByGreekName;
   }, [countsByGreekName]);
 
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   useEffect(() => {
     let active = true;
@@ -172,12 +147,8 @@ export default function Map() {
 
   useEffect(() => {
     function onDocClick(event: MouseEvent) {
-      if (!exportMenuRef.current) {
-        return;
-      }
-      if (exportMenuRef.current.contains(event.target as Node)) {
-        return;
-      }
+      if (!exportMenuRef.current) return;
+      if (exportMenuRef.current.contains(event.target as Node)) return;
       setShowExportMenu(false);
     }
     document.addEventListener("mousedown", onDocClick);
@@ -201,7 +172,7 @@ export default function Map() {
   }
 
   useEffect(() => {
-    void fetchMap({});
+    fetchMap({});
   }, []);
 
   useEffect(() => {
@@ -222,9 +193,7 @@ export default function Map() {
         if (!active) return;
         setSelectedCityStats([]);
       } finally {
-        if (active) {
-          setCityStatsLoading(false);
-        }
+        if (active) setCityStatsLoading(false);
       }
     })();
 
@@ -234,61 +203,11 @@ export default function Map() {
   }, [params, selected?.periphery_id]);
 
   function updateFilter<K extends keyof MapFiltersState>(key: K, value: MapFiltersState[K]) {
-    setFilters((current) => {
-      const next = { ...current, [key]: value };
-      if (key === "study_program_id") {
-        next.program_direction_id = "";
-      }
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "study_program_id") next.program_direction_id = "";
       return next;
     });
-  }
-
-  function fillColorForCount(count: number) {
-    const thresholds = thresholdsForMax(maxCount);
-    let bucketIndex = 4;
-    for (let index = 0; index < 5; index += 1) {
-      const from = thresholds[index];
-      const to = thresholds[index + 1];
-      if (count >= from && count <= to) {
-        bucketIndex = index;
-        break;
-      }
-    }
-    return fillColors[Math.max(0, Math.min(fillColors.length - 1, bucketIndex))];
-  }
-
-  function fillOpacityForCount(count: number) {
-    return count <= 0 ? 0.18 : 0.75;
-  }
-
-  function featureGreekName(feature: any): string {
-    const properties = feature?.properties || {};
-    return String(properties.name_greek || properties.name_el || properties.name || properties.NAME || "");
-  }
-
-  function featureDisplayName(feature: any): string {
-    const properties = feature?.properties || {};
-    if (activeLang === "en") {
-      return String(properties.name_en || properties.name || properties.NAME || properties.name_greek || "");
-    }
-    return featureGreekName(feature);
-  }
-
-  function currentCountForFeature(feature: any): number {
-    const featureName = featureGreekName(feature);
-    for (const [key, value] of countsRef.current.entries()) {
-      if (regionMatches(key, featureName)) {
-        return value;
-      }
-    }
-    return countsRef.current.get(normalizeKey(featureName)) ?? 0;
-  }
-
-  function renderTooltipHtml(feature: any): string {
-    const label = featureDisplayName(feature);
-    const count = currentCountForFeature(feature);
-    const totalLabel = t("map.total", { total: count, defaultValue: "Σύνολο: {{total}}" });
-    return `<div class="alupla-region-tip-title">${label}</div><div class="alupla-region-tip-sub">${totalLabel}</div>`;
   }
 
   async function onApply() {
@@ -299,20 +218,25 @@ export default function Map() {
     setFilters(EMPTY_MAP_FILTERS);
     setSelected(null);
     setSelectedCityStats([]);
-    void fetchMap({});
+    fetchMap({});
+  }
+
+  function currentFilterRows() {
+    return buildMapFilterRows({ t, filters, activeLang, studyPrograms, programDirections, regions });
+  }
+
+  async function onExportExcel() {
+    await exportMapExcel({ items, filtersRows: currentFilterRows(), t });
+  }
+
+  async function onExportCsv() {
+    await exportMapCsv({ items, filtersRows: currentFilterRows(), t });
   }
 
   async function onExportPng() {
-    if (!mapCanvasRef.current) {
-      return;
-    }
+    if (!mapCanvasRef.current) return;
     await exportElementAsPng(mapCanvasRef.current, "alupla_map_export.png");
-    try {
-      await logPublicExport("map_export", "png");
-    } catch {}
   }
-
-  const filterRows = useMemo(() => buildMapFilterRows({ t, filters, activeLang, studyPrograms, programDirections, regions }), [t, filters, activeLang, studyPrograms, programDirections, regions]);
 
   return (
     <div className="container">
@@ -489,68 +413,30 @@ export default function Map() {
       </div>
 
       <div className="page-two-col" style={{ marginTop: 12 }}>
-        <div className="card alupla-map-card">
-          <div className="alupla-map map-canvas" ref={mapCanvasRef}>
-            <MapContainer
-              center={[38.6, 24.0]}
-              zoom={6.5 as any}
-              zoomSnap={0.5}
-              whenCreated={(map) => {
-                mapRef.current = map;
-                setMapZoom(map.getZoom());
-                setMapBounds(map.getBounds());
-              }}
-              style={{ height: "100%", width: "100%", background: "transparent" }}
-              scrollWheelZoom
-            >
-              <MapViewportWatcher onZoomChange={setMapZoom} onBoundsChange={setMapBounds} />
-
-              {geojson ? (
-                <MapRegionLayer
-                  geojson={geojson}
-                  geoRenderKey={geoRenderKey}
-                  items={items}
-                  selectedPeripheryId={selected?.periphery_id ?? null}
-                  featureGreekName={featureGreekName}
-                  renderTooltipHtml={renderTooltipHtml}
-                  currentCountForFeature={currentCountForFeature}
-                  fillColorForCount={fillColorForCount}
-                  fillOpacityForCount={fillOpacityForCount}
-                  onSelect={setSelected}
-                />
-              ) : null}
-
-              <MapCityMarkers cities={visibleCities} />
-            </MapContainer>
-          </div>
-
-          <div style={{ position: "absolute", left: 12, bottom: 12, background: "rgba(255,255,255,.94)", border: "1px solid var(--border)", borderRadius: 14, padding: "10px 12px", fontSize: 12, boxShadow: "var(--shadow)", maxWidth: 220 }}>
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>{t("map.legend", { defaultValue: "Υπόμνημα" })}</div>
-            <div className="muted" style={{ marginBottom: 8 }}>
-              {t("map.legendCounts", { defaultValue: "Αριθμός αποφοίτων" })}
-            </div>
-            <div style={{ display: "grid", gap: 6 }}>
-              {Array.from({ length: 5 }).map((_, index) => {
-                const from = buckets[index];
-                const to = buckets[index + 1];
-                const mid = (from + to) / 2;
-                const opacity = fillOpacityForCount(mid);
-                const color = fillColorForCount(mid);
-                return (
-                  <div key={index} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 16, height: 12, display: "inline-block", border: "1px solid #334155", background: color, opacity, borderRadius: 3 }} />
-                    <span>{from}–{to}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <MapCanvasCard
+          mapCanvasRef={mapCanvasRef}
+          mapRef={mapRef}
+          geojson={geojson}
+          geoRenderKey={geoRenderKey}
+          items={items}
+          itemsRef={itemsRef}
+          cityPoints={cityPoints}
+          mapBounds={mapBounds}
+          mapZoom={mapZoom}
+          buckets={buckets}
+          activeLang={activeLang}
+          t={t}
+          onZoomChange={setMapZoom}
+          onBoundsChange={setMapBounds}
+          setSelected={setSelected}
+          countsRef={countsRef}
+          fillColors={fillColors}
+        />
 
         <div className="map-panel-stack">
           <div className="map-actions-bar">
             <div style={{ position: "relative" }} ref={exportMenuRef}>
-              <button className="btn map-action-button" type="button" onClick={() => setShowExportMenu((current) => !current)} disabled={loading || items.length === 0}>
+              <button className="btn map-action-button" type="button" onClick={() => setShowExportMenu((prev) => !prev)} disabled={loading || items.length === 0}>
                 {t("common.export", { defaultValue: "Export" })}
               </button>
               {showExportMenu ? (
@@ -558,34 +444,122 @@ export default function Map() {
                   <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>
                     {t("map.exportPng", { defaultValue: "Export map as PNG" })}
                   </button>
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void exportMapExcel({ items, filtersRows: filterRows, t }); }}>
+                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>
                     {t("map.exportExcel", { defaultValue: "Export Excel" })}
                   </button>
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void exportMapCsv({ items, filtersRows: filterRows, t }); }}>
+                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>
                     {t("map.exportCsv", { defaultValue: "Export CSV" })}
                   </button>
                 </div>
               ) : null}
             </div>
-            <button className="btn map-action-button" type="button" onClick={() => setShowFilters((current) => !current)}>
+            <button className="btn map-action-button" type="button" onClick={() => setShowFilters((prev) => !prev)}>
               {showFilters ? t("common.hide", { defaultValue: "Απόκρυψη" }) : t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}
             </button>
           </div>
 
           {showFilters ? (
-            <MapFiltersForm
-              filters={filters}
-              regions={regions}
-              studyPrograms={studyPrograms}
-              availableDirections={availableDirections}
-              activeLang={activeLang}
-              t={t}
-              loading={loading}
-              onClose={() => setShowFilters(false)}
-              onApply={() => void onApply()}
-              onReset={onReset}
-              onChange={updateFilter}
-            />
+            <>
+              <button className="map-filters-overlay" type="button" aria-label={t("common.close", { defaultValue: "Κλείσιμο" })} onClick={() => setShowFilters(false)} />
+              <div className="card map-filters-modal">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <h3 style={{ margin: 0 }}>{t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}</h3>
+                  <button className="btn" type="button" onClick={() => setShowFilters(false)}>
+                    {t("common.hide", { defaultValue: "Απόκρυψη" })}
+                  </button>
+                </div>
+
+                <div className="map-filters-grid">
+                  <FilterSection title="">
+                    <Field label={t("graduates.filters.adCode", { defaultValue: "Α.Δ." })} span={1}>
+                      <input className="input" value={filters.ad_code_like} onChange={(e) => updateFilter("ad_code_like", e.target.value)} />
+                    </Field>
+                    <Field label={t("graduates.filters.studentNumber", { defaultValue: "Α.Μ." })} span={1}>
+                      <input className="input" value={filters.student_number_like} onChange={(e) => updateFilter("student_number_like", e.target.value)} />
+                    </Field>
+                    <Field label={t("graduates.filters.lastName", { defaultValue: "Επώνυμο" })} span={1}>
+                      <input className="input" value={filters.last_name_like} onChange={(e) => updateFilter("last_name_like", e.target.value)} />
+                    </Field>
+                    <Field label={t("graduates.filters.firstName", { defaultValue: "Όνομα" })} span={1}>
+                      <input className="input" value={filters.first_name_like} onChange={(e) => updateFilter("first_name_like", e.target.value)} />
+                    </Field>
+                    <Field label={t("graduates.filters.fatherName", { defaultValue: "Πατρώνυμο" })} span={1}>
+                      <input className="input" value={filters.father_name_like} onChange={(e) => updateFilter("father_name_like", e.target.value)} />
+                    </Field>
+                    <Field label={t("graduates.filters.city", { defaultValue: "Πόλη" })} span={1}>
+                      <input className="input" value={filters.origin_municipality_like} onChange={(e) => updateFilter("origin_municipality_like", e.target.value)} />
+                    </Field>
+                  </FilterSection>
+
+                  <FilterSection title="">
+                    <Field label={t("graduates.filters.gender", { defaultValue: "Φύλο" })} span={1}>
+                      <select className="input" value={filters.gender} onChange={(e) => updateFilter("gender", e.target.value)}>
+                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                        <option value="M">{t("common.male", { defaultValue: "Άνδρας" })}</option>
+                        <option value="F">{t("common.female", { defaultValue: "Γυναίκα" })}</option>
+                      </select>
+                    </Field>
+                    <RangeField label={t("graduates.filters.birthYear", { defaultValue: "Έτος γέννησης" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.birth_year_min} toValue={filters.birth_year_max} onFromChange={(value) => updateFilter("birth_year_min", value)} onToChange={(value) => updateFilter("birth_year_max", value)} type="number" span={1} />
+                    <Field label={t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" })} span={1}>
+                      <select className="input" value={filters.age_group} onChange={(e) => updateFilter("age_group", e.target.value as AgeGroup)}>
+                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                        <option value="18-22">18-22</option>
+                        <option value="23-26">23-26</option>
+                        <option value="27-30">27-30</option>
+                        <option value="31+">31+</option>
+                      </select>
+                    </Field>
+                    <Field label={t("graduates.filters.region", { defaultValue: "Περιφέρεια" })} span={1}>
+                      <select className="input" value={filters.origin_region_id} onChange={(e) => updateFilter("origin_region_id", e.target.value)}>
+                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                        {regions.map((region) => (
+                          <option key={region.id} value={String(region.id)}>{region.name}</option>
+                        ))}
+                      </select>
+                    </Field>
+                  </FilterSection>
+
+                  <FilterSection title="">
+                    <RangeField label={t("graduates.filters.entryYear", { defaultValue: "Έτος εισαγωγής" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.entry_year_min} toValue={filters.entry_year_max} onFromChange={(value) => updateFilter("entry_year_min", value)} onToChange={(value) => updateFilter("entry_year_max", value)} type="number" span={1} />
+                    <Field label={t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" })} span={1}>
+                      <input className="input" value={filters.graduation_year} onChange={(e) => updateFilter("graduation_year", e.target.value)} />
+                    </Field>
+                    <RangeField label={t("graduates.filters.degreeGrade", { defaultValue: "Βαθμός πτυχίου" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.degree_grade_min} toValue={filters.degree_grade_max} onFromChange={(value) => updateFilter("degree_grade_min", value)} onToChange={(value) => updateFilter("degree_grade_max", value)} type="number" step="0.1" span={1} />
+                    <RangeField label={t("graduates.filters.graduationDate", { defaultValue: "Ημερομηνία αποφοίτησης" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.graduation_date_from} toValue={filters.graduation_date_to} onFromChange={(value) => updateFilter("graduation_date_from", value)} onToChange={(value) => updateFilter("graduation_date_to", value)} type="date" span={1} />
+                    <RangeField label={t("graduates.filters.oathDate", { defaultValue: "Ημερομηνία ορκωμοσίας" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.oath_date_from} toValue={filters.oath_date_to} onFromChange={(value) => updateFilter("oath_date_from", value)} onToChange={(value) => updateFilter("oath_date_to", value)} type="date" span={1} />
+                    <Field label={t("map.filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })} span={1}>
+                      <select className="input" value={filters.study_program_id} onChange={(e) => updateFilter("study_program_id", e.target.value)}>
+                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                        {studyPrograms.map((program) => (
+                          <option key={program.id} value={String(program.id)}>
+                            {activeLang === "en" ? program.name_en || program.name_el || program.code : program.name_el || program.name_en || program.code}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label={t("graduates.filters.direction", { defaultValue: "Κατεύθυνση" })} span={1}>
+                      <select className="input" value={filters.program_direction_id} onChange={(e) => updateFilter("program_direction_id", e.target.value)}>
+                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                        {availableDirections.map((direction) => (
+                          <option key={direction.id} value={String(direction.id)}>
+                            {activeLang === "en" ? direction.name_en || direction.name_el || direction.code : direction.name_el || direction.name_en || direction.code}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  </FilterSection>
+                </div>
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <button className="btn" type="button" onClick={onReset} disabled={loading}>
+                    {t("common.reset", { defaultValue: "Reset" })}
+                  </button>
+                  <button className="btn primary" type="button" onClick={onApply} disabled={loading}>
+                    {t("common.apply", { defaultValue: "Εφαρμογή" })}
+                  </button>
+                </div>
+              </div>
+            </>
           ) : null}
 
           <div className="card">
@@ -618,7 +592,7 @@ export default function Map() {
                     <label className="label">{t("map.cities", { defaultValue: "Πόλεις" })}</label>
                     {selectedCityStats.map((city) => (
                       <DetailStatsCard
-                        key={`${selected.periphery_id}-${city.city}`}
+                        key={`${selected?.periphery_id}-${city.city}`}
                         title={city.city}
                         total={city.count}
                         avgAge={city.avg_age}
