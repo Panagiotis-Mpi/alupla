@@ -159,10 +159,10 @@ export default function Graduates() {
   const floatingScrollbarInnerRef = useRef<HTMLDivElement | null>(null);
   const selectAllRef = useRef<HTMLInputElement | null>(null);
 
-  function showToast(tst: { type: "success" | "error"; title: string; detail?: string; action?: "download_errors" }) {
-    setToast(tst);
+  function showToast(nextToast: { type: "success" | "error"; title: string; detail?: string; action?: "download_errors" }) {
+    setToast(nextToast);
     window.setTimeout(() => {
-      setToast((cur) => (cur === tst ? null : cur));
+      setToast((current) => (current === nextToast ? null : current));
     }, 6000);
   }
 
@@ -237,10 +237,13 @@ export default function Graduates() {
     return directions.filter((item: any) => Number(item?.study_program_id) === Number(filters.study_program_id));
   }, [directions, filters.study_program_id]);
 
-  const fmt = (v: any) => (v === null || v === undefined ? "" : String(v));
+  const fmt = (value: any) => (value === null || value === undefined ? "" : String(value));
 
   function renderGender(value: any) {
-    return String(value ?? "") === "F" ? t("filters.female") : String(value ?? "") === "M" ? t("filters.male") : fmt(value);
+    const raw = String(value ?? "");
+    if (raw === "F") return t("filters.female");
+    if (raw === "M") return t("filters.male");
+    return fmt(value);
   }
 
   async function load() {
@@ -480,8 +483,6 @@ export default function Graduates() {
       setImportBusy(false);
     }
   }
-
-
 
   async function onDeleteSelected() {
     if (!selectedIds.length) return;

@@ -81,7 +81,6 @@ function cityLabelIcon(label: string) {
   });
 }
 
-
 function DetailStatsCard(props: {
   title: string;
   total: number | string;
@@ -144,7 +143,6 @@ function normalizeKey(s: string): string {
     .trim();
 }
 
-
 function mapCityLatitude(city: MapCityPoint): number | null {
   if ("latitude" in city) {
     const value = Number(city.latitude);
@@ -191,8 +189,7 @@ function downloadBlob(filename: string, blob: Blob) {
 }
 
 function excelCellValue(v: any) {
-  if (v === null || v === undefined || v === "") return "";
-  return v;
+  return v === null || v === undefined || v === "" ? "" : v;
 }
 
 function copyComputedStyles(source: Element, target: Element) {
