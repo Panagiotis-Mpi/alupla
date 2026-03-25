@@ -14,6 +14,7 @@ import {
   type StudyProgram,
 } from "../lib/api";
 import { GraduatesTable } from "./graduates/GraduatesTable";
+import { exportGraduatesPdf } from "./graduates/pdfExport";
 import {
   buildGraduatesParams,
   createNameMap,
@@ -264,8 +265,22 @@ export default function Graduates() {
       exportParams.ids = ids;
     }
     try {
-      const blob = await exportGraduatesFile(exportParams, format, i18n.resolvedLanguage || i18n.language);
       const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      if (format === "pdf") {
+        const exportItems = ids?.length
+          ? items.filter((item) => ids.includes(Number(item.id)))
+          : items;
+        const blob = await exportGraduatesPdf({
+          items: exportItems,
+          lang: activeLang,
+          programNameById: programDisplayNameById,
+          directionNameById: directionDisplayNameById,
+          regionNameById,
+        });
+        downloadBlob(blob, `graduates-${timestamp}.pdf`);
+        return;
+      }
+      const blob = await exportGraduatesFile(exportParams, format, i18n.resolvedLanguage || i18n.language);
       downloadBlob(blob, `graduates-${timestamp}.${format}`);
     } catch (error: any) {
       alert(error?.message ?? t("export.failed"));

@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import type { NextFunction, Request, Response } from "express";
 import { Graduate } from "../models/Graduate";
 import { ProgramDirection } from "../models/ProgramDirection";
@@ -7,7 +6,6 @@ import { Region } from "../models/Region";
 import { buildGraduateWhere } from "../utils/buildGraduateWhere";
 import { clamp, toInt as toIntParam } from "../utils/pagination";
 import { logAction } from "../services/log.service";
-import PDFDocument from "pdfkit";
 import * as XLSX from "xlsx";
 import { normHeader, toDateOnly, toInt, toNumber } from "../utils/importUtils";
 import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
@@ -15,7 +13,7 @@ import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/r
 const EXPORT_LANGS = new Set(["gr", "en"]);
 
 type ExportLang = "gr" | "en";
-type GraduateFileFormat = "xlsx" | "csv" | "pdf";
+type GraduateFileFormat = "xlsx" | "csv";
 
 function getExportLang(raw: unknown): ExportLang {
   return typeof raw === "string" && EXPORT_LANGS.has(raw) ? (raw as ExportLang) : "gr";
@@ -24,7 +22,6 @@ function getExportLang(raw: unknown): ExportLang {
 function getGraduateFileFormat(raw: unknown): GraduateFileFormat {
   const format = String(raw ?? "").trim().toLowerCase();
   if (format === "csv") return "csv";
-  if (format === "pdf") return "pdf";
   return "xlsx";
 }
 
@@ -254,96 +251,6 @@ function buildCsvText(rows: Array<Record<string, unknown>>) {
   return lines.join("\n");
 }
 
-function buildPdfBuffer(title: string, meta: string, rows: Array<Record<string, unknown>>) {
-  return new Promise<Buffer>((resolve, reject) => {
-    const doc = new PDFDocument({ size: "A3", layout: "landscape", margin: 24, compress: true });
-    const chunks: Buffer[] = [];
-    const fontPath = getPdfFontPath();
-
-    doc.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
-
-    if (fontPath) {
-      doc.font(fontPath);
-    }
-
-    doc.fontSize(16).text(title, { align: "left" });
-    doc.moveDown(0.2);
-    doc.fontSize(10).fillColor("#4b5563").text(meta, { align: "left" });
-    doc.moveDown(0.8);
-    doc.fillColor("#111827");
-
-    if (!rows.length) {
-      doc.fontSize(11).text("-");
-      doc.end();
-      return;
-    }
-
-    const headers = Object.keys(rows[0]);
-    const columnWidths = [42, 56, 82, 76, 82, 58, 50, 54, 60, 68, 68, 138, 138, 92, 120];
-    const cellPaddingX = 4;
-    const cellPaddingY = 4;
-    const contentWidth = columnWidths.reduce((sum, value) => sum + value, 0);
-    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-    const offsetX = doc.page.margins.left + Math.max(0, (pageWidth - contentWidth) / 2);
-
-    const measureRowHeight = (values: string[], fontSize: number) => {
-      doc.fontSize(fontSize);
-      let maxHeight = 0;
-      values.forEach((value, index) => {
-        const height = doc.heightOfString(value || " ", { width: columnWidths[index] - cellPaddingX * 2, align: "left" });
-        if (height > maxHeight) maxHeight = height;
-      });
-      return Math.max(fontSize + cellPaddingY * 2, maxHeight + cellPaddingY * 2);
-    };
-
-    const drawRow = (values: string[], top: number, fontSize: number, header = false) => {
-      const rowHeight = measureRowHeight(values, fontSize);
-      let left = offsetX;
-      doc.lineWidth(0.5);
-      values.forEach((value, index) => {
-        const width = columnWidths[index];
-        if (header) {
-          doc.save();
-          doc.rect(left, top, width, rowHeight).fill("#f3f4f6");
-          doc.restore();
-        }
-        doc.rect(left, top, width, rowHeight).stroke("#d1d5db");
-        doc.fontSize(fontSize).fillColor("#111827").text(value || " ", left + cellPaddingX, top + cellPaddingY, {
-          width: width - cellPaddingX * 2,
-          align: "left"
-        });
-        left += width;
-      });
-      return rowHeight;
-    };
-
-    let currentY = doc.y;
-    const ensureSpace = (needed: number) => {
-      const bottom = doc.page.height - doc.page.margins.bottom;
-      if (currentY + needed <= bottom) return;
-      doc.addPage({ size: "A3", layout: "landscape", margin: 24 });
-      if (fontPath) {
-        doc.font(fontPath);
-      }
-      currentY = doc.page.margins.top;
-      currentY += drawRow(headers, currentY, 8, true);
-    };
-
-    currentY += drawRow(headers, currentY, 8, true);
-
-    rows.forEach((row) => {
-      const values = headers.map((header) => String(row[header] ?? ""));
-      const rowHeight = measureRowHeight(values, 7);
-      ensureSpace(rowHeight);
-      currentY += drawRow(values, currentY, 7, false);
-    });
-
-    doc.end();
-  });
-}
-
 function formatGenderValue(value: unknown) {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) {
@@ -353,19 +260,6 @@ function formatGenderValue(value: unknown) {
     return "Γυναίκα";
   }
   return String(value ?? "").trim();
-}
-
-const PDF_FONT_CANDIDATES = [
-  "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-  "/usr/share/fonts/dejavu/DejaVuSans.ttf",
-  "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"
-];
-
-function getPdfFontPath() {
-  for (const candidate of PDF_FONT_CANDIDATES) {
-    if (fs.existsSync(candidate)) return candidate;
-  }
-  return null;
 }
 
 function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number, any>, directionsById: Map<number, any>, regionsById: Map<number, any>) {
@@ -596,17 +490,6 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", `attachment; filename="graduates-${ts}.csv"`);
       return res.send(`﻿${csv}`);
-    }
-
-    if (format === "pdf") {
-      const title = lang === "en" ? "Graduates" : "Απόφοιτοι";
-      const meta = lang === "en"
-        ? `Export date: ${new Date().toLocaleString("en-GB")} • Records: ${data.length}`
-        : `Ημερομηνία εξαγωγής: ${new Date().toLocaleString("el-GR")} • Εγγραφές: ${data.length}`;
-      const pdf = await buildPdfBuffer(title, meta, data);
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `attachment; filename="graduates-${ts}.pdf"`);
-      return res.send(pdf);
     }
 
     const ws = XLSX.utils.json_to_sheet(data);
