@@ -256,8 +256,17 @@ function buildCsvText(rows: Array<Record<string, unknown>>) {
 
 function buildPdfBuffer(title: string, meta: string, rows: Array<Record<string, unknown>>) {
   return new Promise<Buffer>((resolve, reject) => {
-    const pageMargin = 16;
-    const doc = new PDFDocument({ size: "A3", layout: "landscape", margin: pageMargin, compress: true });
+    const pageMarginX = 8;
+    const pageMarginTop = 10;
+    const pageMarginBottom = 10;
+    const pageSize: [number, number] = [1191, 842];
+    const createPageOptions = () => ({
+      size: pageSize,
+      layout: "landscape" as const,
+      margins: { top: pageMarginTop, bottom: pageMarginBottom, left: pageMarginX, right: pageMarginX },
+      compress: true,
+    });
+    const doc = new PDFDocument(createPageOptions());
     const chunks: Buffer[] = [];
     const fontPath = getPdfFontPath();
 
@@ -269,10 +278,10 @@ function buildPdfBuffer(title: string, meta: string, rows: Array<Record<string, 
       doc.font(fontPath);
     }
 
-    doc.fontSize(16).text(title, { align: "left" });
-    doc.moveDown(0.2);
-    doc.fontSize(10).fillColor("#4b5563").text(meta, { align: "left" });
-    doc.moveDown(0.8);
+    doc.fontSize(17).text(title, { align: "left" });
+    doc.moveDown(0.18);
+    doc.fontSize(10.5).fillColor("#4b5563").text(meta, { align: "left" });
+    doc.moveDown(0.45);
     doc.fillColor("#111827");
 
     if (!rows.length) {
@@ -283,7 +292,7 @@ function buildPdfBuffer(title: string, meta: string, rows: Array<Record<string, 
 
     const headers = Object.keys(rows[0]);
     const columnWeights = [42, 56, 82, 76, 82, 58, 50, 54, 60, 68, 68, 138, 138, 92, 120];
-    const cellPaddingX = 4;
+    const cellPaddingX = 5;
     const cellPaddingY = 4;
     const availableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
     const baseWidth = columnWeights.reduce((sum, value) => sum + value, 0);
@@ -295,10 +304,13 @@ function buildPdfBuffer(title: string, meta: string, rows: Array<Record<string, 
       doc.fontSize(fontSize);
       let maxHeight = 0;
       values.forEach((value, index) => {
-        const height = doc.heightOfString(value || " ", { width: Math.max(12, columnWidths[index] - cellPaddingX * 2), align: "left" });
+        const height = doc.heightOfString(value || " ", {
+          width: Math.max(12, columnWidths[index] - cellPaddingX * 2),
+          align: "left",
+        });
         if (height > maxHeight) maxHeight = height;
       });
-      return Math.max(fontSize + cellPaddingY * 2, maxHeight + cellPaddingY * 2);
+      return Math.max(fontSize + cellPaddingY * 2 + 1, maxHeight + cellPaddingY * 2 + 1);
     };
 
     const drawRow = (values: string[], top: number, fontSize: number, header = false) => {
@@ -315,7 +327,7 @@ function buildPdfBuffer(title: string, meta: string, rows: Array<Record<string, 
         doc.rect(left, top, width, rowHeight).stroke("#d1d5db");
         doc.fontSize(fontSize).fillColor("#111827").text(value || " ", left + cellPaddingX, top + cellPaddingY, {
           width: Math.max(12, width - cellPaddingX * 2),
-          align: "left"
+          align: "left",
         });
         left += width;
       });
@@ -326,21 +338,21 @@ function buildPdfBuffer(title: string, meta: string, rows: Array<Record<string, 
     const ensureSpace = (needed: number) => {
       const bottom = doc.page.height - doc.page.margins.bottom;
       if (currentY + needed <= bottom) return;
-      doc.addPage({ size: "A3", layout: "landscape", margin: pageMargin, compress: true });
+      doc.addPage(createPageOptions());
       if (fontPath) {
         doc.font(fontPath);
       }
       currentY = doc.page.margins.top;
-      currentY += drawRow(headers, currentY, 8, true);
+      currentY += drawRow(headers, currentY, 8.5, true);
     };
 
-    currentY += drawRow(headers, currentY, 8, true);
+    currentY += drawRow(headers, currentY, 8.5, true);
 
     rows.forEach((row) => {
       const values = headers.map((header) => String(row[header] ?? ""));
-      const rowHeight = measureRowHeight(values, 7);
+      const rowHeight = measureRowHeight(values, 7.5);
       ensureSpace(rowHeight);
-      currentY += drawRow(values, currentY, 7, false);
+      currentY += drawRow(values, currentY, 7.5, false);
     });
 
     doc.end();
