@@ -8,7 +8,7 @@
     "number": "#"
   },
   "manage": {
-    "title": "City management",
+    "title": "Cities",
     "new": "New city",
     "create": "Create",
     "save": "Save",
@@ -17,6 +17,7 @@
     "searchButton": "Search",
     "listTitle": "All cities",
     "edit": "Edit",
+    "delete": "Delete",
     "actions": "Action",
     "emptyCities": "No cities found.",
     "fields": {
@@ -33,14 +34,18 @@
   },
   "messages": {
     "created": "City created.",
-    "updated": "City updated.",
+    "updated": "The entry was updated.",
+    "deleted": "The entry was deleted.",
+    "bulkDeleted": "Deleted {{count}} entries.",
     "error": "The action could not be completed.",
     "peripheryCreated": "Periphery created.",
     "importError": "Import could not be completed.",
-    "importDone": "Inserted {{inserted}}, updated {{updated}}, skipped {{skipped}}."
+    "importDone": "Inserted {{inserted}}, updated {{updated}}, skipped {{skipped}}.",
+    "unmatchedDeletedSingle": "The entry was removed from the list.",
+    "unmatchedDeletedMany": "Removed {{count}} entries from the list."
   },
   "unmatched": {
-    "title": "Unmatched cities",
+    "title": "New region",
     "search": "Search unmatched city",
     "searchButton": "Search",
     "empty": "No unmatched cities found.",
@@ -56,14 +61,31 @@
     "title": "Peripheries",
     "empty": "No peripheries found."
   },
-  "switcher": {
-    "title": "Region sections",
-    "description": "Choose the list you want to manage.",
-    "total": "{{title}} · {{count}} records"
-  },
   "sections": {
     "peripheries": "Peripheries",
     "cities": "Cities",
     "unmatched": "New region"
+  },
+  "summary": {
+    "peripheries": "Peripheries: {{count}} total",
+    "cities": "Cities: {{count}} total",
+    "unmatched": "New region: {{count}} total",
+    "selected": "Selected: {{count}}"
+  },
+  "topbar": {
+    "import": "Import",
+    "importing": "Importing...",
+    "importPeripheries": "Import peripheries",
+    "importCities": "Import cities",
+    "downloadTemplate": "Download template",
+    "templatePeripheries": "Peripheries",
+    "templateCities": "Cities",
+    "deletePeripheries": "Delete",
+    "deleteCities": "Delete",
+    "deleteUnmatched": "Delete"
+  },
+  "confirm": {
+    "singleDelete": "Are you sure you want to delete this entry?",
+    "bulkDelete": "Are you sure you want to delete {{count}} entries?"
   }
 }

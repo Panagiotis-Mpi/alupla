@@ -275,6 +275,10 @@ export async function updateRegion(id: number, payload: { name: string; type: Re
   return api(`/regions/${id}`, { method: "PUT", body: payload });
 }
 
+export async function deleteRegion(id: number): Promise<any> {
+  return api(`/regions/${id}`, { method: "DELETE" });
+}
+
 export async function login(email: string, password: string): Promise<{ ok: true; token: string; user: any } | any> {
   return api("/auth/login", {
     method: "POST",

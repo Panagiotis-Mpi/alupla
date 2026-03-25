@@ -115,7 +115,7 @@ async function importPeripheryRows(rows: Record<string, unknown>[], userId: numb
   }
 
   for (const row of rows) {
-    const name = getTextCell(row, ["name", "Name", "όνομα", "Όνομα"]);
+    const name = getTextCell(row, ["name", "Name", "periphery name", "Periphery name", "όνομα", "Όνομα", "όνομα περιφέρειας", "Όνομα περιφέρειας"]);
     const latitude = getCoordCell(row, ["latitude", "Latitude", "lat", "Lat"]);
     const longitude = getCoordCell(row, ["longitude", "Longitude", "lng", "Lng", "lon", "Lon"]);
 
@@ -178,8 +178,8 @@ async function importCityRows(rows: Record<string, unknown>[], userId: number | 
   }
 
   for (const row of rows) {
-    const name = getTextCell(row, ["name", "Name", "city", "City", "πόλη", "Πόλη", "όνομα", "Όνομα", "όνομα πόλης", "Όνομα πόλης"]);
-    const peripheryName = getTextCell(row, ["periphery", "Periphery", "region", "Region", "περιφέρεια", "Περιφέρεια"]);
+    const name = getTextCell(row, ["name", "Name", "city", "City", "city name", "City name", "πόλη", "Πόλη", "όνομα", "Όνομα", "όνομα πόλης", "Όνομα πόλης"]);
+    const peripheryName = getTextCell(row, ["periphery", "Periphery", "periphery name", "Periphery name", "region", "Region", "περιφέρεια", "Περιφέρεια", "όνομα περιφέρειας", "Όνομα περιφέρειας"]);
     const latitude = getCoordCell(row, ["latitude", "Latitude", "lat", "Lat"]);
     const longitude = getCoordCell(row, ["longitude", "Longitude", "lng", "Lng", "lon", "Lon"]);
 
@@ -563,6 +563,50 @@ export async function updateRegion(req: Request, res: Response, next: NextFuncti
     }
 
     return badRequest(res, "Only CITY or PERIPHERY update is supported");
+  } catch (err) {
+    next(err);
+  }
+}
+
+
+export async function deleteRegion(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id, item } = await findRegionById(req.params.id);
+    if (id === null) return badRequest(res, "Invalid id");
+    if (!item) return notFound(res);
+
+    const itemType = String((item as any).type ?? "");
+
+    if (itemType === "PERIPHERY") {
+      const childCount = await Region.count({ where: { parent_id: id, type: "CITY" } });
+      if (childCount > 0) return badRequest(res, "Delete the cities of this periphery first");
+      await Graduate.update({ origin_region_id: null }, { where: { origin_region_id: id } });
+      const name = String((item as any).name ?? "");
+      await item.destroy();
+      await logAction({
+        user_id: req.user?.id ?? null,
+        action: "delete_region_periphery",
+        entity_type: "region",
+        entity_id: id,
+        details: { name },
+      });
+      return res.json({ ok: true });
+    }
+
+    if (itemType === "CITY") {
+      const name = String((item as any).name ?? "");
+      await item.destroy();
+      await logAction({
+        user_id: req.user?.id ?? null,
+        action: "delete_region_city",
+        entity_type: "region",
+        entity_id: id,
+        details: { name, parent_id: (item as any).parent_id ?? null },
+      });
+      return res.json({ ok: true });
+    }
+
+    return badRequest(res, "Only CITY or PERIPHERY deletion is supported");
   } catch (err) {
     next(err);
   }

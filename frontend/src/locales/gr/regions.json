@@ -8,7 +8,7 @@
     "number": "#"
   },
   "manage": {
-    "title": "Διαχείριση πόλεων",
+    "title": "Πόλεις",
     "new": "Νέα πόλη",
     "create": "Προσθήκη",
     "save": "Αποθήκευση",
@@ -17,6 +17,7 @@
     "searchButton": "Αναζήτηση",
     "listTitle": "Όλες οι πόλεις",
     "edit": "Επεξεργασία",
+    "delete": "Διαγραφή",
     "actions": "Ενέργεια",
     "emptyCities": "Δεν βρέθηκαν πόλεις.",
     "fields": {
@@ -33,14 +34,18 @@
   },
   "messages": {
     "created": "Η πόλη προστέθηκε.",
-    "updated": "Η πόλη ενημερώθηκε.",
+    "updated": "Η εγγραφή ενημερώθηκε.",
+    "deleted": "Η εγγραφή διαγράφηκε.",
+    "bulkDeleted": "Διαγράφηκαν {{count}} εγγραφές.",
     "error": "Η ενέργεια δεν ολοκληρώθηκε.",
     "peripheryCreated": "Η περιφέρεια προστέθηκε.",
     "importError": "Η εισαγωγή δεν ολοκληρώθηκε.",
-    "importDone": "Προστέθηκαν {{inserted}}, ενημερώθηκαν {{updated}}, παραλείφθηκαν {{skipped}}."
+    "importDone": "Προστέθηκαν {{inserted}}, ενημερώθηκαν {{updated}}, παραλείφθηκαν {{skipped}}.",
+    "unmatchedDeletedSingle": "Η εγγραφή αφαιρέθηκε από τη λίστα.",
+    "unmatchedDeletedMany": "Αφαιρέθηκαν {{count}} εγγραφές από τη λίστα."
   },
   "unmatched": {
-    "title": "Μη αντιστοιχισμένες πόλεις",
+    "title": "Νέα περιοχή",
     "search": "Αναζήτηση μη αντιστοιχισμένης πόλης",
     "searchButton": "Αναζήτηση",
     "empty": "Δεν υπάρχουν μη αντιστοιχισμένες πόλεις.",
@@ -56,14 +61,31 @@
     "title": "Περιφέρειες",
     "empty": "Δεν βρέθηκαν περιφέρειες."
   },
-  "switcher": {
-    "title": "Ενότητες περιοχών",
-    "description": "Επίλεξε τη λίστα που θέλεις να διαχειριστείς.",
-    "total": "{{title}} · {{count}} εγγραφές"
-  },
   "sections": {
     "peripheries": "Περιφέρειες",
     "cities": "Πόλεις",
     "unmatched": "Νέα περιοχή"
+  },
+  "summary": {
+    "peripheries": "Περιφέρειες: {{count}} σύνολο",
+    "cities": "Πόλεις: {{count}} σύνολο",
+    "unmatched": "Νέα περιοχή: {{count}} σύνολο",
+    "selected": "Επιλεγμένα: {{count}}"
+  },
+  "topbar": {
+    "import": "Εισαγωγή",
+    "importing": "Εισαγωγή...",
+    "importPeripheries": "Εισαγωγή περιφερειών",
+    "importCities": "Εισαγωγή πόλεων",
+    "downloadTemplate": "Λήψη template",
+    "templatePeripheries": "Περιφέρειες",
+    "templateCities": "Πόλεις",
+    "deletePeripheries": "Διαγραφή",
+    "deleteCities": "Διαγραφή",
+    "deleteUnmatched": "Διαγραφή"
+  },
+  "confirm": {
+    "singleDelete": "Θέλεις σίγουρα να διαγράψεις αυτή την εγγραφή;",
+    "bulkDelete": "Θέλεις σίγουρα να διαγράψεις {{count}} εγγραφές;"
   }
 }
