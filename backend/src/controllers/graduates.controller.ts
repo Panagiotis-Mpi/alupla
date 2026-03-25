@@ -123,6 +123,67 @@ function toNullableNumber(v: any): number | null {
 }
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MIN_GRADUATE_AGE = 23;
+const MIN_GRADUATION_YEARS = 5;
+
+type RuleLang = "gr" | "en";
+
+type RuleViolationCode = "age_under_minimum" | "graduation_duration_under_minimum";
+
+type GraduateRuleViolation = {
+  code: RuleViolationCode;
+  message: string;
+};
+
+function getRuleLang(raw: unknown): RuleLang {
+  return typeof raw === "string" && String(raw).toLowerCase().startsWith("en") ? "en" : "gr";
+}
+
+function getRuleViolationMessage(code: RuleViolationCode, lang: RuleLang) {
+  if (lang === "en") {
+    if (code === "age_under_minimum") return "Graduate age must be at least 23 years.";
+    return "Graduation time must be at least 5 years from entry year.";
+  }
+  if (code === "age_under_minimum") return "Η ηλικία αποφοίτησης πρέπει να είναι τουλάχιστον 23 έτη.";
+  return "Ο χρόνος αποφοίτησης πρέπει να είναι τουλάχιστον 5 έτη από το έτος εισαγωγής.";
+}
+
+function parseYear(value: unknown) {
+  const year = Number(String(value ?? "").slice(0, 4));
+  return Number.isFinite(year) ? year : null;
+}
+
+function getGraduateRuleViolations(input: { entry_year: number | null; birth_date: string | null; graduation_date: string | null }, lang: RuleLang): GraduateRuleViolation[] {
+  const violations: GraduateRuleViolation[] = [];
+  const entryYear = input.entry_year;
+  const birthYear = parseYear(input.birth_date);
+  const graduationYear = parseYear(input.graduation_date);
+
+  if (birthYear && graduationYear && graduationYear - birthYear < MIN_GRADUATE_AGE) {
+    violations.push({
+      code: "age_under_minimum",
+      message: getRuleViolationMessage("age_under_minimum", lang)
+    });
+  }
+
+  if (entryYear && graduationYear && graduationYear - entryYear < MIN_GRADUATION_YEARS) {
+    violations.push({
+      code: "graduation_duration_under_minimum",
+      message: getRuleViolationMessage("graduation_duration_under_minimum", lang)
+    });
+  }
+
+  return violations;
+}
+
+function buildImportViolationSummary(violations: GraduateRuleViolation[], lang: RuleLang) {
+  const uniqueCodes = Array.from(new Set(violations.map((item) => item.code)));
+  const reasons = uniqueCodes.map((code) => getRuleViolationMessage(code, lang));
+  if (lang === "en") {
+    return `Record skipped due to study regulation rules: ${reasons.join(" ")}`;
+  }
+  return `Η εγγραφή παραλείφθηκε λόγω παραβίασης των προβλεπόμενων κανονισμών: ${reasons.join(" ")}`;
+}
 
 function notFound(res: Response) {
   return res.status(404).json({ ok: false, error: { message: "Not found" } });
@@ -481,7 +542,8 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       });
     }
 
-    type RowError = { row: number; column?: string; message: string; value?: any };
+    type RowError = { row: number; column?: string; message: string; value?: any; details?: string[]; violation_codes?: RuleViolationCode[] };
+    const importLang = getRuleLang((req.body as any)?.lang);
     const errors: RowError[] = [];
     let inserted = 0;
     let updated = 0;
@@ -546,6 +608,24 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const managedOriginError = ensureManagedOrigin(normalizedOrigin, origin_region_id ?? null, origin_municipality);
       if (managedOriginError) {
         errors.push({ row: rowNum, column: "origin_municipality", message: managedOriginError, value: origin_municipality });
+        skipped++;
+        continue;
+      }
+
+      const ruleViolations = getGraduateRuleViolations({
+        entry_year,
+        birth_date,
+        graduation_date,
+      }, importLang);
+
+      if (ruleViolations.length) {
+        errors.push({
+          row: rowNum,
+          column: "graduation_date",
+          message: buildImportViolationSummary(ruleViolations, importLang),
+          details: ruleViolations.map((item) => item.message),
+          violation_codes: ruleViolations.map((item) => item.code),
+        });
         skipped++;
         continue;
       }
@@ -672,6 +752,13 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
       requireDateOnly(res, oath_date, "oath_date") ??
       requireDateOnly(res, birth_date, "birth_date");
     if (dateError) return dateError;
+
+    const createRuleViolation = getGraduateRuleViolations({
+      entry_year,
+      birth_date,
+      graduation_date,
+    }, "en")[0];
+    if (createRuleViolation) return bad(res, createRuleViolation.message);
 
     const program = await StudyProgram.findByPk(study_program_id);
     if (!program) return bad(res, "study_program_id not found");
@@ -827,6 +914,13 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     if (!DATE_ONLY_RE.test(String((item as any).graduation_date ?? ""))) return bad(res, "graduation_date must be YYYY-MM-DD");
     if (!DATE_ONLY_RE.test(String((item as any).oath_date ?? ""))) return bad(res, "oath_date must be YYYY-MM-DD");
     if (!DATE_ONLY_RE.test(String((item as any).birth_date ?? ""))) return bad(res, "birth_date must be YYYY-MM-DD");
+
+    const updateRuleViolation = getGraduateRuleViolations({
+      entry_year: Number((item as any).entry_year),
+      birth_date: String((item as any).birth_date ?? ""),
+      graduation_date: String((item as any).graduation_date ?? ""),
+    }, "en")[0];
+    if (updateRuleViolation) return bad(res, updateRuleViolation.message);
 
     await item.save();
 

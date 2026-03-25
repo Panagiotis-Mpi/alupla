@@ -11,10 +11,9 @@ function toInt(v: any): number | null {
   return Number.isFinite(n) ? Math.trunc(n) : null;
 }
 
-type AgeGroup = "18-22" | "23-26" | "27-30" | "31+";
+type AgeGroup = "23-26" | "27-30" | "31+";
 
 function ageGroupToRange(g: AgeGroup): [number, number | null] {
-  if (g === "18-22") return [18, 22];
   if (g === "23-26") return [23, 26];
   if (g === "27-30") return [27, 30];
   return [31, null];

@@ -16,6 +16,28 @@ import {
 
 type Mode = "create" | "edit";
 
+
+function yearFromDate(value: unknown) {
+  const year = Number(String(value ?? "").slice(0, 4));
+  return Number.isFinite(year) ? year : null;
+}
+
+function getGraduateValidationIssue(form: Partial<Graduate>, t: (key: string, options?: any) => string) {
+  const entryYear = Number(form.entry_year);
+  const birthYear = yearFromDate((form as any).birth_date);
+  const graduationYear = yearFromDate(form.graduation_date);
+
+  if (birthYear && graduationYear && graduationYear - birthYear < 23) {
+    return t("validation.minAge");
+  }
+
+  if (Number.isFinite(entryYear) && graduationYear && graduationYear - entryYear < 5) {
+    return t("validation.minDuration");
+  }
+
+  return null;
+}
+
 const empty: Partial<Graduate> = {
   ad_code: "",
   last_name: "",
@@ -146,6 +168,12 @@ export default function GraduateForm(props: { mode: Mode }) {
       const missing = validateRequired();
       if (missing) {
         alert(`${t("error")}: ${t("labels.required")} ${missing}`);
+        return;
+      }
+
+      const validationIssue = getGraduateValidationIssue(form, t);
+      if (validationIssue) {
+        alert(validationIssue);
         return;
       }
 

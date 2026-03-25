@@ -33,5 +33,9 @@
     "required": "Missing required field:"
   },
   "tip": "Attention: All fields are required.",
-  "error": "Error"
+  "error": "Error",
+  "validation": {
+    "minAge": "Graduate age must be at least 23 years.",
+    "minDuration": "Graduation time must be at least 5 years from entry year."
+  }
 }

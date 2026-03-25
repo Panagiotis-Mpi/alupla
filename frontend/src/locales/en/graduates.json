@@ -64,7 +64,10 @@
     "importWithErrors": "Import completed with {{count}} errors",
     "importFailed": "Import failed",
     "somethingWentWrong": "Something went wrong",
-    "downloadErrors": "Download errors"
+    "importSummary": "Inserted: {{inserted}}, updated: {{updated}}, skipped: {{skipped}}",
+    "more": "More details",
+    "less": "Less",
+    "rowLabel": "Row {{row}}"
   },
   "confirm": {
     "deleteGraduate": "Delete graduate #{{id}}?",

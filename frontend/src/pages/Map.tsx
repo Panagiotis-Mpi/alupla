@@ -22,7 +22,7 @@ import * as XLSX from "xlsx";
 import { DetailStatsCard, Field, FilterSection, MapViewportWatcher, RangeField } from "./map/shared";
 import { excelCellValue, exportCsvText, exportElementAsPng, exportWorkbook } from "./map/mapExport";
 
-type AgeGroup = "" | "18-22" | "23-26" | "27-30" | "31+";
+type AgeGroup = "" | "23-26" | "27-30" | "31+";
 
 type FiltersState = {
   ad_code_like: string;
@@ -839,7 +839,6 @@ export default function Map() {
                     <Field label={t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" })} span={1}>
                       <select className="input" value={filters.age_group} onChange={(e) => updateFilter("age_group", e.target.value as AgeGroup)}>
                         <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                        <option value="18-22">18-22</option>
                         <option value="23-26">23-26</option>
                         <option value="27-30">27-30</option>
                         <option value="31+">31+</option>

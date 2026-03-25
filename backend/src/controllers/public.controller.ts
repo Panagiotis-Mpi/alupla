@@ -163,11 +163,9 @@ async function buildWhere(req: Request) {
   }
 
   if (ageGroup) {
-    if (ageGroup === "18-22") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22`);
-    else if (ageGroup === "23-27") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27`);
-    else if (ageGroup === "28-32") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32`);
-    else if (ageGroup === "33-40") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40`);
-    else if (ageGroup === "41+") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41`);
+    if (ageGroup === "23-26") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26`);
+    else if (ageGroup === "27-30") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 27 AND 30`);
+    else if (ageGroup === "31+") where.push(`EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 31`);
   }
 
   const sqlWhere = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -328,64 +326,38 @@ export async function publicStats(req: Request, res: Response) {
 
     const ageRows = await sequelize.query<{ label: string; count: number }>(
       `SELECT CASE
-                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
+                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
+                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 27 AND 30 THEN '27-30'
+                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 31 THEN '31+'
                 ELSE 'unknown'
               END as label,
               COUNT(*)::int as count
        FROM graduates g ${sqlWhere}
        GROUP BY CASE
-                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
+                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
+                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 27 AND 30 THEN '27-30'
+                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 31 THEN '31+'
                   ELSE 'unknown'
                 END
        ORDER BY CASE
                   WHEN CASE
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
+                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
+                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 27 AND 30 THEN '27-30'
+                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 31 THEN '31+'
                     ELSE 'unknown'
-                  END = '18-22' THEN 1
+                  END = '23-26' THEN 1
                   WHEN CASE
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
+                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
+                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 27 AND 30 THEN '27-30'
+                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 31 THEN '31+'
                     ELSE 'unknown'
-                  END = '23-27' THEN 2
+                  END = '27-30' THEN 2
                   WHEN CASE
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
+                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
+                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 27 AND 30 THEN '27-30'
+                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 31 THEN '31+'
                     ELSE 'unknown'
-                  END = '28-32' THEN 3
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
-                    ELSE 'unknown'
-                  END = '33-40' THEN 4
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 18 AND 22 THEN '18-22'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 27 THEN '23-27'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 28 AND 32 THEN '28-32'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 33 AND 40 THEN '33-40'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 41 THEN '41+'
-                    ELSE 'unknown'
-                  END = '41+' THEN 5
+                  END = '31+' THEN 3
                   ELSE 99
                 END`,
       { replacements: repl, type: QueryTypes.SELECT }

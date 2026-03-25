@@ -64,7 +64,10 @@
     "importWithErrors": "Η εισαγωγή ολοκληρώθηκε με {{count}} σφάλματα",
     "importFailed": "Η εισαγωγή απέτυχε",
     "somethingWentWrong": "Κάτι πήγε στραβά",
-    "downloadErrors": "Λήψη σφαλμάτων"
+    "importSummary": "Εισήχθησαν: {{inserted}}, ενημερώθηκαν: {{updated}}, παραλείφθηκαν: {{skipped}}",
+    "more": "Περισσότερα",
+    "less": "Λιγότερα",
+    "rowLabel": "Γραμμή {{row}}"
   },
   "confirm": {
     "deleteGraduate": "Διαγραφή αποφοίτου #{{id}};",

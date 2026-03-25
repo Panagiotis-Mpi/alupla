@@ -40,7 +40,6 @@ type ToastState = {
   type: "success" | "error";
   title: string;
   detail?: string;
-  action?: "download_errors";
 };
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -54,26 +53,12 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function downloadErrorsCsv(errors: Array<Record<string, unknown>>) {
-  const headers = ["row", "column", "message", "value"];
-  const escapeCsv = (value: unknown) => {
-    const text = String(value ?? "");
-    if (/[",\n\r]/.test(text)) {
-      return `"${text.replace(/"/g, '""')}"`;
-    }
-    return text;
-  };
-  const lines = [headers.join(","), ...(errors ?? []).map((error) => headers.map((header) => escapeCsv(error?.[header])).join(","))];
-  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-  const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-  downloadBlob(blob, `import-errors-${timestamp}.csv`);
-}
-
 export default function Graduates() {
   const { t, i18n } = useTranslation("graduates");
   const [importBusy, setImportBusy] = useState(false);
   const [importReport, setImportReport] = useState<ImportReport | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [showImportDetails, setShowImportDetails] = useState(false);
   const [programs, setPrograms] = useState<StudyProgram[]>([]);
   const [directions, setDirections] = useState<Array<Record<string, unknown>>>([]);
   const [regions, setRegions] = useState<Array<Record<string, unknown>>>([]);
@@ -120,6 +105,7 @@ export default function Graduates() {
 
   function showToast(nextToast: ToastState) {
     setToast(nextToast);
+    setShowImportDetails(false);
     window.setTimeout(() => {
       setToast((current) => (current === nextToast ? null : current));
     }, 6000);
@@ -282,14 +268,13 @@ export default function Graduates() {
         showToast({
           type: "error",
           title: t("toast.importWithErrors", { count: errors.length }),
-          detail: `inserted: ${inserted}, updated: ${updated}, skipped: ${skipped}`,
-          action: "download_errors",
+          detail: t("toast.importSummary", { inserted, updated, skipped }),
         });
       } else {
         showToast({
           type: "success",
           title: t("toast.importCompleted"),
-          detail: `inserted: ${inserted}, updated: ${updated}, skipped: ${skipped}`,
+          detail: t("toast.importSummary", { inserted, updated, skipped }),
         });
       }
       await load();
@@ -370,11 +355,34 @@ export default function Graduates() {
               ✕
             </button>
           </div>
-          {toast.action === "download_errors" && Array.isArray(importReport?.errors) ? (
-            <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>
-              <button className="btn" type="button" onClick={() => downloadErrorsCsv(importReport.errors as Array<Record<string, unknown>>)}>
-                {t("toast.downloadErrors")}
-              </button>
+          {Array.isArray(importReport?.errors) && importReport.errors.length > 0 ? (
+            <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button className="btn" type="button" onClick={() => setShowImportDetails((current) => !current)}>
+                  {showImportDetails ? t("toast.less") : t("toast.more")}
+                </button>
+              </div>
+              {showImportDetails ? (
+                <div style={{ maxHeight: 240, overflowY: "auto", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 10, padding: 10, background: "rgba(248,250,252,.9)", display: "grid", gap: 8 }}>
+                  {importReport.errors.map((error, index) => {
+                    const detailList = Array.isArray(error?.details) ? error.details.filter(Boolean) : [];
+                    const rowLabel = Number(error?.row);
+                    return (
+                      <div key={`${error?.row ?? "x"}-${index}`} style={{ borderBottom: index === importReport.errors.length - 1 ? "none" : "1px solid rgba(0,0,0,0.06)", paddingBottom: 8 }}>
+                        <div style={{ fontWeight: 600 }}>
+                          {t("toast.rowLabel", { row: Number.isFinite(rowLabel) ? rowLabel : "-" })}
+                        </div>
+                        <div style={{ fontSize: 13, marginTop: 4 }}>{String(error?.message ?? "")}</div>
+                        {detailList.length ? (
+                          <div style={{ fontSize: 12, opacity: 0.84, marginTop: 6, display: "grid", gap: 4 }}>
+                            {detailList.map((detail, detailIndex) => <div key={detailIndex}>{String(detail)}</div>)}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
