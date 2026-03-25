@@ -573,7 +573,7 @@ export async function resendVerification(email: string): Promise<any> {
 
 
 
-export async function exportGraduatesFile(params: Record<string, any>, format: "xlsx" | "csv", lang?: string): Promise<Blob> {
+export async function exportGraduatesFile(params: Record<string, any>, format: "xlsx" | "csv" | "pdf", lang?: string): Promise<Blob> {
   return fetchBlob("/graduates/export", { ...params, format }, lang);
 }
 

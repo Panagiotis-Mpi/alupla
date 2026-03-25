@@ -87,6 +87,8 @@ export default function Graduates() {
   const params = useMemo(() => buildGraduatesParams(filters), [filters]);
   const programNameById = useMemo(() => createNameMap(programs as Array<Record<string, unknown>>, activeLang), [programs, activeLang]);
   const directionNameById = useMemo(() => createNameMap(directions, activeLang), [directions, activeLang]);
+  const programDisplayNameById = useMemo(() => createNameMap(programs as Array<Record<string, unknown>>, "gr"), [programs]);
+  const directionDisplayNameById = useMemo(() => createNameMap(directions, "gr"), [directions]);
   const regionNameById = useMemo(() => createRegionMap(regions), [regions]);
   const availableDirections = useMemo(() => {
     if (!filters.study_program_id) {
@@ -100,11 +102,11 @@ export default function Graduates() {
     items,
     sortState,
     searchTerm,
-    programNameById,
-    directionNameById,
+    programNameById: programDisplayNameById,
+    directionNameById: directionDisplayNameById,
     regionNameById,
     renderGender,
-  }), [items, sortState, searchTerm, programNameById, directionNameById, regionNameById]);
+  }), [items, sortState, searchTerm, programDisplayNameById, directionDisplayNameById, regionNameById]);
 
   const visibleIds = useMemo(() => visibleItems.map((graduate) => Number(graduate.id)).filter((id) => Number.isFinite(id)), [visibleItems]);
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
@@ -254,7 +256,7 @@ export default function Graduates() {
     });
   }
 
-  async function onExport(format: "xlsx" | "csv", ids?: number[]) {
+  async function onExport(format: "xlsx" | "csv" | "pdf", ids?: number[]) {
     const exportParams = { ...params } as Record<string, unknown>;
     delete exportParams.page;
     delete exportParams.pageSize;
@@ -268,110 +270,6 @@ export default function Graduates() {
     } catch (error: any) {
       alert(error?.message ?? t("export.failed"));
     }
-  }
-
-  function formatPdfValue(value: unknown) {
-    return value === null || value === undefined ? "" : String(value);
-  }
-
-  function escapeHtml(value: unknown) {
-    return formatPdfValue(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  async function onExportPdf(ids?: number[]) {
-    const exportRows = ids?.length
-      ? items.filter((item) => ids.includes(Number(item.id)))
-      : items;
-
-    const tableHeaders = [
-      t("table.ad"),
-      t("table.am"),
-      t("table.lastName"),
-      t("table.firstName"),
-      t("table.fatherName"),
-      t("table.gender"),
-      t("table.entryYear"),
-      t("table.birthYear"),
-      t("table.degreeGrade"),
-      t("table.graduationDate"),
-      t("table.oathDate"),
-      t("table.studyProgram"),
-      t("table.direction"),
-      t("table.region"),
-      t("table.originMunicipality"),
-    ];
-
-    const body = exportRows.map((item) => {
-      const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
-      const directionName = directionNameById.get(Number(item.program_direction_id)) ?? "";
-      const regionName = regionNameById.get(Number(item.origin_region_id)) ?? "";
-      return [
-        item.ad_code,
-        item.student_number,
-        item.last_name,
-        item.first_name,
-        item.father_name,
-        renderGender(item.gender),
-        item.entry_year,
-        String(item.birth_date ?? "").slice(0, 4),
-        item.degree_grade,
-        item.graduation_date,
-        item.oath_date,
-        studyProgramName,
-        directionName,
-        regionName,
-        item.origin_municipality,
-      ];
-    });
-
-    const html = `<!doctype html>
-<html lang="${activeLang}">
-<head>
-<meta charset="utf-8" />
-<title>${escapeHtml(t("pageTitle"))}</title>
-<style>
-  body { font-family: Arial, sans-serif; margin: 24px; color: #111827; }
-  h1 { font-size: 22px; margin: 0 0 8px; }
-  .meta { margin-bottom: 16px; font-size: 13px; color: #4b5563; }
-  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  th, td { border: 1px solid #d1d5db; padding: 6px 8px; font-size: 11px; text-align: left; vertical-align: top; word-break: break-word; }
-  th { background: #f3f4f6; }
-  @media print {
-    body { margin: 12px; }
-  }
-</style>
-</head>
-<body>
-  <h1>${escapeHtml(t("pageTitle"))}</h1>
-  <div class="meta">${escapeHtml(t("topbar.total", { total: exportRows.length }))}</div>
-  <table>
-    <thead>
-      <tr>${tableHeaders.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>
-    </thead>
-    <tbody>
-      ${body.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}
-    </tbody>
-  </table>
-</body>
-</html>`;
-
-    const popup = window.open("", "_blank", "noopener,noreferrer,width=1200,height=800");
-    if (!popup) {
-      alert(t("export.pdfBlocked"));
-      return;
-    }
-    popup.document.open();
-    popup.document.write(html);
-    popup.document.close();
-    popup.focus();
-    popup.onload = () => {
-      popup.print();
-    };
   }
 
   async function onDownloadTemplate(format: "xlsx" | "csv") {
@@ -603,7 +501,7 @@ export default function Graduates() {
                     <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
                       <button className="btn" type="button" onClick={() => { setExportMenuOpen(false); void onExport("xlsx", selectedIds.length ? selectedIds : undefined); }}>{t("topbar.exportExcel")}</button>
                       <button className="btn" type="button" onClick={() => { setExportMenuOpen(false); void onExport("csv", selectedIds.length ? selectedIds : undefined); }}>{t("topbar.exportCsv")}</button>
-                      <button className="btn" type="button" onClick={() => { setExportMenuOpen(false); void onExportPdf(selectedIds.length ? selectedIds : undefined); }}>{t("topbar.exportPdf")}</button>
+                      <button className="btn" type="button" onClick={() => { setExportMenuOpen(false); void onExport("pdf", selectedIds.length ? selectedIds : undefined); }}>{t("topbar.exportPdf")}</button>
                     </div>
                   ) : null}
                 </div>
@@ -654,8 +552,8 @@ export default function Graduates() {
         toggleSort={toggleSort}
         getSortIndicator={getSortIndicator}
         renderGender={renderGender}
-        programNameById={programNameById}
-        directionNameById={directionNameById}
+        programNameById={programDisplayNameById}
+        directionNameById={directionDisplayNameById}
         regionNameById={regionNameById}
         t={t}
         onDelete={onDeleteGraduate}
