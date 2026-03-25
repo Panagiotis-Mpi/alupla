@@ -72,6 +72,10 @@ const tableWrapStyle: React.CSSProperties = { overflowX: "auto", marginTop: 12 }
 const errorStyle: React.CSSProperties = { color: "#b91c1c" };
 const successStyle: React.CSSProperties = { color: "#166534" };
 const sortableHeaderStyle: React.CSSProperties = { cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" };
+const countTextStyle: React.CSSProperties = {
+  fontSize: 13,
+  color: "#334155",
+};
 const countBadgeStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -749,7 +753,7 @@ export default function Regions() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <h2 style={{ margin: 0 }}>{t("title")}</h2>
-              <span style={countBadgeStyle}>{countText(activeSection)}</span>
+              <span style={countTextStyle}>{countText(activeSection)}</span>
               {currentSelectedCount ? <span style={countBadgeStyle}>{t("summary.selected", { count: currentSelectedCount })}</span> : null}
             </div>
           </div>
