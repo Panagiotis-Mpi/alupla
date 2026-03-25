@@ -1,11 +1,19 @@
 {
   "title": "Study Programs & Directions",
-  "badgeLoading": "loading...",
-  "badgeReady": "ready",
   "error": "Error",
   "status": {
     "active": "Active",
     "inactive": "Inactive"
+  },
+  "menu": {
+    "programs": "Study Programs",
+    "directions": "Directions",
+    "import": "Import",
+    "template": "Download Template",
+    "importPrograms": "Import study programs",
+    "importDirections": "Import directions",
+    "templatePrograms": "Study programs",
+    "templateDirections": "Direction"
   },
   "actions": {
     "add": "Add",
@@ -24,6 +32,7 @@
   "programs": {
     "title": "Study Programs",
     "count": "{{count}} entries",
+    "summary": "Study programs: {{count}} total",
     "labels": {
       "code": "Code *",
       "nameEl": "Name (EL) *",
@@ -34,6 +43,7 @@
   "directions": {
     "title": "Directions",
     "count": "{{count}} entries",
+    "summary": "Directions: {{count}} total",
     "filterProgram": "Show program",
     "selectProgram": "Select study program",
     "labels": {

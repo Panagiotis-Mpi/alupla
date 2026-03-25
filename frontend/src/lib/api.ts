@@ -430,6 +430,53 @@ export async function deleteProgramDirection(id: number): Promise<any> {
   return api(`/program-directions/${id}`, { method: "DELETE" });
 }
 
+
+export async function importStudyProgramsFile(file: File): Promise<any> {
+  const token = getToken();
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API_URL}/study-programs/import`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: fd
+  });
+  if (!res.ok) {
+    const j = await parseJsonSafe(res);
+    const msg = (j as any)?.error?.message || (j as any)?.message || res.statusText;
+    throw new Error(msg);
+  }
+  return await res.json();
+}
+
+export async function downloadStudyProgramsTemplateXlsx(lang?: string): Promise<Blob> {
+  return fetchBlob("/study-programs/import-template", {}, lang);
+}
+
+export async function importProgramDirectionsFile(file: File): Promise<any> {
+  const token = getToken();
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API_URL}/program-directions/import`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: fd
+  });
+  if (!res.ok) {
+    const j = await parseJsonSafe(res);
+    const msg = (j as any)?.error?.message || (j as any)?.message || res.statusText;
+    throw new Error(msg);
+  }
+  return await res.json();
+}
+
+export async function downloadProgramDirectionsTemplateXlsx(lang?: string): Promise<Blob> {
+  return fetchBlob("/program-directions/import-template", {}, lang);
+}
+
 export async function listGraduates(params: Record<string, any> = {}): Promise<any> {
   return api(`/graduates${toQueryString(params)}`, { method: "GET" });
 }

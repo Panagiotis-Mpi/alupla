@@ -1,11 +1,19 @@
 {
   "title": "Διαχείριση Προγραμμάτων & Κατευθύνσεων",
-  "badgeLoading": "φόρτωση...",
-  "badgeReady": "έτοιμο",
   "error": "Σφάλμα",
   "status": {
     "active": "Ενεργό",
     "inactive": "Ανενεργό"
+  },
+  "menu": {
+    "programs": "Πρόγραμμα σπουδών",
+    "directions": "Κατευθύνσεις",
+    "import": "Εισαγωγή",
+    "template": "Λήψη προτύπου",
+    "importPrograms": "Εισαγωγή προγραμμάτων σπουδών",
+    "importDirections": "Εισαγωγή κατευθύνσεων",
+    "templatePrograms": "Πρόγραμμα σπουδών",
+    "templateDirections": "Κατεύθυνση"
   },
   "actions": {
     "add": "Προσθήκη",
@@ -24,6 +32,7 @@
   "programs": {
     "title": "Προγράμματα Σπουδών",
     "count": "{{count}} εγγραφές",
+    "summary": "Προγράμματα σπουδών: {{count}} σύνολο",
     "labels": {
       "code": "Κωδικός *",
       "nameEl": "Ονομασία (EL) *",
@@ -34,6 +43,7 @@
   "directions": {
     "title": "Κατευθύνσεις",
     "count": "{{count}} εγγραφές",
+    "summary": "Κατευθύνσεις: {{count}} σύνολο",
     "filterProgram": "Προβολή για πρόγραμμα",
     "selectProgram": "Επιλέξτε πρόγραμμα",
     "labels": {
