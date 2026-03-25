@@ -106,7 +106,6 @@ export default function AccessibilityMenu() {
         aria-label={t("accessibility.open", { defaultValue: "Μενού προσβασιμότητας" })}
         onClick={() => setOpen((value) => !value)}
       >
-        <span aria-hidden="true">A</span>
         <span>{t("accessibility.shortLabel", { defaultValue: "A" })}</span>
       </button>
 
