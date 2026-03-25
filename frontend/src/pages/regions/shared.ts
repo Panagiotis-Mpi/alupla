@@ -1,7 +1,7 @@
 import type React from "react";
 import { useTranslation } from "react-i18next";
 import type { Region } from "../../lib/api";
-import { downloadBlob } from "../../lib/download";
+export { downloadBlob } from "../../lib/download";
 
 export type RegionFormState = {
   id: number | null;
