@@ -235,8 +235,7 @@ function parseIds(idsRaw: unknown): number[] {
 
 function csvEscape(value: unknown) {
   const text = String(value ?? "");
-  if (!/[",
-]/.test(text)) return text;
+  if (!/[",\n]/.test(text)) return text;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
