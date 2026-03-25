@@ -13,9 +13,14 @@ import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/r
 const EXPORT_LANGS = new Set(["gr", "en"]);
 
 type ExportLang = "gr" | "en";
+type GraduateFileFormat = "xlsx" | "csv";
 
 function getExportLang(raw: unknown): ExportLang {
   return typeof raw === "string" && EXPORT_LANGS.has(raw) ? (raw as ExportLang) : "gr";
+}
+
+function getGraduateFileFormat(raw: unknown): GraduateFileFormat {
+  return String(raw ?? "").trim().toLowerCase() === "csv" ? "csv" : "xlsx";
 }
 
 function getColumnLabels(lang: ExportLang) {
@@ -226,6 +231,23 @@ function parseIds(idsRaw: unknown): number[] {
         .filter((v) => Number.isInteger(v) && v > 0)
     )
   );
+}
+
+function csvEscape(value: unknown) {
+  const text = String(value ?? "");
+  if (!/[",
+]/.test(text)) return text;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function buildCsvText(rows: Array<Record<string, unknown>>) {
+  if (!rows.length) return "";
+  const headers = Object.keys(rows[0]);
+  const lines = [headers.map(csvEscape).join(",")];
+  for (const row of rows) {
+    lines.push(headers.map((header) => csvEscape(row[header])).join(","));
+  }
+  return lines.join("\n");
 }
 
 function formatGenderValue(value: unknown, lang: ExportLang) {
@@ -443,6 +465,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
     const ids = parseIds(req.query.ids);
     const limit = clamp(toIntParam(req.query.limit, 5000), 1, 10000);
     const lang = getExportLang(req.query.lang);
+    const format = getGraduateFileFormat(req.query.format);
 
     if (ids.length) {
       (where as any).id = ids;
@@ -457,10 +480,17 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
       action: "export_graduates",
       entity_type: "graduate",
       entity_id: null,
-      details: { format: "xlsx", limit: ids.length ? null : limit, count: data.length, selected: ids.length || 0 }
+      details: { format, limit: ids.length ? null : limit, count: data.length, selected: ids.length || 0 }
     });
 
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    if (format === "csv") {
+      const csv = buildCsvText(data);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="graduates-${ts}.csv"`);
+      return res.send(`﻿${csv}`);
+    }
+
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "graduates");
@@ -477,7 +507,17 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
 export async function exportGraduatesImportTemplate(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = getExportLang(req.query.lang);
-    const ws = XLSX.utils.aoa_to_sheet(getTemplateHeaders(lang));
+    const format = getGraduateFileFormat(req.query.format);
+    const headers = getTemplateHeaders(lang);
+
+    if (format === "csv") {
+      const csv = headers.map((row) => row.map(csvEscape).join(",")).join("\n");
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", 'attachment; filename="graduates-import-template.csv"');
+      return res.send(`﻿${csv}`);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(headers);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "graduates_import_template");
     const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });

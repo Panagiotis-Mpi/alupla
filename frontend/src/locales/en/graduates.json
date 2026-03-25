@@ -3,16 +3,23 @@
   "topbar": {
     "loading": "loading...",
     "total": "{{total}} total",
-    "importExcel": "Import Excel",
+    "importExcel": "Excel",
     "importing": "Import...",
-    "exportExcel": "Export Excel",
+    "exportExcel": "Excel",
     "newGraduate": "+ New Graduate",
-    "importTemplateHelp": "The Excel field format for importing graduates is the following:",
-    "downloadTemplate": "Download Excel Template",
+    "importTemplateHelp": "The file field format for importing graduates is the following:",
+    "downloadTemplate": "Download template",
     "selectGraduates": "Select Graduates",
     "exportSelected": "Export Selected",
     "delete": "Delete",
-    "searchPlaceholder": "Search across all graduate fields..."
+    "searchPlaceholder": "Search across all graduate fields...",
+    "import": "Import",
+    "importCsv": "CSV",
+    "export": "Export",
+    "exportCsv": "CSV",
+    "exportPdf": "PDF",
+    "templateExcel": "Excel",
+    "templateCsv": "CSV"
   },
   "filters": {
     "qLabel": "Global search (q)",
@@ -74,6 +81,7 @@
     "deleteSelectedGraduates": "Are you sure you want to delete the selected graduates?"
   },
   "export": {
-    "failed": "Export failed"
+    "failed": "Export failed",
+    "pdfBlocked": "Please allow pop-ups to export the PDF."
   }
 }

@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   deleteGraduate,
-  downloadGraduatesImportTemplateXlsx,
-  exportGraduatesXlsx,
-  importGraduatesXlsx,
+  downloadGraduatesImportTemplate,
+  exportGraduatesFile,
+  importGraduatesFile,
   listGraduates,
   listProgramDirections,
   listRegions,
@@ -70,8 +70,15 @@ export default function Graduates() {
   const [filters, setFilters] = useState<GraduatesFiltersState>(EMPTY_GRADUATES_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [importMenuOpen, setImportMenuOpen] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
 
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
+  const importFileRef = useRef<HTMLInputElement | null>(null);
+  const importMenuRef = useRef<HTMLDivElement | null>(null);
+  const exportMenuRef = useRef<HTMLDivElement | null>(null);
+  const templateMenuRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarInnerRef = useRef<HTMLDivElement | null>(null);
   const selectAllRef = useRef<HTMLInputElement | null>(null);
@@ -205,6 +212,24 @@ export default function Graduates() {
     }
   }, [allVisibleSelected, someVisibleSelected]);
 
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+      if (importMenuRef.current && !importMenuRef.current.contains(target)) {
+        setImportMenuOpen(false);
+      }
+      if (exportMenuRef.current && !exportMenuRef.current.contains(target)) {
+        setExportMenuOpen(false);
+      }
+      if (templateMenuRef.current && !templateMenuRef.current.contains(target)) {
+        setTemplateMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
+
   function toggleSort(key: SortKey) {
     setSortState((current) => (current.key === key ? { key, dir: current.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
   }
@@ -229,7 +254,7 @@ export default function Graduates() {
     });
   }
 
-  async function onExportXlsx(ids?: number[]) {
+  async function onExport(format: "xlsx" | "csv", ids?: number[]) {
     const exportParams = { ...params } as Record<string, unknown>;
     delete exportParams.page;
     delete exportParams.pageSize;
@@ -237,28 +262,132 @@ export default function Graduates() {
       exportParams.ids = ids;
     }
     try {
-      const blob = await exportGraduatesXlsx(exportParams, i18n.resolvedLanguage || i18n.language);
+      const blob = await exportGraduatesFile(exportParams, format, i18n.resolvedLanguage || i18n.language);
       const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-      downloadBlob(blob, `graduates-${timestamp}.xlsx`);
+      downloadBlob(blob, `graduates-${timestamp}.${format}`);
     } catch (error: any) {
       alert(error?.message ?? t("export.failed"));
     }
   }
 
-  async function onDownloadTemplate() {
+  function formatPdfValue(value: unknown) {
+    return value === null || value === undefined ? "" : String(value);
+  }
+
+  function escapeHtml(value: unknown) {
+    return formatPdfValue(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  async function onExportPdf(ids?: number[]) {
+    const exportRows = ids?.length
+      ? items.filter((item) => ids.includes(Number(item.id)))
+      : items;
+
+    const tableHeaders = [
+      t("table.ad"),
+      t("table.am"),
+      t("table.lastName"),
+      t("table.firstName"),
+      t("table.fatherName"),
+      t("table.gender"),
+      t("table.entryYear"),
+      t("table.birthYear"),
+      t("table.degreeGrade"),
+      t("table.graduationDate"),
+      t("table.oathDate"),
+      t("table.studyProgram"),
+      t("table.direction"),
+      t("table.region"),
+      t("table.originMunicipality"),
+    ];
+
+    const body = exportRows.map((item) => {
+      const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
+      const directionName = directionNameById.get(Number(item.program_direction_id)) ?? "";
+      const regionName = regionNameById.get(Number(item.origin_region_id)) ?? "";
+      return [
+        item.ad_code,
+        item.student_number,
+        item.last_name,
+        item.first_name,
+        item.father_name,
+        renderGender(item.gender),
+        item.entry_year,
+        String(item.birth_date ?? "").slice(0, 4),
+        item.degree_grade,
+        item.graduation_date,
+        item.oath_date,
+        studyProgramName,
+        directionName,
+        regionName,
+        item.origin_municipality,
+      ];
+    });
+
+    const html = `<!doctype html>
+<html lang="${activeLang}">
+<head>
+<meta charset="utf-8" />
+<title>${escapeHtml(t("pageTitle"))}</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 24px; color: #111827; }
+  h1 { font-size: 22px; margin: 0 0 8px; }
+  .meta { margin-bottom: 16px; font-size: 13px; color: #4b5563; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th, td { border: 1px solid #d1d5db; padding: 6px 8px; font-size: 11px; text-align: left; vertical-align: top; word-break: break-word; }
+  th { background: #f3f4f6; }
+  @media print {
+    body { margin: 12px; }
+  }
+</style>
+</head>
+<body>
+  <h1>${escapeHtml(t("pageTitle"))}</h1>
+  <div class="meta">${escapeHtml(t("topbar.total", { total: exportRows.length }))}</div>
+  <table>
+    <thead>
+      <tr>${tableHeaders.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>
+    </thead>
+    <tbody>
+      ${body.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}
+    </tbody>
+  </table>
+</body>
+</html>`;
+
+    const popup = window.open("", "_blank", "noopener,noreferrer,width=1200,height=800");
+    if (!popup) {
+      alert(t("export.pdfBlocked"));
+      return;
+    }
+    popup.document.open();
+    popup.document.write(html);
+    popup.document.close();
+    popup.focus();
+    popup.onload = () => {
+      popup.print();
+    };
+  }
+
+  async function onDownloadTemplate(format: "xlsx" | "csv") {
     try {
-      const blob = await downloadGraduatesImportTemplateXlsx(i18n.resolvedLanguage || i18n.language);
-      downloadBlob(blob, "graduates-import-template.xlsx");
+      const blob = await downloadGraduatesImportTemplate(format, i18n.resolvedLanguage || i18n.language);
+      downloadBlob(blob, `graduates-import-template.${format}`);
     } catch (error: any) {
       alert(error?.message ?? t("export.failed"));
     }
   }
 
-  async function onImportXlsx(file: File) {
+  async function onImportFile(file: File) {
     setImportReport(null);
     setImportBusy(true);
     try {
-      const report = await importGraduatesXlsx(file, i18n.resolvedLanguage || i18n.language);
+      const report = await importGraduatesFile(file, i18n.resolvedLanguage || i18n.language);
       setImportReport(report);
       const inserted = Number(report?.summary?.inserted ?? 0);
       const updated = Number(report?.summary?.updated ?? 0);
@@ -404,27 +533,80 @@ export default function Graduates() {
                   {t("topbar.newGraduate")}
                 </Link>
                 <input
-                  id="import-xlsx"
+                  ref={importFileRef}
                   type="file"
-                  accept=".xlsx,.xls"
+                  accept=".xlsx,.xls,.csv"
                   style={{ display: "none" }}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      void onImportXlsx(file);
+                      void onImportFile(file);
                     }
                     e.currentTarget.value = "";
                   }}
                 />
-                <button className="btn" type="button" style={topButtonStyle} onClick={() => (document.getElementById("import-xlsx") as HTMLInputElement | null)?.click()} disabled={importBusy}>
-                  {importBusy ? t("topbar.importing") : t("topbar.importExcel")}
-                </button>
-                <button className="btn" type="button" style={topButtonStyle} onClick={() => void onDownloadTemplate()}>
-                  {t("topbar.downloadTemplate")}
-                </button>
-                <button className="btn" type="button" style={topButtonStyle} onClick={() => void onExportXlsx(selectedIds.length ? selectedIds : undefined)}>
-                  {t("topbar.exportExcel")}
-                </button>
+                <div ref={importMenuRef} style={{ position: "relative" }}>
+                  <button
+                    className="btn"
+                    type="button"
+                    style={topButtonStyle}
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      setTemplateMenuOpen(false);
+                      setImportMenuOpen((current) => !current);
+                    }}
+                    disabled={importBusy}
+                  >
+                    {importBusy ? t("topbar.importing") : t("topbar.import")}
+                  </button>
+                  {importMenuOpen ? (
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
+                      <button className="btn" type="button" onClick={() => { setImportMenuOpen(false); importFileRef.current?.click(); }}>{t("topbar.importExcel")}</button>
+                      <button className="btn" type="button" onClick={() => { setImportMenuOpen(false); importFileRef.current?.click(); }}>{t("topbar.importCsv")}</button>
+                    </div>
+                  ) : null}
+                </div>
+                <div ref={templateMenuRef} style={{ position: "relative" }}>
+                  <button
+                    className="btn"
+                    type="button"
+                    style={topButtonStyle}
+                    onClick={() => {
+                      setImportMenuOpen(false);
+                      setExportMenuOpen(false);
+                      setTemplateMenuOpen((current) => !current);
+                    }}
+                  >
+                    {t("topbar.downloadTemplate")}
+                  </button>
+                  {templateMenuOpen ? (
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
+                      <button className="btn" type="button" onClick={() => { setTemplateMenuOpen(false); void onDownloadTemplate("xlsx"); }}>{t("topbar.templateExcel")}</button>
+                      <button className="btn" type="button" onClick={() => { setTemplateMenuOpen(false); void onDownloadTemplate("csv"); }}>{t("topbar.templateCsv")}</button>
+                    </div>
+                  ) : null}
+                </div>
+                <div ref={exportMenuRef} style={{ position: "relative" }}>
+                  <button
+                    className="btn"
+                    type="button"
+                    style={topButtonStyle}
+                    onClick={() => {
+                      setImportMenuOpen(false);
+                      setTemplateMenuOpen(false);
+                      setExportMenuOpen((current) => !current);
+                    }}
+                  >
+                    {t("topbar.export")}
+                  </button>
+                  {exportMenuOpen ? (
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
+                      <button className="btn" type="button" onClick={() => { setExportMenuOpen(false); void onExport("xlsx", selectedIds.length ? selectedIds : undefined); }}>{t("topbar.exportExcel")}</button>
+                      <button className="btn" type="button" onClick={() => { setExportMenuOpen(false); void onExport("csv", selectedIds.length ? selectedIds : undefined); }}>{t("topbar.exportCsv")}</button>
+                      <button className="btn" type="button" onClick={() => { setExportMenuOpen(false); void onExportPdf(selectedIds.length ? selectedIds : undefined); }}>{t("topbar.exportPdf")}</button>
+                    </div>
+                  ) : null}
+                </div>
                 <button className="btn" type="button" style={topButtonStyle} onClick={() => setShowFilters((current) => !current)}>
                   {activeLang === "gr" ? "Φίλτρα" : "Filters"}
                 </button>

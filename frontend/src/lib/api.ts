@@ -573,19 +573,15 @@ export async function resendVerification(email: string): Promise<any> {
 
 
 
-export async function exportGraduatesXlsx(params: Record<string, any>, lang?: string): Promise<Blob> {
-  return fetchBlob("/graduates/export", params, lang);
+export async function exportGraduatesFile(params: Record<string, any>, format: "xlsx" | "csv", lang?: string): Promise<Blob> {
+  return fetchBlob("/graduates/export", { ...params, format }, lang);
 }
 
-
-
-
-
-export async function downloadGraduatesImportTemplateXlsx(lang?: string): Promise<Blob> {
-  return fetchBlob("/graduates/import-template", {}, lang);
+export async function downloadGraduatesImportTemplate(format: "xlsx" | "csv", lang?: string): Promise<Blob> {
+  return fetchBlob("/graduates/import-template", { format }, lang);
 }
 
-export async function importGraduatesXlsx(file: File, lang?: string): Promise<any> {
+export async function importGraduatesFile(file: File, lang?: string): Promise<any> {
   const token = getToken();
   const fd = new FormData();
   fd.append("file", file);
