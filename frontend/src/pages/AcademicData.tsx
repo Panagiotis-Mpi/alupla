@@ -79,36 +79,36 @@ const pageMenuCardStyle: React.CSSProperties = {
 };
 const pageMenuTitleStyle: React.CSSProperties = {
   margin: 0,
-  fontSize: 24,
-  fontWeight: 800,
-  lineHeight: 1.15,
 };
 const pageMenuStatsStyle: React.CSSProperties = {
-  marginLeft: "auto",
   color: "#334155",
   fontSize: 16,
 };
 const pageMenuButtonsStyle: React.CSSProperties = {
   display: "flex",
-  gap: 12,
+  gap: 14,
   flexWrap: "wrap",
-  alignItems: "center",
+  alignItems: "stretch",
   marginTop: 16,
+  width: "100%",
 };
 const pageMenuButtonStyle: React.CSSProperties = {
-  minWidth: 220,
-  padding: "14px 20px",
+  width: "100%",
+  minHeight: 50,
+  padding: "0 20px",
   fontSize: 16,
 };
 const menuWrapStyle: React.CSSProperties = {
   position: "relative",
-  display: "inline-block",
+  display: "block",
+  flex: 1,
+  minWidth: 0,
 };
 const popoverStyle: React.CSSProperties = {
   position: "absolute",
   top: "calc(100% + 8px)",
   left: 0,
-  minWidth: 220,
+  right: 0,
   border: "1px solid var(--border)",
   borderRadius: 14,
   background: "var(--surface)",
@@ -365,9 +365,8 @@ export default function AcademicData() {
 
   const renderProgramSection = (
     <div className="card">
-      <div className="topbar" style={{ justifyContent: "space-between" }}>
+      <div className="topbar">
         <h3 style={{ margin: 0 }}>{t("programs.title")}</h3>
-        <span className="badge">{t("programs.count", { count: sortedPrograms.length })}</span>
       </div>
 
       <div className="grid cols2" style={sectionTopStyle}>
@@ -458,21 +457,56 @@ export default function AcademicData() {
 
   const renderDirectionsSection = (
     <div className="card">
-      <div className="topbar" style={{ justifyContent: "space-between" }}>
+      <div className="topbar">
         <h3 style={{ margin: 0 }}>{t("directions.title")}</h3>
-        <span className="badge">{t("directions.count", { count: sortedDirections.length })}</span>
       </div>
 
-      <div className="table-wrap" style={{ marginTop: 14 }}>
-        <div style={{ paddingBottom: 12 }}>
-          <label className="label">{t("directions.filterProgram")}</label>
-          <select className="input" value={selectedProgramId} onChange={(e) => setSelectedProgramId(e.target.value)}>
+      <div className="grid cols2" style={sectionTopStyle}>
+        <div>
+          <label className="label">{t("directions.labels.program")}</label>
+          <select className="input" value={directionForm.study_program_id} onChange={(e) => updateDirectionForm("study_program_id", e.target.value)}>
+            <option value="">{t("directions.selectProgram")}</option>
             {programs.map((item) => (
               <option key={item.id} value={item.id}>{getProgramName(item)}</option>
             ))}
           </select>
         </div>
+        <div>
+          <label className="label">{t("directions.labels.status")}</label>
+          <select className="input" value={directionForm.is_active ? "1" : "0"} onChange={(e) => updateDirectionForm("is_active", e.target.value === "1")}>
+            <option value="1">{t("status.active")}</option>
+            <option value="0">{t("status.inactive")}</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">{t("directions.labels.code")}</label>
+          <input className="input" value={directionForm.code} onChange={(e) => updateDirectionForm("code", e.target.value)} />
+        </div>
+        <div>
+          <label className="label">{t("directions.labels.nameEl")}</label>
+          <input className="input" value={directionForm.name_el} onChange={(e) => updateDirectionForm("name_el", e.target.value)} />
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label className="label">{t("directions.labels.nameEn")}</label>
+          <input className="input" value={directionForm.name_en} onChange={(e) => updateDirectionForm("name_en", e.target.value)} />
+        </div>
+      </div>
 
+      <div className="row-actions" style={sectionTopStyle}>
+        <button className="btn primary" onClick={handleDirectionSubmit}>{editingDirectionId ? t("actions.save") : t("actions.add")}</button>
+        {hasDirectionDraft && <button className="btn" onClick={() => resetDirectionForm()}>{t("actions.cancel")}</button>}
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <label className="label">{t("directions.filterProgram")}</label>
+        <select className="input" value={selectedProgramId} onChange={(e) => setSelectedProgramId(e.target.value)}>
+          {programs.map((item) => (
+            <option key={item.id} value={item.id}>{getProgramName(item)}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="table-wrap" style={{ marginTop: 14 }}>
         <table className="table">
           <thead>
             <tr>
@@ -528,57 +562,20 @@ export default function AcademicData() {
           </tbody>
         </table>
       </div>
-
-      <div className="grid cols2" style={sectionTopStyle}>
-        <div>
-          <label className="label">{t("directions.labels.program")}</label>
-          <select className="input" value={directionForm.study_program_id} onChange={(e) => updateDirectionForm("study_program_id", e.target.value)}>
-            <option value="">{t("directions.selectProgram")}</option>
-            {programs.map((item) => (
-              <option key={item.id} value={item.id}>{getProgramName(item)}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="label">{t("directions.labels.status")}</label>
-          <select className="input" value={directionForm.is_active ? "1" : "0"} onChange={(e) => updateDirectionForm("is_active", e.target.value === "1")}>
-            <option value="1">{t("status.active")}</option>
-            <option value="0">{t("status.inactive")}</option>
-          </select>
-        </div>
-        <div>
-          <label className="label">{t("directions.labels.code")}</label>
-          <input className="input" value={directionForm.code} onChange={(e) => updateDirectionForm("code", e.target.value)} />
-        </div>
-        <div>
-          <label className="label">{t("directions.labels.nameEl")}</label>
-          <input className="input" value={directionForm.name_el} onChange={(e) => updateDirectionForm("name_el", e.target.value)} />
-        </div>
-        <div style={{ gridColumn: "1 / -1" }}>
-          <label className="label">{t("directions.labels.nameEn")}</label>
-          <input className="input" value={directionForm.name_en} onChange={(e) => updateDirectionForm("name_en", e.target.value)} />
-        </div>
-      </div>
-
-      <div className="row-actions" style={sectionTopStyle}>
-        <button className="btn primary" onClick={handleDirectionSubmit}>{editingDirectionId ? t("actions.save") : t("actions.add")}</button>
-        {hasDirectionDraft && <button className="btn" onClick={() => resetDirectionForm()}>{t("actions.cancel")}</button>}
-      </div>
-
     </div>
   );
 
   return (
     <div className="grid" style={sectionGapStyle}>
       <div className="card" style={pageMenuCardStyle}>
-        <div className="topbar" style={{ alignItems: "center" }}>
+        <div className="topbar" style={{ alignItems: "center", justifyContent: "flex-start", gap: 14 }}>
           <h2 style={pageMenuTitleStyle}>{t("title")}</h2>
           <span style={pageMenuStatsStyle}>{activeCountLabel}</span>
         </div>
 
         <div className="topbar" style={pageMenuButtonsStyle} ref={menuAreaRef}>
-          <button className={`btn ${activeTab === "programs" ? "primary" : ""}`} style={pageMenuButtonStyle} onClick={() => setActiveTab("programs")}>{t("menu.programs")}</button>
-          <button className={`btn ${activeTab === "directions" ? "primary" : ""}`} style={pageMenuButtonStyle} onClick={() => setActiveTab("directions")}>{t("menu.directions")}</button>
+          <button className={`btn ${activeTab === "programs" ? "primary" : ""}`} style={{ ...pageMenuButtonStyle, flex: 1 }} onClick={() => setActiveTab("programs")}>{t("menu.programs")}</button>
+          <button className={`btn ${activeTab === "directions" ? "primary" : ""}`} style={{ ...pageMenuButtonStyle, flex: 1 }} onClick={() => setActiveTab("directions")}>{t("menu.directions")}</button>
 
           <div style={menuWrapStyle}>
             <button className="btn" style={pageMenuButtonStyle} onClick={() => setOpenMenu((current) => current === "programs" ? null : "programs")}>{t("menu.import")}</button>
