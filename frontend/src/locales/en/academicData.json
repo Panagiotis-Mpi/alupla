@@ -35,8 +35,8 @@
     "summary": "Study programs: {{count}} total",
     "labels": {
       "code": "Code *",
-      "nameEl": "Name (EL) *",
-      "nameEn": "Name (EN)",
+      "nameEl": "Name in Greek *",
+      "nameEn": "Name in English",
       "status": "Status"
     }
   },
@@ -44,13 +44,13 @@
     "title": "Directions",
     "count": "{{count}} entries",
     "summary": "Directions: {{count}} total",
-    "filterProgram": "Show program",
+    "filterProgram": "Show directions for the study program:",
     "selectProgram": "Select study program",
     "labels": {
       "program": "Study program *",
       "code": "Code *",
-      "nameEl": "Name (EL) *",
-      "nameEn": "Name (EN)",
+      "nameEl": "Name in Greek *",
+      "nameEn": "Name in English",
       "status": "Status"
     }
   },

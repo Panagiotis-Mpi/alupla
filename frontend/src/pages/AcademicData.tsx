@@ -79,7 +79,7 @@ const pageMenuCardStyle: React.CSSProperties = {
 };
 const pageMenuTitleStyle: React.CSSProperties = {
   margin: 0,
-  fontSize: 28,
+  fontSize: 24,
   fontWeight: 800,
   lineHeight: 1.15,
 };
@@ -463,52 +463,16 @@ export default function AcademicData() {
         <span className="badge">{t("directions.count", { count: sortedDirections.length })}</span>
       </div>
 
-      <div style={sectionTopStyle}>
-        <label className="label">{t("directions.filterProgram")}</label>
-        <select className="input" value={selectedProgramId} onChange={(e) => setSelectedProgramId(e.target.value)}>
-          {programs.map((item) => (
-            <option key={item.id} value={item.id}>{getProgramName(item)}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="grid cols2" style={sectionTopStyle}>
-        <div>
-          <label className="label">{t("directions.labels.program")}</label>
-          <select className="input" value={directionForm.study_program_id} onChange={(e) => updateDirectionForm("study_program_id", e.target.value)}>
-            <option value="">{t("directions.selectProgram")}</option>
+      <div className="table-wrap" style={{ marginTop: 14 }}>
+        <div style={{ paddingBottom: 12 }}>
+          <label className="label">{t("directions.filterProgram")}</label>
+          <select className="input" value={selectedProgramId} onChange={(e) => setSelectedProgramId(e.target.value)}>
             {programs.map((item) => (
               <option key={item.id} value={item.id}>{getProgramName(item)}</option>
             ))}
           </select>
         </div>
-        <div>
-          <label className="label">{t("directions.labels.status")}</label>
-          <select className="input" value={directionForm.is_active ? "1" : "0"} onChange={(e) => updateDirectionForm("is_active", e.target.value === "1")}>
-            <option value="1">{t("status.active")}</option>
-            <option value="0">{t("status.inactive")}</option>
-          </select>
-        </div>
-        <div>
-          <label className="label">{t("directions.labels.code")}</label>
-          <input className="input" value={directionForm.code} onChange={(e) => updateDirectionForm("code", e.target.value)} />
-        </div>
-        <div>
-          <label className="label">{t("directions.labels.nameEl")}</label>
-          <input className="input" value={directionForm.name_el} onChange={(e) => updateDirectionForm("name_el", e.target.value)} />
-        </div>
-        <div style={{ gridColumn: "1 / -1" }}>
-          <label className="label">{t("directions.labels.nameEn")}</label>
-          <input className="input" value={directionForm.name_en} onChange={(e) => updateDirectionForm("name_en", e.target.value)} />
-        </div>
-      </div>
 
-      <div className="row-actions" style={sectionTopStyle}>
-        <button className="btn primary" onClick={handleDirectionSubmit}>{editingDirectionId ? t("actions.save") : t("actions.add")}</button>
-        {hasDirectionDraft && <button className="btn" onClick={() => resetDirectionForm()}>{t("actions.cancel")}</button>}
-      </div>
-
-      <div className="table-wrap" style={{ marginTop: 14 }}>
         <table className="table">
           <thead>
             <tr>
@@ -564,6 +528,43 @@ export default function AcademicData() {
           </tbody>
         </table>
       </div>
+
+      <div className="grid cols2" style={sectionTopStyle}>
+        <div>
+          <label className="label">{t("directions.labels.program")}</label>
+          <select className="input" value={directionForm.study_program_id} onChange={(e) => updateDirectionForm("study_program_id", e.target.value)}>
+            <option value="">{t("directions.selectProgram")}</option>
+            {programs.map((item) => (
+              <option key={item.id} value={item.id}>{getProgramName(item)}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="label">{t("directions.labels.status")}</label>
+          <select className="input" value={directionForm.is_active ? "1" : "0"} onChange={(e) => updateDirectionForm("is_active", e.target.value === "1")}>
+            <option value="1">{t("status.active")}</option>
+            <option value="0">{t("status.inactive")}</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">{t("directions.labels.code")}</label>
+          <input className="input" value={directionForm.code} onChange={(e) => updateDirectionForm("code", e.target.value)} />
+        </div>
+        <div>
+          <label className="label">{t("directions.labels.nameEl")}</label>
+          <input className="input" value={directionForm.name_el} onChange={(e) => updateDirectionForm("name_el", e.target.value)} />
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label className="label">{t("directions.labels.nameEn")}</label>
+          <input className="input" value={directionForm.name_en} onChange={(e) => updateDirectionForm("name_en", e.target.value)} />
+        </div>
+      </div>
+
+      <div className="row-actions" style={sectionTopStyle}>
+        <button className="btn primary" onClick={handleDirectionSubmit}>{editingDirectionId ? t("actions.save") : t("actions.add")}</button>
+        {hasDirectionDraft && <button className="btn" onClick={() => resetDirectionForm()}>{t("actions.cancel")}</button>}
+      </div>
+
     </div>
   );
 

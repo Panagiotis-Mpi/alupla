@@ -55,9 +55,9 @@ function hasChanges(patch: StudyProgramPatch) {
 
 function getTemplateHeaders(lang: string) {
   if (lang === "en") {
-    return [["Code", "Name (EL)", "Name (EN)", "Status"]];
+    return [["Study Program Code", "Study Program Name in Greek", "Study Program Name in English", "Study Program Status"]];
   }
-  return [["Κωδικός", "Ονομασία (EL)", "Ονομασία (EN)", "Κατάσταση"]];
+  return [["Κωδικός Προγράμματος Σπουδών", "Ονομασία Προγράμματος Σπουδών στα Ελληνικά", "Ονομασία Προγράμματος Σπουδών στα Αγγλικά", "Κατάσταση Προγράμματος Σπουδών"]];
 }
 
 function plainKey(value: string) {
@@ -95,10 +95,48 @@ function normalizeProgramRow(input: Record<string, unknown>) {
     const normalized = normHeader(key);
     return [plainKey(normalized), value];
   }));
-  const code = String(firstFilled(row, ["code", "κωδικος"]) ?? "").trim();
-  const nameEl = String(firstFilled(row, ["name_(el)", "name_el", "ονομασια_(el)", "ονομασια_el", "ονομασια", "name"]) ?? "").trim();
-  const nameEn = String(firstFilled(row, ["name_(en)", "name_en", "ονομασια_(en)", "ονομασια_en"]) ?? "").trim();
-  const statusValue = firstFilled(row, ["status", "κατασταση"]);
+  const code = String(firstFilled(row, [
+    "study_program_code",
+    "program_code",
+    "code",
+    "κωδικος_προγραμματος_σπουδων",
+    "κωδικος_προγραμματος",
+    "κωδικος"
+  ]) ?? "").trim();
+  const nameEl = String(firstFilled(row, [
+    "study_program_name_in_greek",
+    "program_name_in_greek",
+    "study_program_name_(greek)",
+    "program_name_(greek)",
+    "name_(el)",
+    "name_el",
+    "ονομασια_προγραμματος_σπουδων_στα_ελληνικα",
+    "ονομασια_προγραμματος_στα_ελληνικα",
+    "ονομασια_(el)",
+    "ονομασια_el",
+    "ονομασια",
+    "name"
+  ]) ?? "").trim();
+  const nameEn = String(firstFilled(row, [
+    "study_program_name_in_english",
+    "program_name_in_english",
+    "study_program_name_(english)",
+    "program_name_(english)",
+    "name_(en)",
+    "name_en",
+    "ονομασια_προγραμματος_σπουδων_στα_αγγλικα",
+    "ονομασια_προγραμματος_στα_αγγλικα",
+    "ονομασια_(en)",
+    "ονομασια_en"
+  ]) ?? "").trim();
+  const statusValue = firstFilled(row, [
+    "study_program_status",
+    "program_status",
+    "status",
+    "κατασταση_προγραμματος_σπουδων",
+    "κατασταση_προγραμματος",
+    "κατασταση"
+  ]);
   return {
     code,
     name_el: nameEl,

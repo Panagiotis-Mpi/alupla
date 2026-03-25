@@ -66,9 +66,9 @@ function hasChanges(patch: DirectionPatch) {
 
 function getTemplateHeaders(lang: string) {
   if (lang === "en") {
-    return [["Study Program", "Code", "Name (EL)", "Name (EN)", "Status"]];
+    return [["Study Program", "Direction Code", "Direction Name in Greek", "Direction Name in English", "Direction Status"]];
   }
-  return [["Πρόγραμμα Σπουδών", "Κωδικός", "Ονομασία (EL)", "Ονομασία (EN)", "Κατάσταση"]];
+  return [["Πρόγραμμα Σπουδών", "Κωδικός Κατεύθυνσης", "Ονομασία Κατεύθυνσης στα Ελληνικά", "Ονομασία Κατεύθυνσης στα Αγγλικά", "Κατάσταση Κατεύθυνσης"]];
 }
 
 function readStatus(value: unknown) {
@@ -106,11 +106,47 @@ function normalizeDirectionRow(input: Record<string, unknown>) {
     const normalized = normHeader(key);
     return [plainKey(normalized), value];
   }));
-  const program = String(firstFilled(row, ["study_program", "study_program_name", "προγραμμα_σπουδων", "προγραμμα_σπουδων", "προγραμμα", "program"]) ?? "").trim();
-  const code = String(firstFilled(row, ["code", "κωδικος"]) ?? "").trim();
-  const nameEl = String(firstFilled(row, ["name_(el)", "name_el", "ονομασια_(el)", "ονομασια_el", "ονομασια", "name"]) ?? "").trim();
-  const nameEn = String(firstFilled(row, ["name_(en)", "name_en", "ονομασια_(en)", "ονομασια_en"]) ?? "").trim();
-  const statusValue = firstFilled(row, ["status", "κατασταση"]);
+  const program = String(firstFilled(row, [
+    "study_program",
+    "study_program_name",
+    "program_name",
+    "προγραμμα_σπουδων",
+    "ονομασια_προγραμματος_σπουδων",
+    "προγραμμα",
+    "program"
+  ]) ?? "").trim();
+  const code = String(firstFilled(row, [
+    "direction_code",
+    "code",
+    "κωδικος_κατευθυνσης",
+    "κωδικος"
+  ]) ?? "").trim();
+  const nameEl = String(firstFilled(row, [
+    "direction_name_in_greek",
+    "direction_name_(greek)",
+    "name_(el)",
+    "name_el",
+    "ονομασια_κατευθυνσης_στα_ελληνικα",
+    "ονομασια_(el)",
+    "ονομασια_el",
+    "ονομασια",
+    "name"
+  ]) ?? "").trim();
+  const nameEn = String(firstFilled(row, [
+    "direction_name_in_english",
+    "direction_name_(english)",
+    "name_(en)",
+    "name_en",
+    "ονομασια_κατευθυνσης_στα_αγγλικα",
+    "ονομασια_(en)",
+    "ονομασια_en"
+  ]) ?? "").trim();
+  const statusValue = firstFilled(row, [
+    "direction_status",
+    "status",
+    "κατασταση_κατευθυνσης",
+    "κατασταση"
+  ]);
   return {
     program,
     code,
