@@ -264,9 +264,11 @@ function buildPdfBuffer(title: string, meta: string, rows: Array<Record<string, 
       size: pageSize,
       layout: "landscape" as const,
       margins: { top: pageMarginTop, bottom: pageMarginBottom, left: pageMarginX, right: pageMarginX },
+    });
+    const doc = new PDFDocument({
+      ...createPageOptions(),
       compress: true,
     });
-    const doc = new PDFDocument(createPageOptions());
     const chunks: Buffer[] = [];
     const fontPath = getPdfFontPath();
 
