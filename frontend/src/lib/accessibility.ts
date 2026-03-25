@@ -58,10 +58,10 @@ export function applyAccessibilitySettings(settings: AccessibilitySettings) {
   }
 
   const root = document.documentElement;
-  root.classList.toggle("a11y-large-text", settings.largeText);
-  root.classList.toggle("a11y-high-contrast", settings.highContrast);
-  root.classList.toggle("a11y-reduce-motion", settings.reduceMotion);
-  root.classList.toggle("a11y-underline-links", settings.underlineLinks);
+  root.classList.toggle("accessibility-large-text", settings.largeText);
+  root.classList.toggle("accessibility-high-contrast", settings.highContrast);
+  root.classList.toggle("accessibility-reduce-motion", settings.reduceMotion);
+  root.classList.toggle("accessibility-underline-links", settings.underlineLinks);
 }
 
 export function resetAccessibilitySettings() {

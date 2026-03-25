@@ -106,8 +106,8 @@ export default function AccessibilityMenu() {
         aria-label={t("accessibility.open", { defaultValue: "Μενού προσβασιμότητας" })}
         onClick={() => setOpen((value) => !value)}
       >
-        <span aria-hidden="true">☼</span>
-        <span>{t("accessibility.shortLabel", { defaultValue: "A11y" })}</span>
+        <span aria-hidden="true">A</span>
+        <span>{t("accessibility.shortLabel", { defaultValue: "A" })}</span>
       </button>
 
       {open ? (
@@ -123,6 +123,10 @@ export default function AccessibilityMenu() {
             <button type="button" className="btn" onClick={() => setOpen(false)}>
               {t("common.close", { defaultValue: "Κλείσιμο" })}
             </button>
+          </div>
+
+          <div className="accessibility-panel-note">
+            {t("accessibility.note", { defaultValue: "Προσαρμογές για πιο άνετη ανάγνωση και πλοήγηση." })}
           </div>
 
           <div className="accessibility-options">

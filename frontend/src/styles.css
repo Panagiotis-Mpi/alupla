@@ -249,6 +249,7 @@ hr{border:none;border-top:1px solid #eef2f7;margin:12px 0}
   cursor:pointer;
   font:inherit;
   font-weight:700;
+  letter-spacing:.02em;
 }
 .accessibility-trigger:focus-visible,
 .accessibility-option input:focus-visible{
@@ -293,8 +294,8 @@ hr{border:none;border-top:1px solid #eef2f7;margin:12px 0}
   width:18px;
   height:18px;
 }
-html.a11y-large-text{font-size:18px}
-html.a11y-high-contrast{
+html.accessibility-large-text{font-size:18px}
+html.accessibility-high-contrast{
   --bg:#ffffff;
   --surface:#ffffff;
   --text:#000000;
@@ -305,29 +306,29 @@ html.a11y-high-contrast{
   --primaryHover:#020617;
   --danger:#7f1d1d;
 }
-html.a11y-high-contrast .table th,
-html.a11y-high-contrast .table td,
-html.a11y-high-contrast .card,
-html.a11y-high-contrast .btn,
-html.a11y-high-contrast .input,
-html.a11y-high-contrast .nav,
-html.a11y-high-contrast .mobile-drawer,
-html.a11y-high-contrast .public-home-card,
-html.a11y-high-contrast .accessibility-option,
-html.a11y-high-contrast .accessibility-trigger,
-html.a11y-high-contrast .accessibility-panel{
+html.accessibility-high-contrast .table th,
+html.accessibility-high-contrast .table td,
+html.accessibility-high-contrast .card,
+html.accessibility-high-contrast .btn,
+html.accessibility-high-contrast .input,
+html.accessibility-high-contrast .nav,
+html.accessibility-high-contrast .mobile-drawer,
+html.accessibility-high-contrast .public-home-card,
+html.accessibility-high-contrast .accessibility-option,
+html.accessibility-high-contrast .accessibility-trigger,
+html.accessibility-high-contrast .accessibility-panel{
   border-color:#0f172a;
 }
-html.a11y-reduce-motion *,
-html.a11y-reduce-motion *::before,
-html.a11y-reduce-motion *::after{
+html.accessibility-reduce-motion *,
+html.accessibility-reduce-motion *::before,
+html.accessibility-reduce-motion *::after{
   animation:none !important;
   transition:none !important;
   scroll-behavior:auto !important;
 }
-html.a11y-underline-links a{text-decoration:underline}
-html.a11y-underline-links .nav a,
-html.a11y-underline-links .btn{text-underline-offset:3px}
+html.accessibility-underline-links a{text-decoration:underline}
+html.accessibility-underline-links .nav a,
+html.accessibility-underline-links .btn{text-underline-offset:3px}
 
 @media (max-width: 640px){
   .accessibility-menu{

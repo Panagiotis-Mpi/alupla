@@ -104,11 +104,12 @@
   "accessibility": {
     "title": "Προσβασιμότητα",
     "open": "Μενού προσβασιμότητας",
-    "shortLabel": "A11y",
+    "shortLabel": "A",
     "reset": "Επαναφορά",
     "largeText": "Μεγαλύτερο κείμενο",
     "highContrast": "Υψηλή αντίθεση",
     "reduceMotion": "Μείωση κίνησης",
-    "underlineLinks": "Υπογράμμιση συνδέσμων"
+    "underlineLinks": "Υπογράμμιση συνδέσμων",
+    "note": "Προσαρμογές για πιο άνετη ανάγνωση και πλοήγηση."
   }
 }

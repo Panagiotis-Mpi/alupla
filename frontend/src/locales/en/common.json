@@ -104,11 +104,12 @@
   "accessibility": {
     "title": "Accessibility",
     "open": "Accessibility menu",
-    "shortLabel": "A11y",
+    "shortLabel": "A",
     "reset": "Reset",
     "largeText": "Larger text",
     "highContrast": "High contrast",
     "reduceMotion": "Reduce motion",
-    "underlineLinks": "Underline links"
+    "underlineLinks": "Underline links",
+    "note": "Adjust the interface for easier reading and navigation."
   }
 }
