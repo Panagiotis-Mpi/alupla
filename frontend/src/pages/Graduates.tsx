@@ -23,7 +23,9 @@ import {
   type SortDir,
   type SortKey,
 } from "./graduates/shared";
-import { downloadBlob, loadGraduatesScreen, useMenuDismiss, useSyncedScrollbar } from "./graduates/hooks";
+import { loadGraduatesScreen, useMenuDismiss, useSyncedScrollbar } from "./graduates/hooks";
+import { downloadBlob } from "../lib/download";
+import { toggleMergedVisibleSelection, toggleSelectionValue } from "./shared/selection";
 
 type ImportReport = {
   summary?: {
@@ -160,17 +162,24 @@ export default function Graduates() {
     return sortState.dir === "asc" ? " ↑" : " ↓";
   }
 
+  function closeMenus() {
+    setImportMenuOpen(false);
+    setExportMenuOpen(false);
+    setTemplateMenuOpen(false);
+  }
+
+  function toggleMenu(name: "import" | "export" | "template") {
+    setImportMenuOpen((current) => (name === "import" ? !current : false));
+    setExportMenuOpen((current) => (name === "export" ? !current : false));
+    setTemplateMenuOpen((current) => (name === "template" ? !current : false));
+  }
+
   function toggleSelected(id: number) {
-    setSelectedIds((current) => (current.includes(id) ? current.filter((value) => value !== id) : [...current, id]));
+    setSelectedIds((current) => toggleSelectionValue(current, id));
   }
 
   function toggleAllVisible() {
-    setSelectedIds((current) => {
-      if (allVisibleSelected) {
-        return current.filter((id) => !visibleIds.includes(id));
-      }
-      return Array.from(new Set([...current, ...visibleIds]));
-    });
+    setSelectedIds((current) => toggleMergedVisibleSelection(current, visibleIds, allVisibleSelected));
   }
 
   async function onExport(format: "xlsx" | "csv" | "pdf", ids?: number[]) {
@@ -270,6 +279,22 @@ export default function Graduates() {
     await deleteGraduate(graduate.id);
     await load();
   }
+
+  const importActions = [
+    { key: "xlsx", label: t("topbar.importExcel"), onClick: () => { closeMenus(); importFileRef.current?.click(); } },
+    { key: "csv", label: t("topbar.importCsv"), onClick: () => { closeMenus(); importFileRef.current?.click(); } },
+  ];
+
+  const templateActions = [
+    { key: "xlsx", label: t("topbar.templateExcel"), onClick: () => { closeMenus(); void onDownloadTemplate("xlsx"); } },
+    { key: "csv", label: t("topbar.templateCsv"), onClick: () => { closeMenus(); void onDownloadTemplate("csv"); } },
+  ];
+
+  const exportActions = [
+    { key: "xlsx", label: t("topbar.exportExcel"), onClick: () => { closeMenus(); void onExport("xlsx", selectedIds.length ? selectedIds : undefined); } },
+    { key: "csv", label: t("topbar.exportCsv"), onClick: () => { closeMenus(); void onExport("csv", selectedIds.length ? selectedIds : undefined); } },
+    { key: "pdf", label: t("topbar.exportPdf"), onClick: () => { closeMenus(); void onExport("pdf", selectedIds.length ? selectedIds : undefined); } },
+  ];
 
   const wideCardStyle: React.CSSProperties = {
     width: "calc(100vw - 32px)",
@@ -379,19 +404,14 @@ export default function Graduates() {
                     className="btn"
                     type="button"
                     style={topButtonStyle}
-                    onClick={() => {
-                      setExportMenuOpen(false);
-                      setTemplateMenuOpen(false);
-                      setImportMenuOpen((current) => !current);
-                    }}
+                    onClick={() => toggleMenu("import")}
                     disabled={importBusy}
                   >
                     {importBusy ? t("topbar.importing") : t("topbar.import")}
                   </button>
                   {importMenuOpen ? (
                     <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
-                      <button className="btn" type="button" onClick={() => { setImportMenuOpen(false); importFileRef.current?.click(); }}>{t("topbar.importExcel")}</button>
-                      <button className="btn" type="button" onClick={() => { setImportMenuOpen(false); importFileRef.current?.click(); }}>{t("topbar.importCsv")}</button>
+                      {importActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
                     </div>
                   ) : null}
                 </div>
@@ -400,18 +420,13 @@ export default function Graduates() {
                     className="btn"
                     type="button"
                     style={topButtonStyle}
-                    onClick={() => {
-                      setImportMenuOpen(false);
-                      setExportMenuOpen(false);
-                      setTemplateMenuOpen((current) => !current);
-                    }}
+                    onClick={() => toggleMenu("template")}
                   >
                     {t("topbar.downloadTemplate")}
                   </button>
                   {templateMenuOpen ? (
                     <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
-                      <button className="btn" type="button" onClick={() => { setTemplateMenuOpen(false); void onDownloadTemplate("xlsx"); }}>{t("topbar.templateExcel")}</button>
-                      <button className="btn" type="button" onClick={() => { setTemplateMenuOpen(false); void onDownloadTemplate("csv"); }}>{t("topbar.templateCsv")}</button>
+                      {templateActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
                     </div>
                   ) : null}
                 </div>
@@ -420,19 +435,13 @@ export default function Graduates() {
                     className="btn"
                     type="button"
                     style={topButtonStyle}
-                    onClick={() => {
-                      setImportMenuOpen(false);
-                      setTemplateMenuOpen(false);
-                      setExportMenuOpen((current) => !current);
-                    }}
+                    onClick={() => toggleMenu("export")}
                   >
                     {t("topbar.export")}
                   </button>
                   {exportMenuOpen ? (
                     <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
-                      <button className="btn" type="button" onClick={() => { setExportMenuOpen(false); void onExport("xlsx", selectedIds.length ? selectedIds : undefined); }}>{t("topbar.exportExcel")}</button>
-                      <button className="btn" type="button" onClick={() => { setExportMenuOpen(false); void onExport("csv", selectedIds.length ? selectedIds : undefined); }}>{t("topbar.exportCsv")}</button>
-                      <button className="btn" type="button" onClick={() => { setExportMenuOpen(false); void onExport("pdf", selectedIds.length ? selectedIds : undefined); }}>{t("topbar.exportPdf")}</button>
+                      {exportActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
                     </div>
                   ) : null}
                 </div>

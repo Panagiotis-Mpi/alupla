@@ -1,6 +1,7 @@
 import type React from "react";
 import { useTranslation } from "react-i18next";
 import type { Region } from "../../lib/api";
+import { downloadBlob } from "../../lib/download";
 
 export type RegionFormState = {
   id: number | null;
@@ -155,17 +156,6 @@ export function formatImportSummary(summary: ImportSummary | undefined, t: Retur
   return t("messages.importDone", { inserted, updated, skipped });
 }
 
-export function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
-
 export function normalizeKey(value: string) {
   return String(value ?? "")
     .toLowerCase()
@@ -202,4 +192,16 @@ export function csvEscape(value: unknown) {
   const text = String(value ?? "");
   if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
   return text;
+}
+
+export function toggleIdSelection(values: number[], value: number) {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+}
+
+export function toggleKeySelection(values: string[], value: string) {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+}
+
+export function replaceVisibleSelection<T extends string | number>(visibleValues: T[], allVisibleSelected: boolean) {
+  return allVisibleSelected ? [] : [...visibleValues];
 }

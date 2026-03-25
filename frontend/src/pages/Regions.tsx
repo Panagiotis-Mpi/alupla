@@ -35,6 +35,7 @@ import {
   pageGapStyle,
   PeripheryFormState,
   PeripherySortKey,
+  replaceVisibleSelection,
   readIgnoredUnmatched,
   RegionFormState,
   RegionSection,
@@ -48,6 +49,8 @@ import {
   toFormState,
   toPeripheryFormState,
   topButtonStyle,
+  toggleIdSelection,
+  toggleKeySelection,
   unmatchedStorageKey,
   UnmatchedCityItem,
   UnmatchedSortKey,
@@ -490,39 +493,27 @@ export default function Regions() {
   }
 
   function togglePeripherySelection(id: number) {
-    setSelectedPeripheryIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+    setSelectedPeripheryIds((current) => toggleIdSelection(current, id));
   }
 
   function toggleCitySelection(id: number) {
-    setSelectedCityIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+    setSelectedCityIds((current) => toggleIdSelection(current, id));
   }
 
   function toggleUnmatchedSelection(key: string) {
-    setSelectedUnmatchedKeys((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key]);
+    setSelectedUnmatchedKeys((current) => toggleKeySelection(current, key));
   }
 
   function toggleAllPeripheries() {
-    if (allVisiblePeripheriesSelected) {
-      setSelectedPeripheryIds([]);
-      return;
-    }
-    setSelectedPeripheryIds(peripheryRows.map(({ item }) => item.id));
+    setSelectedPeripheryIds(replaceVisibleSelection(peripheryRows.map(({ item }) => item.id), allVisiblePeripheriesSelected));
   }
 
   function toggleAllCities() {
-    if (allVisibleCitiesSelected) {
-      setSelectedCityIds([]);
-      return;
-    }
-    setSelectedCityIds(cityRows.map(({ item }) => item.id));
+    setSelectedCityIds(replaceVisibleSelection(cityRows.map(({ item }) => item.id), allVisibleCitiesSelected));
   }
 
   function toggleAllUnmatched() {
-    if (allVisibleUnmatchedSelected) {
-      setSelectedUnmatchedKeys([]);
-      return;
-    }
-    setSelectedUnmatchedKeys(unmatchedRows.map(({ item }) => unmatchedStorageKey(item.name, item.periphery_id)));
+    setSelectedUnmatchedKeys(replaceVisibleSelection(unmatchedRows.map(({ item }) => unmatchedStorageKey(item.name, item.periphery_id)), allVisibleUnmatchedSelected));
   }
 
   function countText(section: RegionSection) {
@@ -558,6 +549,26 @@ export default function Regions() {
       : activeLang === "en" ? "regions-cities-template.xlsx" : "regions-cities-template-gr.xlsx";
     downloadBlob(new Blob([output], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), filename);
   }
+
+  function closeMenus() {
+    setImportMenuOpen(false);
+    setTemplateMenuOpen(false);
+  }
+
+  function toggleMenu(name: "import" | "template") {
+    setImportMenuOpen((current) => (name === "import" ? !current : false));
+    setTemplateMenuOpen((current) => (name === "template" ? !current : false));
+  }
+
+  const importActions = [
+    { key: "peripheries", label: t("topbar.importPeripheries"), onClick: () => { closeMenus(); peripheryImportRef.current?.click(); } },
+    { key: "cities", label: t("topbar.importCities"), onClick: () => { closeMenus(); cityImportRef.current?.click(); } },
+  ];
+
+  const templateActions = [
+    { key: "peripheries", label: t("topbar.templatePeripheries"), onClick: () => { closeMenus(); downloadTemplate("PERIPHERY"); } },
+    { key: "cities", label: t("topbar.templateCities"), onClick: () => { closeMenus(); downloadTemplate("CITY"); } },
+  ];
 
   const sectionButtons: RegionSection[] = ["peripheries", "cities", "unmatched"];
 
@@ -610,31 +621,23 @@ export default function Regions() {
             ))}
 
             <div ref={importMenuRef} style={menuWrapStyle}>
-              <button className="btn" type="button" style={topButtonStyle} onClick={() => {
-                setTemplateMenuOpen(false);
-                setImportMenuOpen((open) => !open);
-              }}>
+              <button className="btn" type="button" style={topButtonStyle} onClick={() => toggleMenu("import")}>
                 {cityImporting || peripheryImporting ? t("topbar.importing") : t("topbar.import")}
               </button>
               {importMenuOpen ? (
                 <div style={menuStyle}>
-                  <button className="btn" type="button" onClick={() => peripheryImportRef.current?.click()}>{t("topbar.importPeripheries")}</button>
-                  <button className="btn" type="button" onClick={() => cityImportRef.current?.click()}>{t("topbar.importCities")}</button>
+{importActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
                 </div>
               ) : null}
             </div>
 
             <div ref={templateMenuRef} style={menuWrapStyle}>
-              <button className="btn" type="button" style={topButtonStyle} onClick={() => {
-                setImportMenuOpen(false);
-                setTemplateMenuOpen((open) => !open);
-              }}>
+              <button className="btn" type="button" style={topButtonStyle} onClick={() => toggleMenu("template")}>
                 {t("topbar.downloadTemplate")}
               </button>
               {templateMenuOpen ? (
                 <div style={menuStyle}>
-                  <button className="btn" type="button" onClick={() => downloadTemplate("PERIPHERY")}>{t("topbar.templatePeripheries")}</button>
-                  <button className="btn" type="button" onClick={() => downloadTemplate("CITY")}>{t("topbar.templateCities")}</button>
+{templateActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
                 </div>
               ) : null}
             </div>

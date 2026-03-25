@@ -1,4 +1,5 @@
 import { useEffect, type RefObject } from "react";
+import { downloadBlob } from "../../lib/download";
 import {
   listGraduates,
   listProgramDirections,
@@ -7,17 +8,6 @@ import {
   type Graduate,
   type StudyProgram,
 } from "../../lib/api";
-
-export function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
 
 export async function loadGraduatesScreen(params: Record<string, unknown>) {
   const [studyProgramsResponse, regionsResponse, graduatesResponse] = await Promise.all([

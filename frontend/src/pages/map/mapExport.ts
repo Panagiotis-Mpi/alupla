@@ -1,15 +1,5 @@
 import * as XLSX from "xlsx";
-
-function downloadBlob(filename: string, blob: Blob) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
+import { downloadBlob } from "../../lib/download";
 
 export function excelCellValue(v: any) {
   return v === null || v === undefined || v === "" ? "" : v;
@@ -68,7 +58,7 @@ export async function exportElementAsPng(element: HTMLElement, filename: string)
           reject(new Error("blob_error"));
           return;
         }
-        downloadBlob(filename, blob);
+        downloadBlob(blob, filename);
         resolve();
       }, "image/png");
     };
@@ -80,9 +70,9 @@ export async function exportElementAsPng(element: HTMLElement, filename: string)
 
 export function exportWorkbook(filename: string, workbook: XLSX.WorkBook) {
   const output = XLSX.write(workbook, { bookType: "xlsx", type: "array", compression: true });
-  downloadBlob(filename, new Blob([output], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+  downloadBlob(new Blob([output], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), filename);
 }
 
 export function exportCsvText(filename: string, text: string) {
-  downloadBlob(filename, new Blob([text], { type: "text/csv;charset=utf-8" }));
+  downloadBlob(new Blob([text], { type: "text/csv;charset=utf-8" }), filename);
 }
