@@ -336,13 +336,6 @@ export async function changePassword(
   });
 }
 
-export async function presencePing(): Promise<any> {
-  return api("/presence/ping", { method: "POST" });
-}
-
-export async function listOnlineUsers(): Promise<{ ok: true; onlineIds: number[] } | any> {
-  return api("/presence/online", { method: "GET" });
-}
 
 export async function listUsers(): Promise<{ ok: true; items: User[] } | any> {
   return api("/users", { method: "GET" });
