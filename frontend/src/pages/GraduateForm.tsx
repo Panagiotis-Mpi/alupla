@@ -39,7 +39,7 @@ const empty: Partial<Graduate> = {
 };
 
 export default function GraduateForm(props: { mode: Mode }) {
-  const { t } = useTranslation("graduateForm");
+  const { t, i18n } = useTranslation("graduateForm");
   const nav = useNavigate();
   const { id } = useParams();
 
@@ -52,6 +52,7 @@ export default function GraduateForm(props: { mode: Mode }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<Graduate>>(empty);
   const isEdit = props.mode === "edit";
+  const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
 
   const gradId = useMemo(() => (isEdit ? Number(id) : null), [id, isEdit]);
 
@@ -196,8 +197,8 @@ export default function GraduateForm(props: { mode: Mode }) {
           <div>
             <label className="label">{t("labels.gender")}</label>
             <select className="input" value={form.gender ?? "M"} onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value as any }))}>
-              <option value="M">M</option>
-              <option value="F">F</option>
+              <option value="M">{t("common.male", { ns: "common" })}</option>
+              <option value="F">{t("common.female", { ns: "common" })}</option>
             </select>
           </div>
 
@@ -240,7 +241,7 @@ export default function GraduateForm(props: { mode: Mode }) {
           <div>
             <label className="label">{t("labels.studyProgram")}</label>
             <select className="input" value={String(form.study_program_id ?? "")} onChange={(e) => setForm(f => ({...f, study_program_id: Number(e.target.value)}))}>
-              {programs.map(p => <option key={p.id} value={p.id}>{p.code} - {p.name_el}</option>)}
+              {programs.map((p) => <option key={p.id} value={p.id}>{p.code} - {activeLang === "en" ? p.name_en || p.name_el : p.name_el || p.name_en}</option>)}
             </select>
           </div>
 
@@ -248,7 +249,7 @@ export default function GraduateForm(props: { mode: Mode }) {
             <label className="label">{t("labels.direction")}</label>
             <select className="input" value={form.program_direction_id ?? ""} onChange={(e) => setForm(f => ({...f, program_direction_id: e.target.value ? Number(e.target.value) : null}))}>
               <option value="">{t("labels.directionNone")}</option>
-              {directions.map(d => <option key={d.id} value={d.id}>{d.code} - {d.name_el}</option>)}
+              {directions.map((d) => <option key={d.id} value={d.id}>{d.code} - {activeLang === "en" ? d.name_en || d.name_el : d.name_el || d.name_en}</option>)}
             </select>
           </div>
         </div>

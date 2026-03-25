@@ -1,34 +1,28 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-
-const ACTIONS = [
-  { to: "/map", label: "Χάρτης Αποφοίτων", className: "public-home-action primary" },
-  { to: "/statistics", label: "Στατιστικά & Διαγράμματα", className: "public-home-action secondary" },
-  { to: "/login", label: "Σύνδεση", className: "public-home-action ghost" },
-];
+import { useTranslation } from "react-i18next";
 
 export default function PublicHome() {
   const navigate = useNavigate();
+  const { t } = useTranslation("common");
+
+  const actions = [
+    { to: "/map", label: t("home.map"), className: "public-home-action primary" },
+    { to: "/statistics", label: t("home.stats"), className: "public-home-action secondary" },
+    { to: "/login", label: t("nav.login"), className: "public-home-action ghost" },
+  ];
 
   return (
     <div className="public-home-shell">
       <div className="public-home-card">
-        <h1 className="public-home-title">ALUPLA | Πλατφόρμα Στατιστικών Αποφοίτων</h1>
+        <h1 className="public-home-title">{t("home.heroTitle")}</h1>
 
-        <p className="public-home-text">
-          Η ALUPLA αποτελεί μια διαδικτυακή πλατφόρμα προβολής και ανάλυσης ανώνυμων
-          στατιστικών δεδομένων αποφοίτων για το τμήμα Μηχανικών Ηλεκτρονικών και
-          Πληροφορικής του Πανεπιστημίου Πατρών.
-        </p>
+        <p className="public-home-text">{t("home.heroLead")}</p>
 
-        <p className="public-home-text public-home-text-spaced">
-          Μέσω διαδραστικών διαγραμμάτων και χάρτη Ελλάδας, οι επισκέπτες μπορούν να
-          εξερευνήσουν μεταβολές στον χρόνο, αναλογίες και κατανομές, καθώς και να
-          εξάγουν ανωνυμοποιημένα δεδομένα.
-        </p>
+        <p className="public-home-text public-home-text-spaced">{t("home.heroSublead")}</p>
 
         <div className="public-home-actions">
-          {ACTIONS.map((action) => (
+          {actions.map((action) => (
             <button
               key={action.to}
               type="button"

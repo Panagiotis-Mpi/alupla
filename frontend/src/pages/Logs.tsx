@@ -29,42 +29,79 @@ const wideCardStyle: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-const actionLabels: Record<string, string> = {
-  login: "Σύνδεση",
-  logout: "Αποσύνδεση",
-  upload: "Μεταφόρτωση αρχείου",
-  import_graduates: "Εισαγωγή αποφοίτων",
-  export_graduates: "Εξαγωγή αποφοίτων",
-  export_csv: "Εξαγωγή CSV",
-  export_xlsx: "Εξαγωγή Excel",
-  export_pdf: "Εξαγωγή PDF",
-  map_export: "Εξαγωγή χάρτη",
-  statistics_export: "Εξαγωγή στατιστικών",
-  create_user: "Δημιουργία χρήστη",
-  update_user: "Ενημέρωση χρήστη",
-  reject_user: "Απόρριψη χρήστη",
-  approve_user: "Αποδοχή χρήστη",
-  deactivate_user: "Διαγραφή χρήστη",
-  delete_user: "Διαγραφή χρήστη",
-  "διαγραφή χρήστη": "Διαγραφή χρήστη",
-  create_graduate: "Δημιουργία αποφοίτου",
-  update_graduate: "Ενημέρωση αποφοίτου",
-  delete_graduate: "Διαγραφή αποφοίτου",
+const actionLabels = {
+  gr: {
+    login: "Σύνδεση",
+    logout: "Αποσύνδεση",
+    upload: "Μεταφόρτωση αρχείου",
+    import_graduates: "Εισαγωγή αποφοίτων",
+    export_graduates: "Εξαγωγή αποφοίτων",
+    export_csv: "Εξαγωγή CSV",
+    export_xlsx: "Εξαγωγή Excel",
+    export_pdf: "Εξαγωγή PDF",
+    map_export: "Εξαγωγή χάρτη",
+    statistics_export: "Εξαγωγή στατιστικών",
+    create_user: "Δημιουργία χρήστη",
+    update_user: "Ενημέρωση χρήστη",
+    reject_user: "Απόρριψη χρήστη",
+    approve_user: "Αποδοχή χρήστη",
+    deactivate_user: "Διαγραφή χρήστη",
+    delete_user: "Διαγραφή χρήστη",
+    "διαγραφή χρήστη": "Διαγραφή χρήστη",
+    create_graduate: "Δημιουργία αποφοίτου",
+    update_graduate: "Ενημέρωση αποφοίτου",
+    delete_graduate: "Διαγραφή αποφοίτου"
+  },
+  en: {
+    login: "Login",
+    logout: "Logout",
+    upload: "File upload",
+    import_graduates: "Graduate import",
+    export_graduates: "Graduate export",
+    export_csv: "CSV export",
+    export_xlsx: "Excel export",
+    export_pdf: "PDF export",
+    map_export: "Map export",
+    statistics_export: "Statistics export",
+    create_user: "User creation",
+    update_user: "User update",
+    reject_user: "User rejection",
+    approve_user: "User approval",
+    deactivate_user: "User deletion",
+    delete_user: "User deletion",
+    "διαγραφή χρήστη": "User deletion",
+    create_graduate: "Graduate creation",
+    update_graduate: "Graduate update",
+    delete_graduate: "Graduate deletion"
+  }
 };
 
-const resourceLabels: Record<string, string> = {
-  user: "Χρήστης",
-  users: "Χρήστες",
-  graduate: "Απόφοιτος",
-  graduates: "Απόφοιτοι",
-  system: "Σύστημα",
-  statistics: "Στατιστικά",
-  map: "Χάρτης",
-  logs: "Logs",
+const resourceLabels = {
+  gr: {
+    user: "Χρήστης",
+    users: "Χρήστες",
+    graduate: "Απόφοιτος",
+    graduates: "Απόφοιτοι",
+    system: "Σύστημα",
+    statistics: "Στατιστικά",
+    map: "Χάρτης",
+    logs: "Καταγραφές"
+  },
+  en: {
+    user: "User",
+    users: "Users",
+    graduate: "Graduate",
+    graduates: "Graduates",
+    system: "System",
+    statistics: "Statistics",
+    map: "Map",
+    logs: "Logs"
+  }
 };
 
 export default function Logs() {
-  const { t } = useTranslation("logs");
+  const { t, i18n } = useTranslation("logs");
+  const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
 
   const [items, setItems] = React.useState<ActivityLog[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -81,29 +118,29 @@ export default function Logs() {
     const ln = (l?.user?.last_name ?? "").trim();
     const full = `${fn} ${ln}`.trim();
     if (full) return full;
-    return "Σύστημα";
+    return activeLang === "en" ? "System" : "Σύστημα";
   }
 
-  function toGreekAction(v: any): string {
+  function toLocalizedAction(v: any): string {
     const key = String(v ?? "").trim();
-    return actionLabels[key] ?? key.replace(/_/g, " ");
+    return actionLabels[activeLang][key as keyof (typeof actionLabels)["gr"]] ?? key.replace(/_/g, " ");
   }
 
-  function toGreekResource(v: any): string {
+  function toLocalizedResource(v: any): string {
     const key = String(v ?? "").trim();
-    return resourceLabels[key] ?? key;
+    return resourceLabels[activeLang][key as keyof (typeof resourceLabels)["gr"]] ?? key;
   }
 
-  function toGreekDetails(v: any): string {
+  function toLocalizedDetails(v: any): string {
     if (v === null || v === undefined || v === "") return "";
     const raw = typeof v === "object" ? JSON.stringify(v) : String(v);
     return raw
-      .replaceAll("admin_approved", "έγκριση διαχειριστή")
-      .replaceAll("email_verified", "επαλήθευση email")
-      .replaceAll("is_active", "ενεργός")
-      .replaceAll("first_name", "όνομα")
-      .replaceAll("last_name", "επώνυμο")
-      .replaceAll("role", "ρόλος");
+      .replaceAll("admin_approved", activeLang === "en" ? "admin approval" : "έγκριση διαχειριστή")
+      .replaceAll("email_verified", activeLang === "en" ? "email verification" : "επαλήθευση email")
+      .replaceAll("is_active", activeLang === "en" ? "active" : "ενεργός")
+      .replaceAll("first_name", activeLang === "en" ? "first name" : "όνομα")
+      .replaceAll("last_name", activeLang === "en" ? "last name" : "επώνυμο")
+      .replaceAll("role", activeLang === "en" ? "role" : "ρόλος");
   }
 
   const actionForApi = (filters.level || filters.action).trim();
@@ -130,11 +167,11 @@ export default function Logs() {
     const s = new Set<string>();
     for (const l of items) {
       const raw = String((l as any)?.action ?? "").trim();
-      const label = toGreekAction(raw);
+      const label = toLocalizedAction(raw);
       if (label) s.add(label);
     }
     return Array.from(s).sort((a, b) => a.localeCompare(b, "el"));
-  }, [items]);
+  }, [activeLang, items]);
 
   const distinctActors = React.useMemo(() => {
     const s = new Set<string>();
@@ -143,7 +180,7 @@ export default function Logs() {
       if (v) s.add(v);
     }
     return Array.from(s).sort((a, b) => a.localeCompare(b));
-  }, [items]);
+  }, [activeLang, items]);
 
   const distinctResources = React.useMemo(() => {
     const s = new Set<string>();
@@ -162,8 +199,8 @@ export default function Logs() {
 
     return items.filter((l: any) => {
       const actor = actorLabel(l).toLowerCase();
-      const action = toGreekAction(l?.action ?? "").toLowerCase();
-      const resource = toGreekResource(l?.entity_type ?? "").toLowerCase();
+      const action = toLocalizedAction(l?.action ?? "").toLowerCase();
+      const resource = toLocalizedResource(l?.entity_type ?? "").toLowerCase();
 
       if (actorNeedle && !actor.includes(actorNeedle)) return false;
       if (resourceNeedle && !resource.includes(resourceNeedle)) return false;
@@ -172,7 +209,7 @@ export default function Logs() {
 
       return true;
     });
-  }, [items, filters.actor, filters.action, filters.level, filters.resource]);
+  }, [activeLang, items, filters.actor, filters.action, filters.level, filters.resource]);
 
   const summary = React.useMemo(() => {
     const s = {
@@ -355,7 +392,7 @@ export default function Logs() {
               />
               <datalist id="logs-resources">
                 {distinctResources.map((v) => (
-                  <option key={v} value={toGreekResource(v)} />
+                  <option key={v} value={toLocalizedResource(v)} />
                 ))}
               </datalist>
             </div>
@@ -388,7 +425,7 @@ export default function Logs() {
               style={{ paddingLeft: 12, paddingRight: 12 }}
               disabled={pageSafe <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              aria-label="Previous"
+              aria-label={t("aria.previous", { ns: "common" })}
             >
               ◀
             </button>
@@ -403,7 +440,7 @@ export default function Logs() {
               style={{ paddingLeft: 12, paddingRight: 12 }}
               disabled={pageSafe >= totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              aria-label="Next"
+              aria-label={t("aria.next", { ns: "common" })}
             >
               ▶
             </button>
@@ -430,10 +467,10 @@ export default function Logs() {
                 <tr key={l.id}>
                   <td>{l.id}</td>
                   <td style={{ fontFamily: "monospace" }}>{l.created_at}</td>
-                  <td>{toGreekAction(l.action)}</td>
+                  <td>{toLocalizedAction(l.action)}</td>
                   <td>{actorLabel(l)}</td>
-                  <td>{toGreekAction(l.action)}</td>
-                  <td>{toGreekResource(l.entity_type ?? "")}</td>
+                  <td>{toLocalizedAction(l.action)}</td>
+                  <td>{toLocalizedResource(l.entity_type ?? "")}</td>
                   <td
                     style={{
                       maxWidth: 520,
@@ -442,7 +479,7 @@ export default function Logs() {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {toGreekDetails(l.details)}
+                    {toLocalizedDetails(l.details)}
                   </td>
                 </tr>
               ))}

@@ -15,14 +15,14 @@
     "searchPlaceholder": "Αναζήτηση σε όλα τα πεδία αποφοίτων..."
   },
   "filters": {
-    "qLabel": "Global αναζήτηση (q)",
+    "qLabel": "Γενική αναζήτηση (q)",
     "qPlaceholder": "π.χ. Παπαδ...",
     "lastNameLike": "Επώνυμο",
     "firstNameLike": "Όνομα",
     "gender": "Φύλο",
     "all": "Όλα",
     "studyProgram": "Πρόγραμμα Σπουδών",
-    "sort": "Sort",
+    "sort": "Ταξινόμηση",
     "sort_id_asc": "id ↑",
     "sort_id_desc": "id ↓",
     "sort_last_name_asc": "επώνυμο ↑",

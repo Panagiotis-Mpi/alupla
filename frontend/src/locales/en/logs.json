@@ -8,7 +8,10 @@
     "level": "Level",
     "all": "All",
     "search": "Search",
-    "reset": "Reset"
+    "reset": "Reset",
+    "actor": "User",
+    "action": "Action",
+    "resource": "Resource"
   },
   "actions": {
     "exportCsv": "Export CSV"
@@ -25,5 +28,15 @@
     "none": "No logs."
   },
   "error": "Error",
-  "exportFailed": "Export failed"
+  "exportFailed": "Export failed",
+  "summary": {
+    "title": "Activity summary",
+    "activity": "Activity",
+    "authenticated": "Authenticated",
+    "anonymous": "Anonymous",
+    "fileUploads": "File uploads",
+    "fileDownloads": "File downloads",
+    "mapDownloads": "Map downloads",
+    "statisticsDownloads": "Statistics downloads"
+  }
 }

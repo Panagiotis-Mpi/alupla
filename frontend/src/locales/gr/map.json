@@ -19,7 +19,7 @@
     "ageGroup": "Ηλικιακή ομάδα",
     "all": "Όλα",
     "apply": "Εφαρμογή",
-    "reset": "Reset"
+    "reset": "Καθαρισμός"
   },
   "table": {
     "region": "Περιφέρεια",
@@ -30,8 +30,8 @@
     "ratio": "Αναλογία"
   },
   "export": {
-    "png": "Export PNG",
-    "notReady": "Ο χάρτης δεν είναι έτοιμος για export"
+    "png": "Εξαγωγή PNG",
+    "notReady": "Ο χάρτης δεν είναι έτοιμος για εξαγωγή"
   },
   "map": {
     "total": "Σύνολο: {{total}}"

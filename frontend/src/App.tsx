@@ -155,7 +155,7 @@ function TopNav() {
         className={`brand ${isCompact ? "brand-compact" : ""}`}
         type="button"
         onClick={handleBrandClick}
-        aria-label={isCompact ? "ALUPLA menu" : "ALUPLA Home"}
+        aria-label={isCompact ? t("aria.brandMenu") : t("aria.brandHome")}
         aria-expanded={isCompact ? menuOpen : undefined}
         aria-controls={isCompact ? "mobile-drawer" : undefined}
       >
@@ -179,7 +179,7 @@ function TopNav() {
             className="btn"
             onClick={() => i18n.changeLanguage("gr")}
             aria-pressed={lang === "gr"}
-            title="Ελληνικά"
+            title={t("aria.languageGreek")}
           >
             GR
           </button>
@@ -188,7 +188,7 @@ function TopNav() {
             className="btn"
             onClick={() => i18n.changeLanguage("en")}
             aria-pressed={lang === "en"}
-            title="English"
+            title={t("aria.languageEnglish")}
           >
             EN
           </button>
@@ -225,7 +225,7 @@ function TopNav() {
         <button
           className="drawer-backdrop"
           type="button"
-          aria-label="Close menu"
+          aria-label={t("aria.closeMenu")}
           onClick={closeMenu}
         />
       )}

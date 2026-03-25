@@ -22,9 +22,83 @@
   },
   "home": {
     "heroTitle": "ALUPLA | Graduate Statistics Platform",
-    "heroLead": "Anonymous, aggregated graduate data by year, study program, gender and age group.",
+    "heroLead": "ALUPLA is a web platform for viewing and analyzing anonymous graduate statistics for the Department of Computer Engineering and Informatics at the University of Patras.",
+    "heroSublead": "Through interactive charts and a map of Greece, visitors can explore trends over time, ratios and distributions, and export anonymized data.",
     "map": "Graduate Map",
     "stats": "Statistics & Charts",
     "heroLoginHint": "For Secretariat / Admin access:"
+  },
+  "common": {
+    "all": "All",
+    "apply": "Apply",
+    "reset": "Reset",
+    "export": "Export",
+    "hide": "Hide",
+    "close": "Close",
+    "value": "Value",
+    "male": "Male",
+    "female": "Female",
+    "loading": "Loading..."
+  },
+  "aria": {
+    "brandMenu": "ALUPLA menu",
+    "brandHome": "ALUPLA home",
+    "closeMenu": "Close menu",
+    "previous": "Previous",
+    "next": "Next",
+    "languageGreek": "Greek",
+    "languageEnglish": "English"
+  },
+  "graduates": {
+    "filters": {
+      "toggle": "Filters",
+      "adCode": "A.D.",
+      "studentNumber": "Student No.",
+      "lastName": "Last name",
+      "firstName": "First name",
+      "fatherName": "Father name",
+      "gender": "Gender",
+      "entryYear": "Entry year",
+      "birthYear": "Birth year",
+      "degreeGrade": "Degree grade",
+      "graduationDate": "Graduation date",
+      "oathDate": "Oath date",
+      "direction": "Direction",
+      "region": "Region",
+      "city": "City",
+      "from": "From",
+      "to": "To"
+    }
+  },
+  "map": {
+    "title": "Graduate map",
+    "total": "Total: {{total}}",
+    "totalInline": "Total",
+    "legend": "Legend",
+    "legendCounts": "Graduate count",
+    "exportPng": "Export PNG",
+    "exportExcel": "Export Excel",
+    "exportCsv": "Export CSV",
+    "detailsTitle": "Details",
+    "detailsHint": "Click a region for details.",
+    "totalLabel": "Total",
+    "avgAge": "Average age",
+    "malePct": "% Male",
+    "femalePct": "% Female",
+    "avgGrade": "Average grade",
+    "avgGraduationYears": "Average time to degree",
+    "cities": "Cities",
+    "filters": {
+      "studyProgram": "Study program",
+      "year": "Graduation year",
+      "ageGroup": "Age group"
+    },
+    "export": {
+      "periphery": "Region",
+      "count": "Graduates",
+      "avgAge": "Average age",
+      "malePct": "% Male",
+      "femalePct": "% Female"
+    }
   }
 }
