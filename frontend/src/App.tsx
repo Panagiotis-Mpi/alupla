@@ -20,6 +20,7 @@ import Statistics from "./pages/Statistics";
 import PublicHome from "./pages/PublicHome";
 import Footer from "./components/Footer";
 import AcademicData from "./pages/AcademicData";
+import AccessibilityMenu from "./components/AccessibilityMenu";
 
 type NavLinkItem = {
   to: string;
@@ -341,6 +342,7 @@ export default function App() {
         </Routes>
       </div>
       <Footer />
+      <AccessibilityMenu />
     </div>
   );
 }

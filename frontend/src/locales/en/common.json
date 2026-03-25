@@ -100,5 +100,15 @@
       "malePct": "% Male",
       "femalePct": "% Female"
     }
+  },
+  "accessibility": {
+    "title": "Accessibility",
+    "open": "Accessibility menu",
+    "shortLabel": "A11y",
+    "reset": "Reset",
+    "largeText": "Larger text",
+    "highContrast": "High contrast",
+    "reduceMotion": "Reduce motion",
+    "underlineLinks": "Underline links"
   }
 }
