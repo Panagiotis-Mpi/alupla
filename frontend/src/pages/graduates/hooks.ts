@@ -1,0 +1,109 @@
+import { useEffect, type RefObject } from "react";
+import {
+  listGraduates,
+  listProgramDirections,
+  listRegions,
+  listStudyPrograms,
+  type Graduate,
+  type StudyProgram,
+} from "../../lib/api";
+
+export function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function loadGraduatesScreen(params: Record<string, unknown>) {
+  const [studyProgramsResponse, regionsResponse, graduatesResponse] = await Promise.all([
+    listStudyPrograms(),
+    listRegions({ type: "PERIPHERY" }),
+    listGraduates(params),
+  ]);
+
+  const directionsResults = await Promise.all(
+    (studyProgramsResponse.items ?? []).map(async (program: any) => {
+      try {
+        return await listProgramDirections(Number(program?.id));
+      } catch {
+        return { items: [] as any[] };
+      }
+    })
+  );
+
+  return {
+    programs: (studyProgramsResponse.items ?? []) as StudyProgram[],
+    regions: regionsResponse.items ?? [],
+    items: (graduatesResponse.items ?? []) as Graduate[],
+    total: Number(graduatesResponse.total ?? 0),
+    directions: directionsResults.flatMap((result: any) => result?.items ?? []),
+  };
+}
+
+export function useSyncedScrollbar(
+  tableWrapRef: RefObject<HTMLDivElement | null>,
+  floatingScrollbarRef: RefObject<HTMLDivElement | null>,
+  floatingScrollbarInnerRef: RefObject<HTMLDivElement | null>,
+  deps: ReadonlyArray<unknown>
+) {
+  useEffect(() => {
+    const wrap = tableWrapRef.current;
+    const bar = floatingScrollbarRef.current;
+    const inner = floatingScrollbarInnerRef.current;
+    if (!wrap || !bar || !inner) return;
+
+    let syncing = false;
+
+    const update = () => {
+      inner.style.width = `${wrap.scrollWidth}px`;
+      bar.style.display = wrap.scrollWidth > wrap.clientWidth ? "block" : "none";
+      bar.scrollLeft = wrap.scrollLeft;
+    };
+
+    const syncFromWrap = () => {
+      if (syncing) return;
+      syncing = true;
+      bar.scrollLeft = wrap.scrollLeft;
+      syncing = false;
+    };
+
+    const syncFromBar = () => {
+      if (syncing) return;
+      syncing = true;
+      wrap.scrollLeft = bar.scrollLeft;
+      syncing = false;
+    };
+
+    update();
+    wrap.addEventListener("scroll", syncFromWrap);
+    bar.addEventListener("scroll", syncFromBar);
+    window.addEventListener("resize", update);
+
+    return () => {
+      wrap.removeEventListener("scroll", syncFromWrap);
+      bar.removeEventListener("scroll", syncFromBar);
+      window.removeEventListener("resize", update);
+    };
+  }, deps);
+}
+
+export function useMenuDismiss(
+  refs: Array<RefObject<HTMLElement | null>>,
+  closeMenus: () => void
+) {
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (refs.some((ref) => ref.current?.contains(target))) return;
+      closeMenus();
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [closeMenus, refs]);
+}

@@ -6,10 +6,6 @@ import {
   downloadGraduatesImportTemplate,
   exportGraduatesFile,
   importGraduatesFile,
-  listGraduates,
-  listProgramDirections,
-  listRegions,
-  listStudyPrograms,
   type Graduate,
   type StudyProgram,
 } from "../lib/api";
@@ -27,6 +23,7 @@ import {
   type SortDir,
   type SortKey,
 } from "./graduates/shared";
+import { downloadBlob, loadGraduatesScreen, useMenuDismiss, useSyncedScrollbar } from "./graduates/hooks";
 
 type ImportReport = {
   summary?: {
@@ -43,16 +40,6 @@ type ToastState = {
   detail?: string;
 };
 
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
 
 export default function Graduates() {
   const { t, i18n } = useTranslation("graduates");
@@ -124,30 +111,13 @@ export default function Graduates() {
   async function load() {
     setLoading(true);
     try {
-      const [studyProgramsResponse, regionsResponse, graduatesResponse] = await Promise.all([
-        listStudyPrograms(),
-        listRegions({ type: "PERIPHERY" }),
-        listGraduates(params),
-      ]);
-
-      setPrograms(studyProgramsResponse.items ?? []);
-      setRegions(regionsResponse.items ?? []);
-      setItems(graduatesResponse.items ?? []);
-      setTotal(graduatesResponse.total ?? 0);
-
-      const directionsResults = await Promise.all(
-        (studyProgramsResponse.items ?? []).map(async (program: any) => {
-          try {
-            return await listProgramDirections(Number(program?.id));
-          } catch {
-            return { items: [] as any[] };
-          }
-        })
-      );
-
-      const mergedDirections = directionsResults.flatMap((result: any) => result?.items ?? []);
-      setDirections(mergedDirections);
-      setSelectedIds((current) => current.filter((id) => (graduatesResponse.items ?? []).some((graduate: any) => Number(graduate.id) === id)));
+      const response = await loadGraduatesScreen(params);
+      setPrograms(response.programs);
+      setRegions(response.regions);
+      setItems(response.items);
+      setTotal(response.total);
+      setDirections(response.directions);
+      setSelectedIds((current) => current.filter((id) => response.items.some((graduate) => Number(graduate.id) === id)));
     } finally {
       setLoading(false);
     }
@@ -157,51 +127,6 @@ export default function Graduates() {
     void load();
   }, []);
 
-  useEffect(() => {
-    const wrap = tableWrapRef.current;
-    const bar = floatingScrollbarRef.current;
-    const inner = floatingScrollbarInnerRef.current;
-    if (!wrap || !bar || !inner) {
-      return;
-    }
-
-    let syncing = false;
-
-    const update = () => {
-      inner.style.width = `${wrap.scrollWidth}px`;
-      bar.style.display = wrap.scrollWidth > wrap.clientWidth ? "block" : "none";
-      bar.scrollLeft = wrap.scrollLeft;
-    };
-
-    const onWrapScroll = () => {
-      if (syncing) {
-        return;
-      }
-      syncing = true;
-      bar.scrollLeft = wrap.scrollLeft;
-      syncing = false;
-    };
-
-    const onBarScroll = () => {
-      if (syncing) {
-        return;
-      }
-      syncing = true;
-      wrap.scrollLeft = bar.scrollLeft;
-      syncing = false;
-    };
-
-    update();
-    wrap.addEventListener("scroll", onWrapScroll);
-    bar.addEventListener("scroll", onBarScroll);
-    window.addEventListener("resize", update);
-
-    return () => {
-      wrap.removeEventListener("scroll", onWrapScroll);
-      bar.removeEventListener("scroll", onBarScroll);
-      window.removeEventListener("resize", update);
-    };
-  }, [items, sortState, programs, directions, regions]);
 
   useEffect(() => {
     if (filters.program_direction_id && !availableDirections.some((item) => Number(item.id) === Number(filters.program_direction_id))) {
@@ -209,29 +134,20 @@ export default function Graduates() {
     }
   }, [availableDirections, filters.program_direction_id]);
 
+  useSyncedScrollbar(tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, [items, sortState, programs, directions, regions]);
+
+  useMenuDismiss([importMenuRef, exportMenuRef, templateMenuRef], () => {
+    setImportMenuOpen(false);
+    setExportMenuOpen(false);
+    setTemplateMenuOpen(false);
+  });
+
   useEffect(() => {
     if (selectAllRef.current) {
       selectAllRef.current.indeterminate = !allVisibleSelected && someVisibleSelected;
     }
   }, [allVisibleSelected, someVisibleSelected]);
 
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      const target = event.target as Node;
-      if (importMenuRef.current && !importMenuRef.current.contains(target)) {
-        setImportMenuOpen(false);
-      }
-      if (exportMenuRef.current && !exportMenuRef.current.contains(target)) {
-        setExportMenuOpen(false);
-      }
-      if (templateMenuRef.current && !templateMenuRef.current.contains(target)) {
-        setTemplateMenuOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, []);
 
   function toggleSort(key: SortKey) {
     setSortState((current) => (current.key === key ? { key, dir: current.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));

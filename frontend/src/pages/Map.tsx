@@ -3,128 +3,30 @@ import { useTranslation } from "react-i18next";
 import { GeoJSON, MapContainer, Marker } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import * as XLSX from "xlsx";
 
 import {
-  getGraduatesMap,
-  getMapCities,
-  getMapFilterOptions,
-  getRegionCitiesMap,
   logPublicExport,
   type GraduatesMapItem,
-  type MapCityPoint,
-  type ProgramDirection,
-  type Region,
-  type RegionCityMapItem,
-  type StudyProgram,
 } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
-import * as XLSX from "xlsx";
 import { DetailStatsCard, Field, FilterSection, MapViewportWatcher, RangeField } from "./map/shared";
 import { excelCellValue, exportCsvText, exportElementAsPng, exportWorkbook } from "./map/mapExport";
-
-type AgeGroup = "" | "23-26" | "27-30" | "31+";
-
-type FiltersState = {
-  ad_code_like: string;
-  student_number_like: string;
-  last_name_like: string;
-  first_name_like: string;
-  father_name_like: string;
-  gender: string;
-  entry_year_min: string;
-  entry_year_max: string;
-  birth_year_min: string;
-  birth_year_max: string;
-  degree_grade_min: string;
-  degree_grade_max: string;
-  graduation_year: string;
-  graduation_date_from: string;
-  graduation_date_to: string;
-  oath_date_from: string;
-  oath_date_to: string;
-  study_program_id: string;
-  program_direction_id: string;
-  origin_region_id: string;
-  origin_municipality_like: string;
-  age_group: AgeGroup;
-};
-
-const EMPTY_FILTERS: FiltersState = {
-  ad_code_like: "",
-  student_number_like: "",
-  last_name_like: "",
-  first_name_like: "",
-  father_name_like: "",
-  gender: "",
-  entry_year_min: "",
-  entry_year_max: "",
-  birth_year_min: "",
-  birth_year_max: "",
-  degree_grade_min: "",
-  degree_grade_max: "",
-  graduation_year: "",
-  graduation_date_from: "",
-  graduation_date_to: "",
-  oath_date_from: "",
-  oath_date_to: "",
-  study_program_id: "",
-  program_direction_id: "",
-  origin_region_id: "",
-  origin_municipality_like: "",
-  age_group: "",
-};
-
-function cityLabelIcon(label: string) {
-  return L.divIcon({
-    className: "alupla-city-label-icon",
-    html: `<span class="alupla-city-point"><span class="alupla-city-label-text">${label}</span><span class="alupla-city-label-dot"></span></span>`,
-    iconSize: [1, 1],
-    iconAnchor: [0, 0],
-  });
-}
-
-function normalizeKey(s: string): string {
-  return (s || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function mapCityLatitude(city: MapCityPoint): number | null {
-  if ("latitude" in city) {
-    const value = Number(city.latitude);
-    return Number.isFinite(value) ? value : null;
-  }
-  const value = Number(city.lat);
-  return Number.isFinite(value) ? value : null;
-}
-
-function mapCityLongitude(city: MapCityPoint): number | null {
-  if ("longitude" in city) {
-    const value = Number(city.longitude);
-    return Number.isFinite(value) ? value : null;
-  }
-  const value = Number(city.lng);
-  return Number.isFinite(value) ? value : null;
-}
-
-function mapCityLabel(city: MapCityPoint): string {
-  return city.city_name;
-}
-
-function mapCityKey(city: MapCityPoint): string {
-  return `db-${city.city_id}`;
-}
-
-function tryParseGeoJson(raw: string): any | null {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
+import { useMapData, useMapLookups, useVisibleCities } from "./map/hooks";
+import { EMPTY_FILTERS, type FiltersState } from "./map/types";
+import {
+  cityLabelIcon,
+  createMapParams,
+  fillColorForCount,
+  fillOpacityForCount,
+  legendBuckets,
+  mapCityKey,
+  mapCityLabel,
+  mapCityLatitude,
+  mapCityLongitude,
+  normalizeKey,
+  tryParseGeoJson,
+} from "./map/utils";
 
 export default function Map() {
   const { t, i18n } = useTranslation();
@@ -136,17 +38,19 @@ export default function Map() {
   const [filters, setFilters] = useState<FiltersState>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const [studyPrograms, setStudyPrograms] = useState<StudyProgram[]>([]);
-  const [programDirections, setProgramDirections] = useState<ProgramDirection[]>([]);
-  const [regions, setRegions] = useState<Region[]>([]);
+  const { studyPrograms, programDirections, regions } = useMapLookups();
   const [mapZoom, setMapZoom] = useState(6.5);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<GraduatesMapItem[]>([]);
-  const [cityPoints, setCityPoints] = useState<MapCityPoint[]>([]);
   const [selected, setSelected] = useState<GraduatesMapItem | null>(null);
-  const [selectedCityStats, setSelectedCityStats] = useState<RegionCityMapItem[]>([]);
-  const [cityStatsLoading, setCityStatsLoading] = useState(false);
+  const {
+    loading,
+    items,
+    cityPoints,
+    cityStatsLoading,
+    selectedCityStats,
+    setSelectedCityStats,
+    fetchMap,
+  } = useMapData(params, selected?.periphery_id);
 
   const geojson = useMemo(() => tryParseGeoJson(greeceRegionsRaw), []);
 
@@ -171,15 +75,7 @@ export default function Map() {
     return programDirections.filter((item) => Number((item as any).study_program_id) === Number(filters.study_program_id));
   }, [filters.study_program_id, programDirections]);
 
-  const params = useMemo(() => {
-    const p: Record<string, string> = {};
-    Object.entries(filters).forEach(([key, value]) => {
-      const trimmed = typeof value === "string" ? value.trim() : value;
-      if (trimmed === undefined || trimmed === null || trimmed === "") return;
-      p[key] = String(trimmed);
-    });
-    return p;
-  }, [filters]);
+  const params = useMemo(() => createMapParams(filters), [filters]);
 
   const countsByGreekName = useMemo(() => {
     const next = new (globalThis as any).Map<string, number>();
@@ -207,26 +103,6 @@ export default function Map() {
     itemsRef.current = items;
   }, [items]);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const res = await getMapFilterOptions();
-        if (!active) return;
-        setStudyPrograms(Array.isArray(res?.studyPrograms) ? res.studyPrograms : []);
-        setProgramDirections(Array.isArray(res?.programDirections) ? res.programDirections : []);
-        setRegions(Array.isArray(res?.regions) ? res.regions : []);
-      } catch {
-        if (!active) return;
-        setStudyPrograms([]);
-        setProgramDirections([]);
-        setRegions([]);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -238,52 +114,6 @@ export default function Map() {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
-  async function fetchMap(nextParams?: Record<string, string>) {
-    setLoading(true);
-    setSelected(null);
-    setSelectedCityStats([]);
-    try {
-      const [mapRes, citiesRes] = await Promise.all([
-        getGraduatesMap(nextParams ?? params),
-        getMapCities(nextParams ?? params),
-      ]);
-      setItems(Array.isArray(mapRes?.items) ? mapRes.items : []);
-      setCityPoints(Array.isArray(citiesRes?.items) ? citiesRes.items : []);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchMap({});
-  }, []);
-
-  useEffect(() => {
-    if (!selected?.periphery_id) {
-      setSelectedCityStats([]);
-      return;
-    }
-
-    let active = true;
-    setCityStatsLoading(true);
-
-    (async () => {
-      try {
-        const res = await getRegionCitiesMap({ ...params, periphery_id: selected.periphery_id });
-        if (!active) return;
-        setSelectedCityStats(Array.isArray(res?.items) ? res.items : []);
-      } catch {
-        if (!active) return;
-        setSelectedCityStats([]);
-      } finally {
-        if (active) setCityStatsLoading(false);
-      }
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, [params, selected?.periphery_id]);
 
   function updateFilter<K extends keyof FiltersState>(key: K, value: FiltersState[K]) {
     setFilters((prev) => {
@@ -305,33 +135,6 @@ export default function Map() {
   }
 
   const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
-
-  function thresholdsForMax(m: number) {
-    const mm = Math.max(1, m || 1);
-    const b1 = Math.ceil(mm * 0.2);
-    const b2 = Math.ceil(mm * 0.4);
-    const b3 = Math.ceil(mm * 0.6);
-    const b4 = Math.ceil(mm * 0.8);
-    return [0, b1, b2, b3, b4, mm];
-  }
-
-  function bucketIndexForCount(c: number) {
-    const threshold = thresholdsForMax(maxCount);
-    for (let i = 0; i < 5; i += 1) {
-      const from = threshold[i];
-      const to = threshold[i + 1];
-      if (c >= from && c <= to) return i;
-    }
-    return 4;
-  }
-
-  function fillColorForCount(c: number) {
-    return fillColors[Math.max(0, Math.min(fillColors.length - 1, bucketIndexForCount(c)))];
-  }
-
-  function fillOpacityForCount(c: number) {
-    return c <= 0 ? 0.18 : 0.75;
-  }
 
   function featureGreekName(feature: any): string {
     const p = feature?.properties || {};
@@ -357,43 +160,7 @@ export default function Map() {
 
   const total = useMemo(() => items.reduce((s, it: any) => s + (Number(it.count) || 0), 0), [items]);
 
-  const visibleCities = useMemo(() => {
-    const grouped = new (globalThis as any).Map<string, MapCityPoint[]>();
-
-    for (const city of cityPoints) {
-      const lat = mapCityLatitude(city);
-      const lng = mapCityLongitude(city);
-      if (lat === null || lng === null) continue;
-      const key = normalizeKey(city.periphery_name);
-      const list = grouped.get(key) || [];
-      list.push(city);
-      grouped.set(key, list);
-    }
-
-    const expanded = mapZoom >= 7;
-    const next: MapCityPoint[] = [];
-
-    grouped.forEach((list) => {
-      const sorted = [...list].sort((a, b) => {
-        if (b.count !== a.count) return b.count - a.count;
-        return a.city_name.localeCompare(b.city_name, "el");
-      });
-      if (!expanded) {
-        if (sorted[0]) next.push(sorted[0]);
-        return;
-      }
-      const insideBounds = mapBounds
-        ? sorted.filter((city) => {
-            const lat = mapCityLatitude(city);
-            const lng = mapCityLongitude(city);
-            return lat !== null && lng !== null && mapBounds.contains(L.latLng(lat, lng));
-          })
-        : sorted;
-      next.push(...(insideBounds.length ? insideBounds : sorted).slice(0, 3));
-    });
-
-    return next;
-  }, [cityPoints, mapBounds, mapZoom]);
+  const visibleCities = useVisibleCities(cityPoints, mapBounds, mapZoom);
 
   function currentFilterRows() {
     const regionName = regions.find((item) => String((item as any).id) === filters.origin_region_id)?.name || "";
@@ -492,14 +259,6 @@ export default function Map() {
     }
   }
 
-  function legendBuckets(max: number) {
-    const m = Math.max(1, max);
-    const b1 = Math.ceil(m * 0.2);
-    const b2 = Math.ceil(m * 0.4);
-    const b3 = Math.ceil(m * 0.6);
-    const b4 = Math.ceil(m * 0.8);
-    return [0, b1, b2, b3, b4, m];
-  }
 
   const buckets = useMemo(() => legendBuckets(maxCount), [maxCount]);
   const geoRenderKey = useMemo(() => `${i18n.language}:${items.length}:${maxCount}`, [i18n.language, items.length, maxCount]);
@@ -704,7 +463,7 @@ export default function Map() {
                     return {
                       color: "#334155",
                       weight: 1,
-                      fillColor: fillColorForCount(c),
+                      fillColor: fillColorForCount(c, maxCount, fillColors),
                       fillOpacity: fillOpacityForCount(c),
                     } as any;
                   }}
@@ -738,7 +497,7 @@ export default function Map() {
                   <Marker
                     key={mapCityKey(city)}
                     position={[lat, lng]}
-                    icon={cityLabelIcon(mapCityLabel(city, activeLang))}
+                    icon={cityLabelIcon(mapCityLabel(city))}
                     interactive={false}
                   />
                 );
@@ -757,7 +516,7 @@ export default function Map() {
                 const to = buckets[idx + 1];
                 const mid = (from + to) / 2;
                 const opacity = fillOpacityForCount(mid);
-                const color = fillColorForCount(mid);
+                const color = fillColorForCount(mid, maxCount, fillColors);
                 return (
                   <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ width: 16, height: 12, display: "inline-block", border: "1px solid #334155", background: color, opacity, borderRadius: 3 }} />
