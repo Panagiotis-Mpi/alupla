@@ -18,8 +18,23 @@ function encodeHeader(value: string) {
   return `=?UTF-8?B?${toBase64(value)}?=`;
 }
 
+function normalizeWhitespace(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function extractEmailAddress(value: string) {
+  const trimmed = normalizeWhitespace(value);
+  const angleMatch = trimmed.match(/<([^>]+)>/);
+  const candidate = (angleMatch ? angleMatch[1] : trimmed).trim();
+  return candidate.replace(/^mailto:/i, "").trim().toLowerCase();
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 function encodeAddress(value: string) {
-  const trimmed = value.trim();
+  const trimmed = normalizeWhitespace(value);
   const match = trimmed.match(/^(.*)<([^>]+)>$/);
   if (!match) {
     return trimmed;
@@ -27,6 +42,21 @@ function encodeAddress(value: string) {
   const name = match[1].trim().replace(/^"|"$/g, "");
   const email = match[2].trim();
   return name ? `${encodeHeader(name)} <${email}>` : `<${email}>`;
+}
+
+function buildFromAddress(value: string, fallbackEmail: string) {
+  const trimmed = normalizeWhitespace(value);
+  const fallback = normalizeWhitespace(fallbackEmail);
+  const candidateEmail = extractEmailAddress(trimmed);
+  if (!isValidEmail(candidateEmail)) {
+    return fallback;
+  }
+  const match = trimmed.match(/^(.*)<([^>]+)>$/);
+  if (!match) {
+    return candidateEmail;
+  }
+  const name = match[1].trim().replace(/^"|"$/g, "");
+  return name ? `${name} <${candidateEmail}>` : candidateEmail;
 }
 
 function buildMessage(input: {
@@ -62,12 +92,13 @@ function buildMessage(input: {
 }
 
 function getEnvelopeAddress(value: string) {
-  const match = value.match(/<([^>]+)>/);
-  return (match ? match[1] : value).trim();
+  return extractEmailAddress(value);
 }
 
-function waitForLine(socket: tls.TLSSocket, carry: { value: string }) {
+function waitForResponse(socket: tls.TLSSocket, carry: { value: string }) {
   return new Promise<string>((resolve, reject) => {
+    const lines: string[] = [];
+
     const onData = (chunk: Buffer) => {
       carry.value += chunk.toString("utf8");
       while (true) {
@@ -75,13 +106,19 @@ function waitForLine(socket: tls.TLSSocket, carry: { value: string }) {
         if (lineBreak === -1) {
           return;
         }
+
         const line = carry.value.slice(0, lineBreak);
         carry.value = carry.value.slice(lineBreak + 2);
+        if (!line) {
+          continue;
+        }
+
+        lines.push(line);
         const code = line.slice(0, 3);
         const separator = line[3];
         if (/^\d{3}$/.test(code) && separator !== "-") {
           cleanup();
-          resolve(line);
+          resolve(lines.join("\n"));
           return;
         }
       }
@@ -106,14 +143,19 @@ function waitForLine(socket: tls.TLSSocket, carry: { value: string }) {
     socket.on("data", onData);
     socket.once("error", onError);
     socket.once("close", onClose);
+
+    if (carry.value.includes("\r\n")) {
+      onData(Buffer.alloc(0));
+    }
   });
 }
 
 async function expectCode(socket: tls.TLSSocket, carry: { value: string }, expected: number[]) {
-  const line = await waitForLine(socket, carry);
-  const code = Number(line.slice(0, 3));
+  const response = await waitForResponse(socket, carry);
+  const firstLine = response.split("\n")[0] ?? "";
+  const code = Number(firstLine.slice(0, 3));
   if (!expected.includes(code)) {
-    throw new Error(`SMTP error ${line}`);
+    throw new Error(`SMTP error ${response}`);
   }
 }
 
@@ -136,12 +178,23 @@ async function connectSmtp() {
 }
 
 async function sendMail(input: { from: string; to: string; subject: string; text: string; html: string }) {
-  const user = env.mail.user.trim();
+  const user = extractEmailAddress(env.mail.user);
   const pass = env.mail.pass.trim();
-  const from = (input.from || user).trim();
+  const recipient = extractEmailAddress(input.to);
 
-  if (!user || !pass || !from) {
+  if (!isValidEmail(user) || !pass) {
     throw new Error("Email service is not configured");
+  }
+
+  if (!isValidEmail(recipient)) {
+    throw new Error("Recipient email is invalid");
+  }
+
+  const from = buildFromAddress(input.from || user, user);
+  const envelopeFrom = getEnvelopeAddress(from);
+
+  if (!isValidEmail(envelopeFrom)) {
+    throw new Error("Sender email is invalid");
   }
 
   const socket = await connectSmtp();
@@ -149,14 +202,14 @@ async function sendMail(input: { from: string; to: string; subject: string; text
 
   try {
     await expectCode(socket, carry, [220]);
-    await sendCommand(socket, carry, "EHLO alupla.local", [250]);
+    await sendCommand(socket, carry, "EHLO alupla.app", [250]);
     await sendCommand(socket, carry, "AUTH LOGIN", [334]);
     await sendCommand(socket, carry, Buffer.from(user, "utf8").toString("base64"), [334]);
     await sendCommand(socket, carry, Buffer.from(pass, "utf8").toString("base64"), [235]);
-    await sendCommand(socket, carry, `MAIL FROM:<${getEnvelopeAddress(from)}>`, [250]);
-    await sendCommand(socket, carry, `RCPT TO:<${getEnvelopeAddress(input.to)}>`, [250, 251]);
+    await sendCommand(socket, carry, `MAIL FROM:<${envelopeFrom}>`, [250]);
+    await sendCommand(socket, carry, `RCPT TO:<${recipient}>`, [250, 251]);
     await sendCommand(socket, carry, "DATA", [354]);
-    socket.write(`${buildMessage({ ...input, from })}\r\n.\r\n`);
+    socket.write(`${buildMessage({ ...input, from, to: recipient })}\r\n.\r\n`);
     await expectCode(socket, carry, [250]);
     await sendCommand(socket, carry, "QUIT", [221]);
   } finally {
