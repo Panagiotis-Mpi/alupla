@@ -42,6 +42,7 @@ export default function Map() {
   const [mapZoom, setMapZoom] = useState(6.5);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [selected, setSelected] = useState<GraduatesMapItem | null>(null);
+  const params = useMemo(() => createMapParams(filters), [filters]);
   const {
     loading,
     items,
@@ -75,7 +76,6 @@ export default function Map() {
     return programDirections.filter((item) => Number((item as any).study_program_id) === Number(filters.study_program_id));
   }, [filters.study_program_id, programDirections]);
 
-  const params = useMemo(() => createMapParams(filters), [filters]);
 
   const countsByGreekName = useMemo(() => {
     const next = new (globalThis as any).Map<string, number>();
