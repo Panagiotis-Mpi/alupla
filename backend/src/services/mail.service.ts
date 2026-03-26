@@ -1,23 +1,20 @@
-import nodemailer from "nodemailer";
 import { env } from "../config/env";
-
-const transporter = nodemailer.createTransport({
-  host: env.mail.host,
-  port: env.mail.port,
-  secure: env.mail.secure,
-  auth: {
-    user: env.mail.user,
-    pass: env.mail.pass
-  }
-});
 
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+async function readResponseText(response: Response) {
+  try {
+    return await response.text();
+  } catch {
+    return "";
+  }
 }
 
 export async function sendVerificationEmail(input: {
@@ -26,6 +23,10 @@ export async function sendVerificationEmail(input: {
   verificationUrl: string;
   expiresInMinutes: number;
 }) {
+  if (!env.mail.apiKey || !env.mail.from) {
+    throw new Error("Email service is not configured");
+  }
+
   const greetingName = input.firstName?.trim() || input.to;
   const escapedName = escapeHtml(greetingName);
   const escapedUrl = escapeHtml(input.verificationUrl);
@@ -58,11 +59,24 @@ export async function sendVerificationEmail(input: {
     </div>
   `;
 
-  await transporter.sendMail({
-    from: env.mail.from,
-    to: input.to,
-    subject,
-    text,
-    html
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.mail.apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from: env.mail.from,
+      to: [input.to],
+      subject,
+      text,
+      html
+    })
   });
+
+  if (!response.ok) {
+    const detail = await readResponseText(response);
+    const suffix = detail ? `: ${detail}` : "";
+    throw new Error(`Email delivery failed${suffix}`);
+  }
 }

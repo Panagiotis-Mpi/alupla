@@ -58,6 +58,15 @@ async function findActiveUserByEmail(email: unknown) {
   return user;
 }
 
+async function deliverVerificationEmail(user: User, verificationToken: string) {
+  await sendVerificationEmail({
+    to: user.email,
+    firstName: user.first_name,
+    verificationUrl: buildVerificationUrl(user.email, verificationToken),
+    expiresInMinutes: EMAIL_VERIFICATION_MINUTES
+  });
+}
+
 export async function register(req: Request, res: Response) {
   const { first_name, last_name, email, password } = req.body ?? {};
 
@@ -69,12 +78,12 @@ export async function register(req: Request, res: Response) {
     return fail(res, 400, "Weak password (min 8, letter+number+symbol)");
   }
 
-  const existingUser = await User.findOne({ where: { email } });
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const existingUser = await User.findOne({ where: { email: normalizedEmail } });
   if (existingUser) {
     return fail(res, 409, "Email already exists");
   }
 
-  const normalizedEmail = String(email).trim().toLowerCase();
   const verificationToken = createHexToken();
   const verificationExpires = addMinutes(EMAIL_VERIFICATION_MINUTES);
   const password_hash = await bcrypt.hash(String(password), 10);
@@ -92,12 +101,12 @@ export async function register(req: Request, res: Response) {
     email_verification_expires: verificationExpires
   });
 
-  await sendVerificationEmail({
-    to: user.email,
-    firstName: user.first_name,
-    verificationUrl: buildVerificationUrl(user.email, verificationToken),
-    expiresInMinutes: EMAIL_VERIFICATION_MINUTES
-  });
+  try {
+    await deliverVerificationEmail(user, verificationToken);
+  } catch {
+    await user.destroy();
+    return fail(res, 503, "Unable to send verification email right now");
+  }
 
   await logAction({ user_id: user.id, action: "register", entity_type: "user", entity_id: user.id });
 
@@ -251,7 +260,8 @@ export async function resendVerification(req: Request, res: Response) {
     return fail(res, 400, "Missing email");
   }
 
-  const user = await findActiveUserByEmail(email);
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const user = await findActiveUserByEmail(normalizedEmail);
   if (!user) {
     return res.json({ ok: true });
   }
@@ -267,12 +277,11 @@ export async function resendVerification(req: Request, res: Response) {
   user.email_verification_expires = verificationExpires;
   await user.save();
 
-  await sendVerificationEmail({
-    to: user.email,
-    firstName: user.first_name,
-    verificationUrl: buildVerificationUrl(user.email, verificationToken),
-    expiresInMinutes: EMAIL_VERIFICATION_MINUTES
-  });
+  try {
+    await deliverVerificationEmail(user, verificationToken);
+  } catch {
+    return fail(res, 503, "Unable to send verification email right now");
+  }
 
   await logAction({ user_id: user.id, action: "resend_verify_email", entity_type: "user", entity_id: user.id });
 
@@ -341,10 +350,8 @@ export async function resetPassword(req: Request, res: Response) {
 export async function me(req: Request, res: Response) {
   const auth = req.auth!;
   const user = await User.findByPk(auth.id);
-
   if (!user) {
     return fail(res, 404, "Not found");
   }
-
   return res.json({ ok: true, user: safeUser(user) });
 }

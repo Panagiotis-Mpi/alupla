@@ -26,11 +26,7 @@ export const env = {
   jwtSecret: required("JWT_SECRET"),
   appUrl: (process.env.APP_URL ?? "http://localhost:5173").replace(/\/$/, ""),
   mail: {
-    host: required("SMTP_HOST"),
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: (process.env.SMTP_SECURE ?? "false").toLowerCase() === "true",
-    user: required("SMTP_USER"),
-    pass: required("SMTP_PASS"),
-    from: process.env.SMTP_FROM ?? process.env.SMTP_USER ?? ""
+    apiKey: process.env.RESEND_API_KEY ?? "",
+    from: process.env.MAIL_FROM ?? ""
   }
 };
