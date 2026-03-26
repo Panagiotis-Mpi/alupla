@@ -5,6 +5,8 @@ import { Op } from "sequelize";
 import { User } from "../models/User";
 import { signToken } from "../utils/jwt";
 import { logAction } from "../services/log.service";
+import { sendVerificationEmail } from "../services/mail.service";
+import { env } from "../config/env";
 
 function fail(res: Response, status: number, message: string) {
   return res.status(status).json({ ok: false, error: { message } });
@@ -33,8 +35,19 @@ function createHexToken() {
   return crypto.randomBytes(32).toString("hex");
 }
 
+const EMAIL_VERIFICATION_MINUTES = 15;
+
 function addHours(hours: number) {
   return new Date(Date.now() + hours * 60 * 60 * 1000);
+}
+
+function addMinutes(minutes: number) {
+  return new Date(Date.now() + minutes * 60 * 1000);
+}
+
+function buildVerificationUrl(email: string, token: string) {
+  const query = new URLSearchParams({ token, email });
+  return `${env.appUrl}/verify?${query.toString()}`;
 }
 
 async function findActiveUserByEmail(email: unknown) {
@@ -61,14 +74,15 @@ export async function register(req: Request, res: Response) {
     return fail(res, 409, "Email already exists");
   }
 
+  const normalizedEmail = String(email).trim().toLowerCase();
   const verificationToken = createHexToken();
-  const verificationExpires = addHours(24);
+  const verificationExpires = addMinutes(EMAIL_VERIFICATION_MINUTES);
   const password_hash = await bcrypt.hash(String(password), 10);
 
   const user = await User.create({
-    first_name,
-    last_name,
-    email,
+    first_name: String(first_name).trim(),
+    last_name: String(last_name).trim(),
+    email: normalizedEmail,
     password_hash,
     role: "secretariat",
     is_active: true,
@@ -78,13 +92,20 @@ export async function register(req: Request, res: Response) {
     email_verification_expires: verificationExpires
   });
 
+  await sendVerificationEmail({
+    to: user.email,
+    firstName: user.first_name,
+    verificationUrl: buildVerificationUrl(user.email, verificationToken),
+    expiresInMinutes: EMAIL_VERIFICATION_MINUTES
+  });
+
   await logAction({ user_id: user.id, action: "register", entity_type: "user", entity_id: user.id });
 
   return res.json({
     ok: true,
     user: safeUser(user),
-    verification_token: verificationToken,
-    verification_expires: verificationExpires
+    verification_expires: verificationExpires,
+    verification_sent: true
   });
 }
 
@@ -94,16 +115,26 @@ export async function verifyEmail(req: Request, res: Response) {
     return fail(res, 400, "Missing token");
   }
 
-  const user = await User.findOne({
+  const matchingUser = await User.findOne({
     where: {
-      email_verification_token: token,
-      email_verification_expires: { [Op.gt]: new Date() }
+      email_verification_token: token
     }
   });
 
-  if (!user) {
-    return fail(res, 400, "Invalid/expired token");
+  if (!matchingUser) {
+    return fail(res, 400, "Invalid verification link");
   }
+
+  if (matchingUser.email_verified) {
+    return res.json({ ok: true, already_verified: true });
+  }
+
+  const expiresAt = matchingUser.email_verification_expires;
+  if (!expiresAt || expiresAt.getTime() <= Date.now()) {
+    return fail(res, 410, "Verification link expired. Request a new email.");
+  }
+
+  const user = matchingUser;
 
   user.email_verified = true;
   user.email_verification_token = null;
@@ -230,18 +261,25 @@ export async function resendVerification(req: Request, res: Response) {
   }
 
   const verificationToken = createHexToken();
-  const verificationExpires = addHours(1);
+  const verificationExpires = addMinutes(EMAIL_VERIFICATION_MINUTES);
 
   user.email_verification_token = verificationToken;
   user.email_verification_expires = verificationExpires;
   await user.save();
 
+  await sendVerificationEmail({
+    to: user.email,
+    firstName: user.first_name,
+    verificationUrl: buildVerificationUrl(user.email, verificationToken),
+    expiresInMinutes: EMAIL_VERIFICATION_MINUTES
+  });
+
   await logAction({ user_id: user.id, action: "resend_verify_email", entity_type: "user", entity_id: user.id });
 
   return res.json({
     ok: true,
-    verification_token: verificationToken,
-    verification_expires: verificationExpires
+    verification_expires: verificationExpires,
+    verification_sent: true
   });
 }
 
