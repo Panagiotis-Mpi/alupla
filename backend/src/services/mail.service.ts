@@ -1,4 +1,4 @@
-import tls from "tls";
+import nodemailer from "nodemailer";
 import { env } from "../config/env";
 
 function escapeHtml(value: string) {
@@ -10,211 +10,87 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#39;");
 }
 
-function toBase64(value: string) {
-  return Buffer.from(value, "utf8").toString("base64");
-}
-
-function encodeHeader(value: string) {
-  return `=?UTF-8?B?${toBase64(value)}?=`;
-}
-
-function normalizeWhitespace(value: string) {
-  return value.replace(/\s+/g, " ").trim();
-}
-
-function extractEmailAddress(value: string) {
-  const trimmed = normalizeWhitespace(value);
-  const angleMatch = trimmed.match(/<([^>]+)>/);
-  const candidate = (angleMatch ? angleMatch[1] : trimmed).trim();
-  return candidate.replace(/^mailto:/i, "").trim().toLowerCase();
+function cleanEmail(value: string) {
+  return String(value || "").trim().toLowerCase();
 }
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function encodeAddress(value: string) {
-  const trimmed = normalizeWhitespace(value);
-  const match = trimmed.match(/^(.*)<([^>]+)>$/);
-  if (!match) {
-    return trimmed;
+function resolveFromAddress() {
+  const from = cleanEmail(env.mail.from);
+  const user = cleanEmail(env.mail.user);
+
+  if (isValidEmail(from)) {
+    return from;
   }
-  const name = match[1].trim().replace(/^"|"$/g, "");
-  const email = match[2].trim();
-  return name ? `${encodeHeader(name)} <${email}>` : `<${email}>`;
-}
 
-function buildFromAddress(value: string, fallbackEmail: string) {
-  const trimmed = normalizeWhitespace(value);
-  const fallback = normalizeWhitespace(fallbackEmail);
-  const candidateEmail = extractEmailAddress(trimmed);
-  if (!isValidEmail(candidateEmail)) {
-    return fallback;
+  if (isValidEmail(user)) {
+    return user;
   }
-  const match = trimmed.match(/^(.*)<([^>]+)>$/);
-  if (!match) {
-    return candidateEmail;
-  }
-  const name = match[1].trim().replace(/^"|"$/g, "");
-  return name ? `${name} <${candidateEmail}>` : candidateEmail;
+
+  return "";
 }
 
-function buildMessage(input: {
-  from: string;
-  to: string;
-  subject: string;
-  text: string;
-  html: string;
-}) {
-  const boundary = `alupla-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  return [
-    `From: ${encodeAddress(input.from)}`,
-    `To: ${encodeAddress(input.to)}`,
-    `Subject: ${encodeHeader(input.subject)}`,
-    "MIME-Version: 1.0",
-    `Date: ${new Date().toUTCString()}`,
-    `Message-ID: <${Date.now()}.${Math.random().toString(36).slice(2)}@alupla.local>`,
-    `Content-Type: multipart/alternative; boundary=\"${boundary}\"`,
-    "",
-    `--${boundary}`,
-    'Content-Type: text/plain; charset="UTF-8"',
-    "Content-Transfer-Encoding: base64",
-    "",
-    toBase64(input.text),
-    `--${boundary}`,
-    'Content-Type: text/html; charset="UTF-8"',
-    "Content-Transfer-Encoding: base64",
-    "",
-    toBase64(input.html),
-    `--${boundary}--`,
-    ""
-  ].join("\r\n");
-}
+let transporterPromise: Promise<nodemailer.Transporter> | null = null;
 
-function getEnvelopeAddress(value: string) {
-  return extractEmailAddress(value);
-}
+async function getTransporter() {
+  if (!transporterPromise) {
+    transporterPromise = (async () => {
+      const user = cleanEmail(env.mail.user);
+      const pass = String(env.mail.pass || "").trim();
 
-function waitForResponse(socket: tls.TLSSocket, carry: { value: string }) {
-  return new Promise<string>((resolve, reject) => {
-    const lines: string[] = [];
-
-    const onData = (chunk: Buffer) => {
-      carry.value += chunk.toString("utf8");
-      while (true) {
-        const lineBreak = carry.value.indexOf("\r\n");
-        if (lineBreak === -1) {
-          return;
-        }
-
-        const line = carry.value.slice(0, lineBreak);
-        carry.value = carry.value.slice(lineBreak + 2);
-        if (!line) {
-          continue;
-        }
-
-        lines.push(line);
-        const code = line.slice(0, 3);
-        const separator = line[3];
-        if (/^\d{3}$/.test(code) && separator !== "-") {
-          cleanup();
-          resolve(lines.join("\n"));
-          return;
-        }
+      if (!isValidEmail(user) || !pass) {
+        throw new Error("Email service is not configured");
       }
-    };
 
-    const onError = (error: Error) => {
-      cleanup();
-      reject(error);
-    };
+      const transporter = nodemailer.createTransport({
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: {
+          user,
+          pass
+        },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+        tls: {
+          servername: "smtp.gmail.com"
+        }
+      });
 
-    const onClose = () => {
-      cleanup();
-      reject(new Error("SMTP connection closed"));
-    };
-
-    const cleanup = () => {
-      socket.off("data", onData);
-      socket.off("error", onError);
-      socket.off("close", onClose);
-    };
-
-    socket.on("data", onData);
-    socket.once("error", onError);
-    socket.once("close", onClose);
-
-    if (carry.value.includes("\r\n")) {
-      onData(Buffer.alloc(0));
-    }
-  });
-}
-
-async function expectCode(socket: tls.TLSSocket, carry: { value: string }, expected: number[]) {
-  const response = await waitForResponse(socket, carry);
-  const firstLine = response.split("\n")[0] ?? "";
-  const code = Number(firstLine.slice(0, 3));
-  if (!expected.includes(code)) {
-    throw new Error(`SMTP error ${response}`);
-  }
-}
-
-async function sendCommand(socket: tls.TLSSocket, carry: { value: string }, command: string, expected: number[]) {
-  socket.write(`${command}\r\n`);
-  await expectCode(socket, carry, expected);
-}
-
-async function connectSmtp() {
-  return await new Promise<tls.TLSSocket>((resolve, reject) => {
-    const socket = tls.connect({
-      host: "smtp.gmail.com",
-      port: 465,
-      servername: "smtp.gmail.com"
+      await transporter.verify();
+      return transporter;
+    })().catch((error) => {
+      transporterPromise = null;
+      throw error;
     });
+  }
 
-    socket.once("secureConnect", () => resolve(socket));
-    socket.once("error", reject);
-  });
+  return transporterPromise;
 }
 
-async function sendMail(input: { from: string; to: string; subject: string; text: string; html: string }) {
-  const user = extractEmailAddress(env.mail.user);
-  const pass = env.mail.pass.trim();
-  const recipient = extractEmailAddress(input.to);
+async function sendMail(input: { from?: string; to: string; subject: string; text: string; html: string }) {
+  const to = cleanEmail(input.to);
+  const from = resolveFromAddress();
 
-  if (!isValidEmail(user) || !pass) {
+  if (!isValidEmail(to) || !from) {
     throw new Error("Email service is not configured");
   }
 
-  if (!isValidEmail(recipient)) {
-    throw new Error("Recipient email is invalid");
-  }
+  const transporter = await getTransporter();
 
-  const from = buildFromAddress(input.from || user, user);
-  const envelopeFrom = getEnvelopeAddress(from);
-
-  if (!isValidEmail(envelopeFrom)) {
-    throw new Error("Sender email is invalid");
-  }
-
-  const socket = await connectSmtp();
-  const carry = { value: "" };
-
-  try {
-    await expectCode(socket, carry, [220]);
-    await sendCommand(socket, carry, "EHLO alupla.app", [250]);
-    await sendCommand(socket, carry, "AUTH LOGIN", [334]);
-    await sendCommand(socket, carry, Buffer.from(user, "utf8").toString("base64"), [334]);
-    await sendCommand(socket, carry, Buffer.from(pass, "utf8").toString("base64"), [235]);
-    await sendCommand(socket, carry, `MAIL FROM:<${envelopeFrom}>`, [250]);
-    await sendCommand(socket, carry, `RCPT TO:<${recipient}>`, [250, 251]);
-    await sendCommand(socket, carry, "DATA", [354]);
-    socket.write(`${buildMessage({ ...input, from, to: recipient })}\r\n.\r\n`);
-    await expectCode(socket, carry, [250]);
-    await sendCommand(socket, carry, "QUIT", [221]);
-  } finally {
-    socket.end();
-  }
+  await transporter.sendMail({
+    from,
+    sender: from,
+    replyTo: from,
+    to,
+    subject: input.subject,
+    text: input.text,
+    html: input.html
+  });
 }
 
 export async function sendVerificationEmail(input: {
@@ -256,7 +132,6 @@ export async function sendVerificationEmail(input: {
   `;
 
   await sendMail({
-    from: env.mail.from,
     to: input.to,
     subject,
     text,
