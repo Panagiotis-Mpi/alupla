@@ -76,6 +76,8 @@ export default function Verify() {
       const result = await resendVerification(value);
       if (result?.already_verified) {
         setResendInfo(t("verify.alreadyVerified"));
+      } else if (result?.verification_sent === false) {
+        setResendInfo(t("verify.pendingInfo", { email: value }));
       } else {
         setResendInfo(t("verify.sentInfo", { email: value }));
       }

@@ -101,11 +101,12 @@ export async function register(req: Request, res: Response) {
     email_verification_expires: verificationExpires
   });
 
+  let verificationSent = true;
+
   try {
     await deliverVerificationEmail(user, verificationToken);
   } catch {
-    await user.destroy();
-    return fail(res, 503, "Unable to send verification email right now");
+    verificationSent = false;
   }
 
   await logAction({ user_id: user.id, action: "register", entity_type: "user", entity_id: user.id });
@@ -114,7 +115,7 @@ export async function register(req: Request, res: Response) {
     ok: true,
     user: safeUser(user),
     verification_expires: verificationExpires,
-    verification_sent: true
+    verification_sent: verificationSent
   });
 }
 
@@ -277,10 +278,12 @@ export async function resendVerification(req: Request, res: Response) {
   user.email_verification_expires = verificationExpires;
   await user.save();
 
+  let verificationSent = true;
+
   try {
     await deliverVerificationEmail(user, verificationToken);
   } catch {
-    return fail(res, 503, "Unable to send verification email right now");
+    verificationSent = false;
   }
 
   await logAction({ user_id: user.id, action: "resend_verify_email", entity_type: "user", entity_id: user.id });
@@ -288,7 +291,7 @@ export async function resendVerification(req: Request, res: Response) {
   return res.json({
     ok: true,
     verification_expires: verificationExpires,
-    verification_sent: true
+    verification_sent: verificationSent
   });
 }
 

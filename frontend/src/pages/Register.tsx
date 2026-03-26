@@ -56,18 +56,21 @@ export default function Register() {
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
   const [sentTo, setSentTo] = React.useState<string | null>(null);
+  const [deliveryPending, setDeliveryPending] = React.useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setLoading(true);
     setSentTo(null);
+    setDeliveryPending(false);
 
     const trimmedEmail = email.trim();
 
     try {
-      await apiRegister(first.trim(), last.trim(), trimmedEmail, pw);
+      const result = await apiRegister(first.trim(), last.trim(), trimmedEmail, pw);
       setSentTo(trimmedEmail);
+      setDeliveryPending(result?.verification_sent === false);
     } catch (e: any) {
       setErr(e?.message ?? t("register.failed"));
     } finally {
@@ -158,9 +161,13 @@ export default function Register() {
                 gap: 10
               }}
             >
-              <div style={{ fontWeight: 800 }}>{t("register.sentTitle")}</div>
+              <div style={{ fontWeight: 800 }}>
+                {deliveryPending ? t("register.pendingTitle") : t("register.sentTitle")}
+              </div>
               <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                {t("register.sentText", { email: sentTo })}
+                {deliveryPending
+                  ? t("register.pendingText", { email: sentTo })
+                  : t("register.sentText", { email: sentTo })}
               </div>
               <div>
                 <Link
