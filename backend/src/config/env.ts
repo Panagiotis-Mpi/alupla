@@ -26,7 +26,8 @@ export const env = {
   jwtSecret: required("JWT_SECRET"),
   appUrl: (process.env.APP_URL ?? "http://localhost:5173").replace(/\/$/, ""),
   mail: {
-    apiKey: process.env.RESEND_API_KEY ?? "",
-    from: process.env.MAIL_FROM ?? ""
+    user: process.env.SMTP_USER ?? process.env.MAIL_USER ?? "",
+    pass: process.env.SMTP_PASS ?? process.env.MAIL_PASS ?? "",
+    from: process.env.MAIL_FROM ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? process.env.MAIL_USER ?? ""
   }
 };
