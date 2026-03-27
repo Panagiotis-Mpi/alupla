@@ -15,6 +15,10 @@ function toBase64(value: string) {
   return Buffer.from(value, "utf8").toString("base64");
 }
 
+function toBase64Url(value: string) {
+  return toBase64(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
 function encodeHeader(value: string) {
   return `=?UTF-8?B?${toBase64(value)}?=`;
 }
@@ -271,24 +275,108 @@ async function sendViaStartTls(input: { host: string; port: number; user: string
   }
 }
 
+function hasGmailApiConfig() {
+  return Boolean(
+    env.mail.gmailClientId.trim() &&
+      env.mail.gmailClientSecret.trim() &&
+      env.mail.gmailRefreshToken.trim() &&
+      extractEmailAddress(env.mail.gmailUser)
+  );
+}
+
+async function fetchJson(url: string, init: RequestInit, label: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+
+    if (!response.ok) {
+      const message = data?.error_description || data?.error?.message || text || `${label} failed`;
+      throw new Error(`${label} ${response.status} ${message}`);
+    }
+
+    return data;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function getGmailAccessToken() {
+  const body = new URLSearchParams({
+    client_id: env.mail.gmailClientId.trim(),
+    client_secret: env.mail.gmailClientSecret.trim(),
+    refresh_token: env.mail.gmailRefreshToken.trim(),
+    grant_type: "refresh_token"
+  });
+
+  const data = await fetchJson(
+    "https://oauth2.googleapis.com/token",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString()
+    },
+    "Gmail token"
+  );
+
+  const accessToken = String(data?.access_token ?? "").trim();
+  if (!accessToken) {
+    throw new Error("Gmail token response did not include access_token");
+  }
+
+  return accessToken;
+}
+
+async function sendViaGmailApi(input: { from: string; to: string; subject: string; text: string; html: string }) {
+  const gmailUser = extractEmailAddress(env.mail.gmailUser || env.mail.user);
+  if (!isValidEmail(gmailUser)) {
+    throw new Error("Gmail API sender email is invalid");
+  }
+
+  const accessToken = await getGmailAccessToken();
+  const raw = toBase64Url(buildMessage(input));
+
+  await fetchJson(
+    `https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(gmailUser)}/messages/send`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ raw })
+    },
+    "Gmail send"
+  );
+}
+
 async function sendMail(input: { from: string; to: string; subject: string; text: string; html: string }) {
   const user = extractEmailAddress(env.mail.user);
   const pass = env.mail.pass.trim();
   const recipient = extractEmailAddress(input.to);
 
-  if (!isValidEmail(user) || !pass) {
-    throw new Error("Email service is not configured");
-  }
-
   if (!isValidEmail(recipient)) {
     throw new Error("Recipient email is invalid");
   }
 
-  const from = buildFromAddress(input.from || user, user);
+  const senderBase = hasGmailApiConfig() ? extractEmailAddress(env.mail.gmailUser || env.mail.user) : user;
+  const from = buildFromAddress(input.from || senderBase, senderBase);
   const envelopeFrom = extractEmailAddress(from);
 
   if (!isValidEmail(envelopeFrom)) {
     throw new Error("Sender email is invalid");
+  }
+
+  if (hasGmailApiConfig()) {
+    await sendViaGmailApi({ ...input, from, to: recipient });
+    return;
+  }
+
+  if (!isValidEmail(user) || !pass) {
+    throw new Error("Email service is not configured");
   }
 
   const attempts = [
