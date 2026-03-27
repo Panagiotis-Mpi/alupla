@@ -1,7 +1,8 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { register as apiRegister } from "../lib/api";
+import { setSession } from "../lib/auth";
 
 const pageStyle: React.CSSProperties = {
   minHeight: "calc(100vh - 70px)",
@@ -49,28 +50,23 @@ const linksRowStyle: React.CSSProperties = {
 
 export default function Register() {
   const { t } = useTranslation("auth");
+  const navigate = useNavigate();
   const [first, setFirst] = React.useState("");
   const [last, setLast] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [pw, setPw] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
-  const [sentTo, setSentTo] = React.useState<string | null>(null);
-  const [deliveryPending, setDeliveryPending] = React.useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setLoading(true);
-    setSentTo(null);
-    setDeliveryPending(false);
-
-    const trimmedEmail = email.trim();
-
     try {
-      const result = await apiRegister(first.trim(), last.trim(), trimmedEmail, pw);
-      setSentTo(trimmedEmail);
-      setDeliveryPending(result?.verification_sent === false);
+      const result = await apiRegister(first.trim(), last.trim(), email.trim(), pw);
+      if (!result?.token || !result?.user) throw new Error(t("register.failed"));
+      setSession(result.token, result.user);
+      navigate("/graduates");
     } catch (e: any) {
       setErr(e?.message ?? t("register.failed"));
     } finally {
@@ -146,49 +142,6 @@ export default function Register() {
               }}
             >
               {err}
-            </div>
-          )}
-
-          {sentTo && (
-            <div
-              style={{
-                borderRadius: 14,
-                border: "1px solid #c7d2fe",
-                background: "#f8fbff",
-                padding: "1rem 1rem",
-                color: "#1e3a8a",
-                display: "grid",
-                gap: 10
-              }}
-            >
-              <div style={{ fontWeight: 800 }}>
-                {deliveryPending ? t("register.pendingTitle") : t("register.sentTitle")}
-              </div>
-              <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                {deliveryPending
-                  ? t("register.pendingText", { email: sentTo })
-                  : t("register.sentText", { email: sentTo })}
-              </div>
-              <div>
-                <Link
-                  to={`/verify?email=${encodeURIComponent(sentTo)}`}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 40,
-                    padding: "0 14px",
-                    borderRadius: 12,
-                    border: "1px solid #93c5fd",
-                    background: "#f0f6ff",
-                    color: "#1e3a8a",
-                    fontWeight: 800,
-                    textDecoration: "none"
-                  }}
-                >
-                  {t("register.openVerify")}
-                </Link>
-              </div>
             </div>
           )}
 

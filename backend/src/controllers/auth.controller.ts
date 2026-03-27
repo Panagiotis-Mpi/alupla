@@ -5,8 +5,6 @@ import { Op } from "sequelize";
 import { User } from "../models/User";
 import { signToken } from "../utils/jwt";
 import { logAction } from "../services/log.service";
-import { sendVerificationEmail } from "../services/mail.service";
-import { env } from "../config/env";
 
 function fail(res: Response, status: number, message: string) {
   return res.status(status).json({ ok: false, error: { message } });
@@ -35,19 +33,10 @@ function createHexToken() {
   return crypto.randomBytes(32).toString("hex");
 }
 
-const EMAIL_VERIFICATION_MINUTES = 15;
+const PASSWORD_RESET_HOURS = 1;
 
 function addHours(hours: number) {
   return new Date(Date.now() + hours * 60 * 60 * 1000);
-}
-
-function addMinutes(minutes: number) {
-  return new Date(Date.now() + minutes * 60 * 1000);
-}
-
-function buildVerificationUrl(email: string, token: string) {
-  const query = new URLSearchParams({ token, email });
-  return `${env.appUrl}/verify?${query.toString()}`;
 }
 
 async function findActiveUserByEmail(email: unknown) {
@@ -56,36 +45,6 @@ async function findActiveUserByEmail(email: unknown) {
     return null;
   }
   return user;
-}
-
-async function deliverVerificationEmail(user: User, verificationToken: string) {
-  await sendVerificationEmail({
-    to: user.email,
-    firstName: user.first_name,
-    verificationUrl: buildVerificationUrl(user.email, verificationToken),
-    expiresInMinutes: EMAIL_VERIFICATION_MINUTES
-  });
-}
-
-async function refreshVerificationToken(user: User) {
-  const previousToken = user.email_verification_token;
-  const previousExpires = user.email_verification_expires;
-  const verificationToken = createHexToken();
-  const verificationExpires = addMinutes(EMAIL_VERIFICATION_MINUTES);
-
-  user.email_verification_token = verificationToken;
-  user.email_verification_expires = verificationExpires;
-  await user.save();
-
-  try {
-    await deliverVerificationEmail(user, verificationToken);
-    return { verificationToken, verificationExpires, verificationSent: true };
-  } catch (error) {
-    user.email_verification_token = previousToken;
-    user.email_verification_expires = previousExpires;
-    await user.save();
-    return { verificationToken: previousToken, verificationExpires: previousExpires, verificationSent: false, error };
-  }
 }
 
 export async function register(req: Request, res: Response) {
@@ -105,8 +64,6 @@ export async function register(req: Request, res: Response) {
     return fail(res, 409, "Email already exists");
   }
 
-  const verificationToken = createHexToken();
-  const verificationExpires = addMinutes(EMAIL_VERIFICATION_MINUTES);
   const password_hash = await bcrypt.hash(String(password), 10);
 
   const user = await User.create({
@@ -116,66 +73,27 @@ export async function register(req: Request, res: Response) {
     password_hash,
     role: "secretariat",
     is_active: true,
-    email_verified: false,
-    admin_approved: false,
-    email_verification_token: verificationToken,
-    email_verification_expires: verificationExpires
+    email_verified: true,
+    admin_approved: true,
+    email_verification_token: null,
+    email_verification_expires: null
   });
 
-  let verificationSent = true;
-
-  try {
-    await deliverVerificationEmail(user, verificationToken);
-  } catch (error) {
-    verificationSent = false;
-    console.error("register verification email failed", error);
-  }
+  const token = signToken({ sub: user.id, role: user.role });
+  user.last_seen_at = new Date();
+  await user.save();
 
   await logAction({ user_id: user.id, action: "register", entity_type: "user", entity_id: user.id });
 
   return res.json({
     ok: true,
-    user: safeUser(user),
-    verification_expires: verificationExpires,
-    verification_sent: verificationSent
+    token,
+    user: safeUser(user)
   });
 }
 
-export async function verifyEmail(req: Request, res: Response) {
-  const token = String(req.query.token ?? "");
-  if (!token) {
-    return fail(res, 400, "Missing token");
-  }
-
-  const matchingUser = await User.findOne({
-    where: {
-      email_verification_token: token
-    }
-  });
-
-  if (!matchingUser) {
-    return fail(res, 400, "Invalid verification link");
-  }
-
-  if (matchingUser.email_verified) {
-    return res.json({ ok: true, already_verified: true });
-  }
-
-  const expiresAt = matchingUser.email_verification_expires;
-  if (!expiresAt || expiresAt.getTime() <= Date.now()) {
-    return fail(res, 410, "Verification link expired. Request a new email.");
-  }
-
-  const user = matchingUser;
-
-  user.email_verified = true;
-  user.email_verification_token = null;
-  user.email_verification_expires = null;
-  await user.save();
-
-  await logAction({ user_id: user.id, action: "verify_email", entity_type: "user", entity_id: user.id });
-
-  return res.json({ ok: true });
+export async function verifyEmail(_req: Request, res: Response) {
+  return res.json({ ok: true, already_verified: true });
 }
 
 export async function login(req: Request, res: Response) {
@@ -193,14 +111,6 @@ export async function login(req: Request, res: Response) {
   const passwordMatches = await bcrypt.compare(String(password), user.password_hash);
   if (!passwordMatches) {
     return fail(res, 401, "Invalid credentials");
-  }
-
-  if (!user.email_verified) {
-    return fail(res, 403, "Email not verified");
-  }
-
-  if (!user.admin_approved) {
-    return fail(res, 403, "Account pending admin approval");
   }
 
   const token = signToken({ sub: user.id, role: user.role });
@@ -283,29 +193,12 @@ export async function resendVerification(req: Request, res: Response) {
     return fail(res, 400, "Missing email");
   }
 
-  const normalizedEmail = String(email).trim().toLowerCase();
-  const user = await findActiveUserByEmail(normalizedEmail);
-  if (!user) {
-    return res.json({ ok: true });
+  const user = await findActiveUserByEmail(String(email).trim().toLowerCase());
+  if (user) {
+    await logAction({ user_id: user.id, action: "resend_verify_email", entity_type: "user", entity_id: user.id });
   }
 
-  if (user.email_verified) {
-    return res.json({ ok: true, already_verified: true });
-  }
-
-  const { verificationExpires, verificationSent, error } = await refreshVerificationToken(user);
-
-  if (!verificationSent && error) {
-    console.error("resend verification email failed", error);
-  }
-
-  await logAction({ user_id: user.id, action: "resend_verify_email", entity_type: "user", entity_id: user.id });
-
-  return res.json({
-    ok: true,
-    verification_expires: verificationExpires,
-    verification_sent: verificationSent
-  });
+  return res.json({ ok: true, already_verified: true });
 }
 
 export async function requestPasswordReset(req: Request, res: Response) {
@@ -320,7 +213,7 @@ export async function requestPasswordReset(req: Request, res: Response) {
   }
 
   const resetToken = createHexToken();
-  const resetExpires = addHours(1);
+  const resetExpires = addHours(PASSWORD_RESET_HOURS);
 
   user.password_reset_token = resetToken;
   user.password_reset_expires = resetExpires;
