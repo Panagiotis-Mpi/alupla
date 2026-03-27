@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { Op } from "sequelize";
 import { Graduate } from "../models/Graduate";
 import { ProgramDirection } from "../models/ProgramDirection";
 import { StudyProgram } from "../models/StudyProgram";
@@ -130,6 +131,41 @@ function toNullableNumber(v: any): number | null {
 }
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function normalizeGraduateUniqueValue(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+async function findGraduateDuplicate(params: { ad_code: string; student_number: string; exclude_id?: number | null }) {
+  const adCode = normalizeGraduateUniqueValue(params.ad_code);
+  const studentNumber = normalizeGraduateUniqueValue(params.student_number);
+
+  const orConditions: any[] = [];
+  if (adCode) orConditions.push({ ad_code: adCode });
+  if (studentNumber) orConditions.push({ student_number: studentNumber });
+  if (!orConditions.length) return null;
+
+  const where: any = { [Op.or]: orConditions };
+  if (params.exclude_id != null) {
+    where.id = { [Op.ne]: params.exclude_id };
+  }
+
+  return await Graduate.findOne({ where, order: [["id", "ASC"]] });
+}
+
+function getGraduateDuplicateMessage(item: { ad_code: string; student_number: string }, duplicate: any) {
+  const sameAd = String(duplicate?.ad_code ?? "").trim() === item.ad_code;
+  const sameStudent = String(duplicate?.student_number ?? "").trim() === item.student_number;
+
+  if (sameAd && sameStudent) {
+    return "Graduate with the same A.D. and A.M. already exists";
+  }
+  if (sameAd) {
+    return "Graduate with the same A.D. already exists";
+  }
+  return "Graduate with the same A.M. already exists";
+}
+
 const MIN_GRADUATE_AGE = 23;
 const MIN_GRADUATION_YEARS = 5;
 
@@ -591,6 +627,8 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
     let inserted = 0;
     let updated = 0;
     let skipped = 0;
+    const seenStudentNumbers = new Map<string, number>();
+    const seenAdCodes = new Map<string, number>();
 
     for (let r = 1; r < rows.length; r++) {
       const arr = rows[r];
@@ -637,11 +675,23 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       if (!study_program_id) rowProblems.push({ row: rowNum, column: "study_program", message: "Invalid value", value: study_program_source });
       if (!origin_region_id && String(origin_region_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_region", message: "Invalid value", value: origin_region_source });
 
+      if (student_number) {
+        const seenRow = seenStudentNumbers.get(student_number);
+        if (seenRow) rowProblems.push({ row: rowNum, column: "student_number", message: `Duplicate A.M. in import file (first appears at row ${seenRow})`, value: student_number });
+      }
+      if (ad_code) {
+        const seenRow = seenAdCodes.get(ad_code);
+        if (seenRow) rowProblems.push({ row: rowNum, column: "ad_code", message: `Duplicate A.D. in import file (first appears at row ${seenRow})`, value: ad_code });
+      }
+
       if (rowProblems.length) {
         errors.push(...rowProblems);
         skipped++;
         continue;
       }
+
+      seenStudentNumbers.set(student_number, rowNum);
+      seenAdCodes.set(ad_code, rowNum);
 
       const normalizedOrigin = await normalizeOriginLocation({
         origin_region_id: origin_region_id ?? null,
@@ -691,7 +741,21 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         origin_municipality: normalizedOrigin.origin_municipality,
       };
 
-      const existing = await Graduate.findOne({ where: { student_number } });
+      const existingByStudent = await Graduate.findOne({ where: { student_number } });
+      const existingByAd = await Graduate.findOne({ where: { ad_code } });
+
+      if (existingByStudent && existingByAd && Number((existingByStudent as any).id) !== Number((existingByAd as any).id)) {
+        errors.push({
+          row: rowNum,
+          column: "student_number",
+          message: "Duplicate graduate found in database for A.M. and A.D.",
+          value: `${student_number} / ${ad_code}`
+        });
+        skipped++;
+        continue;
+      }
+
+      const existing = existingByStudent || existingByAd;
       if (existing) {
         await existing.update(payload);
         updated++;
@@ -830,8 +894,12 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     const managedOriginError = ensureManagedOrigin(normalizedOrigin, origin_region_id ?? null, origin_municipality);
     if (managedOriginError) return bad(res, managedOriginError);
 
+    const finalAdCode = ad_code_in || `AD-${student_number}`;
+    const duplicate = await findGraduateDuplicate({ ad_code: finalAdCode, student_number });
+    if (duplicate) return bad(res, getGraduateDuplicateMessage({ ad_code: finalAdCode, student_number }, duplicate));
+
     const created = await Graduate.create({
-      ad_code: ad_code_in || `AD-${student_number}`,
+      ad_code: finalAdCode,
       last_name,
       first_name,
       father_name,
@@ -964,6 +1032,18 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       graduation_date: String((item as any).graduation_date ?? ""),
     }, "en")[0];
     if (updateRuleViolation) return bad(res, updateRuleViolation.message);
+
+    const duplicate = await findGraduateDuplicate({
+      ad_code: String((item as any).ad_code ?? "").trim(),
+      student_number: String((item as any).student_number ?? "").trim(),
+      exclude_id: id
+    });
+    if (duplicate) {
+      return bad(res, getGraduateDuplicateMessage({
+        ad_code: String((item as any).ad_code ?? "").trim(),
+        student_number: String((item as any).student_number ?? "").trim()
+      }, duplicate));
+    }
 
     await item.save();
 
