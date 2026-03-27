@@ -2,7 +2,6 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { register as apiRegister } from "../lib/api";
-import { setSession } from "../lib/auth";
 
 const pageStyle: React.CSSProperties = {
   minHeight: "calc(100vh - 70px)",
@@ -48,6 +47,12 @@ const linksRowStyle: React.CSSProperties = {
   marginTop: 4
 };
 
+function isValidEmail(value: string) {
+  const email = value.trim().toLowerCase();
+  if (!email || email.length > 254 || email.includes("..")) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 export default function Register() {
   const { t } = useTranslation("auth");
   const navigate = useNavigate();
@@ -61,12 +66,17 @@ export default function Register() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!isValidEmail(normalizedEmail)) {
+      setErr(t("register.invalidEmail", "Βάλε έγκυρο email"));
+      return;
+    }
+
     setLoading(true);
     try {
-      const result = await apiRegister(first.trim(), last.trim(), email.trim(), pw);
-      if (!result?.token || !result?.user) throw new Error(t("register.failed"));
-      setSession(result.token, result.user);
-      navigate("/graduates");
+      await apiRegister(first.trim(), last.trim(), normalizedEmail, pw);
+      navigate("/login", { replace: true });
     } catch (e: any) {
       setErr(e?.message ?? t("register.failed"));
     } finally {
@@ -112,6 +122,7 @@ export default function Register() {
           <label style={labelStyle}>
             <span style={labelTextStyle}>{t("register.email")}</span>
             <input
+              type="email"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

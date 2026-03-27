@@ -14,6 +14,12 @@ function isStrongPassword(value: string) {
   return value.length >= 8 && /[A-Za-z]/.test(value) && /[0-9]/.test(value) && /[^A-Za-z0-9]/.test(value);
 }
 
+function isValidEmail(value: string) {
+  const email = String(value).trim().toLowerCase();
+  if (!email || email.length > 254 || email.includes("..")) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 function safeUser(user: User) {
   return {
     id: user.id,
@@ -57,6 +63,9 @@ export async function register(req: Request, res: Response) {
   }
 
   const normalizedEmail = String(email).trim().toLowerCase();
+  if (!isValidEmail(normalizedEmail)) {
+    return fail(res, 400, "Invalid email");
+  }
   const existingUser = await User.findOne({ where: { email: normalizedEmail } });
   if (existingUser) {
     return fail(res, 409, "Email already exists");
