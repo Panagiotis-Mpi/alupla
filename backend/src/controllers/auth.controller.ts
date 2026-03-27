@@ -22,8 +22,6 @@ function safeUser(user: User) {
     email: user.email,
     role: user.role,
     is_active: user.is_active,
-    email_verified: user.email_verified,
-    admin_approved: user.admin_approved,
     created_at: (user as any).created_at,
     updated_at: (user as any).updated_at
   };
@@ -90,10 +88,6 @@ export async function register(req: Request, res: Response) {
     token,
     user: safeUser(user)
   });
-}
-
-export async function verifyEmail(_req: Request, res: Response) {
-  return res.json({ ok: true, already_verified: true });
 }
 
 export async function login(req: Request, res: Response) {
@@ -185,20 +179,6 @@ export async function changePassword(req: Request, res: Response) {
   await logAction({ user_id: user.id, action: "change_password", entity_type: "user", entity_id: user.id });
 
   return res.json({ ok: true });
-}
-
-export async function resendVerification(req: Request, res: Response) {
-  const { email } = req.body ?? {};
-  if (!email) {
-    return fail(res, 400, "Missing email");
-  }
-
-  const user = await findActiveUserByEmail(String(email).trim().toLowerCase());
-  if (user) {
-    await logAction({ user_id: user.id, action: "resend_verify_email", entity_type: "user", entity_id: user.id });
-  }
-
-  return res.json({ ok: true, already_verified: true });
 }
 
 export async function requestPasswordReset(req: Request, res: Response) {
