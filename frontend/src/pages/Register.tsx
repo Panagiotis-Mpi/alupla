@@ -62,10 +62,12 @@ export default function Register() {
   const [pw, setPw] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
+  const [ok, setOk] = React.useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
+    setOk(null);
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!isValidEmail(normalizedEmail)) {
@@ -76,7 +78,10 @@ export default function Register() {
     setLoading(true);
     try {
       await apiRegister(first.trim(), last.trim(), normalizedEmail, pw);
-      navigate("/login", { replace: true });
+      setOk(t("register.okRedirect", "Ο λογαριασμός δημιουργήθηκε επιτυχώς. Τώρα θα ανακατευθυνθείς στην αρχική σελίδα για να συνδεθείς."));
+      window.setTimeout(() => {
+        navigate("/login", { replace: true });
+      }, 1800);
     } catch (e: any) {
       setErr(e?.message ?? t("register.failed"));
     } finally {
@@ -153,6 +158,20 @@ export default function Register() {
               }}
             >
               {err}
+            </div>
+          )}
+
+          {ok && (
+            <div
+              style={{
+                borderRadius: 12,
+                border: "1px solid rgba(34,197,94,0.28)",
+                background: "rgba(34,197,94,0.08)",
+                padding: "10px 12px",
+                color: "#166534"
+              }}
+            >
+              {ok}
             </div>
           )}
 
