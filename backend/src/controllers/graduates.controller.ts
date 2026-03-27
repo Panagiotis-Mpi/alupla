@@ -247,6 +247,39 @@ function requireDateOnly(res: Response, value: string, field: string) {
   return null;
 }
 
+
+function normalizeGraduateCompareValue(value: unknown) {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed === "" ? null : trimmed;
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+  return value;
+}
+
+function isSameGraduatePayload(existing: any, payload: any) {
+  return (
+    normalizeGraduateCompareValue(existing?.student_number) === normalizeGraduateCompareValue(payload.student_number) &&
+    normalizeGraduateCompareValue(existing?.ad_code) === normalizeGraduateCompareValue(payload.ad_code) &&
+    normalizeGraduateCompareValue(existing?.last_name) === normalizeGraduateCompareValue(payload.last_name) &&
+    normalizeGraduateCompareValue(existing?.first_name) === normalizeGraduateCompareValue(payload.first_name) &&
+    normalizeGraduateCompareValue(existing?.father_name) === normalizeGraduateCompareValue(payload.father_name) &&
+    normalizeGraduateCompareValue(existing?.gender) === normalizeGraduateCompareValue(payload.gender) &&
+    normalizeGraduateCompareValue(existing?.entry_year) === normalizeGraduateCompareValue(payload.entry_year) &&
+    normalizeGraduateCompareValue(existing?.graduation_date) === normalizeGraduateCompareValue(payload.graduation_date) &&
+    normalizeGraduateCompareValue(existing?.oath_date) === normalizeGraduateCompareValue(payload.oath_date) &&
+    normalizeGraduateCompareValue(existing?.degree_grade) === normalizeGraduateCompareValue(payload.degree_grade) &&
+    normalizeGraduateCompareValue(existing?.birth_date) === normalizeGraduateCompareValue(payload.birth_date) &&
+    normalizeGraduateCompareValue(existing?.study_program_id) === normalizeGraduateCompareValue(payload.study_program_id) &&
+    normalizeGraduateCompareValue(existing?.program_direction_id) === normalizeGraduateCompareValue(payload.program_direction_id) &&
+    normalizeGraduateCompareValue(existing?.origin_region_id) === normalizeGraduateCompareValue(payload.origin_region_id) &&
+    normalizeGraduateCompareValue(existing?.origin_municipality) === normalizeGraduateCompareValue(payload.origin_municipality)
+  );
+}
+
 function parseStoredGender(value: unknown) {
   const raw = String(value ?? "").trim();
   return raw === "M" || raw === "F" ? raw : null;
@@ -757,6 +790,11 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
 
       const existing = existingByStudent || existingByAd;
       if (existing) {
+        if (isSameGraduatePayload(existing, payload)) {
+          skipped++;
+          continue;
+        }
+
         await existing.update(payload);
         updated++;
       } else {
