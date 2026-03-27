@@ -68,10 +68,16 @@
   },
   "toast": {
     "importCompleted": "Η εισαγωγή ολοκληρώθηκε",
-    "importWithErrors": "Η εισαγωγή ολοκληρώθηκε με {{count}} σφάλματα",
-    "importFailed": "Η εισαγωγή απέτυχε",
+        "importFailed": "Η εισαγωγή απέτυχε",
     "somethingWentWrong": "Κάτι πήγε στραβά",
+    "importCompletedWithNotes": "Η εισαγωγή ολοκληρώθηκε με παρατηρήσεις",
     "importSummary": "Εισήχθησαν: {{inserted}}, ενημερώθηκαν: {{updated}}, παραλείφθηκαν: {{skipped}}",
+    "importSummaryHuman": "Προστέθηκαν {{inserted}} νέες εγγραφές, ενημερώθηκαν {{updated}} υπάρχουσες και παραλείφθηκαν {{skipped}}.",
+    "detailsInserted": "Νέες εγγραφές που μπήκαν: {{inserted}}.",
+    "detailsUpdated": "Εγγραφές που ενημερώθηκαν: {{updated}}.",
+    "detailsSkipped": "Εγγραφές που παραλείφθηκαν: {{skipped}}.",
+    "detailsIssues": "Υπήρξαν {{count}} γραμμές που χρειάζονται προσοχή.",
+    "detailsNoIssues": "Δεν προέκυψαν προβλήματα σε καμία γραμμή.",
     "more": "Περισσότερα",
     "less": "Λιγότερα",
     "rowLabel": "Γραμμή {{row}}"

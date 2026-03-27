@@ -42,6 +42,10 @@ type ToastState = {
   detail?: string;
 };
 
+function buildImportDetail(t: (key: string, options?: Record<string, unknown>) => string, inserted: number, updated: number, skipped: number) {
+  return t("toast.importSummaryHuman", { inserted, updated, skipped });
+}
+
 
 export default function Graduates() {
   const { t, i18n } = useTranslation("graduates");
@@ -231,19 +235,11 @@ export default function Graduates() {
       const updated = Number(report?.summary?.updated ?? 0);
       const skipped = Number(report?.summary?.skipped ?? 0);
       const errors = Array.isArray(report?.errors) ? report.errors : [];
-      if (errors.length > 0) {
-        showToast({
-          type: "error",
-          title: t("toast.importWithErrors", { count: errors.length }),
-          detail: t("toast.importSummary", { inserted, updated, skipped }),
-        });
-      } else {
-        showToast({
-          type: "success",
-          title: t("toast.importCompleted"),
-          detail: t("toast.importSummary", { inserted, updated, skipped }),
-        });
-      }
+      showToast({
+        type: errors.length > 0 ? "error" : "success",
+        title: errors.length > 0 ? t("toast.importCompletedWithNotes") : t("toast.importCompleted"),
+        detail: buildImportDetail(t, inserted, updated, skipped),
+      });
       await load();
     } catch (error: any) {
       showToast({
@@ -338,7 +334,7 @@ export default function Graduates() {
               ✕
             </button>
           </div>
-          {Array.isArray(importReport?.errors) && importReport.errors.length > 0 ? (
+          {importReport?.summary ? (
             <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <button className="btn" type="button" onClick={() => setShowImportDetails((current) => !current)}>
@@ -346,24 +342,38 @@ export default function Graduates() {
                 </button>
               </div>
               {showImportDetails ? (
-                <div style={{ maxHeight: 240, overflowY: "auto", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 10, padding: 10, background: "rgba(248,250,252,.9)", display: "grid", gap: 8 }}>
-                  {importReport.errors.map((error, index) => {
-                    const detailList = Array.isArray(error?.details) ? error.details.filter(Boolean) : [];
-                    const rowLabel = Number(error?.row);
-                    return (
-                      <div key={`${error?.row ?? "x"}-${index}`} style={{ borderBottom: index === importReport.errors.length - 1 ? "none" : "1px solid rgba(0,0,0,0.06)", paddingBottom: 8 }}>
-                        <div style={{ fontWeight: 600 }}>
-                          {t("toast.rowLabel", { row: Number.isFinite(rowLabel) ? rowLabel : "-" })}
-                        </div>
-                        <div style={{ fontSize: 13, marginTop: 4 }}>{String(error?.message ?? "")}</div>
-                        {detailList.length ? (
-                          <div style={{ fontSize: 12, opacity: 0.84, marginTop: 6, display: "grid", gap: 4 }}>
-                            {detailList.map((detail, detailIndex) => <div key={detailIndex}>{String(detail)}</div>)}
+                <div style={{ maxHeight: 260, overflowY: "auto", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 10, padding: 10, background: "rgba(248,250,252,.9)", display: "grid", gap: 10 }}>
+                  <div style={{ display: "grid", gap: 6, fontSize: 13 }}>
+                    <div>{t("toast.detailsInserted", { inserted: Number(importReport.summary.inserted ?? 0) })}</div>
+                    <div>{t("toast.detailsUpdated", { updated: Number(importReport.summary.updated ?? 0) })}</div>
+                    <div>{t("toast.detailsSkipped", { skipped: Number(importReport.summary.skipped ?? 0) })}</div>
+                    {Array.isArray(importReport.errors) && importReport.errors.length > 0 ? (
+                      <div style={{ marginTop: 2, opacity: 0.9 }}>{t("toast.detailsIssues", { count: importReport.errors.length })}</div>
+                    ) : (
+                      <div style={{ marginTop: 2, opacity: 0.9 }}>{t("toast.detailsNoIssues")}</div>
+                    )}
+                  </div>
+                  {Array.isArray(importReport.errors) && importReport.errors.length > 0 ? (
+                    <div style={{ borderTop: "1px solid rgba(0,0,0,0.06)", paddingTop: 10, display: "grid", gap: 8 }}>
+                      {importReport.errors.map((error, index) => {
+                        const detailList = Array.isArray(error?.details) ? error.details.filter(Boolean) : [];
+                        const rowLabel = Number(error?.row);
+                        return (
+                          <div key={`${error?.row ?? "x"}-${index}`} style={{ borderBottom: index === importReport.errors.length - 1 ? "none" : "1px solid rgba(0,0,0,0.06)", paddingBottom: 8 }}>
+                            <div style={{ fontWeight: 600 }}>
+                              {t("toast.rowLabel", { row: Number.isFinite(rowLabel) ? rowLabel : "-" })}
+                            </div>
+                            <div style={{ fontSize: 13, marginTop: 4 }}>{String(error?.message ?? "")}</div>
+                            {detailList.length ? (
+                              <div style={{ fontSize: 12, opacity: 0.84, marginTop: 6, display: "grid", gap: 4 }}>
+                                {detailList.map((detail, detailIndex) => <div key={detailIndex}>{String(detail)}</div>)}
+                              </div>
+                            ) : null}
                           </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>

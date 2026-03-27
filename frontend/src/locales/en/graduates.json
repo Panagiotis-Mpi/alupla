@@ -68,10 +68,16 @@
   },
   "toast": {
     "importCompleted": "Import completed",
-    "importWithErrors": "Import completed with {{count}} errors",
-    "importFailed": "Import failed",
+        "importFailed": "Import failed",
     "somethingWentWrong": "Something went wrong",
+    "importCompletedWithNotes": "Import completed with notes",
     "importSummary": "Inserted: {{inserted}}, updated: {{updated}}, skipped: {{skipped}}",
+    "importSummaryHuman": "Added {{inserted}} new records, updated {{updated}} existing ones and skipped {{skipped}}.",
+    "detailsInserted": "New records inserted: {{inserted}}.",
+    "detailsUpdated": "Records updated: {{updated}}.",
+    "detailsSkipped": "Records skipped: {{skipped}}.",
+    "detailsIssues": "There were {{count}} rows that need attention.",
+    "detailsNoIssues": "No issues were found in any row.",
     "more": "More details",
     "less": "Less",
     "rowLabel": "Row {{row}}"
