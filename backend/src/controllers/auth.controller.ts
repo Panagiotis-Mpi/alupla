@@ -67,6 +67,27 @@ async function deliverVerificationEmail(user: User, verificationToken: string) {
   });
 }
 
+async function refreshVerificationToken(user: User) {
+  const previousToken = user.email_verification_token;
+  const previousExpires = user.email_verification_expires;
+  const verificationToken = createHexToken();
+  const verificationExpires = addMinutes(EMAIL_VERIFICATION_MINUTES);
+
+  user.email_verification_token = verificationToken;
+  user.email_verification_expires = verificationExpires;
+  await user.save();
+
+  try {
+    await deliverVerificationEmail(user, verificationToken);
+    return { verificationToken, verificationExpires, verificationSent: true };
+  } catch (error) {
+    user.email_verification_token = previousToken;
+    user.email_verification_expires = previousExpires;
+    await user.save();
+    return { verificationToken: previousToken, verificationExpires: previousExpires, verificationSent: false, error };
+  }
+}
+
 export async function register(req: Request, res: Response) {
   const { first_name, last_name, email, password } = req.body ?? {};
 
@@ -107,7 +128,7 @@ export async function register(req: Request, res: Response) {
     await deliverVerificationEmail(user, verificationToken);
   } catch (error) {
     verificationSent = false;
-    console.error("Verification email send failed during register:", error);
+    console.error("register verification email failed", error);
   }
 
   await logAction({ user_id: user.id, action: "register", entity_type: "user", entity_id: user.id });
@@ -272,20 +293,10 @@ export async function resendVerification(req: Request, res: Response) {
     return res.json({ ok: true, already_verified: true });
   }
 
-  const verificationToken = createHexToken();
-  const verificationExpires = addMinutes(EMAIL_VERIFICATION_MINUTES);
+  const { verificationExpires, verificationSent, error } = await refreshVerificationToken(user);
 
-  user.email_verification_token = verificationToken;
-  user.email_verification_expires = verificationExpires;
-  await user.save();
-
-  let verificationSent = true;
-
-  try {
-    await deliverVerificationEmail(user, verificationToken);
-  } catch (error) {
-    verificationSent = false;
-    console.error("Verification email resend failed:", error);
+  if (!verificationSent && error) {
+    console.error("resend verification email failed", error);
   }
 
   await logAction({ user_id: user.id, action: "resend_verify_email", entity_type: "user", entity_id: user.id });
