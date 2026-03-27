@@ -68,7 +68,12 @@
   },
   "toast": {
     "importCompleted": "Η εισαγωγή ολοκληρώθηκε",
-        "importFailed": "Η εισαγωγή απέτυχε",
+    "importCompletedInserted": "Η εισαγωγή ολοκληρώθηκε. Προστέθηκαν {{inserted}} νέες εγγραφές",
+    "importCompletedUpdated": "Η εισαγωγή ολοκληρώθηκε. Ενημερώθηκαν {{updated}} εγγραφές",
+    "importCompletedSkipped": "Η εισαγωγή ολοκληρώθηκε. Παραλείφθηκαν {{skipped}} εγγραφές",
+    "importCompletedMixed": "Η εισαγωγή ολοκληρώθηκε με νέες εγγραφές και ενημερώσεις",
+    "importFailed": "Η εισαγωγή απέτυχε",
+    "importFailedReason": "Η εισαγωγή απέτυχε γιατί: {{reason}}",
     "somethingWentWrong": "Κάτι πήγε στραβά",
     "importCompletedWithNotes": "Η εισαγωγή ολοκληρώθηκε με παρατηρήσεις",
     "importSummary": "Εισήχθησαν: {{inserted}}, ενημερώθηκαν: {{updated}}, παραλείφθηκαν: {{skipped}}",

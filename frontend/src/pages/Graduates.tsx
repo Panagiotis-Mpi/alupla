@@ -46,6 +46,22 @@ function buildImportDetail(t: (key: string, options?: Record<string, unknown>) =
   return t("toast.importSummaryHuman", { inserted, updated, skipped });
 }
 
+function buildImportTitle(t: (key: string, options?: Record<string, unknown>) => string, inserted: number, updated: number, skipped: number) {
+  if (inserted > 0 && updated > 0) {
+    return t("toast.importCompletedMixed");
+  }
+  if (inserted > 0) {
+    return t("toast.importCompletedInserted", { inserted });
+  }
+  if (updated > 0) {
+    return t("toast.importCompletedUpdated", { updated });
+  }
+  if (skipped > 0) {
+    return t("toast.importCompletedSkipped", { skipped });
+  }
+  return t("toast.importCompleted");
+}
+
 
 export default function Graduates() {
   const { t, i18n } = useTranslation("graduates");
@@ -109,9 +125,6 @@ export default function Graduates() {
   function showToast(nextToast: ToastState) {
     setToast(nextToast);
     setShowImportDetails(false);
-    window.setTimeout(() => {
-      setToast((current) => (current === nextToast ? null : current));
-    }, 6000);
   }
 
   async function load() {
@@ -234,18 +247,21 @@ export default function Graduates() {
       const inserted = Number(report?.summary?.inserted ?? 0);
       const updated = Number(report?.summary?.updated ?? 0);
       const skipped = Number(report?.summary?.skipped ?? 0);
-      const errors = Array.isArray(report?.errors) ? report.errors : [];
+      const changesCount = inserted + updated;
       showToast({
-        type: errors.length > 0 ? "error" : "success",
-        title: errors.length > 0 ? t("toast.importCompletedWithNotes") : t("toast.importCompleted"),
+        type: "success",
+        title: buildImportTitle(t, inserted, updated, skipped),
         detail: buildImportDetail(t, inserted, updated, skipped),
       });
-      await load();
+      if (changesCount > 0 || skipped > 0) {
+        await load();
+      }
     } catch (error: any) {
+      const reason = error?.message ?? t("toast.somethingWentWrong");
       showToast({
         type: "error",
         title: t("toast.importFailed"),
-        detail: error?.message ?? t("toast.somethingWentWrong"),
+        detail: t("toast.importFailedReason", { reason }),
       });
     } finally {
       setImportBusy(false);

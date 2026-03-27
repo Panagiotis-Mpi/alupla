@@ -68,7 +68,12 @@
   },
   "toast": {
     "importCompleted": "Import completed",
-        "importFailed": "Import failed",
+    "importCompletedInserted": "Import completed. Added {{inserted}} new records",
+    "importCompletedUpdated": "Import completed. Updated {{updated}} records",
+    "importCompletedSkipped": "Import completed. Skipped {{skipped}} records",
+    "importCompletedMixed": "Import completed with new records and updates",
+    "importFailed": "Import failed",
+    "importFailedReason": "Import failed because: {{reason}}",
     "somethingWentWrong": "Something went wrong",
     "importCompletedWithNotes": "Import completed with notes",
     "importSummary": "Inserted: {{inserted}}, updated: {{updated}}, skipped: {{skipped}}",
