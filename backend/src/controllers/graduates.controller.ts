@@ -305,18 +305,18 @@ function parseIds(idsRaw: unknown): number[] {
 
 function csvEscape(value: unknown) {
   const text = String(value ?? "");
-  if (!/[";\n\r]/.test(text)) return text;
+  if (!/[",\n]/.test(text)) return text;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
 function buildCsvText(rows: Array<Record<string, unknown>>) {
-  if (!rows.length) return "sep=;\r\n";
+  if (!rows.length) return "";
   const headers = Object.keys(rows[0]);
-  const lines = [headers.map(csvEscape).join(";")];
+  const lines = [headers.map(csvEscape).join(",")];
   for (const row of rows) {
-    lines.push(headers.map((header) => csvEscape(row[header])).join(";"));
+    lines.push(headers.map((header) => csvEscape(row[header])).join(","));
   }
-  return `sep=;\r\n${lines.join("\r\n")}`;
+  return lines.join("\n");
 }
 
 function formatGenderValue(value: unknown) {
@@ -578,10 +578,11 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
 
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     if (format === "csv") {
-      const csv = buildCsvText(data);
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      const csv = buildCsvText(data, ";");
+      const payload = encodeCsvForExcel(csv);
+      res.setHeader("Content-Type", "text/csv; charset=utf-16le");
       res.setHeader("Content-Disposition", `attachment; filename="graduates-${ts}.csv"`);
-      return res.send(`﻿${csv}`);
+      return res.send(payload);
     }
 
 
@@ -607,8 +608,7 @@ export async function exportGraduatesImportTemplate(req: Request, res: Response,
     const headers = getTemplateHeaders(lang);
 
     if (format === "csv") {
-      const csvLines = headers.map((row) => row.map(csvEscape).join(";"));
-      const csv = `sep=;\r\n${csvLines.join("\r\n")}`;
+      const csv = headers.map((row) => row.map(csvEscape).join(",")).join("\n");
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", 'attachment; filename="graduates-import-template.csv"');
       return res.send(`﻿${csv}`);
