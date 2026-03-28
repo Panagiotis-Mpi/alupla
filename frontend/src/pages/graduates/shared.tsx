@@ -10,7 +10,7 @@ export type SortKey =
   | "father_name"
   | "gender"
   | "entry_year"
-  | "birth_year"
+  | "birth_date"
   | "degree_grade"
   | "graduation_date"
   | "oath_date"
@@ -28,8 +28,8 @@ export type GraduatesFiltersState = {
   gender: string;
   entry_year_min: string;
   entry_year_max: string;
-  birth_year_min: string;
-  birth_year_max: string;
+  birth_date_from: string;
+  birth_date_to: string;
   degree_grade_min: string;
   degree_grade_max: string;
   graduation_date_from: string;
@@ -51,8 +51,8 @@ export const EMPTY_GRADUATES_FILTERS: GraduatesFiltersState = {
   gender: "",
   entry_year_min: "",
   entry_year_max: "",
-  birth_year_min: "",
-  birth_year_max: "",
+  birth_date_from: "",
+  birth_date_to: "",
   degree_grade_min: "",
   degree_grade_max: "",
   graduation_date_from: "",
@@ -162,8 +162,8 @@ export function getGraduateSortValue(args: {
   renderGender: (value: unknown) => string;
 }) {
   const { graduate, key, programNameById, directionNameById, regionNameById, renderGender } = args;
-  if (key === "birth_year") {
-    return String(graduate.birth_date ?? "").slice(0, 4);
+  if (key === "birth_date") {
+    return graduate.birth_date ?? "";
   }
   if (key === "study_program") {
     return programNameById.get(Number(graduate.study_program_id)) ?? "";
@@ -197,8 +197,8 @@ export function filterAndSortGraduates(args: {
     const aValue = getGraduateSortValue({ graduate: a, key: sortState.key, programNameById, directionNameById, regionNameById, renderGender });
     const bValue = getGraduateSortValue({ graduate: b, key: sortState.key, programNameById, directionNameById, regionNameById, renderGender });
     const directionFactor = sortState.dir === "asc" ? 1 : -1;
-    const isDateKey = sortState.key === "graduation_date" || sortState.key === "oath_date";
-    const isNumericKey = sortState.key === "entry_year" || sortState.key === "birth_year" || sortState.key === "degree_grade";
+    const isDateKey = sortState.key === "birth_date" || sortState.key === "graduation_date" || sortState.key === "oath_date";
+    const isNumericKey = sortState.key === "entry_year" || sortState.key === "degree_grade";
 
     if (isDateKey) {
       const aNumber = Date.parse(String(aValue || ""));
@@ -231,7 +231,7 @@ export function filterAndSortGraduates(args: {
       graduate.father_name,
       renderGender(graduate.gender),
       graduate.entry_year,
-      String(graduate.birth_date ?? "").slice(0, 4),
+      graduate.birth_date,
       graduate.degree_grade,
       graduate.graduation_date,
       graduate.oath_date,
@@ -293,12 +293,16 @@ export function GraduatesFilters(props: {
         onToChange={(value) => setFilters((current) => ({ ...current, entry_year_max: value }))}
         type="number"
       />
-      <Field label={t("table.birthYear")}>
-        <input className="input" type="number" value={filters.birth_year_min || filters.birth_year_max} onChange={(e) => {
-          const value = e.target.value;
-          setFilters((current) => ({ ...current, birth_year_min: value, birth_year_max: value }));
-        }} />
-      </Field>
+      <RangeField
+        label={t("table.birthDate")}
+        fromLabel={t("filters.from")}
+        toLabel={t("filters.to")}
+        fromValue={filters.birth_date_from}
+        toValue={filters.birth_date_to}
+        onFromChange={(value) => setFilters((current) => ({ ...current, birth_date_from: value }))}
+        onToChange={(value) => setFilters((current) => ({ ...current, birth_date_to: value }))}
+        type="date"
+      />
       <Field label={t("table.degreeGrade")}>
         <input className="input" type="number" step="0.01" value={filters.degree_grade_min || filters.degree_grade_max} onChange={(e) => {
           const value = e.target.value;

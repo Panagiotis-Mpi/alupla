@@ -36,7 +36,7 @@ function getColumnLabels(lang: ExportLang) {
       father_name: "Father name",
       gender: "Gender",
       entry_year: "Entry year",
-      birth_year: "Birth year",
+      birth_date: "Birth date",
       degree_grade: "Degree grade",
       graduation_date: "Graduation date",
       oath_date: "Oath date",
@@ -55,7 +55,7 @@ function getColumnLabels(lang: ExportLang) {
     father_name: "Πατρώνυμο",
     gender: "Φύλο",
     entry_year: "Έτος εισαγωγής",
-    birth_year: "Έτος γέννησης",
+    birth_date: "Ημερομηνία γέννησης",
     degree_grade: "Βαθμός πτυχίου",
     graduation_date: "Ημ. αποφοίτησης",
     oath_date: "Ημ. ορκωμοσίας",
@@ -77,8 +77,7 @@ const IMPORT_HEADER_ALIASES = {
   graduation_date: ["graduation_date","ημ_αποφοιτησης","ημ._αποφοίτησης","graduation","ημ. αποφοίτησης","graduation date","Ημ. αποφοίτησης"],
   oath_date: ["oath_date","ημ_ορκωμοσιας","ημ._ορκωμοσίας","oath","ημ. ορκωμοσίας","oath date","Ημ. ορκωμοσίας"],
   degree_grade: ["degree_grade","βαθμος","βαθμός","grade","βαθμός πτυχίου","degree grade"],
-  birth_year: ["birth_year","ετος_γεννησης","έτος_γεννησης","year_of_birth","yob","έτος γέννησης","birth year"],
-  birth_date: ["birth_date","ημερομηνια_γεννησης","ημερομηνία_γέννησης","ημ_γεννησης","ημ._γέννησης","birthdate","dob","birth date"],
+  birth_date: ["birth_date","ημερομηνια_γεννησης","ημερομηνία_γέννησης","ημ_γεννησης","ημ._γέννησης","ημερομηνια γεννησης","ημερομηνία γέννησης","birthdate","dob","birth date"],
   study_program: ["study_program","study_program_id","study_prog","program_id","προγραμμα","πρόγραμμα","program","πρόγραμμα σπουδών","study program"],
   study_program_id: ["study_program_id","study_prog","program_id","προγραμμα","πρόγραμμα","program"],
   program_direction: ["program_direction","program_direction_id","program_dir","direction_id","κατευθυνση","κατεύθυνση","direction"],
@@ -351,7 +350,7 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
       [labels.father_name]: item.father_name ?? "",
       [labels.gender]: formatGenderValue(item.gender),
       [labels.entry_year]: item.entry_year ?? "",
-      [labels.birth_year]: String(item.birth_date ?? "").slice(0, 4),
+      [labels.birth_date]: item.birth_date ?? "",
       [labels.degree_grade]: item.degree_grade ?? "",
       [labels.graduation_date]: item.graduation_date ?? "",
       [labels.oath_date]: item.oath_date ?? "",
@@ -361,6 +360,30 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
       [labels.origin_municipality]: item.origin_municipality ?? ""
     };
   });
+}
+
+function buildWorksheetColumns(rows: Array<Record<string, unknown>> | Array<Array<unknown>>) {
+  if (!rows.length) return [];
+
+  const asArrays = Array.isArray(rows[0])
+    ? rows as Array<Array<unknown>>
+    : [Object.keys(rows[0] as Record<string, unknown>), ...(rows as Array<Record<string, unknown>>).map((row) => Object.values(row))];
+
+  const widths: number[] = [];
+
+  for (const row of asArrays) {
+    row.forEach((value, index) => {
+      const length = String(value ?? "").trim().length;
+      const current = widths[index] ?? 0;
+      widths[index] = Math.max(current, Math.min(Math.max(length + 2, 12), 40));
+    });
+  }
+
+  return widths.map((wch) => ({ wch }));
+}
+
+function applyWorksheetColumns(ws: XLSX.WorkSheet, rows: Array<Record<string, unknown>> | Array<Array<unknown>>) {
+  ws["!cols"] = buildWorksheetColumns(rows);
 }
 
 function getTemplateHeaders(lang: ExportLang) {
@@ -373,7 +396,7 @@ function getTemplateHeaders(lang: ExportLang) {
     labels.father_name,
     labels.gender,
     labels.entry_year,
-    labels.birth_year,
+    labels.birth_date,
     labels.degree_grade,
     labels.graduation_date,
     labels.oath_date,
@@ -564,6 +587,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
 
 
     const ws = XLSX.utils.json_to_sheet(data);
+    applyWorksheetColumns(ws, data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "graduates");
     const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
@@ -590,6 +614,7 @@ export async function exportGraduatesImportTemplate(req: Request, res: Response,
     }
 
     const ws = XLSX.utils.aoa_to_sheet(headers);
+    applyWorksheetColumns(ws, headers);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "graduates_import_template");
     const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
@@ -635,7 +660,6 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       oath_date: firstIndex(headers, [...IMPORT_HEADER_ALIASES.oath_date]),
       degree_grade: firstIndex(headers, [...IMPORT_HEADER_ALIASES.degree_grade]),
       
-      birth_year: firstIndex(headers, [...IMPORT_HEADER_ALIASES.birth_year]),
       birth_date: firstIndex(headers, [...IMPORT_HEADER_ALIASES.birth_date]),
       study_program: firstIndex(headers, [...IMPORT_HEADER_ALIASES.study_program]),
       study_program_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.study_program_id]),
@@ -681,9 +705,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const graduation_date = toDateOnly(get("graduation_date"));
       const oath_date = toDateOnly(get("oath_date"));
       const degree_grade = toNumber(get("degree_grade"));
-      const birth_year_raw = idx.birth_year >= 0 ? toInt(get("birth_year" as any)) : null;
-      const birth_date_raw = idx.birth_date >= 0 ? toDateOnly(get("birth_date" as any)) : null;
-      const birth_date = birth_date_raw || (birth_year_raw ? `${birth_year_raw}-01-01` : null);
+      const birth_date = idx.birth_date >= 0 ? toDateOnly(get("birth_date" as any)) : null;
       const study_program_source = idx.study_program >= 0 ? get("study_program") : get("study_program_id");
       const study_program_id = resolveStudyProgramId(study_program_source, programsById);
       const program_direction_source = idx.program_direction >= 0 ? get("program_direction") : get("program_direction_id");
@@ -704,7 +726,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       if (!graduation_date) rowProblems.push({ row: rowNum, column: "graduation_date", message: "Invalid date", value: get("graduation_date") });
       if (!oath_date) rowProblems.push({ row: rowNum, column: "oath_date", message: "Invalid date", value: get("oath_date") });
       if (degree_grade === null) rowProblems.push({ row: rowNum, column: "degree_grade", message: "Invalid number", value: get("degree_grade") });
-      if (!birth_date) rowProblems.push({ row: rowNum, column: "birth_date", message: "Invalid date", value: idx.birth_date >= 0 ? get("birth_date" as any) : get("birth_year" as any) });
+      if (!birth_date) rowProblems.push({ row: rowNum, column: "birth_date", message: "Invalid date", value: get("birth_date" as any) });
       if (!study_program_id) rowProblems.push({ row: rowNum, column: "study_program", message: "Invalid value", value: study_program_source });
       if (!origin_region_id && String(origin_region_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_region", message: "Invalid value", value: origin_region_source });
 
