@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { createUser, deactivateUser, listUsers, updateUser, type AdminUser } from "../lib/api";
 
 type SortDir = "asc" | "desc";
-type SortKey = "id" | "email" | "name" | "role" | "is_online";
+type SortKey = "id" | "email" | "name" | "role" | "is_online" | "email_verified" | "admin_approved";
 
 type UserFormState = {
   first_name: string;
@@ -18,12 +18,13 @@ const emptyForm: UserFormState = {
   last_name: "",
   email: "",
   role: "secretariat",
-  password: ""
+  password: "",
 };
 
 const clickableHeaderStyle: React.CSSProperties = { cursor: "pointer" };
 const inlineSelectStyle: React.CSSProperties = { padding: 6 };
 const monospaceBadgeStyle: React.CSSProperties = { fontFamily: "monospace" };
+const wrappedRowActionsStyle: React.CSSProperties = { flexWrap: "wrap", gap: 8 };
 const passwordFieldStyle: React.CSSProperties = { gridColumn: "span 2" };
 const passwordHintStyle: React.CSSProperties = { whiteSpace: "pre-line" };
 const topSpacingStyle: React.CSSProperties = { marginTop: 12 };
@@ -44,6 +45,7 @@ export default function Users() {
   const [items, setItems] = React.useState<AdminUser[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
+  const [pendingRejectId, setPendingRejectId] = React.useState<number | null>(null);
   const inFlight = React.useRef(false);
   const [sortState, setSortState] = React.useState<{ key: SortKey; dir: SortDir }>({ key: "id", dir: "asc" });
   const [form, setForm] = React.useState<UserFormState>(emptyForm);
@@ -92,6 +94,17 @@ export default function Users() {
 
   async function onRoleChange(userId: number, role: AdminUser["role"]) {
     await updateUser(userId, { role });
+    await load();
+  }
+
+  async function onApprove(userId: number) {
+    await updateUser(userId, { admin_approved: true });
+    await load();
+  }
+
+  async function onReject(userId: number) {
+    await deactivateUser(userId);
+    setPendingRejectId(null);
     await load();
   }
 
@@ -186,6 +199,8 @@ export default function Users() {
                 <th style={clickableHeaderStyle} onClick={() => toggleSort("name")}>{t("table.name")}{getSortArrow("name")}</th>
                 <th style={clickableHeaderStyle} onClick={() => toggleSort("role")}>{t("table.role")}{getSortArrow("role")}</th>
                 <th style={clickableHeaderStyle} onClick={() => toggleSort("is_online")}>{t("table.online")}{getSortArrow("is_online")}</th>
+                <th style={clickableHeaderStyle} onClick={() => toggleSort("email_verified")}>{t("table.verified")}{getSortArrow("email_verified")}</th>
+                <th style={clickableHeaderStyle} onClick={() => toggleSort("admin_approved")}>{t("table.approved")}{getSortArrow("admin_approved")}</th>
                 <th>{t("table.deactivate")}</th>
               </tr>
             </thead>
@@ -214,6 +229,43 @@ export default function Users() {
                     </span>
                   </td>
                   <td>
+                    <span>{user.email_verified ? t("status.yes") : t("status.no")}</span>
+                  </td>
+                  <td>
+                    {user.admin_approved ? (
+                      <span>{t("status.yes")}</span>
+                    ) : pendingRejectId === user.id ? (
+                      <div className="row-actions" style={wrappedRowActionsStyle}>
+                        <span className="muted">{t("confirm.rejectPrompt")}</span>
+                        <button
+                          className="btn"
+                          onClick={async () => {
+                            await onReject(user.id);
+                          }}
+                        >
+                          {t("status.yes")}
+                        </button>
+                        <button className="btn primary" onClick={() => setPendingRejectId(null)}>
+                          {t("status.no")}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="row-actions">
+                        <button
+                          className="btn primary"
+                          onClick={async () => {
+                            await onApprove(user.id);
+                          }}
+                        >
+                          {t("status.yes")}
+                        </button>
+                        <button className="btn" onClick={() => setPendingRejectId(user.id)}>
+                          {t("status.no")}
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                  <td>
                     <button
                       className="btn danger"
                       onClick={async () => {
@@ -227,7 +279,7 @@ export default function Users() {
               ))}
               {!items.length && (
                 <tr>
-                  <td colSpan={6} className="muted">
+                  <td colSpan={8} className="muted">
                     {t("table.none")}
                   </td>
                 </tr>

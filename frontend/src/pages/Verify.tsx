@@ -17,26 +17,27 @@ export default function Verify() {
   const { t } = useTranslation("auth");
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") || "";
-  const emailFromQuery = searchParams.get("email") || "";
-  const [status, setStatus] = React.useState<"idle" | "ok" | "err">(token ? "idle" : "err");
-  const [message, setMessage] = React.useState(token ? "" : t("verify.awaitingLink"));
-  const [email, setEmail] = React.useState(emailFromQuery);
+  const [status, setStatus] = React.useState<"idle" | "ok" | "err">("idle");
+  const [message, setMessage] = React.useState("");
+  const [email, setEmail] = React.useState("");
   const [resending, setResending] = React.useState(false);
   const [resendError, setResendError] = React.useState<string | null>(null);
   const [resendInfo, setResendInfo] = React.useState<string | null>(null);
+  const [replacementToken, setReplacementToken] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (!token) {
-      setStatus("err");
-      setMessage(t("verify.awaitingLink"));
-      return;
-    }
-
     let active = true;
 
     async function runVerification() {
+      setReplacementToken(null);
       setResendError(null);
       setResendInfo(null);
+
+      if (!token) {
+        setStatus("err");
+        setMessage(t("verify.missingToken"));
+        return;
+      }
 
       try {
         await verifyEmail(token);
@@ -64,6 +65,7 @@ export default function Verify() {
   async function handleResend() {
     setResendError(null);
     setResendInfo(null);
+    setReplacementToken(null);
 
     const value = email.trim();
     if (!value) {
@@ -76,10 +78,11 @@ export default function Verify() {
       const result = await resendVerification(value);
       if (result?.already_verified) {
         setResendInfo(t("verify.alreadyVerified"));
-      } else if (result?.verification_sent === false) {
-        setResendInfo(t("verify.pendingInfo", { email: value }));
+      } else if (result?.verification_token) {
+        setReplacementToken(String(result.verification_token));
+        setResendInfo(t("verify.newTokenInfo"));
       } else {
-        setResendInfo(t("verify.sentInfo", { email: value }));
+        setResendInfo(t("verify.sentInfo"));
       }
     } catch (err) {
       setResendError(readErrorMessage(err, t("verify.resendFailed")));
@@ -119,6 +122,21 @@ export default function Verify() {
 
             {resendError && <div className="error auth-stack-gap">{resendError}</div>}
             {resendInfo && <div className="auth-note auth-stack-gap">{resendInfo}</div>}
+
+            {replacementToken && (
+              <div className="card auth-subcard auth-subcard-white auth-stack-gap">
+                <div className="auth-note auth-note-spaced">{t("verify.newTokenLabel")}</div>
+                <code className="auth-code">{replacementToken}</code>
+                <div className="auth-action-row auth-stack-gap">
+                  <a className="btn primary" href={`/verify?token=${encodeURIComponent(replacementToken)}`}>
+                    {t("verify.verifyNow")}
+                  </a>
+                  <Link className="btn" to="/login">
+                    {t("reset.login")}
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

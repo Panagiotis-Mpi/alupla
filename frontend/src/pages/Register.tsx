@@ -10,7 +10,7 @@ const pageStyle: React.CSSProperties = {
   justifyContent: "center",
   padding: "1.2rem 1.5rem",
   paddingBottom: "4rem",
-  background: "linear-gradient(180deg, #eef4ff 0%, #ffffff 65%)"
+  background: "linear-gradient(180deg, #eef4ff 0%, #ffffff 65%)",
 };
 
 const cardStyle: React.CSSProperties = {
@@ -20,14 +20,14 @@ const cardStyle: React.CSSProperties = {
   borderRadius: 18,
   border: "1px solid #e5edff",
   boxShadow: "0 10px 30px rgba(59,130,246,0.08)",
-  padding: "2.2rem 2.4rem"
+  padding: "2.2rem 2.4rem",
 };
 
 const labelStyle: React.CSSProperties = { display: "grid", gap: 8 };
 const labelTextStyle: React.CSSProperties = {
   fontSize: 13,
   fontWeight: 700,
-  color: "#334155"
+  color: "#334155",
 };
 const inputStyle: React.CSSProperties = {
   height: 44,
@@ -35,7 +35,7 @@ const inputStyle: React.CSSProperties = {
   border: "1px solid #dbeafe",
   background: "#ffffff",
   padding: "0 12px",
-  outline: "none"
+  outline: "none",
 };
 const linksRowStyle: React.CSSProperties = {
   display: "flex",
@@ -44,14 +44,8 @@ const linksRowStyle: React.CSSProperties = {
   color: "#1e3a8a",
   alignItems: "center",
   flexWrap: "wrap",
-  marginTop: 4
+  marginTop: 4,
 };
-
-function isValidEmail(value: string) {
-  const email = value.trim().toLowerCase();
-  if (!email || email.length > 254 || email.includes("..")) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
 export default function Register() {
   const { t } = useTranslation("auth");
@@ -62,26 +56,18 @@ export default function Register() {
   const [pw, setPw] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
-  const [ok, setOk] = React.useState<string | null>(null);
+  const [token, setToken] = React.useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
-    setOk(null);
-
-    const normalizedEmail = email.trim().toLowerCase();
-    if (!isValidEmail(normalizedEmail)) {
-      setErr(t("register.invalidEmail", "Βάλε έγκυρο email"));
-      return;
-    }
-
     setLoading(true);
+    setToken(null);
     try {
-      await apiRegister(first.trim(), last.trim(), normalizedEmail, pw);
-      setOk(t("register.okRedirect", "Ο λογαριασμός δημιουργήθηκε επιτυχώς. Τώρα θα ανακατευθυνθείς στην αρχική σελίδα για να συνδεθείς."));
-      window.setTimeout(() => {
-        navigate("/login", { replace: true });
-      }, 1800);
+      const res = await apiRegister(first.trim(), last.trim(), email.trim(), pw);
+      if (res?.verification_token) {
+        setToken(String(res.verification_token));
+      }
     } catch (e: any) {
       setErr(e?.message ?? t("register.failed"));
     } finally {
@@ -99,7 +85,7 @@ export default function Register() {
             fontSize: "1.9rem",
             fontWeight: 800,
             color: "#1e3a8a",
-            letterSpacing: "-0.02em"
+            letterSpacing: "-0.02em",
           }}
         >
           {t("register.title")}
@@ -110,24 +96,31 @@ export default function Register() {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: 12
+              gap: 12,
             }}
           >
             <label style={labelStyle}>
               <span style={labelTextStyle}>{t("register.firstName")}</span>
-              <input value={first} onChange={(e) => setFirst(e.target.value)} style={inputStyle} />
+              <input
+                value={first}
+                onChange={(e) => setFirst(e.target.value)}
+                style={inputStyle}
+              />
             </label>
 
             <label style={labelStyle}>
               <span style={labelTextStyle}>{t("register.lastName")}</span>
-              <input value={last} onChange={(e) => setLast(e.target.value)} style={inputStyle} />
+              <input
+                value={last}
+                onChange={(e) => setLast(e.target.value)}
+                style={inputStyle}
+              />
             </label>
           </div>
 
           <label style={labelStyle}>
             <span style={labelTextStyle}>{t("register.email")}</span>
             <input
-              type="email"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -154,24 +147,10 @@ export default function Register() {
                 border: "1px solid rgba(239,68,68,0.25)",
                 background: "rgba(239,68,68,0.06)",
                 padding: "10px 12px",
-                color: "#991b1b"
+                color: "#991b1b",
               }}
             >
               {err}
-            </div>
-          )}
-
-          {ok && (
-            <div
-              style={{
-                borderRadius: 12,
-                border: "1px solid rgba(34,197,94,0.28)",
-                background: "rgba(34,197,94,0.08)",
-                padding: "10px 12px",
-                color: "#166534"
-              }}
-            >
-              {ok}
             </div>
           )}
 
@@ -187,11 +166,52 @@ export default function Register() {
               cursor: loading ? "not-allowed" : "pointer",
               fontWeight: 800,
               fontSize: "1.02rem",
-              boxShadow: "0 10px 22px rgba(37,99,235,0.22)"
+              boxShadow: "0 10px 22px rgba(37,99,235,0.22)",
             }}
           >
             {loading ? t("common.loading") : t("register.button")}
           </button>
+
+          {token && (
+            <div
+              style={{
+                borderRadius: 14,
+                border: "1px solid #e5edff",
+                background: "#f8fbff",
+                padding: "1rem 1rem",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  marginBottom: 6,
+                  opacity: 0.85,
+                  color: "#334155",
+                }}
+              >
+                {t("register.tokenLabel")}
+              </div>
+              <code style={{ wordBreak: "break-all", color: "#0f172a" }}>{token}</code>
+              <div style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/verify?token=${encodeURIComponent(token)}`)}
+                  style={{
+                    height: 40,
+                    padding: "0 14px",
+                    borderRadius: 12,
+                    border: "1px solid #93c5fd",
+                    background: "#f0f6ff",
+                    color: "#1e3a8a",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  {t("register.verifyNow")}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div style={linksRowStyle}>
             <span style={{ color: "#475569" }}>{t("register.haveAccount")}</span>

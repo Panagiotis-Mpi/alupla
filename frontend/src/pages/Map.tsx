@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { GeoJSON, MapContainer, Marker } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import * as XLSX from "xlsx";
 
 import {
   logPublicExport,
@@ -11,9 +10,9 @@ import {
 } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
 import { DetailStatsCard, Field, FilterSection, MapViewportWatcher, RangeField } from "./map/shared";
-import { excelCellValue, exportCsvText, exportElementAsPng, exportWorkbook } from "./map/mapExport";
+import { exportElementAsPng } from "./map/mapExport";
 import { useMapData, useMapLookups, useVisibleCities } from "./map/hooks";
-import { EMPTY_FILTERS, type FiltersState } from "./map/types";
+import { EMPTY_FILTERS, type AgeGroup, type FiltersState } from "./map/types";
 import {
   cityLabelIcon,
   createMapParams,
@@ -27,6 +26,7 @@ import {
   normalizeKey,
   tryParseGeoJson,
 } from "./map/utils";
+import { exportMapCsvFile, exportMapWorkbookFile, mapExportRows, mapFilterRows } from "./map/exportHelpers";
 
 export default function Map() {
   const { t, i18n } = useTranslation();
@@ -162,105 +162,42 @@ export default function Map() {
 
   const visibleCities = useVisibleCities(cityPoints, mapBounds, mapZoom);
 
-  function currentFilterRows() {
-    const regionName = regions.find((item) => String((item as any).id) === filters.origin_region_id)?.name || "";
-    const program = studyPrograms.find((item) => String((item as any).id) === filters.study_program_id);
-    const direction = programDirections.find((item) => String((item as any).id) === filters.program_direction_id);
-    return [
-      [t("graduates.filters.adCode", { defaultValue: "Α.Δ." }), filters.ad_code_like],
-      [t("graduates.filters.studentNumber", { defaultValue: "Α.Μ." }), filters.student_number_like],
-      [t("graduates.filters.lastName", { defaultValue: "Επώνυμο" }), filters.last_name_like],
-      [t("graduates.filters.firstName", { defaultValue: "Όνομα" }), filters.first_name_like],
-      [t("graduates.filters.fatherName", { defaultValue: "Πατρώνυμο" }), filters.father_name_like],
-      [t("graduates.filters.gender", { defaultValue: "Φύλο" }), filters.gender === "M" ? t("common.male", { defaultValue: "Άνδρας" }) : filters.gender === "F" ? t("common.female", { defaultValue: "Γυναίκα" }) : ""],
-      [t("graduates.filters.entryYear", { defaultValue: "Έτος εισαγωγής" }), [filters.entry_year_min, filters.entry_year_max].filter(Boolean).join(" - ")],
-      [t("graduates.filters.birthYear", { defaultValue: "Έτος γέννησης" }), [filters.birth_year_min, filters.birth_year_max].filter(Boolean).join(" - ")],
-      [t("graduates.filters.degreeGrade", { defaultValue: "Βαθμός πτυχίου" }), [filters.degree_grade_min, filters.degree_grade_max].filter(Boolean).join(" - ")],
-      [t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" }), filters.graduation_year],
-      [t("graduates.filters.graduationDate", { defaultValue: "Ημερομηνία αποφοίτησης" }), [filters.graduation_date_from, filters.graduation_date_to].filter(Boolean).join(" - ")],
-      [t("graduates.filters.oathDate", { defaultValue: "Ημερομηνία ορκωμοσίας" }), [filters.oath_date_from, filters.oath_date_to].filter(Boolean).join(" - ")],
-      [t("map.filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" }), program ? (activeLang === "en" ? program.name_en || program.name_el || program.code : program.name_el || program.name_en || program.code) : ""],
-      [t("graduates.filters.direction", { defaultValue: "Κατεύθυνση" }), direction ? (activeLang === "en" ? (direction as any).name_en || (direction as any).name_el || (direction as any).code : (direction as any).name_el || (direction as any).name_en || (direction as any).code) : ""],
-      [t("graduates.filters.region", { defaultValue: "Περιφέρεια" }), regionName],
-      [t("graduates.filters.city", { defaultValue: "Πόλη" }), filters.origin_municipality_like],
-      [t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" }), filters.age_group],
-    ].filter((row) => row[1]);
-  }
+  const filtersRows = useMemo(() => mapFilterRows({
+    t,
+    filters,
+    activeLang,
+    studyPrograms,
+    programDirections,
+    regions,
+  }), [activeLang, filters, programDirections, regions, studyPrograms, t]);
 
-  function exportRows() {
-    return items.map((it: any) => ({
-      [t("map.export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(it.periphery_name ?? ""),
-      [t("map.export.count", { defaultValue: "Απόφοιτοι" })]: excelCellValue(it.count ?? 0),
-      [t("map.export.avgAge", { defaultValue: "Μέση Ηλικία" })]: excelCellValue(it.avg_age ?? ""),
-      [t("map.export.malePct", { defaultValue: "% Άνδρες" })]: excelCellValue(it.male_pct ?? ""),
-      [t("map.export.femalePct", { defaultValue: "% Γυναίκες" })]: excelCellValue(it.female_pct ?? ""),
-    }));
-  }
+  const exportRows = useMemo(() => mapExportRows(items, t), [items, t]);
 
-  async function onExportExcel() {
-    const workbook = XLSX.utils.book_new();
-    const rows = exportRows();
-    const filtersRows = currentFilterRows();
-
-    const mapSheet = XLSX.utils.json_to_sheet(rows);
-    mapSheet["!cols"] = [{ wch: 28 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
-    XLSX.utils.book_append_sheet(workbook, mapSheet, "Map");
-
-    const filtersSheet = XLSX.utils.aoa_to_sheet([
-      [t("graduates.filters.toggle", { defaultValue: "Φίλτρα" }), t("common.value", { defaultValue: "Τιμή" })],
-      ...filtersRows,
-    ]);
-    filtersSheet["!cols"] = [{ wch: 28 }, { wch: 28 }];
-    XLSX.utils.book_append_sheet(workbook, filtersSheet, "Filters");
-
-    exportWorkbook("alupla_map_export.xlsx", workbook);
+  async function onExport(kind: "png" | "xlsx" | "csv") {
+    if (kind === "png") {
+      if (!mapCanvasRef.current) return;
+      await exportElementAsPng(mapCanvasRef.current, "alupla_map_export.png");
+    } else if (kind === "xlsx") {
+      exportMapWorkbookFile(exportRows, filtersRows, t);
+    } else {
+      exportMapCsvFile(exportRows, filtersRows, t);
+    }
 
     try {
-      await logPublicExport("map_export", "xlsx");
+      await logPublicExport("map_export", kind);
     } catch {
     }
   }
 
-  async function onExportCsv() {
-    const rows = exportRows();
-    const filtersRows = currentFilterRows();
-    const headers = Object.keys(rows[0] || {
-      [t("map.export.periphery", { defaultValue: "Περιφέρεια" })]: "",
-      [t("map.export.count", { defaultValue: "Απόφοιτοι" })]: "",
-      [t("map.export.avgAge", { defaultValue: "Μέση Ηλικία" })]: "",
-      [t("map.export.malePct", { defaultValue: "% Άνδρες" })]: "",
-      [t("map.export.femalePct", { defaultValue: "% Γυναίκες" })]: "",
-    });
-    const esc = (value: any) => {
-      const s = String(value ?? "");
-      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-      return s;
-    };
-    const lines = [
-      `${esc(t("graduates.filters.toggle", { defaultValue: "Φίλτρα" }))},${esc(t("common.value", { defaultValue: "Τιμή" }))}`,
-      ...filtersRows.map((row) => `${esc(row[0])},${esc(row[1])}`),
-      "",
-      headers.map(esc).join(","),
-      ...rows.map((row) => headers.map((header) => esc((row as any)[header])).join(",")),
-    ];
-    exportCsvText("alupla_map_export.csv", lines.join("\n"));
-    try {
-      await logPublicExport("map_export", "csv");
-    } catch {
-    }
-  }
 
-  async function onExportPng() {
-    if (!mapCanvasRef.current) return;
-    await exportElementAsPng(mapCanvasRef.current, "alupla_map_export.png");
-    try {
-      await logPublicExport("map_export", "png");
-    } catch {
-    }
-  }
 
 
   const buckets = useMemo(() => legendBuckets(maxCount), [maxCount]);
+  const exportActions = [
+    { key: "png", label: t("map.exportPng", { defaultValue: "Εξαγωγή PNG" }), onClick: () => { setShowExportMenu(false); void onExport("png"); } },
+    { key: "xlsx", label: t("map.exportExcel", { defaultValue: "Εξαγωγή Excel" }), onClick: () => { setShowExportMenu(false); void onExport("xlsx"); } },
+    { key: "csv", label: t("map.exportCsv", { defaultValue: "Εξαγωγή CSV" }), onClick: () => { setShowExportMenu(false); void onExport("csv"); } },
+  ];
   const geoRenderKey = useMemo(() => `${i18n.language}:${items.length}:${maxCount}`, [i18n.language, items.length, maxCount]);
 
   return (
@@ -536,15 +473,7 @@ export default function Map() {
               </button>
               {showExportMenu ? (
                 <div className="map-export-menu">
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>
-                    {t("map.exportPng", { defaultValue: "Export map as PNG" })}
-                  </button>
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>
-                    {t("map.exportExcel", { defaultValue: "Export Excel" })}
-                  </button>
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>
-                    {t("map.exportCsv", { defaultValue: "Export CSV" })}
-                  </button>
+                  {exportActions.map((action) => <button key={action.key} className="map-export-item" type="button" onClick={action.onClick}>{action.label}</button>)}
                 </div>
               ) : null}
             </div>

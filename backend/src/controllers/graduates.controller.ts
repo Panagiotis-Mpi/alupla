@@ -1,5 +1,4 @@
 import type { NextFunction, Request, Response } from "express";
-import { Op } from "sequelize";
 import { Graduate } from "../models/Graduate";
 import { ProgramDirection } from "../models/ProgramDirection";
 import { StudyProgram } from "../models/StudyProgram";
@@ -36,7 +35,7 @@ function getColumnLabels(lang: ExportLang) {
       father_name: "Father name",
       gender: "Gender",
       entry_year: "Entry year",
-      birth_date: "Birth date",
+      birth_year: "Birth year",
       degree_grade: "Degree grade",
       graduation_date: "Graduation date",
       oath_date: "Oath date",
@@ -55,7 +54,7 @@ function getColumnLabels(lang: ExportLang) {
     father_name: "Πατρώνυμο",
     gender: "Φύλο",
     entry_year: "Έτος εισαγωγής",
-    birth_date: "Ημερομηνία γέννησης",
+    birth_year: "Έτος γέννησης",
     degree_grade: "Βαθμός πτυχίου",
     graduation_date: "Ημ. αποφοίτησης",
     oath_date: "Ημ. ορκωμοσίας",
@@ -77,7 +76,8 @@ const IMPORT_HEADER_ALIASES = {
   graduation_date: ["graduation_date","ημ_αποφοιτησης","ημ._αποφοίτησης","graduation","ημ. αποφοίτησης","graduation date","Ημ. αποφοίτησης"],
   oath_date: ["oath_date","ημ_ορκωμοσιας","ημ._ορκωμοσίας","oath","ημ. ορκωμοσίας","oath date","Ημ. ορκωμοσίας"],
   degree_grade: ["degree_grade","βαθμος","βαθμός","grade","βαθμός πτυχίου","degree grade"],
-  birth_date: ["birth_date","ημερομηνια_γεννησης","ημερομηνία_γέννησης","ημ_γεννησης","ημ._γέννησης","ημερομηνια γεννησης","ημερομηνία γέννησης","birthdate","dob","birth date"],
+  birth_year: ["birth_year","ετος_γεννησης","έτος_γεννησης","year_of_birth","yob","έτος γέννησης","birth year"],
+  birth_date: ["birth_date","ημερομηνια_γεννησης","ημερομηνία_γέννησης","ημ_γεννησης","ημ._γέννησης","birthdate","dob","birth date"],
   study_program: ["study_program","study_program_id","study_prog","program_id","προγραμμα","πρόγραμμα","program","πρόγραμμα σπουδών","study program"],
   study_program_id: ["study_program_id","study_prog","program_id","προγραμμα","πρόγραμμα","program"],
   program_direction: ["program_direction","program_direction_id","program_dir","direction_id","κατευθυνση","κατεύθυνση","direction"],
@@ -130,41 +130,6 @@ function toNullableNumber(v: any): number | null {
 }
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function normalizeGraduateUniqueValue(value: unknown) {
-  return String(value ?? "").trim();
-}
-
-async function findGraduateDuplicate(params: { ad_code: string; student_number: string; exclude_id?: number | null }) {
-  const adCode = normalizeGraduateUniqueValue(params.ad_code);
-  const studentNumber = normalizeGraduateUniqueValue(params.student_number);
-
-  const orConditions: any[] = [];
-  if (adCode) orConditions.push({ ad_code: adCode });
-  if (studentNumber) orConditions.push({ student_number: studentNumber });
-  if (!orConditions.length) return null;
-
-  const where: any = { [Op.or]: orConditions };
-  if (params.exclude_id != null) {
-    where.id = { [Op.ne]: params.exclude_id };
-  }
-
-  return await Graduate.findOne({ where, order: [["id", "ASC"]] });
-}
-
-function getGraduateDuplicateMessage(item: { ad_code: string; student_number: string }, duplicate: any) {
-  const sameAd = String(duplicate?.ad_code ?? "").trim() === item.ad_code;
-  const sameStudent = String(duplicate?.student_number ?? "").trim() === item.student_number;
-
-  if (sameAd && sameStudent) {
-    return "Graduate with the same A.D. and A.M. already exists";
-  }
-  if (sameAd) {
-    return "Graduate with the same A.D. already exists";
-  }
-  return "Graduate with the same A.M. already exists";
-}
-
 const MIN_GRADUATE_AGE = 23;
 const MIN_GRADUATION_YEARS = 5;
 
@@ -246,39 +211,6 @@ function requireDateOnly(res: Response, value: string, field: string) {
   return null;
 }
 
-
-function normalizeGraduateCompareValue(value: unknown) {
-  if (value === undefined || value === null) return null;
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed === "" ? null : trimmed;
-  }
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null;
-  }
-  return value;
-}
-
-function isSameGraduatePayload(existing: any, payload: any) {
-  return (
-    normalizeGraduateCompareValue(existing?.student_number) === normalizeGraduateCompareValue(payload.student_number) &&
-    normalizeGraduateCompareValue(existing?.ad_code) === normalizeGraduateCompareValue(payload.ad_code) &&
-    normalizeGraduateCompareValue(existing?.last_name) === normalizeGraduateCompareValue(payload.last_name) &&
-    normalizeGraduateCompareValue(existing?.first_name) === normalizeGraduateCompareValue(payload.first_name) &&
-    normalizeGraduateCompareValue(existing?.father_name) === normalizeGraduateCompareValue(payload.father_name) &&
-    normalizeGraduateCompareValue(existing?.gender) === normalizeGraduateCompareValue(payload.gender) &&
-    normalizeGraduateCompareValue(existing?.entry_year) === normalizeGraduateCompareValue(payload.entry_year) &&
-    normalizeGraduateCompareValue(existing?.graduation_date) === normalizeGraduateCompareValue(payload.graduation_date) &&
-    normalizeGraduateCompareValue(existing?.oath_date) === normalizeGraduateCompareValue(payload.oath_date) &&
-    normalizeGraduateCompareValue(existing?.degree_grade) === normalizeGraduateCompareValue(payload.degree_grade) &&
-    normalizeGraduateCompareValue(existing?.birth_date) === normalizeGraduateCompareValue(payload.birth_date) &&
-    normalizeGraduateCompareValue(existing?.study_program_id) === normalizeGraduateCompareValue(payload.study_program_id) &&
-    normalizeGraduateCompareValue(existing?.program_direction_id) === normalizeGraduateCompareValue(payload.program_direction_id) &&
-    normalizeGraduateCompareValue(existing?.origin_region_id) === normalizeGraduateCompareValue(payload.origin_region_id) &&
-    normalizeGraduateCompareValue(existing?.origin_municipality) === normalizeGraduateCompareValue(payload.origin_municipality)
-  );
-}
-
 function parseStoredGender(value: unknown) {
   const raw = String(value ?? "").trim();
   return raw === "M" || raw === "F" ? raw : null;
@@ -305,25 +237,18 @@ function parseIds(idsRaw: unknown): number[] {
 
 function csvEscape(value: unknown) {
   const text = String(value ?? "");
-  if (!/[";\n\r]/.test(text)) return text;
+  if (!/[",\n]/.test(text)) return text;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
 function buildCsvText(rows: Array<Record<string, unknown>>) {
-  if (!rows.length) return "sep=;\r\n";
+  if (!rows.length) return "";
   const headers = Object.keys(rows[0]);
-  const lines = [headers.map((header) => csvEscape(header)).join(";")];
+  const lines = [headers.map(csvEscape).join(",")];
   for (const row of rows) {
-    lines.push(headers.map((header) => csvEscape(row[header])).join(";"));
+    lines.push(headers.map((header) => csvEscape(row[header])).join(","));
   }
-  return `sep=;\r\n${lines.join("\r\n")}`;
-}
-
-function encodeCsvForExcel(text: string) {
-  const normalized = text.replace(/\r?\n/g, "\r\n");
-  const bom = Buffer.from([0xff, 0xfe]);
-  const body = Buffer.from(normalized, "utf16le");
-  return Buffer.concat([bom, body]);
+  return lines.join("\n");
 }
 
 function formatGenderValue(value: unknown) {
@@ -357,7 +282,7 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
       [labels.father_name]: item.father_name ?? "",
       [labels.gender]: formatGenderValue(item.gender),
       [labels.entry_year]: item.entry_year ?? "",
-      [labels.birth_date]: item.birth_date ?? "",
+      [labels.birth_year]: String(item.birth_date ?? "").slice(0, 4),
       [labels.degree_grade]: item.degree_grade ?? "",
       [labels.graduation_date]: item.graduation_date ?? "",
       [labels.oath_date]: item.oath_date ?? "",
@@ -367,30 +292,6 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
       [labels.origin_municipality]: item.origin_municipality ?? ""
     };
   });
-}
-
-function buildWorksheetColumns(rows: Array<Record<string, unknown>> | Array<Array<unknown>>) {
-  if (!rows.length) return [];
-
-  const asArrays = Array.isArray(rows[0])
-    ? rows as Array<Array<unknown>>
-    : [Object.keys(rows[0] as Record<string, unknown>), ...(rows as Array<Record<string, unknown>>).map((row) => Object.values(row))];
-
-  const widths: number[] = [];
-
-  for (const row of asArrays) {
-    row.forEach((value, index) => {
-      const length = String(value ?? "").trim().length;
-      const current = widths[index] ?? 0;
-      widths[index] = Math.max(current, Math.min(Math.max(length + 2, 12), 40));
-    });
-  }
-
-  return widths.map((wch) => ({ wch }));
-}
-
-function applyWorksheetColumns(ws: XLSX.WorkSheet, rows: Array<Record<string, unknown>> | Array<Array<unknown>>) {
-  ws["!cols"] = buildWorksheetColumns(rows);
 }
 
 function getTemplateHeaders(lang: ExportLang) {
@@ -403,7 +304,7 @@ function getTemplateHeaders(lang: ExportLang) {
     labels.father_name,
     labels.gender,
     labels.entry_year,
-    labels.birth_date,
+    labels.birth_year,
     labels.degree_grade,
     labels.graduation_date,
     labels.oath_date,
@@ -586,15 +487,14 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     if (format === "csv") {
       const csv = buildCsvText(data);
-      res.setHeader("Content-Type", "text/csv; charset=utf-16le");
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", `attachment; filename="graduates-${ts}.csv"`);
-      return res.send(encodeCsvForExcel(csv));
+      return res.send(`﻿${csv}`);
     }
 
 
 
     const ws = XLSX.utils.json_to_sheet(data);
-    applyWorksheetColumns(ws, data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "graduates");
     const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
@@ -614,15 +514,13 @@ export async function exportGraduatesImportTemplate(req: Request, res: Response,
     const headers = getTemplateHeaders(lang);
 
     if (format === "csv") {
-      const csvLines = headers.map((row) => row.map((value) => csvEscape(value)).join(";"));
-      const csv = `sep=;\r\n${csvLines.join("\r\n")}`;
-      res.setHeader("Content-Type", "text/csv; charset=utf-16le");
+      const csv = headers.map((row) => row.map(csvEscape).join(",")).join("\n");
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", 'attachment; filename="graduates-import-template.csv"');
-      return res.send(encodeCsvForExcel(csv));
+      return res.send(`﻿${csv}`);
     }
 
     const ws = XLSX.utils.aoa_to_sheet(headers);
-    applyWorksheetColumns(ws, headers);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "graduates_import_template");
     const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
@@ -668,6 +566,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       oath_date: firstIndex(headers, [...IMPORT_HEADER_ALIASES.oath_date]),
       degree_grade: firstIndex(headers, [...IMPORT_HEADER_ALIASES.degree_grade]),
       
+      birth_year: firstIndex(headers, [...IMPORT_HEADER_ALIASES.birth_year]),
       birth_date: firstIndex(headers, [...IMPORT_HEADER_ALIASES.birth_date]),
       study_program: firstIndex(headers, [...IMPORT_HEADER_ALIASES.study_program]),
       study_program_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.study_program_id]),
@@ -692,8 +591,6 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
     let inserted = 0;
     let updated = 0;
     let skipped = 0;
-    const seenStudentNumbers = new Map<string, number>();
-    const seenAdCodes = new Map<string, number>();
 
     for (let r = 1; r < rows.length; r++) {
       const arr = rows[r];
@@ -713,7 +610,9 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const graduation_date = toDateOnly(get("graduation_date"));
       const oath_date = toDateOnly(get("oath_date"));
       const degree_grade = toNumber(get("degree_grade"));
-      const birth_date = idx.birth_date >= 0 ? toDateOnly(get("birth_date" as any)) : null;
+      const birth_year_raw = idx.birth_year >= 0 ? toInt(get("birth_year" as any)) : null;
+      const birth_date_raw = idx.birth_date >= 0 ? toDateOnly(get("birth_date" as any)) : null;
+      const birth_date = birth_date_raw || (birth_year_raw ? `${birth_year_raw}-01-01` : null);
       const study_program_source = idx.study_program >= 0 ? get("study_program") : get("study_program_id");
       const study_program_id = resolveStudyProgramId(study_program_source, programsById);
       const program_direction_source = idx.program_direction >= 0 ? get("program_direction") : get("program_direction_id");
@@ -734,27 +633,15 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       if (!graduation_date) rowProblems.push({ row: rowNum, column: "graduation_date", message: "Invalid date", value: get("graduation_date") });
       if (!oath_date) rowProblems.push({ row: rowNum, column: "oath_date", message: "Invalid date", value: get("oath_date") });
       if (degree_grade === null) rowProblems.push({ row: rowNum, column: "degree_grade", message: "Invalid number", value: get("degree_grade") });
-      if (!birth_date) rowProblems.push({ row: rowNum, column: "birth_date", message: "Invalid date", value: get("birth_date" as any) });
+      if (!birth_date) rowProblems.push({ row: rowNum, column: "birth_date", message: "Invalid date", value: idx.birth_date >= 0 ? get("birth_date" as any) : get("birth_year" as any) });
       if (!study_program_id) rowProblems.push({ row: rowNum, column: "study_program", message: "Invalid value", value: study_program_source });
       if (!origin_region_id && String(origin_region_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_region", message: "Invalid value", value: origin_region_source });
-
-      if (student_number) {
-        const seenRow = seenStudentNumbers.get(student_number);
-        if (seenRow) rowProblems.push({ row: rowNum, column: "student_number", message: `Duplicate A.M. in import file (first appears at row ${seenRow})`, value: student_number });
-      }
-      if (ad_code) {
-        const seenRow = seenAdCodes.get(ad_code);
-        if (seenRow) rowProblems.push({ row: rowNum, column: "ad_code", message: `Duplicate A.D. in import file (first appears at row ${seenRow})`, value: ad_code });
-      }
 
       if (rowProblems.length) {
         errors.push(...rowProblems);
         skipped++;
         continue;
       }
-
-      seenStudentNumbers.set(student_number, rowNum);
-      seenAdCodes.set(ad_code, rowNum);
 
       const normalizedOrigin = await normalizeOriginLocation({
         origin_region_id: origin_region_id ?? null,
@@ -804,27 +691,8 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         origin_municipality: normalizedOrigin.origin_municipality,
       };
 
-      const existingByStudent = await Graduate.findOne({ where: { student_number } });
-      const existingByAd = await Graduate.findOne({ where: { ad_code } });
-
-      if (existingByStudent && existingByAd && Number((existingByStudent as any).id) !== Number((existingByAd as any).id)) {
-        errors.push({
-          row: rowNum,
-          column: "student_number",
-          message: "Duplicate graduate found in database for A.M. and A.D.",
-          value: `${student_number} / ${ad_code}`
-        });
-        skipped++;
-        continue;
-      }
-
-      const existing = existingByStudent || existingByAd;
+      const existing = await Graduate.findOne({ where: { student_number } });
       if (existing) {
-        if (isSameGraduatePayload(existing, payload)) {
-          skipped++;
-          continue;
-        }
-
         await existing.update(payload);
         updated++;
       } else {
@@ -962,12 +830,8 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     const managedOriginError = ensureManagedOrigin(normalizedOrigin, origin_region_id ?? null, origin_municipality);
     if (managedOriginError) return bad(res, managedOriginError);
 
-    const finalAdCode = ad_code_in || `AD-${student_number}`;
-    const duplicate = await findGraduateDuplicate({ ad_code: finalAdCode, student_number });
-    if (duplicate) return bad(res, getGraduateDuplicateMessage({ ad_code: finalAdCode, student_number }, duplicate));
-
     const created = await Graduate.create({
-      ad_code: finalAdCode,
+      ad_code: ad_code_in || `AD-${student_number}`,
       last_name,
       first_name,
       father_name,
@@ -1100,18 +964,6 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       graduation_date: String((item as any).graduation_date ?? ""),
     }, "en")[0];
     if (updateRuleViolation) return bad(res, updateRuleViolation.message);
-
-    const duplicate = await findGraduateDuplicate({
-      ad_code: String((item as any).ad_code ?? "").trim(),
-      student_number: String((item as any).student_number ?? "").trim(),
-      exclude_id: id
-    });
-    if (duplicate) {
-      return bad(res, getGraduateDuplicateMessage({
-        ad_code: String((item as any).ad_code ?? "").trim(),
-        student_number: String((item as any).student_number ?? "").trim()
-      }, duplicate));
-    }
 
     await item.save();
 

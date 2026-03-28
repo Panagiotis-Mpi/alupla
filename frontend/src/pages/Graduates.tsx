@@ -42,136 +42,6 @@ type ToastState = {
   detail?: string;
 };
 
-type ImportIssueGroup = {
-  key: string;
-  column: string;
-  rows: number[];
-  reasons: string[];
-};
-
-function getImportColumnLabel(column: string, t: (key: string, options?: Record<string, unknown>) => string) {
-  const labels: Record<string, string> = {
-    student_number: t("table.am"),
-    ad_code: t("table.ad"),
-    last_name: t("table.lastName"),
-    first_name: t("table.firstName"),
-    father_name: t("table.fatherName"),
-    gender: t("table.gender"),
-    entry_year: t("table.entryYear"),
-    birth_date: t("table.birthDate"),
-    graduation_date: t("table.graduationDate"),
-    oath_date: t("table.oathDate"),
-    degree_grade: t("table.degreeGrade"),
-    study_program: t("table.studyProgram"),
-    origin_region: t("table.region"),
-    origin_municipality: t("table.originMunicipality"),
-  };
-  return labels[column] || column;
-}
-
-function getImportIssueHint(column: string, reasons: string[], t: (key: string, options?: Record<string, unknown>) => string) {
-  const all = reasons.join(" ");
-
-  if (column === "gender") {
-    return t("toast.hintGender");
-  }
-
-  if (["graduation_date", "oath_date", "birth_date"].includes(column)) {
-    return t("toast.hintDate");
-  }
-
-  if (column === "entry_year") {
-    return t("toast.hintYear");
-  }
-
-  if (column === "degree_grade") {
-    return t("toast.hintGrade");
-  }
-
-  if (column === "study_program") {
-    return t("toast.hintStudyProgram");
-  }
-
-  if (column === "origin_region") {
-    return t("toast.hintRegion");
-  }
-
-  if (column === "origin_municipality") {
-    return t("toast.hintCity");
-  }
-
-  if (column === "student_number") {
-    if (all.includes("Duplicate")) return t("toast.hintAmDuplicate");
-    return t("toast.hintAm");
-  }
-
-  if (column === "ad_code") {
-    if (all.includes("Duplicate")) return t("toast.hintAdDuplicate");
-    return t("toast.hintAd");
-  }
-
-  if (["last_name", "first_name", "father_name"].includes(column)) {
-    return t("toast.hintText");
-  }
-
-  return t("toast.hintGeneric");
-}
-
-function groupImportErrors(errors: Array<Record<string, unknown>> | undefined) {
-  if (!Array.isArray(errors) || !errors.length) {
-    return [] as ImportIssueGroup[];
-  }
-
-  const groups = new Map<string, ImportIssueGroup>();
-
-  for (const error of errors) {
-    const column = String(error?.column || "general");
-    const key = column;
-    const row = Number(error?.row);
-    const message = String(error?.message || "").trim();
-    const details = Array.isArray(error?.details) ? error.details.map((item) => String(item || "").trim()).filter(Boolean) : [];
-    const reasons = [message, ...details].filter(Boolean);
-
-    const current = groups.get(key);
-    if (current) {
-      if (Number.isFinite(row) && !current.rows.includes(row)) current.rows.push(row);
-      for (const reason of reasons) {
-        if (reason && !current.reasons.includes(reason)) current.reasons.push(reason);
-      }
-      continue;
-    }
-
-    groups.set(key, {
-      key,
-      column,
-      rows: Number.isFinite(row) ? [row] : [],
-      reasons,
-    });
-  }
-
-  return Array.from(groups.values()).sort((a, b) => a.column.localeCompare(b.column));
-}
-
-function buildImportDetail(t: (key: string, options?: Record<string, unknown>) => string, inserted: number, updated: number, skipped: number) {
-  return t("toast.importSummaryHuman", { inserted, updated, skipped });
-}
-
-function buildImportTitle(t: (key: string, options?: Record<string, unknown>) => string, inserted: number, updated: number, skipped: number) {
-  if (inserted > 0 && updated > 0) {
-    return t("toast.importCompletedMixed");
-  }
-  if (inserted > 0) {
-    return t("toast.importCompletedInserted", { inserted });
-  }
-  if (updated > 0) {
-    return t("toast.importCompletedUpdated", { updated });
-  }
-  if (skipped > 0) {
-    return t("toast.importCompletedSkipped", { skipped });
-  }
-  return t("toast.importCompleted");
-}
-
 
 export default function Graduates() {
   const { t, i18n } = useTranslation("graduates");
@@ -231,11 +101,13 @@ export default function Graduates() {
   const visibleIds = useMemo(() => visibleItems.map((graduate) => Number(graduate.id)).filter((id) => Number.isFinite(id)), [visibleItems]);
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
   const someVisibleSelected = visibleIds.some((id) => selectedIds.includes(id));
-  const groupedImportIssues = useMemo(() => groupImportErrors(importReport?.errors), [importReport]);
 
   function showToast(nextToast: ToastState) {
     setToast(nextToast);
     setShowImportDetails(false);
+    window.setTimeout(() => {
+      setToast((current) => (current === nextToast ? null : current));
+    }, 6000);
   }
 
   async function load() {
@@ -358,21 +230,26 @@ export default function Graduates() {
       const inserted = Number(report?.summary?.inserted ?? 0);
       const updated = Number(report?.summary?.updated ?? 0);
       const skipped = Number(report?.summary?.skipped ?? 0);
-      const changesCount = inserted + updated;
-      showToast({
-        type: "success",
-        title: buildImportTitle(t, inserted, updated, skipped),
-        detail: buildImportDetail(t, inserted, updated, skipped),
-      });
-      if (changesCount > 0 || skipped > 0) {
-        await load();
+      const errors = Array.isArray(report?.errors) ? report.errors : [];
+      if (errors.length > 0) {
+        showToast({
+          type: "error",
+          title: t("toast.importWithErrors", { count: errors.length }),
+          detail: t("toast.importSummary", { inserted, updated, skipped }),
+        });
+      } else {
+        showToast({
+          type: "success",
+          title: t("toast.importCompleted"),
+          detail: t("toast.importSummary", { inserted, updated, skipped }),
+        });
       }
+      await load();
     } catch (error: any) {
-      const reason = error?.message ?? t("toast.somethingWentWrong");
       showToast({
         type: "error",
         title: t("toast.importFailed"),
-        detail: t("toast.importFailedReason", { reason }),
+        detail: error?.message ?? t("toast.somethingWentWrong"),
       });
     } finally {
       setImportBusy(false);
@@ -461,7 +338,7 @@ export default function Graduates() {
               ✕
             </button>
           </div>
-          {importReport?.summary ? (
+          {Array.isArray(importReport?.errors) && importReport.errors.length > 0 ? (
             <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <button className="btn" type="button" onClick={() => setShowImportDetails((current) => !current)}>
@@ -469,40 +346,24 @@ export default function Graduates() {
                 </button>
               </div>
               {showImportDetails ? (
-                <div style={{ maxHeight: 260, overflowY: "auto", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 10, padding: 10, background: "rgba(248,250,252,.9)", display: "grid", gap: 10 }}>
-                  <div style={{ display: "grid", gap: 6, fontSize: 13 }}>
-                    <div>{t("toast.detailsInserted", { inserted: Number(importReport.summary.inserted ?? 0) })}</div>
-                    <div>{t("toast.detailsUpdated", { updated: Number(importReport.summary.updated ?? 0) })}</div>
-                    <div>{t("toast.detailsSkipped", { skipped: Number(importReport.summary.skipped ?? 0) })}</div>
-                    {groupedImportIssues.length > 0 ? (
-                      <div style={{ marginTop: 2, opacity: 0.9 }}>{t("toast.detailsIssues", { count: groupedImportIssues.length })}</div>
-                    ) : (
-                      <div style={{ marginTop: 2, opacity: 0.9 }}>{t("toast.detailsNoIssues")}</div>
-                    )}
-                  </div>
-                  {groupedImportIssues.length > 0 ? (
-                    <div style={{ borderTop: "1px solid rgba(0,0,0,0.06)", paddingTop: 10, display: "grid", gap: 8 }}>
-                      {groupedImportIssues.map((issue, index) => {
-                        const label = getImportColumnLabel(issue.column, t);
-                        const hint = getImportIssueHint(issue.column, issue.reasons, t);
-                        const rowsPreview = issue.rows.slice(0, 8).join(", ");
-                        const hasMoreRows = issue.rows.length > 8;
-                        return (
-                          <div key={issue.key} style={{ borderBottom: index === groupedImportIssues.length - 1 ? "none" : "1px solid rgba(0,0,0,0.06)", paddingBottom: 8 }}>
-                            <div style={{ fontWeight: 600 }}>
-                              {t("toast.issueFieldTitle", { field: label, count: issue.rows.length })}
-                            </div>
-                            <div style={{ fontSize: 13, marginTop: 4 }}>{hint}</div>
-                            {issue.rows.length ? (
-                              <div style={{ fontSize: 12, opacity: 0.84, marginTop: 6 }}>
-                                {t("toast.issueRows", { rows: hasMoreRows ? `${rowsPreview}…` : rowsPreview })}
-                              </div>
-                            ) : null}
+                <div style={{ maxHeight: 240, overflowY: "auto", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 10, padding: 10, background: "rgba(248,250,252,.9)", display: "grid", gap: 8 }}>
+                  {importReport.errors.map((error, index) => {
+                    const detailList = Array.isArray(error?.details) ? error.details.filter(Boolean) : [];
+                    const rowLabel = Number(error?.row);
+                    return (
+                      <div key={`${error?.row ?? "x"}-${index}`} style={{ borderBottom: index === importReport.errors.length - 1 ? "none" : "1px solid rgba(0,0,0,0.06)", paddingBottom: 8 }}>
+                        <div style={{ fontWeight: 600 }}>
+                          {t("toast.rowLabel", { row: Number.isFinite(rowLabel) ? rowLabel : "-" })}
+                        </div>
+                        <div style={{ fontSize: 13, marginTop: 4 }}>{String(error?.message ?? "")}</div>
+                        {detailList.length ? (
+                          <div style={{ fontSize: 12, opacity: 0.84, marginTop: 6, display: "grid", gap: 4 }}>
+                            {detailList.map((detail, detailIndex) => <div key={detailIndex}>{String(detail)}</div>)}
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : null}
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : null}
             </div>

@@ -52,7 +52,7 @@ export function GraduatesTable(props: {
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("father_name")}>{t("table.fatherName")}{getSortIndicator("father_name")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("gender")}>{t("table.gender")}{getSortIndicator("gender")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("entry_year")}>{t("table.entryYear")}{getSortIndicator("entry_year")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("birth_date")}>{t("table.birthDate")}{getSortIndicator("birth_date")}</button></th>
+              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("birth_year")}>{t("table.birthYear")}{getSortIndicator("birth_year")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("degree_grade")}>{t("table.degreeGrade")}{getSortIndicator("degree_grade")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("graduation_date")}>{t("table.graduationDate")}{getSortIndicator("graduation_date")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("oath_date")}>{t("table.oathDate")}{getSortIndicator("oath_date")}</button></th>
@@ -78,7 +78,7 @@ export function GraduatesTable(props: {
                   <td>{formatValue(graduate.father_name)}</td>
                   <td>{renderGender(graduate.gender)}</td>
                   <td>{formatValue(graduate.entry_year)}</td>
-                  <td>{formatValue(graduate.birth_date)}</td>
+                  <td>{formatValue(String(graduate.birth_date ?? "").slice(0, 4))}</td>
                   <td>{formatValue(graduate.degree_grade)}</td>
                   <td>{formatValue(graduate.graduation_date)}</td>
                   <td>{formatValue(graduate.oath_date)}</td>

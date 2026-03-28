@@ -157,6 +157,8 @@ export type User = {
   email: string;
   role: UserRole;
   is_active: 0 | 1 | boolean;
+  email_verified: 0 | 1 | boolean;
+  admin_approved: 0 | 1 | boolean;
   created_at?: string;
   updated_at?: string;
   is_online?: boolean;
@@ -289,6 +291,10 @@ export async function register(first_name: string, last_name: string, email: str
   return api("/auth/register", { method: "POST", body: { first_name, last_name, email, password } });
 }
 
+export async function verifyEmail(token: string): Promise<any> {
+  const t = encodeURIComponent(token);
+  return api(`/auth/verify?token=${t}`, { method: "GET" });
+}
 
 export async function requestPasswordReset(email: string): Promise<any> {
   return api("/auth/forgot", { method: "POST", body: { email } });
@@ -347,7 +353,7 @@ export async function createUser(payload: {
 
 export async function updateUser(
   id: number,
-  patch: Partial<Pick<User, "first_name" | "last_name" | "email" | "role" | "is_active">>
+  patch: Partial<Pick<User, "first_name" | "last_name" | "email" | "role" | "is_active" | "email_verified" | "admin_approved">>
 ): Promise<any> {
   return api(`/users/${id}`, { method: "PUT", body: patch });
 }
@@ -357,6 +363,13 @@ export async function deactivateUser(id: number): Promise<any> {
 }
 
 
+export async function approveUser(id: number): Promise<any> {
+  return api(`/users/${id}/approve`, { method: "POST" });
+}
+
+export async function rejectUser(id: number): Promise<any> {
+  return api(`/users/${id}/reject`, { method: "POST" });
+}
 
 export async function listStudyPrograms(): Promise<{ ok: true; items: StudyProgram[] } | any> {
   return api("/study-programs", { method: "GET" });
@@ -547,6 +560,9 @@ export function activityLogsExportUrl(params: Record<string, any> = {}): string 
 }
 
 
+export async function resendVerification(email: string): Promise<any> {
+  return api("/auth/resend-verify", { method: "POST", body: { email } });
+}
 
 
 

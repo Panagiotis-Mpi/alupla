@@ -14,12 +14,6 @@ function isStrongPassword(value: string) {
   return value.length >= 8 && /[A-Za-z]/.test(value) && /[0-9]/.test(value) && /[^A-Za-z0-9]/.test(value);
 }
 
-function isValidEmail(value: string) {
-  const email = String(value).trim().toLowerCase();
-  if (!email || email.length > 254 || email.includes("..")) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
 function safeUser(user: User) {
   return {
     id: user.id,
@@ -28,6 +22,8 @@ function safeUser(user: User) {
     email: user.email,
     role: user.role,
     is_active: user.is_active,
+    email_verified: user.email_verified,
+    admin_approved: user.admin_approved,
     created_at: (user as any).created_at,
     updated_at: (user as any).updated_at
   };
@@ -36,8 +32,6 @@ function safeUser(user: User) {
 function createHexToken() {
   return crypto.randomBytes(32).toString("hex");
 }
-
-const PASSWORD_RESET_HOURS = 1;
 
 function addHours(hours: number) {
   return new Date(Date.now() + hours * 60 * 60 * 1000);
@@ -62,41 +56,63 @@ export async function register(req: Request, res: Response) {
     return fail(res, 400, "Weak password (min 8, letter+number+symbol)");
   }
 
-  const normalizedEmail = String(email).trim().toLowerCase();
-  if (!isValidEmail(normalizedEmail)) {
-    return fail(res, 400, "Invalid email");
-  }
-  const existingUser = await User.findOne({ where: { email: normalizedEmail } });
+  const existingUser = await User.findOne({ where: { email } });
   if (existingUser) {
     return fail(res, 409, "Email already exists");
   }
 
+  const verificationToken = createHexToken();
+  const verificationExpires = addHours(24);
   const password_hash = await bcrypt.hash(String(password), 10);
 
   const user = await User.create({
-    first_name: String(first_name).trim(),
-    last_name: String(last_name).trim(),
-    email: normalizedEmail,
+    first_name,
+    last_name,
+    email,
     password_hash,
     role: "secretariat",
     is_active: true,
-    email_verified: true,
-    admin_approved: true,
-    email_verification_token: null,
-    email_verification_expires: null
+    email_verified: false,
+    admin_approved: false,
+    email_verification_token: verificationToken,
+    email_verification_expires: verificationExpires
   });
-
-  const token = signToken({ sub: user.id, role: user.role });
-  user.last_seen_at = new Date();
-  await user.save();
 
   await logAction({ user_id: user.id, action: "register", entity_type: "user", entity_id: user.id });
 
   return res.json({
     ok: true,
-    token,
-    user: safeUser(user)
+    user: safeUser(user),
+    verification_token: verificationToken,
+    verification_expires: verificationExpires
   });
+}
+
+export async function verifyEmail(req: Request, res: Response) {
+  const token = String(req.query.token ?? "");
+  if (!token) {
+    return fail(res, 400, "Missing token");
+  }
+
+  const user = await User.findOne({
+    where: {
+      email_verification_token: token,
+      email_verification_expires: { [Op.gt]: new Date() }
+    }
+  });
+
+  if (!user) {
+    return fail(res, 400, "Invalid/expired token");
+  }
+
+  user.email_verified = true;
+  user.email_verification_token = null;
+  user.email_verification_expires = null;
+  await user.save();
+
+  await logAction({ user_id: user.id, action: "verify_email", entity_type: "user", entity_id: user.id });
+
+  return res.json({ ok: true });
 }
 
 export async function login(req: Request, res: Response) {
@@ -114,6 +130,14 @@ export async function login(req: Request, res: Response) {
   const passwordMatches = await bcrypt.compare(String(password), user.password_hash);
   if (!passwordMatches) {
     return fail(res, 401, "Invalid credentials");
+  }
+
+  if (!user.email_verified) {
+    return fail(res, 403, "Email not verified");
+  }
+
+  if (!user.admin_approved) {
+    return fail(res, 403, "Account pending admin approval");
   }
 
   const token = signToken({ sub: user.id, role: user.role });
@@ -190,6 +214,37 @@ export async function changePassword(req: Request, res: Response) {
   return res.json({ ok: true });
 }
 
+export async function resendVerification(req: Request, res: Response) {
+  const { email } = req.body ?? {};
+  if (!email) {
+    return fail(res, 400, "Missing email");
+  }
+
+  const user = await findActiveUserByEmail(email);
+  if (!user) {
+    return res.json({ ok: true });
+  }
+
+  if (user.email_verified) {
+    return res.json({ ok: true, already_verified: true });
+  }
+
+  const verificationToken = createHexToken();
+  const verificationExpires = addHours(1);
+
+  user.email_verification_token = verificationToken;
+  user.email_verification_expires = verificationExpires;
+  await user.save();
+
+  await logAction({ user_id: user.id, action: "resend_verify_email", entity_type: "user", entity_id: user.id });
+
+  return res.json({
+    ok: true,
+    verification_token: verificationToken,
+    verification_expires: verificationExpires
+  });
+}
+
 export async function requestPasswordReset(req: Request, res: Response) {
   const { email } = req.body ?? {};
   if (!email) {
@@ -202,7 +257,7 @@ export async function requestPasswordReset(req: Request, res: Response) {
   }
 
   const resetToken = createHexToken();
-  const resetExpires = addHours(PASSWORD_RESET_HOURS);
+  const resetExpires = addHours(1);
 
   user.password_reset_token = resetToken;
   user.password_reset_expires = resetExpires;
@@ -248,8 +303,10 @@ export async function resetPassword(req: Request, res: Response) {
 export async function me(req: Request, res: Response) {
   const auth = req.auth!;
   const user = await User.findByPk(auth.id);
+
   if (!user) {
     return fail(res, 404, "Not found");
   }
+
   return res.json({ ok: true, user: safeUser(user) });
 }

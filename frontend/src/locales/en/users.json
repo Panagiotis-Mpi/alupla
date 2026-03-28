@@ -26,6 +26,8 @@
     "name": "Name",
     "role": "Role",
     "online": "Online",
+    "verified": "Email verified",
+    "approved": "Approval",
     "none": "No users.",
     "deactivate": "Delete"
   },
@@ -36,6 +38,7 @@
     "no": "No"
   },
   "confirm": {
+    "rejectPrompt": "Are you sure?",
     "deactivate": "Delete user #{{id}}?"
   }
 }
