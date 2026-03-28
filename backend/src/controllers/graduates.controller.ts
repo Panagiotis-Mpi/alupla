@@ -320,9 +320,7 @@ function buildCsvText(rows: Array<Record<string, unknown>>) {
 }
 
 function encodeCsvForExcel(text: string) {
-  const normalized = text.replace(/?
-/g, "
-");
+  const normalized = text.replace(/\r?\n/g, "\r\n");
   const utf16 = Buffer.from(normalized, "utf16le");
   return Buffer.concat([Buffer.from([0xff, 0xfe]), utf16]);
 }
