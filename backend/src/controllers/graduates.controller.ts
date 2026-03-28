@@ -25,6 +25,45 @@ function getGraduateFileFormat(raw: unknown): GraduateFileFormat {
   return "xlsx";
 }
 
+function applySheetLayout(ws: XLSX.WorkSheet, rows: Array<Record<string, unknown>>) {
+  const headers = rows.length ? Object.keys(rows[0] ?? {}) : [];
+  ws["!cols"] = headers.map((header) => {
+    let width = String(header ?? "").length;
+    for (const row of rows) {
+      const value = row?.[header];
+      const text = value == null ? "" : String(value);
+      if (text.length > width) width = text.length;
+    }
+    return { wch: Math.min(Math.max(width + 2, 12), 40) };
+  });
+  if (ws["!ref"]) {
+    const range = XLSX.utils.decode_range(ws["!ref"]);
+    ws["!autofilter"] = { ref: ws["!ref"] };
+    ws["!freeze"] = { xSplit: 0, ySplit: 1, topLeftCell: XLSX.utils.encode_cell({ r: 1, c: 0 }), activePane: "bottomLeft", state: "frozen" } as any;
+    for (let c = range.s.c; c <= range.e.c; c += 1) {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c });
+      const cell = ws[cellRef];
+      if (cell) {
+        cell.s = { ...(cell.s || {}), font: { ...(cell.s?.font || {}), bold: true }, alignment: { ...(cell.s?.alignment || {}), vertical: "center" } } as any;
+      }
+    }
+  }
+}
+
+function applyTemplateSheetLayout(ws: XLSX.WorkSheet, headerRows: string[][]) {
+  const widthByColumn: number[] = [];
+  for (const row of headerRows) {
+    row.forEach((value, index) => {
+      const size = String(value ?? "").length;
+      widthByColumn[index] = Math.max(widthByColumn[index] || 0, size);
+    });
+  }
+  ws["!cols"] = widthByColumn.map((width) => ({ wch: Math.min(Math.max(width + 2, 12), 40) }));
+  if (ws["!ref"]) {
+    ws["!freeze"] = { xSplit: 0, ySplit: 1, topLeftCell: XLSX.utils.encode_cell({ r: 1, c: 0 }), activePane: "bottomLeft", state: "frozen" } as any;
+  }
+}
+
 function getColumnLabels(lang: ExportLang) {
   if (lang === "en") {
     return {
@@ -503,6 +542,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
 
 
     const ws = XLSX.utils.json_to_sheet(data);
+    applySheetLayout(ws, data as Array<Record<string, unknown>>);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "graduates");
     const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
@@ -530,6 +570,7 @@ export async function exportGraduatesImportTemplate(req: Request, res: Response,
     }
 
     const ws = XLSX.utils.aoa_to_sheet(headers);
+    applyTemplateSheetLayout(ws, headers);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "graduates_import_template");
     const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });

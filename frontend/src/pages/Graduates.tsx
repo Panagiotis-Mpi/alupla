@@ -522,7 +522,7 @@ export default function Graduates() {
             <div style={{ display: "grid", gap: 10, width: "100%" }}>
               <input className="input" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t("topbar.searchPlaceholder")} />
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", width: "100%" }}>
-                <Link className="btn primary" to="/graduates/new" style={topButtonStyle}>
+                <Link className="btn primary" to="/graduates/new" style={{ ...topButtonStyle, textDecoration: "none" }}>
                   {t("topbar.newGraduate")}
                 </Link>
                 <input
