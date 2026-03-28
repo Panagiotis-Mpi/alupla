@@ -32,7 +32,6 @@
     "direction": "Κατανομή κατεύθυνσης",
     "originRegion": "Κατανομή αποφοίτων σε περιφέρειες",
     "originMunicipality": "Κατανομή αποφοίτων σε πόλεις",
-    "oathYear": "Πλήθος ανά έτος ορκωμοσίας",
     "avgGradeByProgram": "Μ.Ο. βαθμού ανά πρόγραμμα σπουδών",
     "genderByProgram": "Αναλογία φύλου ανά πρόγραμμα σπουδών",
     "timeToDegreeDistribution": "Κατανομή χρόνου αποφοίτησης"

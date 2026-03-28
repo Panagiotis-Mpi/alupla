@@ -32,7 +32,6 @@
     "direction": "Direction distribution",
     "originRegion": "Graduate distribution in regions",
     "originMunicipality": "Graduate distribution in cities",
-    "oathYear": "Graduates per oath year",
     "avgGradeByProgram": "Average grade by study program",
     "genderByProgram": "Gender ratio by study program",
     "timeToDegreeDistribution": "Time to degree distribution"
