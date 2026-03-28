@@ -39,7 +39,8 @@ const sectionWrapStyle: React.CSSProperties = { display: "grid", gap: 14 };
 const sectionHeaderStyle: React.CSSProperties = { display: "grid", gap: 4, marginTop: 2 };
 const sectionTitleStyle: React.CSSProperties = { margin: 0, fontSize: 24, fontWeight: 800 };
 const sectionTextStyle: React.CSSProperties = { margin: 0, color: "#64748b", fontSize: 14 };
-const sectionMenuStyle: React.CSSProperties = { display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" };
+const sectionMenuStyle: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", width: "100%" };
+const sectionButtonsStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", width: "100%" };
 const solidBlueFill = "rgba(37, 99, 235, 0.72)";
 
 function buildBarDataset(label: string, data: number[], color = "#2563eb", backgroundColor = solidBlueFill) {
@@ -390,6 +391,18 @@ export default function Statistics() {
   const topAgeIndex = ageGroups.values.length ? ageGroups.values.indexOf(Math.max(...ageGroups.values)) : -1;
   const topAgeGroup = topAgeIndex >= 0 ? ageGroups.labels[topAgeIndex] : "-";
 
+
+  const topButtonStyle: React.CSSProperties = {
+    minWidth: 136,
+    height: 40,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxSizing: "border-box",
+    padding: "0 12px",
+    fontSize: 14,
+  };
+
   function downloadAnon() {
     const url = publicAnonExportUrl({});
     const a = document.createElement("a");
@@ -404,49 +417,56 @@ export default function Statistics() {
 
   return (
     <div className="grid" style={{ gap: 18 }}>
-      <div className="topbar">
-        <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
-        <div className="spacer" />
-        <button className="btn" type="button" onClick={downloadAnon}>
-          {t("actions.exportExcel", { defaultValue: "Export Excel" })}
-        </button>
+      <div className="card" style={{ padding: 14 }}>
+        <div style={{ display: "grid", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
+            <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
+            <button className="btn" type="button" style={topButtonStyle} onClick={downloadAnon}>
+              {t("actions.exportExcel", { defaultValue: "Export Excel" })}
+            </button>
+          </div>
+
+          <div style={sectionMenuStyle}>
+            <div style={sectionButtonsStyle}>
+              {(["overview", "demographics", "academic", "geography"] as const).map((groupKey) => (
+                <button
+                  key={groupKey}
+                  type="button"
+                  className={activeGroup === groupKey ? "btn primary" : "btn"}
+                  style={topButtonStyle}
+                  onClick={() => setActiveGroup(groupKey)}
+                >
+                  {t(`groups.${groupKey}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="card" style={{ padding: 14 }}>
-        <div style={sectionMenuStyle}>
-          {(["overview", "demographics", "academic", "geography"] as const).map((groupKey) => (
-            <button
-              key={groupKey}
-              type="button"
-              className={activeGroup === groupKey ? "btn primary" : "btn"}
-              onClick={() => setActiveGroup(groupKey)}
-            >
-              {t(`groups.${groupKey}`)}
-            </button>
-          ))}
+      <div style={sectionWrapStyle}>
+        <div className="grid cols4" style={{ gap: 14 }}>
+          <MetricCard label={t("cards.total")} value={total} />
+          <MetricCard label={t("cards.avgAge")} value={avgAge} />
+          <MetricCard label={t("cards.avgGrade")} value={avgGrade} />
+          <MetricCard label={t("cards.topAgeGroup")} value={topAgeGroup} />
+        </div>
+        <div className="grid cols2" style={{ gap: 14 }}>
+          <MetricCard label={t("cards.earliestYear")} value={earliestYear} />
+          <MetricCard label={t("cards.latestYear")} value={latestYear} />
         </div>
       </div>
 
       {activeGroup === "overview" ? (
         <div style={sectionWrapStyle}>
           <SectionTitle title={t("groups.overview")} subtitle={t("groupText.overview")} />
-          <div className="grid cols4" style={{ gap: 14 }}>
-            <MetricCard label={t("cards.total")} value={total} />
-            <MetricCard label={t("cards.avgAge")} value={avgAge} />
-            <MetricCard label={t("cards.avgGrade")} value={avgGrade} />
-            <MetricCard label={t("cards.topAgeGroup")} value={topAgeGroup} />
-          </div>
-          <div className="grid cols2" style={{ gap: 14 }}>
-            <MetricCard label={t("cards.earliestYear")} value={earliestYear} />
-            <MetricCard label={t("cards.latestYear")} value={latestYear} />
-          </div>
           <div className="grid cols1" style={{ gap: 14 }}>
             <div className="card" style={cardInnerStyle}>
               <div className="topbar" style={compactTopbarStyle}>
                 <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
               </div>
               <ScrollableLineChart
-                height={260}
+                height={320}
                 labels={(countChartData as any).labels ?? []}
                 datasetCount={((countChartData as any).datasets ?? []).length}
                 data={countChartData as any}
@@ -460,13 +480,13 @@ export default function Statistics() {
       {activeGroup === "demographics" ? (
         <div style={sectionWrapStyle}>
           <SectionTitle title={t("groups.demographics")} subtitle={t("groupText.demographics")} />
-          <div className="grid cols2" style={{ gap: 14 }}>
+          <div className="grid cols1" style={{ gap: 14 }}>
             <div className="card" style={cardInnerStyle}>
               <div className="topbar" style={compactTopbarStyle}>
                 <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
               </div>
               <ScrollableLineChart
-                height={260}
+                height={320}
                 labels={(genderChartData as any).labels ?? []}
                 datasetCount={((genderChartData as any).datasets ?? []).length}
                 data={genderChartData as any}
@@ -482,12 +502,11 @@ export default function Statistics() {
               />
             </div>
             <BarChartCard title={t("sections.age")} labels={ageGroups.labels} values={ageGroups.values} height={320} minLabelWidth={92} maxLabelWidth={136} />
-          </div>
-          <div className="grid cols2" style={{ gap: 14 }}>
-            <ChartCard title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} />
+            <ChartCard title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} height={320} />
             <MultiBarChartCard
               title={t("sections.genderByProgram")}
               labels={genderByProgramData.labels}
+              height={320}
               minLabelWidth={112}
               maxLabelWidth={176}
               datasets={[
@@ -502,19 +521,13 @@ export default function Statistics() {
       {activeGroup === "academic" ? (
         <div style={sectionWrapStyle}>
           <SectionTitle title={t("groups.academic")} subtitle={t("groupText.academic")} />
-          <div className="grid cols2" style={{ gap: 14 }}>
-            <ChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} />
+          <div className="grid cols1" style={{ gap: 14 }}>
+            <ChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} />
             <BarChartCard title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
-          </div>
-          <div className="grid cols2" style={{ gap: 14 }}>
             <BarChartCard title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
             <BarChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
-          </div>
-          <div className="grid cols2" style={{ gap: 14 }}>
-            <ChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} />
+            <ChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} />
             <BarChartCard title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={80} maxLabelWidth={112} />
-          </div>
-          <div className="grid cols2" style={{ gap: 14 }}>
             <ChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
           </div>
         </div>
@@ -523,7 +536,7 @@ export default function Statistics() {
       {activeGroup === "geography" ? (
         <div style={sectionWrapStyle}>
           <SectionTitle title={t("groups.geography")} subtitle={t("groupText.geography")} />
-          <div className="grid cols2" style={{ gap: 14 }}>
+          <div className="grid cols1" style={{ gap: 14 }}>
             <BarChartCard title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
             <BarChartCard title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
           </div>
