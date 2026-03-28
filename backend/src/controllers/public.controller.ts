@@ -372,6 +372,35 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
+    const avgGradeByProgram = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; avg: number }>(
+      `SELECT sp.id as id,
+              sp.name_el as name_el,
+              sp.name_en as name_en,
+              ROUND(AVG(g.degree_grade)::numeric, 2) as avg
+       FROM graduates g
+       LEFT JOIN study_programs sp ON sp.id = g.study_program_id
+       ${sqlWhere}
+       GROUP BY sp.id, sp.name_el, sp.name_en
+       ORDER BY avg DESC, sp.name_el ASC, sp.name_en ASC`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
+
+    const genderByProgram = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; male: number; female: number }>(
+      `SELECT sp.id as id,
+              sp.name_el as name_el,
+              sp.name_en as name_en,
+              SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END)::int as male,
+              SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END)::int as female
+       FROM graduates g
+       LEFT JOIN study_programs sp ON sp.id = g.study_program_id
+       ${sqlWhere}
+       GROUP BY sp.id, sp.name_el, sp.name_en
+       ORDER BY (SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) + SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END)) DESC,
+                sp.name_el ASC,
+                sp.name_en ASC`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
+
     const degreeGradeBins = await sequelize.query<{ label: string; count: number }>(
       `SELECT CASE
                 WHEN g.degree_grade < 5 THEN '<5'
@@ -527,6 +556,57 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
+    const yearsToDegreeDistribution = await sequelize.query<{ label: string; count: number }>(
+      `SELECT CASE
+                WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year <= 4 THEN '≤4'
+                WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 5 THEN '5'
+                WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 6 THEN '6'
+                WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 7 THEN '7'
+                ELSE '8+'
+              END as label,
+              COUNT(*)::int as count
+       FROM graduates g ${sqlWhere}
+       GROUP BY CASE
+                  WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year <= 4 THEN '≤4'
+                  WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 5 THEN '5'
+                  WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 6 THEN '6'
+                  WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 7 THEN '7'
+                  ELSE '8+'
+                END
+       ORDER BY CASE
+                  WHEN CASE
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year <= 4 THEN '≤4'
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 5 THEN '5'
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 6 THEN '6'
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 7 THEN '7'
+                    ELSE '8+'
+                  END = '≤4' THEN 1
+                  WHEN CASE
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year <= 4 THEN '≤4'
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 5 THEN '5'
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 6 THEN '6'
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 7 THEN '7'
+                    ELSE '8+'
+                  END = '5' THEN 2
+                  WHEN CASE
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year <= 4 THEN '≤4'
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 5 THEN '5'
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 6 THEN '6'
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 7 THEN '7'
+                    ELSE '8+'
+                  END = '6' THEN 3
+                  WHEN CASE
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year <= 4 THEN '≤4'
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 5 THEN '5'
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 6 THEN '6'
+                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 7 THEN '7'
+                    ELSE '8+'
+                  END = '7' THEN 4
+                  ELSE 5
+                END`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
+
     res.json({
       ok: true,
       total,
@@ -541,9 +621,11 @@ export async function publicStats(req: Request, res: Response) {
       birth_year_distribution: birthYearRows,
       age_groups: ageRows.filter((r) => r.label !== 'unknown'),
       avg_grade_by_year: avgGradeByYear,
+      avg_grade_by_program: avgGradeByProgram.filter((r) => r.id !== null),
       avg_grade_by_term: [],
       degree_grade_bins: degreeGradeBins,
       study_program_distribution: studyProgramDistribution.filter((r) => r.id !== null),
+      gender_by_program: genderByProgram.filter((r) => r.id !== null),
       direction_distribution: directionDistribution.map((r) => ({
         ...r,
         name_el: r.name_el ?? 'Χωρίς κατεύθυνση',
@@ -559,6 +641,7 @@ export async function publicStats(req: Request, res: Response) {
       direction_by_year: [],
       direction_by_term: [],
       avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear,
+      years_to_degree_distribution: yearsToDegreeDistribution,
     });
   } catch (err) {
     console.error('[public/stats] failed', err);

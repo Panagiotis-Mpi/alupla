@@ -14,7 +14,10 @@
   "cards": {
     "total": "Total graduates",
     "avgAge": "Average age",
-    "avgGrade": "Average degree grade"
+    "avgGrade": "Average degree grade",
+    "topAgeGroup": "Most common age group",
+    "earliestYear": "Earliest graduation year",
+    "latestYear": "Latest graduation year"
   },
   "sections": {
     "byYear": "Graduates per year",
@@ -29,7 +32,10 @@
     "direction": "Direction distribution",
     "originRegion": "Graduate distribution in regions",
     "originMunicipality": "Graduate distribution in cities",
-    "oathYear": "Graduates per oath year"
+    "oathYear": "Graduates per oath year",
+    "avgGradeByProgram": "Average grade by study program",
+    "genderByProgram": "Gender ratio by study program",
+    "timeToDegreeDistribution": "Time to degree distribution"
   },
   "table": {
     "year": "Year",
@@ -52,5 +58,17 @@
   },
   "actions": {
     "exportExcel": "Export Excel"
+  },
+  "groups": {
+    "overview": "Overview",
+    "demographics": "Demographics",
+    "academic": "Academic insights",
+    "geography": "Geographic distribution"
+  },
+  "groupText": {
+    "overview": "Key indicators and graduation trends.",
+    "demographics": "Age, gender and core demographic distributions.",
+    "academic": "Grades, study programs, directions and completion time.",
+    "geography": "Graduate origin by region and city."
   }
 }

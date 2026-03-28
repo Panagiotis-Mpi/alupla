@@ -1,7 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { getPublicStats, publicAnonExportUrl } from "../lib/api";
-import { getUser } from "../lib/auth";
 import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -28,12 +27,18 @@ type NamedCountRow = {
   avg_years?: number | null;
   year?: number | null;
   entry_year?: number | null;
+  male?: number | null;
+  female?: number | null;
 };
 
 const cardInnerStyle = { minWidth: 0 };
 const compactTopbarStyle = { marginBottom: 12 };
 const metricValueStyle = { fontSize: 28, fontWeight: 800, marginTop: 6 };
 const yTicks = { precision: 0 as any };
+const sectionWrapStyle: React.CSSProperties = { display: "grid", gap: 14 };
+const sectionHeaderStyle: React.CSSProperties = { display: "grid", gap: 4, marginTop: 2 };
+const sectionTitleStyle: React.CSSProperties = { margin: 0, fontSize: 24, fontWeight: 800 };
+const sectionTextStyle: React.CSSProperties = { margin: 0, color: "#64748b", fontSize: 14 };
 
 function buildLineDataset(label: string, data: number[], color: string, background: string, fill = true) {
   return {
@@ -64,7 +69,7 @@ function ScrollableLineChart(props: {
   minLabelWidth?: number;
   maxLabelWidth?: number;
 }) {
-  const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth, props.maxLabelWidth);
+  const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 68, props.maxLabelWidth ?? 128);
 
   return (
     <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4 }}>
@@ -75,16 +80,16 @@ function ScrollableLineChart(props: {
   );
 }
 
-
 function ScrollableBarChart(props: {
   data: any;
   options: any;
   height?: number;
   labels: string[];
+  datasetCount?: number;
   minLabelWidth?: number;
   maxLabelWidth?: number;
 }) {
-  const contentWidth = chartContentWidth(props.labels, 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
+  const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
   const useFullWidth = props.labels.length <= 6;
 
   return (
@@ -92,6 +97,24 @@ function ScrollableBarChart(props: {
       <div style={{ minWidth: useFullWidth ? "100%" : contentWidth, width: useFullWidth ? "100%" : contentWidth, height: props.height ?? 280 }}>
         <Bar data={props.data} options={props.options} />
       </div>
+    </div>
+  );
+}
+
+function SectionTitle(props: { title: string; subtitle?: string }) {
+  return (
+    <div style={sectionHeaderStyle}>
+      <h3 style={sectionTitleStyle}>{props.title}</h3>
+      {props.subtitle ? <p style={sectionTextStyle}>{props.subtitle}</p> : null}
+    </div>
+  );
+}
+
+function MetricCard(props: { label: string; value: string | number }) {
+  return (
+    <div className="card" style={cardInnerStyle}>
+      <div className="muted">{props.label}</div>
+      <div style={metricValueStyle}>{props.value}</div>
     </div>
   );
 }
@@ -145,6 +168,49 @@ function BarChartCard(props: {
   );
 }
 
+function MultiBarChartCard(props: {
+  title: string;
+  labels: string[];
+  datasets: any[];
+  height?: number;
+  minLabelWidth?: number;
+  maxLabelWidth?: number;
+  stacked?: boolean;
+}) {
+  return (
+    <div className="card" style={cardInnerStyle}>
+      <div className="topbar" style={compactTopbarStyle}>
+        <h3 style={{ margin: 0 }}>{props.title}</h3>
+      </div>
+      <ScrollableBarChart
+        height={props.height ?? 320}
+        labels={props.labels}
+        datasetCount={props.datasets.length}
+        minLabelWidth={props.minLabelWidth}
+        maxLabelWidth={props.maxLabelWidth}
+        data={{ labels: props.labels, datasets: props.datasets }}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "bottom" as const } },
+          scales: {
+            x: {
+              stacked: !!props.stacked,
+              ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 },
+              grid: { display: false },
+            },
+            y: {
+              beginAtZero: true,
+              stacked: !!props.stacked,
+              ticks: yTicks,
+            },
+          },
+        } as any}
+      />
+    </div>
+  );
+}
+
 function ChartCard(props: {
   title: string;
   labels: string[];
@@ -186,7 +252,6 @@ function ChartCard(props: {
 
 export default function Statistics() {
   const { t, i18n } = useTranslation("statistics");
-  const user = getUser();
 
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
@@ -211,9 +276,8 @@ export default function Statistics() {
   }, []);
 
   const total = Number(data?.total ?? 0);
-  const avgAge = data?.avg_age === null || data?.avg_age === undefined ? "" : Number(data.avg_age).toFixed(1);
-  const avgGrade =
-    data?.avg_degree_grade === null || data?.avg_degree_grade === undefined ? "" : Number(data.avg_degree_grade).toFixed(2);
+  const avgAge = data?.avg_age === null || data?.avg_age === undefined ? "-" : Number(data.avg_age).toFixed(1);
+  const avgGrade = data?.avg_degree_grade === null || data?.avg_degree_grade === undefined ? "-" : Number(data.avg_degree_grade).toFixed(2);
 
   const seriesFromRows = React.useCallback(
     (
@@ -286,18 +350,8 @@ export default function Statistics() {
     return {
       labels: rows.map((r: any) => r.label),
       datasets: [
-        buildLineDataset(
-          t("table.male", { defaultValue: "Άνδρες" }),
-          rows.map((r: any) => r.male),
-          "#2563eb",
-          "rgba(37, 99, 235, 0.22)"
-        ),
-        buildLineDataset(
-          t("table.female", { defaultValue: "Γυναίκες" }),
-          rows.map((r: any) => r.female),
-          "#db2777",
-          "rgba(219, 39, 119, 0.22)"
-        ),
+        buildLineDataset(t("table.male", { defaultValue: "Άνδρες" }), rows.map((r: any) => r.male), "#2563eb", "rgba(37, 99, 235, 0.22)"),
+        buildLineDataset(t("table.female", { defaultValue: "Γυναίκες" }), rows.map((r: any) => r.female), "#db2777", "rgba(219, 39, 119, 0.22)"),
       ],
     };
   }, [data, t]);
@@ -305,6 +359,7 @@ export default function Statistics() {
   const ageGroups = seriesFromRows(data?.age_groups);
   const birthYears = seriesFromRows(data?.birth_year_distribution, { labelKey: "year" });
   const avgGradesByYear = seriesFromRows(data?.avg_grade_by_year, { labelKey: "year", valueKey: "avg" });
+  const avgGradeByProgram = seriesFromRows(data?.avg_grade_by_program, { labelKey: "name", valueKey: "avg" });
   const gradeBins = seriesFromRows(data?.degree_grade_bins);
   const studyPrograms = seriesFromRows(data?.study_program_distribution, { labelKey: "name" });
   const directions = seriesFromRows(data?.direction_distribution, { labelKey: "name" });
@@ -312,10 +367,25 @@ export default function Statistics() {
   const municipalities = seriesFromRows(data?.origin_municipality_distribution, { labelKey: "name" });
   const oathYears = seriesFromRows(data?.oath_year_distribution, { labelKey: "year" });
   const yearsToDegree = seriesFromRows(data?.avg_years_to_degree_by_entry_year, { labelKey: "entry_year", valueKey: "avg_years" });
+  const yearsToDegreeDistribution = seriesFromRows(data?.years_to_degree_distribution);
+
+  const genderByProgramData = React.useMemo(() => {
+    const rows = (data?.gender_by_program ?? []) as NamedCountRow[];
+    return {
+      labels: rows.map((row) => String(activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name ?? "-")),
+      male: rows.map((row) => Number(row.male ?? 0)),
+      female: rows.map((row) => Number(row.female ?? 0)),
+    };
+  }, [activeLang, data]);
+
+  const graduationYears = byYearRows.map((row) => Number(row.label)).filter((value) => Number.isFinite(value));
+  const earliestYear = graduationYears.length ? Math.min(...graduationYears) : "-";
+  const latestYear = graduationYears.length ? Math.max(...graduationYears) : "-";
+  const topAgeIndex = ageGroups.values.length ? ageGroups.values.indexOf(Math.max(...ageGroups.values)) : -1;
+  const topAgeGroup = topAgeIndex >= 0 ? ageGroups.labels[topAgeIndex] : "-";
 
   function downloadAnon() {
-    const url = publicAnonExportUrl({
-    });
+    const url = publicAnonExportUrl({});
     const a = document.createElement("a");
     a.href = url;
     a.target = "_blank";
@@ -323,16 +393,11 @@ export default function Statistics() {
     a.click();
   }
 
-  if (loading && !data) {
-    return <div className="card">{t("loading")}</div>;
-  }
-
-  if (err && !data) {
-    return <div className="card">{err}</div>;
-  }
+  if (loading && !data) return <div className="card">{t("loading")}</div>;
+  if (err && !data) return <div className="card">{err}</div>;
 
   return (
-    <div className="grid" style={{ gap: 14 }}>
+    <div className="grid" style={{ gap: 18 }}>
       <div className="topbar">
         <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
         <div className="spacer" />
@@ -341,71 +406,130 @@ export default function Statistics() {
         </button>
       </div>
 
-      <div className="grid cols3" style={{ gap: 14 }}>
-        <div className="card" style={cardInnerStyle}>
-          <div className="muted">{t("cards.total")}</div>
-          <div style={metricValueStyle}>{total}</div>
+      <div style={sectionWrapStyle}>
+        <SectionTitle title={t("groups.overview")} subtitle={t("groupText.overview")} />
+        <div className="grid cols4" style={{ gap: 14 }}>
+          <MetricCard label={t("cards.total")} value={total} />
+          <MetricCard label={t("cards.avgAge")} value={avgAge} />
+          <MetricCard label={t("cards.avgGrade")} value={avgGrade} />
+          <MetricCard label={t("cards.topAgeGroup")} value={topAgeGroup} />
         </div>
-        <div className="card" style={cardInnerStyle}>
-          <div className="muted">{t("cards.avgAge")}</div>
-          <div style={metricValueStyle}>{avgAge || "-"}</div>
+        <div className="grid cols2" style={{ gap: 14 }}>
+          <MetricCard label={t("cards.earliestYear")} value={earliestYear} />
+          <MetricCard label={t("cards.latestYear")} value={latestYear} />
         </div>
-        <div className="card" style={cardInnerStyle}>
-          <div className="muted">{t("cards.avgGrade")}</div>
-          <div style={metricValueStyle}>{avgGrade || "-"}</div>
+        <div className="grid cols2" style={{ gap: 14 }}>
+          <div className="card" style={cardInnerStyle}>
+            <div className="topbar" style={compactTopbarStyle}>
+              <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
+            </div>
+            <ScrollableLineChart
+              height={260}
+              labels={(countChartData as any).labels ?? []}
+              datasetCount={((countChartData as any).datasets ?? []).length}
+              data={countChartData as any}
+              options={countChartOptions as any}
+            />
+          </div>
+
+          <div className="card" style={cardInnerStyle}>
+            <div className="topbar" style={compactTopbarStyle}>
+              <h3 style={{ margin: 0 }}>{t("sections.oathYear")}</h3>
+            </div>
+            <ScrollableLineChart
+              height={260}
+              labels={oathYears.labels}
+              datasetCount={1}
+              data={{ labels: oathYears.labels, datasets: [buildLineDataset(t("sections.oathYear"), oathYears.values, "#2563eb", "rgba(37, 99, 235, 0.28)")] }}
+              options={countChartOptions as any}
+            />
+          </div>
         </div>
       </div>
 
-      <div className="grid cols2" style={{ gap: 14 }}>
-        <div className="card" style={cardInnerStyle}>
-          <div className="topbar" style={compactTopbarStyle}>
-            <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
+      <div style={sectionWrapStyle}>
+        <SectionTitle title={t("groups.demographics")} subtitle={t("groupText.demographics")} />
+        <div className="grid cols2" style={{ gap: 14 }}>
+          <div className="card" style={cardInnerStyle}>
+            <div className="topbar" style={compactTopbarStyle}>
+              <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
+            </div>
+            <ScrollableLineChart
+              height={260}
+              labels={(genderChartData as any).labels ?? []}
+              datasetCount={((genderChartData as any).datasets ?? []).length}
+              data={genderChartData as any}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: "bottom" as const } },
+                scales: {
+                  x: { stacked: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
+                  y: { beginAtZero: true, ticks: yTicks },
+                },
+              } as any}
+            />
           </div>
-          <ScrollableLineChart height={260} labels={(countChartData as any).labels ?? []} datasetCount={((countChartData as any).datasets ?? []).length} data={countChartData as any} options={countChartOptions as any} />
+          <BarChartCard title={t("sections.age")} labels={ageGroups.labels} values={ageGroups.values} height={320} minLabelWidth={92} maxLabelWidth={136} />
         </div>
-
-        <div className="card" style={cardInnerStyle}>
-          <div className="topbar" style={compactTopbarStyle}>
-            <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
-          </div>
-          <ScrollableLineChart
-            height={260}
-            labels={(genderChartData as any).labels ?? []}
-            datasetCount={((genderChartData as any).datasets ?? []).length}
-            data={genderChartData as any}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { position: "bottom" as const } },
-              scales: { x: { stacked: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } }, y: { beginAtZero: true, ticks: yTicks } },
-            } as any}
+        <div className="grid cols2" style={{ gap: 14 }}>
+          <ChartCard title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} />
+          <MultiBarChartCard
+            title={t("sections.genderByProgram")}
+            labels={genderByProgramData.labels}
+            minLabelWidth={112}
+            maxLabelWidth={176}
+            datasets={[
+              {
+                label: t("table.male"),
+                data: genderByProgramData.male,
+                borderColor: "#2563eb",
+                backgroundColor: "rgba(37, 99, 235, 0.78)",
+                borderWidth: 1,
+                barPercentage: 0.4,
+                categoryPercentage: 0.58,
+                maxBarThickness: 34,
+              },
+              {
+                label: t("table.female"),
+                data: genderByProgramData.female,
+                borderColor: "#db2777",
+                backgroundColor: "rgba(219, 39, 119, 0.72)",
+                borderWidth: 1,
+                barPercentage: 0.4,
+                categoryPercentage: 0.58,
+                maxBarThickness: 34,
+              },
+            ]}
           />
         </div>
       </div>
 
-      <div className="grid cols2" style={{ gap: 14 }}>
-        <BarChartCard title={t("sections.age")} labels={ageGroups.labels} values={ageGroups.values} height={320} minLabelWidth={92} maxLabelWidth={136} />
-        <ChartCard title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} />
+      <div style={sectionWrapStyle}>
+        <SectionTitle title={t("groups.academic")} subtitle={t("groupText.academic")} />
+        <div className="grid cols2" style={{ gap: 14 }}>
+          <ChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} />
+          <BarChartCard title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
+        </div>
+        <div className="grid cols2" style={{ gap: 14 }}>
+          <BarChartCard title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+          <BarChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+        </div>
+        <div className="grid cols2" style={{ gap: 14 }}>
+          <ChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} />
+          <BarChartCard title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={80} maxLabelWidth={112} />
+        </div>
+        <div className="grid cols2" style={{ gap: 14 }}>
+          <ChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+        </div>
       </div>
 
-      <div className="grid cols2" style={{ gap: 14 }}>
-        <ChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} />
-        <ChartCard title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} />
-      </div>
-
-      <div className="grid cols2" style={{ gap: 14 }}>
-        <BarChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
-        <ChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
-      </div>
-
-      <div className="grid cols2" style={{ gap: 14 }}>
-        <ChartCard title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} />
-        <ChartCard title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} />
-      </div>
-
-      <div className="grid cols2" style={{ gap: 14 }}>
-        <ChartCard title={t("sections.oathYear")} labels={oathYears.labels} values={oathYears.values} />
-        <ChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} />
+      <div style={sectionWrapStyle}>
+        <SectionTitle title={t("groups.geography")} subtitle={t("groupText.geography")} />
+        <div className="grid cols2" style={{ gap: 14 }}>
+          <ChartCard title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} />
+          <ChartCard title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} />
+        </div>
       </div>
     </div>
   );
