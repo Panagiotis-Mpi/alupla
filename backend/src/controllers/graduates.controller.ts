@@ -321,8 +321,7 @@ function buildCsvText(rows: Array<Record<string, unknown>>) {
 
 function encodeCsvForExcel(text: string) {
   const normalized = text.replace(/\r?\n/g, "\r\n");
-  const utf16 = Buffer.from(normalized, "utf16le");
-  return Buffer.concat([Buffer.from([0xff, 0xfe]), utf16]);
+  return Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(normalized, "utf8")]);
 }
 
 function formatGenderValue(value: unknown) {
@@ -585,7 +584,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     if (format === "csv") {
       const csv = buildCsvText(data);
-      res.setHeader("Content-Type", "text/csv; charset=utf-16le");
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", `attachment; filename="graduates-${ts}.csv"`);
       return res.send(encodeCsvForExcel(csv));
     }
@@ -615,7 +614,7 @@ export async function exportGraduatesImportTemplate(req: Request, res: Response,
     if (format === "csv") {
       const csvLines = headers.map((row) => row.map((value) => csvEscape(value)).join(";"));
       const csv = `sep=;\r\n${csvLines.join("\r\n")}`;
-      res.setHeader("Content-Type", "text/csv; charset=utf-16le");
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", 'attachment; filename="graduates-import-template.csv"');
       return res.send(encodeCsvForExcel(csv));
     }
