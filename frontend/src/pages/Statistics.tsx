@@ -39,8 +39,8 @@ const sectionWrapStyle: React.CSSProperties = { display: "grid", gap: 14 };
 const sectionHeaderStyle: React.CSSProperties = { display: "grid", gap: 4, marginTop: 2 };
 const sectionTitleStyle: React.CSSProperties = { margin: 0, fontSize: 24, fontWeight: 800 };
 const sectionTextStyle: React.CSSProperties = { margin: 0, color: "#64748b", fontSize: 14 };
-const sectionMenuStyle: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", width: "100%" };
-const sectionButtonsStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", width: "100%" };
+const sectionMenuStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%" };
+const sectionButtonsStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%", gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
 const solidBlueFill = "rgba(37, 99, 235, 0.72)";
 
 function buildBarDataset(label: string, data: number[], color = "#2563eb", backgroundColor = solidBlueFill) {
@@ -90,7 +90,7 @@ function ScrollableLineChart(props: {
 
   return (
     <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4 }}>
-      <div style={{ minWidth: contentWidth, width: contentWidth, height: props.height ?? 280 }}>
+      <div style={{ minWidth: contentWidth, width: "100%", height: props.height ?? 280 }}>
         <Line data={props.data} options={props.options} />
       </div>
     </div>
@@ -111,7 +111,7 @@ function ScrollableBarChart(props: {
 
   return (
     <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4 }}>
-      <div style={{ minWidth: useFullWidth ? "100%" : contentWidth, width: useFullWidth ? "100%" : contentWidth, height: props.height ?? 280 }}>
+      <div style={{ minWidth: useFullWidth ? "100%" : contentWidth, width: "100%", height: props.height ?? 280 }}>
         <Bar data={props.data} options={props.options} />
       </div>
     </div>
@@ -136,6 +136,52 @@ function MetricCard(props: { label: string; value: string | number }) {
   );
 }
 
+function CompactBarsCard(props: {
+  title: string;
+  labels: string[];
+  values: number[];
+}) {
+  const maxValue = Math.max(...props.values, 1);
+
+  return (
+    <div className="card" style={cardInnerStyle}>
+      <div className="topbar" style={compactTopbarStyle}>
+        <h3 style={{ margin: 0 }}>{props.title}</h3>
+      </div>
+      <div style={{ display: "grid", gap: 14, gridTemplateColumns: `repeat(${Math.max(props.labels.length, 1)}, minmax(0, 1fr))` }}>
+        {props.labels.map((label, index) => {
+          const value = Number(props.values[index] ?? 0);
+          const percent = maxValue > 0 ? Math.max(12, (value / maxValue) * 100) : 0;
+
+          return (
+            <div
+              key={`${label}-${index}`}
+              style={{
+                minHeight: 180,
+                border: "1px solid rgba(148, 163, 184, 0.25)",
+                borderRadius: 16,
+                padding: 18,
+                display: "grid",
+                alignContent: "space-between",
+                gap: 14,
+                background: "rgba(248, 250, 252, 0.7)",
+              }}
+            >
+              <div style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, lineHeight: 1.35, wordBreak: "break-word" }}>{label}</div>
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ fontSize: 34, fontWeight: 800, color: "#0f172a" }}>{value}</div>
+                <div style={{ height: 10, borderRadius: 999, background: "rgba(148, 163, 184, 0.18)", overflow: "hidden" }}>
+                  <div style={{ width: `${percent}%`, height: "100%", borderRadius: 999, background: "#2563eb" }} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function BarChartCard(props: {
   title: string;
   labels: string[];
@@ -145,6 +191,12 @@ function BarChartCard(props: {
   minLabelWidth?: number;
   maxLabelWidth?: number;
 }) {
+  const useCompactLayout = props.labels.length > 0 && props.labels.length <= 3;
+
+  if (useCompactLayout) {
+    return <CompactBarsCard title={props.title} labels={props.labels} values={props.values} />;
+  }
+
   return (
     <div className="card" style={cardInnerStyle}>
       <div className="topbar" style={compactTopbarStyle}>
@@ -157,9 +209,7 @@ function BarChartCard(props: {
         maxLabelWidth={props.maxLabelWidth}
         data={{
           labels: props.labels,
-          datasets: [
-buildBarDataset(props.datasetLabel ?? props.title, props.values),
-          ],
+          datasets: [buildBarDataset(props.datasetLabel ?? props.title, props.values)],
         }}
         options={{
           responsive: true,
@@ -248,9 +298,10 @@ function ChartCard(props: {
           maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
-            x: { ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
+            x: { offset: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
             y: { beginAtZero: true, ticks: yTicks },
           },
+          layout: { padding: { left: 0, right: 0 } },
         } as any}
       />
     </div>
@@ -341,9 +392,10 @@ export default function Statistics() {
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { ticks: { autoSkip: false, maxRotation: 0 } },
+          x: { offset: false, ticks: { autoSkip: false, maxRotation: 0 } },
           y: { beginAtZero: true, ticks: yTicks },
         },
+        layout: { padding: { left: 0, right: 0 } },
       }) as const,
     []
   );
@@ -393,14 +445,15 @@ export default function Statistics() {
 
 
   const topButtonStyle: React.CSSProperties = {
-    minWidth: 136,
-    height: 40,
+    minHeight: 48,
+    width: "100%",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     boxSizing: "border-box",
-    padding: "0 12px",
+    padding: "0 18px",
     fontSize: 14,
+    whiteSpace: "nowrap",
   };
 
   function downloadAnon() {
@@ -419,26 +472,26 @@ export default function Statistics() {
     <div className="grid" style={{ gap: 18 }}>
       <div className="card" style={{ padding: 14 }}>
         <div style={{ display: "grid", gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "grid", gap: 14 }}>
             <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
-            <button className="btn" type="button" style={topButtonStyle} onClick={downloadAnon}>
-              {t("actions.exportExcel", { defaultValue: "Export Excel" })}
-            </button>
-          </div>
 
-          <div style={sectionMenuStyle}>
-            <div style={sectionButtonsStyle}>
-              {(["overview", "demographics", "academic", "geography"] as const).map((groupKey) => (
-                <button
-                  key={groupKey}
-                  type="button"
-                  className={activeGroup === groupKey ? "btn primary" : "btn"}
-                  style={topButtonStyle}
-                  onClick={() => setActiveGroup(groupKey)}
-                >
-                  {t(`groups.${groupKey}`)}
+            <div style={sectionMenuStyle}>
+              <div style={sectionButtonsStyle}>
+                {(["overview", "demographics", "academic", "geography"] as const).map((groupKey) => (
+                  <button
+                    key={groupKey}
+                    type="button"
+                    className={activeGroup === groupKey ? "btn primary" : "btn"}
+                    style={topButtonStyle}
+                    onClick={() => setActiveGroup(groupKey)}
+                  >
+                    {t(`groups.${groupKey}`)}
+                  </button>
+                ))}
+                <button className="btn" type="button" style={topButtonStyle} onClick={downloadAnon}>
+                  {t("actions.exportExcel", { defaultValue: "Export Excel" })}
                 </button>
-              ))}
+              </div>
             </div>
           </div>
         </div>
@@ -495,9 +548,10 @@ export default function Statistics() {
                   maintainAspectRatio: false,
                   plugins: { legend: { position: "bottom" as const } },
                   scales: {
-                    x: { stacked: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
+                    x: { offset: false, stacked: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
                     y: { beginAtZero: true, ticks: yTicks },
                   },
+                  layout: { padding: { left: 0, right: 0 } },
                 } as any}
               />
             </div>
