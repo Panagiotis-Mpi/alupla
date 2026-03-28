@@ -116,7 +116,33 @@ export function buildGraduatesParams(filters: GraduatesFiltersState) {
   return params;
 }
 
-export function formatValue(value: unknown) {
+export function formatDateValue(value: unknown) {
+  const raw = value === null || value === undefined ? "" : String(value).trim();
+  if (!raw) return "";
+
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    return `${iso[3]}/${iso[2]}/${iso[1]}`;
+  }
+
+  const dayFirst = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if (dayFirst) {
+    const day = String(dayFirst[1]).padStart(2, "0");
+    const month = String(dayFirst[2]).padStart(2, "0");
+    let year = dayFirst[3];
+    if (year.length === 2) {
+      year = Number(year) >= 50 ? `19${year}` : `20${year}`;
+    }
+    return `${day}/${month}/${year}`;
+  }
+
+  return raw;
+}
+
+export function formatValue(value: unknown, mode: "default" | "date" = "default") {
+  if (mode === "date") {
+    return formatDateValue(value);
+  }
   return value === null || value === undefined ? "" : String(value);
 }
 

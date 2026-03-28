@@ -112,11 +112,11 @@ const IMPORT_HEADER_ALIASES = {
   father_name: ["father_name","πατρωνυμο","πατρώνυμο","father","father name"],
   gender: ["gender","φυλο","φύλο","sex"],
   entry_year: ["entry_year","ετος_εισαγωγης","έτος_εισαγωγής","entryyear","έτος εισαγωγής","entry year"],
-  graduation_date: ["graduation_date","ημ_αποφοιτησης","ημ._αποφοίτησης","graduation","ημ. αποφοίτησης","graduation date","Ημ. αποφοίτησης"],
-  oath_date: ["oath_date","ημ_ορκωμοσιας","ημ._ορκωμοσίας","oath","ημ. ορκωμοσίας","oath date","Ημ. ορκωμοσίας"],
+  graduation_date: ["graduation_date","ημ_αποφοιτησης","ημ._αποφοίτησης","graduation","ημ. αποφοίτησης","graduation date","Ημ. αποφοίτησης","ημερομηνία αποφοίτησης","ημερομηνια αποφοίτησης","ημερομηνία_αποφοίτησης","ημερομηνια_αποφοίτησης"],
+  oath_date: ["oath_date","ημ_ορκωμοσιας","ημ._ορκωμοσίας","oath","ημ. ορκωμοσίας","oath date","Ημ. ορκωμοσίας","ημερομηνία ορκωμοσίας","ημερομηνια ορκωμοσίας","ημερομηνία_ορκωμοσίας","ημερομηνια_ορκωμοσίας"],
   degree_grade: ["degree_grade","βαθμος","βαθμός","grade","βαθμός πτυχίου","degree grade"],
   birth_year: ["birth_year","ετος_γεννησης","έτος_γεννησης","year_of_birth","yob","έτος γέννησης","birth year"],
-  birth_date: ["birth_date","ημερομηνια_γεννησης","ημερομηνία_γέννησης","ημ_γεννησης","ημ._γέννησης","birthdate","dob","birth date"],
+  birth_date: ["birth_date","ημερομηνια_γεννησης","ημερομηνία_γέννησης","ημ_γεννησης","ημ._γέννησης","birthdate","dob","birth date","ημερομηνία γέννησης","ημερομηνια γεννησης"],
   study_program: ["study_program","study_program_id","study_prog","program_id","προγραμμα","πρόγραμμα","program","πρόγραμμα σπουδών","study program"],
   study_program_id: ["study_program_id","study_prog","program_id","προγραμμα","πρόγραμμα","program"],
   program_direction: ["program_direction","program_direction_id","program_dir","direction_id","κατευθυνση","κατεύθυνση","direction"],
@@ -297,6 +297,13 @@ function buildUtf16CsvBuffer(text: string) {
   return Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]);
 }
 
+function formatDateDisplay(value: unknown) {
+  const normalized = toDateOnly(value);
+  if (!normalized) return value == null ? "" : String(value);
+  const [year, month, day] = normalized.split("-");
+  return `${day}/${month}/${year}`;
+}
+
 function formatGenderValue(value: unknown) {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) {
@@ -330,8 +337,8 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
       [labels.entry_year]: item.entry_year ?? "",
       [labels.birth_year]: String(item.birth_date ?? "").slice(0, 4),
       [labels.degree_grade]: item.degree_grade ?? "",
-      [labels.graduation_date]: item.graduation_date ?? "",
-      [labels.oath_date]: item.oath_date ?? "",
+      [labels.graduation_date]: formatDateDisplay(item.graduation_date),
+      [labels.oath_date]: formatDateDisplay(item.oath_date),
       [labels.study_program]: item.study_program_id && studyProgramName ? `${item.study_program_id} (${studyProgramName})` : studyProgramName,
       [labels.direction]: directionName,
       [labels.origin_region]: regionName,

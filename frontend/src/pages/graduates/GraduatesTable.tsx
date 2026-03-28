@@ -78,10 +78,10 @@ export function GraduatesTable(props: {
                   <td>{formatValue(graduate.father_name)}</td>
                   <td>{renderGender(graduate.gender)}</td>
                   <td>{formatValue(graduate.entry_year)}</td>
-                  <td>{formatValue(graduate.birth_date)}</td>
+                  <td>{formatValue(graduate.birth_date, "date")}</td>
                   <td>{formatValue(graduate.degree_grade)}</td>
-                  <td>{formatValue(graduate.graduation_date)}</td>
-                  <td>{formatValue(graduate.oath_date)}</td>
+                  <td>{formatValue(graduate.graduation_date, "date")}</td>
+                  <td>{formatValue(graduate.oath_date, "date")}</td>
                   <td>{programNameById.get(Number(graduate.study_program_id)) ?? ""}</td>
                   <td>{directionNameById.get(Number(graduate.program_direction_id)) ?? ""}</td>
                   <td>{regionNameById.get(Number(graduate.origin_region_id)) ?? ""}</td>
