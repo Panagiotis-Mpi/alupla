@@ -305,18 +305,18 @@ function parseIds(idsRaw: unknown): number[] {
 
 function csvEscape(value: unknown) {
   const text = String(value ?? "");
-  if (!/[",\n]/.test(text)) return text;
+  if (!/[";\n\r]/.test(text)) return text;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
 function buildCsvText(rows: Array<Record<string, unknown>>) {
-  if (!rows.length) return "";
+  if (!rows.length) return "sep=;\r\n";
   const headers = Object.keys(rows[0]);
-  const lines = [headers.map(csvEscape).join(",")];
+  const lines = [headers.map(csvEscape).join(";")];
   for (const row of rows) {
-    lines.push(headers.map((header) => csvEscape(row[header])).join(","));
+    lines.push(headers.map((header) => csvEscape(row[header])).join(";"));
   }
-  return lines.join("\n");
+  return `sep=;\r\n${lines.join("\r\n")}`;
 }
 
 function formatGenderValue(value: unknown) {
@@ -607,7 +607,8 @@ export async function exportGraduatesImportTemplate(req: Request, res: Response,
     const headers = getTemplateHeaders(lang);
 
     if (format === "csv") {
-      const csv = headers.map((row) => row.map(csvEscape).join(",")).join("\n");
+      const csvLines = headers.map((row) => row.map(csvEscape).join(";"));
+      const csv = `sep=;\r\n${csvLines.join("\r\n")}`;
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", 'attachment; filename="graduates-import-template.csv"');
       return res.send(`﻿${csv}`);
