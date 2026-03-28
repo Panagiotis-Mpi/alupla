@@ -85,10 +85,11 @@ function ScrollableBarChart(props: {
   maxLabelWidth?: number;
 }) {
   const contentWidth = chartContentWidth(props.labels, 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
+  const useFullWidth = props.labels.length <= 6;
 
   return (
     <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4 }}>
-      <div style={{ minWidth: contentWidth, width: contentWidth, height: props.height ?? 280 }}>
+      <div style={{ minWidth: useFullWidth ? "100%" : contentWidth, width: useFullWidth ? "100%" : contentWidth, height: props.height ?? 280 }}>
         <Bar data={props.data} options={props.options} />
       </div>
     </div>
@@ -120,12 +121,13 @@ function BarChartCard(props: {
             {
               label: props.datasetLabel ?? props.title,
               data: props.values,
-              borderColor: "rgba(55, 65, 81, 0.85)",
-              backgroundColor: "rgba(96, 150, 191, 0.85)",
+              borderColor: "#2563eb",
+              backgroundColor: "rgba(37, 99, 235, 0.55)",
               borderWidth: 1.5,
               borderRadius: 0,
-              barPercentage: 0.82,
-              categoryPercentage: 0.9,
+              barPercentage: 0.44,
+              categoryPercentage: 0.62,
+              maxBarThickness: 56,
             },
           ],
         }}
