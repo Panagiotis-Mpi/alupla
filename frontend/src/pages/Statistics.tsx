@@ -2,7 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { getPublicStats, publicAnonExportUrl } from "../lib/api";
 import { getUser } from "../lib/auth";
-import { Line } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,9 +12,10 @@ import {
   Filler,
   Tooltip,
   Legend,
+  BarElement,
 } from "chart.js";
 
-ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, BarElement, Filler, Tooltip, Legend);
 
 type NamedCountRow = {
   id?: number | null;
@@ -70,6 +71,74 @@ function ScrollableLineChart(props: {
       <div style={{ minWidth: contentWidth, width: contentWidth, height: props.height ?? 280 }}>
         <Line data={props.data} options={props.options} />
       </div>
+    </div>
+  );
+}
+
+
+function ScrollableBarChart(props: {
+  data: any;
+  options: any;
+  height?: number;
+  labels: string[];
+  minLabelWidth?: number;
+  maxLabelWidth?: number;
+}) {
+  const contentWidth = chartContentWidth(props.labels, 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
+
+  return (
+    <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4 }}>
+      <div style={{ minWidth: contentWidth, width: contentWidth, height: props.height ?? 280 }}>
+        <Bar data={props.data} options={props.options} />
+      </div>
+    </div>
+  );
+}
+
+function BarChartCard(props: {
+  title: string;
+  labels: string[];
+  values: number[];
+  datasetLabel?: string;
+  height?: number;
+  minLabelWidth?: number;
+  maxLabelWidth?: number;
+}) {
+  return (
+    <div className="card" style={cardInnerStyle}>
+      <div className="topbar" style={compactTopbarStyle}>
+        <h3 style={{ margin: 0 }}>{props.title}</h3>
+      </div>
+      <ScrollableBarChart
+        height={props.height ?? 280}
+        labels={props.labels}
+        minLabelWidth={props.minLabelWidth}
+        maxLabelWidth={props.maxLabelWidth}
+        data={{
+          labels: props.labels,
+          datasets: [
+            {
+              label: props.datasetLabel ?? props.title,
+              data: props.values,
+              borderColor: "rgba(55, 65, 81, 0.85)",
+              backgroundColor: "rgba(96, 150, 191, 0.85)",
+              borderWidth: 1.5,
+              borderRadius: 0,
+              barPercentage: 0.82,
+              categoryPercentage: 0.9,
+            },
+          ],
+        }}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: yTicks },
+          },
+        } as any}
+      />
     </div>
   );
 }
@@ -313,7 +382,7 @@ export default function Statistics() {
       </div>
 
       <div className="grid cols2" style={{ gap: 14 }}>
-        <ChartCard title={t("sections.age")} labels={ageGroups.labels} values={ageGroups.values} height={320} minLabelWidth={92} maxLabelWidth={136} />
+        <BarChartCard title={t("sections.age")} labels={ageGroups.labels} values={ageGroups.values} height={320} minLabelWidth={92} maxLabelWidth={136} />
         <ChartCard title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} />
       </div>
 
@@ -323,7 +392,7 @@ export default function Statistics() {
       </div>
 
       <div className="grid cols2" style={{ gap: 14 }}>
-        <ChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+        <BarChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
         <ChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
       </div>
 
