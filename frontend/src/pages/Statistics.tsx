@@ -219,14 +219,13 @@ export default function Statistics() {
           t("table.male", { defaultValue: "Άνδρες" }),
           rows.map((r: any) => r.male),
           "#2563eb",
-          "rgba(37, 99, 235, 0.28)"
+          "rgba(37, 99, 235, 0.22)"
         ),
         buildLineDataset(
           t("table.female", { defaultValue: "Γυναίκες" }),
           rows.map((r: any) => r.female),
-          "#60a5fa",
-          "rgba(96, 165, 250, 0.22)",
-          false
+          "#db2777",
+          "rgba(219, 39, 119, 0.22)"
         ),
       ],
     };
@@ -314,7 +313,7 @@ export default function Statistics() {
       </div>
 
       <div className="grid cols2" style={{ gap: 14 }}>
-        <ChartCard title={t("sections.age")} labels={ageGroups.labels} values={ageGroups.values} />
+        <ChartCard title={t("sections.age")} labels={ageGroups.labels} values={ageGroups.values} height={320} minLabelWidth={92} maxLabelWidth={136} />
         <ChartCard title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} />
       </div>
 
@@ -324,7 +323,7 @@ export default function Statistics() {
       </div>
 
       <div className="grid cols2" style={{ gap: 14 }}>
-        <ChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} />
+        <ChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
         <ChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
       </div>
 
