@@ -23,5 +23,15 @@ export const env = {
     ssl: (process.env.DB_SSL ?? "").toLowerCase() === "true"
   },
 
-  jwtSecret: required("JWT_SECRET")
+  jwtSecret: required("JWT_SECRET"),
+  appUrl: (process.env.APP_URL ?? "http://localhost:5173").replace(/\/$/, ""),
+  mail: {
+    user: process.env.SMTP_USER ?? process.env.MAIL_USER ?? "",
+    pass: process.env.SMTP_PASS ?? process.env.MAIL_PASS ?? "",
+    from: process.env.MAIL_FROM ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? process.env.MAIL_USER ?? "",
+    gmailClientId: process.env.GMAIL_CLIENT_ID ?? "",
+    gmailClientSecret: process.env.GMAIL_CLIENT_SECRET ?? "",
+    gmailRefreshToken: process.env.GMAIL_REFRESH_TOKEN ?? "",
+    gmailUser: process.env.GMAIL_USER ?? process.env.SMTP_USER ?? process.env.MAIL_USER ?? ""
+  }
 };

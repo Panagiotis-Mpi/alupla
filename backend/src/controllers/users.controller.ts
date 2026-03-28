@@ -46,8 +46,6 @@ function safeUser(u: User) {
     email: u.email,
     role: u.role,
     is_active: u.is_active,
-    email_verified: u.email_verified,
-    admin_approved: u.admin_approved,
     created_at: (u as any).created_at,
     updated_at: (u as any).updated_at,
     last_seen_at: lastSeenAt,
@@ -142,8 +140,6 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
     }
 
     if (body.is_active !== undefined) u.is_active = Boolean(body.is_active);
-    if (body.email_verified !== undefined) u.email_verified = Boolean(body.email_verified);
-    if (body.admin_approved !== undefined) u.admin_approved = Boolean(body.admin_approved);
 
     if (body.password !== undefined && String(body.password).length) {
       const password = String(body.password);
@@ -187,38 +183,3 @@ export async function deactivateUser(req: Request, res: Response, next: NextFunc
   }
 }
 
-export async function approveUser(req: Request, res: Response, next: NextFunction) {
-  try {
-    const u = await findUserByParamId(req, res);
-    if (!u) return;
-
-    u.admin_approved = true;
-    u.is_active = true;
-    await u.save();
-
-    await logAction({ user_id: req.auth!.id, action: "approve_user", entity_type: "user", entity_id: u.id });
-
-    res.json({ ok: true, item: safeUser(u) });
-  } catch (e) {
-    next(e);
-  }
-}
-
-export async function rejectUser(req: Request, res: Response, next: NextFunction) {
-  try {
-    const u = await findUserByParamId(req, res);
-    if (!u) return;
-
-    if (req.auth!.id === u.id) return bad(res, "Cannot reject yourself");
-
-    u.admin_approved = false;
-    u.is_active = false;
-    await u.save();
-
-    await logAction({ user_id: req.auth!.id, action: "reject_user", entity_type: "user", entity_id: u.id });
-
-    res.json({ ok: true, item: safeUser(u) });
-  } catch (e) {
-    next(e);
-  }
-}
