@@ -235,18 +235,21 @@ function parseIds(idsRaw: unknown): number[] {
   );
 }
 
-function csvEscape(value: unknown) {
+function csvEscape(value: unknown, delimiter: string) {
   const text = String(value ?? "");
-  if (!/[;",\r\n]/.test(text)) return text;
-  return `"${text.replace(/"/g, '""')}"`;
+  const escaped = text.replace(/"/g, '""');
+  if (!escaped || /["\r\n\t;,]/.test(escaped) || escaped.includes(delimiter)) {
+    return `"${escaped}"`;
+  }
+  return escaped;
 }
 
-function buildCsvText(rows: Array<Record<string, unknown>>) {
-  if (!rows.length) return "sep=;";
+function buildDelimitedText(rows: Array<Record<string, unknown>>, delimiter: string) {
+  if (!rows.length) return "";
   const headers = Object.keys(rows[0]);
-  const lines = ["sep=;", headers.map(csvEscape).join(";")];
+  const lines = [headers.map((header) => csvEscape(header, delimiter)).join(delimiter)];
   for (const row of rows) {
-    lines.push(headers.map((header) => csvEscape(row[header])).join(";"));
+    lines.push(headers.map((header) => csvEscape(row[header], delimiter)).join(delimiter));
   }
   return lines.join("\r\n");
 }
@@ -490,9 +493,9 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
 
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     if (format === "csv") {
-      const csv = buildCsvText(data);
+      const csv = buildDelimitedText(data, "\t");
       const buf = buildUtf16CsvBuffer(csv);
-      res.setHeader("Content-Type", "text/csv; charset=utf-16le");
+      res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
       res.setHeader("Content-Disposition", `attachment; filename="graduates-${ts}.csv"`);
       return res.send(buf);
     }
@@ -519,9 +522,9 @@ export async function exportGraduatesImportTemplate(req: Request, res: Response,
     const headers = getTemplateHeaders(lang);
 
     if (format === "csv") {
-      const csv = ["sep=;", ...headers.map((row) => row.map(csvEscape).join(";"))].join("\r\n");
+      const csv = headers.map((row) => row.map((cell) => csvEscape(cell, "\t")).join("\t")).join("\r\n");
       const buf = buildUtf16CsvBuffer(csv);
-      res.setHeader("Content-Type", "text/csv; charset=utf-16le");
+      res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
       res.setHeader("Content-Disposition", 'attachment; filename="graduates-import-template.csv"');
       return res.send(buf);
     }
