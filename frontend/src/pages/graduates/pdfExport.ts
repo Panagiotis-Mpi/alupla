@@ -119,7 +119,7 @@ function buildRows(args: {
       [labels.degree_grade]: item.degree_grade == null ? "" : String(item.degree_grade),
       [labels.graduation_date]: formatDateValue(item.graduation_date),
       [labels.oath_date]: formatDateValue(item.oath_date),
-      [labels.study_program]: item.study_program_id && studyProgramName ? `${item.study_program_id} (${studyProgramName})` : studyProgramName,
+      [labels.study_program]: studyProgramName,
       [labels.direction]: directionName,
       [labels.origin_region]: regionName,
       [labels.origin_municipality]: item.origin_municipality ?? ""
