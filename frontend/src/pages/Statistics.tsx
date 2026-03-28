@@ -16,8 +16,6 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip, Legend);
 
-type ViewMode = "year" | "semester";
-
 type NamedCountRow = {
   id?: number | null;
   name?: string | null;
@@ -50,35 +48,9 @@ function buildLineDataset(label: string, data: number[], color: string, backgrou
   };
 }
 
-function ToggleButtons(props: {
-  value: ViewMode;
-  onChange: (value: ViewMode) => void;
-  yearLabel: string;
-  semesterLabel: string;
-}) {
-  return (
-    <div style={{ display: "inline-flex", gap: 8 }}>
-      <button
-        type="button"
-        className={props.value === "year" ? "btn primary" : "btn"}
-        onClick={() => props.onChange("year")}
-      >
-        {props.yearLabel}
-      </button>
-      <button
-        type="button"
-        className={props.value === "semester" ? "btn primary" : "btn"}
-        onClick={() => props.onChange("semester")}
-      >
-        {props.semesterLabel}
-      </button>
-    </div>
-  );
-}
-
-function chartContentWidth(labels: string[], datasetCount = 1) {
+function chartContentWidth(labels: string[], datasetCount = 1, minLabelWidth = 68, maxLabelWidth = 128) {
   const longest = labels.reduce((max, label) => Math.max(max, String(label ?? "").length), 0);
-  const labelWidth = Math.max(68, Math.min(128, longest * 5 + 20));
+  const labelWidth = Math.max(minLabelWidth, Math.min(maxLabelWidth, longest * 5 + 20));
   return Math.max(640, labels.length * Math.max(labelWidth, 44 * Math.max(1, datasetCount)));
 }
 
@@ -88,8 +60,10 @@ function ScrollableLineChart(props: {
   height?: number;
   labels: string[];
   datasetCount?: number;
+  minLabelWidth?: number;
+  maxLabelWidth?: number;
 }) {
-  const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1);
+  const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth, props.maxLabelWidth);
 
   return (
     <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4 }}>
@@ -107,6 +81,8 @@ function ChartCard(props: {
   datasetLabel?: string;
   height?: number;
   datasetCount?: number;
+  minLabelWidth?: number;
+  maxLabelWidth?: number;
 }) {
   return (
     <div className="card" style={cardInnerStyle}>
@@ -117,6 +93,8 @@ function ChartCard(props: {
         height={props.height ?? 280}
         labels={props.labels}
         datasetCount={props.datasetCount}
+        minLabelWidth={props.minLabelWidth}
+        maxLabelWidth={props.maxLabelWidth}
         data={{
           labels: props.labels,
           datasets: [buildLineDataset(props.datasetLabel ?? props.title, props.values, "#2563eb", "rgba(37, 99, 235, 0.28)")],
@@ -142,9 +120,6 @@ export default function Statistics() {
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
   const [data, setData] = React.useState<any | null>(null);
-  const [countsMode, setCountsMode] = React.useState<ViewMode>("year");
-  const [genderMode, setGenderMode] = React.useState<ViewMode>("year");
-
   const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
 
   async function load() {
@@ -168,16 +143,6 @@ export default function Statistics() {
   const avgAge = data?.avg_age === null || data?.avg_age === undefined ? "" : Number(data.avg_age).toFixed(1);
   const avgGrade =
     data?.avg_degree_grade === null || data?.avg_degree_grade === undefined ? "" : Number(data.avg_degree_grade).toFixed(2);
-
-  const termLabel = React.useCallback(
-    (term: string) => {
-      if (term === "winter") return t("table.winter", { defaultValue: "Χειμερινό" });
-      if (term === "spring") return t("table.spring", { defaultValue: "Εαρινό" });
-      if (term === "september") return t("table.september", { defaultValue: "Σεπτέμβριος" });
-      return term;
-    },
-    [t]
-  );
 
   const seriesFromRows = React.useCallback(
     (
@@ -211,129 +176,61 @@ export default function Statistics() {
     [data]
   );
 
-  const bySemesterRows = React.useMemo(
-    () =>
-      (data?.by_term ?? []).map((r: any) => ({
-        year: String(r.year),
-        term: String(r.term),
-        label: `${String(r.year)} ${termLabel(String(r.term))}`,
-        value: Number(r.count) || 0,
-      })),
-    [data, termLabel]
-  );
-
-  const countChartData = React.useMemo(() => {
-    if (countsMode === "year") {
-      return {
-        labels: byYearRows.map((r) => r.label),
-        datasets: [
-          buildLineDataset(
-            t("sections.byYear", { defaultValue: "Πλήθος αποφοίτων ανά έτος" }),
-            byYearRows.map((r) => r.value),
-            "#2563eb",
-            "rgba(37, 99, 235, 0.28)"
-          ),
-        ],
-      };
-    }
-
-    const labels = Array.from(new Set(bySemesterRows.map((r) => r.year)));
-    const termOrder = ["winter", "spring", "september"] as const;
-    const termColors: Record<string, string> = {
-      winter: "#2563eb",
-      spring: "#60a5fa",
-      september: "#93c5fd",
-    };
-
-    return {
-      labels,
-      datasets: termOrder.map((term) =>
+  const countChartData = React.useMemo(
+    () => ({
+      labels: byYearRows.map((r) => r.label),
+      datasets: [
         buildLineDataset(
-          termLabel(term),
-          labels.map((year) => bySemesterRows.find((r) => r.year === year && r.term === term)?.value ?? 0),
-          termColors[term],
-          `${termColors[term]}33`,
-          false
-        )
-      ),
-    };
-  }, [bySemesterRows, byYearRows, countsMode, t, termLabel]);
+          t("sections.byYear", { defaultValue: "Πλήθος αποφοίτων ανά έτος" }),
+          byYearRows.map((r) => r.value),
+          "#2563eb",
+          "rgba(37, 99, 235, 0.28)"
+        ),
+      ],
+    }),
+    [byYearRows, t]
+  );
 
   const countChartOptions = React.useMemo(
     () =>
       ({
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend:
-            countsMode === "semester"
-              ? { display: true, position: "bottom" as const }
-              : { display: false },
-        },
+        plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { autoSkip: false, maxRotation: 0 } },
           y: { beginAtZero: true, ticks: yTicks },
         },
       }) as const,
-    [countsMode]
+    []
   );
 
   const genderChartData = React.useMemo(() => {
-    if (genderMode === "year") {
-      const rows = (data?.gender_by_year ?? []).map((r: any) => ({
-        label: String(r.year),
-        male: Number(r.male) || 0,
-        female: Number(r.female) || 0,
-      }));
+    const rows = (data?.gender_by_year ?? []).map((r: any) => ({
+      label: String(r.year),
+      male: Number(r.male) || 0,
+      female: Number(r.female) || 0,
+    }));
 
-      return {
-        labels: rows.map((r: any) => r.label),
-        datasets: [
-          buildLineDataset(
-            t("table.male", { defaultValue: "Άνδρες" }),
-            rows.map((r: any) => r.male),
-            "#2563eb",
-            "rgba(37, 99, 235, 0.28)"
-          ),
-          buildLineDataset(
-            t("table.female", { defaultValue: "Γυναίκες" }),
-            rows.map((r: any) => r.female),
-            "#60a5fa",
-            "rgba(96, 165, 250, 0.22)",
-            false
-          ),
-        ],
-      };
-    }
-
-    const labels = Array.from(new Set((data?.gender_by_term ?? []).map((r: any) => String(r.year))));
-    const termOrder = ["winter", "spring", "september"] as const;
     return {
-      labels,
-      datasets: termOrder.flatMap((term) => [
+      labels: rows.map((r: any) => r.label),
+      datasets: [
         buildLineDataset(
-          `${t("table.male", { defaultValue: "Άνδρες" })} ${termLabel(term)}`,
-          labels.map(
-            (year) =>
-              (data?.gender_by_term ?? []).find((r: any) => String(r.year) === year && String(r.term) === term)?.male ?? 0
-          ),
+          t("table.male", { defaultValue: "Άνδρες" }),
+          rows.map((r: any) => r.male),
           "#2563eb",
-          "rgba(37, 99, 235, 0.22)",
-          false
+          "rgba(37, 99, 235, 0.28)"
         ),
         buildLineDataset(
-          `${t("table.female", { defaultValue: "Γυναίκες" })} ${termLabel(term)}`,
-          labels.map(
-            (year) =>
-              (data?.gender_by_term ?? []).find((r: any) => String(r.year) === year && String(r.term) === term)?.female ?? 0
-          ),
+          t("table.female", { defaultValue: "Γυναίκες" }),
+          rows.map((r: any) => r.female),
           "#60a5fa",
           "rgba(96, 165, 250, 0.22)",
           false
         ),
-      ]),
+      ],
     };
-  }, [data, genderMode, t, termLabel]);
+  }, [data, t]);
 
   const ageGroups = seriesFromRows(data?.age_groups);
   const birthYears = seriesFromRows(data?.birth_year_distribution, { labelKey: "year" });
@@ -348,8 +245,6 @@ export default function Statistics() {
 
   function downloadAnon() {
     const url = publicAnonExportUrl({
-      counts_mode: countsMode,
-      gender_mode: genderMode,
     });
     const a = document.createElement("a");
     a.href = url;
@@ -395,13 +290,6 @@ export default function Statistics() {
         <div className="card" style={cardInnerStyle}>
           <div className="topbar" style={compactTopbarStyle}>
             <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
-            <div className="spacer" />
-            <ToggleButtons
-              value={countsMode}
-              onChange={setCountsMode}
-              yearLabel={t("filters.byYear", { defaultValue: "Ανά έτος" })}
-              semesterLabel={t("filters.bySemester", { defaultValue: "Ανά εξάμηνο" })}
-            />
           </div>
           <ScrollableLineChart height={260} labels={(countChartData as any).labels ?? []} datasetCount={((countChartData as any).datasets ?? []).length} data={countChartData as any} options={countChartOptions as any} />
         </div>
@@ -409,13 +297,6 @@ export default function Statistics() {
         <div className="card" style={cardInnerStyle}>
           <div className="topbar" style={compactTopbarStyle}>
             <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
-            <div className="spacer" />
-            <ToggleButtons
-              value={genderMode}
-              onChange={setGenderMode}
-              yearLabel={t("filters.byYear", { defaultValue: "Ανά έτος" })}
-              semesterLabel={t("filters.bySemester", { defaultValue: "Ανά εξάμηνο" })}
-            />
           </div>
           <ScrollableLineChart
             height={260}
@@ -444,7 +325,7 @@ export default function Statistics() {
 
       <div className="grid cols2" style={{ gap: 14 }}>
         <ChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} />
-        <ChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} />
+        <ChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
       </div>
 
       <div className="grid cols2" style={{ gap: 14 }}>

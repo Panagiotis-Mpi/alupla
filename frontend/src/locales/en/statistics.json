@@ -27,8 +27,8 @@
     "birthYear": "Birth year distribution",
     "studyProgram": "Study program distribution",
     "direction": "Direction distribution",
-    "originRegion": "Region distribution",
-    "originMunicipality": "Top 10 origin municipalities / cities",
+    "originRegion": "Graduate distribution in regions",
+    "originMunicipality": "Graduate distribution in cities",
     "oathYear": "Graduates per oath year"
   },
   "table": {
