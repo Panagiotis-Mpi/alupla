@@ -303,20 +303,27 @@ function parseIds(idsRaw: unknown): number[] {
   );
 }
 
-function csvEscape(value: unknown) {
+function csvEscape(value: unknown, delimiter = ";") {
   const text = String(value ?? "");
-  if (!/[",\n]/.test(text)) return text;
+  if (!text.includes('"') && !text.includes(delimiter) && !text.includes("\n") && !text.includes("\r")) {
+    return text;
+  }
   return `"${text.replace(/"/g, '""')}"`;
 }
 
-function buildCsvText(rows: Array<Record<string, unknown>>) {
-  if (!rows.length) return "";
+function buildCsvText(rows: Array<Record<string, unknown>>, delimiter = ";") {
+  const prefix = `sep=${delimiter}\r\n`;
+  if (!rows.length) return prefix;
   const headers = Object.keys(rows[0]);
-  const lines = [headers.map(csvEscape).join(",")];
+  const lines = [headers.map((header) => csvEscape(header, delimiter)).join(delimiter)];
   for (const row of rows) {
-    lines.push(headers.map((header) => csvEscape(row[header])).join(","));
+    lines.push(headers.map((header) => csvEscape(row[header], delimiter)).join(delimiter));
   }
-  return lines.join("\n");
+  return `${prefix}${lines.join("\r\n")}`;
+}
+
+function encodeCsvForExcel(text: string) {
+  return `\ufeff${text}`;
 }
 
 function formatGenderValue(value: unknown) {
@@ -578,11 +585,10 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
 
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     if (format === "csv") {
-      const csv = buildCsvText(data, ";");
-      const payload = encodeCsvForExcel(csv);
-      res.setHeader("Content-Type", "text/csv; charset=utf-16le");
+      const csv = buildCsvText(data);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", `attachment; filename="graduates-${ts}.csv"`);
-      return res.send(payload);
+      return res.send(encodeCsvForExcel(csv));
     }
 
 
@@ -608,10 +614,11 @@ export async function exportGraduatesImportTemplate(req: Request, res: Response,
     const headers = getTemplateHeaders(lang);
 
     if (format === "csv") {
-      const csv = headers.map((row) => row.map(csvEscape).join(",")).join("\n");
+      const csvLines = headers.map((row) => row.map(csvEscape).join(";"));
+      const csv = `sep=;\r\n${csvLines.join("\r\n")}`;
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", 'attachment; filename="graduates-import-template.csv"');
-      return res.send(`﻿${csv}`);
+      return res.send(encodeCsvForExcel(csv));
     }
 
     const ws = XLSX.utils.aoa_to_sheet(headers);
