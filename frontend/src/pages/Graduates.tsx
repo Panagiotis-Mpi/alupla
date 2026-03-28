@@ -156,6 +156,13 @@ function buildImportDetail(t: (key: string, options?: Record<string, unknown>) =
   return t("toast.importSummaryHuman", { inserted, updated, skipped });
 }
 
+function normalizeImportErrorMessage(message: string, t: (key: string, options?: Record<string, unknown>) => string) {
+  if (message === "Column birth_year is no longer accepted. Use birth_date instead.") {
+    return t("toast.birthYearRemoved");
+  }
+  return message;
+}
+
 function buildImportTitle(t: (key: string, options?: Record<string, unknown>) => string, inserted: number, updated: number, skipped: number) {
   if (inserted > 0 && updated > 0) {
     return t("toast.importCompletedMixed");
@@ -368,7 +375,7 @@ export default function Graduates() {
         await load();
       }
     } catch (error: any) {
-      const reason = error?.message ?? t("toast.somethingWentWrong");
+      const reason = normalizeImportErrorMessage(error?.message ?? t("toast.somethingWentWrong"), t);
       showToast({
         type: "error",
         title: t("toast.importFailed"),

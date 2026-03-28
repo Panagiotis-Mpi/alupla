@@ -74,7 +74,7 @@ function getColumnLabels(lang: ExportLang) {
       father_name: "Father name",
       gender: "Gender",
       entry_year: "Entry year",
-      birth_year: "Birth year",
+      birth_date: "Birth date",
       degree_grade: "Degree grade",
       graduation_date: "Graduation date",
       oath_date: "Oath date",
@@ -93,7 +93,7 @@ function getColumnLabels(lang: ExportLang) {
     father_name: "Πατρώνυμο",
     gender: "Φύλο",
     entry_year: "Έτος εισαγωγής",
-    birth_year: "Έτος γέννησης",
+    birth_date: "Ημερομηνία γέννησης",
     degree_grade: "Βαθμός πτυχίου",
     graduation_date: "Ημ. αποφοίτησης",
     oath_date: "Ημ. ορκωμοσίας",
@@ -335,7 +335,7 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
       [labels.father_name]: item.father_name ?? "",
       [labels.gender]: formatGenderValue(item.gender),
       [labels.entry_year]: item.entry_year ?? "",
-      [labels.birth_year]: String(item.birth_date ?? "").slice(0, 4),
+      [labels.birth_date]: formatDateDisplay(item.birth_date),
       [labels.degree_grade]: item.degree_grade ?? "",
       [labels.graduation_date]: formatDateDisplay(item.graduation_date),
       [labels.oath_date]: formatDateDisplay(item.oath_date),
@@ -357,7 +357,7 @@ function getTemplateHeaders(lang: ExportLang) {
     labels.father_name,
     labels.gender,
     labels.entry_year,
-    labels.birth_year,
+    labels.birth_date,
     labels.degree_grade,
     labels.graduation_date,
     labels.oath_date,
@@ -634,11 +634,17 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       origin_municipality: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_municipality]),
     };
 
-    const required = ["student_number","ad_code","last_name","first_name","father_name","gender","entry_year","graduation_date","oath_date","degree_grade","study_program"];
+    const required = ["student_number","ad_code","last_name","first_name","father_name","gender","entry_year","graduation_date","oath_date","degree_grade","study_program","birth_date"];
     const missingRequired = required.filter((k) => (idx as any)[k] === -1);
     if (missingRequired.length) {
       return res.status(400).json({
         error: { message: "Missing required columns", details: { missing: missingRequired } }
+      });
+    }
+
+    if (idx.birth_year >= 0) {
+      return res.status(400).json({
+        error: { message: "Column birth_year is no longer accepted. Use birth_date instead." }
       });
     }
 
@@ -667,9 +673,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const graduation_date = toDateOnly(get("graduation_date"));
       const oath_date = toDateOnly(get("oath_date"));
       const degree_grade = toNumber(get("degree_grade"));
-      const birth_year_raw = idx.birth_year >= 0 ? toInt(get("birth_year" as any)) : null;
-      const birth_date_raw = idx.birth_date >= 0 ? toDateOnly(get("birth_date" as any)) : null;
-      const birth_date = birth_date_raw || (birth_year_raw ? `${birth_year_raw}-01-01` : null);
+      const birth_date = idx.birth_date >= 0 ? toDateOnly(get("birth_date" as any)) : null;
       const study_program_source = idx.study_program >= 0 ? get("study_program") : get("study_program_id");
       const study_program_id = resolveStudyProgramId(study_program_source, programsById);
       const program_direction_source = idx.program_direction >= 0 ? get("program_direction") : get("program_direction_id");
@@ -690,7 +694,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       if (!graduation_date) rowProblems.push({ row: rowNum, column: "graduation_date", message: "Invalid date", value: get("graduation_date") });
       if (!oath_date) rowProblems.push({ row: rowNum, column: "oath_date", message: "Invalid date", value: get("oath_date") });
       if (degree_grade === null) rowProblems.push({ row: rowNum, column: "degree_grade", message: "Invalid number", value: get("degree_grade") });
-      if (!birth_date) rowProblems.push({ row: rowNum, column: "birth_date", message: "Invalid date", value: idx.birth_date >= 0 ? get("birth_date" as any) : get("birth_year" as any) });
+      if (!birth_date) rowProblems.push({ row: rowNum, column: "birth_date", message: "Invalid date", value: get("birth_date" as any) });
       if (!study_program_id) rowProblems.push({ row: rowNum, column: "study_program", message: "Invalid value", value: study_program_source });
       if (!origin_region_id && String(origin_region_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_region", message: "Invalid value", value: origin_region_source });
 

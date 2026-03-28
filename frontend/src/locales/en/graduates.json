@@ -88,7 +88,7 @@
     "issueFieldTitle": "Field {{field}} · {{count}} rows",
     "issueRows": "Affected rows: {{rows}}",
     "hintGender": "Accepted values: M, F, Άνδρας or Γυναίκα.",
-    "hintDate": "Use a valid date in YYYY-MM-DD format.",
+    "hintDate": "Use a valid date in dd/mm/yyyy format, e.g. 05/09/2000.",
     "hintYear": "Enter a year using numbers only, e.g. 2020.",
     "hintGrade": "Enter a numeric grade, e.g. 7.50.",
     "hintStudyProgram": "The study program must already exist in the system.",
@@ -99,6 +99,7 @@
     "hintAd": "A.D. is required and must be filled in correctly.",
     "hintAdDuplicate": "A.D. must be unique and must not be repeated in the file.",
     "hintText": "The field must be filled in with valid text.",
+    "birthYearRemoved": "The Birth year column is no longer accepted. Use Birth date only.",
     "hintGeneric": "Check the field value and correct it according to the template format."
   },
   "confirm": {
