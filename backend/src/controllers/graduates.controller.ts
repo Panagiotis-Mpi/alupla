@@ -319,39 +319,11 @@ function buildCsvText(rows: Array<Record<string, unknown>>) {
   return `sep=;\r\n${lines.join("\r\n")}`;
 }
 
-const WINDOWS_1253_MAP = new Map<string, number>([
-  ["€", 0x80], ["‚", 0x82], ["ƒ", 0x83], ["„", 0x84], ["…", 0x85], ["†", 0x86], ["‡", 0x87], ["‰", 0x89],
-  ["‹", 0x8b], ["‘", 0x91], ["’", 0x92], ["“", 0x93], ["”", 0x94], ["•", 0x95], ["–", 0x96], ["—", 0x97],
-  ["™", 0x99], ["›", 0x9b], [" ", 0xa0], ["΅", 0xa1], ["Ά", 0xa2], ["£", 0xa3], ["¤", 0xa4], ["¥", 0xa5],
-  ["¦", 0xa6], ["§", 0xa7], ["¨", 0xa8], ["©", 0xa9], ["«", 0xab], ["¬", 0xac], ["®", 0xae], ["―", 0xaf],
-  ["°", 0xb0], ["±", 0xb1], ["²", 0xb2], ["³", 0xb3], ["΄", 0xb4], ["µ", 0xb5], ["¶", 0xb6], ["·", 0xb7],
-  ["Έ", 0xb8], ["Ή", 0xb9], ["Ί", 0xba], ["»", 0xbb], ["Ό", 0xbc], ["½", 0xbd], ["Ύ", 0xbe], ["Ώ", 0xbf],
-  ["ΐ", 0xc0], ["Α", 0xc1], ["Β", 0xc2], ["Γ", 0xc3], ["Δ", 0xc4], ["Ε", 0xc5], ["Ζ", 0xc6], ["Η", 0xc7],
-  ["Θ", 0xc8], ["Ι", 0xc9], ["Κ", 0xca], ["Λ", 0xcb], ["Μ", 0xcc], ["Ν", 0xcd], ["Ξ", 0xce], ["Ο", 0xcf],
-  ["Π", 0xd0], ["Ρ", 0xd1], ["Σ", 0xd3], ["Τ", 0xd4], ["Υ", 0xd5], ["Φ", 0xd6], ["Χ", 0xd7], ["Ψ", 0xd8],
-  ["Ω", 0xd9], ["Ϊ", 0xda], ["Ϋ", 0xdb], ["ά", 0xdc], ["έ", 0xdd], ["ή", 0xde], ["ί", 0xdf], ["ΰ", 0xe0],
-  ["α", 0xe1], ["β", 0xe2], ["γ", 0xe3], ["δ", 0xe4], ["ε", 0xe5], ["ζ", 0xe6], ["η", 0xe7], ["θ", 0xe8],
-  ["ι", 0xe9], ["κ", 0xea], ["λ", 0xeb], ["μ", 0xec], ["ν", 0xed], ["ξ", 0xee], ["ο", 0xef], ["π", 0xf0],
-  ["ρ", 0xf1], ["ς", 0xf2], ["σ", 0xf3], ["τ", 0xf4], ["υ", 0xf5], ["φ", 0xf6], ["χ", 0xf7], ["ψ", 0xf8],
-  ["ω", 0xf9], ["ϊ", 0xfa], ["ϋ", 0xfb], ["ό", 0xfc], ["ύ", 0xfd], ["ώ", 0xfe],
-]);
-
 function encodeCsvForExcel(text: string) {
   const normalized = text.replace(/\r?\n/g, "\r\n");
-  const bytes: number[] = [];
-
-  for (const char of normalized) {
-    const code = char.charCodeAt(0);
-    if (code <= 0x7f) {
-      bytes.push(code);
-      continue;
-    }
-
-    const mapped = WINDOWS_1253_MAP.get(char);
-    bytes.push(mapped ?? 0x3f);
-  }
-
-  return Buffer.from(bytes);
+  const bom = Buffer.from([0xff, 0xfe]);
+  const body = Buffer.from(normalized, "utf16le");
+  return Buffer.concat([bom, body]);
 }
 
 function formatGenderValue(value: unknown) {
@@ -614,7 +586,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     if (format === "csv") {
       const csv = buildCsvText(data);
-      res.setHeader("Content-Type", "text/csv; charset=windows-1253");
+      res.setHeader("Content-Type", "text/csv; charset=utf-16le");
       res.setHeader("Content-Disposition", `attachment; filename="graduates-${ts}.csv"`);
       return res.send(encodeCsvForExcel(csv));
     }
@@ -644,7 +616,7 @@ export async function exportGraduatesImportTemplate(req: Request, res: Response,
     if (format === "csv") {
       const csvLines = headers.map((row) => row.map((value) => csvEscape(value)).join(";"));
       const csv = `sep=;\r\n${csvLines.join("\r\n")}`;
-      res.setHeader("Content-Type", "text/csv; charset=windows-1253");
+      res.setHeader("Content-Type", "text/csv; charset=utf-16le");
       res.setHeader("Content-Disposition", 'attachment; filename="graduates-import-template.csv"');
       return res.send(encodeCsvForExcel(csv));
     }
