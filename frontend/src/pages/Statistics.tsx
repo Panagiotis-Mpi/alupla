@@ -839,16 +839,6 @@ export default function Statistics() {
     }
   }, [directionProgramOptions, selectedGenderProgramId]);
 
-  const genderProgramSelect = directionProgramOptions.length ? (
-    <select value={selectedGenderProgramId} onChange={(e) => setSelectedGenderProgramId(e.target.value)} style={selectStyle}>
-      {directionProgramOptions.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  ) : null;
-
   const topButtonStyle: React.CSSProperties = {
     minHeight: 48,
     width: "100%",
@@ -873,6 +863,16 @@ export default function Statistics() {
     fontWeight: 600,
     outline: "none",
   };
+
+  const genderProgramSelect = directionProgramOptions.length ? (
+    <select value={selectedGenderProgramId} onChange={(e) => setSelectedGenderProgramId(e.target.value)} style={selectStyle}>
+      {directionProgramOptions.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  ) : null;
 
   const allChartsSelected = allChartIds.length > 0 && selectedChartIds.length === allChartIds.length;
 
