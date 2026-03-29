@@ -36,7 +36,7 @@
     "originMunicipality": "Graduate distribution in cities",
     "avgGradeByProgram": "Average grade by study program",
     "genderByProgram": "Gender ratio by study program",
-    "timeToDegreeDistribution": "Time to degree distribution"
+    "timeToDegreeDistribution": "Graduates by years needed to complete studies"
   },
   "table": {
     "year": "Year",

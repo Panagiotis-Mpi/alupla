@@ -36,7 +36,7 @@
     "originMunicipality": "Κατανομή αποφοίτων σε πόλεις",
     "avgGradeByProgram": "Μ.Ο. βαθμού ανά πρόγραμμα σπουδών",
     "genderByProgram": "Αναλογία φύλου ανά πρόγραμμα σπουδών",
-    "timeToDegreeDistribution": "Κατανομή χρόνου αποφοίτησης"
+    "timeToDegreeDistribution": "Πλήθος αποφοίτων ανά χρόνια ολοκλήρωσης σπουδών"
   },
   "table": {
     "year": "Έτος",

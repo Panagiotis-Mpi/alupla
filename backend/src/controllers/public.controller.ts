@@ -479,15 +479,16 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
-    const directionDistribution = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number }>(
+    const directionDistribution = await sequelize.query<{ id: number | null; study_program_id: number | null; name_el: string | null; name_en: string | null; count: number }>(
       `SELECT pd.id as id,
+              pd.study_program_id as study_program_id,
               pd.name_el as name_el,
               pd.name_en as name_en,
               COUNT(*)::int as count
        FROM graduates g
        LEFT JOIN program_directions pd ON pd.id = g.program_direction_id
        ${sqlWhere}
-       GROUP BY pd.id, pd.name_el, pd.name_en
+       GROUP BY pd.id, pd.study_program_id, pd.name_el, pd.name_en
        ORDER BY count DESC, pd.name_el ASC, pd.name_en ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );

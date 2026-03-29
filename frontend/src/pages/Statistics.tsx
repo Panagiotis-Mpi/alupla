@@ -19,6 +19,7 @@ ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, BarEleme
 
 type NamedCountRow = {
   id?: number | null;
+  study_program_id?: number | null;
   name?: string | null;
   name_el?: string | null;
   name_en?: string | null;
@@ -48,6 +49,8 @@ const sectionMenuStyle: React.CSSProperties = { display: "grid", gap: 12, width:
 const sectionButtonsStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%", gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
 const solidBlueFill = "rgba(37, 99, 235, 0.72)";
 const pinkFill = "rgba(219, 39, 119, 0.72)";
+const chartGridColor = "rgba(148, 163, 184, 0.22)";
+const chartTickColor = "#475569";
 
 function buildBarDataset(label: string, data: number[], color = "#2563eb", backgroundColor = solidBlueFill) {
   return {
@@ -57,10 +60,86 @@ function buildBarDataset(label: string, data: number[], color = "#2563eb", backg
     backgroundColor,
     borderWidth: 1.5,
     borderRadius: 8,
+    borderSkipped: false,
     barPercentage: 0.62,
     categoryPercentage: 0.72,
     maxBarThickness: 42,
   };
+}
+
+function buildBarChartOptions(options?: {
+  horizontal?: boolean;
+  stacked?: boolean;
+  fullLabelTooltip?: boolean;
+  labels?: string[];
+  beginAtZero?: boolean;
+  min?: number;
+  max?: number;
+}) {
+  const labels = options?.labels ?? [];
+  if (options?.horizontal) {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: "y",
+      plugins: {
+        legend: { display: false },
+        tooltip: options?.fullLabelTooltip
+          ? {
+              callbacks: {
+                title: (items: any[]) => String(items?.[0]?.label ?? ""),
+              },
+            }
+          : undefined,
+      },
+      scales: {
+        x: {
+          beginAtZero: options?.beginAtZero ?? true,
+          min: options?.min,
+          max: options?.max,
+          ticks: { precision: 0, color: chartTickColor },
+          grid: { color: chartGridColor },
+          border: { display: false },
+        },
+        y: {
+          ticks: {
+            autoSkip: false,
+            color: "#334155",
+            font: { size: 12, weight: "600" },
+            callback: function (_: any, index: number) {
+              const label = String(labels[index] ?? "");
+              return label.length > 34 ? `${label.slice(0, 34)}…` : label;
+            },
+          },
+          grid: { display: false },
+          border: { display: false },
+        },
+      },
+    } as any;
+  }
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: {
+        stacked: !!options?.stacked,
+        ticks: { autoSkip: false, maxRotation: 0, minRotation: 0, color: chartTickColor, font: { size: 13, weight: "600" } },
+        grid: { display: false },
+        border: { display: false },
+      },
+      y: {
+        beginAtZero: options?.beginAtZero ?? true,
+        stacked: !!options?.stacked,
+        min: options?.min,
+        max: options?.max,
+        ticks: { precision: 0, color: chartTickColor },
+        grid: { color: chartGridColor },
+        border: { display: false },
+      },
+    },
+  } as any;
 }
 
 function buildLineDataset(label: string, data: number[], color: string, background: string, fill = true) {
@@ -233,41 +312,11 @@ function BarChartCard(props: {
           labels: props.labels,
           datasets: [buildBarDataset(props.datasetLabel ?? props.title, props.values)],
         }}
-        options={{
-          responsive: true,
-          maintainAspectRatio: false,
-          indexAxis: props.horizontal ? "y" : "x",
-          plugins: {
-            legend: { display: false },
-            tooltip: props.fullLabelTooltip
-              ? {
-                  callbacks: {
-                    title: (items: any[]) => String(items?.[0]?.label ?? ""),
-                  },
-                }
-              : undefined,
-          },
-          scales: props.horizontal
-            ? {
-                x: { beginAtZero: true, ticks: yTicks, grid: { color: "rgba(148, 163, 184, 0.22)" } },
-                y: {
-                  ticks: {
-                    autoSkip: false,
-                    color: "#334155",
-                    font: { size: 12, weight: "600" },
-                    callback: function (_: any, index: number) {
-                      const label = String(props.labels[index] ?? "");
-                      return label.length > 34 ? `${label.slice(0, 34)}…` : label;
-                    },
-                  },
-                  grid: { display: false },
-                },
-              }
-            : {
-                x: { ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 }, grid: { display: false } },
-                y: { beginAtZero: true, ticks: yTicks },
-              },
-        } as any}
+        options={buildBarChartOptions({
+          horizontal: props.horizontal,
+          fullLabelTooltip: props.fullLabelTooltip,
+          labels: props.labels,
+        })}
       />
     </div>
   );
@@ -295,21 +344,8 @@ function MultiBarChartCard(props: {
         maxLabelWidth={props.maxLabelWidth}
         data={{ labels: props.labels, datasets: props.datasets }}
         options={{
-          responsive: true,
-          maintainAspectRatio: false,
+          ...buildBarChartOptions({ labels: props.labels, stacked: !!props.stacked }),
           plugins: { legend: { position: "bottom" as const } },
-          scales: {
-            x: {
-              stacked: !!props.stacked,
-              ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 },
-              grid: { display: false },
-            },
-            y: {
-              beginAtZero: true,
-              stacked: !!props.stacked,
-              ticks: yTicks,
-            },
-          },
         } as any}
       />
     </div>
@@ -470,58 +506,8 @@ function VerticalBarChartCard(props: {
             },
           ],
         }}
-        options={{
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: {
-              ticks: { color: "#334155", font: { size: 13, weight: "600" } },
-              grid: { display: false },
-            },
-            y: {
-              beginAtZero: false,
-              min: props.minValue ?? 0,
-              max: props.maxValue,
-              ticks: { color: "#64748b" },
-              grid: { color: "rgba(148, 163, 184, 0.22)" },
-            },
-          },
-        } as any}
+        options={buildBarChartOptions({ labels: props.labels, beginAtZero: false, min: props.minValue ?? 0, max: props.maxValue })}
       />
-    </div>
-  );
-}
-
-function RankingBarsCard(props: {
-  title: string;
-  labels: string[];
-  values: number[];
-}) {
-  const pairs = props.labels.map((label, index) => ({ label, value: Number(props.values[index] ?? 0) }));
-  const maxValue = Math.max(...pairs.map((item) => item.value), 1);
-
-  return (
-    <div className="card" style={cardInnerStyle}>
-      <div className="topbar" style={compactTopbarStyle}>
-        <h3 style={{ margin: 0 }}>{props.title}</h3>
-      </div>
-      <div style={{ display: "grid", gap: 14 }}>
-        {pairs.map((item) => {
-          const width = (item.value / maxValue) * 100;
-          return (
-            <div key={item.label} style={{ display: "grid", gap: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-end" }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#334155", lineHeight: 1.35, maxWidth: "78%" }}>{item.label}</div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>{item.value}</div>
-              </div>
-              <div style={{ height: 14, borderRadius: 999, background: "rgba(148, 163, 184, 0.16)", overflow: "hidden" }}>
-                <div style={{ width: `${width}%`, height: "100%", borderRadius: 999, background: "linear-gradient(90deg, #2563eb 0%, #60a5fa 100%)" }} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -533,6 +519,7 @@ export default function Statistics() {
   const [err, setErr] = React.useState<string | null>(null);
   const [data, setData] = React.useState<any | null>(null);
   const [activeGroup, setActiveGroup] = React.useState<"overview" | "demographics" | "academic" | "geography">("overview");
+  const [selectedDirectionProgramId, setSelectedDirectionProgramId] = React.useState<string>("all");
 
   const activeLang = i18n.language?.toLowerCase().startsWith("en") ? "en" : "el";
 
@@ -655,7 +642,12 @@ export default function Statistics() {
   const avgGradeByProgram = seriesFromRows(data?.avg_grade_by_program, { labelKey: "name", valueKey: "avg" });
   const gradeBins = seriesFromRows(data?.degree_grade_bins);
   const studyPrograms = seriesFromRows(data?.study_program_distribution, { labelKey: "name" });
-  const directions = seriesFromRows(data?.direction_distribution, { labelKey: "name" });
+  const directionRows = React.useMemo(() => (Array.isArray(data?.direction_distribution) ? (data.direction_distribution as NamedCountRow[]) : []), [data]);
+  const filteredDirectionRows = React.useMemo(() => {
+    if (selectedDirectionProgramId === "all") return directionRows;
+    return directionRows.filter((row) => String(row.study_program_id ?? "") === selectedDirectionProgramId);
+  }, [directionRows, selectedDirectionProgramId]);
+  const directions = seriesFromRows(filteredDirectionRows, { labelKey: "name" });
   const regions = seriesFromRows(data?.origin_region_distribution, { labelKey: "name" });
   const municipalities = seriesFromRows(data?.origin_municipality_distribution, { labelKey: "name" });
   const yearsToDegree = seriesFromRows(data?.avg_years_to_degree_by_entry_year, { labelKey: "entry_year", valueKey: "avg_years" });
@@ -703,6 +695,16 @@ export default function Statistics() {
   const busiestCityIndex = municipalities.values.length ? municipalities.values.findIndex((value) => value === Math.max(...municipalities.values)) : -1;
   const busiestCity = busiestCityIndex >= 0 ? municipalities.labels[busiestCityIndex] : "-";
 
+  const directionProgramOptions = React.useMemo(() => {
+    const rows = Array.isArray(data?.study_program_distribution) ? (data.study_program_distribution as NamedCountRow[]) : [];
+    return rows
+      .filter((row) => row.id !== null && row.id !== undefined)
+      .map((row) => ({
+        value: String(row.id),
+        label: String(activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name ?? "-"),
+      }));
+  }, [activeLang, data]);
+
   const topButtonStyle: React.CSSProperties = {
     minHeight: 48,
     width: "100%",
@@ -713,6 +715,19 @@ export default function Statistics() {
     padding: "0 18px",
     fontSize: 14,
     whiteSpace: "nowrap",
+  };
+
+
+  const selectStyle: React.CSSProperties = {
+    minHeight: 40,
+    borderRadius: 12,
+    border: "1px solid rgba(148, 163, 184, 0.4)",
+    padding: "0 14px",
+    background: "#fff",
+    color: "#0f172a",
+    fontSize: 14,
+    fontWeight: 600,
+    outline: "none",
   };
 
   function downloadAnon() {
@@ -831,10 +846,30 @@ export default function Statistics() {
               <ChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} />
               <BarChartCard title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
               <VerticalBarChartCard title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} height={320} />
-              <DoughnutComparisonCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} />
+              <BarChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
               <BarChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
               <BarChartCard title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
-              <RankingBarsCard title={t("sections.direction")} labels={directions.labels} values={directions.values} />
+              <div className="card" style={cardInnerStyle}>
+                <div className="topbar" style={{ ...compactTopbarStyle, display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
+                  <h3 style={{ margin: 0 }}>{t("sections.direction")}</h3>
+                  <select value={selectedDirectionProgramId} onChange={(e) => setSelectedDirectionProgramId(e.target.value)} style={selectStyle}>
+                    <option value="all">{t("filters.all")}</option>
+                    {directionProgramOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <ScrollableBarChart
+                  height={Math.max(320, directions.labels.length * 46)}
+                  labels={directions.labels}
+                  minLabelWidth={112}
+                  maxLabelWidth={176}
+                  data={{ labels: directions.labels, datasets: [buildBarDataset(t("sections.direction"), directions.values)] }}
+                  options={buildBarChartOptions({ horizontal: true, fullLabelTooltip: true, labels: directions.labels })}
+                />
+              </div>
             </div>
           </div>
         ) : null}
