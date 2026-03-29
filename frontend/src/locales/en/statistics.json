@@ -60,7 +60,12 @@
   "actions": {
     "exportExcel": "Export Excel",
     "export": "Export",
-    "selectAll": "All"
+    "selectAll": "All",
+    "exportSelectionTitle": "Chart selection",
+    "exportSelectionSubtitle": "Choose which charts you want to download",
+    "exportSelected": "Export selected",
+    "cancel": "Cancel",
+    "close": "Close"
   },
   "groups": {
     "overview": "Overview",

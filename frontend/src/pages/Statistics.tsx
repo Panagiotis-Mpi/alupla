@@ -461,7 +461,9 @@ export default function Statistics() {
   const [activeGroup, setActiveGroup] = React.useState<"overview" | "demographics" | "academic" | "geography">("overview");
   const [selectedDirectionProgramId, setSelectedDirectionProgramId] = React.useState<string>("all");
   const [exportOpen, setExportOpen] = React.useState(false);
+  const [selectedExportFormat, setSelectedExportFormat] = React.useState<"xlsx" | "csv" | "png" | null>(null);
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const exportModalBodyRef = React.useRef<HTMLDivElement | null>(null);
   const pageRef = React.useRef<HTMLDivElement | null>(null);
   const exportSurfaceRef = React.useRef<HTMLDivElement | null>(null);
   const initializedExportSelectionRef = React.useRef(false);
@@ -552,6 +554,18 @@ export default function Statistics() {
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  React.useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setExportOpen(false);
+        setSelectedExportFormat(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const total = Number(data?.total ?? 0);
@@ -746,6 +760,18 @@ export default function Statistics() {
 
   const allChartsSelected = allChartIds.length > 0 && selectedChartIds.length === allChartIds.length;
 
+  const selectionRowStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(148, 163, 184, 0.22)",
+    background: "#fff",
+    color: "#0f172a",
+    cursor: "pointer",
+  };
+
   function toggleAllCharts() {
     setSelectedChartIds((prev) => (prev.length === allChartIds.length ? [] : [...allChartIds]));
   }
@@ -762,6 +788,22 @@ export default function Statistics() {
     setSelectedChartIds((prev) => (prev.includes(chartId) ? prev.filter((id) => id !== chartId) : [...prev, chartId]));
   }
 
+  const exportFormatLabel = React.useMemo(() => {
+    if (selectedExportFormat === "xlsx") return "Excel";
+    if (selectedExportFormat === "csv") return "CSV";
+    if (selectedExportFormat === "png") return "PNG";
+    return "";
+  }, [selectedExportFormat]);
+
+  function openExportSelection(format: "xlsx" | "csv" | "png") {
+    setSelectedExportFormat(format);
+    setExportOpen(false);
+  }
+
+  function closeExportSelection() {
+    setSelectedExportFormat(null);
+  }
+
   const exportArgs = React.useMemo(() => ({
     data,
     t,
@@ -776,25 +818,7 @@ export default function Statistics() {
     selectedChartIds,
   }), [activeLang, avgAge, avgGrade, busiestCity, busiestYear, data, earliestYear, selectedChartIds, selectedDirectionProgramId, t, total]);
 
-  async function handleExportExcel() {
-    if (!selectedChartIds.length) return;
-    exportStatisticsWorkbookFile(exportArgs);
-    setExportOpen(false);
-    try {
-      await logPublicExport("statistics_export", "xlsx");
-    } catch {}
-  }
-
-  async function handleExportCsv() {
-    if (!selectedChartIds.length) return;
-    exportStatisticsCsvFile(exportArgs);
-    setExportOpen(false);
-    try {
-      await logPublicExport("statistics_export", "csv");
-    } catch {}
-  }
-
-  async function handleExportPng() {
+  async function exportSelectedChartsAsPng() {
     if (!selectedChartIds.length) return;
 
     const root = exportSurfaceRef.current;
@@ -851,11 +875,25 @@ export default function Statistics() {
       a.remove();
       URL.revokeObjectURL(url);
     }
+  }
 
+  async function handleExportAction() {
+    if (!selectedChartIds.length || !selectedExportFormat) return;
+
+    if (selectedExportFormat === "xlsx") {
+      exportStatisticsWorkbookFile(exportArgs);
+    } else if (selectedExportFormat === "csv") {
+      exportStatisticsCsvFile(exportArgs);
+    } else {
+      await exportSelectedChartsAsPng();
+    }
+
+    const exportType = selectedExportFormat;
+    setSelectedExportFormat(null);
     setExportOpen(false);
 
     try {
-      await logPublicExport("statistics_export", "png");
+      await logPublicExport("statistics_export", exportType);
     } catch {}
   }
 
@@ -905,37 +943,9 @@ export default function Statistics() {
                           gap: 6,
                         }}
                       >
-                        <button className="btn" type="button" disabled={!selectedChartIds.length} style={{ ...topButtonStyle, justifyContent: "flex-start", opacity: selectedChartIds.length ? 1 : 0.55 }} onClick={handleExportExcel}>Excel</button>
-                        <button className="btn" type="button" disabled={!selectedChartIds.length} style={{ ...topButtonStyle, justifyContent: "flex-start", opacity: selectedChartIds.length ? 1 : 0.55 }} onClick={handleExportCsv}>CSV</button>
-                        <button className="btn" type="button" disabled={!selectedChartIds.length} style={{ ...topButtonStyle, justifyContent: "flex-start", opacity: selectedChartIds.length ? 1 : 0.55 }} onClick={handleExportPng}>PNG</button>
-                        <div style={{ height: 1, background: "rgba(148, 163, 184, 0.22)", margin: "6px 0" }} />
-                        <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, cursor: "pointer", fontWeight: 700, color: "#0f172a" }}>
-                          <input type="checkbox" checked={allChartsSelected} onChange={toggleAllCharts} />
-                          <span>{t("actions.selectAll", { defaultValue: "Όλα" })}</span>
-                        </label>
-                        <div style={{ display: "grid", gap: 10, maxHeight: 360, overflowY: "auto", paddingTop: 2 }}>
-                          {chartGroups.map((group) => {
-                            const groupChartIds = group.charts.map((chart) => chart.id);
-                            const groupChecked = groupChartIds.every((id) => selectedChartIds.includes(id));
-
-                            return (
-                              <div key={group.key} style={{ display: "grid", gap: 8, padding: "6px 4px 8px" }}>
-                                <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 6px", borderRadius: 10, cursor: "pointer", fontWeight: 700, color: "#0f172a" }}>
-                                  <input type="checkbox" checked={groupChecked} onChange={() => toggleGroupCharts(groupChartIds)} />
-                                  <span>{group.label}</span>
-                                </label>
-                                <div style={{ display: "grid", gap: 6, paddingLeft: 28 }}>
-                                  {group.charts.map((chart) => (
-                                    <label key={chart.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0", cursor: "pointer", color: "#334155", lineHeight: 1.35 }}>
-                                      <input type="checkbox" checked={selectedChartIds.includes(chart.id)} onChange={() => toggleSingleChart(chart.id)} />
-                                      <span>{chart.label}</span>
-                                    </label>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                        <button className="btn" type="button" style={{ ...topButtonStyle, justifyContent: "flex-start" }} onClick={() => openExportSelection("xlsx")}>Excel</button>
+                        <button className="btn" type="button" style={{ ...topButtonStyle, justifyContent: "flex-start" }} onClick={() => openExportSelection("csv")}>CSV</button>
+                        <button className="btn" type="button" style={{ ...topButtonStyle, justifyContent: "flex-start" }} onClick={() => openExportSelection("png")}>PNG</button>
                       </div>
                     ) : null}
                   </div>
@@ -1054,6 +1064,83 @@ export default function Statistics() {
           </div>
         ) : null}
       </div>
+      {selectedExportFormat ? (
+        <div
+          onClick={closeExportSelection}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.34)",
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+            zIndex: 60,
+          }}
+        >
+          <div
+            className="card"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "min(760px, 100%)",
+              maxHeight: "min(82vh, 900px)",
+              display: "grid",
+              gap: 16,
+              padding: 18,
+            }}
+          >
+            <div className="topbar" style={{ marginBottom: 0 }}>
+              <div>
+                <h3 style={{ margin: 0 }}>{t("actions.exportSelectionTitle", { defaultValue: "Επιλογή διαγραμμάτων" })}</h3>
+                <div className="muted" style={{ marginTop: 6 }}>
+                  {t("actions.exportSelectionSubtitle", { defaultValue: "Επίλεξε ποια διαγράμματα θέλεις να κατεβάσεις" })} · {exportFormatLabel}
+                </div>
+              </div>
+              <button type="button" className="btn" onClick={closeExportSelection}>
+                {t("actions.close", { defaultValue: "Κλείσιμο" })}
+              </button>
+            </div>
+
+            <div ref={exportModalBodyRef} style={{ display: "grid", gap: 12, overflowY: "auto", paddingRight: 4 }}>
+              <label style={{ ...selectionRowStyle, fontWeight: 700 }}>
+                <input type="checkbox" checked={allChartsSelected} onChange={toggleAllCharts} />
+                <span>{t("actions.selectAll", { defaultValue: "Όλα" })}</span>
+              </label>
+
+              {chartGroups.map((group) => {
+                const groupChartIds = group.charts.map((chart) => chart.id);
+                const groupChecked = groupChartIds.every((id) => selectedChartIds.includes(id));
+
+                return (
+                  <div key={group.key} style={{ display: "grid", gap: 10, border: "1px solid rgba(148, 163, 184, 0.22)", borderRadius: 16, padding: 14, background: "rgba(248, 250, 252, 0.72)" }}>
+                    <label style={{ ...selectionRowStyle, fontWeight: 700 }}>
+                      <input type="checkbox" checked={groupChecked} onChange={() => toggleGroupCharts(groupChartIds)} />
+                      <span>{group.label}</span>
+                    </label>
+                    <div style={{ display: "grid", gap: 8, paddingLeft: 12 }}>
+                      {group.charts.map((chart) => (
+                        <label key={chart.id} style={selectionRowStyle}>
+                          <input type="checkbox" checked={selectedChartIds.includes(chart.id)} onChange={() => toggleSingleChart(chart.id)} />
+                          <span>{chart.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
+              <button type="button" className="btn" onClick={closeExportSelection}>
+                {t("actions.cancel", { defaultValue: "Ακύρωση" })}
+              </button>
+              <button type="button" className="btn primary" disabled={!selectedChartIds.length} style={{ opacity: selectedChartIds.length ? 1 : 0.55 }} onClick={() => void handleExportAction()}>
+                {t("actions.exportSelected", { defaultValue: "Εξαγωγή επιλεγμένων" })}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div
         ref={exportSurfaceRef}
         aria-hidden="true"

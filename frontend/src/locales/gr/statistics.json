@@ -60,7 +60,12 @@
   "actions": {
     "exportExcel": "Εξαγωγή Excel",
     "export": "Εξαγωγή",
-    "selectAll": "Όλα"
+    "selectAll": "Όλα",
+    "exportSelectionTitle": "Επιλογή διαγραμμάτων",
+    "exportSelectionSubtitle": "Επίλεξε ποια διαγράμματα θέλεις να κατεβάσεις",
+    "exportSelected": "Εξαγωγή επιλεγμένων",
+    "cancel": "Ακύρωση",
+    "close": "Κλείσιμο"
   },
   "groups": {
     "overview": "Γενική εικόνα",
