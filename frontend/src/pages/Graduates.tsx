@@ -681,8 +681,8 @@ export default function Graduates() {
 
             <div style={{ display: "grid", gap: 10, width: "100%" }}>
               <input className="input" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t("topbar.searchPlaceholder")} />
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", width: "100%" }}>
-                <Link className="btn primary" to="/graduates/new" style={{ ...topButtonStyle, textDecoration: "none" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, width: "100%" }}>
+                <Link className="btn primary" to="/graduates/new" style={{ ...topButtonStyle, textDecoration: "none", width: "100%", justifyContent: "center" }}>
                   {t("topbar.newGraduate")}
                 </Link>
                 <input
@@ -702,7 +702,7 @@ export default function Graduates() {
                   <button
                     className="btn"
                     type="button"
-                    style={topButtonStyle}
+                    style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }}
                     onClick={() => toggleMenu("import")}
                     disabled={importBusy}
                   >
@@ -718,7 +718,7 @@ export default function Graduates() {
                   <button
                     className="btn"
                     type="button"
-                    style={topButtonStyle}
+                    style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }}
                     onClick={() => toggleMenu("template")}
                   >
                     {t("topbar.downloadTemplate")}
@@ -733,7 +733,7 @@ export default function Graduates() {
                   <button
                     className="btn"
                     type="button"
-                    style={topButtonStyle}
+                    style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }}
                     onClick={() => toggleMenu("export")}
                   >
                     {t("topbar.export")}
@@ -745,11 +745,11 @@ export default function Graduates() {
                   ) : null}
                 </div>
                 <div ref={recentDownloadsRef} style={{ position: "relative" }}>
-                  <button className="btn" type="button" style={topButtonStyle} onClick={() => toggleMenu("recent")}>
+                  <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => toggleMenu("recent")}>
                     {t("topbar.myFrequentDownloads")}
                   </button>
                   {recentDownloadsOpen ? (
-                    <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: 380, maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 10, display: "grid", gap: 10, zIndex: 30 }}>
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, width: 380, maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 10, display: "grid", gap: 10, zIndex: 30 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                         <div style={{ fontWeight: 700 }}>{t("topbar.myFrequentDownloads")}</div>
                         {recentDownloads.length ? (
@@ -780,10 +780,10 @@ export default function Graduates() {
                     </div>
                   ) : null}
                 </div>
-                <button className="btn" type="button" style={topButtonStyle} onClick={() => setShowFilters((current) => !current)}>
+                <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => setShowFilters((current) => !current)}>
                   {activeLang === "gr" ? "Φίλτρα" : "Filters"}
                 </button>
-                <button className="btn danger" type="button" style={topButtonStyle} onClick={() => void onDeleteSelected()} disabled={!selectedIds.length}>
+                <button className="btn danger" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => void onDeleteSelected()} disabled={!selectedIds.length}>
                   {t("topbar.delete")}
                 </button>
               </div>

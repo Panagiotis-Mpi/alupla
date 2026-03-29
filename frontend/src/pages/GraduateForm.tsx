@@ -195,7 +195,6 @@ export default function GraduateForm(props: { mode: Mode }) {
   };
 
   const sectionTitleStyle: React.CSSProperties = { margin: 0, fontSize: 18, fontWeight: 800 };
-  const sectionTextStyle: React.CSSProperties = { margin: 0, color: "#64748b", fontSize: 14 };
   const fieldStyle = (label: string): React.CSSProperties => ({
     border: highlightedMissing === label ? "1px solid rgba(220,38,38,.35)" : "1px solid rgba(148,163,184,.18)",
     borderRadius: 16,
@@ -206,15 +205,9 @@ export default function GraduateForm(props: { mode: Mode }) {
   return (
     <div className="grid" style={{ gap: 16 }}>
       <div className="card" style={{ padding: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
-          <div style={{ display: "grid", gap: 6 }}>
-            <h2 style={{ margin: 0 }}>{isEdit ? t("titleEdit") : t("titleCreate")}</h2>
-            <div className="muted">{t("tip")}</div>
-          </div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link className="btn" to="/graduates">{t("back")}</Link>
-            <button className="btn primary" disabled={saving} onClick={onSave}>{saving ? t("saving") : t("save")}</button>
-          </div>
+        <div style={{ display: "grid", gap: 8 }}>
+          <h2 style={{ margin: 0 }}>{isEdit ? t("titleEdit") : t("titleCreate")}</h2>
+          {!isEdit ? <div className="muted">{t("requiredNotice")}</div> : null}
         </div>
       </div>
 
@@ -222,7 +215,6 @@ export default function GraduateForm(props: { mode: Mode }) {
         <div style={{ display: "grid", gap: 16 }}>
           <div style={{ display: "grid", gap: 4 }}>
             <h3 style={sectionTitleStyle}>{t("sections.identityTitle")}</h3>
-            <p style={sectionTextStyle}>{t("sections.identityText")}</p>
           </div>
           <div className="grid cols2">
             <div style={fieldStyle(t("labels.adCode"))}>
@@ -264,7 +256,6 @@ export default function GraduateForm(props: { mode: Mode }) {
         <div style={{ display: "grid", gap: 16 }}>
           <div style={{ display: "grid", gap: 4 }}>
             <h3 style={sectionTitleStyle}>{t("sections.academicTitle")}</h3>
-            <p style={sectionTextStyle}>{t("sections.academicText")}</p>
           </div>
           <div className="grid cols2">
             <div style={fieldStyle(t("labels.entryYearReq"))}>
@@ -305,7 +296,6 @@ export default function GraduateForm(props: { mode: Mode }) {
         <div style={{ display: "grid", gap: 16 }}>
           <div style={{ display: "grid", gap: 4 }}>
             <h3 style={sectionTitleStyle}>{t("sections.originTitle")}</h3>
-            <p style={sectionTextStyle}>{t("sections.originText")}</p>
           </div>
           <div className="grid cols2">
             <div style={fieldStyle(t("labels.regionSearch"))}>
@@ -322,7 +312,7 @@ export default function GraduateForm(props: { mode: Mode }) {
                   const hit = peripheries.find(p => (p.name || "") === v);
                   setForm(f => ({ ...f, origin_region_id: hit ? hit.id : f.origin_region_id }));
                 }}
-                placeholder={t("labels.regionPlaceholder")}
+                placeholder=""
               />
               {regionOpen && regionHits.length > 0 ? (
                 <div style={{ marginTop: 8, border: "1px solid rgba(15,23,42,.08)", borderRadius: 12, padding: 10, display: "grid", gap: 6, maxHeight: 220, overflowY: "auto", background: "#fff" }}>
@@ -346,9 +336,16 @@ export default function GraduateForm(props: { mode: Mode }) {
             </div>
             <div style={fieldStyle(t("labels.originText"))}>
               <label className="label">{t("labels.originText")}</label>
-              <input className="input" value={form.origin_municipality ?? ""} onChange={(e) => setForm(f => ({ ...f, origin_municipality: e.target.value || null }))} placeholder={t("labels.originTextPlaceholder")} />
+              <input className="input" value={form.origin_municipality ?? ""} onChange={(e) => setForm(f => ({ ...f, origin_municipality: e.target.value || null }))} placeholder="" />
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 18 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
+          <Link className="btn" to="/graduates" style={{ textDecoration: "none" }}>{t("back")}</Link>
+          <button className="btn primary" disabled={saving} onClick={onSave}>{saving ? t("saving") : t("save")}</button>
         </div>
       </div>
     </div>
