@@ -217,11 +217,6 @@ export default function GraduateForm(props: { mode: Mode }) {
     color: "#475569"
   };
 
-  const cityOptions = cities.some((item) => item.name === form.origin_municipality)
-    ? cities
-    : form.origin_municipality
-      ? [...cities, { id: -1, name: String(form.origin_municipality) } as Region]
-      : cities;
 
   return (
     <div className="grid" style={{ gap: 16 }}>
@@ -305,9 +300,14 @@ export default function GraduateForm(props: { mode: Mode }) {
             </div>
             <div style={fieldStyle(t("labels.originText"))}>
               <label style={labelStyle}>{t("labels.originText")}</label>
-              <select className="input" value={form.origin_municipality ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_municipality: e.target.value || null }))}>
-                <option value="">{t("labels.choice")}</option>
-                {cityOptions.map((item) => <option key={`${item.id}-${item.name}`} value={item.name}>{item.name}</option>)}
+              <select
+                className="input"
+                value={form.origin_municipality ?? ""}
+                onChange={(e) => setForm((f) => ({ ...f, origin_municipality: e.target.value || null }))}
+                disabled={!Number.isFinite(Number(form.origin_region_id))}
+              >
+                <option value="" hidden>{t("labels.choice")}</option>
+                {cities.map((item) => <option key={`${item.id}-${item.name}`} value={item.name}>{item.name}</option>)}
               </select>
             </div>
           </div>

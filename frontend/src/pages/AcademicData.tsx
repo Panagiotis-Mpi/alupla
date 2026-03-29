@@ -85,23 +85,23 @@ const pageMenuStatsStyle: React.CSSProperties = {
   fontSize: 16,
 };
 const pageMenuButtonsStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 14,
-  flexWrap: "wrap",
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gap: 10,
   alignItems: "stretch",
   marginTop: 16,
   width: "100%",
 };
 const pageMenuButtonStyle: React.CSSProperties = {
   width: "100%",
-  minHeight: 50,
-  padding: "0 20px",
-  fontSize: 16,
+  minHeight: 42,
+  padding: "0 18px",
+  fontSize: 15,
+  justifyContent: "center",
 };
 const menuWrapStyle: React.CSSProperties = {
   position: "relative",
   display: "block",
-  flex: 1,
   minWidth: 0,
 };
 const popoverStyle: React.CSSProperties = {
@@ -574,8 +574,8 @@ export default function AcademicData() {
         </div>
 
         <div className="topbar" style={pageMenuButtonsStyle} ref={menuAreaRef}>
-          <button className={`btn ${activeTab === "programs" ? "primary" : ""}`} style={{ ...pageMenuButtonStyle, flex: 1 }} onClick={() => setActiveTab("programs")}>{t("menu.programs")}</button>
-          <button className={`btn ${activeTab === "directions" ? "primary" : ""}`} style={{ ...pageMenuButtonStyle, flex: 1 }} onClick={() => setActiveTab("directions")}>{t("menu.directions")}</button>
+          <button className={`btn ${activeTab === "programs" ? "primary" : ""}`} style={pageMenuButtonStyle} onClick={() => setActiveTab("programs")}>{t("menu.programs")}</button>
+          <button className={`btn ${activeTab === "directions" ? "primary" : ""}`} style={pageMenuButtonStyle} onClick={() => setActiveTab("directions")}>{t("menu.directions")}</button>
 
           <div style={menuWrapStyle}>
             <button className="btn" style={pageMenuButtonStyle} onClick={() => setOpenMenu((current) => current === "programs" ? null : "programs")}>{t("menu.import")}</button>
