@@ -15,9 +15,9 @@
     "total": "Total graduates",
     "avgAge": "Average age",
     "avgGrade": "Average degree grade",
+    "topAgeGroup": "Most common age group",
     "earliestYear": "Earliest graduation year",
-    "topGraduationYear": "Year with the most graduates",
-    "topCity": "City with the most graduates"
+    "latestYear": "Latest graduation year"
   },
   "sections": {
     "byYear": "Graduates per year",
@@ -34,8 +34,7 @@
     "originMunicipality": "Graduate distribution in cities",
     "avgGradeByProgram": "Average grade by study program",
     "genderByProgram": "Gender ratio by study program",
-    "timeToDegreeDistribution": "Time to degree distribution",
-    "summary": "Summary statistics"
+    "timeToDegreeDistribution": "Time to degree distribution"
   },
   "table": {
     "year": "Year",

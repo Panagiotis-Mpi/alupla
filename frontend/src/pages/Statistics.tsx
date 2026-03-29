@@ -31,14 +31,9 @@ type NamedCountRow = {
   female?: number | null;
 };
 
-
 const cardInnerStyle = { minWidth: 0 };
 const compactTopbarStyle = { marginBottom: 12 };
-const metricValueStyle = { fontSize: 28, fontWeight: 800, marginTop: 10, lineHeight: 1.1 };
-const metricCardStyle: React.CSSProperties = { minWidth: 0, minHeight: 146, padding: 22, display: "grid", alignContent: "space-between" };
-const metricGridStyle: React.CSSProperties = { display: "grid", gap: 14 };
-const metricTopRowStyle: React.CSSProperties = { display: "grid", gap: 14, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" };
-const metricBottomRowStyle: React.CSSProperties = { display: "grid", gap: 14, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" };
+const metricValueStyle = { fontSize: 28, fontWeight: 800, marginTop: 6 };
 const yTicks = { precision: 0 as any };
 const sectionWrapStyle: React.CSSProperties = { display: "grid", gap: 14 };
 const sectionHeaderStyle: React.CSSProperties = { display: "grid", gap: 4, marginTop: 2 };
@@ -47,7 +42,6 @@ const sectionTextStyle: React.CSSProperties = { margin: 0, color: "#64748b", fon
 const sectionMenuStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%" };
 const sectionButtonsStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%", gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
 const solidBlueFill = "rgba(37, 99, 235, 0.72)";
-const pinkFill = "rgba(219, 39, 119, 0.72)";
 
 function buildBarDataset(label: string, data: number[], color = "#2563eb", backgroundColor = solidBlueFill) {
   return {
@@ -135,12 +129,59 @@ function SectionTitle(props: { title: string; subtitle?: string }) {
 
 function MetricCard(props: { label: string; value: string | number }) {
   return (
-    <div className="card" style={metricCardStyle}>
-      <div className="muted" style={{ fontSize: 15 }}>{props.label}</div>
+    <div className="card" style={cardInnerStyle}>
+      <div className="muted">{props.label}</div>
       <div style={metricValueStyle}>{props.value}</div>
     </div>
   );
 }
+
+function CompactBarsCard(props: {
+  title: string;
+  labels: string[];
+  values: number[];
+}) {
+  const maxValue = Math.max(...props.values, 1);
+
+  return (
+    <div className="card" style={cardInnerStyle}>
+      <div className="topbar" style={compactTopbarStyle}>
+        <h3 style={{ margin: 0 }}>{props.title}</h3>
+      </div>
+      <div style={{ display: "grid", gap: 14, gridTemplateColumns: `repeat(${Math.max(props.labels.length, 1)}, minmax(0, 1fr))` }}>
+        {props.labels.map((label, index) => {
+          const value = Number(props.values[index] ?? 0);
+          const percent = maxValue > 0 ? Math.max(12, (value / maxValue) * 100) : 0;
+
+          return (
+            <div
+              key={`${label}-${index}`}
+              style={{
+                minHeight: 180,
+                border: "1px solid rgba(148, 163, 184, 0.25)",
+                borderRadius: 16,
+                padding: 18,
+                display: "grid",
+                alignContent: "space-between",
+                gap: 14,
+                background: "rgba(248, 250, 252, 0.7)",
+              }}
+            >
+              <div style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, lineHeight: 1.35, wordBreak: "break-word" }}>{label}</div>
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ fontSize: 34, fontWeight: 800, color: "#0f172a" }}>{value}</div>
+                <div style={{ height: 10, borderRadius: 999, background: "rgba(148, 163, 184, 0.18)", overflow: "hidden" }}>
+                  <div style={{ width: `${percent}%`, height: "100%", borderRadius: 999, background: "#2563eb" }} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 
 function ProgramAverageCards(props: {
   title: string;
@@ -209,6 +250,12 @@ function BarChartCard(props: {
   minLabelWidth?: number;
   maxLabelWidth?: number;
 }) {
+  const useCompactLayout = props.labels.length > 0 && props.labels.length <= 3;
+
+  if (useCompactLayout) {
+    return <CompactBarsCard title={props.title} labels={props.labels} values={props.values} />;
+  }
+
   return (
     <div className="card" style={cardInnerStyle}>
       <div className="topbar" style={compactTopbarStyle}>
@@ -320,8 +367,6 @@ function ChartCard(props: {
   );
 }
 
-
-
 export default function Statistics() {
   const { t, i18n } = useTranslation("statistics");
 
@@ -329,6 +374,7 @@ export default function Statistics() {
   const [err, setErr] = React.useState<string | null>(null);
   const [data, setData] = React.useState<any | null>(null);
   const [activeGroup, setActiveGroup] = React.useState<"overview" | "demographics" | "academic" | "geography">("overview");
+  const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
 
   async function load() {
     setLoading(true);
@@ -346,7 +392,6 @@ export default function Statistics() {
   React.useEffect(() => {
     void load();
   }, []);
-
 
   const total = Number(data?.total ?? 0);
   const avgAge = data?.avg_age === null || data?.avg_age === undefined ? "-" : Number(data.avg_age).toFixed(1);
@@ -430,21 +475,7 @@ export default function Statistics() {
     };
   }, [data, t]);
 
-  const genderChartOptions = React.useMemo(
-    () =>
-      ({
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: "bottom" as const } },
-        scales: {
-          x: { offset: false, stacked: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
-          y: { beginAtZero: true, ticks: yTicks },
-        },
-        layout: { padding: { left: 0, right: 0 } },
-      }) as const,
-    []
-  );
-
+  const ageGroups = seriesFromRows(data?.age_groups);
   const birthYears = seriesFromRows(data?.birth_year_distribution, { labelKey: "year" });
   const avgGradesByYear = seriesFromRows(data?.avg_grade_by_year, { labelKey: "year", valueKey: "avg" });
   const avgGradeByProgram = seriesFromRows(data?.avg_grade_by_program, { labelKey: "name", valueKey: "avg" });
@@ -467,10 +498,10 @@ export default function Statistics() {
 
   const graduationYears = byYearRows.map((row) => Number(row.label)).filter((value) => Number.isFinite(value));
   const earliestYear = graduationYears.length ? Math.min(...graduationYears) : "-";
-  const busiestYearIndex = byYearRows.length ? byYearRows.findIndex((row) => row.value === Math.max(...byYearRows.map((item) => item.value))) : -1;
-  const busiestYear = busiestYearIndex >= 0 ? byYearRows[busiestYearIndex].label : "-";
-  const busiestCityIndex = municipalities.values.length ? municipalities.values.findIndex((value) => value === Math.max(...municipalities.values)) : -1;
-  const busiestCity = busiestCityIndex >= 0 ? municipalities.labels[busiestCityIndex] : "-";
+  const latestYear = graduationYears.length ? Math.max(...graduationYears) : "-";
+  const topAgeIndex = ageGroups.values.length ? ageGroups.values.indexOf(Math.max(...ageGroups.values)) : -1;
+  const topAgeGroup = topAgeIndex >= 0 ? ageGroups.labels[topAgeIndex] : "-";
+
 
   const topButtonStyle: React.CSSProperties = {
     minHeight: 48,
@@ -483,7 +514,6 @@ export default function Statistics() {
     fontSize: 14,
     whiteSpace: "nowrap",
   };
-
 
   function downloadAnon() {
     const url = publicAnonExportUrl({});
@@ -498,127 +528,132 @@ export default function Statistics() {
   if (err && !data) return <div className="card">{err}</div>;
 
   return (
-    <>
-      <div className="grid" style={{ gap: 18 }}>
-        <div className="card" style={{ padding: 14 }}>
+    <div className="grid" style={{ gap: 18 }}>
+      <div className="card" style={{ padding: 14 }}>
+        <div style={{ display: "grid", gap: 14 }}>
           <div style={{ display: "grid", gap: 14 }}>
-            <div style={{ display: "grid", gap: 14 }}>
-              <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
+            <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
 
-              <div style={sectionMenuStyle}>
-                <div style={sectionButtonsStyle}>
-                  {(["overview", "demographics", "academic", "geography"] as const).map((groupKey) => (
-                    <button
-                      key={groupKey}
-                      type="button"
-                      className={activeGroup === groupKey ? "btn primary" : "btn"}
-                      style={topButtonStyle}
-                      onClick={() => setActiveGroup(groupKey)}
-                    >
-                      {t(`groups.${groupKey}`)}
-                    </button>
-                  ))}
-                  <button className="btn" type="button" style={topButtonStyle} onClick={downloadAnon}>
-                    {t("actions.exportExcel", { defaultValue: "Export Excel" })}
+            <div style={sectionMenuStyle}>
+              <div style={sectionButtonsStyle}>
+                {(["overview", "demographics", "academic", "geography"] as const).map((groupKey) => (
+                  <button
+                    key={groupKey}
+                    type="button"
+                    className={activeGroup === groupKey ? "btn primary" : "btn"}
+                    style={topButtonStyle}
+                    onClick={() => setActiveGroup(groupKey)}
+                  >
+                    {t(`groups.${groupKey}`)}
                   </button>
-                </div>
+                ))}
+                <button className="btn" type="button" style={topButtonStyle} onClick={downloadAnon}>
+                  {t("actions.exportExcel", { defaultValue: "Export Excel" })}
+                </button>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
+      <div style={sectionWrapStyle}>
+        <div className="grid cols4" style={{ gap: 14 }}>
+          <MetricCard label={t("cards.total")} value={total} />
+          <MetricCard label={t("cards.avgAge")} value={avgAge} />
+          <MetricCard label={t("cards.avgGrade")} value={avgGrade} />
+          <MetricCard label={t("cards.topAgeGroup")} value={topAgeGroup} />
+        </div>
+        <div className="grid cols2" style={{ gap: 14 }}>
+          <MetricCard label={t("cards.earliestYear")} value={earliestYear} />
+          <MetricCard label={t("cards.latestYear")} value={latestYear} />
+        </div>
+      </div>
+
+      {activeGroup === "overview" ? (
         <div style={sectionWrapStyle}>
-          <div style={metricGridStyle}>
-            <div style={metricTopRowStyle}>
-              <MetricCard label={t("cards.total")} value={total} />
-              <MetricCard label={t("cards.avgAge")} value={avgAge} />
-              <MetricCard label={t("cards.avgGrade")} value={avgGrade} />
-            </div>
-            <div style={metricBottomRowStyle}>
-              <MetricCard label={t("cards.earliestYear")} value={earliestYear} />
-              <MetricCard label={t("cards.topGraduationYear")} value={busiestYear} />
-              <MetricCard label={t("cards.topCity")} value={busiestCity} />
-            </div>
-          </div>
-        </div>
-
-        {activeGroup === "overview" ? (
-          <div style={sectionWrapStyle}>
-            <SectionTitle title={t("groups.overview")} subtitle={t("groupText.overview")} />
-            <div className="grid cols1" style={{ gap: 14 }}>
-              <div className="card" style={cardInnerStyle}>
-                <div className="topbar" style={compactTopbarStyle}>
-                  <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
-                </div>
-                <ScrollableLineChart
-                  height={320}
-                  labels={(countChartData as any).labels ?? []}
-                  datasetCount={((countChartData as any).datasets ?? []).length}
-                  data={countChartData as any}
-                  options={countChartOptions as any}
-                />
+          <SectionTitle title={t("groups.overview")} subtitle={t("groupText.overview")} />
+          <div className="grid cols1" style={{ gap: 14 }}>
+            <div className="card" style={cardInnerStyle}>
+              <div className="topbar" style={compactTopbarStyle}>
+                <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
               </div>
-            </div>
-          </div>
-        ) : null}
-
-        {activeGroup === "demographics" ? (
-          <div style={sectionWrapStyle}>
-            <SectionTitle title={t("groups.demographics")} subtitle={t("groupText.demographics")} />
-            <div className="grid cols1" style={{ gap: 14 }}>
-              <div className="card" style={cardInnerStyle}>
-                <div className="topbar" style={compactTopbarStyle}>
-                  <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
-                </div>
-                <ScrollableLineChart
-                  height={320}
-                  labels={(genderChartData as any).labels ?? []}
-                  datasetCount={((genderChartData as any).datasets ?? []).length}
-                  data={genderChartData as any}
-                  options={genderChartOptions as any}
-                />
-              </div>
-              <ChartCard title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} height={320} />
-              <MultiBarChartCard
-                title={t("sections.genderByProgram")}
-                labels={genderByProgramData.labels}
+              <ScrollableLineChart
                 height={320}
-                minLabelWidth={112}
-                maxLabelWidth={176}
-                datasets={[
-                  buildBarDataset(t("table.male"), genderByProgramData.male, "#2563eb", solidBlueFill),
-                  buildBarDataset(t("table.female"), genderByProgramData.female, "#db2777", pinkFill),
-                ]}
+                labels={(countChartData as any).labels ?? []}
+                datasetCount={((countChartData as any).datasets ?? []).length}
+                data={countChartData as any}
+                options={countChartOptions as any}
               />
             </div>
           </div>
-        ) : null}
+        </div>
+      ) : null}
 
-        {activeGroup === "academic" ? (
-          <div style={sectionWrapStyle}>
-            <SectionTitle title={t("groups.academic")} subtitle={t("groupText.academic")} />
-            <div className="grid cols1" style={{ gap: 14 }}>
-              <ChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} />
-              <BarChartCard title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
-              <ProgramAverageCards title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} />
-              <BarChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
-              <ChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} />
-              <BarChartCard title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={80} maxLabelWidth={112} />
-              <BarChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+      {activeGroup === "demographics" ? (
+        <div style={sectionWrapStyle}>
+          <SectionTitle title={t("groups.demographics")} subtitle={t("groupText.demographics")} />
+          <div className="grid cols1" style={{ gap: 14 }}>
+            <div className="card" style={cardInnerStyle}>
+              <div className="topbar" style={compactTopbarStyle}>
+                <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
+              </div>
+              <ScrollableLineChart
+                height={320}
+                labels={(genderChartData as any).labels ?? []}
+                datasetCount={((genderChartData as any).datasets ?? []).length}
+                data={genderChartData as any}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { position: "bottom" as const } },
+                  scales: {
+                    x: { offset: false, stacked: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
+                    y: { beginAtZero: true, ticks: yTicks },
+                  },
+                  layout: { padding: { left: 0, right: 0 } },
+                } as any}
+              />
             </div>
+            <ChartCard title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} height={320} />
+            <MultiBarChartCard
+              title={t("sections.genderByProgram")}
+              labels={genderByProgramData.labels}
+              height={320}
+              minLabelWidth={112}
+              maxLabelWidth={176}
+              datasets={[
+                buildBarDataset(t("table.male"), genderByProgramData.male, "#2563eb", solidBlueFill),
+                buildBarDataset(t("table.female"), genderByProgramData.female, "#db2777", "rgba(219, 39, 119, 0.72)"),
+              ]}
+            />
           </div>
-        ) : null}
+        </div>
+      ) : null}
 
-        {activeGroup === "geography" ? (
-          <div style={sectionWrapStyle}>
-            <SectionTitle title={t("groups.geography")} subtitle={t("groupText.geography")} />
-            <div className="grid cols1" style={{ gap: 14 }}>
-              <BarChartCard title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
-              <BarChartCard title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
-            </div>
+      {activeGroup === "academic" ? (
+        <div style={sectionWrapStyle}>
+          <SectionTitle title={t("groups.academic")} subtitle={t("groupText.academic")} />
+          <div className="grid cols1" style={{ gap: 14 }}>
+            <ChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} />
+            <BarChartCard title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
+            <ProgramAverageCards title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} />
+            <BarChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+            <ChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} />
+            <BarChartCard title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={80} maxLabelWidth={112} />
+            <BarChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
           </div>
-        ) : null}
-      </div>
-    </>
+        </div>
+      ) : null}
+
+      {activeGroup === "geography" ? (
+        <div style={sectionWrapStyle}>
+          <SectionTitle title={t("groups.geography")} subtitle={t("groupText.geography")} />
+          <div className="grid cols1" style={{ gap: 14 }}>
+            <BarChartCard title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
+            <BarChartCard title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
