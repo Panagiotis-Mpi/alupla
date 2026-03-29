@@ -182,6 +182,65 @@ function CompactBarsCard(props: {
   );
 }
 
+
+function ProgramAverageCards(props: {
+  title: string;
+  labels: string[];
+  values: number[];
+}) {
+  const safeValues = props.values.map((value) => Number(value ?? 0));
+  const overall = safeValues.length ? safeValues.reduce((sum, value) => sum + value, 0) / safeValues.length : 0;
+
+  return (
+    <div className="card" style={cardInnerStyle}>
+      <div className="topbar" style={compactTopbarStyle}>
+        <h3 style={{ margin: 0 }}>{props.title}</h3>
+      </div>
+      <div style={{ display: "grid", gap: 14, gridTemplateColumns: `repeat(${Math.max(props.labels.length, 1)}, minmax(0, 1fr))` }}>
+        {props.labels.map((label, index) => {
+          const value = safeValues[index] ?? 0;
+          const progress = Math.max(0, Math.min(100, ((value - 5) / 5) * 100));
+          const diff = Number((value - overall).toFixed(2));
+          const diffText = diff === 0 ? "•" : diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
+
+          return (
+            <div
+              key={`${label}-${index}`}
+              style={{
+                minHeight: 208,
+                border: "1px solid rgba(148, 163, 184, 0.25)",
+                borderRadius: 18,
+                padding: 22,
+                display: "grid",
+                gap: 18,
+                alignContent: "space-between",
+                background: "rgba(248, 250, 252, 0.78)",
+              }}
+            >
+              <div style={{ display: "grid", gap: 12 }}>
+                <div style={{ color: "#0f172a", fontSize: 16, fontWeight: 800, lineHeight: 1.35, wordBreak: "break-word" }}>{label}</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ fontSize: 32, fontWeight: 800, color: "#0f172a", lineHeight: 1 }}>{Number.isFinite(value) ? value.toFixed(2).replace(/0$/, "").replace(/\.$/, "") : "-"}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#64748b" }}>{diffText}</div>
+                </div>
+              </div>
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#64748b" }}>
+                  <span>5.0</span>
+                  <span>10.0</span>
+                </div>
+                <div style={{ height: 12, borderRadius: 999, background: "rgba(148, 163, 184, 0.18)", overflow: "hidden" }}>
+                  <div style={{ width: `${progress}%`, height: "100%", borderRadius: 999, background: "#2563eb" }} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function BarChartCard(props: {
   title: string;
   labels: string[];
@@ -555,7 +614,6 @@ export default function Statistics() {
                 } as any}
               />
             </div>
-            <BarChartCard title={t("sections.age")} labels={ageGroups.labels} values={ageGroups.values} height={320} minLabelWidth={92} maxLabelWidth={136} />
             <ChartCard title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} height={320} />
             <MultiBarChartCard
               title={t("sections.genderByProgram")}
@@ -578,11 +636,11 @@ export default function Statistics() {
           <div className="grid cols1" style={{ gap: 14 }}>
             <ChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} />
             <BarChartCard title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
-            <BarChartCard title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+            <ProgramAverageCards title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} />
             <BarChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
             <ChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} />
             <BarChartCard title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={80} maxLabelWidth={112} />
-            <ChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+            <BarChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
           </div>
         </div>
       ) : null}
