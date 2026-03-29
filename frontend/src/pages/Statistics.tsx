@@ -1101,9 +1101,6 @@ export default function Statistics() {
                   {t("actions.exportSelectionSubtitle", { defaultValue: "Επίλεξε ποια διαγράμματα θέλεις να κατεβάσεις" })} · {exportFormatLabel}
                 </div>
               </div>
-              <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={closeExportSelection}>
-                {t("actions.close", { defaultValue: "Κλείσιμο" })}
-              </button>
             </div>
 
             <div ref={exportModalBodyRef} style={{ display: "grid", gap: 10, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
