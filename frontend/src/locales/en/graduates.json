@@ -19,7 +19,13 @@
     "exportCsv": "CSV",
     "exportPdf": "PDF",
     "templateExcel": "Excel",
-    "templateCsv": "CSV"
+    "templateCsv": "CSV",
+    "myFrequentDownloads": "My frequent downloads",
+    "noDownloadsYet": "There are no saved downloads yet.",
+    "downloadAgain": "Download again",
+    "removeDownload": "Remove",
+    "downloadCount": "{{count}} downloads",
+    "lastDownload": "Last download: {{date}}"
   },
   "filters": {
     "qLabel": "Global search (q)",

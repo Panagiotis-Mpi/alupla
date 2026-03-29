@@ -19,7 +19,13 @@
     "exportCsv": "CSV",
     "exportPdf": "PDF",
     "templateExcel": "Excel",
-    "templateCsv": "CSV"
+    "templateCsv": "CSV",
+    "myFrequentDownloads": "Οι συχνότερες λήψεις μου",
+    "noDownloadsYet": "Δεν υπάρχουν ακόμη αποθηκευμένες λήψεις.",
+    "downloadAgain": "Ξανά λήψη",
+    "removeDownload": "Αφαίρεση",
+    "downloadCount": "{{count}} λήψεις",
+    "lastDownload": "Τελευταία λήψη: {{date}}"
   },
   "filters": {
     "qLabel": "Γενική αναζήτηση (q)",

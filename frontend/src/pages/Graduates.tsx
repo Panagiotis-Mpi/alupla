@@ -27,6 +27,85 @@ import { loadGraduatesScreen, useMenuDismiss, useSyncedScrollbar } from "./gradu
 import { downloadBlob } from "../lib/download";
 import { toggleMergedVisibleSelection, toggleSelectionValue } from "./shared/selection";
 
+
+
+type RecentGraduateDownload = {
+  id: string;
+  signature: string;
+  format: "xlsx" | "csv" | "pdf";
+  fileName: string;
+  mimeType: string;
+  dataUrl: string;
+  createdAt: string;
+  lastDownloadedAt: string;
+  count: number;
+  totalItems: number;
+  selectedItems: number;
+  filtersLabel: string;
+};
+
+const RECENT_GRADUATE_DOWNLOADS_KEY = "alupla.graduates.recentDownloads";
+const MAX_RECENT_GRADUATE_DOWNLOADS = 12;
+
+function safeReadRecentGraduateDownloads() {
+  if (typeof window === "undefined") return [] as RecentGraduateDownload[];
+  try {
+    const raw = window.localStorage.getItem(RECENT_GRADUATE_DOWNLOADS_KEY);
+    if (!raw) return [] as RecentGraduateDownload[];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [] as RecentGraduateDownload[];
+    return parsed.filter((item) => item && typeof item === "object" && item.dataUrl && item.fileName) as RecentGraduateDownload[];
+  } catch {
+    return [] as RecentGraduateDownload[];
+  }
+}
+
+function writeRecentGraduateDownloads(items: RecentGraduateDownload[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(RECENT_GRADUATE_DOWNLOADS_KEY, JSON.stringify(items.slice(0, MAX_RECENT_GRADUATE_DOWNLOADS)));
+}
+
+function formatRecentGraduateDownloadDate(value: string, lang: "gr" | "en") {
+  try {
+    return new Intl.DateTimeFormat(lang === "gr" ? "el-GR" : "en-GB", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function buildRecentDownloadFiltersLabel(filters: GraduatesFiltersState, lang: "gr" | "en", selectedCount: number, totalCount: number) {
+  const parts: string[] = [];
+  if (filters.last_name_like) parts.push(`${lang === "gr" ? "Επώνυμο" : "Last name"}: ${filters.last_name_like}`);
+  if (filters.first_name_like) parts.push(`${lang === "gr" ? "Όνομα" : "First name"}: ${filters.first_name_like}`);
+  if (filters.gender) parts.push(`${lang === "gr" ? "Φύλο" : "Gender"}: ${filters.gender}`);
+  if (filters.study_program_id) parts.push(`${lang === "gr" ? "Πρόγραμμα" : "Program"}: ${filters.study_program_id}`);
+  if (filters.program_direction_id) parts.push(`${lang === "gr" ? "Κατεύθυνση" : "Direction"}: ${filters.program_direction_id}`);
+  if (filters.origin_region_id) parts.push(`${lang === "gr" ? "Περιφέρεια" : "Region"}: ${filters.origin_region_id}`);
+  if (filters.entry_year_from || filters.entry_year_to) parts.push(`${lang === "gr" ? "Έτος εισαγωγής" : "Entry year"}: ${filters.entry_year_from || "…"}-${filters.entry_year_to || "…"}`);
+  if (selectedCount > 0) parts.push(lang === "gr" ? `Επιλεγμένοι: ${selectedCount}` : `Selected: ${selectedCount}`);
+  if (!parts.length) parts.push(lang === "gr" ? `Όλο το αποτέλεσμα (${totalCount})` : `Full result (${totalCount})`);
+  return parts.join(" · ");
+}
+
+async function blobToDataUrl(blob: Blob) {
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Failed to read blob"));
+    reader.onerror = () => reject(reader.error || new Error("Failed to read blob"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function dataUrlToBlob(dataUrl: string) {
+  const [meta, payload] = dataUrl.split(",");
+  const mimeMatch = meta.match(/data:(.*?);base64/);
+  const mimeType = mimeMatch?.[1] || "application/octet-stream";
+  const binary = atob(payload || "");
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mimeType });
+}
+
 type ImportReport = {
   summary?: {
     inserted?: number;
@@ -200,12 +279,15 @@ export default function Graduates() {
   const [importMenuOpen, setImportMenuOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
+  const [recentDownloadsOpen, setRecentDownloadsOpen] = useState(false);
+  const [recentDownloads, setRecentDownloads] = useState<RecentGraduateDownload[]>([]);
 
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const importFileRef = useRef<HTMLInputElement | null>(null);
   const importMenuRef = useRef<HTMLDivElement | null>(null);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
   const templateMenuRef = useRef<HTMLDivElement | null>(null);
+  const recentDownloadsRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarInnerRef = useRef<HTMLDivElement | null>(null);
   const selectAllRef = useRef<HTMLInputElement | null>(null);
@@ -273,10 +355,11 @@ export default function Graduates() {
 
   useSyncedScrollbar(tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, [items, sortState, programs, directions, regions]);
 
-  useMenuDismiss([importMenuRef, exportMenuRef, templateMenuRef], () => {
+  useMenuDismiss([importMenuRef, exportMenuRef, templateMenuRef, recentDownloadsRef], () => {
     setImportMenuOpen(false);
     setExportMenuOpen(false);
     setTemplateMenuOpen(false);
+    setRecentDownloadsOpen(false);
   });
 
   useEffect(() => {
@@ -285,6 +368,70 @@ export default function Graduates() {
     }
   }, [allVisibleSelected, someVisibleSelected]);
 
+  useEffect(() => {
+    setRecentDownloads(safeReadRecentGraduateDownloads());
+  }, []);
+
+  async function rememberDownload(args: {
+    blob: Blob;
+    format: "xlsx" | "csv" | "pdf";
+    fileName: string;
+    ids?: number[];
+  }) {
+    const filtersLabel = buildRecentDownloadFiltersLabel(filters, activeLang, args.ids?.length || 0, items.length);
+    const signature = JSON.stringify({ format: args.format, ids: args.ids || [], params: { ...params, page: undefined, pageSize: undefined } });
+    const dataUrl = await blobToDataUrl(args.blob);
+    const now = new Date().toISOString();
+    const current = safeReadRecentGraduateDownloads();
+    const existing = current.find((item) => item.signature === signature);
+    const nextItem: RecentGraduateDownload = existing ? {
+      ...existing,
+      fileName: args.fileName,
+      mimeType: args.blob.type || existing.mimeType,
+      dataUrl,
+      totalItems: items.length,
+      selectedItems: args.ids?.length || 0,
+      filtersLabel,
+      lastDownloadedAt: now,
+      count: existing.count + 1,
+    } : {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      signature,
+      format: args.format,
+      fileName: args.fileName,
+      mimeType: args.blob.type || "application/octet-stream",
+      dataUrl,
+      createdAt: now,
+      lastDownloadedAt: now,
+      count: 1,
+      totalItems: items.length,
+      selectedItems: args.ids?.length || 0,
+      filtersLabel,
+    };
+    const rest = current.filter((item) => item.signature !== signature);
+    const next = [nextItem, ...rest].sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return new Date(b.lastDownloadedAt).getTime() - new Date(a.lastDownloadedAt).getTime();
+    });
+    writeRecentGraduateDownloads(next);
+    setRecentDownloads(next);
+  }
+
+  function downloadStoredExport(item: RecentGraduateDownload) {
+    const blob = dataUrlToBlob(item.dataUrl);
+    downloadBlob(blob, item.fileName);
+    const current = safeReadRecentGraduateDownloads();
+    const next = current.map((entry) => entry.id === item.id ? { ...entry, count: entry.count + 1, lastDownloadedAt: new Date().toISOString() } : entry)
+      .sort((a, b) => (b.count - a.count) || (new Date(b.lastDownloadedAt).getTime() - new Date(a.lastDownloadedAt).getTime()));
+    writeRecentGraduateDownloads(next);
+    setRecentDownloads(next);
+  }
+
+  function removeStoredExport(itemId: string) {
+    const next = safeReadRecentGraduateDownloads().filter((item) => item.id !== itemId);
+    writeRecentGraduateDownloads(next);
+    setRecentDownloads(next);
+  }
 
   function toggleSort(key: SortKey) {
     setSortState((current) => (current.key === key ? { key, dir: current.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
@@ -301,12 +448,14 @@ export default function Graduates() {
     setImportMenuOpen(false);
     setExportMenuOpen(false);
     setTemplateMenuOpen(false);
+    setRecentDownloadsOpen(false);
   }
 
-  function toggleMenu(name: "import" | "export" | "template") {
+  function toggleMenu(name: "import" | "export" | "template" | "recent") {
     setImportMenuOpen((current) => (name === "import" ? !current : false));
     setExportMenuOpen((current) => (name === "export" ? !current : false));
     setTemplateMenuOpen((current) => (name === "template" ? !current : false));
+    setRecentDownloadsOpen((current) => (name === "recent" ? !current : false));
   }
 
   function toggleSelected(id: number) {
@@ -337,11 +486,15 @@ export default function Graduates() {
           directionNameById: directionDisplayNameById,
           regionNameById,
         });
-        downloadBlob(blob, `graduates-${timestamp}.pdf`);
+        const fileName = `graduates-${timestamp}.pdf`;
+        downloadBlob(blob, fileName);
+        await rememberDownload({ blob, format, fileName, ids });
         return;
       }
       const blob = await exportGraduatesFile(exportParams, format, i18n.resolvedLanguage || i18n.language);
-      downloadBlob(blob, `graduates-${timestamp}.${format}`);
+      const fileName = `graduates-${timestamp}.${format}`;
+      downloadBlob(blob, fileName);
+      await rememberDownload({ blob, format, fileName, ids });
     } catch (error: any) {
       alert(error?.message ?? t("export.failed"));
     }
@@ -588,6 +741,42 @@ export default function Graduates() {
                   {exportMenuOpen ? (
                     <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
                       {exportActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
+                    </div>
+                  ) : null}
+                </div>
+                <div ref={recentDownloadsRef} style={{ position: "relative" }}>
+                  <button className="btn" type="button" style={topButtonStyle} onClick={() => toggleMenu("recent")}>
+                    {t("topbar.myFrequentDownloads")}
+                  </button>
+                  {recentDownloadsOpen ? (
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: 380, maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 10, display: "grid", gap: 10, zIndex: 30 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                        <div style={{ fontWeight: 700 }}>{t("topbar.myFrequentDownloads")}</div>
+                        {recentDownloads.length ? (
+                          <span className="badge">{recentDownloads.length}</span>
+                        ) : null}
+                      </div>
+                      {recentDownloads.length ? (
+                        <div style={{ display: "grid", gap: 8, maxHeight: 420, overflowY: "auto" }}>
+                          {recentDownloads.map((item) => (
+                            <div key={item.id} style={{ border: "1px solid rgba(15,23,42,.08)", borderRadius: 12, padding: 10, display: "grid", gap: 6 }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                                <div style={{ fontWeight: 700 }}>{item.format.toUpperCase()}</div>
+                                <span className="badge">{t("topbar.downloadCount", { count: item.count })}</span>
+                              </div>
+                              <div style={{ fontSize: 13, wordBreak: "break-word" }}>{item.fileName}</div>
+                              <div className="muted" style={{ fontSize: 12 }}>{item.filtersLabel}</div>
+                              <div className="muted" style={{ fontSize: 12 }}>{t("topbar.lastDownload", { date: formatRecentGraduateDownloadDate(item.lastDownloadedAt, activeLang) })}</div>
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                <button className="btn" type="button" onClick={() => downloadStoredExport(item)}>{t("topbar.downloadAgain")}</button>
+                                <button className="btn" type="button" onClick={() => removeStoredExport(item.id)}>{t("topbar.removeDownload")}</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="muted">{t("topbar.noDownloadsYet")}</div>
+                      )}
                     </div>
                   ) : null}
                 </div>

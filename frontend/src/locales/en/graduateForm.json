@@ -32,8 +32,16 @@
     "originTextPlaceholder": "City",
     "required": "Missing required field:"
   },
-  "tip": "Attention: All fields are required.",
+  "tip": "This form follows the current graduate import format. Fill in all required fields before saving.",
   "error": "Error",
+  "sections": {
+    "identityTitle": "Identity details",
+    "identityText": "Core graduate details aligned with the current import file requirements.",
+    "academicTitle": "Academic details",
+    "academicText": "Fill in the dates and academic fields using the current platform format.",
+    "originTitle": "Origin details",
+    "originText": "Select the region and enter the graduate's city of origin."
+  },
   "validation": {
     "minAge": "Graduate age must be at least 23 years.",
     "minDuration": "Graduation time must be at least 5 years from entry year."

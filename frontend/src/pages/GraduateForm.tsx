@@ -73,6 +73,7 @@ export default function GraduateForm(props: { mode: Mode }) {
   const [regionOpen, setRegionOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<Graduate>>(empty);
+  const [highlightedMissing, setHighlightedMissing] = useState<string | null>(null);
   const isEdit = props.mode === "edit";
   const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
 
@@ -167,9 +168,12 @@ export default function GraduateForm(props: { mode: Mode }) {
     try {
       const missing = validateRequired();
       if (missing) {
+        setHighlightedMissing(missing);
         alert(`${t("error")}: ${t("labels.required")} ${missing}`);
         return;
       }
+
+      setHighlightedMissing(null);
 
       const validationIssue = getGraduateValidationIssue(form, t);
       if (validationIssue) {
@@ -190,125 +194,144 @@ export default function GraduateForm(props: { mode: Mode }) {
     }
   };
 
+  const sectionTitleStyle: React.CSSProperties = { margin: 0, fontSize: 18, fontWeight: 800 };
+  const sectionTextStyle: React.CSSProperties = { margin: 0, color: "#64748b", fontSize: 14 };
+  const fieldStyle = (label: string): React.CSSProperties => ({
+    border: highlightedMissing === label ? "1px solid rgba(220,38,38,.35)" : "1px solid rgba(148,163,184,.18)",
+    borderRadius: 16,
+    padding: 14,
+    background: highlightedMissing === label ? "rgba(254,242,242,.7)" : "#fff"
+  });
+
   return (
-    <div className="grid" style={{ gap: 14 }}>
-      <div className="topbar">
-        <h2 style={{ margin: 0 }}>{isEdit ? t("titleEdit") : t("titleCreate")}</h2>
-        <div className="spacer" />
-        <Link className="btn" to="/graduates">{t("back")}</Link>
-        <button className="btn primary" disabled={saving} onClick={onSave}>{saving ? t("saving") : t("save")}</button>
+    <div className="grid" style={{ gap: 16 }}>
+      <div className="card" style={{ padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "grid", gap: 6 }}>
+            <h2 style={{ margin: 0 }}>{isEdit ? t("titleEdit") : t("titleCreate")}</h2>
+            <div className="muted">{t("tip")}</div>
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Link className="btn" to="/graduates">{t("back")}</Link>
+            <button className="btn primary" disabled={saving} onClick={onSave}>{saving ? t("saving") : t("save")}</button>
+          </div>
+        </div>
       </div>
 
-      <div className="card">
-        <div style={{ marginBottom: 12, fontWeight: 600 }}>
-          {t("tip")}
-        </div>
-        <div className="grid cols2">
-          <div>
-            <label className="label">{t("labels.adCode")}</label>
-            <input className="input" value={form.ad_code ?? ""} onChange={(e) => setForm((f) => ({ ...f, ad_code: e.target.value }))} required={!isEdit} />
+      <div className="card" style={{ padding: 18 }}>
+        <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ display: "grid", gap: 4 }}>
+            <h3 style={sectionTitleStyle}>{t("sections.identityTitle")}</h3>
+            <p style={sectionTextStyle}>{t("sections.identityText")}</p>
           </div>
-
-          <div>
-            <label className="label">{t("labels.lastName")}</label>
-            <input className="input" value={form.last_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} />
-          </div>
-          <div>
-            <label className="label">{t("labels.firstName")}</label>
-            <input className="input" value={form.first_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} />
-          </div>
-
-          <div>
-            <label className="label">{t("labels.fatherName")}</label>
-            <input className="input" value={form.father_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, father_name: e.target.value }))} />
-          </div>
-          <div>
-            <label className="label">{t("labels.gender")}</label>
-            <select className="input" value={form.gender ?? "M"} onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value as any }))}>
-              <option value="M">{t("common.male", { ns: "common" })}</option>
-              <option value="F">{t("common.female", { ns: "common" })}</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="label">{t("labels.studentNumber")}</label>
-            <input className="input" value={form.student_number ?? ""} onChange={(e) => setForm((f) => ({ ...f, student_number: e.target.value }))} />
-          </div>
-
-          <div>
-            <label className="label">{t("labels.entryYearReq")}</label>
-            <input className="input" value={form.entry_year ?? ""} onChange={(e) => setForm((f) => ({ ...f, entry_year: e.target.value ? Number(e.target.value) : ("" as any) }))} />
-          </div>
-
-          <div>
-            <label className="label">{t("labels.birthDate")}</label>
-            <input
-              className="input"
-              type="date"
-              value={(form as any).birth_date ?? ""}
-              onChange={(e) => setForm(f => ({...f, birth_date: e.target.value}))}
-            />
-          </div>
-
-          <div>
-            <label className="label">{t("labels.degreeGrade")}</label>
-            <input className="input" value={form.degree_grade ?? ""} onChange={(e) => setForm(f => ({...f, degree_grade: e.target.value ? Number(e.target.value) : ("" as any)}))} />
-          </div>
-
-          <div>
-            <label className="label">{t("labels.graduationDate")}</label>
-            <input className="input" type="date" value={(form.graduation_date ?? "") as any} onChange={(e) => setForm(f => ({...f, graduation_date: e.target.value}))} />
-          </div>
-
-          <div>
-            <label className="label">{t("labels.oathDate")}</label>
-            <input className="input" type="date" value={(form.oath_date ?? "") as any} onChange={(e) => setForm(f => ({...f, oath_date: e.target.value}))} />
-          </div>
-
-
-          <div>
-            <label className="label">{t("labels.studyProgram")}</label>
-            <select className="input" value={String(form.study_program_id ?? "")} onChange={(e) => setForm(f => ({...f, study_program_id: Number(e.target.value)}))}>
-              {programs.map((p) => <option key={p.id} value={p.id}>{p.code} - {activeLang === "en" ? p.name_en || p.name_el : p.name_el || p.name_en}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label className="label">{t("labels.direction")}</label>
-            <select className="input" value={form.program_direction_id ?? ""} onChange={(e) => setForm(f => ({...f, program_direction_id: e.target.value ? Number(e.target.value) : null}))}>
-              <option value="">{t("labels.directionNone")}</option>
-              {directions.map((d) => <option key={d.id} value={d.id}>{d.code} - {activeLang === "en" ? d.name_en || d.name_el : d.name_el || d.name_en}</option>)}
-            </select>
+          <div className="grid cols2">
+            <div style={fieldStyle(t("labels.adCode"))}>
+              <label className="label">{t("labels.adCode")}</label>
+              <input className="input" value={form.ad_code ?? ""} onChange={(e) => setForm((f) => ({ ...f, ad_code: e.target.value }))} required={!isEdit} />
+            </div>
+            <div style={fieldStyle(t("labels.studentNumber"))}>
+              <label className="label">{t("labels.studentNumber")}</label>
+              <input className="input" value={form.student_number ?? ""} onChange={(e) => setForm((f) => ({ ...f, student_number: e.target.value }))} />
+            </div>
+            <div style={fieldStyle(t("labels.lastName"))}>
+              <label className="label">{t("labels.lastName")}</label>
+              <input className="input" value={form.last_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} />
+            </div>
+            <div style={fieldStyle(t("labels.firstName"))}>
+              <label className="label">{t("labels.firstName")}</label>
+              <input className="input" value={form.first_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} />
+            </div>
+            <div style={fieldStyle(t("labels.fatherName"))}>
+              <label className="label">{t("labels.fatherName")}</label>
+              <input className="input" value={form.father_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, father_name: e.target.value }))} />
+            </div>
+            <div style={fieldStyle(t("labels.gender"))}>
+              <label className="label">{t("labels.gender")}</label>
+              <select className="input" value={form.gender ?? "M"} onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value as any }))}>
+                <option value="M">{t("common.male", { ns: "common" })}</option>
+                <option value="F">{t("common.female", { ns: "common" })}</option>
+              </select>
+            </div>
+            <div style={fieldStyle(t("labels.birthDate"))}>
+              <label className="label">{t("labels.birthDate")}</label>
+              <input className="input" type="date" value={(form as any).birth_date ?? ""} onChange={(e) => setForm(f => ({ ...f, birth_date: e.target.value }))} />
+            </div>
           </div>
         </div>
+      </div>
 
-        <hr />
+      <div className="card" style={{ padding: 18 }}>
+        <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ display: "grid", gap: 4 }}>
+            <h3 style={sectionTitleStyle}>{t("sections.academicTitle")}</h3>
+            <p style={sectionTextStyle}>{t("sections.academicText")}</p>
+          </div>
+          <div className="grid cols2">
+            <div style={fieldStyle(t("labels.entryYearReq"))}>
+              <label className="label">{t("labels.entryYearReq")}</label>
+              <input className="input" inputMode="numeric" value={form.entry_year ?? ""} onChange={(e) => setForm((f) => ({ ...f, entry_year: e.target.value ? Number(e.target.value) : ("" as any) }))} />
+            </div>
+            <div style={fieldStyle(t("labels.degreeGrade"))}>
+              <label className="label">{t("labels.degreeGrade")}</label>
+              <input className="input" inputMode="decimal" value={form.degree_grade ?? ""} onChange={(e) => setForm(f => ({ ...f, degree_grade: e.target.value ? Number(e.target.value) : ("" as any) }))} />
+            </div>
+            <div style={fieldStyle(t("labels.graduationDate"))}>
+              <label className="label">{t("labels.graduationDate")}</label>
+              <input className="input" type="date" value={(form.graduation_date ?? "") as any} onChange={(e) => setForm(f => ({ ...f, graduation_date: e.target.value }))} />
+            </div>
+            <div style={fieldStyle(t("labels.oathDate"))}>
+              <label className="label">{t("labels.oathDate")}</label>
+              <input className="input" type="date" value={(form.oath_date ?? "") as any} onChange={(e) => setForm(f => ({ ...f, oath_date: e.target.value }))} />
+            </div>
+            <div style={fieldStyle(t("labels.studyProgram"))}>
+              <label className="label">{t("labels.studyProgram")}</label>
+              <select className="input" value={String(form.study_program_id ?? "")} onChange={(e) => setForm(f => ({ ...f, study_program_id: Number(e.target.value) }))}>
+                {programs.map((p) => <option key={p.id} value={p.id}>{activeLang === "en" ? p.name_en || p.name_el : p.name_el || p.name_en}</option>)}
+              </select>
+            </div>
+            <div style={fieldStyle(t("labels.direction"))}>
+              <label className="label">{t("labels.direction")}</label>
+              <select className="input" value={form.program_direction_id ?? ""} onChange={(e) => setForm(f => ({ ...f, program_direction_id: e.target.value ? Number(e.target.value) : null }))}>
+                <option value="">{t("labels.directionNone")}</option>
+                {directions.map((d) => <option key={d.id} value={d.id}>{activeLang === "en" ? d.name_en || d.name_el : d.name_el || d.name_en}</option>)}
+              </select>
+              <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>{t("labels.directionHint")}</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        <div className="grid cols2">
-          <div>
-            <label className="label">{t("labels.regionSearch")}</label>
-            <input
-              className="input"
-              value={regionQ}
-              onFocus={() => setRegionOpen(true)}
-              onBlur={() => setTimeout(() => setRegionOpen(false), 150)}
-              onChange={(e) => {
-                const v = e.target.value;
-                setRegionQ(v);
-                setRegionOpen(true);
-                const hit = peripheries.find(p => (p.name || "") === v);
-                setForm(f => ({ ...f, origin_region_id: hit ? hit.id : f.origin_region_id }));
-              }}
-              placeholder={t("labels.regionPlaceholder")}
-            />
-            {regionOpen && regionHits.length > 0 && (
-              <div className="card" style={{ marginTop: 8 }}>
-                <div className="muted">{t("labels.select")}</div>
-                <div className="grid" style={{ gap: 6 }}>
+      <div className="card" style={{ padding: 18 }}>
+        <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ display: "grid", gap: 4 }}>
+            <h3 style={sectionTitleStyle}>{t("sections.originTitle")}</h3>
+            <p style={sectionTextStyle}>{t("sections.originText")}</p>
+          </div>
+          <div className="grid cols2">
+            <div style={fieldStyle(t("labels.regionSearch"))}>
+              <label className="label">{t("labels.regionSearch")}</label>
+              <input
+                className="input"
+                value={regionQ}
+                onFocus={() => setRegionOpen(true)}
+                onBlur={() => setTimeout(() => setRegionOpen(false), 150)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setRegionQ(v);
+                  setRegionOpen(true);
+                  const hit = peripheries.find(p => (p.name || "") === v);
+                  setForm(f => ({ ...f, origin_region_id: hit ? hit.id : f.origin_region_id }));
+                }}
+                placeholder={t("labels.regionPlaceholder")}
+              />
+              {regionOpen && regionHits.length > 0 ? (
+                <div style={{ marginTop: 8, border: "1px solid rgba(15,23,42,.08)", borderRadius: 12, padding: 10, display: "grid", gap: 6, maxHeight: 220, overflowY: "auto", background: "#fff" }}>
+                  <div className="muted">{t("labels.select")}</div>
                   {regionHits.map(r => (
                     <button
                       key={r.id}
                       className="btn"
+                      type="button"
                       onClick={() => {
                         setForm(f => ({ ...f, origin_region_id: r.id }));
                         setRegionQ(r.name);
@@ -319,18 +342,12 @@ export default function GraduateForm(props: { mode: Mode }) {
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="label">{t("labels.originText")}</label>
-            <input
-              className="input"
-              value={form.origin_municipality ?? ""}
-              onChange={(e) => setForm(f => ({ ...f, origin_municipality: e.target.value || null }))}
-              placeholder={t("labels.originTextPlaceholder")}
-            />
+              ) : null}
+            </div>
+            <div style={fieldStyle(t("labels.originText"))}>
+              <label className="label">{t("labels.originText")}</label>
+              <input className="input" value={form.origin_municipality ?? ""} onChange={(e) => setForm(f => ({ ...f, origin_municipality: e.target.value || null }))} placeholder={t("labels.originTextPlaceholder")} />
+            </div>
           </div>
         </div>
       </div>
