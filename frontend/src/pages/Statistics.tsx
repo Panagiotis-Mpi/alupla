@@ -275,6 +275,7 @@ function ProgramAverageCards(props: {
   minValue?: number;
   maxValue?: number;
   decimals?: number;
+  chartId?: string;
 }) {
   const safeValues = props.values.map((value) => Number(value ?? 0));
   const minValue = props.minValue ?? 0;
@@ -819,7 +820,6 @@ export default function Statistics() {
         label: String(activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name ?? "-"),
       }));
   }, [activeLang, data]);
-
 
   React.useEffect(() => {
     if (!directionProgramOptions.length) return;
