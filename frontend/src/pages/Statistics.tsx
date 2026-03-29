@@ -466,7 +466,6 @@ export default function Statistics() {
   const exportModalBodyRef = React.useRef<HTMLDivElement | null>(null);
   const pageRef = React.useRef<HTMLDivElement | null>(null);
   const exportSurfaceRef = React.useRef<HTMLDivElement | null>(null);
-  const initializedExportSelectionRef = React.useRef(false);
 
   const activeLang = i18n.language?.toLowerCase().startsWith("en") ? "en" : "el";
 
@@ -520,13 +519,7 @@ export default function Statistics() {
   const [selectedChartIds, setSelectedChartIds] = React.useState<StatisticsChartId[]>([]);
 
   React.useEffect(() => {
-    setSelectedChartIds((prev) => {
-      if (!initializedExportSelectionRef.current) {
-        initializedExportSelectionRef.current = true;
-        return [...allChartIds];
-      }
-      return prev.filter((id) => allChartIds.includes(id));
-    });
+    setSelectedChartIds((prev) => prev.filter((id) => allChartIds.includes(id)));
   }, [allChartIds]);
 
   async function load() {
@@ -764,12 +757,22 @@ export default function Statistics() {
     display: "flex",
     alignItems: "center",
     gap: 10,
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(148, 163, 184, 0.22)",
+    padding: "8px 10px",
+    borderRadius: 10,
+    border: "1px solid rgba(148, 163, 184, 0.2)",
     background: "#fff",
     color: "#0f172a",
     cursor: "pointer",
+    minHeight: 42,
+    lineHeight: 1.3,
+  };
+
+  const selectionCheckboxStyle: React.CSSProperties = {
+    width: 16,
+    height: 16,
+    margin: 0,
+    flex: "0 0 auto",
+    accentColor: "#2563eb",
   };
 
   function toggleAllCharts() {
@@ -796,6 +799,7 @@ export default function Statistics() {
   }, [selectedExportFormat]);
 
   function openExportSelection(format: "xlsx" | "csv" | "png") {
+    setSelectedChartIds([]);
     setSelectedExportFormat(format);
     setExportOpen(false);
   }
@@ -1073,7 +1077,7 @@ export default function Statistics() {
             background: "rgba(15, 23, 42, 0.34)",
             display: "grid",
             placeItems: "center",
-            padding: 20,
+            padding: 16,
             zIndex: 60,
           }}
         >
@@ -1081,28 +1085,30 @@ export default function Statistics() {
             className="card"
             onClick={(event) => event.stopPropagation()}
             style={{
-              width: "min(760px, 100%)",
-              maxHeight: "min(82vh, 900px)",
+              width: "min(680px, 100%)",
+              maxHeight: "min(78vh, 760px)",
               display: "grid",
-              gap: 16,
-              padding: 18,
+              gridTemplateRows: "auto minmax(0, 1fr) auto",
+              gap: 12,
+              padding: 14,
+              overflow: "hidden",
             }}
           >
-            <div className="topbar" style={{ marginBottom: 0 }}>
+            <div className="topbar" style={{ marginBottom: 0, gap: 10, alignItems: "flex-start" }}>
               <div>
-                <h3 style={{ margin: 0 }}>{t("actions.exportSelectionTitle", { defaultValue: "Επιλογή διαγραμμάτων" })}</h3>
-                <div className="muted" style={{ marginTop: 6 }}>
+                <h3 style={{ margin: 0, fontSize: 18 }}>{t("actions.exportSelectionTitle", { defaultValue: "Επιλογή διαγραμμάτων" })}</h3>
+                <div className="muted" style={{ marginTop: 4, fontSize: 13 }}>
                   {t("actions.exportSelectionSubtitle", { defaultValue: "Επίλεξε ποια διαγράμματα θέλεις να κατεβάσεις" })} · {exportFormatLabel}
                 </div>
               </div>
-              <button type="button" className="btn" onClick={closeExportSelection}>
+              <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={closeExportSelection}>
                 {t("actions.close", { defaultValue: "Κλείσιμο" })}
               </button>
             </div>
 
-            <div ref={exportModalBodyRef} style={{ display: "grid", gap: 12, overflowY: "auto", paddingRight: 4 }}>
+            <div ref={exportModalBodyRef} style={{ display: "grid", gap: 10, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
               <label style={{ ...selectionRowStyle, fontWeight: 700 }}>
-                <input type="checkbox" checked={allChartsSelected} onChange={toggleAllCharts} />
+                <input type="checkbox" style={selectionCheckboxStyle} checked={allChartsSelected} onChange={toggleAllCharts} />
                 <span>{t("actions.selectAll", { defaultValue: "Όλα" })}</span>
               </label>
 
@@ -1111,15 +1117,15 @@ export default function Statistics() {
                 const groupChecked = groupChartIds.every((id) => selectedChartIds.includes(id));
 
                 return (
-                  <div key={group.key} style={{ display: "grid", gap: 10, border: "1px solid rgba(148, 163, 184, 0.22)", borderRadius: 16, padding: 14, background: "rgba(248, 250, 252, 0.72)" }}>
+                  <div key={group.key} style={{ display: "grid", gap: 8, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 10, background: "rgba(248, 250, 252, 0.76)" }}>
                     <label style={{ ...selectionRowStyle, fontWeight: 700 }}>
-                      <input type="checkbox" checked={groupChecked} onChange={() => toggleGroupCharts(groupChartIds)} />
+                      <input type="checkbox" style={selectionCheckboxStyle} checked={groupChecked} onChange={() => toggleGroupCharts(groupChartIds)} />
                       <span>{group.label}</span>
                     </label>
-                    <div style={{ display: "grid", gap: 8, paddingLeft: 12 }}>
+                    <div style={{ display: "grid", gap: 6 }}>
                       {group.charts.map((chart) => (
                         <label key={chart.id} style={selectionRowStyle}>
-                          <input type="checkbox" checked={selectedChartIds.includes(chart.id)} onChange={() => toggleSingleChart(chart.id)} />
+                          <input type="checkbox" style={selectionCheckboxStyle} checked={selectedChartIds.includes(chart.id)} onChange={() => toggleSingleChart(chart.id)} />
                           <span>{chart.label}</span>
                         </label>
                       ))}
@@ -1129,8 +1135,8 @@ export default function Statistics() {
               })}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
-              <button type="button" className="btn" onClick={closeExportSelection}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap", paddingTop: 2 }}>
+              <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={closeExportSelection}>
                 {t("actions.cancel", { defaultValue: "Ακύρωση" })}
               </button>
               <button type="button" className="btn primary" disabled={!selectedChartIds.length} style={{ opacity: selectedChartIds.length ? 1 : 0.55 }} onClick={() => void handleExportAction()}>
