@@ -36,7 +36,9 @@
     "originMunicipality": "Graduates by city of origin",
     "avgGradeByProgram": "Average degree grade by study program",
     "genderByProgram": "Male and female ratio by study program",
-    "timeToDegreeDistribution": "Graduates by total study completion years"
+    "timeToDegreeDistribution": "Graduates by total study completion years",
+    "topOriginRegionsShare": "Graduate share across top origin regions",
+    "topOriginCitiesShare": "Graduate share across top origin cities"
   },
   "table": {
     "year": "Year",
@@ -48,7 +50,9 @@
     "winter": "Winter",
     "spring": "Spring",
     "september": "September",
-    "avgYears": "Avg years"
+    "avgYears": "Avg years",
+    "otherRegions": "Other regions",
+    "otherCities": "Other cities"
   },
   "loading": "Loading...",
   "error": "Something went wrong",
@@ -76,7 +80,7 @@
   "groupText": {
     "overview": "Overall graduate snapshot with key indicators and broad trends.",
     "demographics": "Statistics on age, gender and graduate demographic characteristics.",
-    "academic": "Statistics on grades, completion time, study programs and directions.",
-    "geography": "Statistics on graduate origin by region and city."
+    "academic": "Statistics on study programs, grades, completion time, graduation years and directions.",
+    "geography": "Statistics on graduate origin by region and city, along with smart share breakdowns."
   }
 }
