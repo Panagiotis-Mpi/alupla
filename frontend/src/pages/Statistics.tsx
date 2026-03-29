@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { getPublicStats, logPublicExport } from "../lib/api";
-import { exportStatisticsCsvFile, exportStatisticsWorkbookFile } from "./statisticsExport";
+import { exportStatisticsCsvFile, exportStatisticsWorkbookFile, type StatisticsChartId } from "./statisticsExport";
 import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -51,6 +51,15 @@ const solidBlueFill = "rgba(37, 99, 235, 0.72)";
 const pinkFill = "rgba(219, 39, 119, 0.72)";
 const chartGridColor = "rgba(148, 163, 184, 0.22)";
 const chartTickColor = "#475569";
+
+function fileSlug(value: string) {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "") || "chart";
+}
 
 function buildBarDataset(label: string, data: number[], color = "#2563eb", backgroundColor = solidBlueFill) {
   return {
@@ -249,7 +258,7 @@ function ProgramAverageCards(props: {
   const decimals = props.decimals ?? 0;
 
   return (
-    <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
+    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
@@ -309,6 +318,7 @@ function BarChartCard(props: {
   horizontal?: boolean;
   fullLabelTooltip?: boolean;
   forceScrollable?: boolean;
+  chartId?: string;
 }) {
   const chartHeight = props.height ?? (props.horizontal ? Math.max(300, props.labels.length * 54) : 280);
   const chartData = {
@@ -322,7 +332,7 @@ function BarChartCard(props: {
   });
 
   return (
-    <div className="card" style={cardInnerStyle}>
+    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
@@ -351,9 +361,10 @@ function MultiBarChartCard(props: {
   minLabelWidth?: number;
   maxLabelWidth?: number;
   stacked?: boolean;
+  chartId?: string;
 }) {
   return (
-    <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
+    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
@@ -382,9 +393,10 @@ function ChartCard(props: {
   datasetCount?: number;
   minLabelWidth?: number;
   maxLabelWidth?: number;
+  chartId?: string;
 }) {
   return (
-    <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
+    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
@@ -421,9 +433,10 @@ function VerticalBarChartCard(props: {
   minValue?: number;
   maxValue?: number;
   height?: number;
+  chartId?: string;
 }) {
   return (
-    <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
+    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
@@ -450,8 +463,69 @@ export default function Statistics() {
   const [exportOpen, setExportOpen] = React.useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
   const pageRef = React.useRef<HTMLDivElement | null>(null);
+  const exportSurfaceRef = React.useRef<HTMLDivElement | null>(null);
+  const initializedExportSelectionRef = React.useRef(false);
 
   const activeLang = i18n.language?.toLowerCase().startsWith("en") ? "en" : "el";
+
+  const chartGroups = React.useMemo(
+    () => [
+      {
+        key: "overview" as const,
+        label: t("groups.overview"),
+        charts: [
+          { id: "byYear" as StatisticsChartId, label: t("sections.byYear") },
+          { id: "studyProgram" as StatisticsChartId, label: t("sections.studyProgram") },
+          { id: "gradeByYear" as StatisticsChartId, label: t("sections.gradeByYear") },
+        ],
+      },
+      {
+        key: "demographics" as const,
+        label: t("groups.demographics"),
+        charts: [
+          { id: "gender" as StatisticsChartId, label: t("sections.gender") },
+          { id: "birthYear" as StatisticsChartId, label: t("sections.birthYear") },
+          { id: "genderByProgram" as StatisticsChartId, label: t("sections.genderByProgram") },
+        ],
+      },
+      {
+        key: "academic" as const,
+        label: t("groups.academic"),
+        charts: [
+          { id: "gradeDistribution" as StatisticsChartId, label: t("sections.gradeDistribution") },
+          { id: "avgGradeByProgram" as StatisticsChartId, label: t("sections.avgGradeByProgram") },
+          { id: "timeToDegreeByEntryYear" as StatisticsChartId, label: t("sections.timeToDegreeByEntryYear") },
+          { id: "timeToDegreeDistribution" as StatisticsChartId, label: t("sections.timeToDegreeDistribution") },
+          { id: "direction" as StatisticsChartId, label: t("sections.direction") },
+        ],
+      },
+      {
+        key: "geography" as const,
+        label: t("groups.geography"),
+        charts: [
+          { id: "originRegion" as StatisticsChartId, label: t("sections.originRegion") },
+          { id: "originMunicipality" as StatisticsChartId, label: t("sections.originMunicipality") },
+        ],
+      },
+    ],
+    [t]
+  );
+
+  const allChartIds = React.useMemo(
+    () => chartGroups.flatMap((group) => group.charts.map((chart) => chart.id)),
+    [chartGroups]
+  );
+  const [selectedChartIds, setSelectedChartIds] = React.useState<StatisticsChartId[]>([]);
+
+  React.useEffect(() => {
+    setSelectedChartIds((prev) => {
+      if (!initializedExportSelectionRef.current) {
+        initializedExportSelectionRef.current = true;
+        return [...allChartIds];
+      }
+      return prev.filter((id) => allChartIds.includes(id));
+    });
+  }, [allChartIds]);
 
   async function load() {
     setLoading(true);
@@ -670,6 +744,24 @@ export default function Statistics() {
     outline: "none",
   };
 
+  const allChartsSelected = allChartIds.length > 0 && selectedChartIds.length === allChartIds.length;
+
+  function toggleAllCharts() {
+    setSelectedChartIds((prev) => (prev.length === allChartIds.length ? [] : [...allChartIds]));
+  }
+
+  function toggleGroupCharts(chartIds: StatisticsChartId[]) {
+    setSelectedChartIds((prev) => {
+      const everySelected = chartIds.every((id) => prev.includes(id));
+      if (everySelected) return prev.filter((id) => !chartIds.includes(id));
+      return Array.from(new Set([...prev, ...chartIds]));
+    });
+  }
+
+  function toggleSingleChart(chartId: StatisticsChartId) {
+    setSelectedChartIds((prev) => (prev.includes(chartId) ? prev.filter((id) => id !== chartId) : [...prev, chartId]));
+  }
+
   const exportArgs = React.useMemo(() => ({
     data,
     t,
@@ -681,9 +773,11 @@ export default function Statistics() {
     busiestYear,
     busiestCity,
     selectedDirectionProgramId,
-  }), [activeLang, avgAge, avgGrade, busiestCity, busiestYear, data, earliestYear, selectedDirectionProgramId, t, total]);
+    selectedChartIds,
+  }), [activeLang, avgAge, avgGrade, busiestCity, busiestYear, data, earliestYear, selectedChartIds, selectedDirectionProgramId, t, total]);
 
   async function handleExportExcel() {
+    if (!selectedChartIds.length) return;
     exportStatisticsWorkbookFile(exportArgs);
     setExportOpen(false);
     try {
@@ -692,6 +786,7 @@ export default function Statistics() {
   }
 
   async function handleExportCsv() {
+    if (!selectedChartIds.length) return;
     exportStatisticsCsvFile(exportArgs);
     setExportOpen(false);
     try {
@@ -700,79 +795,70 @@ export default function Statistics() {
   }
 
   async function handleExportPng() {
-    const root = pageRef.current;
+    if (!selectedChartIds.length) return;
+
+    const root = exportSurfaceRef.current;
     if (!root) return;
 
-    const cards = Array.from(root.querySelectorAll<HTMLElement>("[data-stat-chart-card='true']")).filter((card) => {
-      const style = window.getComputedStyle(card);
-      return style.display !== "none" && style.visibility !== "hidden" && card.offsetHeight > 0;
-    });
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
 
-    if (!cards.length) return;
+    const padding = 36;
+    const titleSpace = 42;
 
-    const parts: Array<{ title: string; canvas: HTMLCanvasElement; width: number; height: number }> = [];
-    for (const card of cards) {
+    for (const chartId of selectedChartIds) {
+      const card = root.querySelector<HTMLElement>(`[data-export-chart-id="${chartId}"]`);
+      if (!card) continue;
+
       const canvas = card.querySelector("canvas");
       if (!canvas) continue;
+
       const title = card.querySelector("h3")?.textContent?.trim() || t("pageTitle");
       const width = canvas.width || Math.round(canvas.getBoundingClientRect().width * 2);
       const height = canvas.height || Math.round(canvas.getBoundingClientRect().height * 2);
-      parts.push({ title, canvas, width, height });
-    }
 
-    if (!parts.length) return;
+      const out = document.createElement("canvas");
+      out.width = width + padding * 2;
+      out.height = height + padding * 2 + titleSpace;
 
-    const padding = 36;
-    const gap = 24;
-    const titleSpace = 42;
-    const cardGap = 18;
-    const exportWidth = Math.max(...parts.map((part) => part.width)) + padding * 2;
-    const exportHeight = parts.reduce((sum, part) => sum + titleSpace + part.height + cardGap, 0) + padding * 2 + gap * Math.max(parts.length - 1, 0);
-    const out = document.createElement("canvas");
-    out.width = exportWidth;
-    out.height = exportHeight;
-    const ctx = out.getContext("2d");
-    if (!ctx) return;
+      const ctx = out.getContext("2d");
+      if (!ctx) continue;
 
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, exportWidth, exportHeight);
-
-    let y = padding;
-    for (const part of parts) {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, out.width, out.height);
       ctx.fillStyle = "#0f172a";
       ctx.font = '700 22px Arial, sans-serif';
-      ctx.fillText(part.title, padding, y + 24);
+      ctx.fillText(title, padding, padding + 24);
 
-      const cardY = y + titleSpace - 6;
+      const cardY = padding + titleSpace - 6;
       ctx.fillStyle = "#ffffff";
       ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(padding - 12, cardY, part.width + 24, part.height + 24, 18);
+      ctx.roundRect(padding - 12, cardY, width + 24, height + 24, 18);
       ctx.fill();
       ctx.stroke();
-      ctx.drawImage(part.canvas, padding, cardY + 12, part.width, part.height);
+      ctx.drawImage(canvas, padding, cardY + 12, width, height);
 
-      y = cardY + part.height + 24 + gap;
+      const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, "image/png"));
+      if (!blob) continue;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `alupla_statistics_${fileSlug(title)}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     }
 
-    const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, "image/png"));
-    if (!blob) return;
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "alupla_statistics_export.png";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
     setExportOpen(false);
 
     try {
       await logPublicExport("statistics_export", "png");
     } catch {}
   }
+
 
   if (loading && !data) return <div className="card">{t("loading")}</div>;
   if (err && !data) return <div className="card">{err}</div>;
@@ -819,9 +905,37 @@ export default function Statistics() {
                           gap: 6,
                         }}
                       >
-                        <button className="btn" type="button" style={{ ...topButtonStyle, justifyContent: "flex-start" }} onClick={handleExportExcel}>Excel</button>
-                        <button className="btn" type="button" style={{ ...topButtonStyle, justifyContent: "flex-start" }} onClick={handleExportCsv}>CSV</button>
-                        <button className="btn" type="button" style={{ ...topButtonStyle, justifyContent: "flex-start" }} onClick={handleExportPng}>PNG</button>
+                        <button className="btn" type="button" disabled={!selectedChartIds.length} style={{ ...topButtonStyle, justifyContent: "flex-start", opacity: selectedChartIds.length ? 1 : 0.55 }} onClick={handleExportExcel}>Excel</button>
+                        <button className="btn" type="button" disabled={!selectedChartIds.length} style={{ ...topButtonStyle, justifyContent: "flex-start", opacity: selectedChartIds.length ? 1 : 0.55 }} onClick={handleExportCsv}>CSV</button>
+                        <button className="btn" type="button" disabled={!selectedChartIds.length} style={{ ...topButtonStyle, justifyContent: "flex-start", opacity: selectedChartIds.length ? 1 : 0.55 }} onClick={handleExportPng}>PNG</button>
+                        <div style={{ height: 1, background: "rgba(148, 163, 184, 0.22)", margin: "6px 0" }} />
+                        <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, cursor: "pointer", fontWeight: 700, color: "#0f172a" }}>
+                          <input type="checkbox" checked={allChartsSelected} onChange={toggleAllCharts} />
+                          <span>{t("actions.selectAll", { defaultValue: "Όλα" })}</span>
+                        </label>
+                        <div style={{ display: "grid", gap: 10, maxHeight: 360, overflowY: "auto", paddingTop: 2 }}>
+                          {chartGroups.map((group) => {
+                            const groupChartIds = group.charts.map((chart) => chart.id);
+                            const groupChecked = groupChartIds.every((id) => selectedChartIds.includes(id));
+
+                            return (
+                              <div key={group.key} style={{ display: "grid", gap: 8, padding: "6px 4px 8px" }}>
+                                <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 6px", borderRadius: 10, cursor: "pointer", fontWeight: 700, color: "#0f172a" }}>
+                                  <input type="checkbox" checked={groupChecked} onChange={() => toggleGroupCharts(groupChartIds)} />
+                                  <span>{group.label}</span>
+                                </label>
+                                <div style={{ display: "grid", gap: 6, paddingLeft: 28 }}>
+                                  {group.charts.map((chart) => (
+                                    <label key={chart.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0", cursor: "pointer", color: "#334155", lineHeight: 1.35 }}>
+                                      <input type="checkbox" checked={selectedChartIds.includes(chart.id)} onChange={() => toggleSingleChart(chart.id)} />
+                                      <span>{chart.label}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     ) : null}
                   </div>
@@ -850,7 +964,7 @@ export default function Statistics() {
           <div style={sectionWrapStyle}>
             <SectionTitle title={t("groups.overview")} subtitle={t("groupText.overview")} />
             <div className="grid cols1" style={{ gap: 14 }}>
-              <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
+              <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="byYear">
                 <div className="topbar" style={compactTopbarStyle}>
                   <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
                 </div>
@@ -862,8 +976,8 @@ export default function Statistics() {
                   options={countChartOptions as any}
                 />
               </div>
-              <BarChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
-              <BarChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
+              <BarChartCard chartId="studyProgram" title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+              <BarChartCard chartId="gradeByYear" title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
             </div>
           </div>
         ) : null}
@@ -872,7 +986,7 @@ export default function Statistics() {
           <div style={sectionWrapStyle}>
             <SectionTitle title={t("groups.demographics")} subtitle={t("groupText.demographics")} />
             <div className="grid cols1" style={{ gap: 14 }}>
-              <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
+              <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="gender">
                 <div className="topbar" style={compactTopbarStyle}>
                   <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
                 </div>
@@ -884,8 +998,8 @@ export default function Statistics() {
                   options={genderChartOptions as any}
                 />
               </div>
-              <ChartCard title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} height={320} />
-              <MultiBarChartCard
+              <ChartCard chartId="birthYear" title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} height={320} />
+              <MultiBarChartCard chartId="genderByProgram"
                 title={t("sections.genderByProgram")}
                 labels={genderByProgramData.labels}
                 height={320}
@@ -904,11 +1018,11 @@ export default function Statistics() {
           <div style={sectionWrapStyle}>
             <SectionTitle title={t("groups.academic")} subtitle={t("groupText.academic")} />
             <div className="grid cols1" style={{ gap: 14 }}>
-              <BarChartCard title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
-              <VerticalBarChartCard title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} height={320} />
-              <BarChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
-              <BarChartCard title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
-              <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
+              <BarChartCard chartId="gradeDistribution" title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
+              <VerticalBarChartCard chartId="avgGradeByProgram" title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} height={320} />
+              <BarChartCard chartId="timeToDegreeByEntryYear" title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
+              <BarChartCard chartId="timeToDegreeDistribution" title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
+              <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="direction">
                 <div className="topbar" style={{ ...compactTopbarStyle, display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
                   <h3 style={{ margin: 0 }}>{t("sections.direction")}</h3>
                   <select value={selectedDirectionProgramId} onChange={(e) => setSelectedDirectionProgramId(e.target.value)} style={selectStyle}>
@@ -934,11 +1048,84 @@ export default function Statistics() {
           <div style={sectionWrapStyle}>
             <SectionTitle title={t("groups.geography")} subtitle={t("groupText.geography")} />
             <div className="grid cols1" style={{ gap: 14 }}>
-              <BarChartCard title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
-              <BarChartCard title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
+              <BarChartCard chartId="originRegion" title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
+              <BarChartCard chartId="originMunicipality" title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
             </div>
           </div>
         ) : null}
+      </div>
+      <div
+        ref={exportSurfaceRef}
+        aria-hidden="true"
+        style={{
+          position: "fixed",
+          left: -20000,
+          top: 0,
+          width: 1200,
+          padding: 24,
+          pointerEvents: "none",
+          opacity: 0,
+          zIndex: -1,
+          background: "#ffffff",
+        }}
+      >
+        <div style={{ display: "grid", gap: 14 }}>
+          <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="byYear">
+            <div className="topbar" style={compactTopbarStyle}>
+              <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
+            </div>
+            <ScrollableLineChart
+              height={320}
+              labels={(countChartData as any).labels ?? []}
+              datasetCount={((countChartData as any).datasets ?? []).length}
+              data={countChartData as any}
+              options={countChartOptions as any}
+            />
+          </div>
+          <BarChartCard chartId="studyProgram" title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+          <BarChartCard chartId="gradeByYear" title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
+          <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="gender">
+            <div className="topbar" style={compactTopbarStyle}>
+              <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
+            </div>
+            <ScrollableLineChart
+              height={320}
+              labels={(genderChartData as any).labels ?? []}
+              datasetCount={((genderChartData as any).datasets ?? []).length}
+              data={genderChartData as any}
+              options={genderChartOptions as any}
+            />
+          </div>
+          <ChartCard chartId="birthYear" title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} height={320} />
+          <MultiBarChartCard chartId="genderByProgram" title={t("sections.genderByProgram")} labels={genderByProgramData.labels} height={320} minLabelWidth={112} maxLabelWidth={176} datasets={[
+            buildBarDataset(t("table.male"), genderByProgramData.male, "#2563eb", solidBlueFill),
+            buildBarDataset(t("table.female"), genderByProgramData.female, "#db2777", pinkFill),
+          ]} />
+          <BarChartCard chartId="gradeDistribution" title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
+          <VerticalBarChartCard chartId="avgGradeByProgram" title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} height={320} />
+          <BarChartCard chartId="timeToDegreeByEntryYear" title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
+          <BarChartCard chartId="timeToDegreeDistribution" title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
+          <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="direction">
+            <div className="topbar" style={{ ...compactTopbarStyle, display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
+              <h3 style={{ margin: 0 }}>{t("sections.direction")}</h3>
+              <select value={selectedDirectionProgramId} onChange={(e) => setSelectedDirectionProgramId(e.target.value)} style={selectStyle}>
+                <option value="all">{t("filters.all")}</option>
+                {directionProgramOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <FixedBarChart
+              height={Math.max(320, directions.labels.length * 56)}
+              data={{ labels: directions.labels, datasets: [buildBarDataset(t("sections.direction"), directions.values)] }}
+              options={buildBarChartOptions({ horizontal: true, fullLabelTooltip: true, labels: directions.labels })}
+            />
+          </div>
+          <BarChartCard chartId="originRegion" title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
+          <BarChartCard chartId="originMunicipality" title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
+        </div>
       </div>
     </>
   );

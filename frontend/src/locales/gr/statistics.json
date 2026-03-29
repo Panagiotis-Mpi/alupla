@@ -59,7 +59,8 @@
   },
   "actions": {
     "exportExcel": "Εξαγωγή Excel",
-    "export": "Εξαγωγή"
+    "export": "Εξαγωγή",
+    "selectAll": "Όλα"
   },
   "groups": {
     "overview": "Γενική εικόνα",

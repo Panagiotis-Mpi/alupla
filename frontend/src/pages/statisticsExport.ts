@@ -2,6 +2,21 @@ import type { TFunction } from "i18next";
 import * as XLSX from "xlsx";
 import { exportCsvText, exportWorkbook } from "./map/mapExport";
 
+export type StatisticsChartId =
+  | "byYear"
+  | "gender"
+  | "birthYear"
+  | "studyProgram"
+  | "gradeByYear"
+  | "avgGradeByProgram"
+  | "gradeDistribution"
+  | "genderByProgram"
+  | "direction"
+  | "originRegion"
+  | "originMunicipality"
+  | "timeToDegreeByEntryYear"
+  | "timeToDegreeDistribution";
+
 type NamedCountRow = {
   id?: number | null;
   study_program_id?: number | null;
@@ -31,6 +46,7 @@ type BuildArgs = {
   busiestYear: string | number;
   busiestCity: string | number;
   selectedDirectionProgramId: string;
+  selectedChartIds?: StatisticsChartId[];
 };
 
 function text(v: unknown) {
@@ -54,22 +70,10 @@ function csvCell(value: unknown) {
 }
 
 function buildSheets(args: BuildArgs) {
-  const { data, t, activeLang, total, avgAge, avgGrade, earliestYear, busiestYear, busiestCity, selectedDirectionProgramId } = args;
-  const sheets: Array<{ name: string; rows: SheetRow[] }> = [];
+  const { data, t, activeLang, selectedDirectionProgramId } = args;
+  const sheets = new Map<StatisticsChartId, { name: string; rows: SheetRow[] }>();
 
-  sheets.push({
-    name: activeLang === "en" ? "Overview" : "Σύνοψη",
-    rows: [
-      { [activeLang === "en" ? "Metric" : "Μετρική"]: t("cards.total"), [activeLang === "en" ? "Value" : "Τιμή"]: total },
-      { [activeLang === "en" ? "Metric" : "Μετρική"]: t("cards.avgAge"), [activeLang === "en" ? "Value" : "Τιμή"]: avgAge },
-      { [activeLang === "en" ? "Metric" : "Μετρική"]: t("cards.avgGrade"), [activeLang === "en" ? "Value" : "Τιμή"]: avgGrade },
-      { [activeLang === "en" ? "Metric" : "Μετρική"]: t("cards.earliestYear"), [activeLang === "en" ? "Value" : "Τιμή"]: earliestYear },
-      { [activeLang === "en" ? "Metric" : "Μετρική"]: t("cards.topGraduationYear"), [activeLang === "en" ? "Value" : "Τιμή"]: busiestYear },
-      { [activeLang === "en" ? "Metric" : "Μετρική"]: t("cards.topCity"), [activeLang === "en" ? "Value" : "Τιμή"]: busiestCity },
-    ],
-  });
-
-  sheets.push({
+  sheets.set("byYear", {
     name: activeLang === "en" ? "By Year" : "Ανά έτος",
     rows: (data?.by_year ?? []).map((row: any) => ({
       [t("table.year")]: num(row.year),
@@ -77,7 +81,7 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  sheets.push({
+  sheets.set("gender", {
     name: activeLang === "en" ? "Gender By Year" : "Φύλο ανά έτος",
     rows: (data?.gender_by_year ?? []).map((row: any) => ({
       [t("table.year")]: num(row.year),
@@ -86,7 +90,7 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  sheets.push({
+  sheets.set("birthYear", {
     name: activeLang === "en" ? "Birth Years" : "Έτη γέννησης",
     rows: (data?.birth_year_distribution ?? []).map((row: NamedCountRow) => ({
       [t("table.year")]: num(row.year),
@@ -94,7 +98,7 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  sheets.push({
+  sheets.set("studyProgram", {
     name: activeLang === "en" ? "Programs" : "Προγράμματα",
     rows: (data?.study_program_distribution ?? []).map((row: NamedCountRow) => ({
       [t("filters.studyProgram")]: localizedName(row, activeLang),
@@ -102,7 +106,7 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  sheets.push({
+  sheets.set("gradeByYear", {
     name: activeLang === "en" ? "Avg Grade By Year" : "ΜΟ βαθμού ανά έτος",
     rows: (data?.avg_grade_by_year ?? []).map((row: NamedCountRow) => ({
       [t("table.year")]: num(row.year),
@@ -110,7 +114,7 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  sheets.push({
+  sheets.set("avgGradeByProgram", {
     name: activeLang === "en" ? "Avg Grade By Program" : "ΜΟ βαθμού ανά πρόγραμμα",
     rows: (data?.avg_grade_by_program ?? []).map((row: NamedCountRow) => ({
       [t("filters.studyProgram")]: localizedName(row, activeLang),
@@ -118,7 +122,7 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  sheets.push({
+  sheets.set("gradeDistribution", {
     name: activeLang === "en" ? "Grade Distribution" : "Κατανομή βαθμού",
     rows: (data?.degree_grade_bins ?? []).map((row: NamedCountRow) => ({
       [activeLang === "en" ? "Grade Range" : "Εύρος βαθμού"]: text(row.label),
@@ -126,7 +130,7 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  sheets.push({
+  sheets.set("genderByProgram", {
     name: activeLang === "en" ? "Gender By Program" : "Φύλο ανά πρόγραμμα",
     rows: (data?.gender_by_program ?? []).map((row: NamedCountRow) => ({
       [t("filters.studyProgram")]: localizedName(row, activeLang),
@@ -140,7 +144,7 @@ function buildSheets(args: BuildArgs) {
     ? directionRows
     : directionRows.filter((row) => String(row.study_program_id ?? "") === selectedDirectionProgramId);
 
-  sheets.push({
+  sheets.set("direction", {
     name: activeLang === "en" ? "Directions" : "Κατευθύνσεις",
     rows: visibleDirectionRows.map((row) => ({
       [t("filters.studyProgram")]: text(
@@ -152,7 +156,7 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  sheets.push({
+  sheets.set("originRegion", {
     name: activeLang === "en" ? "Origin Regions" : "Περιφέρειες καταγωγής",
     rows: (data?.origin_region_distribution ?? []).map((row: NamedCountRow) => ({
       [activeLang === "en" ? "Region" : "Περιφέρεια"]: localizedName(row, activeLang),
@@ -160,7 +164,7 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  sheets.push({
+  sheets.set("originMunicipality", {
     name: activeLang === "en" ? "Origin Cities" : "Πόλεις καταγωγής",
     rows: (data?.origin_municipality_distribution ?? []).map((row: NamedCountRow) => ({
       [activeLang === "en" ? "City" : "Πόλη"]: text(row.name),
@@ -168,7 +172,7 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  sheets.push({
+  sheets.set("timeToDegreeByEntryYear", {
     name: activeLang === "en" ? "Years To Degree" : "Χρόνια σπουδών",
     rows: (data?.avg_years_to_degree_by_entry_year ?? []).map((row: NamedCountRow) => ({
       [activeLang === "en" ? "Entry Year" : "Έτος εισαγωγής"]: num(row.entry_year),
@@ -176,7 +180,7 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  sheets.push({
+  sheets.set("timeToDegreeDistribution", {
     name: activeLang === "en" ? "Years To Degree Dist" : "Κατανομή χρόνων σπουδών",
     rows: (data?.years_to_degree_distribution ?? []).map((row: NamedCountRow) => ({
       [activeLang === "en" ? "Years" : "Χρόνια"]: text(row.label),
@@ -184,7 +188,13 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  return sheets.filter((sheet) => sheet.rows.length > 0);
+  const selectedIds = Array.isArray(args.selectedChartIds) && args.selectedChartIds.length
+    ? args.selectedChartIds
+    : Array.from(sheets.keys());
+
+  return selectedIds
+    .map((chartId) => sheets.get(chartId))
+    .filter((sheet): sheet is { name: string; rows: SheetRow[] } => !!sheet && sheet.rows.length > 0);
 }
 
 export function exportStatisticsWorkbookFile(args: BuildArgs) {

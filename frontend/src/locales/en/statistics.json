@@ -59,7 +59,8 @@
   },
   "actions": {
     "exportExcel": "Export Excel",
-    "export": "Export"
+    "export": "Export",
+    "selectAll": "All"
   },
   "groups": {
     "overview": "Overview",
