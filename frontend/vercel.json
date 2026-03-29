@@ -8,5 +8,7 @@
       "source": "/(.*)",
       "destination": "/"
     }
-  ]
+  ],
+  "installCommand": "npm ci --include=dev",
+  "buildCommand": "npm run build"
 }
