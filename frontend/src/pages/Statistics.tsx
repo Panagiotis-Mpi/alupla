@@ -2,7 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { getPublicStats, logPublicExport } from "../lib/api";
 import { exportStatisticsCsvFile, exportStatisticsWorkbookFile, type StatisticsChartId } from "./statisticsExport";
-import { Bar, Line } from "react-chartjs-2";
+import { Bar, Line, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,9 +13,10 @@ import {
   Tooltip,
   Legend,
   BarElement,
+  ArcElement,
 } from "chart.js";
 
-ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, BarElement, Filler, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, BarElement, ArcElement, Filler, Tooltip, Legend);
 
 type NamedCountRow = {
   id?: number | null;
@@ -51,6 +52,30 @@ const solidBlueFill = "rgba(37, 99, 235, 0.72)";
 const pinkFill = "rgba(219, 39, 119, 0.72)";
 const chartGridColor = "rgba(148, 163, 184, 0.22)";
 const chartTickColor = "#475569";
+
+
+const piePalette = [
+  "#2563eb",
+  "#0ea5e9",
+  "#14b8a6",
+  "#22c55e",
+  "#84cc16",
+  "#eab308",
+  "#f59e0b",
+  "#f97316",
+  "#ef4444",
+  "#ec4899",
+  "#8b5cf6",
+  "#6366f1",
+  "#64748b",
+  "#06b6d4",
+  "#10b981",
+  "#a855f7",
+];
+
+function pieColors(length: number) {
+  return Array.from({ length }, (_, index) => piePalette[index % piePalette.length]);
+}
 
 function fileSlug(value: string) {
   return String(value ?? "")
@@ -384,6 +409,70 @@ function MultiBarChartCard(props: {
   );
 }
 
+function PieChartCard(props: {
+  title: string;
+  labels: string[];
+  values: number[];
+  chartId?: string;
+  height?: number;
+  control?: React.ReactNode;
+}) {
+  const chartData = React.useMemo(() => ({
+    labels: props.labels,
+    datasets: [
+      {
+        data: props.values,
+        backgroundColor: pieColors(props.labels.length),
+        borderColor: "#ffffff",
+        borderWidth: 2,
+        hoverOffset: 10,
+      },
+    ],
+  }), [props.labels, props.values]);
+
+  return (
+    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
+      <div className="topbar" style={{ ...compactTopbarStyle, display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
+        <h3 style={{ margin: 0 }}>{props.title}</h3>
+        {props.control}
+      </div>
+      <div style={{ width: "100%", height: props.height ?? 340 }}>
+        <Pie
+          data={chartData}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  boxWidth: 12,
+                  boxHeight: 12,
+                  padding: 14,
+                  usePointStyle: true,
+                  pointStyle: "circle",
+                  font: { size: 12, weight: "600" },
+                },
+              },
+              tooltip: {
+                callbacks: {
+                  label: (context: any) => {
+                    const label = String(context.label ?? "");
+                    const value = Number(context.parsed ?? 0);
+                    const total = (context.dataset.data ?? []).reduce((sum: number, current: number) => sum + Number(current ?? 0), 0);
+                    const percent = total > 0 ? ` (${((value / total) * 100).toFixed(1)}%)` : "";
+                    return `${label}: ${value}${percent}`;
+                  },
+                },
+              },
+            },
+          } as any}
+        />
+      </div>
+    </div>
+  );
+}
+
 function ChartCard(props: {
   title: string;
   labels: string[];
@@ -460,6 +549,7 @@ export default function Statistics() {
   const [data, setData] = React.useState<any | null>(null);
   const [activeGroup, setActiveGroup] = React.useState<"overview" | "demographics" | "academic" | "geography">("overview");
   const [selectedDirectionProgramId, setSelectedDirectionProgramId] = React.useState<string>("all");
+  const [selectedGenderProgramId, setSelectedGenderProgramId] = React.useState<string>("all");
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedExportFormat, setSelectedExportFormat] = React.useState<"xlsx" | "csv" | "png" | null>(null);
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
@@ -700,14 +790,18 @@ export default function Statistics() {
     return { labels, values };
   }, [yearsToDegreeDistributionRaw]);
 
-  const genderByProgramData = React.useMemo(() => {
-    const rows = (data?.gender_by_program ?? []) as NamedCountRow[];
-    return {
-      labels: rows.map((row) => String(activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name ?? "-")),
-      male: rows.map((row) => Number(row.male ?? 0)),
-      female: rows.map((row) => Number(row.female ?? 0)),
-    };
-  }, [activeLang, data]);
+  const genderByProgramRows = React.useMemo(() => ((data?.gender_by_program ?? []) as NamedCountRow[]), [data]);
+
+  const selectedGenderProgramRow = React.useMemo(() => {
+    if (!genderByProgramRows.length) return null;
+    if (selectedGenderProgramId === "all") return genderByProgramRows[0] ?? null;
+    return genderByProgramRows.find((row) => String(row.study_program_id ?? row.id ?? "") === selectedGenderProgramId) ?? genderByProgramRows[0] ?? null;
+  }, [genderByProgramRows, selectedGenderProgramId]);
+
+  const genderByProgramPie = React.useMemo(() => ({
+    labels: [t("table.male"), t("table.female")],
+    values: [Number(selectedGenderProgramRow?.male ?? 0), Number(selectedGenderProgramRow?.female ?? 0)],
+  }), [selectedGenderProgramRow, t]);
 
   const graduationYears = byYearRows.map((row) => Number(row.label)).filter((value) => Number.isFinite(value));
   const earliestYear = graduationYears.length ? Math.min(...graduationYears) : "-";
@@ -725,6 +819,35 @@ export default function Statistics() {
         label: String(activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name ?? "-"),
       }));
   }, [activeLang, data]);
+
+
+  React.useEffect(() => {
+    if (!directionProgramOptions.length) return;
+    if (selectedDirectionProgramId !== "all" && !directionProgramOptions.some((option) => option.value === selectedDirectionProgramId)) {
+      setSelectedDirectionProgramId("all");
+    }
+  }, [directionProgramOptions, selectedDirectionProgramId]);
+
+  React.useEffect(() => {
+    if (!directionProgramOptions.length) return;
+    if (selectedGenderProgramId === "all") {
+      setSelectedGenderProgramId(directionProgramOptions[0]?.value ?? "all");
+      return;
+    }
+    if (!directionProgramOptions.some((option) => option.value === selectedGenderProgramId)) {
+      setSelectedGenderProgramId(directionProgramOptions[0]?.value ?? "all");
+    }
+  }, [directionProgramOptions, selectedGenderProgramId]);
+
+  const genderProgramSelect = directionProgramOptions.length ? (
+    <select value={selectedGenderProgramId} onChange={(e) => setSelectedGenderProgramId(e.target.value)} style={selectStyle}>
+      {directionProgramOptions.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  ) : null;
 
   const topButtonStyle: React.CSSProperties = {
     minHeight: 48,
@@ -990,7 +1113,7 @@ export default function Statistics() {
                   options={countChartOptions as any}
                 />
               </div>
-              <BarChartCard chartId="studyProgram" title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+              <PieChartCard chartId="studyProgram" title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={360} />
               <BarChartCard chartId="gradeByYear" title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
             </div>
           </div>
@@ -1013,17 +1136,7 @@ export default function Statistics() {
                 />
               </div>
               <ChartCard chartId="birthYear" title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} height={320} />
-              <MultiBarChartCard chartId="genderByProgram"
-                title={t("sections.genderByProgram")}
-                labels={genderByProgramData.labels}
-                height={320}
-                minLabelWidth={112}
-                maxLabelWidth={176}
-                datasets={[
-                  buildBarDataset(t("table.male"), genderByProgramData.male, "#2563eb", solidBlueFill),
-                  buildBarDataset(t("table.female"), genderByProgramData.female, "#db2777", pinkFill),
-                ]}
-              />
+              <PieChartCard chartId="genderByProgram" title={t("sections.genderByProgram")} labels={genderByProgramPie.labels} values={genderByProgramPie.values} height={360} control={genderProgramSelect} />
             </div>
           </div>
         ) : null}
@@ -1036,9 +1149,13 @@ export default function Statistics() {
               <VerticalBarChartCard chartId="avgGradeByProgram" title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} height={320} />
               <BarChartCard chartId="timeToDegreeByEntryYear" title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
               <BarChartCard chartId="timeToDegreeDistribution" title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
-              <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="direction">
-                <div className="topbar" style={{ ...compactTopbarStyle, display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
-                  <h3 style={{ margin: 0 }}>{t("sections.direction")}</h3>
+              <PieChartCard
+                chartId="direction"
+                title={t("sections.direction")}
+                labels={directions.labels}
+                values={directions.values}
+                height={360}
+                control={
                   <select value={selectedDirectionProgramId} onChange={(e) => setSelectedDirectionProgramId(e.target.value)} style={selectStyle}>
                     <option value="all">{t("filters.all")}</option>
                     {directionProgramOptions.map((option) => (
@@ -1047,13 +1164,8 @@ export default function Statistics() {
                       </option>
                     ))}
                   </select>
-                </div>
-                <FixedBarChart
-                  height={Math.max(320, directions.labels.length * 56)}
-                  data={{ labels: directions.labels, datasets: [buildBarDataset(t("sections.direction"), directions.values)] }}
-                  options={buildBarChartOptions({ horizontal: true, fullLabelTooltip: true, labels: directions.labels })}
-                />
-              </div>
+                }
+              />
             </div>
           </div>
         ) : null}
@@ -1172,7 +1284,7 @@ export default function Statistics() {
               options={countChartOptions as any}
             />
           </div>
-          <BarChartCard chartId="studyProgram" title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+          <PieChartCard chartId="studyProgram" title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={360} />
           <BarChartCard chartId="gradeByYear" title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
           <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="gender">
             <div className="topbar" style={compactTopbarStyle}>
@@ -1187,17 +1299,18 @@ export default function Statistics() {
             />
           </div>
           <ChartCard chartId="birthYear" title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} height={320} />
-          <MultiBarChartCard chartId="genderByProgram" title={t("sections.genderByProgram")} labels={genderByProgramData.labels} height={320} minLabelWidth={112} maxLabelWidth={176} datasets={[
-            buildBarDataset(t("table.male"), genderByProgramData.male, "#2563eb", solidBlueFill),
-            buildBarDataset(t("table.female"), genderByProgramData.female, "#db2777", pinkFill),
-          ]} />
+          <PieChartCard chartId="genderByProgram" title={t("sections.genderByProgram")} labels={genderByProgramPie.labels} values={genderByProgramPie.values} height={360} control={genderProgramSelect} />
           <BarChartCard chartId="gradeDistribution" title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
           <VerticalBarChartCard chartId="avgGradeByProgram" title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} height={320} />
           <BarChartCard chartId="timeToDegreeByEntryYear" title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
           <BarChartCard chartId="timeToDegreeDistribution" title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
-          <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="direction">
-            <div className="topbar" style={{ ...compactTopbarStyle, display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
-              <h3 style={{ margin: 0 }}>{t("sections.direction")}</h3>
+          <PieChartCard
+            chartId="direction"
+            title={t("sections.direction")}
+            labels={directions.labels}
+            values={directions.values}
+            height={360}
+            control={
               <select value={selectedDirectionProgramId} onChange={(e) => setSelectedDirectionProgramId(e.target.value)} style={selectStyle}>
                 <option value="all">{t("filters.all")}</option>
                 {directionProgramOptions.map((option) => (
@@ -1206,13 +1319,8 @@ export default function Statistics() {
                   </option>
                 ))}
               </select>
-            </div>
-            <FixedBarChart
-              height={Math.max(320, directions.labels.length * 56)}
-              data={{ labels: directions.labels, datasets: [buildBarDataset(t("sections.direction"), directions.values)] }}
-              options={buildBarChartOptions({ horizontal: true, fullLabelTooltip: true, labels: directions.labels })}
-            />
-          </div>
+            }
+          />
           <BarChartCard chartId="originRegion" title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
           <BarChartCard chartId="originMunicipality" title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
         </div>
