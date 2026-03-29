@@ -57,9 +57,7 @@
     "gradeDistribution": "Ραβδόγραμμα"
   },
   "actions": {
-    "exportExcel": "Εξαγωγή Excel",
-    "exportStatistics": "Εξαγωγή στατιστικών",
-    "chooseStatistics": "Επιλογή στατιστικών για εξαγωγή"
+    "exportExcel": "Εξαγωγή Excel"
   },
   "groups": {
     "overview": "Γενική εικόνα",

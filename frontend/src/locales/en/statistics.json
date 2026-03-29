@@ -57,9 +57,7 @@
     "gradeDistribution": "Bar chart"
   },
   "actions": {
-    "exportExcel": "Export Excel",
-    "exportStatistics": "Export statistics",
-    "chooseStatistics": "Choose statistics to export"
+    "exportExcel": "Export Excel"
   },
   "groups": {
     "overview": "Overview",
