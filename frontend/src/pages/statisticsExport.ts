@@ -17,8 +17,8 @@ export type StatisticsChartId =
   | "originMunicipality"
   | "timeToDegreeByEntryYear"
   | "timeToDegreeDistribution"
-  | "topOriginRegionsShare"
-  | "topOriginCitiesShare";
+  | "originRegionCumulativeShare"
+  | "originCityCumulativeShare";
 
 type NamedCountRow = {
   id?: number | null;
@@ -95,7 +95,7 @@ function exportUtf16Csv(filename: string, textValue: string) {
 }
 
 
-function buildTopShareRows(rows: NamedCountRow[], activeLang: "el" | "en", limit: number, mode: "region" | "city") {
+function buildCumulativeShareRows(rows: NamedCountRow[], activeLang: "el" | "en", limit: number, mode: "region" | "city") {
   const sorted = rows
     .map((row) => ({
       label: mode === "region" ? localizedName(row, activeLang) : text(row.name ?? row.name_el ?? row.name_en),
@@ -104,19 +104,18 @@ function buildTopShareRows(rows: NamedCountRow[], activeLang: "el" | "en", limit
     .filter((row) => row.label && row.count > 0)
     .sort((a, b) => b.count - a.count);
 
-  const topRows = sorted.slice(0, limit);
-  const restCount = sorted.slice(limit).reduce((sum, row) => sum + row.count, 0);
-  const restLabel = activeLang === "en"
-    ? mode === "region" ? "Other regions" : "Other cities"
-    : mode === "region" ? "Λοιπές περιοχές" : "Λοιπές πόλεις";
+  const total = sorted.reduce((sum, row) => sum + row.count, 0);
+  let running = 0;
 
-  if (restCount > 0) topRows.push({ label: restLabel, count: restCount });
-
-  return topRows.map((row, index) => ({
-    [activeLang === "en" ? "Rank" : "Κατάταξη"]: index + 1,
-    [activeLang === "en" ? (mode === "region" ? "Region of Origin / Group" : "City of Origin / Group") : (mode === "region" ? "Περιφέρεια καταγωγής / Ομάδα" : "Πόλη καταγωγής / Ομάδα")]: row.label,
-    [activeLang === "en" ? "Graduate Count" : "Πλήθος αποφοίτων"]: row.count,
-  }));
+  return sorted.slice(0, limit).map((row, index) => {
+    running += row.count;
+    return {
+      [activeLang === "en" ? "Top Rank" : "Κορυφαία θέση"]: index + 1,
+      [activeLang === "en" ? (mode === "region" ? "Region of Origin" : "City of Origin") : (mode === "region" ? "Περιφέρεια καταγωγής" : "Πόλη καταγωγής")]: row.label,
+      [activeLang === "en" ? "Graduate Count" : "Πλήθος αποφοίτων"]: row.count,
+      [activeLang === "en" ? "Cumulative Share (%)" : "Σωρευτικό ποσοστό (%)"]: total > 0 ? Number(((running / total) * 100).toFixed(1)) : 0,
+    };
+  });
 }
 
 function buildSheets(args: BuildArgs) {
@@ -204,9 +203,9 @@ function buildSheets(args: BuildArgs) {
 
   sheets.set("direction", {
     chartId: "direction",
-    name: activeLang === "en" ? "Graduate Count by New Curriculum Direction" : "Πλήθος αποφοίτων ανά κατεύθυνση νέου προγράμματος σπουδών",
+    name: activeLang === "en" ? "Graduate Count by Direction" : "Πλήθος αποφοίτων ανά κατεύθυνση",
     rows: visibleDirectionRows.map((row) => ({
-      [activeLang === "en" ? "Direction / Program Name" : "Ονομασία κατεύθυνσης / προγράμματος"]: text(
+      [activeLang === "en" ? "Direction Name" : "Ονομασία κατεύθυνσης"]: text(
         activeLang === "en"
           ? row.name_en ?? row.name_el ?? row.name ?? ""
           : row.name_el ?? row.name_en ?? row.name ?? ""
@@ -243,16 +242,16 @@ function buildSheets(args: BuildArgs) {
   });
 
 
-  sheets.set("topOriginRegionsShare", {
-    chartId: "topOriginRegionsShare",
-    name: activeLang === "en" ? "Top Graduate Origin Regions Share" : "Μερίδιο αποφοίτων στις κυριότερες περιφέρειες καταγωγής",
-    rows: buildTopShareRows((data?.origin_region_distribution ?? []) as NamedCountRow[], activeLang, 5, "region"),
+  sheets.set("originRegionCumulativeShare", {
+    chartId: "originRegionCumulativeShare",
+    name: activeLang === "en" ? "Cumulative Graduate Share Across Top Regions of Origin" : "Σωρευτικό ποσοστό αποφοίτων στις κυριότερες περιφέρειες καταγωγής",
+    rows: buildCumulativeShareRows((data?.origin_region_distribution ?? []) as NamedCountRow[], activeLang, 10, "region"),
   });
 
-  sheets.set("topOriginCitiesShare", {
-    chartId: "topOriginCitiesShare",
-    name: activeLang === "en" ? "Top Graduate Origin Cities Share" : "Μερίδιο αποφοίτων στις κυριότερες πόλεις καταγωγής",
-    rows: buildTopShareRows((data?.origin_municipality_distribution ?? []) as NamedCountRow[], activeLang, 8, "city"),
+  sheets.set("originCityCumulativeShare", {
+    chartId: "originCityCumulativeShare",
+    name: activeLang === "en" ? "Cumulative Graduate Share Across Top Cities of Origin" : "Σωρευτικό ποσοστό αποφοίτων στις κυριότερες πόλεις καταγωγής",
+    rows: buildCumulativeShareRows((data?.origin_municipality_distribution ?? []) as NamedCountRow[], activeLang, 10, "city"),
   });
 
   sheets.set("timeToDegreeDistribution", {

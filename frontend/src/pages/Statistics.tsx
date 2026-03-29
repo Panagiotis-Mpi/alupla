@@ -78,20 +78,22 @@ function pieColors(length: number) {
 }
 
 
-function buildTopShareSeries(labels: string[], values: number[], limit: number, restLabel: string) {
-  const rows = labels
+function buildCumulativeShareSeries(labels: string[], values: number[], limit: number, itemPrefix: string) {
+  const sortedRows = labels
     .map((label, index) => ({ label, value: Number(values[index] ?? 0) }))
     .filter((row) => row.label && row.value > 0)
     .sort((a, b) => b.value - a.value);
 
-  if (!rows.length) return { labels: [], values: [] as number[] };
-
-  const topRows = rows.slice(0, limit);
-  const restValue = rows.slice(limit).reduce((sum, row) => sum + row.value, 0);
+  const rows = sortedRows.slice(0, limit);
+  const total = sortedRows.reduce((sum, row) => sum + row.value, 0);
+  let running = 0;
 
   return {
-    labels: restValue > 0 ? [...topRows.map((row) => row.label), restLabel] : topRows.map((row) => row.label),
-    values: restValue > 0 ? [...topRows.map((row) => row.value), restValue] : topRows.map((row) => row.value),
+    labels: rows.map((_, index) => `${itemPrefix} ${index + 1}`),
+    values: rows.map((row) => {
+      running += row.value;
+      return total > 0 ? Number(((running / total) * 100).toFixed(1)) : 0;
+    }),
   };
 }
 
@@ -714,8 +716,8 @@ export default function Statistics() {
         charts: [
           { id: "originRegion" as StatisticsChartId, label: t("sections.originRegion") },
           { id: "originMunicipality" as StatisticsChartId, label: t("sections.originMunicipality") },
-          { id: "topOriginRegionsShare" as StatisticsChartId, label: t("sections.topOriginRegionsShare") },
-          { id: "topOriginCitiesShare" as StatisticsChartId, label: t("sections.topOriginCitiesShare") },
+          { id: "originRegionCumulativeShare" as StatisticsChartId, label: t("sections.originRegionCumulativeShare") },
+          { id: "originCityCumulativeShare" as StatisticsChartId, label: t("sections.originCityCumulativeShare") },
         ],
       },
     ],
@@ -876,8 +878,8 @@ export default function Statistics() {
   const directionRows = React.useMemo(() => (Array.isArray(data?.direction_distribution) ? (data.direction_distribution as NamedCountRow[]) : []), [data]);
   const regions = seriesFromRows(data?.origin_region_distribution, { labelKey: "name" });
   const municipalities = seriesFromRows(data?.origin_municipality_distribution, { labelKey: "name" });
-  const topOriginRegionsShare = React.useMemo(() => buildTopShareSeries(regions.labels, regions.values, 5, t("table.otherRegions", { defaultValue: "Λοιπές περιοχές" })), [regions.labels, regions.values, t]);
-  const topOriginCitiesShare = React.useMemo(() => buildTopShareSeries(municipalities.labels, municipalities.values, 8, t("table.otherCities", { defaultValue: "Λοιπές πόλεις" })), [municipalities.labels, municipalities.values, t]);
+  const originRegionCumulativeShare = React.useMemo(() => buildCumulativeShareSeries(regions.labels, regions.values, 10, t("table.topRegion", { defaultValue: "Κορυφαία περιφέρεια" })), [regions.labels, regions.values, t]);
+  const originCityCumulativeShare = React.useMemo(() => buildCumulativeShareSeries(municipalities.labels, municipalities.values, 10, t("table.topCity", { defaultValue: "Κορυφαία πόλη" })), [municipalities.labels, municipalities.values, t]);
   const yearsToDegree = seriesFromRows(data?.avg_years_to_degree_by_entry_year, { labelKey: "entry_year", valueKey: "avg_years" });
   const yearsToDegreeDistributionRaw = seriesFromRows(data?.years_to_degree_distribution);
 
@@ -1278,8 +1280,8 @@ export default function Statistics() {
             <div className="grid cols1" style={{ gap: 14 }}>
               <BarChartCard chartId="originRegion" title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
               <BarChartCard chartId="originMunicipality" title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
-              <PieChartCard chartId="topOriginRegionsShare" title={t("sections.topOriginRegionsShare")} labels={topOriginRegionsShare.labels} values={topOriginRegionsShare.values} height={360} />
-              <PieChartCard chartId="topOriginCitiesShare" title={t("sections.topOriginCitiesShare")} labels={topOriginCitiesShare.labels} values={topOriginCitiesShare.values} height={360} />
+              <ChartCard chartId="originRegionCumulativeShare" title={t("sections.originRegionCumulativeShare")} labels={originRegionCumulativeShare.labels} values={originRegionCumulativeShare.values} height={320} minLabelWidth={84} maxLabelWidth={120} />
+              <ChartCard chartId="originCityCumulativeShare" title={t("sections.originCityCumulativeShare")} labels={originCityCumulativeShare.labels} values={originCityCumulativeShare.values} height={320} minLabelWidth={84} maxLabelWidth={120} />
             </div>
           </div>
         ) : null}
@@ -1411,8 +1413,8 @@ export default function Statistics() {
           <MultiPieChartRow chartId="direction" title={t("sections.direction")} pies={directionPies} compact />
           <BarChartCard chartId="originRegion" title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
           <BarChartCard chartId="originMunicipality" title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
-          <PieChartCard chartId="topOriginRegionsShare" title={t("sections.topOriginRegionsShare")} labels={topOriginRegionsShare.labels} values={topOriginRegionsShare.values} height={360} />
-          <PieChartCard chartId="topOriginCitiesShare" title={t("sections.topOriginCitiesShare")} labels={topOriginCitiesShare.labels} values={topOriginCitiesShare.values} height={360} />
+          <ChartCard chartId="originRegionCumulativeShare" title={t("sections.originRegionCumulativeShare")} labels={originRegionCumulativeShare.labels} values={originRegionCumulativeShare.values} height={320} minLabelWidth={84} maxLabelWidth={120} />
+          <ChartCard chartId="originCityCumulativeShare" title={t("sections.originCityCumulativeShare")} labels={originCityCumulativeShare.labels} values={originCityCumulativeShare.values} height={320} minLabelWidth={84} maxLabelWidth={120} />
         </div>
       </div>
     </>
