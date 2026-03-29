@@ -17,8 +17,7 @@ export type StatisticsChartId =
   | "originMunicipality"
   | "timeToDegreeByEntryYear"
   | "timeToDegreeDistribution"
-  | "originRegionCumulativeShare"
-  | "originCityCumulativeShare";
+;
 
 type NamedCountRow = {
   id?: number | null;
@@ -94,29 +93,6 @@ function exportUtf16Csv(filename: string, textValue: string) {
   downloadBlob(utf16Blob(textValue), filename);
 }
 
-
-function buildCumulativeShareRows(rows: NamedCountRow[], activeLang: "el" | "en", limit: number, mode: "region" | "city") {
-  const sorted = rows
-    .map((row) => ({
-      label: mode === "region" ? localizedName(row, activeLang) : text(row.name ?? row.name_el ?? row.name_en),
-      count: num(row.count),
-    }))
-    .filter((row) => row.label && row.count > 0)
-    .sort((a, b) => b.count - a.count);
-
-  const total = sorted.reduce((sum, row) => sum + row.count, 0);
-  let running = 0;
-
-  return sorted.slice(0, limit).map((row, index) => {
-    running += row.count;
-    return {
-      [activeLang === "en" ? "Top Rank" : "Κορυφαία θέση"]: index + 1,
-      [activeLang === "en" ? (mode === "region" ? "Region of Origin" : "City of Origin") : (mode === "region" ? "Περιφέρεια καταγωγής" : "Πόλη καταγωγής")]: row.label,
-      [activeLang === "en" ? "Graduate Count" : "Πλήθος αποφοίτων"]: row.count,
-      [activeLang === "en" ? "Cumulative Share (%)" : "Σωρευτικό ποσοστό (%)"]: total > 0 ? Number(((running / total) * 100).toFixed(1)) : 0,
-    };
-  });
-}
 
 function buildSheets(args: BuildArgs) {
   const { data, t, activeLang, selectedDirectionProgramId } = args;
@@ -241,18 +217,6 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-
-  sheets.set("originRegionCumulativeShare", {
-    chartId: "originRegionCumulativeShare",
-    name: activeLang === "en" ? "Cumulative Graduate Share Across Top Regions of Origin" : "Σωρευτικό ποσοστό αποφοίτων στις κυριότερες περιφέρειες καταγωγής",
-    rows: buildCumulativeShareRows((data?.origin_region_distribution ?? []) as NamedCountRow[], activeLang, 10, "region"),
-  });
-
-  sheets.set("originCityCumulativeShare", {
-    chartId: "originCityCumulativeShare",
-    name: activeLang === "en" ? "Cumulative Graduate Share Across Top Cities of Origin" : "Σωρευτικό ποσοστό αποφοίτων στις κυριότερες πόλεις καταγωγής",
-    rows: buildCumulativeShareRows((data?.origin_municipality_distribution ?? []) as NamedCountRow[], activeLang, 10, "city"),
-  });
 
   sheets.set("timeToDegreeDistribution", {
     chartId: "timeToDegreeDistribution",

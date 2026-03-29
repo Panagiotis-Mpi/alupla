@@ -36,9 +36,7 @@
     "originMunicipality": "Graduates by city of origin",
     "avgGradeByProgram": "Average degree grade by study program",
     "genderByProgram": "Male and female ratio by study program",
-    "timeToDegreeDistribution": "Graduates by total study completion years",
-    "originRegionCumulativeShare": "Cumulative graduate share across top regions of origin",
-    "originCityCumulativeShare": "Cumulative graduate share across top cities of origin"
+    "timeToDegreeDistribution": "Graduates by total study completion years"
   },
   "table": {
     "year": "Year",
