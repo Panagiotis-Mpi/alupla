@@ -536,8 +536,7 @@ export async function publicStats(req: Request, res: Response) {
       .sort((a, b) => {
         if (b.count !== a.count) return b.count - a.count;
         return a.name.localeCompare(b.name, "el");
-      })
-      .slice(0, 10);
+      });
 
     const oathYearDistribution = await sequelize.query<{ year: number; count: number }>(
       `SELECT EXTRACT(YEAR FROM g.oath_date)::int as year,

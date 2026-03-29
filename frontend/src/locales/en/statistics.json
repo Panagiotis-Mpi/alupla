@@ -58,7 +58,8 @@
     "gradeDistribution": "Bar chart"
   },
   "actions": {
-    "exportExcel": "Export Excel"
+    "exportExcel": "Export Excel",
+    "export": "Export"
   },
   "groups": {
     "overview": "Overview",

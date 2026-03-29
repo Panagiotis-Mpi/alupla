@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { getPublicStats, publicAnonExportUrl } from "../lib/api";
+import { getPublicStats, logPublicExport } from "../lib/api";
+import { exportStatisticsCsvFile, exportStatisticsWorkbookFile } from "./statisticsExport";
 import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -189,9 +190,10 @@ function ScrollableBarChart(props: {
   datasetCount?: number;
   minLabelWidth?: number;
   maxLabelWidth?: number;
+  forceScrollable?: boolean;
 }) {
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
-  const useFullWidth = props.labels.length <= 7;
+  const useFullWidth = !props.forceScrollable && props.labels.length <= 7;
 
   return (
     <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4 }}>
@@ -247,7 +249,7 @@ function ProgramAverageCards(props: {
   const decimals = props.decimals ?? 0;
 
   return (
-    <div className="card" style={cardInnerStyle}>
+    <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
@@ -306,6 +308,7 @@ function BarChartCard(props: {
   maxLabelWidth?: number;
   horizontal?: boolean;
   fullLabelTooltip?: boolean;
+  forceScrollable?: boolean;
 }) {
   const chartHeight = props.height ?? (props.horizontal ? Math.max(300, props.labels.length * 54) : 280);
   const chartData = {
@@ -333,6 +336,7 @@ function BarChartCard(props: {
           maxLabelWidth={props.maxLabelWidth}
           data={chartData}
           options={chartOptions}
+          forceScrollable={props.forceScrollable}
         />
       )}
     </div>
@@ -349,7 +353,7 @@ function MultiBarChartCard(props: {
   stacked?: boolean;
 }) {
   return (
-    <div className="card" style={cardInnerStyle}>
+    <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
@@ -380,7 +384,7 @@ function ChartCard(props: {
   maxLabelWidth?: number;
 }) {
   return (
-    <div className="card" style={cardInnerStyle}>
+    <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
@@ -419,7 +423,7 @@ function VerticalBarChartCard(props: {
   height?: number;
 }) {
   return (
-    <div className="card" style={cardInnerStyle}>
+    <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
@@ -443,6 +447,9 @@ export default function Statistics() {
   const [data, setData] = React.useState<any | null>(null);
   const [activeGroup, setActiveGroup] = React.useState<"overview" | "demographics" | "academic" | "geography">("overview");
   const [selectedDirectionProgramId, setSelectedDirectionProgramId] = React.useState<string>("all");
+  const [exportOpen, setExportOpen] = React.useState(false);
+  const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const pageRef = React.useRef<HTMLDivElement | null>(null);
 
   const activeLang = i18n.language?.toLowerCase().startsWith("en") ? "en" : "el";
 
@@ -461,6 +468,16 @@ export default function Statistics() {
 
   React.useEffect(() => {
     void load();
+  }, []);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!exportMenuRef.current) return;
+      if (!exportMenuRef.current.contains(event.target as Node)) setExportOpen(false);
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const total = Number(data?.total ?? 0);
@@ -653,13 +670,108 @@ export default function Statistics() {
     outline: "none",
   };
 
-  function downloadAnon() {
-    const url = publicAnonExportUrl({});
+  const exportArgs = React.useMemo(() => ({
+    data,
+    t,
+    activeLang,
+    total,
+    avgAge,
+    avgGrade,
+    earliestYear,
+    busiestYear,
+    busiestCity,
+    selectedDirectionProgramId,
+  }), [activeLang, avgAge, avgGrade, busiestCity, busiestYear, data, earliestYear, selectedDirectionProgramId, t, total]);
+
+  async function handleExportExcel() {
+    exportStatisticsWorkbookFile(exportArgs);
+    setExportOpen(false);
+    try {
+      await logPublicExport("statistics_export", "xlsx");
+    } catch {}
+  }
+
+  async function handleExportCsv() {
+    exportStatisticsCsvFile(exportArgs);
+    setExportOpen(false);
+    try {
+      await logPublicExport("statistics_export", "csv");
+    } catch {}
+  }
+
+  async function handleExportPng() {
+    const root = pageRef.current;
+    if (!root) return;
+
+    const cards = Array.from(root.querySelectorAll<HTMLElement>("[data-stat-chart-card='true']")).filter((card) => {
+      const style = window.getComputedStyle(card);
+      return style.display !== "none" && style.visibility !== "hidden" && card.offsetHeight > 0;
+    });
+
+    if (!cards.length) return;
+
+    const parts: Array<{ title: string; canvas: HTMLCanvasElement; width: number; height: number }> = [];
+    for (const card of cards) {
+      const canvas = card.querySelector("canvas");
+      if (!canvas) continue;
+      const title = card.querySelector("h3")?.textContent?.trim() || t("pageTitle");
+      const width = canvas.width || Math.round(canvas.getBoundingClientRect().width * 2);
+      const height = canvas.height || Math.round(canvas.getBoundingClientRect().height * 2);
+      parts.push({ title, canvas, width, height });
+    }
+
+    if (!parts.length) return;
+
+    const padding = 36;
+    const gap = 24;
+    const titleSpace = 42;
+    const cardGap = 18;
+    const exportWidth = Math.max(...parts.map((part) => part.width)) + padding * 2;
+    const exportHeight = parts.reduce((sum, part) => sum + titleSpace + part.height + cardGap, 0) + padding * 2 + gap * Math.max(parts.length - 1, 0);
+    const out = document.createElement("canvas");
+    out.width = exportWidth;
+    out.height = exportHeight;
+    const ctx = out.getContext("2d");
+    if (!ctx) return;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, exportWidth, exportHeight);
+
+    let y = padding;
+    for (const part of parts) {
+      ctx.fillStyle = "#0f172a";
+      ctx.font = '700 22px Arial, sans-serif';
+      ctx.fillText(part.title, padding, y + 24);
+
+      const cardY = y + titleSpace - 6;
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(padding - 12, cardY, part.width + 24, part.height + 24, 18);
+      ctx.fill();
+      ctx.stroke();
+      ctx.drawImage(part.canvas, padding, cardY + 12, part.width, part.height);
+
+      y = cardY + part.height + 24 + gap;
+    }
+
+    const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, "image/png"));
+    if (!blob) return;
+
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.target = "_blank";
-    a.rel = "noreferrer";
+    a.download = "alupla_statistics_export.png";
+    document.body.appendChild(a);
     a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setExportOpen(false);
+
+    try {
+      await logPublicExport("statistics_export", "png");
+    } catch {}
   }
 
   if (loading && !data) return <div className="card">{t("loading")}</div>;
@@ -667,7 +779,7 @@ export default function Statistics() {
 
   return (
     <>
-      <div className="grid" style={{ gap: 18 }}>
+      <div className="grid" style={{ gap: 18 }} ref={pageRef}>
         <div className="card" style={{ padding: 14 }}>
           <div style={{ display: "grid", gap: 14 }}>
             <div style={{ display: "grid", gap: 14 }}>
@@ -686,9 +798,33 @@ export default function Statistics() {
                       {t(`groups.${groupKey}`)}
                     </button>
                   ))}
-                  <button className="btn" type="button" style={topButtonStyle} onClick={downloadAnon}>
-                    {t("actions.exportExcel", { defaultValue: "Export Excel" })}
-                  </button>
+                  <div style={{ position: "relative" }} ref={exportMenuRef}>
+                    <button className="btn" type="button" style={topButtonStyle} onClick={() => setExportOpen((open) => !open)}>
+                      {t("actions.export", { defaultValue: "Εξαγωγή" })}
+                    </button>
+                    {exportOpen ? (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "calc(100% + 8px)",
+                          right: 0,
+                          minWidth: 180,
+                          borderRadius: 14,
+                          border: "1px solid rgba(148, 163, 184, 0.28)",
+                          background: "#fff",
+                          boxShadow: "0 18px 40px rgba(15, 23, 42, 0.16)",
+                          padding: 8,
+                          zIndex: 20,
+                          display: "grid",
+                          gap: 6,
+                        }}
+                      >
+                        <button className="btn" type="button" style={{ ...topButtonStyle, justifyContent: "flex-start" }} onClick={handleExportExcel}>Excel</button>
+                        <button className="btn" type="button" style={{ ...topButtonStyle, justifyContent: "flex-start" }} onClick={handleExportCsv}>CSV</button>
+                        <button className="btn" type="button" style={{ ...topButtonStyle, justifyContent: "flex-start" }} onClick={handleExportPng}>PNG</button>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </div>
@@ -714,7 +850,7 @@ export default function Statistics() {
           <div style={sectionWrapStyle}>
             <SectionTitle title={t("groups.overview")} subtitle={t("groupText.overview")} />
             <div className="grid cols1" style={{ gap: 14 }}>
-              <div className="card" style={cardInnerStyle}>
+              <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
                 <div className="topbar" style={compactTopbarStyle}>
                   <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
                 </div>
@@ -736,7 +872,7 @@ export default function Statistics() {
           <div style={sectionWrapStyle}>
             <SectionTitle title={t("groups.demographics")} subtitle={t("groupText.demographics")} />
             <div className="grid cols1" style={{ gap: 14 }}>
-              <div className="card" style={cardInnerStyle}>
+              <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
                 <div className="topbar" style={compactTopbarStyle}>
                   <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
                 </div>
@@ -772,7 +908,7 @@ export default function Statistics() {
               <VerticalBarChartCard title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} height={320} />
               <BarChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
               <BarChartCard title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
-              <div className="card" style={cardInnerStyle}>
+              <div className="card" style={cardInnerStyle} data-stat-chart-card="true">
                 <div className="topbar" style={{ ...compactTopbarStyle, display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
                   <h3 style={{ margin: 0 }}>{t("sections.direction")}</h3>
                   <select value={selectedDirectionProgramId} onChange={(e) => setSelectedDirectionProgramId(e.target.value)} style={selectStyle}>
@@ -799,7 +935,7 @@ export default function Statistics() {
             <SectionTitle title={t("groups.geography")} subtitle={t("groupText.geography")} />
             <div className="grid cols1" style={{ gap: 14 }}>
               <BarChartCard title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
-              <BarChartCard title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
+              <BarChartCard title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
             </div>
           </div>
         ) : null}
