@@ -1,6 +1,8 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { getPublicStats, publicAnonExportUrl } from "../lib/api";
+import { getPublicStats } from "../lib/api";
+import { utils as XLSXUtils, writeFile as writeXlsxFile } from "xlsx";
+import { jsPDF } from "jspdf";
 import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -31,6 +33,18 @@ type NamedCountRow = {
   female?: number | null;
 };
 
+type ExportFormat = "xlsx" | "csv" | "pdf";
+type ExportItem = {
+  key: string;
+  title: string;
+  kind: "summary" | "line" | "bar" | "multibar";
+  rows: Array<Record<string, string | number>>;
+  chartData?: any;
+  chartOptions?: any;
+  width?: number;
+  height?: number;
+};
+
 const cardInnerStyle = { minWidth: 0 };
 const compactTopbarStyle = { marginBottom: 12 };
 const metricValueStyle = { fontSize: 28, fontWeight: 800, marginTop: 6 };
@@ -42,6 +56,7 @@ const sectionTextStyle: React.CSSProperties = { margin: 0, color: "#64748b", fon
 const sectionMenuStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%" };
 const sectionButtonsStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%", gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
 const solidBlueFill = "rgba(37, 99, 235, 0.72)";
+const pinkFill = "rgba(219, 39, 119, 0.72)";
 
 function buildBarDataset(label: string, data: number[], color = "#2563eb", backgroundColor = solidBlueFill) {
   return {
@@ -136,53 +151,6 @@ function MetricCard(props: { label: string; value: string | number }) {
   );
 }
 
-function CompactBarsCard(props: {
-  title: string;
-  labels: string[];
-  values: number[];
-}) {
-  const maxValue = Math.max(...props.values, 1);
-
-  return (
-    <div className="card" style={cardInnerStyle}>
-      <div className="topbar" style={compactTopbarStyle}>
-        <h3 style={{ margin: 0 }}>{props.title}</h3>
-      </div>
-      <div style={{ display: "grid", gap: 14, gridTemplateColumns: `repeat(${Math.max(props.labels.length, 1)}, minmax(0, 1fr))` }}>
-        {props.labels.map((label, index) => {
-          const value = Number(props.values[index] ?? 0);
-          const percent = maxValue > 0 ? Math.max(12, (value / maxValue) * 100) : 0;
-
-          return (
-            <div
-              key={`${label}-${index}`}
-              style={{
-                minHeight: 180,
-                border: "1px solid rgba(148, 163, 184, 0.25)",
-                borderRadius: 16,
-                padding: 18,
-                display: "grid",
-                alignContent: "space-between",
-                gap: 14,
-                background: "rgba(248, 250, 252, 0.7)",
-              }}
-            >
-              <div style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, lineHeight: 1.35, wordBreak: "break-word" }}>{label}</div>
-              <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontSize: 34, fontWeight: 800, color: "#0f172a" }}>{value}</div>
-                <div style={{ height: 10, borderRadius: 999, background: "rgba(148, 163, 184, 0.18)", overflow: "hidden" }}>
-                  <div style={{ width: `${percent}%`, height: "100%", borderRadius: 999, background: "#2563eb" }} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-
 function ProgramAverageCards(props: {
   title: string;
   labels: string[];
@@ -250,12 +218,6 @@ function BarChartCard(props: {
   minLabelWidth?: number;
   maxLabelWidth?: number;
 }) {
-  const useCompactLayout = props.labels.length > 0 && props.labels.length <= 3;
-
-  if (useCompactLayout) {
-    return <CompactBarsCard title={props.title} labels={props.labels} values={props.values} />;
-  }
-
   return (
     <div className="card" style={cardInnerStyle}>
       <div className="topbar" style={compactTopbarStyle}>
@@ -367,6 +329,138 @@ function ChartCard(props: {
   );
 }
 
+function ExportDialog(props: {
+  open: boolean;
+  title: string;
+  items: Array<{ key: string; title: string }>;
+  selectedKeys: string[];
+  onClose: () => void;
+  onToggle: (key: string) => void;
+  onSelectAll: () => void;
+  onClearAll: () => void;
+  onConfirm: () => void;
+}) {
+  if (!props.open) return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15, 23, 42, 0.28)",
+        display: "grid",
+        placeItems: "center",
+        padding: 20,
+        zIndex: 90,
+      }}
+      onClick={props.onClose}
+    >
+      <div className="card" style={{ width: "min(680px, 100%)", padding: 22 }} onClick={(event) => event.stopPropagation()}>
+        <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "grid", gap: 4 }}>
+              <h3 style={{ margin: 0 }}>{props.title}</h3>
+            </div>
+            <button type="button" className="btn" onClick={props.onClose}>
+              ×
+            </button>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button type="button" className="btn" onClick={props.onSelectAll}>
+              Όλα
+            </button>
+            <button type="button" className="btn" onClick={props.onClearAll}>
+              Κανένα
+            </button>
+          </div>
+
+          <div style={{ display: "grid", gap: 10, maxHeight: "52vh", overflowY: "auto" }}>
+            {props.items.map((item) => {
+              const checked = props.selectedKeys.includes(item.key);
+              return (
+                <label
+                  key={item.key}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: 14,
+                    borderRadius: 14,
+                    border: checked ? "1px solid rgba(37, 99, 235, 0.35)" : "1px solid rgba(148, 163, 184, 0.22)",
+                    background: checked ? "rgba(239, 246, 255, 0.82)" : "rgba(248, 250, 252, 0.7)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input type="checkbox" checked={checked} onChange={() => props.onToggle(item.key)} />
+                  <span style={{ fontWeight: 600, color: "#0f172a" }}>{item.title}</span>
+                </label>
+              );
+            })}
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, flexWrap: "wrap" }}>
+            <button type="button" className="btn" onClick={props.onClose}>
+              Ακύρωση
+            </button>
+            <button type="button" className="btn primary" onClick={props.onConfirm} disabled={!props.selectedKeys.length}>
+              Εξαγωγή
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function slugify(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-άέήίόύώϊϋΐΰα-ω]+/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 31) || "sheet";
+}
+
+function prepareCsv(rows: Array<Record<string, string | number>>) {
+  if (!rows.length) return "";
+  const headers = Object.keys(rows[0]);
+  const escape = (value: string | number) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+  return [headers.join(","), ...rows.map((row) => headers.map((header) => escape(row[header] ?? "")).join(","))].join("\n");
+}
+
+async function renderChartImage(item: ExportItem) {
+  if (!item.chartData || !item.chartOptions || !item.chartData.labels?.length) return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = item.width ?? 1200;
+  canvas.height = item.height ?? 700;
+  const context = canvas.getContext("2d");
+  if (!context) return null;
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const chart = new ChartJS(canvas, {
+    type: item.kind === "line" ? "line" : "bar",
+    data: item.chartData,
+    options: {
+      ...item.chartOptions,
+      responsive: false,
+      animation: false,
+      maintainAspectRatio: false,
+      plugins: {
+        ...(item.chartOptions?.plugins ?? {}),
+        legend: item.chartOptions?.plugins?.legend ?? { display: item.kind === "multibar" },
+      },
+    },
+  });
+
+  await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+  const image = chart.toBase64Image("image/png", 1);
+  chart.destroy();
+  return image;
+}
+
 export default function Statistics() {
   const { t, i18n } = useTranslation("statistics");
 
@@ -374,6 +468,10 @@ export default function Statistics() {
   const [err, setErr] = React.useState<string | null>(null);
   const [data, setData] = React.useState<any | null>(null);
   const [activeGroup, setActiveGroup] = React.useState<"overview" | "demographics" | "academic" | "geography">("overview");
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = React.useState(false);
+  const [exportFormat, setExportFormat] = React.useState<ExportFormat>("xlsx");
+  const [selectedExportKeys, setSelectedExportKeys] = React.useState<string[]>([]);
   const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
 
   async function load() {
@@ -391,6 +489,14 @@ export default function Statistics() {
 
   React.useEffect(() => {
     void load();
+  }, []);
+
+  React.useEffect(() => {
+    function closeMenu() {
+      setMenuOpen(false);
+    }
+    window.addEventListener("click", closeMenu);
+    return () => window.removeEventListener("click", closeMenu);
   }, []);
 
   const total = Number(data?.total ?? 0);
@@ -475,7 +581,21 @@ export default function Statistics() {
     };
   }, [data, t]);
 
-  const ageGroups = seriesFromRows(data?.age_groups);
+  const genderChartOptions = React.useMemo(
+    () =>
+      ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" as const } },
+        scales: {
+          x: { offset: false, stacked: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
+          y: { beginAtZero: true, ticks: yTicks },
+        },
+        layout: { padding: { left: 0, right: 0 } },
+      }) as const,
+    []
+  );
+
   const birthYears = seriesFromRows(data?.birth_year_distribution, { labelKey: "year" });
   const avgGradesByYear = seriesFromRows(data?.avg_grade_by_year, { labelKey: "year", valueKey: "avg" });
   const avgGradeByProgram = seriesFromRows(data?.avg_grade_by_program, { labelKey: "name", valueKey: "avg" });
@@ -498,10 +618,10 @@ export default function Statistics() {
 
   const graduationYears = byYearRows.map((row) => Number(row.label)).filter((value) => Number.isFinite(value));
   const earliestYear = graduationYears.length ? Math.min(...graduationYears) : "-";
-  const latestYear = graduationYears.length ? Math.max(...graduationYears) : "-";
-  const topAgeIndex = ageGroups.values.length ? ageGroups.values.indexOf(Math.max(...ageGroups.values)) : -1;
-  const topAgeGroup = topAgeIndex >= 0 ? ageGroups.labels[topAgeIndex] : "-";
-
+  const busiestYearIndex = byYearRows.length ? byYearRows.findIndex((row) => row.value === Math.max(...byYearRows.map((item) => item.value))) : -1;
+  const busiestYear = busiestYearIndex >= 0 ? byYearRows[busiestYearIndex].label : "-";
+  const busiestCityIndex = municipalities.values.length ? municipalities.values.findIndex((value) => value === Math.max(...municipalities.values)) : -1;
+  const busiestCity = busiestCityIndex >= 0 ? municipalities.labels[busiestCityIndex] : "-";
 
   const topButtonStyle: React.CSSProperties = {
     minHeight: 48,
@@ -515,145 +635,524 @@ export default function Statistics() {
     whiteSpace: "nowrap",
   };
 
-  function downloadAnon() {
-    const url = publicAnonExportUrl({});
-    const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noreferrer";
-    a.click();
+  const dropdownItemStyle: React.CSSProperties = {
+    width: "100%",
+    textAlign: "left",
+    padding: "10px 12px",
+    background: "transparent",
+    border: 0,
+    borderRadius: 10,
+    cursor: "pointer",
+    color: "#0f172a",
+    fontWeight: 600,
+  };
+
+  const exportItems = React.useMemo<ExportItem[]>(() => {
+    const singleDatasetRows = (labels: string[], values: number[], label: string) => labels.map((entry, index) => ({ [t("table.year")]: entry, [label]: Number(values[index] ?? 0) }));
+    const pairRows = (labels: string[], leftLabel: string, leftValues: number[], rightLabel: string, rightValues: number[]) =>
+      labels.map((entry, index) => ({
+        [t("table.year")]: entry,
+        [leftLabel]: Number(leftValues[index] ?? 0),
+        [rightLabel]: Number(rightValues[index] ?? 0),
+      }));
+
+    return [
+      {
+        key: "summary",
+        title: t("sections.summary"),
+        kind: "summary",
+        rows: [
+          { [t("cards.total")]: total },
+          { [t("cards.avgAge")]: avgAge },
+          { [t("cards.avgGrade")]: avgGrade },
+          { [t("cards.earliestYear")]: earliestYear },
+          { [t("cards.topGraduationYear")]: busiestYear },
+          { [t("cards.topCity")]: busiestCity },
+        ],
+      },
+      {
+        key: "byYear",
+        title: t("sections.byYear"),
+        kind: "line",
+        rows: singleDatasetRows(byYearRows.map((row) => row.label), byYearRows.map((row) => row.value), t("table.count")),
+        chartData: countChartData,
+        chartOptions: countChartOptions,
+      },
+      {
+        key: "gender",
+        title: t("sections.gender"),
+        kind: "line",
+        rows: pairRows(genderByProgramData.labels.length ? (genderChartData.labels as string[]) : (genderChartData.labels as string[]), t("table.male"), (genderChartData.datasets?.[0]?.data as number[]) ?? [], t("table.female"), (genderChartData.datasets?.[1]?.data as number[]) ?? []),
+        chartData: genderChartData,
+        chartOptions: genderChartOptions,
+      },
+      {
+        key: "birthYear",
+        title: t("sections.birthYear"),
+        kind: "line",
+        rows: singleDatasetRows(birthYears.labels, birthYears.values, t("table.count")),
+        chartData: {
+          labels: birthYears.labels,
+          datasets: [buildLineDataset(t("sections.birthYear"), birthYears.values, "#2563eb", "rgba(37, 99, 235, 0.28)")],
+        },
+        chartOptions: countChartOptions,
+      },
+      {
+        key: "genderByProgram",
+        title: t("sections.genderByProgram"),
+        kind: "multibar",
+        rows: pairRows(genderByProgramData.labels, t("table.male"), genderByProgramData.male, t("table.female"), genderByProgramData.female),
+        chartData: {
+          labels: genderByProgramData.labels,
+          datasets: [
+            buildBarDataset(t("table.male"), genderByProgramData.male, "#2563eb", solidBlueFill),
+            buildBarDataset(t("table.female"), genderByProgramData.female, "#db2777", pinkFill),
+          ],
+        },
+        chartOptions: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "bottom" as const } },
+          scales: {
+            x: { ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: yTicks },
+          },
+        },
+      },
+      {
+        key: "gradeByYear",
+        title: t("sections.gradeByYear"),
+        kind: "line",
+        rows: singleDatasetRows(avgGradesByYear.labels, avgGradesByYear.values, t("table.avg")),
+        chartData: {
+          labels: avgGradesByYear.labels,
+          datasets: [buildLineDataset(t("sections.gradeByYear"), avgGradesByYear.values, "#2563eb", "rgba(37, 99, 235, 0.28)")],
+        },
+        chartOptions: countChartOptions,
+      },
+      {
+        key: "gradeDistribution",
+        title: t("sections.gradeDistribution"),
+        kind: "bar",
+        rows: singleDatasetRows(gradeBins.labels, gradeBins.values, t("table.count")),
+        chartData: {
+          labels: gradeBins.labels,
+          datasets: [buildBarDataset(t("sections.gradeDistribution"), gradeBins.values)],
+        },
+        chartOptions: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: yTicks } },
+        },
+      },
+      {
+        key: "avgGradeByProgram",
+        title: t("sections.avgGradeByProgram"),
+        kind: "bar",
+        rows: singleDatasetRows(avgGradeByProgram.labels, avgGradeByProgram.values, t("table.avg")),
+        chartData: {
+          labels: avgGradeByProgram.labels,
+          datasets: [buildBarDataset(t("sections.avgGradeByProgram"), avgGradeByProgram.values)],
+        },
+        chartOptions: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { callback: (value: number) => value.toFixed?.(1) ?? value } } },
+        },
+      },
+      {
+        key: "studyProgram",
+        title: t("sections.studyProgram"),
+        kind: "bar",
+        rows: singleDatasetRows(studyPrograms.labels, studyPrograms.values, t("table.count")),
+        chartData: {
+          labels: studyPrograms.labels,
+          datasets: [buildBarDataset(t("sections.studyProgram"), studyPrograms.values)],
+        },
+        chartOptions: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: yTicks } },
+        },
+      },
+      {
+        key: "timeToDegreeByEntryYear",
+        title: t("sections.timeToDegreeByEntryYear"),
+        kind: "line",
+        rows: singleDatasetRows(yearsToDegree.labels, yearsToDegree.values, t("table.avgYears")),
+        chartData: {
+          labels: yearsToDegree.labels,
+          datasets: [buildLineDataset(t("sections.timeToDegreeByEntryYear"), yearsToDegree.values, "#2563eb", "rgba(37, 99, 235, 0.28)")],
+        },
+        chartOptions: countChartOptions,
+      },
+      {
+        key: "timeToDegreeDistribution",
+        title: t("sections.timeToDegreeDistribution"),
+        kind: "bar",
+        rows: singleDatasetRows(yearsToDegreeDistribution.labels, yearsToDegreeDistribution.values, t("table.count")),
+        chartData: {
+          labels: yearsToDegreeDistribution.labels,
+          datasets: [buildBarDataset(t("sections.timeToDegreeDistribution"), yearsToDegreeDistribution.values)],
+        },
+        chartOptions: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: yTicks } },
+        },
+      },
+      {
+        key: "direction",
+        title: t("sections.direction"),
+        kind: "bar",
+        rows: singleDatasetRows(directions.labels, directions.values, t("table.count")),
+        chartData: {
+          labels: directions.labels,
+          datasets: [buildBarDataset(t("sections.direction"), directions.values)],
+        },
+        chartOptions: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: yTicks } },
+        },
+      },
+      {
+        key: "originRegion",
+        title: t("sections.originRegion"),
+        kind: "bar",
+        rows: singleDatasetRows(regions.labels, regions.values, t("table.count")),
+        chartData: {
+          labels: regions.labels,
+          datasets: [buildBarDataset(t("sections.originRegion"), regions.values)],
+        },
+        chartOptions: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: yTicks } },
+        },
+      },
+      {
+        key: "originMunicipality",
+        title: t("sections.originMunicipality"),
+        kind: "bar",
+        rows: singleDatasetRows(municipalities.labels, municipalities.values, t("table.count")),
+        chartData: {
+          labels: municipalities.labels,
+          datasets: [buildBarDataset(t("sections.originMunicipality"), municipalities.values)],
+        },
+        chartOptions: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: yTicks } },
+        },
+      },
+    ];
+  }, [
+    avgAge,
+    avgGrade,
+    avgGradeByProgram.labels,
+    avgGradeByProgram.values,
+    avgGradesByYear.labels,
+    avgGradesByYear.values,
+    birthYears.labels,
+    birthYears.values,
+    busiestCity,
+    busiestYear,
+    countChartData,
+    countChartOptions,
+    directions.labels,
+    directions.values,
+    earliestYear,
+    genderByProgramData.female,
+    genderByProgramData.labels,
+    genderByProgramData.male,
+    genderChartData,
+    genderChartOptions,
+    gradeBins.labels,
+    gradeBins.values,
+    municipalities.labels,
+    municipalities.values,
+    regions.labels,
+    regions.values,
+    studyPrograms.labels,
+    studyPrograms.values,
+    t,
+    total,
+    yearsToDegree.labels,
+    yearsToDegree.values,
+    yearsToDegreeDistribution.labels,
+    yearsToDegreeDistribution.values,
+    byYearRows,
+  ]);
+
+  const exportChoices = React.useMemo(() => exportItems.map((item) => ({ key: item.key, title: item.title })), [exportItems]);
+
+  function openExportDialog(format: ExportFormat) {
+    setMenuOpen(false);
+    setExportFormat(format);
+    setSelectedExportKeys(exportItems.map((item) => item.key));
+    setExportDialogOpen(true);
+  }
+
+  function toggleExportKey(key: string) {
+    setSelectedExportKeys((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
+  }
+
+  async function handleExport() {
+    const chosen = exportItems.filter((item) => selectedExportKeys.includes(item.key));
+    if (!chosen.length) return;
+
+    if (exportFormat === "xlsx") {
+      const workbook = XLSXUtils.book_new();
+      chosen.forEach((item) => {
+        const sheet = XLSXUtils.json_to_sheet(item.rows.length ? item.rows : [{ [item.title]: "-" }]);
+        XLSXUtils.book_append_sheet(workbook, sheet, slugify(item.title));
+      });
+      writeXlsxFile(workbook, `statistics-export-${activeLang}.xlsx`);
+    }
+
+    if (exportFormat === "csv") {
+      const parts = chosen
+        .map((item) => {
+          const body = prepareCsv(item.rows);
+          return `# ${item.title}\n${body}`;
+        })
+        .join("\n\n");
+      const blob = new Blob(["\ufeff" + parts], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `statistics-export-${activeLang}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    if (exportFormat === "pdf") {
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 34;
+      let y = margin;
+
+      const addPageIfNeeded = (blockHeight: number) => {
+        if (y + blockHeight > pageHeight - margin) {
+          doc.addPage();
+          y = margin;
+        }
+      };
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(20);
+      doc.text(t("pageTitle"), margin, y);
+      y += 26;
+
+      for (const item of chosen) {
+        if (item.kind === "summary") {
+          addPageIfNeeded(140);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(15);
+          doc.text(item.title, margin, y);
+          y += 18;
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(11);
+          item.rows.forEach((row) => {
+            const [label, value] = Object.entries(row)[0] ?? ["", ""];
+            addPageIfNeeded(18);
+            doc.text(`${label}: ${value}`, margin, y);
+            y += 16;
+          });
+          y += 10;
+          continue;
+        }
+
+        const image = await renderChartImage(item);
+        if (!image) continue;
+        const imageWidth = pageWidth - margin * 2;
+        const imageHeight = Math.min(360, item.kind === "multibar" ? 320 : 300);
+        addPageIfNeeded(30 + imageHeight + 10);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(15);
+        doc.text(item.title, margin, y);
+        y += 14;
+        doc.addImage(image, "PNG", margin, y, imageWidth, imageHeight);
+        y += imageHeight + 20;
+      }
+
+      doc.save(`statistics-export-${activeLang}.pdf`);
+    }
+
+    setExportDialogOpen(false);
   }
 
   if (loading && !data) return <div className="card">{t("loading")}</div>;
   if (err && !data) return <div className="card">{err}</div>;
 
   return (
-    <div className="grid" style={{ gap: 18 }}>
-      <div className="card" style={{ padding: 14 }}>
-        <div style={{ display: "grid", gap: 14 }}>
+    <>
+      <div className="grid" style={{ gap: 18 }}>
+        <div className="card" style={{ padding: 14 }}>
           <div style={{ display: "grid", gap: 14 }}>
-            <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
+            <div style={{ display: "grid", gap: 14 }}>
+              <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
 
-            <div style={sectionMenuStyle}>
-              <div style={sectionButtonsStyle}>
-                {(["overview", "demographics", "academic", "geography"] as const).map((groupKey) => (
-                  <button
-                    key={groupKey}
-                    type="button"
-                    className={activeGroup === groupKey ? "btn primary" : "btn"}
-                    style={topButtonStyle}
-                    onClick={() => setActiveGroup(groupKey)}
-                  >
-                    {t(`groups.${groupKey}`)}
-                  </button>
-                ))}
-                <button className="btn" type="button" style={topButtonStyle} onClick={downloadAnon}>
-                  {t("actions.exportExcel", { defaultValue: "Export Excel" })}
-                </button>
+              <div style={sectionMenuStyle}>
+                <div style={sectionButtonsStyle}>
+                  {(["overview", "demographics", "academic", "geography"] as const).map((groupKey) => (
+                    <button
+                      key={groupKey}
+                      type="button"
+                      className={activeGroup === groupKey ? "btn primary" : "btn"}
+                      style={topButtonStyle}
+                      onClick={() => setActiveGroup(groupKey)}
+                    >
+                      {t(`groups.${groupKey}`)}
+                    </button>
+                  ))}
+                  <div style={{ position: "relative" }} onClick={(event) => event.stopPropagation()}>
+                    <button className="btn" type="button" style={topButtonStyle} onClick={() => setMenuOpen((current) => !current)}>
+                      {t("actions.exportStatistics")}
+                    </button>
+                    {menuOpen ? (
+                      <div
+                        className="card"
+                        style={{
+                          position: "absolute",
+                          right: 0,
+                          top: "calc(100% + 8px)",
+                          minWidth: 220,
+                          padding: 8,
+                          zIndex: 30,
+                          display: "grid",
+                          gap: 4,
+                        }}
+                      >
+                        <button type="button" style={dropdownItemStyle} onClick={() => openExportDialog("xlsx")}>
+                          Excel
+                        </button>
+                        <button type="button" style={dropdownItemStyle} onClick={() => openExportDialog("csv")}>
+                          CSV
+                        </button>
+                        <button type="button" style={dropdownItemStyle} onClick={() => openExportDialog("pdf")}>
+                          PDF
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div style={sectionWrapStyle}>
-        <div className="grid cols4" style={{ gap: 14 }}>
-          <MetricCard label={t("cards.total")} value={total} />
-          <MetricCard label={t("cards.avgAge")} value={avgAge} />
-          <MetricCard label={t("cards.avgGrade")} value={avgGrade} />
-          <MetricCard label={t("cards.topAgeGroup")} value={topAgeGroup} />
-        </div>
-        <div className="grid cols2" style={{ gap: 14 }}>
-          <MetricCard label={t("cards.earliestYear")} value={earliestYear} />
-          <MetricCard label={t("cards.latestYear")} value={latestYear} />
-        </div>
-      </div>
-
-      {activeGroup === "overview" ? (
         <div style={sectionWrapStyle}>
-          <SectionTitle title={t("groups.overview")} subtitle={t("groupText.overview")} />
-          <div className="grid cols1" style={{ gap: 14 }}>
-            <div className="card" style={cardInnerStyle}>
-              <div className="topbar" style={compactTopbarStyle}>
-                <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
+          <div className="grid cols3" style={{ gap: 14 }}>
+            <MetricCard label={t("cards.total")} value={total} />
+            <MetricCard label={t("cards.avgAge")} value={avgAge} />
+            <MetricCard label={t("cards.avgGrade")} value={avgGrade} />
+            <MetricCard label={t("cards.earliestYear")} value={earliestYear} />
+            <MetricCard label={t("cards.topGraduationYear")} value={busiestYear} />
+            <MetricCard label={t("cards.topCity")} value={busiestCity} />
+          </div>
+        </div>
+
+        {activeGroup === "overview" ? (
+          <div style={sectionWrapStyle}>
+            <SectionTitle title={t("groups.overview")} subtitle={t("groupText.overview")} />
+            <div className="grid cols1" style={{ gap: 14 }}>
+              <div className="card" style={cardInnerStyle}>
+                <div className="topbar" style={compactTopbarStyle}>
+                  <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
+                </div>
+                <ScrollableLineChart
+                  height={320}
+                  labels={(countChartData as any).labels ?? []}
+                  datasetCount={((countChartData as any).datasets ?? []).length}
+                  data={countChartData as any}
+                  options={countChartOptions as any}
+                />
               </div>
-              <ScrollableLineChart
+            </div>
+          </div>
+        ) : null}
+
+        {activeGroup === "demographics" ? (
+          <div style={sectionWrapStyle}>
+            <SectionTitle title={t("groups.demographics")} subtitle={t("groupText.demographics")} />
+            <div className="grid cols1" style={{ gap: 14 }}>
+              <div className="card" style={cardInnerStyle}>
+                <div className="topbar" style={compactTopbarStyle}>
+                  <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
+                </div>
+                <ScrollableLineChart
+                  height={320}
+                  labels={(genderChartData as any).labels ?? []}
+                  datasetCount={((genderChartData as any).datasets ?? []).length}
+                  data={genderChartData as any}
+                  options={genderChartOptions as any}
+                />
+              </div>
+              <ChartCard title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} height={320} />
+              <MultiBarChartCard
+                title={t("sections.genderByProgram")}
+                labels={genderByProgramData.labels}
                 height={320}
-                labels={(countChartData as any).labels ?? []}
-                datasetCount={((countChartData as any).datasets ?? []).length}
-                data={countChartData as any}
-                options={countChartOptions as any}
+                minLabelWidth={112}
+                maxLabelWidth={176}
+                datasets={[
+                  buildBarDataset(t("table.male"), genderByProgramData.male, "#2563eb", solidBlueFill),
+                  buildBarDataset(t("table.female"), genderByProgramData.female, "#db2777", pinkFill),
+                ]}
               />
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {activeGroup === "demographics" ? (
-        <div style={sectionWrapStyle}>
-          <SectionTitle title={t("groups.demographics")} subtitle={t("groupText.demographics")} />
-          <div className="grid cols1" style={{ gap: 14 }}>
-            <div className="card" style={cardInnerStyle}>
-              <div className="topbar" style={compactTopbarStyle}>
-                <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
-              </div>
-              <ScrollableLineChart
-                height={320}
-                labels={(genderChartData as any).labels ?? []}
-                datasetCount={((genderChartData as any).datasets ?? []).length}
-                data={genderChartData as any}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: { legend: { position: "bottom" as const } },
-                  scales: {
-                    x: { offset: false, stacked: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
-                    y: { beginAtZero: true, ticks: yTicks },
-                  },
-                  layout: { padding: { left: 0, right: 0 } },
-                } as any}
-              />
+        {activeGroup === "academic" ? (
+          <div style={sectionWrapStyle}>
+            <SectionTitle title={t("groups.academic")} subtitle={t("groupText.academic")} />
+            <div className="grid cols1" style={{ gap: 14 }}>
+              <ChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} />
+              <BarChartCard title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
+              <ProgramAverageCards title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} />
+              <BarChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+              <ChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} />
+              <BarChartCard title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={80} maxLabelWidth={112} />
+              <BarChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
             </div>
-            <ChartCard title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} height={320} />
-            <MultiBarChartCard
-              title={t("sections.genderByProgram")}
-              labels={genderByProgramData.labels}
-              height={320}
-              minLabelWidth={112}
-              maxLabelWidth={176}
-              datasets={[
-                buildBarDataset(t("table.male"), genderByProgramData.male, "#2563eb", solidBlueFill),
-                buildBarDataset(t("table.female"), genderByProgramData.female, "#db2777", "rgba(219, 39, 119, 0.72)"),
-              ]}
-            />
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {activeGroup === "academic" ? (
-        <div style={sectionWrapStyle}>
-          <SectionTitle title={t("groups.academic")} subtitle={t("groupText.academic")} />
-          <div className="grid cols1" style={{ gap: 14 }}>
-            <ChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} />
-            <BarChartCard title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
-            <ProgramAverageCards title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} />
-            <BarChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
-            <ChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} />
-            <BarChartCard title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={80} maxLabelWidth={112} />
-            <BarChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+        {activeGroup === "geography" ? (
+          <div style={sectionWrapStyle}>
+            <SectionTitle title={t("groups.geography")} subtitle={t("groupText.geography")} />
+            <div className="grid cols1" style={{ gap: 14 }}>
+              <BarChartCard title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
+              <BarChartCard title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
-      {activeGroup === "geography" ? (
-        <div style={sectionWrapStyle}>
-          <SectionTitle title={t("groups.geography")} subtitle={t("groupText.geography")} />
-          <div className="grid cols1" style={{ gap: 14 }}>
-            <BarChartCard title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
-            <BarChartCard title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
-          </div>
-        </div>
-      ) : null}
-    </div>
+      <ExportDialog
+        open={exportDialogOpen}
+        title={t("actions.chooseStatistics")}
+        items={exportChoices}
+        selectedKeys={selectedExportKeys}
+        onClose={() => setExportDialogOpen(false)}
+        onToggle={toggleExportKey}
+        onSelectAll={() => setSelectedExportKeys(exportChoices.map((item) => item.key))}
+        onClearAll={() => setSelectedExportKeys([])}
+        onConfirm={() => {
+          void handleExport();
+        }}
+      />
+    </>
   );
 }

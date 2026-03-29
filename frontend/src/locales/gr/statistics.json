@@ -15,9 +15,9 @@
     "total": "Σύνολο αποφοίτων",
     "avgAge": "Μέσος όρος ηλικίας",
     "avgGrade": "Μέσος όρος βαθμού",
-    "topAgeGroup": "Συχνότερη ηλικιακή ομάδα",
     "earliestYear": "Παλαιότερο έτος αποφοίτησης",
-    "latestYear": "Νεότερο έτος αποφοίτησης"
+    "topGraduationYear": "Έτος με τους περισσότερους αποφοίτους",
+    "topCity": "Πόλη με τους περισσότερους αποφοίτους"
   },
   "sections": {
     "byYear": "Πλήθος αποφοίτων ανά έτος",
@@ -34,7 +34,8 @@
     "originMunicipality": "Κατανομή αποφοίτων σε πόλεις",
     "avgGradeByProgram": "Μ.Ο. βαθμού ανά πρόγραμμα σπουδών",
     "genderByProgram": "Αναλογία φύλου ανά πρόγραμμα σπουδών",
-    "timeToDegreeDistribution": "Κατανομή χρόνου αποφοίτησης"
+    "timeToDegreeDistribution": "Κατανομή χρόνου αποφοίτησης",
+    "summary": "Συνοπτικά στατιστικά"
   },
   "table": {
     "year": "Έτος",
@@ -56,7 +57,9 @@
     "gradeDistribution": "Ραβδόγραμμα"
   },
   "actions": {
-    "exportExcel": "Εξαγωγή Excel"
+    "exportExcel": "Εξαγωγή Excel",
+    "exportStatistics": "Εξαγωγή στατιστικών",
+    "chooseStatistics": "Επιλογή στατιστικών για εξαγωγή"
   },
   "groups": {
     "overview": "Γενική εικόνα",
