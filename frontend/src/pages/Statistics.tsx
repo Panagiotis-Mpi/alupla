@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { getPublicStats, publicAnonExportUrl } from "../lib/api";
-import { Bar, Line } from "react-chartjs-2";
+import { Bar, Doughnut, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,9 +12,10 @@ import {
   Tooltip,
   Legend,
   BarElement,
+  ArcElement,
 } from "chart.js";
 
-ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, BarElement, Filler, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, BarElement, ArcElement, Filler, Tooltip, Legend);
 
 type NamedCountRow = {
   id?: number | null;
@@ -33,11 +34,11 @@ type NamedCountRow = {
 
 const cardInnerStyle = { minWidth: 0 };
 const compactTopbarStyle = { marginBottom: 12 };
-const metricValueStyle = { fontSize: 28, fontWeight: 800, marginTop: 10, lineHeight: 1.1 };
-const metricCardStyle: React.CSSProperties = { minWidth: 0, minHeight: 146, padding: 22, display: "grid", alignContent: "space-between" };
-const metricGridStyle: React.CSSProperties = { display: "grid", gap: 14 };
-const metricTopRowStyle: React.CSSProperties = { display: "grid", gap: 14, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" };
-const metricBottomRowStyle: React.CSSProperties = { display: "grid", gap: 14, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" };
+const metricValueStyle = { fontSize: 28, fontWeight: 800, marginTop: 4, lineHeight: 1.1 };
+const metricCardStyle: React.CSSProperties = { minWidth: 0, minHeight: 124, padding: 18, display: "grid", alignContent: "space-between", gap: 8 };
+const metricGridStyle: React.CSSProperties = { display: "grid", gap: 12 };
+const metricTopRowStyle: React.CSSProperties = { display: "grid", gap: 12, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" };
+const metricBottomRowStyle: React.CSSProperties = { display: "grid", gap: 12, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" };
 const yTicks = { precision: 0 as any };
 const sectionWrapStyle: React.CSSProperties = { display: "grid", gap: 14 };
 const sectionHeaderStyle: React.CSSProperties = { display: "grid", gap: 4, marginTop: 2 };
@@ -135,7 +136,7 @@ function SectionTitle(props: { title: string; subtitle?: string }) {
 function MetricCard(props: { label: string; value: string | number }) {
   return (
     <div className="card" style={metricCardStyle}>
-      <div className="muted" style={{ fontSize: 15 }}>{props.label}</div>
+      <div className="muted" style={{ fontSize: 14, lineHeight: 1.3 }}>{props.label}</div>
       <div style={metricValueStyle}>{props.value}</div>
     </div>
   );
@@ -351,6 +352,176 @@ function ChartCard(props: {
           layout: { padding: { left: 0, right: 0 } },
         } as any}
       />
+    </div>
+  );
+}
+
+
+function DoughnutComparisonCard(props: {
+  title: string;
+  labels: string[];
+  values: number[];
+}) {
+  const palette = ["#2563eb", "#60a5fa", "#1d4ed8", "#93c5fd", "#3b82f6", "#bfdbfe"];
+  const colors = props.labels.map((_, index) => palette[index % palette.length]);
+  const total = props.values.reduce((sum, value) => sum + Number(value || 0), 0);
+
+  return (
+    <div className="card" style={cardInnerStyle}>
+      <div className="topbar" style={compactTopbarStyle}>
+        <h3 style={{ margin: 0 }}>{props.title}</h3>
+      </div>
+      <div style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(260px, 340px) minmax(0, 1fr)", alignItems: "center" }}>
+        <div style={{ height: 260 }}>
+          <Doughnut
+            data={{
+              labels: props.labels,
+              datasets: [
+                {
+                  data: props.values,
+                  backgroundColor: colors,
+                  borderColor: "#ffffff",
+                  borderWidth: 3,
+                  hoverOffset: 6,
+                  cutout: "58%",
+                },
+              ],
+            }}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx: any) => {
+                      const value = Number(ctx.raw ?? 0);
+                      const percent = total ? ((value / total) * 100).toFixed(1) : "0.0";
+                      return `${ctx.label}: ${value} (${percent}%)`;
+                    },
+                  },
+                },
+              },
+            } as any}
+          />
+        </div>
+        <div style={{ display: "grid", gap: 10 }}>
+          {props.labels.map((label, index) => {
+            const value = Number(props.values[index] ?? 0);
+            const percent = total ? (value / total) * 100 : 0;
+            return (
+              <div
+                key={`${label}-${index}`}
+                style={{
+                  display: "grid",
+                  gap: 8,
+                  border: "1px solid rgba(148, 163, 184, 0.18)",
+                  borderRadius: 16,
+                  padding: "14px 16px",
+                  background: "rgba(248, 250, 252, 0.72)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                    <span style={{ width: 12, height: 12, borderRadius: 999, background: colors[index] }} />
+                    <span style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>{label}</span>
+                  </div>
+                  <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", lineHeight: 1 }}>{value}</div>
+                    <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{percent.toFixed(1)}%</div>
+                  </div>
+                </div>
+                <div style={{ height: 10, borderRadius: 999, background: "rgba(148, 163, 184, 0.16)", overflow: "hidden" }}>
+                  <div style={{ width: `${percent}%`, height: "100%", borderRadius: 999, background: colors[index] }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VerticalBarChartCard(props: {
+  title: string;
+  labels: string[];
+  values: number[];
+  minValue?: number;
+  maxValue?: number;
+  height?: number;
+}) {
+  return (
+    <div className="card" style={cardInnerStyle}>
+      <div className="topbar" style={compactTopbarStyle}>
+        <h3 style={{ margin: 0 }}>{props.title}</h3>
+      </div>
+      <ScrollableBarChart
+        height={props.height ?? 320}
+        labels={props.labels}
+        data={{
+          labels: props.labels,
+          datasets: [
+            {
+              ...buildBarDataset(props.title, props.values),
+              maxBarThickness: 64,
+              barPercentage: 0.5,
+              categoryPercentage: 0.6,
+            },
+          ],
+        }}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              ticks: { color: "#334155", font: { size: 13, weight: "600" } },
+              grid: { display: false },
+            },
+            y: {
+              beginAtZero: false,
+              min: props.minValue ?? 0,
+              max: props.maxValue,
+              ticks: { color: "#64748b" },
+              grid: { color: "rgba(148, 163, 184, 0.22)" },
+            },
+          },
+        } as any}
+      />
+    </div>
+  );
+}
+
+function RankingBarsCard(props: {
+  title: string;
+  labels: string[];
+  values: number[];
+}) {
+  const pairs = props.labels.map((label, index) => ({ label, value: Number(props.values[index] ?? 0) }));
+  const maxValue = Math.max(...pairs.map((item) => item.value), 1);
+
+  return (
+    <div className="card" style={cardInnerStyle}>
+      <div className="topbar" style={compactTopbarStyle}>
+        <h3 style={{ margin: 0 }}>{props.title}</h3>
+      </div>
+      <div style={{ display: "grid", gap: 14 }}>
+        {pairs.map((item) => {
+          const width = (item.value / maxValue) * 100;
+          return (
+            <div key={item.label} style={{ display: "grid", gap: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-end" }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#334155", lineHeight: 1.35, maxWidth: "78%" }}>{item.label}</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>{item.value}</div>
+              </div>
+              <div style={{ height: 14, borderRadius: 999, background: "rgba(148, 163, 184, 0.16)", overflow: "hidden" }}>
+                <div style={{ width: `${width}%`, height: "100%", borderRadius: 999, background: "linear-gradient(90deg, #2563eb 0%, #60a5fa 100%)" }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -659,11 +830,11 @@ export default function Statistics() {
             <div className="grid cols1" style={{ gap: 14 }}>
               <ChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} />
               <BarChartCard title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
-              <ProgramAverageCards title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} decimals={2} />
-              <ProgramAverageCards title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} minValue={0} maxValue={Math.max(...studyPrograms.values, 1)} decimals={0} />
-              <ChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} />
-              <BarChartCard title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
-              <BarChartCard title={t("sections.direction")} labels={directions.labels} values={directions.values} height={Math.max(360, directions.labels.length * 58)} horizontal fullLabelTooltip minLabelWidth={120} maxLabelWidth={180} />
+              <VerticalBarChartCard title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} height={320} />
+              <DoughnutComparisonCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} />
+              <BarChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
+              <BarChartCard title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
+              <RankingBarsCard title={t("sections.direction")} labels={directions.labels} values={directions.values} />
             </div>
           </div>
         ) : null}

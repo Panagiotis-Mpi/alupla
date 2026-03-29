@@ -556,54 +556,16 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
+    const yearsToDegreeDistributionWhere = sqlWhere
+      ? `${sqlWhere} AND g.graduation_date IS NOT NULL`
+      : 'WHERE g.graduation_date IS NOT NULL';
+
     const yearsToDegreeDistribution = await sequelize.query<{ label: string; count: number }>(
-      `SELECT CASE
-                WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year <= 4 THEN '≤4'
-                WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 5 THEN '5'
-                WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 6 THEN '6'
-                WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 7 THEN '7'
-                ELSE '8+'
-              END as label,
+      `SELECT (EXTRACT(YEAR FROM g.graduation_date)::int - g.entry_year)::text as label,
               COUNT(*)::int as count
-       FROM graduates g ${sqlWhere}
-       GROUP BY CASE
-                  WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year <= 4 THEN '≤4'
-                  WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 5 THEN '5'
-                  WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 6 THEN '6'
-                  WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 7 THEN '7'
-                  ELSE '8+'
-                END
-       ORDER BY CASE
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year <= 4 THEN '≤4'
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 5 THEN '5'
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 6 THEN '6'
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 7 THEN '7'
-                    ELSE '8+'
-                  END = '≤4' THEN 1
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year <= 4 THEN '≤4'
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 5 THEN '5'
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 6 THEN '6'
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 7 THEN '7'
-                    ELSE '8+'
-                  END = '5' THEN 2
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year <= 4 THEN '≤4'
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 5 THEN '5'
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 6 THEN '6'
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 7 THEN '7'
-                    ELSE '8+'
-                  END = '6' THEN 3
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year <= 4 THEN '≤4'
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 5 THEN '5'
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 6 THEN '6'
-                    WHEN EXTRACT(YEAR FROM g.graduation_date) - g.entry_year = 7 THEN '7'
-                    ELSE '8+'
-                  END = '7' THEN 4
-                  ELSE 5
-                END`,
+       FROM graduates g ${yearsToDegreeDistributionWhere}
+       GROUP BY (EXTRACT(YEAR FROM g.graduation_date)::int - g.entry_year)
+       ORDER BY (EXTRACT(YEAR FROM g.graduation_date)::int - g.entry_year) ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
