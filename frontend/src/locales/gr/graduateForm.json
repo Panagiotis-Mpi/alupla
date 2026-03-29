@@ -19,7 +19,7 @@
     "oathDate": "Ημ/νία Ορκωμοσίας",
     "studyProgram": "Πρόγραμμα Σπουδών",
     "direction": "Κατεύθυνση",
-    "directionNone": "(καμία)",
+    "directionNone": "Επιλογή",
     "directionHint": "Συμπληρώνεται δυναμικά από το πρόγραμμα.",
     "studentNumberDup": "ΑΜ",
     "entryYearDup": "Έτος Εγγραφής",
@@ -30,7 +30,10 @@
     "originRegionNull": "(null)",
     "originText": "Πόλη",
     "originTextPlaceholder": "Πόλη",
-    "required": "Λείπει υποχρεωτικό πεδίο:"
+    "required": "Λείπει υποχρεωτικό πεδίο:",
+    "choice": "Επιλογή",
+    "genderMale": "Άντρας",
+    "genderFemale": "Γυναίκα"
   },
   "tip": "",
   "error": "Σφάλμα",

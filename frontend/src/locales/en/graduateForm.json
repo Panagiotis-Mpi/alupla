@@ -19,7 +19,7 @@
     "oathDate": "Oath date",
     "studyProgram": "Study program",
     "direction": "Direction",
-    "directionNone": "(none)",
+    "directionNone": "Select",
     "directionHint": "Filled dynamically from the selected program.",
     "studentNumberDup": "Student No.",
     "entryYearDup": "Entry year",
@@ -30,7 +30,10 @@
     "originRegionNull": "(null)",
     "originText": "City",
     "originTextPlaceholder": "City",
-    "required": "Missing required field:"
+    "required": "Missing required field:",
+    "choice": "Select",
+    "genderMale": "Male",
+    "genderFemale": "Female"
   },
   "tip": "",
   "error": "Error",
