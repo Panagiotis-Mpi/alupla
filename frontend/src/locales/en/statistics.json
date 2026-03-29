@@ -22,21 +22,21 @@
     "topCity": "City with the most graduates"
   },
   "sections": {
-    "byYear": "Graduates per year",
-    "gender": "Gender ratio",
+    "byYear": "Graduates by graduation year",
+    "gender": "Male and female ratio by graduation year",
     "age": "Age distribution",
-    "gradeByYear": "Average grade per year",
+    "gradeByYear": "Average degree grade by graduation year",
     "byTerm": "Graduates per exam period",
-    "timeToDegreeByEntryYear": "Avg years to degree by entry year",
+    "timeToDegreeByEntryYear": "Average study completion time by entry year",
     "gradeDistribution": "Grade distribution",
-    "birthYear": "Birth year distribution",
-    "studyProgram": "Graduates per study program",
-    "direction": "Graduates per direction",
-    "originRegion": "Graduate distribution in regions",
-    "originMunicipality": "Graduate distribution in cities",
-    "avgGradeByProgram": "Average grade by study program",
-    "genderByProgram": "Gender ratio by study program",
-    "timeToDegreeDistribution": "Graduates by years needed to complete studies"
+    "birthYear": "Graduates by birth year",
+    "studyProgram": "Graduates by study program",
+    "direction": "Graduates by direction and study program",
+    "originRegion": "Graduates by region of origin",
+    "originMunicipality": "Graduates by city of origin",
+    "avgGradeByProgram": "Average degree grade by study program",
+    "genderByProgram": "Male and female ratio by study program",
+    "timeToDegreeDistribution": "Graduates by total study completion years"
   },
   "table": {
     "year": "Year",
@@ -67,9 +67,9 @@
     "geography": "Geographic distribution"
   },
   "groupText": {
-    "overview": "Key indicators and graduation trends.",
-    "demographics": "Age, gender and core demographic distributions.",
-    "academic": "Grades, study programs, directions and completion time.",
-    "geography": "Graduate origin by region and city."
+    "overview": "Overall graduate snapshot with key indicators and broad trends.",
+    "demographics": "Statistics on age, gender and graduate demographic characteristics.",
+    "academic": "Statistics on grades, completion time, study programs and directions.",
+    "geography": "Statistics on graduate origin by region and city."
   }
 }

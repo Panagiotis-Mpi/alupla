@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { getPublicStats, publicAnonExportUrl } from "../lib/api";
-import { Bar, Doughnut, Line } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,10 +12,9 @@ import {
   Tooltip,
   Legend,
   BarElement,
-  ArcElement,
 } from "chart.js";
 
-ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, BarElement, ArcElement, Filler, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, BarElement, Filler, Tooltip, Legend);
 
 type NamedCountRow = {
   id?: number | null;
@@ -203,6 +202,18 @@ function ScrollableBarChart(props: {
   );
 }
 
+function FixedBarChart(props: {
+  data: any;
+  options: any;
+  height?: number;
+}) {
+  return (
+    <div style={{ width: "100%", height: props.height ?? 280 }}>
+      <Bar data={props.data} options={props.options} />
+    </div>
+  );
+}
+
 function SectionTitle(props: { title: string; subtitle?: string }) {
   return (
     <div style={sectionHeaderStyle}>
@@ -296,28 +307,34 @@ function BarChartCard(props: {
   horizontal?: boolean;
   fullLabelTooltip?: boolean;
 }) {
-  const chartHeight = props.height ?? (props.horizontal ? Math.max(300, props.labels.length * 56) : 280);
+  const chartHeight = props.height ?? (props.horizontal ? Math.max(300, props.labels.length * 54) : 280);
+  const chartData = {
+    labels: props.labels,
+    datasets: [buildBarDataset(props.datasetLabel ?? props.title, props.values)],
+  };
+  const chartOptions = buildBarChartOptions({
+    horizontal: props.horizontal,
+    fullLabelTooltip: props.fullLabelTooltip,
+    labels: props.labels,
+  });
 
   return (
     <div className="card" style={cardInnerStyle}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
-      <ScrollableBarChart
-        height={chartHeight}
-        labels={props.labels}
-        minLabelWidth={props.minLabelWidth}
-        maxLabelWidth={props.maxLabelWidth}
-        data={{
-          labels: props.labels,
-          datasets: [buildBarDataset(props.datasetLabel ?? props.title, props.values)],
-        }}
-        options={buildBarChartOptions({
-          horizontal: props.horizontal,
-          fullLabelTooltip: props.fullLabelTooltip,
-          labels: props.labels,
-        })}
-      />
+      {props.horizontal ? (
+        <FixedBarChart height={chartHeight} data={chartData} options={chartOptions} />
+      ) : (
+        <ScrollableBarChart
+          height={chartHeight}
+          labels={props.labels}
+          minLabelWidth={props.minLabelWidth}
+          maxLabelWidth={props.maxLabelWidth}
+          data={chartData}
+          options={chartOptions}
+        />
+      )}
     </div>
   );
 }
@@ -393,92 +410,6 @@ function ChartCard(props: {
 }
 
 
-function DoughnutComparisonCard(props: {
-  title: string;
-  labels: string[];
-  values: number[];
-}) {
-  const palette = ["#2563eb", "#60a5fa", "#1d4ed8", "#93c5fd", "#3b82f6", "#bfdbfe"];
-  const colors = props.labels.map((_, index) => palette[index % palette.length]);
-  const total = props.values.reduce((sum, value) => sum + Number(value || 0), 0);
-
-  return (
-    <div className="card" style={cardInnerStyle}>
-      <div className="topbar" style={compactTopbarStyle}>
-        <h3 style={{ margin: 0 }}>{props.title}</h3>
-      </div>
-      <div style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(260px, 340px) minmax(0, 1fr)", alignItems: "center" }}>
-        <div style={{ height: 260 }}>
-          <Doughnut
-            data={{
-              labels: props.labels,
-              datasets: [
-                {
-                  data: props.values,
-                  backgroundColor: colors,
-                  borderColor: "#ffffff",
-                  borderWidth: 3,
-                  hoverOffset: 6,
-                  cutout: "58%",
-                },
-              ],
-            }}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  callbacks: {
-                    label: (ctx: any) => {
-                      const value = Number(ctx.raw ?? 0);
-                      const percent = total ? ((value / total) * 100).toFixed(1) : "0.0";
-                      return `${ctx.label}: ${value} (${percent}%)`;
-                    },
-                  },
-                },
-              },
-            } as any}
-          />
-        </div>
-        <div style={{ display: "grid", gap: 10 }}>
-          {props.labels.map((label, index) => {
-            const value = Number(props.values[index] ?? 0);
-            const percent = total ? (value / total) * 100 : 0;
-            return (
-              <div
-                key={`${label}-${index}`}
-                style={{
-                  display: "grid",
-                  gap: 8,
-                  border: "1px solid rgba(148, 163, 184, 0.18)",
-                  borderRadius: 16,
-                  padding: "14px 16px",
-                  background: "rgba(248, 250, 252, 0.72)",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                    <span style={{ width: 12, height: 12, borderRadius: 999, background: colors[index] }} />
-                    <span style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>{label}</span>
-                  </div>
-                  <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", lineHeight: 1 }}>{value}</div>
-                    <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{percent.toFixed(1)}%</div>
-                  </div>
-                </div>
-                <div style={{ height: 10, borderRadius: 999, background: "rgba(148, 163, 184, 0.16)", overflow: "hidden" }}>
-                  <div style={{ width: `${percent}%`, height: "100%", borderRadius: 999, background: colors[index] }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function VerticalBarChartCard(props: {
   title: string;
   labels: string[];
@@ -495,17 +426,9 @@ function VerticalBarChartCard(props: {
       <ScrollableBarChart
         height={props.height ?? 320}
         labels={props.labels}
-        data={{
-          labels: props.labels,
-          datasets: [
-            {
-              ...buildBarDataset(props.title, props.values),
-              maxBarThickness: 64,
-              barPercentage: 0.5,
-              categoryPercentage: 0.6,
-            },
-          ],
-        }}
+        minLabelWidth={92}
+        maxLabelWidth={152}
+        data={{ labels: props.labels, datasets: [buildBarDataset(props.title, props.values)] }}
         options={buildBarChartOptions({ labels: props.labels, beginAtZero: false, min: props.minValue ?? 0, max: props.maxValue })}
       />
     </div>
@@ -803,6 +726,8 @@ export default function Statistics() {
                   options={countChartOptions as any}
                 />
               </div>
+              <BarChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
+              <BarChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
             </div>
           </div>
         ) : null}
@@ -843,10 +768,8 @@ export default function Statistics() {
           <div style={sectionWrapStyle}>
             <SectionTitle title={t("groups.academic")} subtitle={t("groupText.academic")} />
             <div className="grid cols1" style={{ gap: 14 }}>
-              <ChartCard title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} />
               <BarChartCard title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
               <VerticalBarChartCard title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} height={320} />
-              <BarChartCard title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={320} minLabelWidth={112} maxLabelWidth={176} />
               <BarChartCard title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
               <BarChartCard title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
               <div className="card" style={cardInnerStyle}>
@@ -861,11 +784,8 @@ export default function Statistics() {
                     ))}
                   </select>
                 </div>
-                <ScrollableBarChart
-                  height={Math.max(320, directions.labels.length * 46)}
-                  labels={directions.labels}
-                  minLabelWidth={112}
-                  maxLabelWidth={176}
+                <FixedBarChart
+                  height={Math.max(320, directions.labels.length * 56)}
                   data={{ labels: directions.labels, datasets: [buildBarDataset(t("sections.direction"), directions.values)] }}
                   options={buildBarChartOptions({ horizontal: true, fullLabelTooltip: true, labels: directions.labels })}
                 />
