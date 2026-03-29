@@ -47,7 +47,11 @@ type ExportItem = {
 
 const cardInnerStyle = { minWidth: 0 };
 const compactTopbarStyle = { marginBottom: 12 };
-const metricValueStyle = { fontSize: 28, fontWeight: 800, marginTop: 6 };
+const metricValueStyle = { fontSize: 28, fontWeight: 800, marginTop: 10, lineHeight: 1.1 };
+const metricCardStyle: React.CSSProperties = { minWidth: 0, minHeight: 146, padding: 22, display: "grid", alignContent: "space-between" };
+const metricGridStyle: React.CSSProperties = { display: "grid", gap: 14 };
+const metricTopRowStyle: React.CSSProperties = { display: "grid", gap: 14, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" };
+const metricBottomRowStyle: React.CSSProperties = { display: "grid", gap: 14, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" };
 const yTicks = { precision: 0 as any };
 const sectionWrapStyle: React.CSSProperties = { display: "grid", gap: 14 };
 const sectionHeaderStyle: React.CSSProperties = { display: "grid", gap: 4, marginTop: 2 };
@@ -144,8 +148,8 @@ function SectionTitle(props: { title: string; subtitle?: string }) {
 
 function MetricCard(props: { label: string; value: string | number }) {
   return (
-    <div className="card" style={cardInnerStyle}>
-      <div className="muted">{props.label}</div>
+    <div className="card" style={metricCardStyle}>
+      <div className="muted" style={{ fontSize: 15 }}>{props.label}</div>
       <div style={metricValueStyle}>{props.value}</div>
     </div>
   );
@@ -1052,13 +1056,17 @@ export default function Statistics() {
         </div>
 
         <div style={sectionWrapStyle}>
-          <div className="grid cols3" style={{ gap: 14 }}>
-            <MetricCard label={t("cards.total")} value={total} />
-            <MetricCard label={t("cards.avgAge")} value={avgAge} />
-            <MetricCard label={t("cards.avgGrade")} value={avgGrade} />
-            <MetricCard label={t("cards.earliestYear")} value={earliestYear} />
-            <MetricCard label={t("cards.topGraduationYear")} value={busiestYear} />
-            <MetricCard label={t("cards.topCity")} value={busiestCity} />
+          <div style={metricGridStyle}>
+            <div style={metricTopRowStyle}>
+              <MetricCard label={t("cards.total")} value={total} />
+              <MetricCard label={t("cards.avgAge")} value={avgAge} />
+              <MetricCard label={t("cards.avgGrade")} value={avgGrade} />
+            </div>
+            <div style={metricBottomRowStyle}>
+              <MetricCard label={t("cards.earliestYear")} value={earliestYear} />
+              <MetricCard label={t("cards.topGraduationYear")} value={busiestYear} />
+              <MetricCard label={t("cards.topCity")} value={busiestCity} />
+            </div>
           </div>
         </div>
 
