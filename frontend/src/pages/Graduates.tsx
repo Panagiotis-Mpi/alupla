@@ -744,48 +744,52 @@ export default function Graduates() {
                     </div>
                   ) : null}
                 </div>
-                <div ref={recentDownloadsRef} style={{ position: "relative", gridColumn: "2 / span 1" }}>
-                  <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => toggleMenu("recent")}>
-                    {t("topbar.myFrequentDownloads")}
-                  </button>
-                  {recentDownloadsOpen ? (
-                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, width: 380, maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 10, display: "grid", gap: 10, zIndex: 30 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                        <div style={{ fontWeight: 700 }}>{t("topbar.myFrequentDownloads")}</div>
-                        {recentDownloads.length ? (
-                          <span className="badge">{recentDownloads.length}</span>
-                        ) : null}
-                      </div>
-                      {recentDownloads.length ? (
-                        <div style={{ display: "grid", gap: 8, maxHeight: 420, overflowY: "auto" }}>
-                          {recentDownloads.map((item) => (
-                            <div key={item.id} style={{ border: "1px solid rgba(15,23,42,.08)", borderRadius: 12, padding: 10, display: "grid", gap: 6 }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                                <div style={{ fontWeight: 700 }}>{item.format.toUpperCase()}</div>
-                                <span className="badge">{t("topbar.downloadCount", { count: item.count })}</span>
-                              </div>
-                              <div style={{ fontSize: 13, wordBreak: "break-word" }}>{item.fileName}</div>
-                              <div className="muted" style={{ fontSize: 12 }}>{item.filtersLabel}</div>
-                              <div className="muted" style={{ fontSize: 12 }}>{t("topbar.lastDownload", { date: formatRecentGraduateDownloadDate(item.lastDownloadedAt, activeLang) })}</div>
-                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                <button className="btn" type="button" onClick={() => downloadStoredExport(item)}>{t("topbar.downloadAgain")}</button>
-                                <button className="btn" type="button" onClick={() => removeStoredExport(item.id)}>{t("topbar.removeDownload")}</button>
-                              </div>
+                <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "center", width: "100%" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, width: "calc(75% - 2.5px)", alignItems: "stretch" }}>
+                    <div ref={recentDownloadsRef} style={{ position: "relative" }}>
+                      <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => toggleMenu("recent")}>
+                        {t("topbar.myFrequentDownloads")}
+                      </button>
+                      {recentDownloadsOpen ? (
+                        <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, width: 380, maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 10, display: "grid", gap: 10, zIndex: 30 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                            <div style={{ fontWeight: 700 }}>{t("topbar.myFrequentDownloads")}</div>
+                            {recentDownloads.length ? (
+                              <span className="badge">{recentDownloads.length}</span>
+                            ) : null}
+                          </div>
+                          {recentDownloads.length ? (
+                            <div style={{ display: "grid", gap: 8, maxHeight: 420, overflowY: "auto" }}>
+                              {recentDownloads.map((item) => (
+                                <div key={item.id} style={{ border: "1px solid rgba(15,23,42,.08)", borderRadius: 12, padding: 10, display: "grid", gap: 6 }}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                                    <div style={{ fontWeight: 700 }}>{item.format.toUpperCase()}</div>
+                                    <span className="badge">{t("topbar.downloadCount", { count: item.count })}</span>
+                                  </div>
+                                  <div style={{ fontSize: 13, wordBreak: "break-word" }}>{item.fileName}</div>
+                                  <div className="muted" style={{ fontSize: 12 }}>{item.filtersLabel}</div>
+                                  <div className="muted" style={{ fontSize: 12 }}>{t("topbar.lastDownload", { date: formatRecentGraduateDownloadDate(item.lastDownloadedAt, activeLang) })}</div>
+                                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                    <button className="btn" type="button" onClick={() => downloadStoredExport(item)}>{t("topbar.downloadAgain")}</button>
+                                    <button className="btn" type="button" onClick={() => removeStoredExport(item.id)}>{t("topbar.removeDownload")}</button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          ) : (
+                            <div className="muted">{t("topbar.noDownloadsYet")}</div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="muted">{t("topbar.noDownloadsYet")}</div>
-                      )}
+                      ) : null}
                     </div>
-                  ) : null}
+                    <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => setShowFilters((current) => !current)}>
+                      {activeLang === "gr" ? "Φίλτρα" : "Filters"}
+                    </button>
+                    <button className="btn danger" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => void onDeleteSelected()} disabled={!selectedIds.length}>
+                      {t("topbar.delete")}
+                    </button>
+                  </div>
                 </div>
-                <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => setShowFilters((current) => !current)}>
-                  {activeLang === "gr" ? "Φίλτρα" : "Filters"}
-                </button>
-                <button className="btn danger" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => void onDeleteSelected()} disabled={!selectedIds.length}>
-                  {t("topbar.delete")}
-                </button>
               </div>
             </div>
           </div>

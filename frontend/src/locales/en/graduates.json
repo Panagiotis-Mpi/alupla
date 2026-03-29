@@ -20,7 +20,7 @@
     "exportPdf": "PDF",
     "templateExcel": "Excel",
     "templateCsv": "CSV",
-    "myFrequentDownloads": "My frequent downloads",
+    "myFrequentDownloads": "My downloads",
     "noDownloadsYet": "There are no saved downloads yet.",
     "downloadAgain": "Download again",
     "removeDownload": "Remove",
