@@ -139,7 +139,7 @@ export default function GraduatesMapPage() {
       const layer = L.geoJSON(geojson as any);
       const bounds = layer.getBounds();
       if (bounds && bounds.isValid()) {
-        mapRef.current.fitBounds(bounds, { padding: [32, 32], maxZoom: 6.5 });
+        mapRef.current.fitBounds(bounds, { padding: [14, 14], maxZoom: 7.1 });
         setMapZoom((prev) => Math.abs(prev - mapRef.current!.getZoom()) < 0.001 ? prev : mapRef.current!.getZoom());
         setMapBounds((prev) => (prev && prev.equals(mapRef.current!.getBounds()) ? prev : mapRef.current!.getBounds()));
       }
@@ -573,40 +573,58 @@ export default function GraduatesMapPage() {
         }
         .map-top-menu-card {
           margin-top: 12px;
-          padding: 18px;
+          padding: 24px 28px;
           display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          gap: 16px;
+          gap: 18px;
+        }
+        .map-top-menu-header {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
           align-items: center;
+          gap: 20px;
         }
         .map-top-menu-title {
           display: flex;
-          align-items: baseline;
+          align-items: center;
           gap: 18px;
           flex-wrap: wrap;
+          min-width: 0;
+        }
+        .map-top-menu-title h2 {
+          margin: 0;
+          font-size: 42px;
+          line-height: 1.05;
+          font-weight: 800;
+          letter-spacing: -.02em;
         }
         .map-top-menu-actions {
           display: grid;
           grid-template-columns: repeat(2, minmax(180px, 220px));
           gap: 12px;
-          justify-content: end;
+          justify-content: center;
+          justify-self: center;
           position: relative;
         }
         .map-metric-group {
-          display: inline-grid;
+          display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
-          gap: 8px;
+          gap: 12px;
           width: 100%;
         }
         .map-metric-button {
           border: 1px solid var(--border);
           background: #ffffff;
-          border-radius: 999px;
-          min-height: 40px;
-          padding: 0 14px;
+          border-radius: 16px;
+          min-height: 52px;
+          padding: 0 18px;
           font: inherit;
+          font-size: 17px;
           cursor: pointer;
           color: #334155;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
         }
         .map-metric-button.active {
           background: #eff6ff;
@@ -622,10 +640,12 @@ export default function GraduatesMapPage() {
           position: relative;
         }
         .map-main-card {
-          margin-top: 12px;
+          margin: 12px auto 0;
+          max-width: 980px;
         }
         .map-map-wrap {
           position: relative;
+          padding: 0 10px 10px;
         }
         .map-combined-details-card {
           margin-top: 12px;
@@ -714,13 +734,19 @@ export default function GraduatesMapPage() {
           align-items: start;
         }
         .map-trend-card { display: grid; gap: 12px; }
-        .map-trend-canvas { height: 240px; }
+        .map-trend-canvas { height: 260px; }
+        .map-main-card .map-canvas { height: clamp(660px, 76vh, 860px); min-height: 660px; }
         @media (max-width: 1100px) {
           .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .map-summary-card { min-height: 160px; padding: 20px 24px 24px; }
+          .map-summary-label { font-size: 20px; }
+          .map-summary-value { font-size: 42px; }
           .map-metric-group { grid-template-columns: repeat(3, minmax(0, 1fr)); }
           .map-city-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .map-top-menu-card { grid-template-columns: 1fr; }
-          .map-top-menu-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; }
+          .map-top-menu-header { grid-template-columns: 1fr; }
+          .map-top-menu-title { justify-content: center; }
+          .map-top-menu-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; width: 100%; }
+          .map-main-card { max-width: 100%; }
         }
         @media (max-width: 900px) {
           .map-filters-modal {
@@ -733,6 +759,9 @@ export default function GraduatesMapPage() {
         @media (max-width: 640px) {
           .map-page-title-row { align-items: flex-start; gap: 10px; }
           .map-summary-grid { grid-template-columns: 1fr; }
+          .map-summary-card { min-height: auto; gap: 18px; padding: 18px 20px 22px; }
+          .map-summary-label { font-size: 18px; }
+          .map-summary-value { font-size: 38px; }
           .map-actions-bar { grid-template-columns: 1fr 1fr; }
           .map-controls-row { padding: 14px 14px 0; }
           .map-metric-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -751,58 +780,75 @@ export default function GraduatesMapPage() {
       `}</style>
 
       <div className="card map-top-menu-card">
-        <div className="map-top-menu-title">
-          <h2 style={{ margin: 0, lineHeight: 1, display: "flex", alignItems: "baseline" }}>{t("map.title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
-          <span className="badge" style={{ display: "inline-flex", alignItems: "baseline", lineHeight: 1, paddingTop: 0, paddingBottom: 0 }}>
-            {loading ? t("common.loading", { defaultValue: "Φόρτωση..." }) : `${t("map.totalInline", { defaultValue: "Σύνολο" })}: ${total}`}
-          </span>
+        <div className="map-top-menu-header">
+          <div className="map-top-menu-title">
+            <h2>{t("map.title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
+            <span className="badge" style={{ display: "inline-flex", alignItems: "baseline", lineHeight: 1, paddingTop: 0, paddingBottom: 0 }}>
+              {loading ? t("common.loading", { defaultValue: "Φόρτωση..." }) : `${t("map.totalInline", { defaultValue: "Σύνολο" })}: ${total}`}
+            </span>
+          </div>
+
+          <div className="map-top-menu-actions">
+            <div ref={exportMenuRef} style={{ position: "relative" }}>
+              <button className="btn map-action-button" type="button" onClick={() => setShowExportMenu((prev) => !prev)}>
+                {t("graduates.export.title", { defaultValue: "Εξαγωγή" })}
+              </button>
+              {showExportMenu ? (
+                <div className="map-export-menu">
+                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>
+                    {t("map.exportPng", { defaultValue: "Export PNG" })}
+                  </button>
+                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>
+                    {t("map.exportExcel", { defaultValue: "Export Excel" })}
+                  </button>
+                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>
+                    {t("map.exportCsv", { defaultValue: "Export CSV" })}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+            <button className="btn map-action-button" type="button" onClick={() => setShowFilters((prev) => !prev)}>
+              {showFilters ? t("common.hide", { defaultValue: "Απόκρυψη" }) : t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}
+            </button>
+          </div>
+
+          <div />
         </div>
 
-        <div className="map-top-menu-actions">
-          <div ref={exportMenuRef} style={{ position: "relative" }}>
-            <button className="btn map-action-button" type="button" onClick={() => setShowExportMenu((prev) => !prev)}>
-              {t("graduates.export.title", { defaultValue: "Εξαγωγή" })}
-            </button>
-            {showExportMenu ? (
-              <div className="map-export-menu">
-                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>
-                  {t("map.exportPng", { defaultValue: "Export PNG" })}
-                </button>
-                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>
-                  {t("map.exportExcel", { defaultValue: "Export Excel" })}
-                </button>
-                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>
-                  {t("map.exportCsv", { defaultValue: "Export CSV" })}
-                </button>
-              </div>
-            ) : null}
+        <div style={{ display: "grid", gap: 8 }}>
+          <div className="map-metric-group">
+            {(["count", "male_pct", "female_pct", "avg_age", "avg_grade"] as MapMetric[]).map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={`map-metric-button ${mapMetric === option ? "active" : ""}`}
+                onClick={() => setMapMetric(option)}
+              >
+                {metricOptions[option].label}
+              </button>
+            ))}
           </div>
-          <button className="btn map-action-button" type="button" onClick={() => setShowFilters((prev) => !prev)}>
-            {showFilters ? t("common.hide", { defaultValue: "Απόκρυψη" }) : t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}
-          </button>
         </div>
       </div>
 
       <div className="map-summary-grid">
         <div className="card map-summary-card">
-          <div className="label">{t("map.summary.total", { defaultValue: "Σύνολο αποφοίτων" })}</div>
+          <div className="map-summary-label">{t("map.summary.total", { defaultValue: "Σύνολο αποφοίτων" })}</div>
           <div className="map-summary-value">{total}</div>
-          <div className="map-summary-sub">{t("map.summary.metric", { defaultValue: "Τρέχουσα απεικόνιση χάρτη" })}: {metricOptions[mapMetric].label}</div>
         </div>
         <div className="card map-summary-card">
-          <div className="label">{t("map.summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" })}</div>
+          <div className="map-summary-label">{t("map.summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" })}</div>
           <div className="map-summary-value">{topPeriphery?.periphery_name || "-"}</div>
           <div className="map-summary-sub">{topPeriphery ? `${topPeriphery.count} ${t("map.export.count", { defaultValue: "Απόφοιτοι" })}` : "-"}</div>
         </div>
         <div className="card map-summary-card">
-          <div className="label">{t("map.summary.topCity", { defaultValue: "Πόλη με τους περισσότερους αποφοίτους" })}</div>
+          <div className="map-summary-label">{t("map.summary.topCity", { defaultValue: "Πόλη με τους περισσότερους αποφοίτους" })}</div>
           <div className="map-summary-value">{topCity?.city_name || "-"}</div>
           <div className="map-summary-sub">{topCity ? `${topCity.count} ${t("map.export.count", { defaultValue: "Απόφοιτοι" })}` : "-"}</div>
         </div>
         <div className="card map-summary-card">
-          <div className="label">{t("map.summary.avgAge", { defaultValue: "Μέση ηλικία αποφοίτων" })}</div>
+          <div className="map-summary-label">{t("map.summary.avgAge", { defaultValue: "Μέσος όρος ηλικίας" })}</div>
           <div className="map-summary-value">{weightedAvgAge === null ? "-" : compactNumber(weightedAvgAge)}</div>
-          <div className="map-summary-sub">{t("map.summary.fromCurrentFilters", { defaultValue: "Υπολογισμός με βάση τα τρέχοντα φίλτρα" })}</div>
         </div>
       </div>
 
@@ -816,29 +862,11 @@ export default function GraduatesMapPage() {
       ) : null}
 
       <div className="card alupla-map-card map-main-card">
-        <div className="map-controls-row">
-          <div style={{ display: "grid", gap: 8, width: "100%" }}>
-            <label className="label">{t("map.metricLabel", { defaultValue: "Προβολή χάρτη" })}</label>
-            <div className="map-metric-group">
-              {(["count", "male_pct", "female_pct", "avg_age", "avg_grade"] as MapMetric[]).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  className={`map-metric-button ${mapMetric === option ? "active" : ""}`}
-                  onClick={() => setMapMetric(option)}
-                >
-                  {metricOptions[option].label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
         <div className="map-map-wrap">
           <div className="alupla-map map-canvas" ref={mapCanvasRef}>
             <MapContainer
               center={[38.6, 24.0]}
-              zoom={6.5 as any}
+              zoom={6.9 as any}
               zoomSnap={0.5}
               whenCreated={(map) => {
                 mapRef.current = map;
@@ -1030,6 +1058,24 @@ export default function GraduatesMapPage() {
 
       {items.length && selected ? (
         <>
+          <div className="map-lower-section">
+            <div className="card map-trend-card" style={{ padding: 16 }}>
+              <div style={{ display: "grid", gap: 4 }}>
+                <div style={{ fontWeight: 700 }}>{t("map.trend.title", { defaultValue: "Μεταβολή αποφοίτων ανά έτος" })}</div>
+                <div className="muted">{selected.periphery_name}</div>
+              </div>
+              {trendLoading ? (
+                <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
+              ) : selectedTrend.length ? (
+                <div className="map-trend-canvas">
+                  <Line data={trendData} options={trendOptions as any} />
+                </div>
+              ) : (
+                <div className="muted">{t("map.trend.empty", { defaultValue: "Δεν υπάρχουν διαθέσιμα χρονολογικά στοιχεία για την τρέχουσα επιλογή." })}</div>
+              )}
+            </div>
+          </div>
+
           <div className="card map-combined-details-card">
             <div className="map-combined-details-block">
               <div style={{ display: "grid", gap: 4 }}>
@@ -1091,24 +1137,6 @@ export default function GraduatesMapPage() {
                 </div>
               ) : (
                 <div className="muted">{t("map.noCities", { defaultValue: "Δεν υπάρχουν διαθέσιμες πόλεις για την τρέχουσα περιφέρεια." })}</div>
-              )}
-            </div>
-          </div>
-
-          <div className="map-lower-section">
-            <div className="card map-trend-card" style={{ padding: 16 }}>
-              <div style={{ display: "grid", gap: 4 }}>
-                <div style={{ fontWeight: 700 }}>{t("map.trend.title", { defaultValue: "Μεταβολή αποφοίτων ανά έτος" })}</div>
-                <div className="muted">{selected.periphery_name}</div>
-              </div>
-              {trendLoading ? (
-                <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
-              ) : selectedTrend.length ? (
-                <div className="map-trend-canvas">
-                  <Line data={trendData} options={trendOptions as any} />
-                </div>
-              ) : (
-                <div className="muted">{t("map.trend.empty", { defaultValue: "Δεν υπάρχουν διαθέσιμα χρονολογικά στοιχεία για την τρέχουσα επιλογή." })}</div>
               )}
             </div>
           </div>
