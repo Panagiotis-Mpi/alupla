@@ -18,12 +18,10 @@ import {
 } from "chart.js";
 import {
   getMapCityDetail,
-  getMapTrend,
   getGraduatesMap,
   logPublicExport,
   type GraduatesMapItem,
   type MapCityDetailResponse,
-  type MapTrendResponse,
 } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
 import { excelCellValue, exportCsvText, exportElementAsPng, exportWorkbook } from "./map/mapExport";
@@ -51,7 +49,6 @@ type MapMetric = "count" | "dominant_gender" | "dominant_direction";
 const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
 const genderColors = { male: "#3b82f6", female: "#c084fc", balanced: "#cbd5e1", empty: "#e5e7eb" };
 const directionPalette = ["#2563eb", "#7c3aed", "#0f766e", "#ea580c", "#dc2626", "#0891b2", "#65a30d", "#9333ea"];
-const chartPalette = ["#2563eb", "#c084fc", "#0f766e", "#ea580c", "#dc2626", "#0891b2", "#65a30d", "#9333ea"];
 
 function compactNumber(value: number | string | null | undefined) {
   if (value === null || value === undefined || value === "") return "-";
@@ -142,9 +139,6 @@ export default function GraduatesMapPage() {
   const [mapZoom, setMapZoom] = useState(6.5);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [selected, setSelected] = useState<GraduatesMapItem | null>(null);
-  const [trendLoading, setTrendLoading] = useState(false);
-  const [trend, setTrend] = useState<MapTrendResponse | null>(null);
-  const [selectedDirectionIds, setSelectedDirectionIds] = useState<number[]>([]);
   const [selectedCityPoint, setSelectedCityPoint] = useState<any | null>(null);
   const [cityDetailLoading, setCityDetailLoading] = useState(false);
   const [cityDetail, setCityDetail] = useState<MapCityDetailResponse | null>(null);
@@ -191,14 +185,6 @@ export default function GraduatesMapPage() {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
-
-  useEffect(() => {
-    if (mapMetric !== "dominant_direction") {
-      if (selectedDirectionIds.length) setSelectedDirectionIds([]);
-      return;
-    }
-    setSelectedDirectionIds([]);
-  }, [mapMetric, selected?.periphery_id]);
 
   useEffect(() => {
     if (!selectedCityPoint) {
@@ -339,38 +325,6 @@ export default function GraduatesMapPage() {
     });
   }, [items, mapMetric, maxMetricValue, i18n.language]);
 
-  useEffect(() => {
-    if (!selected) {
-      setTrend(null);
-      setSelectedDirectionIds([]);
-      return;
-    }
-    let active = true;
-    setTrendLoading(true);
-    getMapTrend({ periphery_id: selected.periphery_id, mode: mapMetric, direction_ids: selectedDirectionIds.join(",") })
-      .then((response) => {
-        if (!active) return;
-        setTrend(response || null);
-        if (mapMetric === "dominant_direction") {
-          const available = Array.isArray(response?.availableDirections) ? response.availableDirections : [];
-          setSelectedDirectionIds((prev) => {
-            const kept = prev.filter((id) => available.some((item: any) => Number(item.id) === id));
-            if (kept.length) return kept;
-            return available.slice(0, Math.min(4, available.length)).map((item: any) => Number(item.id));
-          });
-        }
-      })
-      .catch(() => {
-        if (active) setTrend(null);
-      })
-      .finally(() => {
-        if (active) setTrendLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [selected, mapMetric, selectedDirectionIds.join(",")]);
-
   const total = useMemo(() => items.reduce((sum, item) => sum + (Number(item.count) || 0), 0), [items]);
   const visibleCities = useVisibleCities(cityPoints, mapBounds, mapZoom);
   const topPeriphery = useMemo(() => items[0] || null, [items]);
@@ -390,50 +344,6 @@ export default function GraduatesMapPage() {
 
   const buckets = useMemo(() => legendBuckets(maxMetricValue), [maxMetricValue]);
   const geoRenderKey = useMemo(() => `${mapMetric}:${items.map((item) => `${item.periphery_id}:${metricOptions[mapMetric].value(item)}`).join("|")}`, [items, mapMetric, metricOptions]);
-
-  const trendLabels = trend?.labels?.length ? trend.labels : Array.from({ length: 8 }, () => "");
-  const trendData = useMemo(() => ({
-    labels: trendLabels,
-    datasets: (trend?.datasets?.length ? trend.datasets : [{ key: "empty", label: "", values: trendLabels.map(() => null) }]).map((dataset, index) => {
-      const baseColor = dataset.key === "male"
-        ? genderColors.male
-        : dataset.key === "female"
-          ? genderColors.female
-          : directionColor(dataset.label || chartPalette[index % chartPalette.length]);
-      return {
-        label: dataset.label,
-        data: dataset.values,
-        borderColor: baseColor,
-        backgroundColor: colorWithAlpha(baseColor, trend?.datasets?.length ? 0.18 : 0.06),
-        pointBackgroundColor: baseColor,
-        pointBorderColor: baseColor,
-        tension: 0.28,
-        fill: true,
-        pointRadius: trend?.datasets?.length ? 3 : 0,
-        pointHoverRadius: trend?.datasets?.length ? 4 : 0,
-        borderWidth: trend?.datasets?.length ? 3 : 1.5,
-        spanGaps: false,
-      };
-    }),
-  }), [trend, trendLabels]);
-
-  const trendOptions = useMemo(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    plugins: { legend: { display: Boolean(trend?.datasets?.length) }, tooltip: { enabled: Boolean(trend?.datasets?.length) } },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: trend?.datasets?.length ? { precision: 0 as any } : { display: false },
-        grid: { color: "rgba(148,163,184,.18)" },
-      },
-      x: {
-        ticks: trend?.datasets?.length ? { autoSkip: false, maxRotation: 0, minRotation: 0 } : { display: false },
-        grid: { color: "rgba(148,163,184,.18)" },
-      },
-    },
-  }), [trend]);
 
   function exportRows() {
     return items.map((item) => ({
@@ -801,42 +711,6 @@ export default function GraduatesMapPage() {
 
       {selected ? (
         <>
-          <div className="card map-trend-card">
-            <div style={{ display: "grid", gap: 4 }}>
-              <div style={{ fontWeight: 700 }}>
-                {mapMetric === "dominant_gender"
-                  ? mt("trend.genderTitle", { defaultValue: "Μεταβολή φύλου ανά έτος" })
-                  : mapMetric === "dominant_direction"
-                    ? mt("trend.directionTitle", { defaultValue: "Μεταβολή κατεύθυνσης ανά έτος" })
-                    : mt("trend.title", { defaultValue: "Μεταβολή αποφοίτων ανά έτος" })}
-              </div>
-              <div className="muted">{selected.periphery_name}</div>
-            </div>
-            {mapMetric === "dominant_direction" && trend?.availableDirections?.length ? (
-              <div className="map-filter-chips">
-                {trend.availableDirections.map((direction) => {
-                  const active = selectedDirectionIds.includes(Number(direction.id));
-                  return (
-                    <button
-                      key={direction.id}
-                      type="button"
-                      className={`btn ${active ? "primary" : ""}`}
-                      onClick={() => setSelectedDirectionIds((prev) => {
-                        const directionId = Number(direction.id);
-                        if (prev.includes(directionId)) return prev.filter((id) => id !== directionId);
-                        return [...prev, directionId];
-                      })}
-                    >
-                      {direction.label}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-            <div className="map-trend-scroll"><div className="map-trend-canvas"><Line data={trendData} options={trendOptions as any} /></div></div>
-            {trendLoading ? <div className="muted">{ct("loading", { defaultValue: "Φόρτωση..." })}</div> : !trend?.datasets?.length ? <div className="muted">{mt("trend.empty", { defaultValue: "Δεν υπάρχουν διαθέσιμα χρονολογικά στοιχεία για την τρέχουσα επιλογή." })}</div> : null}
-          </div>
-
           <div className="card map-combined-details-card">
             <div style={{ fontWeight: 800, fontSize: 18 }}>{mt("infoTitle", { defaultValue: "Πληροφορίες" })}</div>
             <InfoBox title={selected.periphery_name} totalText={mt("totalGraduatesLine", { total: selected.count, defaultValue: "Σύνολο αποφοίτων: {{total}}" })} groups={detailGroups(selected)} />
