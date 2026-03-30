@@ -647,11 +647,36 @@ export default function GraduatesMapPage() {
           background: #f8fafc;
           color: #64748b;
         }
+        .map-panel-stack {
+          display: grid;
+          gap: 12px;
+          align-content: start;
+        }
+        .map-detail-card {
+          display: grid;
+          gap: 12px;
+        }
+        .map-lower-section {
+          margin-top: 12px;
+          display: grid;
+          gap: 12px;
+        }
+        .map-cities-card {
+          display: grid;
+          gap: 12px;
+        }
+        .map-city-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 12px;
+          align-items: start;
+        }
         .map-trend-card { display: grid; gap: 12px; }
         .map-trend-canvas { height: 240px; }
         @media (max-width: 1100px) {
           .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .map-metric-group { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+          .map-city-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (max-width: 900px) {
           .map-filters-modal {
@@ -667,6 +692,7 @@ export default function GraduatesMapPage() {
           .map-actions-bar { grid-template-columns: 1fr 1fr; }
           .map-controls-row { padding: 14px 14px 0; }
           .map-metric-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .map-city-stats-grid { grid-template-columns: 1fr; }
           .map-filters-modal {
             top: 76px;
             width: calc(100vw - 16px);
@@ -953,86 +979,93 @@ export default function GraduatesMapPage() {
             </>
           ) : null}
 
-          <div className="card">
+          <div className="card map-detail-card">
             <h3 style={{ marginTop: 0 }}>{t("map.detailsTitle", { defaultValue: "Λεπτομέρειες" })}</h3>
             {!items.length ? (
               <div className="map-empty-state">{t("map.noResults", { defaultValue: "Δεν βρέθηκαν απόφοιτοι με τα συγκεκριμένα φίλτρα." })}</div>
             ) : !selected ? (
               <div className="muted">{t("map.detailsHint", { defaultValue: "Κάνε κλικ σε μία περιφέρεια για λεπτομέρειες." })}</div>
             ) : (
-              <div className="grid" style={{ gap: 10 }}>
-                <DetailStatsCard
-                  title={(selected as any).periphery_name}
-                  total={(selected as any).count ?? 0}
-                  avgAge={(selected as any).avg_age}
-                  malePct={(selected as any).male_pct}
-                  femalePct={(selected as any).female_pct}
-                  avgGrade={(selected as any).avg_grade}
-                  avgGraduationYears={(selected as any).avg_graduation_years}
-                  totalText={t("map.total", { total: (selected as any).count ?? 0, defaultValue: "Σύνολο: {{total}}" })}
-                  totalLabel={t("map.totalLabel", { defaultValue: "Σύνολο" })}
-                  avgAgeLabel={t("map.avgAge", { defaultValue: "Μέση ηλικία" })}
-                  malePctLabel={t("map.malePct", { defaultValue: "% Άνδρες" })}
-                  femalePctLabel={t("map.femalePct", { defaultValue: "% Γυναίκες" })}
-                  avgGradeLabel={t("map.avgGrade", { defaultValue: "Μέσος βαθμός" })}
-                  avgGraduationYearsLabel={t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" })}
-                  basicsTitle={t("map.detailGroups.basics", { defaultValue: "Βασικά στοιχεία" })}
-                  demographicsTitle={t("map.detailGroups.demographics", { defaultValue: "Δημογραφικά" })}
-                  academicsTitle={t("map.detailGroups.academics", { defaultValue: "Ακαδημαϊκά" })}
-                />
-
-                <div className="card map-trend-card" style={{ padding: 14 }}>
-                  <div style={{ display: "grid", gap: 4 }}>
-                    <div style={{ fontWeight: 700 }}>{t("map.trend.title", { defaultValue: "Μεταβολή αποφοίτων ανά έτος" })}</div>
-                    <div className="muted">{selected.periphery_name}</div>
-                  </div>
-                  {trendLoading ? (
-                    <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
-                  ) : selectedTrend.length ? (
-                    <div className="map-trend-canvas">
-                      <Line data={trendData} options={trendOptions as any} />
-                    </div>
-                  ) : (
-                    <div className="muted">{t("map.trend.empty", { defaultValue: "Δεν υπάρχουν διαθέσιμα χρονολογικά στοιχεία για την τρέχουσα επιλογή." })}</div>
-                  )}
-                </div>
-
-                {cityStatsLoading ? (
-                  <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
-                ) : selectedCityStats.length > 0 ? (
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <label className="label">{t("map.cities", { defaultValue: "Πόλεις" })}</label>
-                    {selectedCityStats.map((city) => (
-                      <DetailStatsCard
-                        key={`${selected?.periphery_id}-${city.city}`}
-                        title={city.city}
-                        total={city.count}
-                        avgAge={city.avg_age}
-                        malePct={city.male_pct}
-                        femalePct={city.female_pct}
-                        avgGrade={city.avg_grade}
-                        avgGraduationYears={city.avg_graduation_years}
-                        totalText={t("map.total", { total: city.count ?? 0, defaultValue: "Σύνολο: {{total}}" })}
-                        totalLabel={t("map.totalLabel", { defaultValue: "Σύνολο" })}
-                        avgAgeLabel={t("map.avgAge", { defaultValue: "Μέση ηλικία" })}
-                        malePctLabel={t("map.malePct", { defaultValue: "% Άνδρες" })}
-                        femalePctLabel={t("map.femalePct", { defaultValue: "% Γυναίκες" })}
-                        avgGradeLabel={t("map.avgGrade", { defaultValue: "Μέσος βαθμός" })}
-                        avgGraduationYearsLabel={t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" })}
-                        basicsTitle={t("map.detailGroups.basics", { defaultValue: "Βασικά στοιχεία" })}
-                        demographicsTitle={t("map.detailGroups.demographics", { defaultValue: "Δημογραφικά" })}
-                        academicsTitle={t("map.detailGroups.academics", { defaultValue: "Ακαδημαϊκά" })}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="muted">{t("map.noCities", { defaultValue: "Δεν υπάρχουν διαθέσιμες πόλεις για την τρέχουσα περιφέρεια." })}</div>
-                )}
-              </div>
+              <DetailStatsCard
+                title={(selected as any).periphery_name}
+                total={(selected as any).count ?? 0}
+                avgAge={(selected as any).avg_age}
+                malePct={(selected as any).male_pct}
+                femalePct={(selected as any).female_pct}
+                avgGrade={(selected as any).avg_grade}
+                avgGraduationYears={(selected as any).avg_graduation_years}
+                totalText={t("map.total", { total: (selected as any).count ?? 0, defaultValue: "Σύνολο: {{total}}" })}
+                totalLabel={t("map.totalLabel", { defaultValue: "Σύνολο" })}
+                avgAgeLabel={t("map.avgAge", { defaultValue: "Μέση ηλικία" })}
+                malePctLabel={t("map.malePct", { defaultValue: "% Άνδρες" })}
+                femalePctLabel={t("map.femalePct", { defaultValue: "% Γυναίκες" })}
+                avgGradeLabel={t("map.avgGrade", { defaultValue: "Μέσος βαθμός" })}
+                avgGraduationYearsLabel={t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" })}
+                basicsTitle={t("map.detailGroups.basics", { defaultValue: "Βασικά στοιχεία" })}
+                demographicsTitle={t("map.detailGroups.demographics", { defaultValue: "Δημογραφικά" })}
+                academicsTitle={t("map.detailGroups.academics", { defaultValue: "Ακαδημαϊκά" })}
+              />
             )}
           </div>
         </div>
       </div>
+
+      {items.length && selected ? (
+        <div className="map-lower-section">
+          <div className="card map-trend-card" style={{ padding: 16 }}>
+            <div style={{ display: "grid", gap: 4 }}>
+              <div style={{ fontWeight: 700 }}>{t("map.trend.title", { defaultValue: "Μεταβολή αποφοίτων ανά έτος" })}</div>
+              <div className="muted">{selected.periphery_name}</div>
+            </div>
+            {trendLoading ? (
+              <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
+            ) : selectedTrend.length ? (
+              <div className="map-trend-canvas">
+                <Line data={trendData} options={trendOptions as any} />
+              </div>
+            ) : (
+              <div className="muted">{t("map.trend.empty", { defaultValue: "Δεν υπάρχουν διαθέσιμα χρονολογικά στοιχεία για την τρέχουσα επιλογή." })}</div>
+            )}
+          </div>
+
+          <div className="card map-cities-card">
+            <div style={{ display: "grid", gap: 4 }}>
+              <div style={{ fontWeight: 700 }}>{t("map.cities", { defaultValue: "Πόλεις" })}</div>
+              <div className="muted">{selected.periphery_name}</div>
+            </div>
+            {cityStatsLoading ? (
+              <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
+            ) : selectedCityStats.length > 0 ? (
+              <div className="map-city-stats-grid">
+                {selectedCityStats.map((city) => (
+                  <DetailStatsCard
+                    key={`${selected?.periphery_id}-${city.city}`}
+                    title={city.city}
+                    total={city.count}
+                    avgAge={city.avg_age}
+                    malePct={city.male_pct}
+                    femalePct={city.female_pct}
+                    avgGrade={city.avg_grade}
+                    avgGraduationYears={city.avg_graduation_years}
+                    totalText={t("map.total", { total: city.count ?? 0, defaultValue: "Σύνολο: {{total}}" })}
+                    totalLabel={t("map.totalLabel", { defaultValue: "Σύνολο" })}
+                    avgAgeLabel={t("map.avgAge", { defaultValue: "Μέση ηλικία" })}
+                    malePctLabel={t("map.malePct", { defaultValue: "% Άνδρες" })}
+                    femalePctLabel={t("map.femalePct", { defaultValue: "% Γυναίκες" })}
+                    avgGradeLabel={t("map.avgGrade", { defaultValue: "Μέσος βαθμός" })}
+                    avgGraduationYearsLabel={t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" })}
+                    basicsTitle={t("map.detailGroups.basics", { defaultValue: "Βασικά στοιχεία" })}
+                    demographicsTitle={t("map.detailGroups.demographics", { defaultValue: "Δημογραφικά" })}
+                    academicsTitle={t("map.detailGroups.academics", { defaultValue: "Ακαδημαϊκά" })}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="muted">{t("map.noCities", { defaultValue: "Δεν υπάρχουν διαθέσιμες πόλεις για την τρέχουσα περιφέρεια." })}</div>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
