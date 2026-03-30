@@ -624,17 +624,19 @@ export default function GraduatesMapPage() {
         }
         .map-summary-label {
           color: #475569;
-          font-size: 16px;
-          line-height: 1.3;
+          font-size: 17px;
+          line-height: 1.32;
         }
         .map-summary-card {
           min-width: 0;
-          padding: 16px 18px;
+          min-height: 124px;
+          padding: 18px;
           display: grid;
-          gap: 6px;
+          align-content: space-between;
+          gap: 8px;
         }
         .map-summary-value {
-          font-size: 24px;
+          font-size: 28px;
           font-weight: 800;
           line-height: 1.1;
           color: #0f172a;
@@ -653,7 +655,7 @@ export default function GraduatesMapPage() {
           flex-wrap: wrap;
         }
         .map-top-menu-card {
-          margin-top: 12px;
+          margin-top: 24px;
           padding: 20px 16px 16px;
           display: grid;
           gap: 12px;
@@ -686,35 +688,31 @@ export default function GraduatesMapPage() {
           letter-spacing: -.01em;
         }
         .map-top-menu-actions {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(160px, 1fr));
-          gap: 12px;
-          justify-content: center;
-          justify-self: center;
-          width: min(560px, 100%);
-          position: relative;
+          display: contents;
         }
         .map-metric-group {
           display: grid;
-          grid-template-columns: repeat(5, minmax(0, 1fr));
+          grid-template-columns: repeat(7, minmax(0, 1fr));
           gap: 12px;
-          width: min(1040px, 100%);
+          width: 100%;
           margin: 0 auto;
+          align-items: stretch;
         }
         .map-metric-button {
           border: 1px solid var(--border);
           background: var(--surface);
-          border-radius: 12px;
-          min-height: 40px;
-          padding: 0 12px;
+          border-radius: 18px;
+          min-height: 72px;
+          padding: 0 18px;
           font: inherit;
-          font-size: 14px;
+          font-size: 18px;
           cursor: pointer;
           color: var(--text);
           display: inline-flex;
           align-items: center;
           justify-content: center;
           text-align: center;
+          line-height: 1.2;
           transition: background .15s ease, border-color .15s ease, transform .05s ease, color .15s ease;
         }
         .map-metric-button:hover {
@@ -825,7 +823,7 @@ export default function GraduatesMapPage() {
           gap: 12px;
           align-items: start;
         }
-        .map-action-button { width: 100%; min-height: 48px; font-size: 16px; }
+        .map-action-button { width: 100%; min-height: 72px; font-size: 18px; padding: 0 18px; border-radius: 18px; }
         .map-filter-chips {
           display: flex;
           flex-wrap: wrap;
@@ -902,14 +900,13 @@ export default function GraduatesMapPage() {
         .map-main-card .map-canvas { height: clamp(760px, 80vh, 940px); min-height: 760px; }
         @media (max-width: 1100px) {
           .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .map-summary-card { min-height: 160px; padding: 20px 24px 24px; }
-          .map-summary-label { font-size: 20px; }
-          .map-summary-value { font-size: 42px; }
-          .map-metric-group { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+          .map-summary-card { min-height: 124px; padding: 18px; }
+          .map-summary-label { font-size: 17px; }
+          .map-summary-value { font-size: 28px; }
+          .map-metric-group { grid-template-columns: repeat(4, minmax(0, 1fr)); }
           .map-city-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .map-top-menu-header { grid-template-columns: 1fr; }
           .map-top-menu-title { justify-content: center; }
-          .map-top-menu-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; width: 100%; }
           .map-main-card { max-width: 100%; }
         }
         @media (max-width: 900px) {
@@ -923,16 +920,17 @@ export default function GraduatesMapPage() {
         @media (max-width: 640px) {
           .map-page-title-row { align-items: flex-start; gap: 10px; }
           .map-summary-grid { grid-template-columns: 1fr; }
-          .map-summary-card { min-height: auto; gap: 18px; padding: 18px 20px 22px; }
-          .map-summary-label { font-size: 18px; }
-          .map-summary-value { font-size: 38px; }
+          .map-summary-card { min-height: auto; gap: 12px; padding: 18px; }
+          .map-summary-label { font-size: 17px; }
+          .map-summary-value { font-size: 28px; }
           .map-actions-bar { grid-template-columns: 1fr 1fr; }
           .map-controls-row { padding: 14px 14px 0; }
           .map-metric-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .map-city-stats-grid { grid-template-columns: 1fr; }
-          .map-top-menu-card { padding: 16px; }
-          .map-top-menu-actions { grid-template-columns: 1fr 1fr; }
+          .map-top-menu-card { padding: 16px; margin-top: 20px; }
           .map-city-cards-inline { grid-template-columns: 1fr; }
+          .map-metric-button,
+          .map-action-button { min-height: 64px; font-size: 16px; border-radius: 16px; }
           .map-filters-modal {
             top: 76px;
             width: calc(100vw - 16px);
@@ -951,30 +949,6 @@ export default function GraduatesMapPage() {
               {loading ? ct("loading", { defaultValue: "Φόρτωση..." }) : `${total} ${mt("totalInline", { defaultValue: "σύνολο" })}`}
             </span>
           </div>
-
-          <div className="map-top-menu-actions">
-            <div ref={exportMenuRef} style={{ position: "relative" }}>
-              <button className="btn map-action-button" type="button" onClick={() => setShowExportMenu((prev) => !prev)}>
-                {ct("export", { defaultValue: "Εξαγωγή" })}
-              </button>
-              {showExportMenu ? (
-                <div className="map-export-menu">
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>
-                    {mt("exportPng", { defaultValue: "Εξαγωγή PNG" })}
-                  </button>
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>
-                    {mt("exportExcel", { defaultValue: "Εξαγωγή Excel" })}
-                  </button>
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>
-                    {mt("exportCsv", { defaultValue: "Εξαγωγή CSV" })}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-            <button className="btn map-action-button" type="button" onClick={() => setShowFilters((prev) => !prev)}>
-              {showFilters ? ct("hide", { defaultValue: "Απόκρυψη" }) : gt("filters.toggle", { defaultValue: "Φίλτρα" })}
-            </button>
-          </div>
         </div>
 
         <div className="map-metric-group">
@@ -988,6 +962,29 @@ export default function GraduatesMapPage() {
               {metricOptions[option].label}
             </button>
           ))}
+
+          <div ref={exportMenuRef} style={{ position: "relative" }}>
+            <button className="btn map-action-button" type="button" onClick={() => setShowExportMenu((prev) => !prev)}>
+              {ct("export", { defaultValue: "Εξαγωγή" })}
+            </button>
+            {showExportMenu ? (
+              <div className="map-export-menu">
+                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>
+                  {mt("exportPng", { defaultValue: "Εξαγωγή PNG" })}
+                </button>
+                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>
+                  {mt("exportExcel", { defaultValue: "Εξαγωγή Excel" })}
+                </button>
+                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>
+                  {mt("exportCsv", { defaultValue: "Εξαγωγή CSV" })}
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+          <button className="btn map-action-button" type="button" onClick={() => setShowFilters((prev) => !prev)}>
+            {showFilters ? ct("hide", { defaultValue: "Απόκρυψη" }) : gt("filters.toggle", { defaultValue: "Φίλτρα" })}
+          </button>
         </div>
       </div>
 
@@ -1277,7 +1274,6 @@ export default function GraduatesMapPage() {
                     city.count ?? 0,
                     {
                       demographics: [
-                        detailMetric(mt("totalLabel", { defaultValue: "Σύνολο" }), detailValue(city.count ?? 0)),
                         detailMetric(mt("avgAge", { defaultValue: "Μέση ηλικία" }), detailValue(city.avg_age)),
                         detailMetric(mt("malePct", { defaultValue: "% Άνδρες" }), detailValue(city.male_pct, "%")),
                         detailMetric(mt("femalePct", { defaultValue: "% Γυναίκες" }), detailValue(city.female_pct, "%")),
