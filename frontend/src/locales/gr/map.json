@@ -97,11 +97,19 @@
   "detailGroups": {
     "basics": "Βασικά στοιχεία",
     "demographics": "Δημογραφικά",
-    "academics": "Ακαδημαϊκά"
+    "academics": "Ακαδημαϊκά",
+    "geography": "Γεωγραφικά"
   },
   "trend": {
     "title": "Μεταβολή αποφοίτων ανά έτος",
     "series": "Απόφοιτοι",
     "empty": "Δεν υπάρχουν διαθέσιμα χρονολογικά στοιχεία για την τρέχουσα επιλογή."
+  },
+  "infoTitle": "Πληροφορίες",
+  "citiesTitle": "Πόλεις",
+  "totalGraduatesLine": "Σύνολο αποφοίτων: {{total}}",
+  "detailLabels": {
+    "region": "Περιφέρεια",
+    "city": "Πόλη"
   }
 }

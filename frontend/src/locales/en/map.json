@@ -97,11 +97,19 @@
   "detailGroups": {
     "basics": "Basics",
     "demographics": "Demographics",
-    "academics": "Academic data"
+    "academics": "Academic data",
+    "geography": "Geography"
   },
   "trend": {
     "title": "Graduates by year",
     "series": "Graduates",
     "empty": "No timeline data is available for the current selection."
+  },
+  "infoTitle": "Information",
+  "citiesTitle": "Cities",
+  "totalGraduatesLine": "Total graduates: {{total}}",
+  "detailLabels": {
+    "region": "Region",
+    "city": "City"
   }
 }
