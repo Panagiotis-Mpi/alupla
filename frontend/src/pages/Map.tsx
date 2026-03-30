@@ -93,6 +93,7 @@ export default function GraduatesMapPage() {
   const mapRef = useRef<L.Map | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
+  const geoJsonLayerRef = useRef<L.GeoJSON | null>(null);
 
   const [filters, setFilters] = useState<FiltersState>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
@@ -228,6 +229,26 @@ export default function GraduatesMapPage() {
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
+
+  useEffect(() => {
+    const layer = geoJsonLayerRef.current;
+    if (!layer) return;
+
+    layer.eachLayer((entryLayer: any) => {
+      const feature = entryLayer?.feature;
+      if (!feature) return;
+      const value = currentValueForFeature(feature);
+      entryLayer.setStyle({
+        color: "#334155",
+        weight: 1,
+        fillColor: fillColorForCount(value, maxMetricValue, fillColors),
+        fillOpacity: fillOpacityForCount(value),
+      });
+      if (entryLayer.getTooltip()) {
+        entryLayer.setTooltipContent(renderTooltipHtml(feature));
+      }
+    });
+  }, [items, mapMetric, maxMetricValue, i18n.language]);
 
   useEffect(() => {
     if (!selected) {
@@ -1069,6 +1090,7 @@ export default function GraduatesMapPage() {
               {geojson ? (
                 <GeoJSON
                   key={geoRenderKey}
+                  ref={(layer) => { geoJsonLayerRef.current = layer; }}
                   data={geojson as any}
                   style={(feature: any) => {
                     const value = currentValueForFeature(feature);
