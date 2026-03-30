@@ -106,7 +106,8 @@
     "basics": "Basics",
     "demographics": "Demographics",
     "academics": "Academic data",
-    "geography": "Geography"
+    "geography": "Geography",
+    "directions": "Directions"
   },
   "trend": {
     "title": "Graduates by year",

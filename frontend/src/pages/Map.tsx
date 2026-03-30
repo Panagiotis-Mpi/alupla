@@ -76,6 +76,19 @@ function directionColor(label: string) {
   return directionPalette[hashLabel(label) % directionPalette.length];
 }
 
+function colorWithAlpha(color: string, alpha: number) {
+  if (color.startsWith("#") && (color.length === 7 || color.length === 4)) {
+    const hex = color.length === 4
+      ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
+      : color;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+  return color;
+}
+
 function slugPart(value: string) {
   return String(value || "")
     .toLowerCase()
@@ -171,6 +184,15 @@ export default function GraduatesMapPage() {
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
+
+
+  useEffect(() => {
+    if (mapMetric !== "dominant_direction") {
+      if (selectedDirectionIds.length) setSelectedDirectionIds([]);
+      return;
+    }
+    setSelectedDirectionIds([]);
+  }, [mapMetric, selected?.periphery_id]);
 
   const metricOptions = useMemo(() => ({
     count: {
@@ -305,8 +327,7 @@ export default function GraduatesMapPage() {
           setSelectedDirectionIds((prev) => {
             const kept = prev.filter((id) => available.some((item: any) => Number(item.id) === id));
             if (kept.length) return kept;
-            const firstId = Number(available[0]?.id || 0);
-            return firstId ? [firstId] : [];
+            return available.slice(0, Math.min(4, available.length)).map((item: any) => Number(item.id));
           });
         }
       })
@@ -344,18 +365,27 @@ export default function GraduatesMapPage() {
   const trendLabels = trend?.labels?.length ? trend.labels : Array.from({ length: 8 }, () => "");
   const trendData = useMemo(() => ({
     labels: trendLabels,
-    datasets: (trend?.datasets?.length ? trend.datasets : [{ key: "empty", label: "", values: trendLabels.map(() => null) }]).map((dataset, index) => ({
-      label: dataset.label,
-      data: dataset.values,
-      borderColor: chartPalette[index % chartPalette.length],
-      backgroundColor: "rgba(37,99,235,.08)",
-      tension: 0.28,
-      fill: false,
-      pointRadius: trend?.datasets?.length ? 3 : 0,
-      pointHoverRadius: trend?.datasets?.length ? 4 : 0,
-      borderWidth: trend?.datasets?.length ? 3 : 1.5,
-      spanGaps: false,
-    })),
+    datasets: (trend?.datasets?.length ? trend.datasets : [{ key: "empty", label: "", values: trendLabels.map(() => null) }]).map((dataset, index) => {
+      const baseColor = dataset.key === "male"
+        ? genderColors.male
+        : dataset.key === "female"
+          ? genderColors.female
+          : directionColor(dataset.label || chartPalette[index % chartPalette.length]);
+      return {
+        label: dataset.label,
+        data: dataset.values,
+        borderColor: baseColor,
+        backgroundColor: colorWithAlpha(baseColor, trend?.datasets?.length ? 0.18 : 0.06),
+        pointBackgroundColor: baseColor,
+        pointBorderColor: baseColor,
+        tension: 0.28,
+        fill: true,
+        pointRadius: trend?.datasets?.length ? 3 : 0,
+        pointHoverRadius: trend?.datasets?.length ? 4 : 0,
+        borderWidth: trend?.datasets?.length ? 3 : 1.5,
+        spanGaps: false,
+      };
+    }),
   }), [trend, trendLabels]);
 
   const trendOptions = useMemo(() => ({
@@ -436,11 +466,13 @@ export default function GraduatesMapPage() {
     if (mapMetric === "dominant_direction") {
       return [
         {
-          title: mt("detailGroups.demographics", { defaultValue: "Δημογραφικά" }),
-          rows: [
-            { label: mt("dominantDirection", { defaultValue: "Κυρίαρχη κατεύθυνση" }), value: item.dominant_recent_direction || "-" },
-            { label: mt("directionCount", { defaultValue: "Απόφοιτοι κατεύθυνσης" }), value: detailValue(item.dominant_recent_direction_count ?? 0) },
-          ],
+          title: mt("detailGroups.directions", { defaultValue: "Κατευθύνσεις" }),
+          rows: Array.isArray(item.recent_directions)
+            ? item.recent_directions.map((entry: any) => ({
+                label: entry.label,
+                value: `${detailValue(entry.count)} (${detailValue(entry.pct, "%")})`,
+              }))
+            : [],
         },
       ];
     }

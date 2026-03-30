@@ -145,6 +145,21 @@ function pickTopEntry(counts: Map<number, number>, labels: Map<number, string>) 
   return { label: labels.get(topId) || null, count: topCount };
 }
 
+function expandEntries(counts: Map<number, number>, labels: Map<number, string>, total: number) {
+  return Array.from(counts.entries())
+    .filter(([, count]) => count > 0)
+    .sort((left, right) => {
+      if (right[1] !== left[1]) return right[1] - left[1];
+      return (labels.get(left[0]) || "").localeCompare(labels.get(right[0]) || "", "el");
+    })
+    .map(([id, count]) => ({
+      id,
+      label: labels.get(id) || String(id),
+      count,
+      pct: total > 0 ? Math.round((count / total) * 1000) / 10 : 0,
+    }));
+}
+
 export async function getGraduatesMap(req: Request, res: Response) {
   const { where, currentYear } = buildMapWhere(req);
   const { regions, findPeriphery, resolveRegionIdFromMunicipalityName } = await loadRegions();
@@ -278,6 +293,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
         dominant_direction: pickTopName(x.directionCounts, programDirectionLabels),
         dominant_recent_direction: recentDirection.label,
         dominant_recent_direction_count: recentDirection.count,
+        recent_directions: expandEntries(x.recentDirectionCounts, programDirectionLabels, x.count),
       };
     })
     .sort((a, b) => b.count - a.count);
@@ -435,6 +451,7 @@ export async function getRegionCities(req: Request, res: Response) {
         dominant_gender: !x.count ? null : x.male > x.female ? "M" : x.female > x.male ? "F" : "balanced",
         dominant_recent_direction: recentDirection.label,
         dominant_recent_direction_count: recentDirection.count,
+        recent_directions: expandEntries(x.recentDirectionCounts, programDirectionLabels, x.count),
       };
     })
     .sort((a, b) => {
@@ -507,38 +524,44 @@ export async function getMapTrend(req: Request, res: Response) {
   }
 
   if (mode === "dominant_direction") {
+    const startDirectionYear = 2022;
+    const directionLabelsRange = Array.from({ length: Math.max(currentYear, startDirectionYear) - startDirectionYear + 1 }, (_, index) => String(startDirectionYear + index));
+    const directionYearIndex = new Map(directionLabelsRange.map((label, index) => [Number(label), index]));
     const totals = new Map<number, number>();
     const matrix = new Map<number, number[]>();
 
     for (const graduate of matching) {
       const entryYear = Number(graduate.entry_year) || 0;
-      if (entryYear < 2022) continue;
+      if (entryYear < startDirectionYear) continue;
       const directionId = Number(graduate.program_direction_id) || 0;
       if (!directionId) continue;
-      const year = Number(String(graduate.graduation_date || "").slice(0, 4));
-      const index = yearIndex.get(year);
+      const index = directionYearIndex.get(entryYear);
       if (index === undefined) continue;
-      const row = matrix.get(directionId) || labels.map(() => 0);
+      const row = matrix.get(directionId) || directionLabelsRange.map(() => 0);
       row[index] += 1;
       matrix.set(directionId, row);
       totals.set(directionId, (totals.get(directionId) || 0) + 1);
     }
 
     const availableDirections = Array.from(totals.entries())
-      .sort((left, right) => right[1] - left[1])
+      .filter(([, count]) => count > 0)
+      .sort((left, right) => {
+        if (right[1] !== left[1]) return right[1] - left[1];
+        return (directionLabels.get(left[0]) || "").localeCompare(directionLabels.get(right[0]) || "", "el");
+      })
       .map(([id]) => ({ id, label: directionLabels.get(id) || String(id) }));
 
     const includedDirectionIds = selectedDirectionIds.length
       ? selectedDirectionIds.filter((id) => matrix.has(id))
-      : availableDirections.slice(0, 1).map((item) => item.id);
+      : availableDirections.slice(0, Math.min(4, availableDirections.length)).map((item) => item.id);
 
     return res.json({
       ok: true,
-      labels,
+      labels: directionLabelsRange,
       datasets: includedDirectionIds.map((id) => ({
         key: String(id),
         label: directionLabels.get(id) || String(id),
-        values: matrix.get(id) || labels.map(() => 0),
+        values: matrix.get(id) || directionLabelsRange.map(() => 0),
       })),
       availableDirections,
     });

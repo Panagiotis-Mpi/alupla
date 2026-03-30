@@ -242,6 +242,7 @@ export type GraduatesMapItem = {
   dominant_direction?: string | null;
   dominant_recent_direction?: string | null;
   dominant_recent_direction_count?: number;
+  recent_directions?: Array<{ id: number; label: string; count: number; pct: number }>;
 };
 
 
@@ -268,6 +269,7 @@ export type RegionCityMapItem = {
   dominant_gender?: "M" | "F" | "balanced" | null;
   dominant_recent_direction?: string | null;
   dominant_recent_direction_count?: number;
+  recent_directions?: Array<{ id: number; label: string; count: number; pct: number }>;
 };
 
 export type MapTrendResponse = {
