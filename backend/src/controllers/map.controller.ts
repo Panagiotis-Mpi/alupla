@@ -130,6 +130,21 @@ function pickTopName(counts: Map<number, number>, labels: Map<number, string>) {
   return labels.get(topId) || null;
 }
 
+function pickTopEntry(counts: Map<number, number>, labels: Map<number, string>) {
+  let topId = 0;
+  let topCount = 0;
+
+  for (const [id, count] of counts.entries()) {
+    if (count > topCount || (count === topCount && id < topId)) {
+      topId = id;
+      topCount = count;
+    }
+  }
+
+  if (!topId || topCount <= 0) return { label: null, count: 0 };
+  return { label: labels.get(topId) || null, count: topCount };
+}
+
 export async function getGraduatesMap(req: Request, res: Response) {
   const { where, currentYear } = buildMapWhere(req);
   const { regions, findPeriphery, resolveRegionIdFromMunicipalityName } = await loadRegions();
@@ -174,6 +189,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
       graduationDurationCount: 0,
       programCounts: new Map<number, number>(),
       directionCounts: new Map<number, number>(),
+      recentDirectionCounts: new Map<number, number>(),
     });
   }
 
@@ -199,6 +215,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
       graduationDurationCount: 0,
       programCounts: new Map<number, number>(),
       directionCounts: new Map<number, number>(),
+      recentDirectionCounts: new Map<number, number>(),
     };
 
     cur.count += 1;
@@ -213,6 +230,9 @@ export async function getGraduatesMap(req: Request, res: Response) {
     const programDirectionId = Number(g.program_direction_id) || 0;
     if (programDirectionId > 0) {
       cur.directionCounts.set(programDirectionId, (cur.directionCounts.get(programDirectionId) || 0) + 1);
+      if ((Number(g.entry_year) || 0) >= 2022) {
+        cur.recentDirectionCounts.set(programDirectionId, (cur.recentDirectionCounts.get(programDirectionId) || 0) + 1);
+      }
     }
 
     const by = Number(String(g.birth_date ?? "").slice(0, 4));
@@ -238,21 +258,28 @@ export async function getGraduatesMap(req: Request, res: Response) {
   }
 
   const items = Array.from(groups.values())
-    .map((x) => ({
-      periphery_id: x.periphery_id,
-      periphery_name: x.periphery_name,
-      latitude: x.latitude,
-      longitude: x.longitude,
-      count: x.count,
-      male_pct: x.count ? Math.round((x.male / x.count) * 1000) / 10 : 0,
-      female_pct: x.count ? Math.round((x.female / x.count) * 1000) / 10 : 0,
-      avg_age: x.ageCount ? Math.round((x.ageSum / x.ageCount) * 10) / 10 : null,
-      avg_grade: x.gradeCount ? Math.round((x.gradeSum / x.gradeCount) * 100) / 100 : null,
-      avg_graduation_years: x.graduationDurationCount ? Math.round((x.graduationDurationSum / x.graduationDurationCount) * 10) / 10 : null,
-      dominant_gender: !x.count ? null : x.male > x.female ? "M" : x.female > x.male ? "F" : "balanced",
-      dominant_study_program: pickTopName(x.programCounts, studyProgramLabels),
-      dominant_direction: pickTopName(x.directionCounts, programDirectionLabels),
-    }))
+    .map((x) => {
+      const recentDirection = pickTopEntry(x.recentDirectionCounts, programDirectionLabels);
+      return {
+        periphery_id: x.periphery_id,
+        periphery_name: x.periphery_name,
+        latitude: x.latitude,
+        longitude: x.longitude,
+        count: x.count,
+        male_count: x.male,
+        female_count: x.female,
+        male_pct: x.count ? Math.round((x.male / x.count) * 1000) / 10 : 0,
+        female_pct: x.count ? Math.round((x.female / x.count) * 1000) / 10 : 0,
+        avg_age: x.ageCount ? Math.round((x.ageSum / x.ageCount) * 10) / 10 : null,
+        avg_grade: x.gradeCount ? Math.round((x.gradeSum / x.gradeCount) * 100) / 100 : null,
+        avg_graduation_years: x.graduationDurationCount ? Math.round((x.graduationDurationSum / x.graduationDurationCount) * 10) / 10 : null,
+        dominant_gender: !x.count ? null : x.male > x.female ? "M" : x.female > x.male ? "F" : "balanced",
+        dominant_study_program: pickTopName(x.programCounts, studyProgramLabels),
+        dominant_direction: pickTopName(x.directionCounts, programDirectionLabels),
+        dominant_recent_direction: recentDirection.label,
+        dominant_recent_direction_count: recentDirection.count,
+      };
+    })
     .sort((a, b) => b.count - a.count);
 
   const total = items.reduce((s, it) => s + (Number(it.count) || 0), 0);
@@ -316,6 +343,12 @@ export async function getRegionCities(req: Request, res: Response) {
 
   const { where, currentYear } = buildMapWhere(req);
   const { findPeriphery, findRegion, resolveRegionIdFromMunicipalityName } = await loadRegions();
+  const directions = await ProgramDirection.findAll({ attributes: ["id", "code", "name_el", "name_en"] });
+  const programDirectionLabels = new Map<number, string>();
+
+  for (const item of directions as any[]) {
+    programDirectionLabels.set(Number(item.id), String(item.name_el || item.name_en || item.code || ""));
+  }
 
   const grads = await Graduate.findAll({
     where,
@@ -352,6 +385,7 @@ export async function getRegionCities(req: Request, res: Response) {
       gradeCount: 0,
       graduationDurationSum: 0,
       graduationDurationCount: 0,
+      recentDirectionCounts: new Map<number, number>(),
     };
 
     cur.count += 1;
@@ -377,19 +411,32 @@ export async function getRegionCities(req: Request, res: Response) {
       cur.graduationDurationCount += 1;
     }
 
+    const programDirectionId = Number(g.program_direction_id) || 0;
+    if (programDirectionId > 0 && entryYear >= 2022) {
+      cur.recentDirectionCounts.set(programDirectionId, (cur.recentDirectionCounts.get(programDirectionId) || 0) + 1);
+    }
+
     groups.set(key, cur);
   }
 
   const items = Array.from(groups.values())
-    .map((x) => ({
-      city: x.city,
-      count: x.count,
-      male_pct: x.count ? Math.round((x.male / x.count) * 1000) / 10 : 0,
-      female_pct: x.count ? Math.round((x.female / x.count) * 1000) / 10 : 0,
-      avg_age: x.ageCount ? Math.round((x.ageSum / x.ageCount) * 10) / 10 : null,
-      avg_grade: x.gradeCount ? Math.round((x.gradeSum / x.gradeCount) * 100) / 100 : null,
-      avg_graduation_years: x.graduationDurationCount ? Math.round((x.graduationDurationSum / x.graduationDurationCount) * 10) / 10 : null,
-    }))
+    .map((x) => {
+      const recentDirection = pickTopEntry(x.recentDirectionCounts, programDirectionLabels);
+      return {
+        city: x.city,
+        count: x.count,
+        male_count: x.male,
+        female_count: x.female,
+        male_pct: x.count ? Math.round((x.male / x.count) * 1000) / 10 : 0,
+        female_pct: x.count ? Math.round((x.female / x.count) * 1000) / 10 : 0,
+        avg_age: x.ageCount ? Math.round((x.ageSum / x.ageCount) * 10) / 10 : null,
+        avg_grade: x.gradeCount ? Math.round((x.gradeSum / x.gradeCount) * 100) / 100 : null,
+        avg_graduation_years: x.graduationDurationCount ? Math.round((x.graduationDurationSum / x.graduationDurationCount) * 10) / 10 : null,
+        dominant_gender: !x.count ? null : x.male > x.female ? "M" : x.female > x.male ? "F" : "balanced",
+        dominant_recent_direction: recentDirection.label,
+        dominant_recent_direction_count: recentDirection.count,
+      };
+    })
     .sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
       return a.city.localeCompare(b.city, "el");
@@ -397,4 +444,117 @@ export async function getRegionCities(req: Request, res: Response) {
     .slice(0, 3);
 
   return res.json({ ok: true, items });
+}
+
+
+export async function getMapTrend(req: Request, res: Response) {
+  const peripheryId = toInt(req.query.periphery_id);
+  if (!peripheryId) return res.status(400).json({ ok: false, error: "periphery_id is required" });
+
+  const mode = String(req.query.mode || "count");
+  const selectedDirectionIds = String(req.query.direction_ids || "")
+    .split(",")
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  const { where, currentYear } = buildMapWhere(req);
+  const { findPeriphery, resolveRegionIdFromMunicipalityName } = await loadRegions();
+  const directions = await ProgramDirection.findAll({ attributes: ["id", "code", "name_el", "name_en"] });
+  const directionLabels = new Map<number, string>();
+
+  for (const item of directions as any[]) {
+    directionLabels.set(Number(item.id), String(item.name_el || item.name_en || item.code || ""));
+  }
+
+  const grads = await Graduate.findAll({
+    where,
+    attributes: ["origin_region_id", "origin_municipality", "gender", "graduation_date", "entry_year", "program_direction_id"],
+  });
+
+  const startYear = 2010;
+  const endYear = Math.max(currentYear, startYear);
+  const labels = Array.from({ length: endYear - startYear + 1 }, (_, index) => String(startYear + index));
+  const yearIndex = new Map(labels.map((label, index) => [Number(label), index]));
+
+  const matching = (grads as any[]).filter((graduate) => {
+    const originId = Number(graduate.origin_region_id) || resolveRegionIdFromMunicipalityName(graduate.origin_municipality);
+    const periphery = findPeriphery(originId);
+    return periphery && Number(periphery.id) === peripheryId;
+  });
+
+  if (mode === "dominant_gender") {
+    const male = labels.map(() => 0);
+    const female = labels.map(() => 0);
+    const total = labels.map(() => 0);
+
+    for (const graduate of matching) {
+      const year = Number(String(graduate.graduation_date || "").slice(0, 4));
+      const index = yearIndex.get(year);
+      if (index === undefined) continue;
+      total[index] += 1;
+      if (graduate.gender === "M") male[index] += 1;
+      if (graduate.gender === "F") female[index] += 1;
+    }
+
+    return res.json({
+      ok: true,
+      labels,
+      datasets: [
+        { key: "male", label: "Άνδρες", values: labels.map((_, index) => total[index] ? Math.round((male[index] / total[index]) * 1000) / 10 : 0) },
+        { key: "female", label: "Γυναίκες", values: labels.map((_, index) => total[index] ? Math.round((female[index] / total[index]) * 1000) / 10 : 0) },
+      ],
+    });
+  }
+
+  if (mode === "dominant_direction") {
+    const totals = new Map<number, number>();
+    const matrix = new Map<number, number[]>();
+
+    for (const graduate of matching) {
+      const entryYear = Number(graduate.entry_year) || 0;
+      if (entryYear < 2022) continue;
+      const directionId = Number(graduate.program_direction_id) || 0;
+      if (!directionId) continue;
+      const year = Number(String(graduate.graduation_date || "").slice(0, 4));
+      const index = yearIndex.get(year);
+      if (index === undefined) continue;
+      const row = matrix.get(directionId) || labels.map(() => 0);
+      row[index] += 1;
+      matrix.set(directionId, row);
+      totals.set(directionId, (totals.get(directionId) || 0) + 1);
+    }
+
+    const availableDirections = Array.from(totals.entries())
+      .sort((left, right) => right[1] - left[1])
+      .map(([id]) => ({ id, label: directionLabels.get(id) || String(id) }));
+
+    const includedDirectionIds = selectedDirectionIds.length
+      ? selectedDirectionIds.filter((id) => matrix.has(id))
+      : availableDirections.slice(0, 1).map((item) => item.id);
+
+    return res.json({
+      ok: true,
+      labels,
+      datasets: includedDirectionIds.map((id) => ({
+        key: String(id),
+        label: directionLabels.get(id) || String(id),
+        values: matrix.get(id) || labels.map(() => 0),
+      })),
+      availableDirections,
+    });
+  }
+
+  const counts = labels.map(() => 0);
+  for (const graduate of matching) {
+    const year = Number(String(graduate.graduation_date || "").slice(0, 4));
+    const index = yearIndex.get(year);
+    if (index === undefined) continue;
+    counts[index] += 1;
+  }
+
+  return res.json({
+    ok: true,
+    labels,
+    datasets: [{ key: "count", label: "Απόφοιτοι", values: counts }],
+  });
 }

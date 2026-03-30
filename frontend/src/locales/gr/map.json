@@ -76,6 +76,10 @@
   "femalePct": "% Γυναίκες",
   "avgGrade": "Μέσος βαθμός",
   "avgGraduationYears": "Μέσος χρόνος αποφοίτησης",
+  "maleCount": "Άνδρες",
+  "femaleCount": "Γυναίκες",
+  "dominantDirection": "Κυρίαρχη κατεύθυνση",
+  "directionCount": "Απόφοιτοι κατεύθυνσης",
   "cities": "Πόλεις",
   "metricLabel": "Προβολή χάρτη",
   "noResults": "Δεν βρέθηκαν απόφοιτοι με τα συγκεκριμένα φίλτρα.",
@@ -87,7 +91,7 @@
     "avgAge": "Μέση ηλικία",
     "avgGrade": "Μέσος βαθμός",
     "dominantGender": "Κυρίαρχο φύλο",
-    "dominantProgram": "Κυρίαρχο πρόγραμμα / κατεύθυνση"
+    "dominantDirection": "Κυρίαρχη κατεύθυνση"
   },
   "summary": {
     "title": "Σύνοψη χάρτη",
@@ -107,6 +111,8 @@
   "trend": {
     "title": "Μεταβολή αποφοίτων ανά έτος",
     "series": "Απόφοιτοι",
+    "genderTitle": "Μεταβολή φύλου ανά έτος",
+    "directionTitle": "Μεταβολή κατεύθυνσης ανά έτος",
     "empty": "Δεν υπάρχουν διαθέσιμα χρονολογικά στοιχεία για την τρέχουσα επιλογή.",
     "selectRegion": "Επίλεξε περιφέρεια"
   },
@@ -119,7 +125,7 @@
   },
   "legendLabels": {
     "dominantGender": "Κυρίαρχο φύλο",
-    "dominantProgram": "Κυρίαρχο πρόγραμμα / κατεύθυνση",
+    "dominantDirection": "Κυρίαρχη κατεύθυνση",
     "moreMen": "Περισσότεροι άνδρες",
     "moreWomen": "Περισσότερες γυναίκες",
     "balance": "Ισορροπία",
@@ -127,7 +133,7 @@
   },
   "tooltip": {
     "dominantGender": "Κυρίαρχο φύλο",
-    "dominantProgram": "Κυρίαρχο πρόγραμμα",
-    "dominantDirection": "Κυρίαρχη κατεύθυνση"
+    "dominantDirection": "Κυρίαρχη κατεύθυνση",
+    "directionCount": "Απόφοιτοι κατεύθυνσης"
   }
 }

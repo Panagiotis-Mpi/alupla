@@ -230,6 +230,8 @@ export type GraduatesMapItem = {
   latitude?: number | null;
   longitude?: number | null;
   count: number;
+  male_count?: number;
+  female_count?: number;
   male_pct: number;
   female_pct: number;
   avg_age: number | null;
@@ -238,6 +240,8 @@ export type GraduatesMapItem = {
   dominant_gender?: "M" | "F" | "balanced" | null;
   dominant_study_program?: string | null;
   dominant_direction?: string | null;
+  dominant_recent_direction?: string | null;
+  dominant_recent_direction_count?: number;
 };
 
 
@@ -254,11 +258,23 @@ export type MapCityPoint = {
 export type RegionCityMapItem = {
   city: string;
   count: number;
+  male_count?: number;
+  female_count?: number;
   male_pct: number;
   female_pct: number;
   avg_age: number | null;
   avg_grade: number | null;
   avg_graduation_years: number | null;
+  dominant_gender?: "M" | "F" | "balanced" | null;
+  dominant_recent_direction?: string | null;
+  dominant_recent_direction_count?: number;
+};
+
+export type MapTrendResponse = {
+  ok: true;
+  labels: string[];
+  datasets: Array<{ key: string; label: string; values: Array<number | null> }>;
+  availableDirections?: Array<{ id: number; label: string }>;
 };
 
 export type MapFilterOptions = {
@@ -526,6 +542,10 @@ export async function getMapFilterOptions(): Promise<{ ok: true } & MapFilterOpt
   return api(`/map/filter-options`, { method: "GET" });
 }
 
+
+export async function getMapTrend(params: Record<string, any> = {}): Promise<MapTrendResponse | any> {
+  return api(`/map/trend${toQueryString(params)}`);
+}
 export async function getGraduatesMap(params: Record<string, any> = {}): Promise<{ ok: true; items: GraduatesMapItem[]; total: number } | any> {
   return api(`/map/graduates${toQueryString(params)}`, { method: "GET" });
 }

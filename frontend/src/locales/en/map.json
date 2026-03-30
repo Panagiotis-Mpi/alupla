@@ -76,6 +76,10 @@
   "femalePct": "% Female",
   "avgGrade": "Average grade",
   "avgGraduationYears": "Average graduation time",
+  "maleCount": "Men",
+  "femaleCount": "Women",
+  "dominantDirection": "Dominant direction",
+  "directionCount": "Direction graduates",
   "cities": "Cities",
   "metricLabel": "Map view",
   "noResults": "No graduates were found for the current filters.",
@@ -87,7 +91,7 @@
     "avgAge": "Average age",
     "avgGrade": "Average grade",
     "dominantGender": "Dominant gender",
-    "dominantProgram": "Dominant program / direction"
+    "dominantDirection": "Dominant direction"
   },
   "summary": {
     "title": "Map summary",
@@ -107,6 +111,8 @@
   "trend": {
     "title": "Graduates by year",
     "series": "Graduates",
+    "genderTitle": "Gender trend by year",
+    "directionTitle": "Direction trend by year",
     "empty": "No timeline data is available for the current selection.",
     "selectRegion": "Select a region"
   },
@@ -119,7 +125,7 @@
   },
   "legendLabels": {
     "dominantGender": "Dominant gender",
-    "dominantProgram": "Dominant program / direction",
+    "dominantDirection": "Dominant direction",
     "moreMen": "More men",
     "moreWomen": "More women",
     "balance": "Balanced",
@@ -127,7 +133,7 @@
   },
   "tooltip": {
     "dominantGender": "Dominant gender",
-    "dominantProgram": "Dominant program",
-    "dominantDirection": "Dominant direction"
+    "dominantDirection": "Dominant direction",
+    "directionCount": "Direction graduates"
   }
 }
