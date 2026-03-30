@@ -44,7 +44,6 @@ ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Filler, 
 
 type MapMetric = "count" | "male_pct" | "female_pct" | "avg_age" | "avg_grade";
 
-const MAP_NAMESPACES = ["map", "graduates", "common"] as const;
 const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
 
 function compactNumber(value: number | string | null | undefined) {
@@ -64,8 +63,8 @@ function slugPart(value: string) {
     .replace(/^-+|-+$/g, "") || "map";
 }
 
-export default function Map() {
-  const { t, i18n } = useTranslation(MAP_NAMESPACES);
+export default function GraduatesMapPage() {
+  const { t, i18n } = useTranslation(["map", "graduates", "common"]);
 
   const mapRef = useRef<L.Map | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
