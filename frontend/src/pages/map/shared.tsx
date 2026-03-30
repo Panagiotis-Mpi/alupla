@@ -17,6 +17,9 @@ export function DetailStatsCard(props: {
   femalePctLabel: string;
   avgGradeLabel: string;
   avgGraduationYearsLabel: string;
+  basicsTitle?: string;
+  demographicsTitle?: string;
+  academicsTitle?: string;
 }) {
   return (
     <div style={{ padding: "14px", border: "1px solid var(--border)", borderRadius: 12, background: "rgba(248,250,252,.8)", display: "grid", gap: 12 }}>
@@ -25,30 +28,47 @@ export function DetailStatsCard(props: {
         <div className="muted">{props.totalText}</div>
       </div>
 
-      <div className="grid cols2">
-        <div>
-          <label className="label">{props.totalLabel}</label>
-          <div style={{ fontWeight: 700 }}>{props.total}</div>
+      <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>{props.basicsTitle || "Βασικά στοιχεία"}</div>
+          <div className="grid cols2">
+            <div>
+              <label className="label">{props.totalLabel}</label>
+              <div style={{ fontWeight: 700 }}>{props.total}</div>
+            </div>
+            <div>
+              <label className="label">{props.avgGradeLabel}</label>
+              <div style={{ fontWeight: 700 }}>{props.avgGrade ?? "-"}</div>
+            </div>
+          </div>
         </div>
-        <div>
-          <label className="label">{props.avgAgeLabel}</label>
-          <div style={{ fontWeight: 700 }}>{props.avgAge ?? "-"}</div>
+
+        <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>{props.demographicsTitle || "Δημογραφικά"}</div>
+          <div className="grid cols2">
+            <div>
+              <label className="label">{props.avgAgeLabel}</label>
+              <div style={{ fontWeight: 700 }}>{props.avgAge ?? "-"}</div>
+            </div>
+            <div>
+              <label className="label">{props.malePctLabel}</label>
+              <div style={{ fontWeight: 700 }}>{props.malePct ?? 0}%</div>
+            </div>
+            <div>
+              <label className="label">{props.femalePctLabel}</label>
+              <div style={{ fontWeight: 700 }}>{props.femalePct ?? 0}%</div>
+            </div>
+          </div>
         </div>
-        <div>
-          <label className="label">{props.malePctLabel}</label>
-          <div style={{ fontWeight: 700 }}>{props.malePct ?? 0}%</div>
-        </div>
-        <div>
-          <label className="label">{props.femalePctLabel}</label>
-          <div style={{ fontWeight: 700 }}>{props.femalePct ?? 0}%</div>
-        </div>
-        <div>
-          <label className="label">{props.avgGradeLabel}</label>
-          <div style={{ fontWeight: 700 }}>{props.avgGrade ?? "-"}</div>
-        </div>
-        <div>
-          <label className="label">{props.avgGraduationYearsLabel}</label>
-          <div style={{ fontWeight: 700 }}>{props.avgGraduationYears ?? "-"}</div>
+
+        <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>{props.academicsTitle || "Ακαδημαϊκά"}</div>
+          <div className="grid cols2">
+            <div>
+              <label className="label">{props.avgGraduationYearsLabel}</label>
+              <div style={{ fontWeight: 700 }}>{props.avgGraduationYears ?? "-"}</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

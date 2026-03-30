@@ -31,15 +31,23 @@
   },
   "export": {
     "png": "Export PNG",
-    "notReady": "Map is not ready for export"
+    "notReady": "Map is not ready for export",
+    "periphery": "Region",
+    "count": "Graduates",
+    "avgAge": "Average age",
+    "malePct": "% Male",
+    "femalePct": "% Female",
+    "avgGrade": "Average grade",
+    "countDetailed": "Region graduate count",
+    "avgAgeDetailed": "Region average graduate age",
+    "malePctDetailed": "Region male graduates percentage",
+    "femalePctDetailed": "Region female graduates percentage",
+    "avgGradeDetailed": "Region average graduation grade"
   },
   "map": {
     "total": "Total: {{total}}"
   },
-  "legend": {
-    "title": "Legend",
-    "hint": "Darker color = more graduates"
-  },
+  "legend": "Legend",
   "panel": {
     "title": "Details",
     "selectHint": "Click a region for details.",
@@ -51,5 +59,49 @@
   },
   "errors": {
     "failed": "Failed to load map data"
+  },
+  "title": "Graduates map",
+  "totalInline": "Total",
+  "detailsTitle": "Details",
+  "detailsHint": "Click a region for details.",
+  "legendCounts": "Current map metric",
+  "exportPng": "Export map as PNG",
+  "exportExcel": "Export Excel",
+  "exportCsv": "Export CSV",
+  "totalLabel": "Total",
+  "avgAge": "Average age",
+  "malePct": "% Male",
+  "femalePct": "% Female",
+  "avgGrade": "Average grade",
+  "avgGraduationYears": "Average graduation time",
+  "cities": "Cities",
+  "metricLabel": "Map view",
+  "noResults": "No graduates were found for the current filters.",
+  "noCities": "No city details are available for the current region.",
+  "metricOptions": {
+    "count": "Graduate count",
+    "malePct": "% Male",
+    "femalePct": "% Female",
+    "avgAge": "Average age",
+    "avgGrade": "Average grade"
+  },
+  "summary": {
+    "title": "Map summary",
+    "total": "Total graduates",
+    "metric": "Current map view",
+    "topPeriphery": "Region with the most graduates",
+    "topCity": "City with the most graduates",
+    "avgAge": "Average graduate age",
+    "fromCurrentFilters": "Calculated from the current filters"
+  },
+  "detailGroups": {
+    "basics": "Basics",
+    "demographics": "Demographics",
+    "academics": "Academic data"
+  },
+  "trend": {
+    "title": "Graduates by year",
+    "series": "Graduates",
+    "empty": "No timeline data is available for the current selection."
   }
 }
