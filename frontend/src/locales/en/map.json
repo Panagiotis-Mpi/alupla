@@ -137,4 +137,9 @@
     "dominantDirection": "Dominant direction",
     "directionCount": "Direction graduates"
   }
+,
+  "cityPopup": {
+    "noData": "No city data is available.",
+    "noDirections": "No direction data is available for this city."
+  }
 }

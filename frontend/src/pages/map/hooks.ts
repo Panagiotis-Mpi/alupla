@@ -148,7 +148,7 @@ export function useVisibleCities(cityPoints: MapCityPoint[], mapBounds: L.LatLng
           })
         : sorted;
 
-      next.push(...(insideBounds.length ? insideBounds : sorted).slice(0, 3));
+      next.push(...(insideBounds.length ? insideBounds : sorted));
     });
 
     return next;

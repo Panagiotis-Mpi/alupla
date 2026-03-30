@@ -581,3 +581,141 @@ export async function getMapTrend(req: Request, res: Response) {
     datasets: [{ key: "count", label: "Απόφοιτοι", values: counts }],
   });
 }
+
+
+export async function getMapCityDetail(req: Request, res: Response) {
+  const cityId = toInt(req.query.city_id);
+  if (!cityId) return res.status(400).json({ ok: false, error: "city_id is required" });
+
+  const mode = String(req.query.mode || "count");
+  const { where, currentYear } = buildMapWhere(req);
+  const { findRegion, resolveRegionIdFromMunicipalityName } = await loadRegions();
+  const city = findRegion(cityId);
+
+  if (!city || String((city as any).type) !== "CITY") {
+    return res.status(404).json({ ok: false, error: "city not found" });
+  }
+
+  const [studyPrograms, programDirections] = await Promise.all([
+    StudyProgram.findAll({ attributes: ["id", "code", "name_el", "name_en"] }),
+    ProgramDirection.findAll({ attributes: ["id", "study_program_id", "code", "name_el", "name_en"] }),
+  ]);
+
+  const studyProgramLabels = new Map<number, string>();
+  const directionLabels = new Map<number, string>();
+  const directionProgramIds = new Map<number, number>();
+
+  for (const item of studyPrograms as any[]) {
+    studyProgramLabels.set(Number(item.id), String(item.name_el || item.name_en || item.code || ""));
+  }
+
+  for (const item of programDirections as any[]) {
+    const id = Number(item.id);
+    directionLabels.set(id, String(item.name_el || item.name_en || item.code || ""));
+    directionProgramIds.set(id, Number(item.study_program_id) || 0);
+  }
+
+  const grads = await Graduate.findAll({
+    where,
+    attributes: ["origin_region_id", "origin_municipality", "gender", "graduation_date", "entry_year", "study_program_id", "program_direction_id"],
+  });
+
+  const matching = (grads as any[]).filter((graduate) => {
+    const resolvedCityId = Number(graduate.origin_region_id) || resolveRegionIdFromMunicipalityName(graduate.origin_municipality);
+    return resolvedCityId === cityId;
+  });
+
+  if (mode === "dominant_gender") {
+    const male = matching.filter((graduate) => graduate.gender === "M").length;
+    const female = matching.filter((graduate) => graduate.gender === "F").length;
+    const totalGender = male + female;
+
+    return res.json({
+      ok: true,
+      city_id: cityId,
+      city_name: String((city as any).name || ""),
+      mode,
+      total: matching.length,
+      male_count: male,
+      female_count: female,
+      male_pct: totalGender ? Math.round((male / totalGender) * 1000) / 10 : 0,
+      female_pct: totalGender ? Math.round((female / totalGender) * 1000) / 10 : 0,
+    });
+  }
+
+  if (mode === "dominant_direction") {
+    const byProgram = new Map<number, Map<number, number>>();
+
+    for (const graduate of matching) {
+      const entryYear = Number(graduate.entry_year) || 0;
+      if (entryYear < 2022) continue;
+      const directionId = Number(graduate.program_direction_id) || 0;
+      if (!directionId) continue;
+      const programId = directionProgramIds.get(directionId) || Number(graduate.study_program_id) || 0;
+      if (!programId) continue;
+
+      const programMap = byProgram.get(programId) || new Map<number, number>();
+      programMap.set(directionId, (programMap.get(directionId) || 0) + 1);
+      byProgram.set(programId, programMap);
+    }
+
+    const programs = Array.from(byProgram.entries())
+      .map(([programId, counts]) => {
+        const directions = Array.from(counts.entries())
+          .filter(([, count]) => count > 0)
+          .sort((left, right) => {
+            if (right[1] !== left[1]) return right[1] - left[1];
+            return (directionLabels.get(left[0]) || "").localeCompare(directionLabels.get(right[0]) || "", "el");
+          })
+          .map(([directionId, count]) => ({
+            id: directionId,
+            label: directionLabels.get(directionId) || String(directionId),
+            count,
+          }));
+
+        return {
+          program_id: programId,
+          program_label: studyProgramLabels.get(programId) || String(programId),
+          total: directions.reduce((sum, item) => sum + item.count, 0),
+          directions,
+        };
+      })
+      .filter((item) => item.directions.length > 0)
+      .sort((left, right) => {
+        if (right.total !== left.total) return right.total - left.total;
+        return left.program_label.localeCompare(right.program_label, "el");
+      });
+
+    return res.json({
+      ok: true,
+      city_id: cityId,
+      city_name: String((city as any).name || ""),
+      mode,
+      total: matching.length,
+      programs,
+    });
+  }
+
+  const startYear = 2010;
+  const endYear = Math.max(currentYear, startYear);
+  const labels = Array.from({ length: endYear - startYear + 1 }, (_, index) => String(startYear + index));
+  const yearIndex = new Map(labels.map((label, index) => [Number(label), index]));
+  const counts = labels.map(() => 0);
+
+  for (const graduate of matching) {
+    const year = Number(String(graduate.graduation_date || "").slice(0, 4));
+    const index = yearIndex.get(year);
+    if (index === undefined) continue;
+    counts[index] += 1;
+  }
+
+  return res.json({
+    ok: true,
+    city_id: cityId,
+    city_name: String((city as any).name || ""),
+    mode: "count",
+    total: matching.length,
+    labels,
+    datasets: [{ key: "count", label: "Απόφοιτοι", values: counts }],
+  });
+}

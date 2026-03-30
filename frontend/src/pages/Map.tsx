@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { GeoJSON, MapContainer, Marker } from "react-leaflet";
+import { GeoJSON, MapContainer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import * as XLSX from "xlsx";
-import { Line } from "react-chartjs-2";
+import { Line, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,12 +14,15 @@ import {
   Filler,
   Tooltip,
   Legend,
+  ArcElement,
 } from "chart.js";
 import {
+  getMapCityDetail,
   getMapTrend,
   getGraduatesMap,
   logPublicExport,
   type GraduatesMapItem,
+  type MapCityDetailResponse,
   type MapTrendResponse,
 } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
@@ -41,7 +44,7 @@ import {
 } from "./map/utils";
 import { MapViewportWatcher } from "./map/shared";
 
-ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip, Legend, ArcElement);
 
 type MapMetric = "count" | "dominant_gender" | "dominant_direction";
 
@@ -142,6 +145,9 @@ export default function GraduatesMapPage() {
   const [trendLoading, setTrendLoading] = useState(false);
   const [trend, setTrend] = useState<MapTrendResponse | null>(null);
   const [selectedDirectionIds, setSelectedDirectionIds] = useState<number[]>([]);
+  const [selectedCityPoint, setSelectedCityPoint] = useState<any | null>(null);
+  const [cityDetailLoading, setCityDetailLoading] = useState(false);
+  const [cityDetail, setCityDetail] = useState<MapCityDetailResponse | null>(null);
 
   const params = useMemo(() => createMapParams(EMPTY_FILTERS), []);
   const { loading, items, cityPoints, cityStatsLoading, selectedCityStats } = useMapData(params, selected?.periphery_id);
@@ -193,6 +199,29 @@ export default function GraduatesMapPage() {
     }
     setSelectedDirectionIds([]);
   }, [mapMetric, selected?.periphery_id]);
+
+  useEffect(() => {
+    if (!selectedCityPoint) {
+      setCityDetail(null);
+      return;
+    }
+    let active = true;
+    setCityDetailLoading(true);
+    getMapCityDetail({ city_id: selectedCityPoint.city_id, mode: mapMetric })
+      .then((response) => {
+        if (!active) return;
+        setCityDetail(response || null);
+      })
+      .catch(() => {
+        if (active) setCityDetail(null);
+      })
+      .finally(() => {
+        if (active) setCityDetailLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedCityPoint?.city_id, mapMetric]);
 
   const metricOptions = useMemo(() => ({
     count: {
@@ -493,6 +522,106 @@ export default function GraduatesMapPage() {
     ];
   }
 
+  function renderCityPopupContent() {
+    if (cityDetailLoading) return <div className="muted">{ct("loading", { defaultValue: "Φόρτωση..." })}</div>;
+    if (!cityDetail) return <div className="muted">{mt("cityPopup.noData", { defaultValue: "Δεν υπάρχουν διαθέσιμα στοιχεία για την πόλη." })}</div>;
+
+    if (mapMetric === "dominant_gender") {
+      const pieData = {
+        labels: [mt("maleCount", { defaultValue: "Άνδρες" }), mt("femaleCount", { defaultValue: "Γυναίκες" })],
+        datasets: [
+          {
+            data: [Number(cityDetail.male_count ?? 0), Number(cityDetail.female_count ?? 0)],
+            backgroundColor: [genderColors.male, genderColors.female],
+            borderColor: [genderColors.male, genderColors.female],
+            borderWidth: 1,
+          },
+        ],
+      };
+      const pieOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { position: "bottom" as const } },
+      };
+
+      return (
+        <div className="map-city-popup-card">
+          <div className="map-city-popup-title">{cityDetail.city_name}</div>
+          <div className="map-city-popup-sub">{mt("totalGraduatesLine", { total: cityDetail.total, defaultValue: "Σύνολο αποφοίτων: {{total}}" })}</div>
+          <div className="map-city-popup-chart">{Number(cityDetail.total) > 0 ? <Pie data={pieData as any} options={pieOptions as any} /> : <div className="muted">{mt("cityPopup.noData", { defaultValue: "Δεν υπάρχουν διαθέσιμα στοιχεία για την πόλη." })}</div>}</div>
+          <div className="map-city-popup-grid">
+            <div><div className="map-city-popup-label">{mt("maleCount", { defaultValue: "Άνδρες" })}</div><div className="map-city-popup-value">{detailValue(cityDetail.male_pct, "%")}</div></div>
+            <div><div className="map-city-popup-label">{mt("femaleCount", { defaultValue: "Γυναίκες" })}</div><div className="map-city-popup-value">{detailValue(cityDetail.female_pct, "%")}</div></div>
+          </div>
+        </div>
+      );
+    }
+
+    if (mapMetric === "dominant_direction") {
+      const programs = Array.isArray(cityDetail.programs) ? cityDetail.programs : [];
+      return (
+        <div className="map-city-popup-card">
+          <div className="map-city-popup-title">{cityDetail.city_name}</div>
+          <div className="map-city-popup-sub">{mt("totalGraduatesLine", { total: cityDetail.total, defaultValue: "Σύνολο αποφοίτων: {{total}}" })}</div>
+          <div className="map-city-popup-list">
+            {programs.length ? programs.map((program) => (
+              <div className="map-city-popup-program" key={program.program_id}>
+                <div className="map-city-popup-program-title">{program.program_label}</div>
+                <div className="map-city-popup-program-list">
+                  {program.directions.map((direction) => (
+                    <div className="map-city-popup-row" key={direction.id}>
+                      <span>{direction.label}</span>
+                      <strong>{direction.count}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )) : <div className="muted">{mt("cityPopup.noDirections", { defaultValue: "Δεν υπάρχουν διαθέσιμες κατευθύνσεις για την πόλη." })}</div>}
+          </div>
+        </div>
+      );
+    }
+
+    const popupLabels = cityDetail.labels?.length ? cityDetail.labels : Array.from({ length: 8 }, () => "");
+    const lineData = {
+      labels: popupLabels,
+      datasets: (cityDetail.datasets?.length ? cityDetail.datasets : [{ key: "count", label: mt("export.count", { defaultValue: "Απόφοιτοι" }), values: popupLabels.map(() => null) }]).map((dataset, index) => {
+        const color = directionColor(dataset.label || chartPalette[index % chartPalette.length]);
+        return {
+          label: dataset.label,
+          data: dataset.values,
+          borderColor: color,
+          backgroundColor: colorWithAlpha(color, 0.18),
+          pointBackgroundColor: color,
+          pointBorderColor: color,
+          fill: true,
+          borderWidth: 2,
+          pointRadius: cityDetail.datasets?.length ? 2 : 0,
+          tension: 0.28,
+        };
+      }),
+    };
+    const lineOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 as any }, grid: { color: "rgba(148,163,184,.18)" } },
+        x: { ticks: { autoSkip: true, maxRotation: 0, minRotation: 0 }, grid: { color: "rgba(148,163,184,.18)" } },
+      },
+    };
+
+    return (
+      <div className="map-city-popup-card">
+        <div className="map-city-popup-title">{cityDetail.city_name}</div>
+        <div className="map-city-popup-sub">{mt("totalGraduatesLine", { total: cityDetail.total, defaultValue: "Σύνολο αποφοίτων: {{total}}" })}</div>
+        <div className="map-city-popup-chart map-city-popup-line"><Line data={lineData as any} options={lineOptions as any} /></div>
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <style>{`
@@ -535,6 +664,17 @@ export default function GraduatesMapPage() {
         .map-info-group-title, .map-info-metric-value { color: #0f172a; font-weight: 800; }
         .map-city-cards-inline { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
         .map-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .map-city-popup-card { display: grid; gap: 10px; min-width: 280px; max-width: 340px; }
+        .map-city-popup-title { font-size: 16px; font-weight: 800; color: #0f172a; }
+        .map-city-popup-sub, .map-city-popup-label { color: #64748b; font-size: 12px; }
+        .map-city-popup-chart { height: 190px; min-height: 190px; }
+        .map-city-popup-line { height: 180px; min-height: 180px; }
+        .map-city-popup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .map-city-popup-value { font-size: 16px; font-weight: 800; color: #0f172a; }
+        .map-city-popup-list, .map-city-popup-program, .map-city-popup-program-list { display: grid; gap: 8px; }
+        .map-city-popup-program { padding-top: 2px; }
+        .map-city-popup-program-title { font-size: 13px; font-weight: 800; color: #0f172a; }
+        .map-city-popup-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #334155; font-size: 13px; }
         @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (max-width: 640px) { .map-metric-group, .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } }
       `}</style>
@@ -617,7 +757,19 @@ export default function GraduatesMapPage() {
                 const latitude = mapCityLatitude(city);
                 const longitude = mapCityLongitude(city);
                 if (latitude === null || longitude === null) return null;
-                return <Marker key={mapCityKey(city)} position={[latitude, longitude]} icon={cityLabelIcon(mapCityLabel(city))} interactive={false} />;
+                const activeCity = selectedCityPoint?.city_id === city.city_id;
+                return (
+                  <Marker
+                    key={mapCityKey(city)}
+                    position={[latitude, longitude]}
+                    icon={cityLabelIcon(mapCityLabel(city))}
+                    eventHandlers={{ click: () => setSelectedCityPoint(city), popupclose: () => setSelectedCityPoint(null) }}
+                  >
+                    <Popup minWidth={300} maxWidth={360} autoPan closeButton>
+                      {activeCity ? renderCityPopupContent() : <div style={{ minWidth: 280 }} />}
+                    </Popup>
+                  </Marker>
+                );
               })}
             </MapContainer>
           </div>

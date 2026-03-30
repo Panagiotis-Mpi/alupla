@@ -272,6 +272,27 @@ export type RegionCityMapItem = {
   recent_directions?: Array<{ id: number; label: string; count: number; pct: number }>;
 };
 
+
+export type MapCityDetailResponse = {
+  ok: true;
+  city_id: number;
+  city_name: string;
+  mode: "count" | "dominant_gender" | "dominant_direction";
+  total: number;
+  labels?: string[];
+  datasets?: Array<{ key: string; label: string; values: Array<number | null> }>;
+  male_count?: number;
+  female_count?: number;
+  male_pct?: number;
+  female_pct?: number;
+  programs?: Array<{
+    program_id: number;
+    program_label: string;
+    total: number;
+    directions: Array<{ id: number; label: string; count: number }>;
+  }>;
+};
+
 export type MapTrendResponse = {
   ok: true;
   labels: string[];
@@ -558,6 +579,10 @@ export async function getMapCities(params: Record<string, any> = {}): Promise<{ 
 
 export async function getRegionCitiesMap(params: Record<string, any> = {}): Promise<{ ok: true; items: RegionCityMapItem[] } | any> {
   return api(`/map/region-cities${toQueryString(params)}`, { method: "GET" });
+}
+
+export async function getMapCityDetail(params: Record<string, any> = {}): Promise<MapCityDetailResponse | any> {
+  return api(`/map/city-detail${toQueryString(params)}`, { method: "GET" });
 }
 
 export function activityLogsExportUrl(params: Record<string, any> = {}): string {
