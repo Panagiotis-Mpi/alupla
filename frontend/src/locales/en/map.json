@@ -12,6 +12,7 @@
     "exportCsv": "Export CSV (anonymous)",
     "graduationYear": "Graduation year",
     "studyProgram": "Study program",
+    "year": "Graduation year",
     "gradYear": "Graduation year",
     "gradYearPlaceholder": "e.g. 2026",
     "studyProgramId": "Study program",
@@ -61,6 +62,7 @@
     "failed": "Failed to load map data"
   },
   "title": "Graduates map",
+  "total": "Total: {{total}}",
   "totalInline": "Total",
   "detailsTitle": "Details",
   "detailsHint": "Click a region for details.",

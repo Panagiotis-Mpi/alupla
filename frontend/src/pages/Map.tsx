@@ -63,6 +63,65 @@ function slugPart(value: string) {
     .replace(/^-+|-+$/g, "") || "map";
 }
 
+const peripheryNameMap: Record<string, string> = {
+  "Ανατολική Μακεδονία και Θράκη": "Eastern Macedonia and Thrace",
+  "Κεντρική Μακεδονία": "Central Macedonia",
+  "Δυτική Μακεδονία": "Western Macedonia",
+  "Ήπειρος": "Epirus",
+  "Θεσσαλία": "Thessaly",
+  "Ιόνιοι Νήσοι": "Ionian Islands",
+  "Δυτική Ελλάδα": "Western Greece",
+  "Στερεά Ελλάδα": "Central Greece",
+  "Αττική": "Attica",
+  "Πελοπόννησος": "Peloponnese",
+  "Βόρειο Αιγαίο": "North Aegean",
+  "Νότιο Αιγαίο": "South Aegean",
+  "Κρήτη": "Crete",
+};
+
+const greekToLatinMap: Record<string, string> = {
+  α: "a", ά: "a", β: "v", γ: "g", δ: "d", ε: "e", έ: "e", ζ: "z", η: "i", ή: "i", θ: "th", ι: "i", ί: "i", ϊ: "i", ΐ: "i",
+  κ: "k", λ: "l", μ: "m", ν: "n", ξ: "x", ο: "o", ό: "o", π: "p", ρ: "r", σ: "s", ς: "s", τ: "t", υ: "y", ύ: "y", ϋ: "y", ΰ: "y",
+  φ: "f", χ: "ch", ψ: "ps", ω: "o", ώ: "o",
+};
+
+function transliterateGreek(value: string) {
+  const source = String(value || "").trim();
+  if (!source) return "";
+  const prepared = source
+    .replace(/ου/gi, "ou")
+    .replace(/αι/gi, "ai")
+    .replace(/ει/gi, "ei")
+    .replace(/οι/gi, "oi")
+    .replace(/γγ/gi, "ng")
+    .replace(/γκ/gi, "gk")
+    .replace(/γχ/gi, "nch")
+    .replace(/μπ/gi, "mp")
+    .replace(/ντ/gi, "nt")
+    .replace(/τζ/gi, "tz")
+    .replace(/τσ/gi, "ts");
+  const mapped = Array.from(prepared).map((char) => {
+    const lower = char.toLowerCase();
+    const replacement = greekToLatinMap[lower];
+    if (!replacement) return char;
+    return char === lower ? replacement : replacement.charAt(0).toUpperCase() + replacement.slice(1);
+  }).join("");
+  return mapped.replace(/\s+/g, " ").trim();
+}
+
+function displayPeripheryName(value: string, lang: "gr" | "en") {
+  const source = String(value || "").trim();
+  if (!source) return "";
+  if (lang === "gr") return source;
+  return peripheryNameMap[source] || transliterateGreek(source);
+}
+
+function displayCityName(value: string, lang: "gr" | "en") {
+  const source = String(value || "").trim();
+  if (!source) return "";
+  if (lang === "gr") return source;
+  return transliterateGreek(source);
+}
 
 function detailValue(value: number | string | null | undefined, suffix = "") {
   if (value === null || value === undefined || value === "") return "-";
@@ -161,7 +220,7 @@ export default function GraduatesMapPage() {
     const map = mapRef.current;
     const applyBounds = () => {
       map.invalidateSize();
-      map.fitBounds(geojsonBounds, { padding: [18, 22], maxZoom: 6.2 });
+      map.fitBounds(geojsonBounds, { padding: [6, 6], maxZoom: 6.75 });
       setMapZoom((prev) => Math.abs(prev - map.getZoom()) < 0.001 ? prev : map.getZoom());
       setMapBounds((prev) => (prev && prev.equals(map.getBounds()) ? prev : map.getBounds()));
     };
@@ -302,7 +361,7 @@ export default function GraduatesMapPage() {
   }
 
   function renderTooltipHtml(feature: any): string {
-    const label = featureDisplayName(feature);
+    const label = displayPeripheryName(featureDisplayName(feature), activeLang);
     const match = itemsRef.current.find((item) => normalizeKey(String(item.periphery_name || "")) === normalizeKey(featureGreekName(feature)));
     const metricValue = metricOptions[mapMetric].format(currentValueForFeature(feature));
     const metricLabel = metricOptions[mapMetric].valueLabel;
@@ -330,7 +389,7 @@ export default function GraduatesMapPage() {
   }, [items]);
 
   const currentFilterRows = useMemo(() => {
-    const regionName = regions.find((item) => String((item as any).id) === filters.origin_region_id)?.name || "";
+    const regionName = displayPeripheryName(regions.find((item) => String((item as any).id) === filters.origin_region_id)?.name || "", activeLang);
     const program = studyPrograms.find((item) => String((item as any).id) === filters.study_program_id);
     const direction = programDirections.find((item) => String((item as any).id) === filters.program_direction_id);
     return [
@@ -349,7 +408,7 @@ export default function GraduatesMapPage() {
       { key: "study_program_id", label: t("map.filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" }), value: program ? (activeLang === "en" ? program.name_en || program.name_el || program.code : program.name_el || program.name_en || program.code) : "" },
       { key: "program_direction_id", label: t("graduates.filters.direction", { defaultValue: "Κατεύθυνση" }), value: direction ? (activeLang === "en" ? (direction as any).name_en || (direction as any).name_el || (direction as any).code : (direction as any).name_el || (direction as any).name_en || (direction as any).code) : "" },
       { key: "origin_region_id", label: t("graduates.filters.region", { defaultValue: "Περιφέρεια" }), value: regionName },
-      { key: "origin_municipality_like", label: t("graduates.filters.city", { defaultValue: "Πόλη" }), value: filters.origin_municipality_like },
+      { key: "origin_municipality_like", label: t("graduates.filters.city", { defaultValue: "Πόλη" }), value: displayCityName(filters.origin_municipality_like, activeLang) },
       { key: "age_group", label: t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" }), value: filters.age_group },
     ].filter((row) => row.value);
   }, [filters, regions, studyPrograms, programDirections, activeLang, t]);
@@ -358,7 +417,7 @@ export default function GraduatesMapPage() {
 
   function exportRows() {
     return items.map((item: any) => ({
-      [t("map.export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(item.periphery_name ?? ""),
+      [t("map.export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(displayPeripheryName(item.periphery_name ?? "", activeLang)),
       [t("map.export.countDetailed", { defaultValue: "Πλήθος αποφοίτων περιφέρειας" })]: excelCellValue(item.count ?? 0),
       [t("map.export.avgAgeDetailed", { defaultValue: "Μέση ηλικία αποφοίτων περιφέρειας" })]: excelCellValue(item.avg_age ?? ""),
       [t("map.export.malePctDetailed", { defaultValue: "Ποσοστό ανδρών αποφοίτων περιφέρειας" })]: excelCellValue(item.male_pct ?? ""),
@@ -382,8 +441,8 @@ export default function GraduatesMapPage() {
     const summaryRows = [
       [t("map.summary.total", { defaultValue: "Σύνολο αποφοίτων" }), total],
       [t("map.summary.metric", { defaultValue: "Τρέχουσα απεικόνιση χάρτη" }), metricOptions[mapMetric].label],
-      [t("map.summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" }), topPeriphery ? `${topPeriphery.periphery_name} (${topPeriphery.count})` : "-"],
-      [t("map.summary.topCity", { defaultValue: "Πόλη με τους περισσότερους αποφοίτους" }), topCity ? `${topCity.city_name} (${topCity.count})` : "-"],
+      [t("map.summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" }), topPeriphery ? `${displayPeripheryName(topPeriphery.periphery_name, activeLang)} (${topPeriphery.count})` : "-"],
+      [t("map.summary.topCity", { defaultValue: "Πόλη με τους περισσότερους αποφοίτους" }), topCity ? `${displayCityName(topCity.city_name, activeLang)} (${topCity.count})` : "-"],
       [t("map.summary.avgAge", { defaultValue: "Μέση ηλικία αποφοίτων" }), weightedAvgAge ?? "-"],
     ];
 
@@ -477,9 +536,8 @@ export default function GraduatesMapPage() {
 
 
 
-  function renderInfoBox(title: string, total: number | string, peripheryName: string, metrics: { geography: Array<{ label: string; value: string }>; basics: Array<{ label: string; value: string }>; demographics: Array<{ label: string; value: string }>; academics: Array<{ label: string; value: string }>; }) {
+  function renderInfoBox(title: string, total: number | string, metrics: { basics: Array<{ label: string; value: string }>; demographics: Array<{ label: string; value: string }>; academics: Array<{ label: string; value: string }>; }) {
     const groups = [
-      { title: t("map.detailGroups.geography", { defaultValue: "Γεωγραφικά" }), rows: metrics.geography },
       { title: t("map.detailGroups.basics", { defaultValue: "Βασικά στοιχεία" }), rows: metrics.basics },
       { title: t("map.detailGroups.demographics", { defaultValue: "Δημογραφικά" }), rows: metrics.demographics },
       { title: t("map.detailGroups.academics", { defaultValue: "Ακαδημαϊκά" }), rows: metrics.academics },
@@ -762,7 +820,7 @@ export default function GraduatesMapPage() {
         }
         .map-info-groups {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
           gap: 16px;
         }
         .map-info-group {
@@ -973,12 +1031,12 @@ export default function GraduatesMapPage() {
         </div>
         <div className="card map-summary-card">
           <div className="map-summary-label">{t("map.summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" })}</div>
-          <div className="map-summary-value">{topPeriphery?.periphery_name || "-"}</div>
+          <div className="map-summary-value">{topPeriphery ? displayPeripheryName(topPeriphery.periphery_name, activeLang) : "-"}</div>
           <div className="map-summary-sub">{topPeriphery ? `${topPeriphery.count} ${t("map.export.count", { defaultValue: "Απόφοιτοι" })}` : "-"}</div>
         </div>
         <div className="card map-summary-card">
           <div className="map-summary-label">{t("map.summary.topCity", { defaultValue: "Πόλη με τους περισσότερους αποφοίτους" })}</div>
-          <div className="map-summary-value">{topCity?.city_name || "-"}</div>
+          <div className="map-summary-value">{topCity ? displayCityName(topCity.city_name, activeLang) : "-"}</div>
           <div className="map-summary-sub">{topCity ? `${topCity.count} ${t("map.export.count", { defaultValue: "Απόφοιτοι" })}` : "-"}</div>
         </div>
         <div className="card map-summary-card">
@@ -1001,13 +1059,13 @@ export default function GraduatesMapPage() {
           <div className="alupla-map map-canvas" ref={mapCanvasRef}>
             <MapContainer
               center={[38.6, 24.0]}
-              zoom={6.2 as any}
-              minZoom={5.7 as any}
+              zoom={6.75 as any}
+              minZoom={5.8 as any}
               zoomSnap={0.25}
               whenCreated={(map) => {
                 mapRef.current = map;
                 if (geojsonBounds) {
-                  map.fitBounds(geojsonBounds, { padding: [18, 22], maxZoom: 6.2 });
+                  map.fitBounds(geojsonBounds, { padding: [6, 6], maxZoom: 6.75 });
                 }
                 setMapZoom(map.getZoom());
                 setMapBounds(map.getBounds());
@@ -1060,7 +1118,7 @@ export default function GraduatesMapPage() {
                   <Marker
                     key={mapCityKey(city)}
                     position={[latitude, longitude]}
-                    icon={cityLabelIcon(mapCityLabel(city))}
+                    icon={cityLabelIcon(displayCityName(mapCityLabel(city), activeLang))}
                     interactive={false}
                   />
                 );
@@ -1201,7 +1259,7 @@ export default function GraduatesMapPage() {
             <div className="card map-trend-card" style={{ padding: 16 }}>
               <div style={{ display: "grid", gap: 4 }}>
                 <div style={{ fontWeight: 700 }}>{t("map.trend.title", { defaultValue: "Μεταβολή αποφοίτων ανά έτος" })}</div>
-                <div className="muted">{selected.periphery_name}</div>
+                <div className="muted">{displayPeripheryName(selected.periphery_name, activeLang)}</div>
               </div>
               {trendLoading ? (
                 <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
@@ -1220,18 +1278,14 @@ export default function GraduatesMapPage() {
           <div className="card map-combined-details-card">
             <div className="map-info-header">
               <div style={{ fontWeight: 800, fontSize: 18 }}>{t("map.infoTitle", { defaultValue: "Πληροφορίες" })}</div>
-              <div className="muted">{selected.periphery_name}</div>
+              <div className="muted">{displayPeripheryName(selected.periphery_name, activeLang)}</div>
             </div>
 
             <div className="map-combined-details-block">
               {renderInfoBox(
-                (selected as any).periphery_name,
+                displayPeripheryName((selected as any).periphery_name, activeLang),
                 (selected as any).count ?? 0,
-                selected.periphery_name,
                 {
-                  geography: [
-                    detailMetric(t("map.detailLabels.region", { defaultValue: "Περιφέρεια" }), String((selected as any).periphery_name || "-")),
-                  ],
                   basics: [
                     detailMetric(t("map.totalLabel", { defaultValue: "Σύνολο" }), detailValue((selected as any).count ?? 0)),
                   ],
@@ -1255,14 +1309,9 @@ export default function GraduatesMapPage() {
               ) : selectedCityStats.length > 0 ? (
                 <div className="map-city-cards-inline">
                   {selectedCityStats.map((city) => renderInfoBox(
-                    city.city,
+                    displayCityName(city.city, activeLang),
                     city.count ?? 0,
-                    selected.periphery_name,
                     {
-                      geography: [
-                        detailMetric(t("map.detailLabels.city", { defaultValue: "Πόλη" }), String(city.city || "-")),
-                        detailMetric(t("map.detailLabels.region", { defaultValue: "Περιφέρεια" }), String(selected.periphery_name || "-")),
-                      ],
                       basics: [
                         detailMetric(t("map.totalLabel", { defaultValue: "Σύνολο" }), detailValue(city.count ?? 0)),
                       ],
