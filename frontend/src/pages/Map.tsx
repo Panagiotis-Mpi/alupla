@@ -658,7 +658,7 @@ export default function GraduatesMapPage() {
           margin-top: 24px;
           padding: 20px 16px 16px;
           display: grid;
-          gap: 12px;
+          gap: 14px;
         }
         .map-top-menu-card .badge {
           min-height: 40px;
@@ -682,10 +682,6 @@ export default function GraduatesMapPage() {
         }
         .map-top-menu-title h2 {
           margin: 0;
-          font-size: 28px;
-          line-height: 1.15;
-          font-weight: 800;
-          letter-spacing: -.01em;
         }
         .map-top-menu-actions {
           display: contents;
@@ -693,26 +689,33 @@ export default function GraduatesMapPage() {
         .map-metric-group {
           display: grid;
           grid-template-columns: repeat(7, minmax(0, 1fr));
-          gap: 12px;
+          gap: 10px;
           width: 100%;
           margin: 0 auto;
           align-items: stretch;
         }
-        .map-metric-button {
-          border: 1px solid var(--border);
-          background: var(--surface);
-          border-radius: 18px;
-          min-height: 72px;
-          padding: 0 18px;
-          font: inherit;
-          font-size: 18px;
-          cursor: pointer;
-          color: var(--text);
+        .map-metric-button,
+        .map-action-button {
+          width: 100%;
+          min-width: 136px;
+          min-height: 40px;
+          height: 40px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          text-align: center;
+          box-sizing: border-box;
+          padding: 0 12px;
+          font-size: 14px;
           line-height: 1.2;
+          border-radius: 12px;
+          text-align: center;
+        }
+        .map-metric-button {
+          border: 1px solid var(--border);
+          background: var(--surface);
+          cursor: pointer;
+          color: var(--text);
+          font: inherit;
           transition: background .15s ease, border-color .15s ease, transform .05s ease, color .15s ease;
         }
         .map-metric-button:hover {
@@ -823,7 +826,6 @@ export default function GraduatesMapPage() {
           gap: 12px;
           align-items: start;
         }
-        .map-action-button { width: 100%; min-height: 72px; font-size: 18px; padding: 0 18px; border-radius: 18px; }
         .map-filter-chips {
           display: flex;
           flex-wrap: wrap;
@@ -930,7 +932,7 @@ export default function GraduatesMapPage() {
           .map-top-menu-card { padding: 16px; margin-top: 20px; }
           .map-city-cards-inline { grid-template-columns: 1fr; }
           .map-metric-button,
-          .map-action-button { min-height: 64px; font-size: 16px; border-radius: 16px; }
+          .map-action-button { min-width: 0; }
           .map-filters-modal {
             top: 76px;
             width: calc(100vw - 16px);
@@ -944,7 +946,7 @@ export default function GraduatesMapPage() {
       <div className="card map-top-menu-card">
         <div className="map-top-menu-header">
           <div className="map-top-menu-title">
-            <h2>{mt("title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
+            <h2 style={{ margin: 0 }}>{mt("title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
             <span className="badge" style={{ display: "inline-flex", alignItems: "center", lineHeight: 1, paddingTop: 0, paddingBottom: 0 }}>
               {loading ? ct("loading", { defaultValue: "Φόρτωση..." }) : `${total} ${mt("totalInline", { defaultValue: "σύνολο" })}`}
             </span>
@@ -1250,7 +1252,6 @@ export default function GraduatesMapPage() {
                 (selected as any).count ?? 0,
                 {
                   demographics: [
-                    detailMetric(mt("totalLabel", { defaultValue: "Σύνολο" }), detailValue((selected as any).count ?? 0)),
                     detailMetric(mt("avgAge", { defaultValue: "Μέση ηλικία" }), detailValue((selected as any).avg_age)),
                     detailMetric(mt("malePct", { defaultValue: "% Άνδρες" }), detailValue((selected as any).male_pct, "%")),
                     detailMetric(mt("femalePct", { defaultValue: "% Γυναίκες" }), detailValue((selected as any).female_pct, "%")),
