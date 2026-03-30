@@ -673,7 +673,16 @@ export default function GraduatesMapPage() {
                     key={mapCityKey(city)}
                     position={[latitude, longitude]}
                     icon={cityLabelIcon(mapCityLabel(city))}
-                    eventHandlers={{ click: () => setSelectedCityPoint(city), popupclose: () => setSelectedCityPoint(null) }}
+                    eventHandlers={{
+                      click: () => {
+                        setSelectedCityPoint(city);
+                        if (city.periphery_id) {
+                          const hit = items.find((item) => item.periphery_id === city.periphery_id);
+                          if (hit) setSelected(hit);
+                        }
+                      },
+                      popupclose: () => setSelectedCityPoint(null),
+                    }}
                   >
                     <Popup minWidth={300} maxWidth={360} autoPan closeButton>
                       {activeCity ? renderCityPopupContent() : <div style={{ minWidth: 280 }} />}
