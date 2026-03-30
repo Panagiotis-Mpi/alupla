@@ -621,7 +621,11 @@ export async function getMapCityDetail(req: Request, res: Response) {
   });
 
   const matching = (grads as any[]).filter((graduate) => {
-    const resolvedCityId = Number(graduate.origin_region_id) || resolveRegionIdFromMunicipalityName(graduate.origin_municipality);
+    const directRegionId = Number(graduate.origin_region_id) || 0;
+    const directRegion = directRegionId ? findRegion(directRegionId) : null;
+    const directCityId = directRegion && String((directRegion as any).type) === "CITY" ? directRegionId : 0;
+    const fallbackCityId = resolveRegionIdFromMunicipalityName(graduate.origin_municipality) || 0;
+    const resolvedCityId = directCityId || fallbackCityId;
     return resolvedCityId === cityId;
   });
 

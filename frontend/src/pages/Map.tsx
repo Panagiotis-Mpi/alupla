@@ -630,8 +630,8 @@ export default function GraduatesMapPage() {
         .alupla-map-card { padding: 0; overflow: hidden; position: relative; }
         .alupla-city-label-icon { background: transparent !important; border: 0 !important; }
         .alupla-city-point { position: relative; display: block; width: 100%; height: 100%; overflow: visible; pointer-events: auto; cursor: pointer; }
-        .alupla-city-label-text { position: absolute; left: 50%; bottom: 7px; transform: translateX(-50%); color: #1e293b; font-size: 12px; font-weight: 600; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); pointer-events: auto; }
-        .alupla-city-label-dot { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 5px; height: 5px; border-radius: 999px; background: #1e293b; box-shadow: 0 0 0 2px rgba(255,255,255,.92); pointer-events: auto; }
+        .alupla-city-label-text { position: absolute; left: 50%; bottom: 13px; transform: translateX(-50%); color: #1e293b; font-size: 12px; font-weight: 600; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); pointer-events: auto; }
+        .alupla-city-label-dot { position: absolute; left: 50%; bottom: 3px; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 999px; background: #1e293b; box-shadow: 0 0 0 2px rgba(255,255,255,.92); pointer-events: auto; }
         .leaflet-tooltip.alupla-region-tooltip { background: rgba(248,250,252,.98); color: #0f172a; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 10px 12px; }
         .leaflet-tooltip.alupla-region-tooltip:before { border-top-color: var(--border); }
         .alupla-region-tip-title { font-weight: 700; margin-bottom: 4px; }

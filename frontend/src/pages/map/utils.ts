@@ -4,14 +4,14 @@ import type { MapCityPoint } from "../../lib/api";
 export function cityLabelIcon(label: string) {
   const safeLabel = String(label || "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char] || char));
   const width = Math.max(64, Math.min(220, safeLabel.length * 8 + 24));
-  const height = 28;
+  const height = 38;
 
   return L.divIcon({
     className: "alupla-city-label-icon",
     html: `<span class="alupla-city-point"><span class="alupla-city-label-text">${safeLabel}</span><span class="alupla-city-label-dot"></span></span>`,
     iconSize: [width, height],
-    iconAnchor: [Math.round(width / 2), height - 6],
-    popupAnchor: [0, -height + 8],
+    iconAnchor: [Math.round(width / 2), height - 3],
+    popupAnchor: [0, -height + 10],
   });
 }
 
