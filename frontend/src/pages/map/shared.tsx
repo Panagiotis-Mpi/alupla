@@ -133,11 +133,11 @@ export function MapViewportWatcher({
   const lastZoomRef = useRef<number | null>(null);
   const lastBoundsRef = useRef<L.LatLngBounds | null>(null);
 
-  const emit = (map: L.Map) => {
+  const emitViewport = (map: L.Map) => {
     const nextZoom = map.getZoom();
     const nextBounds = map.getBounds();
 
-    if (lastZoomRef.current !== nextZoom) {
+    if (lastZoomRef.current === null || Math.abs(lastZoomRef.current - nextZoom) >= 0.001) {
       lastZoomRef.current = nextZoom;
       onZoomChange(nextZoom);
     }
@@ -150,18 +150,18 @@ export function MapViewportWatcher({
 
   const map = useMapEvents({
     zoomend() {
-      emit(map);
+      emitViewport(map);
     },
     moveend() {
-      emit(map);
+      emitViewport(map);
     },
     resize() {
-      emit(map);
+      emitViewport(map);
     },
   });
 
   useEffect(() => {
-    emit(map);
+    emitViewport(map);
   }, [map, onZoomChange, onBoundsChange]);
 
   return null;
