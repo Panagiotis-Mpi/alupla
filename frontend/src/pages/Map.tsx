@@ -76,6 +76,11 @@ function directionColor(label: string) {
   return directionPalette[hashLabel(label) % directionPalette.length];
 }
 
+function isPlaceholderLegendLabel(value: string) {
+  const normalized = normalizeKey(String(value || "")).replace(/[–—−]/g, "-").replace(/\s+/g, "");
+  return normalized === "1-1";
+}
+
 function colorWithAlpha(color: string, alpha: number) {
   if (color.startsWith("#") && (color.length === 7 || color.length === 4)) {
     const hex = color.length === 4
@@ -250,10 +255,12 @@ export default function GraduatesMapPage() {
         { label: mt("legendLabels.moreMen", { defaultValue: "Περισσότεροι άνδρες" }), color: genderColors.male },
         { label: mt("legendLabels.moreWomen", { defaultValue: "Περισσότερες γυναίκες" }), color: genderColors.female },
         { label: mt("legendLabels.balance", { defaultValue: "Ισορροπία" }), color: genderColors.balanced },
-      ];
+      ].filter((entry) => !isPlaceholderLegendLabel(entry.label));
     }
     if (mapMetric === "dominant_direction") {
-      return Array.from(new Set(items.map((item) => item.dominant_recent_direction).filter(Boolean) as string[])).map((label) => ({ label, color: directionColor(label) }));
+      return Array.from(new Set(items.map((item) => item.dominant_recent_direction).filter(Boolean) as string[]))
+        .filter((label) => !isPlaceholderLegendLabel(label))
+        .map((label) => ({ label, color: directionColor(label) }));
     }
     return [] as Array<{ label: string; color: string }>;
   }, [items, mapMetric, mt]);
@@ -378,7 +385,7 @@ export default function GraduatesMapPage() {
       return text;
     };
     const lines = [headers.map(esc).join(","), ...rows.map((row) => headers.map((header) => esc((row as any)[header])).join(","))];
-    exportCsvText(`${currentFilenameBase()}.csv`, lines.join("\n"));
+    exportCsvText(`${currentFilenameBase()}.csv`, lines.join("\r\n"));
     try { await logPublicExport("map_export", "csv"); } catch {}
   }
 

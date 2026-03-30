@@ -84,7 +84,7 @@ export function exportMapCsvFile(rows: Record<string, unknown>[], filterRows: Ar
     ...rows.map((row) => headers.map((header) => csvCell(row[header])).join(",")),
   ];
 
-  exportCsvText("alupla_map_export.csv", lines.join("\n"));
+  exportCsvText("alupla_map_export.csv", lines.join("\r\n"));
 }
 
 function joinRange(fromValue: string, toValue: string) {

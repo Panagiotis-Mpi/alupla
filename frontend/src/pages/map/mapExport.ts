@@ -18,11 +18,50 @@ function copyComputedStyles(source: Element, target: Element) {
   }
 }
 
+function replaceCanvasNodes(sourceRoot: HTMLElement, cloneRoot: HTMLElement) {
+  const sourceCanvases = Array.from(sourceRoot.querySelectorAll("canvas"));
+  const cloneCanvases = Array.from(cloneRoot.querySelectorAll("canvas"));
+
+  sourceCanvases.forEach((sourceCanvas, index) => {
+    const cloneCanvas = cloneCanvases[index];
+    if (!cloneCanvas) return;
+    const image = document.createElement("img");
+    try {
+      image.src = sourceCanvas.toDataURL("image/png");
+    } catch {
+      return;
+    }
+    const width = sourceCanvas.width || sourceCanvas.clientWidth || cloneCanvas.clientWidth;
+    const height = sourceCanvas.height || sourceCanvas.clientHeight || cloneCanvas.clientHeight;
+    image.width = width;
+    image.height = height;
+    image.style.width = `${cloneCanvas.clientWidth || sourceCanvas.clientWidth || width}px`;
+    image.style.height = `${cloneCanvas.clientHeight || sourceCanvas.clientHeight || height}px`;
+    image.style.display = window.getComputedStyle(sourceCanvas).display;
+    image.style.maxWidth = "100%";
+    image.style.objectFit = "contain";
+    cloneCanvas.replaceWith(image);
+  });
+}
+
+function utf16Blob(text: string) {
+  const output = new Uint8Array(2 + text.length * 2);
+  output[0] = 0xff;
+  output[1] = 0xfe;
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    output[2 + i * 2] = code & 0xff;
+    output[3 + i * 2] = code >> 8;
+  }
+  return new Blob([output], { type: "text/csv;charset=utf-16le" });
+}
+
 export async function exportElementAsPng(element: HTMLElement, filename: string) {
   const rect = element.getBoundingClientRect();
   const clone = element.cloneNode(true) as HTMLElement;
   clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
   copyComputedStyles(element, clone);
+  replaceCanvasNodes(element, clone);
   clone.style.margin = "0";
   clone.style.width = `${Math.ceil(rect.width)}px`;
   clone.style.height = `${Math.ceil(rect.height)}px`;
@@ -74,5 +113,5 @@ export function exportWorkbook(filename: string, workbook: XLSX.WorkBook) {
 }
 
 export function exportCsvText(filename: string, text: string) {
-  downloadBlob(new Blob([text], { type: "text/csv;charset=utf-8" }), filename);
+  downloadBlob(utf16Blob(text), filename);
 }
