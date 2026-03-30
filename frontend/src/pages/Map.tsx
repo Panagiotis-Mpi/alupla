@@ -216,13 +216,8 @@ export default function GraduatesMapPage() {
   const valuesRef = useRef<Map<string, number>>(valuesByGreekName);
   const itemsRef = useRef<GraduatesMapItem[]>(items);
 
-  useEffect(() => {
-    valuesRef.current = valuesByGreekName;
-  }, [valuesByGreekName]);
-
-  useEffect(() => {
-    itemsRef.current = items;
-  }, [items]);
+  valuesRef.current = valuesByGreekName;
+  itemsRef.current = items;
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
