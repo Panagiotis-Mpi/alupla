@@ -82,8 +82,8 @@
   "noCities": "No city details are available for the current region.",
   "metricOptions": {
     "count": "Graduate count",
-    "malePct": "% Male",
-    "femalePct": "% Female",
+    "malePct": "Male percentage",
+    "femalePct": "Female percentage",
     "avgAge": "Average age",
     "avgGrade": "Average grade"
   },
@@ -105,7 +105,8 @@
   "trend": {
     "title": "Graduates by year",
     "series": "Graduates",
-    "empty": "No timeline data is available for the current selection."
+    "empty": "No timeline data is available for the current selection.",
+    "selectRegion": "Select a region"
   },
   "infoTitle": "Information",
   "citiesTitle": "Cities",

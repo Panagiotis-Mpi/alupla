@@ -142,16 +142,24 @@ export default function GraduatesMapPage() {
       format: (value: number) => String(Math.round(value)),
     },
     male_pct: {
-      label: mt("metricOptions.malePct", { defaultValue: "% Άνδρες" }),
+      label: mt("metricOptions.malePct", { defaultValue: "Ποσοστό ανδρών" }),
       valueLabel: mt("export.malePct", { defaultValue: "% Άνδρες" }),
-      value: (item: GraduatesMapItem) => Number(item.male_pct ?? 0) || 0,
-      format: (value: number) => `${compactNumber(value)}%`,
+      value: (item: GraduatesMapItem) => {
+        const totalCount = Number(item.count ?? 0) || 0;
+        const percentage = Number(item.male_pct ?? 0) || 0;
+        return totalCount > 0 ? (totalCount * percentage) / 100 : 0;
+      },
+      format: (value: number) => String(Math.round(value)),
     },
     female_pct: {
-      label: mt("metricOptions.femalePct", { defaultValue: "% Γυναίκες" }),
+      label: mt("metricOptions.femalePct", { defaultValue: "Ποσοστό γυναικών" }),
       valueLabel: mt("export.femalePct", { defaultValue: "% Γυναίκες" }),
-      value: (item: GraduatesMapItem) => Number(item.female_pct ?? 0) || 0,
-      format: (value: number) => `${compactNumber(value)}%`,
+      value: (item: GraduatesMapItem) => {
+        const totalCount = Number(item.count ?? 0) || 0;
+        const percentage = Number(item.female_pct ?? 0) || 0;
+        return totalCount > 0 ? (totalCount * percentage) / 100 : 0;
+      },
+      format: (value: number) => String(Math.round(value)),
     },
     avg_age: {
       label: mt("metricOptions.avgAge", { defaultValue: "Μέση ηλικία" }),
@@ -319,16 +327,16 @@ export default function GraduatesMapPage() {
     const totalLabel = mt("total", { total: totalCount, defaultValue: "Σύνολο: {{total}}" });
 
     if (mapMetric === "male_pct" || mapMetric === "female_pct") {
+      const percentageValue = mapMetric === "male_pct"
+        ? Number(match?.male_pct ?? 0) || 0
+        : Number(match?.female_pct ?? 0) || 0;
       const ratioLabel = mapMetric === "male_pct"
         ? mt("malePct", { defaultValue: "% Άνδρες" })
         : mt("femalePct", { defaultValue: "% Γυναίκες" });
-      const estimatedCount = totalCount > 0 ? Math.round((totalCount * metricValue) / 100) : 0;
-      const countLabel = mt("tooltip.estimatedCount", {
-        count: estimatedCount,
-        total: totalCount,
-        defaultValue: "≈ {{count}} από {{total}} αποφοίτους",
-      });
-      return `<div class="alupla-region-tip-title">${label}</div><div class="alupla-region-tip-sub">${ratioLabel}: ${metricOptions[mapMetric].format(metricValue)}</div><div class="alupla-region-tip-sub">${countLabel}</div><div class="alupla-region-tip-sub">${totalLabel}</div>`;
+      const countLabel = mapMetric === "male_pct"
+        ? mt("tooltip.maleCount", { count: Math.round(metricValue), defaultValue: "Άνδρες: {{count}}" })
+        : mt("tooltip.femaleCount", { count: Math.round(metricValue), defaultValue: "Γυναίκες: {{count}}" });
+      return `<div class="alupla-region-tip-title">${label}</div><div class="alupla-region-tip-sub">${countLabel}</div><div class="alupla-region-tip-sub">${ratioLabel}: ${compactNumber(percentageValue)}%</div><div class="alupla-region-tip-sub">${totalLabel}</div>`;
     }
 
     return `<div class="alupla-region-tip-title">${label}</div><div class="alupla-region-tip-sub">${metricLabel}: ${metricOptions[mapMetric].format(metricValue)}</div><div class="alupla-region-tip-sub">${totalLabel}</div>`;
@@ -485,24 +493,28 @@ export default function GraduatesMapPage() {
     return `${i18n.language}:${mapMetric}:${maxMetricValue}:${metricSignature}`;
   }, [i18n.language, items, mapMetric, maxMetricValue, metricOptions]);
 
-  const trendNeedsScroll = selectedTrend.length > 8;
-  const trendChartWidth = Math.max(760, selectedTrend.length * 94);
+  const trendSkeletonLabels = useMemo(() => Array.from({ length: 8 }, () => ""), []);
 
-  const trendData = useMemo(() => ({
-    labels: selectedTrend.map((item) => item.year),
-    datasets: [
-      {
-        label: mt("trend.series", { defaultValue: "Απόφοιτοι" }),
-        data: selectedTrend.map((item) => item.count),
-        borderColor: "#2563eb",
-        backgroundColor: "rgba(37,99,235,.18)",
-        tension: 0.28,
-        fill: true,
-        pointRadius: 4,
-        pointHoverRadius: 5,
-      },
-    ],
-  }), [selectedTrend, t]);
+  const trendData = useMemo(() => {
+    const hasTrend = selectedTrend.length > 0;
+    return {
+      labels: hasTrend ? selectedTrend.map((item) => item.year) : trendSkeletonLabels,
+      datasets: [
+        {
+          label: mt("trend.series", { defaultValue: "Απόφοιτοι" }),
+          data: hasTrend ? selectedTrend.map((item) => item.count) : trendSkeletonLabels.map(() => null),
+          borderColor: "#2563eb",
+          backgroundColor: hasTrend ? "rgba(37,99,235,.18)" : "rgba(37,99,235,.04)",
+          tension: 0.28,
+          fill: true,
+          pointRadius: hasTrend ? 4 : 0,
+          pointHoverRadius: hasTrend ? 5 : 0,
+          borderWidth: hasTrend ? 3 : 1.5,
+          spanGaps: false,
+        },
+      ],
+    };
+  }, [selectedTrend, trendSkeletonLabels, t]);
 
 
 
@@ -541,21 +553,24 @@ export default function GraduatesMapPage() {
   const trendOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    animation: false,
     plugins: {
       legend: { display: false },
+      tooltip: { enabled: selectedTrend.length > 0 },
     },
     scales: {
       y: {
         beginAtZero: true,
-        ticks: { precision: 0 as any },
+        suggestedMax: selectedTrend.length ? undefined : 10,
+        ticks: selectedTrend.length ? { precision: 0 as any } : { display: false },
         grid: { color: "rgba(148,163,184,.18)" },
       },
       x: {
-        grid: { display: false },
-        ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 },
+        grid: { color: "rgba(148,163,184,.18)" },
+        ticks: selectedTrend.length ? { autoSkip: false, maxRotation: 0, minRotation: 0 } : { display: false },
       },
     },
-  }), []);
+  }), [selectedTrend]);
 
   return (
     <div className="container">
@@ -730,19 +745,8 @@ export default function GraduatesMapPage() {
           text-align: center;
         }
         .map-metric-button {
-          border: 1px solid var(--border);
-          background: var(--surface);
-          cursor: pointer;
-          color: var(--text);
           font: inherit;
-          transition: background .15s ease, border-color .15s ease, transform .05s ease, color .15s ease;
-        }
-        .map-metric-button:hover {
-          background: #f8fafc;
-          border-color: #cbd5e1;
-        }
-        .map-metric-button:active {
-          transform: translateY(1px);
+          font-weight: 400;
         }
         .map-metric-button.active {
           background: var(--primary);
@@ -916,8 +920,15 @@ export default function GraduatesMapPage() {
           align-items: start;
         }
         .map-trend-card { display: grid; gap: 12px; }
-        .map-trend-canvas { height: 260px; }
-        .map-trend-scroll { overflow-x: auto; padding-bottom: 6px; }
+        .map-trend-canvas {
+          height: 260px;
+          min-height: 260px;
+          width: 100%;
+        }
+        .map-trend-scroll {
+          overflow: hidden;
+          min-height: 260px;
+        }
         .map-main-card .map-canvas { height: clamp(760px, 80vh, 940px); min-height: 760px; }
         @media (max-width: 1100px) {
           .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -977,35 +988,35 @@ export default function GraduatesMapPage() {
             <button
               key={option}
               type="button"
-              className={`map-metric-button ${mapMetric === option ? "active" : ""}`}
+              className={`btn map-metric-button ${mapMetric === option ? "active primary" : ""}`}
               onClick={() => setMapMetric(option)}
             >
               {metricOptions[option].label}
             </button>
           ))}
 
+          <button className="btn map-action-button" type="button" onClick={() => setShowFilters((prev) => !prev)}>
+            {showFilters ? ct("hide", { defaultValue: "Απόκρυψη" }) : gt("filters.toggle", { defaultValue: "Φίλτρα" })}
+          </button>
+
           <div ref={exportMenuRef} style={{ position: "relative" }}>
-            <button className="btn map-action-button" type="button" onClick={() => setShowExportMenu((prev) => !prev)}>
+            <button className="btn map-action-button" type="button" style={{ width: "100%", justifyContent: "center" }} onClick={() => setShowExportMenu((prev) => !prev)}>
               {ct("export", { defaultValue: "Εξαγωγή" })}
             </button>
             {showExportMenu ? (
               <div className="map-export-menu">
-                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>
-                  {mt("exportPng", { defaultValue: "Εξαγωγή PNG" })}
-                </button>
                 <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>
-                  {mt("exportExcel", { defaultValue: "Εξαγωγή Excel" })}
+                  Excel
                 </button>
                 <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>
-                  {mt("exportCsv", { defaultValue: "Εξαγωγή CSV" })}
+                  CSV
+                </button>
+                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>
+                  PNG
                 </button>
               </div>
             ) : null}
           </div>
-
-          <button className="btn map-action-button" type="button" onClick={() => setShowFilters((prev) => !prev)}>
-            {showFilters ? ct("hide", { defaultValue: "Απόκρυψη" }) : gt("filters.toggle", { defaultValue: "Φίλτρα" })}
-          </button>
         </div>
       </div>
 
@@ -1244,19 +1255,18 @@ export default function GraduatesMapPage() {
             <div className="card map-trend-card" style={{ padding: 16 }}>
               <div style={{ display: "grid", gap: 4 }}>
                 <div style={{ fontWeight: 700 }}>{mt("trend.title", { defaultValue: "Μεταβολή αποφοίτων ανά έτος" })}</div>
-                <div className="muted">{displayPeripheryName(selected.periphery_name)}</div>
+                <div className="muted">{selected ? displayPeripheryName(selected.periphery_name) : mt("trend.selectRegion", { defaultValue: "Επίλεξε περιφέρεια" })}</div>
+              </div>
+              <div className="map-trend-scroll">
+                <div className="map-trend-canvas">
+                  <Line data={trendData} options={trendOptions as any} />
+                </div>
               </div>
               {trendLoading ? (
                 <div className="muted">{ct("loading", { defaultValue: "Φόρτωση..." })}</div>
-              ) : selectedTrend.length ? (
-                <div className="map-trend-scroll">
-                  <div className="map-trend-canvas" style={{ width: trendNeedsScroll ? `${trendChartWidth}px` : "100%" }}>
-                    <Line data={trendData} options={trendOptions as any} />
-                  </div>
-                </div>
-              ) : (
+              ) : selected && !selectedTrend.length ? (
                 <div className="muted">{mt("trend.empty", { defaultValue: "Δεν υπάρχουν διαθέσιμα χρονολογικά στοιχεία για την τρέχουσα επιλογή." })}</div>
-              )}
+              ) : null}
             </div>
           </div>
 
