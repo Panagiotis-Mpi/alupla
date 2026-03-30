@@ -63,6 +63,13 @@ function slugPart(value: string) {
     .replace(/^-+|-+$/g, "") || "map";
 }
 
+function displayPeripheryName(value: string) {
+  return String(value || "").trim();
+}
+
+function displayCityName(value: string) {
+  return String(value || "").trim();
+}
 
 function detailValue(value: number | string | null | undefined, suffix = "") {
   if (value === null || value === undefined || value === "") return "-";
@@ -78,6 +85,10 @@ function detailMetric(label: string, value: string) {
 
 export default function GraduatesMapPage() {
   const { t, i18n } = useTranslation(["map", "graduates", "common"]);
+
+  const mt = useCallback((key: string, options?: Record<string, unknown>) => t(key, { ns: "map", ...(options || {}) }), [t]);
+  const ct = useCallback((key: string, options?: Record<string, unknown>) => t(`common.${key}`, { ns: "common", ...(options || {}) }), [t]);
+  const gt = useCallback((key: string, options?: Record<string, unknown>) => t(`graduates.${key}`, { ns: "common", ...(options || {}) }), [t]);
 
   const mapRef = useRef<L.Map | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
@@ -118,9 +129,6 @@ export default function GraduatesMapPage() {
   }, [geojson]);
   const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
 
-  const displayPeripheryName = useCallback((name: string) => name || "", []);
-  const displayCityName = useCallback((name: string) => name || "", []);
-
   const availableDirections = useMemo(() => {
     if (!filters.study_program_id) return programDirections;
     return programDirections.filter((item) => Number((item as any).study_program_id) === Number(filters.study_program_id));
@@ -128,32 +136,32 @@ export default function GraduatesMapPage() {
 
   const metricOptions = useMemo(() => ({
     count: {
-      label: t("map.metricOptions.count", { defaultValue: "Πλήθος αποφοίτων" }),
-      valueLabel: t("map.export.count", { defaultValue: "Απόφοιτοι" }),
+      label: mt("metricOptions.count", { defaultValue: "Πλήθος αποφοίτων" }),
+      valueLabel: mt("export.count", { defaultValue: "Απόφοιτοι" }),
       value: (item: GraduatesMapItem) => Number(item.count ?? 0) || 0,
       format: (value: number) => String(Math.round(value)),
     },
     male_pct: {
-      label: t("map.metricOptions.malePct", { defaultValue: "% Άνδρες" }),
-      valueLabel: t("map.export.malePct", { defaultValue: "% Άνδρες" }),
+      label: mt("metricOptions.malePct", { defaultValue: "% Άνδρες" }),
+      valueLabel: mt("export.malePct", { defaultValue: "% Άνδρες" }),
       value: (item: GraduatesMapItem) => Number(item.male_pct ?? 0) || 0,
       format: (value: number) => `${compactNumber(value)}%`,
     },
     female_pct: {
-      label: t("map.metricOptions.femalePct", { defaultValue: "% Γυναίκες" }),
-      valueLabel: t("map.export.femalePct", { defaultValue: "% Γυναίκες" }),
+      label: mt("metricOptions.femalePct", { defaultValue: "% Γυναίκες" }),
+      valueLabel: mt("export.femalePct", { defaultValue: "% Γυναίκες" }),
       value: (item: GraduatesMapItem) => Number(item.female_pct ?? 0) || 0,
       format: (value: number) => `${compactNumber(value)}%`,
     },
     avg_age: {
-      label: t("map.metricOptions.avgAge", { defaultValue: "Μέση ηλικία" }),
-      valueLabel: t("map.export.avgAge", { defaultValue: "Μέση ηλικία" }),
+      label: mt("metricOptions.avgAge", { defaultValue: "Μέση ηλικία" }),
+      valueLabel: mt("export.avgAge", { defaultValue: "Μέση ηλικία" }),
       value: (item: GraduatesMapItem) => Number(item.avg_age ?? 0) || 0,
       format: (value: number) => compactNumber(value),
     },
     avg_grade: {
-      label: t("map.metricOptions.avgGrade", { defaultValue: "Μέσος βαθμός" }),
-      valueLabel: t("map.export.avgGrade", { defaultValue: "Μέσος βαθμός" }),
+      label: mt("metricOptions.avgGrade", { defaultValue: "Μέσος βαθμός" }),
+      valueLabel: mt("export.avgGrade", { defaultValue: "Μέσος βαθμός" }),
       value: (item: GraduatesMapItem) => Number(item.avg_grade ?? 0) || 0,
       format: (value: number) => compactNumber(value),
     },
@@ -164,7 +172,7 @@ export default function GraduatesMapPage() {
     const map = mapRef.current;
     const applyBounds = () => {
       map.invalidateSize();
-      map.fitBounds(geojsonBounds, { padding: [6, 8], maxZoom: 6.7 });
+      map.fitBounds(geojsonBounds, { padding: [6, 6], maxZoom: 6.75 });
       setMapZoom((prev) => Math.abs(prev - map.getZoom()) < 0.001 ? prev : map.getZoom());
       setMapBounds((prev) => (prev && prev.equals(map.getBounds()) ? prev : map.getBounds()));
     };
@@ -302,35 +310,28 @@ export default function GraduatesMapPage() {
     return valuesRef.current.get(normalizeKey(featureGreekName(feature))) ?? 0;
   }
 
-  function currentItemForFeature(feature: any) {
-    const key = normalizeKey(featureGreekName(feature));
-    return itemsRef.current.find((item) => normalizeKey(String(item.periphery_name || "")) === key) || null;
-  }
-
-  function currentMetricLegendLabel() {
-    if (mapMetric === "male_pct") return t("map.metricOptions.malePct", { defaultValue: "% Άνδρες" });
-    if (mapMetric === "female_pct") return t("map.metricOptions.femalePct", { defaultValue: "% Γυναίκες" });
-    return metricOptions[mapMetric].label;
-  }
-
   function renderTooltipHtml(feature: any): string {
-    const label = featureDisplayName(feature);
-    const match = currentItemForFeature(feature);
-    const total = Number(match?.count ?? 0) || 0;
-    const metricValue = metricOptions[mapMetric].format(currentValueForFeature(feature));
-    const metricLabel = currentMetricLegendLabel();
-    const totalLabel = t("map.total", { total, defaultValue: "Σύνολο: {{total}}" });
+    const label = displayPeripheryName(featureDisplayName(feature));
+    const match = itemsRef.current.find((item) => normalizeKey(String(item.periphery_name || "")) === normalizeKey(featureGreekName(feature)));
+    const totalCount = Number(match?.count ?? 0) || 0;
+    const metricValue = currentValueForFeature(feature);
+    const metricLabel = metricOptions[mapMetric].valueLabel;
+    const totalLabel = mt("total", { total: totalCount, defaultValue: "Σύνολο: {{total}}" });
 
     if (mapMetric === "male_pct" || mapMetric === "female_pct") {
-      const percent = Number(mapMetric === "male_pct" ? match?.male_pct : match?.female_pct) || 0;
-      const count = Math.round((total * percent) / 100);
-      const countLabel = mapMetric === "male_pct"
-        ? t("map.tooltip.maleCount", { count, defaultValue: "Άνδρες: {{count}}" })
-        : t("map.tooltip.femaleCount", { count, defaultValue: "Γυναίκες: {{count}}" });
-      return `<div class="alupla-region-tip-title">${label}</div><div class="alupla-region-tip-sub">${metricLabel}: ${metricValue}</div><div class="alupla-region-tip-sub">${countLabel}</div><div class="alupla-region-tip-sub">${totalLabel}</div>`;
+      const ratioLabel = mapMetric === "male_pct"
+        ? mt("malePct", { defaultValue: "% Άνδρες" })
+        : mt("femalePct", { defaultValue: "% Γυναίκες" });
+      const estimatedCount = totalCount > 0 ? Math.round((totalCount * metricValue) / 100) : 0;
+      const countLabel = mt("tooltip.estimatedCount", {
+        count: estimatedCount,
+        total: totalCount,
+        defaultValue: "≈ {{count}} από {{total}} αποφοίτους",
+      });
+      return `<div class="alupla-region-tip-title">${label}</div><div class="alupla-region-tip-sub">${ratioLabel}: ${metricOptions[mapMetric].format(metricValue)}</div><div class="alupla-region-tip-sub">${countLabel}</div><div class="alupla-region-tip-sub">${totalLabel}</div>`;
     }
 
-    return `<div class="alupla-region-tip-title">${label}</div><div class="alupla-region-tip-sub">${metricLabel}: ${metricValue}</div><div class="alupla-region-tip-sub">${totalLabel}</div>`;
+    return `<div class="alupla-region-tip-title">${label}</div><div class="alupla-region-tip-sub">${metricLabel}: ${metricOptions[mapMetric].format(metricValue)}</div><div class="alupla-region-tip-sub">${totalLabel}</div>`;
   }
 
   const total = useMemo(() => items.reduce((sum, item: any) => sum + (Number(item.count) || 0), 0), [items]);
@@ -353,40 +354,40 @@ export default function GraduatesMapPage() {
   }, [items]);
 
   const currentFilterRows = useMemo(() => {
-    const regionName = regions.find((item) => String((item as any).id) === filters.origin_region_id)?.name || "";
+    const regionName = displayPeripheryName(regions.find((item) => String((item as any).id) === filters.origin_region_id)?.name || "");
     const program = studyPrograms.find((item) => String((item as any).id) === filters.study_program_id);
     const direction = programDirections.find((item) => String((item as any).id) === filters.program_direction_id);
     return [
-      { key: "ad_code_like", label: t("graduates.filters.adCode", { defaultValue: "Α.Δ." }), value: filters.ad_code_like },
-      { key: "student_number_like", label: t("graduates.filters.studentNumber", { defaultValue: "Α.Μ." }), value: filters.student_number_like },
-      { key: "last_name_like", label: t("graduates.filters.lastName", { defaultValue: "Επώνυμο" }), value: filters.last_name_like },
-      { key: "first_name_like", label: t("graduates.filters.firstName", { defaultValue: "Όνομα" }), value: filters.first_name_like },
-      { key: "father_name_like", label: t("graduates.filters.fatherName", { defaultValue: "Πατρώνυμο" }), value: filters.father_name_like },
-      { key: "gender", label: t("graduates.filters.gender", { defaultValue: "Φύλο" }), value: filters.gender === "M" ? t("common.male", { defaultValue: "Άνδρας" }) : filters.gender === "F" ? t("common.female", { defaultValue: "Γυναίκα" }) : "" },
-      { key: "entry_year", label: t("graduates.filters.entryYear", { defaultValue: "Έτος εισαγωγής" }), value: [filters.entry_year_min, filters.entry_year_max].filter(Boolean).join(" - ") },
-      { key: "birth_year", label: t("graduates.filters.birthYear", { defaultValue: "Έτος γέννησης" }), value: [filters.birth_year_min, filters.birth_year_max].filter(Boolean).join(" - ") },
-      { key: "degree_grade", label: t("graduates.filters.degreeGrade", { defaultValue: "Βαθμός πτυχίου" }), value: [filters.degree_grade_min, filters.degree_grade_max].filter(Boolean).join(" - ") },
-      { key: "graduation_year", label: t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" }), value: filters.graduation_year },
-      { key: "graduation_date", label: t("graduates.filters.graduationDate", { defaultValue: "Ημερομηνία αποφοίτησης" }), value: [filters.graduation_date_from, filters.graduation_date_to].filter(Boolean).join(" - ") },
-      { key: "oath_date", label: t("graduates.filters.oathDate", { defaultValue: "Ημερομηνία ορκωμοσίας" }), value: [filters.oath_date_from, filters.oath_date_to].filter(Boolean).join(" - ") },
-      { key: "study_program_id", label: t("map.filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" }), value: program ? (activeLang === "en" ? program.name_en || program.name_el || program.code : program.name_el || program.name_en || program.code) : "" },
-      { key: "program_direction_id", label: t("graduates.filters.direction", { defaultValue: "Κατεύθυνση" }), value: direction ? (activeLang === "en" ? (direction as any).name_en || (direction as any).name_el || (direction as any).code : (direction as any).name_el || (direction as any).name_en || (direction as any).code) : "" },
-      { key: "origin_region_id", label: t("graduates.filters.region", { defaultValue: "Περιφέρεια" }), value: displayPeripheryName(regionName) },
-      { key: "origin_municipality_like", label: t("graduates.filters.city", { defaultValue: "Πόλη" }), value: filters.origin_municipality_like },
-      { key: "age_group", label: t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" }), value: filters.age_group },
+      { key: "ad_code_like", label: gt("filters.adCode", { defaultValue: "Α.Δ." }), value: filters.ad_code_like },
+      { key: "student_number_like", label: gt("filters.studentNumber", { defaultValue: "Α.Μ." }), value: filters.student_number_like },
+      { key: "last_name_like", label: gt("filters.lastName", { defaultValue: "Επώνυμο" }), value: filters.last_name_like },
+      { key: "first_name_like", label: gt("filters.firstName", { defaultValue: "Όνομα" }), value: filters.first_name_like },
+      { key: "father_name_like", label: gt("filters.fatherName", { defaultValue: "Πατρώνυμο" }), value: filters.father_name_like },
+      { key: "gender", label: gt("filters.gender", { defaultValue: "Φύλο" }), value: filters.gender === "M" ? ct("male", { defaultValue: "Άνδρας" }) : filters.gender === "F" ? ct("female", { defaultValue: "Γυναίκα" }) : "" },
+      { key: "entry_year", label: gt("filters.entryYear", { defaultValue: "Έτος εισαγωγής" }), value: [filters.entry_year_min, filters.entry_year_max].filter(Boolean).join(" - ") },
+      { key: "birth_year", label: gt("filters.birthYear", { defaultValue: "Έτος γέννησης" }), value: [filters.birth_year_min, filters.birth_year_max].filter(Boolean).join(" - ") },
+      { key: "degree_grade", label: gt("filters.degreeGrade", { defaultValue: "Βαθμός πτυχίου" }), value: [filters.degree_grade_min, filters.degree_grade_max].filter(Boolean).join(" - ") },
+      { key: "graduation_year", label: mt("filters.year", { defaultValue: "Έτος αποφοίτησης" }), value: filters.graduation_year },
+      { key: "graduation_date", label: gt("filters.graduationDate", { defaultValue: "Ημερομηνία αποφοίτησης" }), value: [filters.graduation_date_from, filters.graduation_date_to].filter(Boolean).join(" - ") },
+      { key: "oath_date", label: gt("filters.oathDate", { defaultValue: "Ημερομηνία ορκωμοσίας" }), value: [filters.oath_date_from, filters.oath_date_to].filter(Boolean).join(" - ") },
+      { key: "study_program_id", label: mt("filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" }), value: program ? (activeLang === "en" ? program.name_en || program.name_el || program.code : program.name_el || program.name_en || program.code) : "" },
+      { key: "program_direction_id", label: gt("filters.direction", { defaultValue: "Κατεύθυνση" }), value: direction ? (activeLang === "en" ? (direction as any).name_en || (direction as any).name_el || (direction as any).code : (direction as any).name_el || (direction as any).name_en || (direction as any).code) : "" },
+      { key: "origin_region_id", label: gt("filters.region", { defaultValue: "Περιφέρεια" }), value: regionName },
+      { key: "origin_municipality_like", label: gt("filters.city", { defaultValue: "Πόλη" }), value: displayCityName(filters.origin_municipality_like) },
+      { key: "age_group", label: mt("filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" }), value: filters.age_group },
     ].filter((row) => row.value);
-  }, [filters, regions, studyPrograms, programDirections, activeLang, t, displayPeripheryName]);
+  }, [filters, regions, studyPrograms, programDirections, activeLang, t]);
 
   const activeFilterChips = useMemo(() => currentFilterRows.map((row) => `${row.label}: ${row.value}`), [currentFilterRows]);
 
   function exportRows() {
     return items.map((item: any) => ({
-      [t("map.export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(displayPeripheryName(item.periphery_name ?? "")),
-      [t("map.export.countDetailed", { defaultValue: "Πλήθος αποφοίτων περιφέρειας" })]: excelCellValue(item.count ?? 0),
-      [t("map.export.avgAgeDetailed", { defaultValue: "Μέση ηλικία αποφοίτων περιφέρειας" })]: excelCellValue(item.avg_age ?? ""),
-      [t("map.export.malePctDetailed", { defaultValue: "Ποσοστό ανδρών αποφοίτων περιφέρειας" })]: excelCellValue(item.male_pct ?? ""),
-      [t("map.export.femalePctDetailed", { defaultValue: "Ποσοστό γυναικών αποφοίτων περιφέρειας" })]: excelCellValue(item.female_pct ?? ""),
-      [t("map.export.avgGradeDetailed", { defaultValue: "Μέσος βαθμός πτυχίου αποφοίτων περιφέρειας" })]: excelCellValue(item.avg_grade ?? ""),
+      [mt("export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(displayPeripheryName(item.periphery_name ?? "")),
+      [mt("export.countDetailed", { defaultValue: "Πλήθος αποφοίτων περιφέρειας" })]: excelCellValue(item.count ?? 0),
+      [mt("export.avgAgeDetailed", { defaultValue: "Μέση ηλικία αποφοίτων περιφέρειας" })]: excelCellValue(item.avg_age ?? ""),
+      [mt("export.malePctDetailed", { defaultValue: "Ποσοστό ανδρών αποφοίτων περιφέρειας" })]: excelCellValue(item.male_pct ?? ""),
+      [mt("export.femalePctDetailed", { defaultValue: "Ποσοστό γυναικών αποφοίτων περιφέρειας" })]: excelCellValue(item.female_pct ?? ""),
+      [mt("export.avgGradeDetailed", { defaultValue: "Μέσος βαθμός πτυχίου αποφοίτων περιφέρειας" })]: excelCellValue(item.avg_grade ?? ""),
     }));
   }
 
@@ -403,11 +404,11 @@ export default function GraduatesMapPage() {
     const rows = exportRows();
     const filtersRows = currentFilterRows.map((row) => [row.label, row.value]);
     const summaryRows = [
-      [t("map.summary.total", { defaultValue: "Σύνολο αποφοίτων" }), total],
-      [t("map.summary.metric", { defaultValue: "Τρέχουσα απεικόνιση χάρτη" }), metricOptions[mapMetric].label],
-      [t("map.summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" }), topPeriphery ? `${displayPeripheryName(topPeriphery.periphery_name)} (${topPeriphery.count})` : "-"],
-      [t("map.summary.topCity", { defaultValue: "Πόλη με τους περισσότερους αποφοίτους" }), topCity ? `${displayCityName(topCity.city_name)} (${topCity.count})` : "-"],
-      [t("map.summary.avgAge", { defaultValue: "Μέση ηλικία αποφοίτων" }), weightedAvgAge ?? "-"],
+      [mt("summary.total", { defaultValue: "Σύνολο αποφοίτων" }), total],
+      [mt("summary.metric", { defaultValue: "Τρέχουσα απεικόνιση χάρτη" }), metricOptions[mapMetric].label],
+      [mt("summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" }), topPeriphery ? `${displayPeripheryName(topPeriphery.periphery_name)} (${topPeriphery.count})` : "-"],
+      [mt("summary.topCity", { defaultValue: "Πόλη με τους περισσότερους αποφοίτους" }), topCity ? `${displayCityName(topCity.city_name)} (${topCity.count})` : "-"],
+      [mt("summary.avgAge", { defaultValue: "Μέση ηλικία αποφοίτων" }), weightedAvgAge ?? "-"],
     ];
 
     const mapSheet = XLSX.utils.json_to_sheet(rows);
@@ -415,14 +416,14 @@ export default function GraduatesMapPage() {
     XLSX.utils.book_append_sheet(workbook, mapSheet, "Map");
 
     const filtersSheet = XLSX.utils.aoa_to_sheet([
-      [t("graduates.filters.toggle", { defaultValue: "Φίλτρα" }), t("common.value", { defaultValue: "Τιμή" })],
+      [gt("filters.toggle", { defaultValue: "Φίλτρα" }), ct("value", { defaultValue: "Τιμή" })],
       ...filtersRows,
     ]);
     filtersSheet["!cols"] = [{ wch: 34 }, { wch: 34 }];
     XLSX.utils.book_append_sheet(workbook, filtersSheet, "Filters");
 
     const summarySheet = XLSX.utils.aoa_to_sheet([
-      [t("map.summary.title", { defaultValue: "Σύνοψη χάρτη" }), t("common.value", { defaultValue: "Τιμή" })],
+      [mt("summary.title", { defaultValue: "Σύνοψη χάρτη" }), ct("value", { defaultValue: "Τιμή" })],
       ...summaryRows,
     ]);
     summarySheet["!cols"] = [{ wch: 36 }, { wch: 34 }];
@@ -440,12 +441,12 @@ export default function GraduatesMapPage() {
     const rows = exportRows();
     const filtersRows = currentFilterRows;
     const headers = Object.keys(rows[0] || {
-      [t("map.export.periphery", { defaultValue: "Περιφέρεια" })]: "",
-      [t("map.export.countDetailed", { defaultValue: "Πλήθος αποφοίτων περιφέρειας" })]: "",
-      [t("map.export.avgAgeDetailed", { defaultValue: "Μέση ηλικία αποφοίτων περιφέρειας" })]: "",
-      [t("map.export.malePctDetailed", { defaultValue: "Ποσοστό ανδρών αποφοίτων περιφέρειας" })]: "",
-      [t("map.export.femalePctDetailed", { defaultValue: "Ποσοστό γυναικών αποφοίτων περιφέρειας" })]: "",
-      [t("map.export.avgGradeDetailed", { defaultValue: "Μέσος βαθμός πτυχίου αποφοίτων περιφέρειας" })]: "",
+      [mt("export.periphery", { defaultValue: "Περιφέρεια" })]: "",
+      [mt("export.countDetailed", { defaultValue: "Πλήθος αποφοίτων περιφέρειας" })]: "",
+      [mt("export.avgAgeDetailed", { defaultValue: "Μέση ηλικία αποφοίτων περιφέρειας" })]: "",
+      [mt("export.malePctDetailed", { defaultValue: "Ποσοστό ανδρών αποφοίτων περιφέρειας" })]: "",
+      [mt("export.femalePctDetailed", { defaultValue: "Ποσοστό γυναικών αποφοίτων περιφέρειας" })]: "",
+      [mt("export.avgGradeDetailed", { defaultValue: "Μέσος βαθμός πτυχίου αποφοίτων περιφέρειας" })]: "",
     });
     const esc = (value: any) => {
       const text = String(value ?? "");
@@ -453,8 +454,8 @@ export default function GraduatesMapPage() {
       return text;
     };
     const lines = [
-      `${esc(t("map.summary.metric", { defaultValue: "Τρέχουσα απεικόνιση χάρτη" }))},${esc(metricOptions[mapMetric].label)}`,
-      `${esc(t("graduates.filters.toggle", { defaultValue: "Φίλτρα" }))},${esc(t("common.value", { defaultValue: "Τιμή" }))}`,
+      `${esc(mt("summary.metric", { defaultValue: "Τρέχουσα απεικόνιση χάρτη" }))},${esc(metricOptions[mapMetric].label)}`,
+      `${esc(gt("filters.toggle", { defaultValue: "Φίλτρα" }))},${esc(ct("value", { defaultValue: "Τιμή" }))}`,
       ...filtersRows.map((row) => `${esc(row.label)},${esc(row.value)}`),
       "",
       headers.map(esc).join(","),
@@ -477,7 +478,12 @@ export default function GraduatesMapPage() {
   }
 
   const buckets = useMemo(() => legendBuckets(maxMetricValue), [maxMetricValue]);
-  const geoRenderKey = useMemo(() => `${i18n.language}:${items.length}:${maxMetricValue}:${mapMetric}`, [i18n.language, items.length, maxMetricValue, mapMetric]);
+  const geoRenderKey = useMemo(() => {
+    const metricSignature = items
+      .map((item) => `${item.periphery_id}:${metricOptions[mapMetric].value(item)}`)
+      .join("|");
+    return `${i18n.language}:${mapMetric}:${maxMetricValue}:${metricSignature}`;
+  }, [i18n.language, items, mapMetric, maxMetricValue, metricOptions]);
 
   const trendNeedsScroll = selectedTrend.length > 8;
   const trendChartWidth = Math.max(760, selectedTrend.length * 94);
@@ -486,7 +492,7 @@ export default function GraduatesMapPage() {
     labels: selectedTrend.map((item) => item.year),
     datasets: [
       {
-        label: t("map.trend.series", { defaultValue: "Απόφοιτοι" }),
+        label: mt("trend.series", { defaultValue: "Απόφοιτοι" }),
         data: selectedTrend.map((item) => item.count),
         borderColor: "#2563eb",
         backgroundColor: "rgba(37,99,235,.18)",
@@ -500,18 +506,17 @@ export default function GraduatesMapPage() {
 
 
 
-  function renderInfoBox(title: string, total: number | string, metrics: { basics: Array<{ label: string; value: string }>; demographics: Array<{ label: string; value: string }>; academics: Array<{ label: string; value: string }>; }) {
+  function renderInfoBox(title: string, total: number | string, metrics: { demographics: Array<{ label: string; value: string }>; academics: Array<{ label: string; value: string }>; }) {
     const groups = [
-      { title: t("map.detailGroups.basics", { defaultValue: "Βασικά στοιχεία" }), rows: metrics.basics },
-      { title: t("map.detailGroups.demographics", { defaultValue: "Δημογραφικά" }), rows: metrics.demographics },
-      { title: t("map.detailGroups.academics", { defaultValue: "Ακαδημαϊκά" }), rows: metrics.academics },
+      { title: mt("detailGroups.demographics", { defaultValue: "Δημογραφικά" }), rows: metrics.demographics },
+      { title: mt("detailGroups.academics", { defaultValue: "Ακαδημαϊκά" }), rows: metrics.academics },
     ].filter((group) => group.rows.length > 0);
 
     return (
       <div className="map-info-box">
         <div className="map-info-box-header">
           <div className="map-info-box-title">{title}</div>
-          <div className="map-info-total-line">{t("map.totalGraduatesLine", { total, defaultValue: "Σύνολο αποφοίτων: {{total}}" })}</div>
+          <div className="map-info-total-line">{mt("totalGraduatesLine", { total, defaultValue: "Σύνολο αποφοίτων: {{total}}" })}</div>
         </div>
 
         <div className="map-info-groups">
@@ -639,17 +644,19 @@ export default function GraduatesMapPage() {
         }
         .map-summary-label {
           color: #475569;
-          font-size: 16px;
-          line-height: 1.3;
+          font-size: 17px;
+          line-height: 1.32;
         }
         .map-summary-card {
           min-width: 0;
-          padding: 16px 18px;
+          min-height: 124px;
+          padding: 18px;
           display: grid;
-          gap: 6px;
+          align-content: space-between;
+          gap: 8px;
         }
         .map-summary-value {
-          font-size: 24px;
+          font-size: 28px;
           font-weight: 800;
           line-height: 1.1;
           color: #0f172a;
@@ -668,10 +675,16 @@ export default function GraduatesMapPage() {
           flex-wrap: wrap;
         }
         .map-top-menu-card {
-          margin-top: 0;
           padding: 20px 16px 16px;
           display: grid;
-          gap: 12px;
+          gap: 14px;
+        }
+        .map-top-menu-card .badge {
+          min-height: 40px;
+          padding: 0 12px;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 600;
         }
         .map-top-menu-header {
           display: grid;
@@ -688,48 +701,58 @@ export default function GraduatesMapPage() {
         }
         .map-top-menu-title h2 {
           margin: 0;
-          font-size: 28px;
-          line-height: 1.15;
-          font-weight: 800;
-          letter-spacing: -.01em;
         }
         .map-top-menu-actions {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(160px, 1fr));
-          gap: 12px;
-          justify-content: center;
-          justify-self: center;
-          width: min(560px, 100%);
-          position: relative;
+          display: contents;
         }
         .map-metric-group {
           display: grid;
-          grid-template-columns: repeat(5, minmax(0, 1fr));
-          gap: 12px;
-          width: min(1040px, 100%);
+          grid-template-columns: repeat(7, minmax(0, 1fr));
+          gap: 10px;
+          width: 100%;
           margin: 0 auto;
+          align-items: stretch;
         }
-        .map-metric-button {
-          border: 1px solid var(--border);
-          background: #ffffff;
-          border-radius: 16px;
-          min-height: 52px;
-          padding: 0 18px;
-          font: inherit;
-          font-size: 16px;
-          cursor: pointer;
-          color: #334155;
+        .map-metric-button,
+        .map-action-button {
+          width: 100%;
+          min-width: 136px;
+          min-height: 40px;
+          height: 40px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          box-sizing: border-box;
+          padding: 0 12px;
+          font-size: 14px;
+          line-height: 1.2;
+          border-radius: 12px;
           text-align: center;
-          box-shadow: none;
+        }
+        .map-metric-button {
+          border: 1px solid var(--border);
+          background: var(--surface);
+          cursor: pointer;
+          color: var(--text);
+          font: inherit;
+          transition: background .15s ease, border-color .15s ease, transform .05s ease, color .15s ease;
+        }
+        .map-metric-button:hover {
+          background: #f8fafc;
+          border-color: #cbd5e1;
+        }
+        .map-metric-button:active {
+          transform: translateY(1px);
         }
         .map-metric-button.active {
-          background: #eff6ff;
-          border-color: #93c5fd;
-          color: #1d4ed8;
+          background: var(--primary);
+          border-color: var(--primary);
+          color: #fff;
           font-weight: 700;
+        }
+        .map-metric-button.active:hover {
+          background: var(--primaryHover);
+          border-color: var(--primaryHover);
         }
         .map-actions-bar {
           display: grid;
@@ -764,9 +787,9 @@ export default function GraduatesMapPage() {
           border: 1px solid var(--border);
           border-radius: 16px;
           background: rgba(248,250,252,.82);
-          padding: 18px 20px;
+          padding: 16px 18px;
           display: grid;
-          gap: 16px;
+          gap: 14px;
         }
         .map-info-box-header {
           display: grid;
@@ -784,12 +807,12 @@ export default function GraduatesMapPage() {
         }
         .map-info-groups {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+          gap: 14px;
         }
         .map-info-group {
           display: grid;
-          gap: 10px;
+          gap: 8px;
           align-content: start;
         }
         .map-info-group-title {
@@ -799,7 +822,7 @@ export default function GraduatesMapPage() {
         }
         .map-info-metrics {
           display: grid;
-          gap: 10px;
+          gap: 8px;
         }
         .map-info-metric {
           display: grid;
@@ -822,7 +845,6 @@ export default function GraduatesMapPage() {
           gap: 12px;
           align-items: start;
         }
-        .map-action-button { width: 100%; min-height: 48px; font-size: 16px; }
         .map-filter-chips {
           display: flex;
           flex-wrap: wrap;
@@ -896,17 +918,16 @@ export default function GraduatesMapPage() {
         .map-trend-card { display: grid; gap: 12px; }
         .map-trend-canvas { height: 260px; }
         .map-trend-scroll { overflow-x: auto; padding-bottom: 6px; }
-        .map-main-card .map-canvas { height: clamp(760px, 82vh, 960px); min-height: 760px; }
+        .map-main-card .map-canvas { height: clamp(760px, 80vh, 940px); min-height: 760px; }
         @media (max-width: 1100px) {
           .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .map-summary-card { min-height: 160px; padding: 20px 24px 24px; }
-          .map-summary-label { font-size: 20px; }
-          .map-summary-value { font-size: 42px; }
-          .map-metric-group { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+          .map-summary-card { min-height: 124px; padding: 18px; }
+          .map-summary-label { font-size: 17px; }
+          .map-summary-value { font-size: 28px; }
+          .map-metric-group { grid-template-columns: repeat(4, minmax(0, 1fr)); }
           .map-city-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .map-top-menu-header { grid-template-columns: 1fr; }
           .map-top-menu-title { justify-content: center; }
-          .map-top-menu-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; width: 100%; }
           .map-main-card { max-width: 100%; }
         }
         @media (max-width: 900px) {
@@ -920,16 +941,17 @@ export default function GraduatesMapPage() {
         @media (max-width: 640px) {
           .map-page-title-row { align-items: flex-start; gap: 10px; }
           .map-summary-grid { grid-template-columns: 1fr; }
-          .map-summary-card { min-height: auto; gap: 18px; padding: 18px 20px 22px; }
-          .map-summary-label { font-size: 18px; }
-          .map-summary-value { font-size: 38px; }
+          .map-summary-card { min-height: auto; gap: 12px; padding: 18px; }
+          .map-summary-label { font-size: 17px; }
+          .map-summary-value { font-size: 28px; }
           .map-actions-bar { grid-template-columns: 1fr 1fr; }
           .map-controls-row { padding: 14px 14px 0; }
           .map-metric-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .map-city-stats-grid { grid-template-columns: 1fr; }
           .map-top-menu-card { padding: 16px; }
-          .map-top-menu-actions { grid-template-columns: 1fr 1fr; }
           .map-city-cards-inline { grid-template-columns: 1fr; }
+          .map-metric-button,
+          .map-action-button { min-width: 0; }
           .map-filters-modal {
             top: 76px;
             width: calc(100vw - 16px);
@@ -943,34 +965,10 @@ export default function GraduatesMapPage() {
       <div className="card map-top-menu-card">
         <div className="map-top-menu-header">
           <div className="map-top-menu-title">
-            <h2>{t("map.title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
+            <h2 style={{ margin: 0 }}>{mt("title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
             <span className="badge" style={{ display: "inline-flex", alignItems: "center", lineHeight: 1, paddingTop: 0, paddingBottom: 0 }}>
-              {loading ? t("common.loading", { defaultValue: "Φόρτωση..." }) : `${total} ${t("map.totalInline", { defaultValue: "σύνολο" })}`}
+              {loading ? ct("loading", { defaultValue: "Φόρτωση..." }) : `${total} ${mt("totalInline", { defaultValue: "σύνολο" })}`}
             </span>
-          </div>
-
-          <div className="map-top-menu-actions">
-            <div ref={exportMenuRef} style={{ position: "relative" }}>
-              <button className="btn map-action-button" type="button" onClick={() => setShowExportMenu((prev) => !prev)}>
-                {t("graduates.export.title", { defaultValue: "Εξαγωγή" })}
-              </button>
-              {showExportMenu ? (
-                <div className="map-export-menu">
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>
-                    {t("map.exportPng", { defaultValue: "Εξαγωγή PNG" })}
-                  </button>
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>
-                    {t("map.exportExcel", { defaultValue: "Εξαγωγή Excel" })}
-                  </button>
-                  <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>
-                    {t("map.exportCsv", { defaultValue: "Εξαγωγή CSV" })}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-            <button className="btn map-action-button" type="button" onClick={() => setShowFilters((prev) => !prev)}>
-              {showFilters ? t("common.hide", { defaultValue: "Απόκρυψη" }) : t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}
-            </button>
           </div>
         </div>
 
@@ -985,26 +983,49 @@ export default function GraduatesMapPage() {
               {metricOptions[option].label}
             </button>
           ))}
+
+          <div ref={exportMenuRef} style={{ position: "relative" }}>
+            <button className="btn map-action-button" type="button" onClick={() => setShowExportMenu((prev) => !prev)}>
+              {ct("export", { defaultValue: "Εξαγωγή" })}
+            </button>
+            {showExportMenu ? (
+              <div className="map-export-menu">
+                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>
+                  {mt("exportPng", { defaultValue: "Εξαγωγή PNG" })}
+                </button>
+                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>
+                  {mt("exportExcel", { defaultValue: "Εξαγωγή Excel" })}
+                </button>
+                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>
+                  {mt("exportCsv", { defaultValue: "Εξαγωγή CSV" })}
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+          <button className="btn map-action-button" type="button" onClick={() => setShowFilters((prev) => !prev)}>
+            {showFilters ? ct("hide", { defaultValue: "Απόκρυψη" }) : gt("filters.toggle", { defaultValue: "Φίλτρα" })}
+          </button>
         </div>
       </div>
 
       <div className="map-summary-grid">
         <div className="card map-summary-card">
-          <div className="map-summary-label">{t("map.summary.total", { defaultValue: "Σύνολο αποφοίτων" })}</div>
+          <div className="map-summary-label">{mt("summary.total", { defaultValue: "Σύνολο αποφοίτων" })}</div>
           <div className="map-summary-value">{total}</div>
         </div>
         <div className="card map-summary-card">
-          <div className="map-summary-label">{t("map.summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" })}</div>
+          <div className="map-summary-label">{mt("summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" })}</div>
           <div className="map-summary-value">{topPeriphery ? displayPeripheryName(topPeriphery.periphery_name) : "-"}</div>
-          <div className="map-summary-sub">{topPeriphery ? `${topPeriphery.count} ${t("map.export.count", { defaultValue: "Απόφοιτοι" })}` : "-"}</div>
+          <div className="map-summary-sub">{topPeriphery ? `${topPeriphery.count} ${mt("export.count", { defaultValue: "Απόφοιτοι" })}` : "-"}</div>
         </div>
         <div className="card map-summary-card">
-          <div className="map-summary-label">{t("map.summary.topCity", { defaultValue: "Πόλη με τους περισσότερους αποφοίτους" })}</div>
+          <div className="map-summary-label">{mt("summary.topCity", { defaultValue: "Πόλη με τους περισσότερους αποφοίτους" })}</div>
           <div className="map-summary-value">{topCity ? displayCityName(topCity.city_name) : "-"}</div>
-          <div className="map-summary-sub">{topCity ? `${topCity.count} ${t("map.export.count", { defaultValue: "Απόφοιτοι" })}` : "-"}</div>
+          <div className="map-summary-sub">{topCity ? `${topCity.count} ${mt("export.count", { defaultValue: "Απόφοιτοι" })}` : "-"}</div>
         </div>
         <div className="card map-summary-card">
-          <div className="map-summary-label">{t("map.summary.avgAge", { defaultValue: "Μέσος όρος ηλικίας" })}</div>
+          <div className="map-summary-label">{mt("summary.avgAge", { defaultValue: "Μέσος όρος ηλικίας" })}</div>
           <div className="map-summary-value">{weightedAvgAge === null ? "-" : compactNumber(weightedAvgAge)}</div>
         </div>
       </div>
@@ -1014,7 +1035,7 @@ export default function GraduatesMapPage() {
           {activeFilterChips.map((chip) => (
             <span className="map-filter-chip" key={chip}>{chip}</span>
           ))}
-          <button className="btn" type="button" onClick={onReset}>{t("common.reset", { defaultValue: "Καθαρισμός" })}</button>
+          <button className="btn" type="button" onClick={onReset}>{ct("reset", { defaultValue: "Καθαρισμός" })}</button>
         </div>
       ) : null}
 
@@ -1023,13 +1044,13 @@ export default function GraduatesMapPage() {
           <div className="alupla-map map-canvas" ref={mapCanvasRef}>
             <MapContainer
               center={[38.6, 24.0]}
-              zoom={6.4 as any}
+              zoom={6.75 as any}
               minZoom={5.8 as any}
               zoomSnap={0.25}
               whenCreated={(map) => {
                 mapRef.current = map;
                 if (geojsonBounds) {
-                  map.fitBounds(geojsonBounds, { padding: [6, 8], maxZoom: 6.7 });
+                  map.fitBounds(geojsonBounds, { padding: [6, 6], maxZoom: 6.75 });
                 }
                 setMapZoom(map.getZoom());
                 setMapBounds(map.getBounds());
@@ -1091,9 +1112,9 @@ export default function GraduatesMapPage() {
           </div>
 
           <div style={{ position: "absolute", left: 12, bottom: 12, background: "rgba(255,255,255,.94)", border: "1px solid var(--border)", borderRadius: 14, padding: "10px 12px", fontSize: 12, boxShadow: "var(--shadow)", maxWidth: 240 }}>
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>{t("map.legend", { defaultValue: "Υπόμνημα" })}</div>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>{mt("legend", { defaultValue: "Υπόμνημα" })}</div>
             <div className="muted" style={{ marginBottom: 8 }}>
-              {currentMetricLegendLabel()}
+              {metricOptions[mapMetric].label}
             </div>
             <div style={{ display: "grid", gap: 6 }}>
               {Array.from({ length: 5 }).map((_, index) => {
@@ -1114,57 +1135,57 @@ export default function GraduatesMapPage() {
         </div>
           {showFilters ? (
             <>
-              <button className="map-filters-overlay" type="button" aria-label={t("common.close", { defaultValue: "Κλείσιμο" })} onClick={() => setShowFilters(false)} />
+              <button className="map-filters-overlay" type="button" aria-label={ct("close", { defaultValue: "Κλείσιμο" })} onClick={() => setShowFilters(false)} />
               <div className="card map-filters-modal">
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <h3 style={{ margin: 0 }}>{t("graduates.filters.toggle", { defaultValue: "Φίλτρα" })}</h3>
+                  <h3 style={{ margin: 0 }}>{gt("filters.toggle", { defaultValue: "Φίλτρα" })}</h3>
                   <button className="btn" type="button" onClick={() => setShowFilters(false)}>
-                    {t("common.hide", { defaultValue: "Απόκρυψη" })}
+                    {ct("hide", { defaultValue: "Απόκρυψη" })}
                   </button>
                 </div>
 
                 <div className="map-filters-grid">
                   <FilterSection title="">
-                    <Field label={t("graduates.filters.adCode", { defaultValue: "Α.Δ." })} span={1}>
+                    <Field label={gt("filters.adCode", { defaultValue: "Α.Δ." })} span={1}>
                       <input className="input" value={filters.ad_code_like} onChange={(e) => updateFilter("ad_code_like", e.target.value)} />
                     </Field>
-                    <Field label={t("graduates.filters.studentNumber", { defaultValue: "Α.Μ." })} span={1}>
+                    <Field label={gt("filters.studentNumber", { defaultValue: "Α.Μ." })} span={1}>
                       <input className="input" value={filters.student_number_like} onChange={(e) => updateFilter("student_number_like", e.target.value)} />
                     </Field>
-                    <Field label={t("graduates.filters.lastName", { defaultValue: "Επώνυμο" })} span={1}>
+                    <Field label={gt("filters.lastName", { defaultValue: "Επώνυμο" })} span={1}>
                       <input className="input" value={filters.last_name_like} onChange={(e) => updateFilter("last_name_like", e.target.value)} />
                     </Field>
-                    <Field label={t("graduates.filters.firstName", { defaultValue: "Όνομα" })} span={1}>
+                    <Field label={gt("filters.firstName", { defaultValue: "Όνομα" })} span={1}>
                       <input className="input" value={filters.first_name_like} onChange={(e) => updateFilter("first_name_like", e.target.value)} />
                     </Field>
-                    <Field label={t("graduates.filters.fatherName", { defaultValue: "Πατρώνυμο" })} span={1}>
+                    <Field label={gt("filters.fatherName", { defaultValue: "Πατρώνυμο" })} span={1}>
                       <input className="input" value={filters.father_name_like} onChange={(e) => updateFilter("father_name_like", e.target.value)} />
                     </Field>
-                    <Field label={t("graduates.filters.city", { defaultValue: "Πόλη" })} span={1}>
+                    <Field label={gt("filters.city", { defaultValue: "Πόλη" })} span={1}>
                       <input className="input" value={filters.origin_municipality_like} onChange={(e) => updateFilter("origin_municipality_like", e.target.value)} />
                     </Field>
                   </FilterSection>
 
                   <FilterSection title="">
-                    <Field label={t("graduates.filters.gender", { defaultValue: "Φύλο" })} span={1}>
+                    <Field label={gt("filters.gender", { defaultValue: "Φύλο" })} span={1}>
                       <select className="input" value={filters.gender} onChange={(e) => updateFilter("gender", e.target.value)}>
-                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
-                        <option value="M">{t("common.male", { defaultValue: "Άνδρας" })}</option>
-                        <option value="F">{t("common.female", { defaultValue: "Γυναίκα" })}</option>
+                        <option value="">{ct("all", { defaultValue: "Όλα" })}</option>
+                        <option value="M">{ct("male", { defaultValue: "Άνδρας" })}</option>
+                        <option value="F">{ct("female", { defaultValue: "Γυναίκα" })}</option>
                       </select>
                     </Field>
-                    <RangeField label={t("graduates.filters.birthYear", { defaultValue: "Έτος γέννησης" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.birth_year_min} toValue={filters.birth_year_max} onFromChange={(value) => updateFilter("birth_year_min", value)} onToChange={(value) => updateFilter("birth_year_max", value)} type="number" span={1} />
-                    <Field label={t("map.filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" })} span={1}>
+                    <RangeField label={gt("filters.birthYear", { defaultValue: "Έτος γέννησης" })} fromLabel={gt("filters.from", { defaultValue: "Από" })} toLabel={gt("filters.to", { defaultValue: "Έως" })} fromValue={filters.birth_year_min} toValue={filters.birth_year_max} onFromChange={(value) => updateFilter("birth_year_min", value)} onToChange={(value) => updateFilter("birth_year_max", value)} type="number" span={1} />
+                    <Field label={mt("filters.ageGroup", { defaultValue: "Ηλικιακή ομάδα" })} span={1}>
                       <select className="input" value={filters.age_group} onChange={(e) => updateFilter("age_group", e.target.value as AgeGroup)}>
-                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                        <option value="">{ct("all", { defaultValue: "Όλα" })}</option>
                         <option value="23-26">23-26</option>
                         <option value="27-30">27-30</option>
                         <option value="31+">31+</option>
                       </select>
                     </Field>
-                    <Field label={t("graduates.filters.region", { defaultValue: "Περιφέρεια" })} span={1}>
+                    <Field label={gt("filters.region", { defaultValue: "Περιφέρεια" })} span={1}>
                       <select className="input" value={filters.origin_region_id} onChange={(e) => updateFilter("origin_region_id", e.target.value)}>
-                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                        <option value="">{ct("all", { defaultValue: "Όλα" })}</option>
                         {regions.map((region) => (
                           <option key={region.id} value={String(region.id)}>{region.name}</option>
                         ))}
@@ -1173,16 +1194,16 @@ export default function GraduatesMapPage() {
                   </FilterSection>
 
                   <FilterSection title="">
-                    <RangeField label={t("graduates.filters.entryYear", { defaultValue: "Έτος εισαγωγής" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.entry_year_min} toValue={filters.entry_year_max} onFromChange={(value) => updateFilter("entry_year_min", value)} onToChange={(value) => updateFilter("entry_year_max", value)} type="number" span={1} />
-                    <Field label={t("map.filters.year", { defaultValue: "Έτος αποφοίτησης" })} span={1}>
+                    <RangeField label={gt("filters.entryYear", { defaultValue: "Έτος εισαγωγής" })} fromLabel={gt("filters.from", { defaultValue: "Από" })} toLabel={gt("filters.to", { defaultValue: "Έως" })} fromValue={filters.entry_year_min} toValue={filters.entry_year_max} onFromChange={(value) => updateFilter("entry_year_min", value)} onToChange={(value) => updateFilter("entry_year_max", value)} type="number" span={1} />
+                    <Field label={mt("filters.year", { defaultValue: "Έτος αποφοίτησης" })} span={1}>
                       <input className="input" value={filters.graduation_year} onChange={(e) => updateFilter("graduation_year", e.target.value)} />
                     </Field>
-                    <RangeField label={t("graduates.filters.degreeGrade", { defaultValue: "Βαθμός πτυχίου" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.degree_grade_min} toValue={filters.degree_grade_max} onFromChange={(value) => updateFilter("degree_grade_min", value)} onToChange={(value) => updateFilter("degree_grade_max", value)} type="number" step="0.1" span={1} />
-                    <RangeField label={t("graduates.filters.graduationDate", { defaultValue: "Ημερομηνία αποφοίτησης" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.graduation_date_from} toValue={filters.graduation_date_to} onFromChange={(value) => updateFilter("graduation_date_from", value)} onToChange={(value) => updateFilter("graduation_date_to", value)} type="date" span={1} />
-                    <RangeField label={t("graduates.filters.oathDate", { defaultValue: "Ημερομηνία ορκωμοσίας" })} fromLabel={t("graduates.filters.from", { defaultValue: "Από" })} toLabel={t("graduates.filters.to", { defaultValue: "Έως" })} fromValue={filters.oath_date_from} toValue={filters.oath_date_to} onFromChange={(value) => updateFilter("oath_date_from", value)} onToChange={(value) => updateFilter("oath_date_to", value)} type="date" span={1} />
-                    <Field label={t("map.filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })} span={1}>
+                    <RangeField label={gt("filters.degreeGrade", { defaultValue: "Βαθμός πτυχίου" })} fromLabel={gt("filters.from", { defaultValue: "Από" })} toLabel={gt("filters.to", { defaultValue: "Έως" })} fromValue={filters.degree_grade_min} toValue={filters.degree_grade_max} onFromChange={(value) => updateFilter("degree_grade_min", value)} onToChange={(value) => updateFilter("degree_grade_max", value)} type="number" step="0.1" span={1} />
+                    <RangeField label={gt("filters.graduationDate", { defaultValue: "Ημερομηνία αποφοίτησης" })} fromLabel={gt("filters.from", { defaultValue: "Από" })} toLabel={gt("filters.to", { defaultValue: "Έως" })} fromValue={filters.graduation_date_from} toValue={filters.graduation_date_to} onFromChange={(value) => updateFilter("graduation_date_from", value)} onToChange={(value) => updateFilter("graduation_date_to", value)} type="date" span={1} />
+                    <RangeField label={gt("filters.oathDate", { defaultValue: "Ημερομηνία ορκωμοσίας" })} fromLabel={gt("filters.from", { defaultValue: "Από" })} toLabel={gt("filters.to", { defaultValue: "Έως" })} fromValue={filters.oath_date_from} toValue={filters.oath_date_to} onFromChange={(value) => updateFilter("oath_date_from", value)} onToChange={(value) => updateFilter("oath_date_to", value)} type="date" span={1} />
+                    <Field label={mt("filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })} span={1}>
                       <select className="input" value={filters.study_program_id} onChange={(e) => updateFilter("study_program_id", e.target.value)}>
-                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                        <option value="">{ct("all", { defaultValue: "Όλα" })}</option>
                         {studyPrograms.map((program) => (
                           <option key={program.id} value={String(program.id)}>
                             {activeLang === "en" ? program.name_en || program.name_el || program.code : program.name_el || program.name_en || program.code}
@@ -1190,9 +1211,9 @@ export default function GraduatesMapPage() {
                         ))}
                       </select>
                     </Field>
-                    <Field label={t("graduates.filters.direction", { defaultValue: "Κατεύθυνση" })} span={1}>
+                    <Field label={gt("filters.direction", { defaultValue: "Κατεύθυνση" })} span={1}>
                       <select className="input" value={filters.program_direction_id} onChange={(e) => updateFilter("program_direction_id", e.target.value)}>
-                        <option value="">{t("common.all", { defaultValue: "Όλα" })}</option>
+                        <option value="">{ct("all", { defaultValue: "Όλα" })}</option>
                         {availableDirections.map((direction) => (
                           <option key={direction.id} value={String(direction.id)}>
                             {activeLang === "en" ? (direction as any).name_en || (direction as any).name_el || (direction as any).code : (direction as any).name_el || (direction as any).name_en || (direction as any).code}
@@ -1205,10 +1226,10 @@ export default function GraduatesMapPage() {
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
                   <button className="btn" type="button" onClick={onReset} disabled={loading}>
-                    {t("common.reset", { defaultValue: "Reset" })}
+                    {ct("reset", { defaultValue: "Reset" })}
                   </button>
                   <button className="btn primary" type="button" onClick={onApply} disabled={loading}>
-                    {t("common.apply", { defaultValue: "Εφαρμογή" })}
+                    {ct("apply", { defaultValue: "Εφαρμογή" })}
                   </button>
                 </div>
               </div>
@@ -1222,11 +1243,11 @@ export default function GraduatesMapPage() {
           <div className="map-lower-section">
             <div className="card map-trend-card" style={{ padding: 16 }}>
               <div style={{ display: "grid", gap: 4 }}>
-                <div style={{ fontWeight: 700 }}>{t("map.trend.title", { defaultValue: "Μεταβολή αποφοίτων ανά έτος" })}</div>
+                <div style={{ fontWeight: 700 }}>{mt("trend.title", { defaultValue: "Μεταβολή αποφοίτων ανά έτος" })}</div>
                 <div className="muted">{displayPeripheryName(selected.periphery_name)}</div>
               </div>
               {trendLoading ? (
-                <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
+                <div className="muted">{ct("loading", { defaultValue: "Φόρτωση..." })}</div>
               ) : selectedTrend.length ? (
                 <div className="map-trend-scroll">
                   <div className="map-trend-canvas" style={{ width: trendNeedsScroll ? `${trendChartWidth}px` : "100%" }}>
@@ -1234,15 +1255,14 @@ export default function GraduatesMapPage() {
                   </div>
                 </div>
               ) : (
-                <div className="muted">{t("map.trend.empty", { defaultValue: "Δεν υπάρχουν διαθέσιμα χρονολογικά στοιχεία για την τρέχουσα επιλογή." })}</div>
+                <div className="muted">{mt("trend.empty", { defaultValue: "Δεν υπάρχουν διαθέσιμα χρονολογικά στοιχεία για την τρέχουσα επιλογή." })}</div>
               )}
             </div>
           </div>
 
           <div className="card map-combined-details-card">
             <div className="map-info-header">
-              <div style={{ fontWeight: 800, fontSize: 18 }}>{t("map.infoTitle", { defaultValue: "Πληροφορίες" })}</div>
-              <div className="muted">{displayPeripheryName(selected.periphery_name)}</div>
+              <div style={{ fontWeight: 800, fontSize: 18 }}>{mt("infoTitle", { defaultValue: "Πληροφορίες" })}</div>
             </div>
 
             <div className="map-combined-details-block">
@@ -1250,60 +1270,54 @@ export default function GraduatesMapPage() {
                 displayPeripheryName((selected as any).periphery_name),
                 (selected as any).count ?? 0,
                 {
-                  basics: [
-                    detailMetric(t("map.totalLabel", { defaultValue: "Σύνολο" }), detailValue((selected as any).count ?? 0)),
-                  ],
                   demographics: [
-                    detailMetric(t("map.avgAge", { defaultValue: "Μέση ηλικία" }), detailValue((selected as any).avg_age)),
-                    detailMetric(t("map.malePct", { defaultValue: "% Άνδρες" }), detailValue((selected as any).male_pct, "%")),
-                    detailMetric(t("map.femalePct", { defaultValue: "% Γυναίκες" }), detailValue((selected as any).female_pct, "%")),
+                    detailMetric(mt("avgAge", { defaultValue: "Μέση ηλικία" }), detailValue((selected as any).avg_age)),
+                    detailMetric(mt("malePct", { defaultValue: "% Άνδρες" }), detailValue((selected as any).male_pct, "%")),
+                    detailMetric(mt("femalePct", { defaultValue: "% Γυναίκες" }), detailValue((selected as any).female_pct, "%")),
                   ],
                   academics: [
-                    detailMetric(t("map.avgGrade", { defaultValue: "Μέσος βαθμός" }), detailValue((selected as any).avg_grade)),
-                    detailMetric(t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" }), detailValue((selected as any).avg_graduation_years)),
+                    detailMetric(mt("avgGrade", { defaultValue: "Μέσος βαθμός" }), detailValue((selected as any).avg_grade)),
+                    detailMetric(mt("avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" }), detailValue((selected as any).avg_graduation_years)),
                   ],
                 }
               )}
             </div>
 
             <div className="map-combined-details-block">
-              <div style={{ fontWeight: 700 }}>{t("map.citiesTitle", { defaultValue: "Πόλεις" })}</div>
+              <div style={{ fontWeight: 700 }}>{mt("citiesTitle", { defaultValue: "Πόλεις" })}</div>
               {cityStatsLoading ? (
-                <div className="muted">{t("common.loading", { defaultValue: "Φόρτωση..." })}</div>
+                <div className="muted">{ct("loading", { defaultValue: "Φόρτωση..." })}</div>
               ) : selectedCityStats.length > 0 ? (
                 <div className="map-city-cards-inline">
                   {selectedCityStats.map((city) => renderInfoBox(
                     displayCityName(city.city),
                     city.count ?? 0,
                     {
-                          basics: [
-                        detailMetric(t("map.totalLabel", { defaultValue: "Σύνολο" }), detailValue(city.count ?? 0)),
-                      ],
                       demographics: [
-                        detailMetric(t("map.avgAge", { defaultValue: "Μέση ηλικία" }), detailValue(city.avg_age)),
-                        detailMetric(t("map.malePct", { defaultValue: "% Άνδρες" }), detailValue(city.male_pct, "%")),
-                        detailMetric(t("map.femalePct", { defaultValue: "% Γυναίκες" }), detailValue(city.female_pct, "%")),
+                        detailMetric(mt("avgAge", { defaultValue: "Μέση ηλικία" }), detailValue(city.avg_age)),
+                        detailMetric(mt("malePct", { defaultValue: "% Άνδρες" }), detailValue(city.male_pct, "%")),
+                        detailMetric(mt("femalePct", { defaultValue: "% Γυναίκες" }), detailValue(city.female_pct, "%")),
                       ],
                       academics: [
-                        detailMetric(t("map.avgGrade", { defaultValue: "Μέσος βαθμός" }), detailValue(city.avg_grade)),
-                        detailMetric(t("map.avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" }), detailValue(city.avg_graduation_years)),
+                        detailMetric(mt("avgGrade", { defaultValue: "Μέσος βαθμός" }), detailValue(city.avg_grade)),
+                        detailMetric(mt("avgGraduationYears", { defaultValue: "Μέσος χρόνος αποφοίτησης" }), detailValue(city.avg_graduation_years)),
                       ],
                     }
                   ))}
                 </div>
               ) : (
-                <div className="muted">{t("map.noCities", { defaultValue: "Δεν υπάρχουν διαθέσιμες πόλεις για την τρέχουσα περιφέρεια." })}</div>
+                <div className="muted">{mt("noCities", { defaultValue: "Δεν υπάρχουν διαθέσιμες πόλεις για την τρέχουσα περιφέρεια." })}</div>
               )}
             </div>
           </div>
         </>
       ) : items.length ? (
         <div className="card map-combined-details-card">
-          <div className="muted">{t("map.detailsHint", { defaultValue: "Κάνε κλικ σε μία περιφέρεια για λεπτομέρειες." })}</div>
+          <div className="muted">{mt("detailsHint", { defaultValue: "Κάνε κλικ σε μία περιφέρεια για λεπτομέρειες." })}</div>
         </div>
       ) : (
         <div className="card map-combined-details-card">
-          <div className="map-empty-state">{t("map.noResults", { defaultValue: "Δεν βρέθηκαν απόφοιτοι με τα συγκεκριμένα φίλτρα." })}</div>
+          <div className="map-empty-state">{mt("noResults", { defaultValue: "Δεν βρέθηκαν απόφοιτοι με τα συγκεκριμένα φίλτρα." })}</div>
         </div>
       )}
     </div>
