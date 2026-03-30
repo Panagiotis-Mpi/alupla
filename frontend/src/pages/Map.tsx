@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GeoJSON, MapContainer, Marker } from "react-leaflet";
 import L from "leaflet";
@@ -69,6 +69,7 @@ export default function Map() {
   const mapRef = useRef<L.Map | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
+  const initialCenter = useMemo<[number, number]>(() => [38.6, 24.0], []);
 
   const [filters, setFilters] = useState<FiltersState>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
@@ -99,6 +100,17 @@ export default function Map() {
     if (!filters.study_program_id) return programDirections;
     return programDirections.filter((item) => Number((item as any).study_program_id) === Number(filters.study_program_id));
   }, [filters.study_program_id, programDirections]);
+
+  const updateZoom = useCallback((zoom: number) => {
+    setMapZoom((prev) => (prev === zoom ? prev : zoom));
+  }, []);
+
+  const updateBounds = useCallback((bounds: L.LatLngBounds) => {
+    setMapBounds((prev) => {
+      if (prev && prev.equals(bounds)) return prev;
+      return bounds;
+    });
+  }, []);
 
   const metricOptions = useMemo(() => ({
     count: {
@@ -140,12 +152,12 @@ export default function Map() {
       const bounds = layer.getBounds();
       if (bounds && bounds.isValid()) {
         mapRef.current.fitBounds(bounds, { padding: [32, 32], maxZoom: 6.5 });
-        setMapZoom(mapRef.current.getZoom());
-        setMapBounds(mapRef.current.getBounds());
+        updateZoom(mapRef.current.getZoom());
+        updateBounds(mapRef.current.getBounds());
       }
     } catch {
     }
-  }, [geojson]);
+  }, [geojson, updateBounds, updateZoom]);
 
   const valuesByGreekName = useMemo(() => {
     const next = new Map<string, number>();
@@ -730,18 +742,18 @@ export default function Map() {
 
           <div className="alupla-map map-canvas" ref={mapCanvasRef}>
             <MapContainer
-              center={[38.6, 24.0]}
+              center={initialCenter}
               zoom={6.5 as any}
               zoomSnap={0.5}
               whenCreated={(map) => {
                 mapRef.current = map;
-                setMapZoom(map.getZoom());
-                setMapBounds(map.getBounds());
+                updateZoom(map.getZoom());
+                updateBounds(map.getBounds());
               }}
               style={{ height: "100%", width: "100%", background: "transparent" }}
               scrollWheelZoom
             >
-              <MapViewportWatcher onZoomChange={setMapZoom} onBoundsChange={setMapBounds} />
+              <MapViewportWatcher onZoomChange={updateZoom} onBoundsChange={updateBounds} />
 
               {geojson ? (
                 <GeoJSON

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import L from "leaflet";
 import { useMapEvents } from "react-leaflet";
 
@@ -130,24 +130,38 @@ export function MapViewportWatcher({
   onZoomChange: (zoom: number) => void;
   onBoundsChange: (bounds: L.LatLngBounds) => void;
 }) {
+  const lastZoomRef = useRef<number | null>(null);
+  const lastBoundsRef = useRef<L.LatLngBounds | null>(null);
+
+  const emit = (map: L.Map) => {
+    const nextZoom = map.getZoom();
+    const nextBounds = map.getBounds();
+
+    if (lastZoomRef.current !== nextZoom) {
+      lastZoomRef.current = nextZoom;
+      onZoomChange(nextZoom);
+    }
+
+    if (!lastBoundsRef.current || !lastBoundsRef.current.equals(nextBounds)) {
+      lastBoundsRef.current = nextBounds;
+      onBoundsChange(nextBounds);
+    }
+  };
+
   const map = useMapEvents({
     zoomend() {
-      onZoomChange(map.getZoom());
-      onBoundsChange(map.getBounds());
+      emit(map);
     },
     moveend() {
-      onZoomChange(map.getZoom());
-      onBoundsChange(map.getBounds());
+      emit(map);
     },
     resize() {
-      onZoomChange(map.getZoom());
-      onBoundsChange(map.getBounds());
+      emit(map);
     },
   });
 
   useEffect(() => {
-    onZoomChange(map.getZoom());
-    onBoundsChange(map.getBounds());
+    emit(map);
   }, [map, onZoomChange, onBoundsChange]);
 
   return null;
