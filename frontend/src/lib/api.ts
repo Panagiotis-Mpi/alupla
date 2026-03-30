@@ -235,6 +235,9 @@ export type GraduatesMapItem = {
   avg_age: number | null;
   avg_grade: number | null;
   avg_graduation_years: number | null;
+  dominant_gender?: "M" | "F" | "balanced" | null;
+  dominant_study_program?: string | null;
+  dominant_direction?: string | null;
 };
 
 

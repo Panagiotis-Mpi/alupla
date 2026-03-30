@@ -85,7 +85,9 @@
     "malePct": "Ποσοστό ανδρών",
     "femalePct": "Ποσοστό γυναικών",
     "avgAge": "Μέση ηλικία",
-    "avgGrade": "Μέσος βαθμός"
+    "avgGrade": "Μέσος βαθμός",
+    "dominantGender": "Κυρίαρχο φύλο",
+    "dominantProgram": "Κυρίαρχο πρόγραμμα / κατεύθυνση"
   },
   "summary": {
     "title": "Σύνοψη χάρτη",
@@ -114,5 +116,18 @@
   "detailLabels": {
     "region": "Περιφέρεια",
     "city": "Πόλη"
+  },
+  "legendLabels": {
+    "dominantGender": "Κυρίαρχο φύλο",
+    "dominantProgram": "Κυρίαρχο πρόγραμμα / κατεύθυνση",
+    "moreMen": "Περισσότεροι άνδρες",
+    "moreWomen": "Περισσότερες γυναίκες",
+    "balance": "Ισορροπία",
+    "noData": "Χωρίς δεδομένα"
+  },
+  "tooltip": {
+    "dominantGender": "Κυρίαρχο φύλο",
+    "dominantProgram": "Κυρίαρχο πρόγραμμα",
+    "dominantDirection": "Κυρίαρχη κατεύθυνση"
   }
 }

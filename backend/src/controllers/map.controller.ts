@@ -114,13 +114,43 @@ export async function getMapFilterOptions(_req: Request, res: Response) {
   return res.json({ ok: true, studyPrograms, programDirections, regions });
 }
 
+
+function pickTopName(counts: Map<number, number>, labels: Map<number, string>) {
+  let topId = 0;
+  let topCount = 0;
+
+  for (const [id, count] of counts.entries()) {
+    if (count > topCount || (count === topCount && id < topId)) {
+      topId = id;
+      topCount = count;
+    }
+  }
+
+  if (!topId || topCount <= 0) return null;
+  return labels.get(topId) || null;
+}
+
 export async function getGraduatesMap(req: Request, res: Response) {
   const { where, currentYear } = buildMapWhere(req);
   const { regions, findPeriphery, resolveRegionIdFromMunicipalityName } = await loadRegions();
+  const [studyPrograms, programDirections] = await Promise.all([
+    StudyProgram.findAll({ attributes: ["id", "code", "name_el", "name_en"] }),
+    ProgramDirection.findAll({ attributes: ["id", "code", "name_el", "name_en"] }),
+  ]);
+  const studyProgramLabels = new Map<number, string>();
+  const programDirectionLabels = new Map<number, string>();
+
+  for (const item of studyPrograms as any[]) {
+    studyProgramLabels.set(Number(item.id), String(item.name_el || item.name_en || item.code || ""));
+  }
+
+  for (const item of programDirections as any[]) {
+    programDirectionLabels.set(Number(item.id), String(item.name_el || item.name_en || item.code || ""));
+  }
 
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date"],
+    attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id", "program_direction_id"],
   });
 
   const groups = new Map<number, any>();
@@ -142,6 +172,8 @@ export async function getGraduatesMap(req: Request, res: Response) {
       gradeCount: 0,
       graduationDurationSum: 0,
       graduationDurationCount: 0,
+      programCounts: new Map<number, number>(),
+      directionCounts: new Map<number, number>(),
     });
   }
 
@@ -165,11 +197,23 @@ export async function getGraduatesMap(req: Request, res: Response) {
       gradeCount: 0,
       graduationDurationSum: 0,
       graduationDurationCount: 0,
+      programCounts: new Map<number, number>(),
+      directionCounts: new Map<number, number>(),
     };
 
     cur.count += 1;
     if (g.gender === "M") cur.male += 1;
     if (g.gender === "F") cur.female += 1;
+
+    const studyProgramId = Number(g.study_program_id) || 0;
+    if (studyProgramId > 0) {
+      cur.programCounts.set(studyProgramId, (cur.programCounts.get(studyProgramId) || 0) + 1);
+    }
+
+    const programDirectionId = Number(g.program_direction_id) || 0;
+    if (programDirectionId > 0) {
+      cur.directionCounts.set(programDirectionId, (cur.directionCounts.get(programDirectionId) || 0) + 1);
+    }
 
     const by = Number(String(g.birth_date ?? "").slice(0, 4));
     if (Number.isFinite(by) && by > 1900) {
@@ -205,6 +249,9 @@ export async function getGraduatesMap(req: Request, res: Response) {
       avg_age: x.ageCount ? Math.round((x.ageSum / x.ageCount) * 10) / 10 : null,
       avg_grade: x.gradeCount ? Math.round((x.gradeSum / x.gradeCount) * 100) / 100 : null,
       avg_graduation_years: x.graduationDurationCount ? Math.round((x.graduationDurationSum / x.graduationDurationCount) * 10) / 10 : null,
+      dominant_gender: !x.count ? null : x.male > x.female ? "M" : x.female > x.male ? "F" : "balanced",
+      dominant_study_program: pickTopName(x.programCounts, studyProgramLabels),
+      dominant_direction: pickTopName(x.directionCounts, programDirectionLabels),
     }))
     .sort((a, b) => b.count - a.count);
 
@@ -272,7 +319,7 @@ export async function getRegionCities(req: Request, res: Response) {
 
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date"],
+    attributes: ["origin_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id", "program_direction_id"],
   });
 
   const groups = new Map<string, any>();

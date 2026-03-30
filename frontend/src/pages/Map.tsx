@@ -42,9 +42,11 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip, Legend);
 
-type MapMetric = "count" | "male_pct" | "female_pct" | "avg_age" | "avg_grade";
+type MapMetric = "count" | "male_pct" | "female_pct" | "avg_age" | "avg_grade" | "dominant_gender" | "dominant_program";
 
 const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
+const dominantGenderColors = { male: "#3b82f6", female: "#c084fc", balanced: "#cbd5e1", empty: "#e5e7eb" };
+const dominantProgramPalette = ["#2563eb", "#7c3aed", "#0f766e", "#ea580c", "#dc2626", "#0891b2", "#65a30d", "#9333ea", "#1d4ed8", "#be185d"];
 
 function compactNumber(value: number | string | null | undefined) {
   if (value === null || value === undefined || value === "") return "-";
@@ -81,6 +83,19 @@ function detailValue(value: number | string | null | undefined, suffix = "") {
 
 function detailMetric(label: string, value: string) {
   return { label, value };
+}
+
+function hashLabel(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
+function programLegendColor(label: string) {
+  if (!label) return dominantGenderColors.empty;
+  return dominantProgramPalette[hashLabel(label) % dominantProgramPalette.length];
 }
 
 export default function GraduatesMapPage() {
@@ -130,6 +145,12 @@ export default function GraduatesMapPage() {
   }, [geojson]);
   const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
 
+  const dominantProgramMode = filters.study_program_id ? "direction" : "program";
+  const dominantProgramLabel = useCallback((item: GraduatesMapItem | null | undefined) => {
+    if (!item) return "";
+    return (dominantProgramMode === "direction" ? item.dominant_direction : item.dominant_study_program) || "";
+  }, [dominantProgramMode]);
+
   const availableDirections = useMemo(() => {
     if (!filters.study_program_id) return programDirections;
     return programDirections.filter((item) => Number((item as any).study_program_id) === Number(filters.study_program_id));
@@ -174,7 +195,24 @@ export default function GraduatesMapPage() {
       value: (item: GraduatesMapItem) => Number(item.avg_grade ?? 0) || 0,
       format: (value: number) => compactNumber(value),
     },
-  }), [t]);
+    dominant_gender: {
+      label: mt("metricOptions.dominantGender", { defaultValue: "Κυρίαρχο φύλο" }),
+      valueLabel: mt("legendLabels.dominantGender", { defaultValue: "Κυρίαρχο φύλο" }),
+      value: (item: GraduatesMapItem) => {
+        const totalCount = Number(item.count ?? 0) || 0;
+        const maleCount = totalCount > 0 ? (totalCount * (Number(item.male_pct ?? 0) || 0)) / 100 : 0;
+        const femaleCount = totalCount > 0 ? (totalCount * (Number(item.female_pct ?? 0) || 0)) / 100 : 0;
+        return Math.abs(maleCount - femaleCount);
+      },
+      format: (value: number) => compactNumber(value),
+    },
+    dominant_program: {
+      label: mt("metricOptions.dominantProgram", { defaultValue: "Κυρίαρχο πρόγραμμα / κατεύθυνση" }),
+      valueLabel: mt("legendLabels.dominantProgram", { defaultValue: "Κυρίαρχο πρόγραμμα / κατεύθυνση" }),
+      value: (item: GraduatesMapItem) => Number(item.count ?? 0) || 0,
+      format: (value: number) => compactNumber(value),
+    },
+  }), [mt]);
 
   useLayoutEffect(() => {
     if (!geojsonBounds || !mapRef.current) return;
@@ -214,6 +252,23 @@ export default function GraduatesMapPage() {
     return maxValue;
   }, [items, mapMetric, metricOptions]);
 
+  const categoricalLegendEntries = useMemo(() => {
+    if (mapMetric === "dominant_gender") {
+      return [
+        { label: mt("legendLabels.moreMen", { defaultValue: "Περισσότεροι άνδρες" }), color: dominantGenderColors.male },
+        { label: mt("legendLabels.moreWomen", { defaultValue: "Περισσότερες γυναίκες" }), color: dominantGenderColors.female },
+        { label: mt("legendLabels.balance", { defaultValue: "Ισορροπία" }), color: dominantGenderColors.balanced },
+      ];
+    }
+
+    if (mapMetric === "dominant_program") {
+      const labels = Array.from(new Set(items.map((item) => dominantProgramLabel(item)).filter(Boolean)));
+      return labels.map((label) => ({ label, color: programLegendColor(label) }));
+    }
+
+    return [] as Array<{ label: string; color: string }>;
+  }, [items, mapMetric, dominantProgramLabel, mt]);
+
   const valuesRef = useRef<Map<string, number>>(valuesByGreekName);
   const itemsRef = useRef<GraduatesMapItem[]>(items);
 
@@ -237,18 +292,12 @@ export default function GraduatesMapPage() {
     layer.eachLayer((entryLayer: any) => {
       const feature = entryLayer?.feature;
       if (!feature) return;
-      const value = currentValueForFeature(feature);
-      entryLayer.setStyle({
-        color: "#334155",
-        weight: 1,
-        fillColor: fillColorForCount(value, maxMetricValue, fillColors),
-        fillOpacity: fillOpacityForCount(value),
-      });
+      entryLayer.setStyle(styleForFeature(feature));
       if (entryLayer.getTooltip()) {
         entryLayer.setTooltipContent(renderTooltipHtml(feature));
       }
     });
-  }, [items, mapMetric, maxMetricValue, i18n.language]);
+  }, [items, mapMetric, maxMetricValue, i18n.language, dominantProgramMode]);
 
   useEffect(() => {
     if (!selected) {
@@ -334,13 +383,66 @@ export default function GraduatesMapPage() {
     return valuesRef.current.get(normalizeKey(featureGreekName(feature))) ?? 0;
   }
 
+  function itemForFeature(feature: any) {
+    return itemsRef.current.find((item) => normalizeKey(String(item.periphery_name || "")) === normalizeKey(featureGreekName(feature))) || null;
+  }
+
+  function styleForFeature(feature: any) {
+    const match = itemForFeature(feature);
+    if (mapMetric === "dominant_gender") {
+      if (!match || !Number(match.count)) {
+        return { color: "#334155", weight: 1, fillColor: dominantGenderColors.empty, fillOpacity: 0.18 };
+      }
+
+      const dominantGender = match.dominant_gender;
+      if (dominantGender === "M") return { color: "#334155", weight: 1, fillColor: dominantGenderColors.male, fillOpacity: 0.82 };
+      if (dominantGender === "F") return { color: "#334155", weight: 1, fillColor: dominantGenderColors.female, fillOpacity: 0.82 };
+      return { color: "#334155", weight: 1, fillColor: dominantGenderColors.balanced, fillOpacity: 0.82 };
+    }
+
+    if (mapMetric === "dominant_program") {
+      const label = dominantProgramLabel(match);
+      if (!match || !Number(match.count) || !label) {
+        return { color: "#334155", weight: 1, fillColor: dominantGenderColors.empty, fillOpacity: 0.18 };
+      }
+      return { color: "#334155", weight: 1, fillColor: programLegendColor(label), fillOpacity: 0.82 };
+    }
+
+    const value = currentValueForFeature(feature);
+    return {
+      color: "#334155",
+      weight: 1,
+      fillColor: fillColorForCount(value, maxMetricValue, fillColors),
+      fillOpacity: fillOpacityForCount(value),
+    };
+  }
+
   function renderTooltipHtml(feature: any): string {
     const label = displayPeripheryName(featureDisplayName(feature));
-    const match = itemsRef.current.find((item) => normalizeKey(String(item.periphery_name || "")) === normalizeKey(featureGreekName(feature)));
+    const match = itemForFeature(feature);
     const totalCount = Number(match?.count ?? 0) || 0;
     const metricValue = currentValueForFeature(feature);
     const metricLabel = metricOptions[mapMetric].valueLabel;
     const totalLabel = mt("total", { total: totalCount, defaultValue: "Σύνολο: {{total}}" });
+
+    if (mapMetric === "dominant_gender") {
+      const dominantLabel = !match || !totalCount
+        ? mt("legendLabels.noData", { defaultValue: "Χωρίς δεδομένα" })
+        : match.dominant_gender === "M"
+          ? mt("legendLabels.moreMen", { defaultValue: "Περισσότεροι άνδρες" })
+          : match.dominant_gender === "F"
+            ? mt("legendLabels.moreWomen", { defaultValue: "Περισσότερες γυναίκες" })
+            : mt("legendLabels.balance", { defaultValue: "Ισορροπία" });
+      return `<div class="alupla-region-tip-title">${label}</div><div class="alupla-region-tip-sub">${mt("tooltip.dominantGender", { defaultValue: "Κυρίαρχο φύλο" })}: ${dominantLabel}</div><div class="alupla-region-tip-sub">${mt("malePct", { defaultValue: "% Άνδρες" })}: ${compactNumber(Number(match?.male_pct ?? 0) || 0)}%</div><div class="alupla-region-tip-sub">${mt("femalePct", { defaultValue: "% Γυναίκες" })}: ${compactNumber(Number(match?.female_pct ?? 0) || 0)}%</div><div class="alupla-region-tip-sub">${totalLabel}</div>`;
+    }
+
+    if (mapMetric === "dominant_program") {
+      const dominantLabel = dominantProgramLabel(match) || mt("legendLabels.noData", { defaultValue: "Χωρίς δεδομένα" });
+      const dominantTitle = dominantProgramMode === "direction"
+        ? mt("tooltip.dominantDirection", { defaultValue: "Κυρίαρχη κατεύθυνση" })
+        : mt("tooltip.dominantProgram", { defaultValue: "Κυρίαρχο πρόγραμμα" });
+      return `<div class="alupla-region-tip-title">${label}</div><div class="alupla-region-tip-sub">${dominantTitle}: ${dominantLabel}</div><div class="alupla-region-tip-sub">${totalLabel}</div>`;
+    }
 
     if (mapMetric === "male_pct" || mapMetric === "female_pct") {
       const percentageValue = mapMetric === "male_pct"
@@ -738,7 +840,7 @@ export default function GraduatesMapPage() {
         }
         .map-metric-group {
           display: grid;
-          grid-template-columns: repeat(7, minmax(0, 1fr));
+          grid-template-columns: repeat(9, minmax(0, 1fr));
           gap: 10px;
           width: 100%;
           margin: 0 auto;
@@ -951,7 +1053,7 @@ export default function GraduatesMapPage() {
           .map-summary-card { min-height: 124px; padding: 18px; }
           .map-summary-label { font-size: 17px; }
           .map-summary-value { font-size: 28px; }
-          .map-metric-group { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+          .map-metric-group { grid-template-columns: repeat(5, minmax(0, 1fr)); }
           .map-city-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .map-top-menu-header { grid-template-columns: 1fr; }
           .map-top-menu-title { justify-content: center; }
@@ -1000,7 +1102,7 @@ export default function GraduatesMapPage() {
         </div>
 
         <div className="map-metric-group">
-          {(["count", "male_pct", "female_pct", "avg_age", "avg_grade"] as MapMetric[]).map((option) => (
+          {(["count", "male_pct", "female_pct", "avg_age", "avg_grade", "dominant_gender", "dominant_program"] as MapMetric[]).map((option) => (
             <button
               key={option}
               type="button"
@@ -1092,15 +1194,7 @@ export default function GraduatesMapPage() {
                   key={geoRenderKey}
                   ref={(layer) => { geoJsonLayerRef.current = layer; }}
                   data={geojson as any}
-                  style={(feature: any) => {
-                    const value = currentValueForFeature(feature);
-                    return {
-                      color: "#334155",
-                      weight: 1,
-                      fillColor: fillColorForCount(value, maxMetricValue, fillColors),
-                      fillOpacity: fillOpacityForCount(value),
-                    } as any;
-                  }}
+                  style={(feature: any) => styleForFeature(feature) as any}
                   onEachFeature={(feature: any, layer: any) => {
                     layer.bindTooltip(renderTooltipHtml(feature), { sticky: true, className: "alupla-region-tooltip" });
                     layer.on({
@@ -1145,7 +1239,12 @@ export default function GraduatesMapPage() {
               {metricOptions[mapMetric].label}
             </div>
             <div style={{ display: "grid", gap: 6 }}>
-              {Array.from({ length: 5 }).map((_, index) => {
+              {mapMetric === "dominant_gender" || mapMetric === "dominant_program" ? categoricalLegendEntries.map((entry) => (
+                <div key={entry.label} style={{ display: "grid", gridTemplateColumns: "18px 1fr", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 18, height: 12, borderRadius: 999, background: entry.color, opacity: 0.82, border: "1px solid rgba(51,65,85,.18)" }} />
+                  <span>{entry.label}</span>
+                </div>
+              )) : Array.from({ length: 5 }).map((_, index) => {
                 const from = buckets[index];
                 const to = buckets[index + 1];
                 const mid = (from + to) / 2;

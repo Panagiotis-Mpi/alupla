@@ -85,7 +85,9 @@
     "malePct": "Male percentage",
     "femalePct": "Female percentage",
     "avgAge": "Average age",
-    "avgGrade": "Average grade"
+    "avgGrade": "Average grade",
+    "dominantGender": "Dominant gender",
+    "dominantProgram": "Dominant program / direction"
   },
   "summary": {
     "title": "Map summary",
@@ -114,5 +116,18 @@
   "detailLabels": {
     "region": "Region",
     "city": "City"
+  },
+  "legendLabels": {
+    "dominantGender": "Dominant gender",
+    "dominantProgram": "Dominant program / direction",
+    "moreMen": "More men",
+    "moreWomen": "More women",
+    "balance": "Balanced",
+    "noData": "No data"
+  },
+  "tooltip": {
+    "dominantGender": "Dominant gender",
+    "dominantProgram": "Dominant program",
+    "dominantDirection": "Dominant direction"
   }
 }
