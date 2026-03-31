@@ -545,11 +545,10 @@ export default function Logs() {
       )}
 
       <div className="card logs-summary-card" style={{ maxWidth: 1120, width: "100%", margin: "0 auto" }}>
-        <div className="topbar" style={{ alignItems: "center", marginBottom: 12 }}>
+        <div className="topbar" style={{ alignItems: "center", justifyContent: "space-between", marginBottom: 12, width: "100%" }}>
           <h2 style={{ margin: 0 }}>{t("title")}</h2>
-          <div className="spacer" />
-          <div ref={exportMenuRef} style={{ position: "relative" }}>
-            <button className="btn" onClick={() => setExportMenuOpen((current) => !current)} style={{ minWidth: 170 }}>
+          <div ref={exportMenuRef} style={{ position: "relative", marginLeft: "auto" }}>
+            <button className="btn" onClick={() => setExportMenuOpen((current) => !current)} style={{ minWidth: 170, width: "auto" }}>
               {t("actions.export")}
             </button>
             {exportMenuOpen && (

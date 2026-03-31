@@ -114,12 +114,54 @@ function nonEmptyString(value: unknown) {
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function csvEscape(value: unknown) {
+function csvEscape(value: unknown, delimiter = ",") {
   const text = value === null || value === undefined ? "" : String(value);
-  if (/[",\n]/.test(text)) {
+  const shouldQuote = text.includes('"') || text.includes("\n") || text.includes("\r") || text.includes(delimiter);
+  if (shouldQuote) {
     return '"' + text.replace(/"/g, '""') + '"';
   }
   return text;
+}
+
+function buildDelimitedText(rows: Array<Record<string, unknown>>, delimiter = "\t") {
+  if (!rows.length) return "";
+  const headers = Object.keys(rows[0] ?? {});
+  const lines = [headers.map((header) => csvEscape(header, delimiter)).join(delimiter)];
+  for (const row of rows) {
+    lines.push(headers.map((header) => csvEscape(row?.[header], delimiter)).join(delimiter));
+  }
+  return lines.join("\r\n");
+}
+
+function buildUtf16CsvBuffer(text: string) {
+  return Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]);
+}
+
+function applySheetLayout(ws: XLSX.WorkSheet, rows: Array<Record<string, unknown>>) {
+  const headers = rows.length ? Object.keys(rows[0] ?? {}) : [];
+  ws["!cols"] = headers.map((header) => {
+    let width = String(header ?? "").length;
+    for (const row of rows) {
+      const value = row?.[header];
+      const cellText = value == null ? "" : String(value);
+      if (cellText.length > width) width = cellText.length;
+    }
+    const isDetails = String(header).toLowerCase().includes("details") || String(header).includes("Λεπτομέρειες");
+    return { wch: Math.min(Math.max(width + 2, 12), isDetails ? 90 : 42) };
+  });
+
+  if (ws["!ref"]) {
+    const range = XLSX.utils.decode_range(ws["!ref"]);
+    ws["!autofilter"] = { ref: ws["!ref"] };
+    ws["!freeze"] = { xSplit: 0, ySplit: 1, topLeftCell: XLSX.utils.encode_cell({ r: 1, c: 0 }), activePane: "bottomLeft", state: "frozen" } as any;
+    for (let c = range.s.c; c <= range.e.c; c += 1) {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c });
+      const cell = ws[cellRef];
+      if (cell) {
+        cell.s = { ...(cell.s || {}), font: { ...(cell.s?.font || {}), bold: true }, alignment: { ...(cell.s?.alignment || {}), vertical: "center", wrapText: true } } as any;
+      }
+    }
+  }
 }
 
 function buildLogFilters(req: Request) {
@@ -523,14 +565,6 @@ function getExportRows(lang: "gr" | "en", rows: any[]) {
   }));
 }
 
-function toCsv(data: Array<Record<string, unknown>>) {
-  if (!data.length) return "";
-  const headers = Object.keys(data[0]);
-  const header = headers.map(csvEscape).join(",");
-  const rows = data.map((row) => headers.map((key) => csvEscape(row[key])).join(","));
-  return [header, ...rows].join("\n");
-}
-
 export async function exportActivityLogsCsv(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = getLanguage(req);
@@ -544,10 +578,12 @@ export async function exportActivityLogsCsv(req: Request, res: Response, next: N
       details: { format: "csv", count: rows.length }
     });
 
-    const csv = toCsv(getExportRows(lang, rows as any[]));
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    const exportRows = getExportRows(lang, rows as any[]);
+    const csv = buildDelimitedText(exportRows, "	");
+    const buffer = buildUtf16CsvBuffer(csv);
+    res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
     res.setHeader("Content-Disposition", "attachment; filename=activity_logs.csv");
-    res.send(csv);
+    res.send(buffer);
   } catch (error) {
     next(error);
   }
@@ -567,7 +603,9 @@ export async function exportActivityLogsXlsx(req: Request, res: Response, next: 
     });
 
     const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(getExportRows(lang, rows as any[]));
+    const exportRows = getExportRows(lang, rows as any[]);
+    const worksheet = XLSX.utils.json_to_sheet(exportRows);
+    applySheetLayout(worksheet, exportRows);
     XLSX.utils.book_append_sheet(workbook, worksheet, lang === "en" ? "Logs" : "Καταγραφές");
     const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
 
