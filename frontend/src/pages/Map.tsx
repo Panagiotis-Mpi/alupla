@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GeoJSON, MapContainer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
@@ -18,7 +18,6 @@ import {
 } from "chart.js";
 import {
   getMapCityDetail,
-  getGraduatesMap,
   logPublicExport,
   type GraduatesMapItem,
   type MapCityDetailResponse,

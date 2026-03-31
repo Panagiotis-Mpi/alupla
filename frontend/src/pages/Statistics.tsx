@@ -49,7 +49,6 @@ const sectionTextStyle: React.CSSProperties = { margin: 0, color: "#64748b", fon
 const sectionMenuStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%" };
 const sectionButtonsStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%", gridTemplateColumns: "repeat(4, minmax(0, 1fr))" };
 const solidBlueFill = "rgba(37, 99, 235, 0.72)";
-const pinkFill = "rgba(219, 39, 119, 0.72)";
 const chartGridColor = "rgba(148, 163, 184, 0.22)";
 const chartTickColor = "#475569";
 
@@ -269,71 +268,6 @@ function MetricCard(props: { label: string; value: string | number }) {
   );
 }
 
-function ProgramAverageCards(props: {
-  title: string;
-  labels: string[];
-  values: number[];
-  minValue?: number;
-  maxValue?: number;
-  decimals?: number;
-  chartId?: string;
-}) {
-  const safeValues = props.values.map((value) => Number(value ?? 0));
-  const minValue = props.minValue ?? 0;
-  const maxValue = props.maxValue ?? Math.max(...safeValues, 1);
-  const range = Math.max(maxValue - minValue, 1);
-  const decimals = props.decimals ?? 0;
-
-  return (
-    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
-      <div className="topbar" style={compactTopbarStyle}>
-        <h3 style={{ margin: 0 }}>{props.title}</h3>
-      </div>
-      <div style={{ display: "grid", gap: 14, gridTemplateColumns: `repeat(${Math.max(props.labels.length, 1)}, minmax(0, 1fr))` }}>
-        {props.labels.map((label, index) => {
-          const value = safeValues[index] ?? 0;
-          const progress = Math.max(0, Math.min(100, ((value - minValue) / range) * 100));
-          const formattedValue = Number.isFinite(value)
-            ? value.toFixed(decimals).replace(/0$/, "").replace(/\.$/, "")
-            : "-";
-
-          return (
-            <div
-              key={`${label}-${index}`}
-              style={{
-                minHeight: 208,
-                border: "1px solid rgba(148, 163, 184, 0.25)",
-                borderRadius: 18,
-                padding: 22,
-                display: "grid",
-                gap: 18,
-                alignContent: "space-between",
-                background: "rgba(248, 250, 252, 0.78)",
-              }}
-            >
-              <div style={{ display: "grid", gap: 12 }}>
-                <div style={{ color: "#0f172a", fontSize: 16, fontWeight: 800, lineHeight: 1.35, wordBreak: "break-word" }}>{label}</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-                  <div style={{ fontSize: 32, fontWeight: 800, color: "#0f172a", lineHeight: 1 }}>{formattedValue}</div>
-                </div>
-              </div>
-              <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#64748b" }}>
-                  <span>{minValue.toFixed(decimals)}</span>
-                  <span>{maxValue.toFixed(decimals)}</span>
-                </div>
-                <div style={{ height: 12, borderRadius: 999, background: "rgba(148, 163, 184, 0.18)", overflow: "hidden" }}>
-                  <div style={{ width: `${progress}%`, height: "100%", borderRadius: 999, background: "#2563eb" }} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function BarChartCard(props: {
   title: string;
   labels: string[];
@@ -376,37 +310,6 @@ function BarChartCard(props: {
           forceScrollable={props.forceScrollable}
         />
       )}
-    </div>
-  );
-}
-
-function MultiBarChartCard(props: {
-  title: string;
-  labels: string[];
-  datasets: any[];
-  height?: number;
-  minLabelWidth?: number;
-  maxLabelWidth?: number;
-  stacked?: boolean;
-  chartId?: string;
-}) {
-  return (
-    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
-      <div className="topbar" style={compactTopbarStyle}>
-        <h3 style={{ margin: 0 }}>{props.title}</h3>
-      </div>
-      <ScrollableBarChart
-        height={props.height ?? 320}
-        labels={props.labels}
-        datasetCount={props.datasets.length}
-        minLabelWidth={props.minLabelWidth}
-        maxLabelWidth={props.maxLabelWidth}
-        data={{ labels: props.labels, datasets: props.datasets }}
-        options={{
-          ...buildBarChartOptions({ labels: props.labels, stacked: !!props.stacked }),
-          plugins: { legend: { position: "bottom" as const } },
-        } as any}
-      />
     </div>
   );
 }

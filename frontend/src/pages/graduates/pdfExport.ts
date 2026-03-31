@@ -9,7 +9,6 @@ const PAGE_HEIGHT = 1191;
 const PDF_PAGE_WIDTH = 1191;
 const PDF_PAGE_HEIGHT = 842;
 const MARGIN_X = 40;
-const MARGIN_Y = 36;
 const TABLE_TOP = 124;
 const TABLE_BOTTOM = 44;
 const CELL_PADDING_X = 6;

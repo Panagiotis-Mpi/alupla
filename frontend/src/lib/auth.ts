@@ -70,6 +70,3 @@ export function logout() {
   clearLegacyStorage();
 }
 
-export function clearSession() {
-  logout();
-}

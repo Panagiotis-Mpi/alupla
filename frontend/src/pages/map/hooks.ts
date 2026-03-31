@@ -3,51 +3,12 @@ import L from "leaflet";
 import {
   getGraduatesMap,
   getMapCities,
-  getMapFilterOptions,
   getRegionCitiesMap,
   type GraduatesMapItem,
   type MapCityPoint,
-  type ProgramDirection,
-  type Region,
   type RegionCityMapItem,
-  type StudyProgram,
 } from "../../lib/api";
 import { mapCityLatitude, mapCityLongitude, normalizeKey } from "./utils";
-
-export function useMapLookups() {
-  const [studyPrograms, setStudyPrograms] = useState<StudyProgram[]>([]);
-  const [programDirections, setProgramDirections] = useState<ProgramDirection[]>([]);
-  const [regions, setRegions] = useState<Region[]>([]);
-
-  useEffect(() => {
-    let active = true;
-
-    (async () => {
-      try {
-        const response = await getMapFilterOptions();
-        if (!active) return;
-        setStudyPrograms(Array.isArray(response?.studyPrograms) ? response.studyPrograms : []);
-        setProgramDirections(Array.isArray(response?.programDirections) ? response.programDirections : []);
-        setRegions(Array.isArray(response?.regions) ? response.regions : []);
-      } catch {
-        if (!active) return;
-        setStudyPrograms([]);
-        setProgramDirections([]);
-        setRegions([]);
-      }
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  return {
-    studyPrograms,
-    programDirections,
-    regions,
-  };
-}
 
 export function useMapData(params: Record<string, string>, selectedPeripheryId?: number | null) {
   const [loading, setLoading] = useState(false);
