@@ -559,6 +559,11 @@ export async function listActivityLogs(params: Record<string, any> = {}): Promis
 }
 
 
+export async function getActivityLogFileSummary(params: Record<string, any> = {}): Promise<any> {
+  return api(`/activity-logs/file-summary${toQueryString(params)}`, { method: "GET" });
+}
+
+
 export async function getGraduatesMap(params: Record<string, any> = {}): Promise<{ ok: true; items: GraduatesMapItem[]; total: number } | any> {
   return api(`/map/graduates${toQueryString(params)}`, { method: "GET" });
 }

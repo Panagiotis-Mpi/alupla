@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   listActivityLogs,
   activityLogsExportUrl,
+  getActivityLogFileSummary,
   type ActivityLog,
 } from "../lib/api";
 
@@ -13,6 +14,15 @@ type LogFilters = {
   actor: string;
   action: string;
   resource: string;
+};
+
+type FileSummaryRole = "secretariat" | "super_admin" | "visitor";
+type FileSummaryFileType = "excel" | "csv" | "pdf" | "png";
+type FileSummaryPage = "graduates" | "academicData" | "regions" | "statistics" | "map" | "logs";
+type FileSummaryItem = {
+  page: FileSummaryPage;
+  import: Record<FileSummaryFileType, number>;
+  export: Record<FileSummaryFileType, number>;
 };
 
 const emptyFilters: LogFilters = {
@@ -108,6 +118,8 @@ export default function Logs() {
   const [err, setErr] = React.useState<string | null>(null);
   const [page, setPage] = React.useState(1);
   const [filters, setFilters] = React.useState<LogFilters>(emptyFilters);
+  const [summaryRole, setSummaryRole] = React.useState<FileSummaryRole>("secretariat");
+  const [fileSummary, setFileSummary] = React.useState<FileSummaryItem[]>([]);
 
   function setFilter<K extends keyof LogFilters>(key: K, value: LogFilters[K]) {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -145,6 +157,34 @@ export default function Logs() {
 
   const actionForApi = (filters.level || filters.action).trim();
   const resourceForApi = filters.resource.trim();
+
+  const fileTypes: FileSummaryFileType[] = ["excel", "csv", "pdf", "png"];
+  const pageOrder: FileSummaryPage[] = ["graduates", "academicData", "regions", "statistics", "map", "logs"];
+
+  function pageLabel(pageKey: FileSummaryPage) {
+    if (pageKey === "graduates") return t("summary.pages.graduates");
+    if (pageKey === "academicData") return t("summary.pages.academicData");
+    if (pageKey === "regions") return t("summary.pages.regions");
+    if (pageKey === "statistics") return t("summary.pages.statistics");
+    if (pageKey === "map") return t("summary.pages.map");
+    return t("summary.pages.logs");
+  }
+
+  function fileTypeLabel(fileType: FileSummaryFileType) {
+    if (fileType === "excel") return t("summary.fileTypes.excel");
+    if (fileType === "csv") return t("summary.fileTypes.csv");
+    if (fileType === "pdf") return t("summary.fileTypes.pdf");
+    return t("summary.fileTypes.png");
+  }
+
+  async function loadFileSummary(role: FileSummaryRole) {
+    try {
+      const data = await getActivityLogFileSummary({ role });
+      setFileSummary(data.items ?? []);
+    } catch (e: any) {
+      setErr((current) => current ?? e?.message ?? t("error"));
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -211,40 +251,6 @@ export default function Logs() {
     });
   }, [activeLang, items, filters.actor, filters.action, filters.level, filters.resource]);
 
-  const summary = React.useMemo(() => {
-    const s = {
-      uploads_auth: 0,
-      uploads_anon: 0,
-      downloads_auth: 0,
-      downloads_anon: 0,
-      map_auth: 0,
-      map_anon: 0,
-      stats_auth: 0,
-      stats_anon: 0,
-    };
-    for (const l of items) {
-      const action = String((l as any)?.action ?? "");
-      const isAnon = !l?.user;
-      if (action === "import_graduates" || action === "upload") {
-        if (isAnon) s.uploads_anon++;
-        else s.uploads_auth++;
-      }
-      if (action.includes("export")) {
-        if (isAnon) s.downloads_anon++;
-        else s.downloads_auth++;
-      }
-      if (action === "map_export") {
-        if (isAnon) s.map_anon++;
-        else s.map_auth++;
-      }
-      if (action === "statistics_export") {
-        if (isAnon) s.stats_anon++;
-        else s.stats_auth++;
-      }
-    }
-    return s;
-  }, [items]);
-
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
   const pageSafe = Math.min(Math.max(1, page), totalPages);
   const startIdx = (pageSafe - 1) * PAGE_SIZE;
@@ -257,6 +263,10 @@ export default function Logs() {
   React.useEffect(() => {
     void load();
   }, []);
+
+  React.useEffect(() => {
+    void loadFileSummary(summaryRole);
+  }, [summaryRole]);
 
   function onExport() {
     const url = activityLogsExportUrl({
@@ -296,37 +306,53 @@ export default function Logs() {
       )}
 
       <div className="grid cols2" style={{ gap: 14 }}>
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>{t("summary.title")}</h3>
-          <table className="table">
+        <div className="card" style={{ overflowX: "auto" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+            <h3 style={{ margin: 0 }}>{t("summary.title")}</h3>
+            <div className="spacer" />
+            <label className="label" style={{ margin: 0 }}>{t("summary.roleLabel")}</label>
+            <select
+              className="input"
+              value={summaryRole}
+              onChange={(e) => setSummaryRole(e.target.value as FileSummaryRole)}
+              style={{ minWidth: 180 }}
+            >
+              <option value="secretariat">{t("summary.roles.secretariat")}</option>
+              <option value="super_admin">{t("summary.roles.admin")}</option>
+              <option value="visitor">{t("summary.roles.visitor")}</option>
+            </select>
+          </div>
+          <table className="table" style={{ minWidth: 860 }}>
             <thead>
               <tr>
-                <th>{t("summary.activity")}</th>
-                <th>{t("summary.authenticated")}</th>
-                <th>{t("summary.anonymous")}</th>
+                <th rowSpan={2}>{t("summary.page")}</th>
+                <th colSpan={fileTypes.length}>{t("summary.imports")}</th>
+                <th colSpan={fileTypes.length}>{t("summary.exports")}</th>
+              </tr>
+              <tr>
+                {fileTypes.map((fileType) => (
+                  <th key={`import-${fileType}`}>{fileTypeLabel(fileType)}</th>
+                ))}
+                {fileTypes.map((fileType) => (
+                  <th key={`export-${fileType}`}>{fileTypeLabel(fileType)}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>{t("summary.fileUploads")}</td>
-                <td>{summary.uploads_auth}</td>
-                <td>{summary.uploads_anon}</td>
-              </tr>
-              <tr>
-                <td>{t("summary.fileDownloads")}</td>
-                <td>{summary.downloads_auth}</td>
-                <td>{summary.downloads_anon}</td>
-              </tr>
-              <tr>
-                <td>{t("summary.mapDownloads")}</td>
-                <td>{summary.map_auth}</td>
-                <td>{summary.map_anon}</td>
-              </tr>
-              <tr>
-                <td>{t("summary.statisticsDownloads")}</td>
-                <td>{summary.stats_auth}</td>
-                <td>{summary.stats_anon}</td>
-              </tr>
+              {pageOrder.map((pageKey) => {
+                const row = fileSummary.find((entry) => entry.page === pageKey);
+                return (
+                  <tr key={pageKey}>
+                    <td>{pageLabel(pageKey)}</td>
+                    {fileTypes.map((fileType) => (
+                      <td key={`${pageKey}-import-${fileType}`}>{row?.import?.[fileType] ?? 0}</td>
+                    ))}
+                    {fileTypes.map((fileType) => (
+                      <td key={`${pageKey}-export-${fileType}`}>{row?.export?.[fileType] ?? 0}</td>
+                    ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

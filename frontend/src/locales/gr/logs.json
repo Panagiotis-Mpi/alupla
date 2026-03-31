@@ -28,14 +28,30 @@
     "none": "Δεν υπάρχουν logs."
   },
   "summary": {
-    "title": "Σύνοψη ενεργειών",
-    "activity": "Ενέργεια",
-    "authenticated": "Συνδεδεμένοι",
-    "anonymous": "Ανώνυμοι",
-    "fileUploads": "Μεταφορτώσεις αρχείων",
-    "fileDownloads": "Λήψεις αρχείων",
-    "mapDownloads": "Λήψεις χάρτη",
-    "statisticsDownloads": "Λήψεις στατιστικών"
+    "title": "Σύνοψη εισαγωγών και εξαγωγών αρχείων",
+    "page": "Σελίδα",
+    "imports": "Εισαγωγή αρχείων",
+    "exports": "Εξαγωγή αρχείων",
+    "roleLabel": "Τύπος χρήστη",
+    "roles": {
+      "secretariat": "Γραμματεία",
+      "admin": "Διαχειριστής",
+      "visitor": "Επισκέπτης"
+    },
+    "fileTypes": {
+      "excel": "Excel",
+      "csv": "CSV",
+      "pdf": "PDF",
+      "png": "PNG"
+    },
+    "pages": {
+      "graduates": "Απόφοιτοι",
+      "academicData": "Ακαδημαϊκά δεδομένα",
+      "regions": "Περιοχές",
+      "statistics": "Στατιστικά",
+      "map": "Χάρτης",
+      "logs": "Καταγραφές"
+    }
   },
   "error": "Σφάλμα",
   "exportFailed": "Η εξαγωγή απέτυχε"

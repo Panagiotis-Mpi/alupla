@@ -30,13 +30,29 @@
   "error": "Error",
   "exportFailed": "Export failed",
   "summary": {
-    "title": "Activity summary",
-    "activity": "Activity",
-    "authenticated": "Authenticated",
-    "anonymous": "Anonymous",
-    "fileUploads": "File uploads",
-    "fileDownloads": "File downloads",
-    "mapDownloads": "Map downloads",
-    "statisticsDownloads": "Statistics downloads"
+    "title": "File import and export summary",
+    "page": "Page",
+    "imports": "File imports",
+    "exports": "File exports",
+    "roleLabel": "User type",
+    "roles": {
+      "secretariat": "Secretariat",
+      "admin": "Administrator",
+      "visitor": "Visitor"
+    },
+    "fileTypes": {
+      "excel": "Excel",
+      "csv": "CSV",
+      "pdf": "PDF",
+      "png": "PNG"
+    },
+    "pages": {
+      "graduates": "Graduates",
+      "academicData": "Academic data",
+      "regions": "Regions",
+      "statistics": "Statistics",
+      "map": "Map",
+      "logs": "Logs"
+    }
   }
 }
