@@ -138,13 +138,12 @@ function expandEntries(counts: Map<number, number>, labels: Map<number, string>,
     }));
 }
 
-function pickDirectionDisplay(counts: Map<number, number>, fallbackCounts: Map<number, number>, labels: Map<number, string>, total: number) {
-  const source = counts.size ? counts : fallbackCounts;
-  const top = pickTopEntry(source, labels);
+function pickDirectionDisplay(counts: Map<number, number>, labels: Map<number, string>, total: number) {
+  const top = pickTopEntry(counts, labels);
   return {
     label: top.label,
     count: top.count,
-    entries: expandEntries(source, labels, total),
+    entries: expandEntries(counts, labels, total),
   };
 }
 
@@ -192,7 +191,6 @@ export async function getGraduatesMap(req: Request, res: Response) {
       graduationDurationCount: 0,
       programCounts: new Map<number, number>(),
       directionCounts: new Map<number, number>(),
-      recentDirectionCounts: new Map<number, number>(),
     });
   }
 
@@ -218,7 +216,6 @@ export async function getGraduatesMap(req: Request, res: Response) {
       graduationDurationCount: 0,
       programCounts: new Map<number, number>(),
       directionCounts: new Map<number, number>(),
-      recentDirectionCounts: new Map<number, number>(),
     };
 
     cur.count += 1;
@@ -233,9 +230,6 @@ export async function getGraduatesMap(req: Request, res: Response) {
     const programDirectionId = Number(g.program_direction_id) || 0;
     if (programDirectionId > 0) {
       cur.directionCounts.set(programDirectionId, (cur.directionCounts.get(programDirectionId) || 0) + 1);
-      if ((Number(g.entry_year) || 0) >= 2022) {
-        cur.recentDirectionCounts.set(programDirectionId, (cur.recentDirectionCounts.get(programDirectionId) || 0) + 1);
-      }
     }
 
     const by = Number(String(g.birth_date ?? "").slice(0, 4));
@@ -262,7 +256,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
 
   const items = Array.from(groups.values())
     .map((x) => {
-      const directionDisplay = pickDirectionDisplay(x.recentDirectionCounts, x.directionCounts, programDirectionLabels, x.count);
+      const directionDisplay = pickDirectionDisplay(x.directionCounts, programDirectionLabels, x.count);
       return {
         periphery_id: x.periphery_id,
         periphery_name: x.periphery_name,
@@ -390,7 +384,6 @@ export async function getRegionCities(req: Request, res: Response) {
       graduationDurationSum: 0,
       graduationDurationCount: 0,
       directionCounts: new Map<number, number>(),
-      recentDirectionCounts: new Map<number, number>(),
     };
 
     cur.count += 1;
@@ -419,9 +412,6 @@ export async function getRegionCities(req: Request, res: Response) {
     const programDirectionId = Number(g.program_direction_id) || 0;
     if (programDirectionId > 0) {
       cur.directionCounts.set(programDirectionId, (cur.directionCounts.get(programDirectionId) || 0) + 1);
-      if (entryYear >= 2022) {
-        cur.recentDirectionCounts.set(programDirectionId, (cur.recentDirectionCounts.get(programDirectionId) || 0) + 1);
-      }
     }
 
     groups.set(key, cur);
@@ -429,7 +419,7 @@ export async function getRegionCities(req: Request, res: Response) {
 
   const items = Array.from(groups.values())
     .map((x) => {
-      const directionDisplay = pickDirectionDisplay(x.recentDirectionCounts, x.directionCounts, programDirectionLabels, x.count);
+      const directionDisplay = pickDirectionDisplay(x.directionCounts, programDirectionLabels, x.count);
       return {
         city: x.city,
         count: x.count,
@@ -520,28 +510,20 @@ export async function getMapCityDetail(req: Request, res: Response) {
   }
 
   if (mode === "dominant_direction") {
-    const recentByProgram = new Map<number, Map<number, number>>();
-    const allByProgram = new Map<number, Map<number, number>>();
+    const byProgram = new Map<number, Map<number, number>>();
 
     for (const graduate of matching) {
-      const entryYear = Number(graduate.entry_year) || 0;
       const directionId = Number(graduate.program_direction_id) || 0;
       if (!directionId) continue;
       const programId = directionProgramIds.get(directionId) || Number(graduate.study_program_id) || 0;
       if (!programId) continue;
 
-      const allProgramMap = allByProgram.get(programId) || new Map<number, number>();
-      allProgramMap.set(directionId, (allProgramMap.get(directionId) || 0) + 1);
-      allByProgram.set(programId, allProgramMap);
-
-      if (entryYear < 2022) continue;
-
-      const recentProgramMap = recentByProgram.get(programId) || new Map<number, number>();
-      recentProgramMap.set(directionId, (recentProgramMap.get(directionId) || 0) + 1);
-      recentByProgram.set(programId, recentProgramMap);
+      const programMap = byProgram.get(programId) || new Map<number, number>();
+      programMap.set(directionId, (programMap.get(directionId) || 0) + 1);
+      byProgram.set(programId, programMap);
     }
 
-    const programs = Array.from(allByProgram.entries())
+    const programs = Array.from(byProgram.entries())
       .map(([programId, counts]) => {
         const directions = Array.from(counts.entries())
           .filter(([, count]) => count > 0)
@@ -555,24 +537,18 @@ export async function getMapCityDetail(req: Request, res: Response) {
             count,
           }));
 
-        const recentCounts = recentByProgram.get(programId) || null;
-        const recentTotal = recentCounts ? Array.from(recentCounts.values()).reduce((sum, value) => sum + value, 0) : 0;
-
         return {
           program_id: programId,
           program_label: studyProgramLabels.get(programId) || String(programId),
           total: directions.reduce((sum, item) => sum + item.count, 0),
-          recent_total: recentTotal,
           directions,
         };
       })
       .filter((item) => item.directions.length > 0)
       .sort((left, right) => {
-        if (right.recent_total !== left.recent_total) return right.recent_total - left.recent_total;
         if (right.total !== left.total) return right.total - left.total;
         return left.program_label.localeCompare(right.program_label, "el");
-      })
-      .map(({ recent_total, ...item }) => item);
+      });
 
     return res.json({
       ok: true,

@@ -33,7 +33,7 @@ export function useMapData(params: Record<string, string>, selectedPeripheryId?:
 
   useEffect(() => {
     void fetchMap(params);
-  }, []);
+  }, [params]);
 
   useEffect(() => {
     if (!selectedPeripheryId) {

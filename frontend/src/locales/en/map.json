@@ -78,7 +78,7 @@
   "avgGraduationYears": "Average graduation time",
   "maleCount": "Men",
   "femaleCount": "Women",
-  "dominantDirection": "Direction",
+  "dominantDirection": "Study program",
   "directionCount": "Direction graduates",
   "cities": "Cities",
   "metricLabel": "Map view",
@@ -91,7 +91,7 @@
     "avgAge": "Average age",
     "avgGrade": "Average grade",
     "dominantGender": "Gender",
-    "dominantDirection": "Direction"
+    "dominantDirection": "Study program"
   },
   "summary": {
     "title": "Map summary",
@@ -140,6 +140,8 @@
 ,
   "cityPopup": {
     "noData": "No city data is available.",
-    "noDirections": "No direction data is available for this city."
+    "noDirections": "No direction data is available for this city.",
+    "programTotal": "{{program}}: {{count}}",
+    "programPlaceholder": "Select a study program"
   }
 }

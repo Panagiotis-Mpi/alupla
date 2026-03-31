@@ -78,7 +78,7 @@
   "avgGraduationYears": "Μέσος χρόνος αποφοίτησης",
   "maleCount": "Άνδρες",
   "femaleCount": "Γυναίκες",
-  "dominantDirection": "Κατεύθυνση",
+  "dominantDirection": "Πρόγραμμα σπουδών",
   "directionCount": "Απόφοιτοι κατεύθυνσης",
   "cities": "Πόλεις",
   "metricLabel": "Προβολή χάρτη",
@@ -91,7 +91,7 @@
     "avgAge": "Μέση ηλικία",
     "avgGrade": "Μέσος βαθμός",
     "dominantGender": "Φύλο",
-    "dominantDirection": "Κατεύθυνση"
+    "dominantDirection": "Πρόγραμμα σπουδών"
   },
   "summary": {
     "title": "Σύνοψη χάρτη",
@@ -140,6 +140,8 @@
 ,
   "cityPopup": {
     "noData": "Δεν υπάρχουν διαθέσιμα στοιχεία για την πόλη.",
-    "noDirections": "Δεν υπάρχουν διαθέσιμες κατευθύνσεις για την πόλη."
+    "noDirections": "Δεν υπάρχουν διαθέσιμες κατευθύνσεις για την πόλη.",
+    "programTotal": "{{program}}: {{count}}",
+    "programPlaceholder": "Επίλεξε πρόγραμμα σπουδών"
   }
 }

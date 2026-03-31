@@ -18,9 +18,11 @@ import {
 } from "chart.js";
 import {
   getMapCityDetail,
+  listStudyPrograms,
   logPublicExport,
   type GraduatesMapItem,
   type MapCityDetailResponse,
+  type StudyProgram,
 } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
 import { excelCellValue, exportCsvText, exportElementAsPng, exportWorkbook } from "./map/mapExport";
@@ -158,9 +160,13 @@ export default function GraduatesMapPage() {
   const [selectedCityPoint, setSelectedCityPoint] = useState<any | null>(null);
   const [cityDetailLoading, setCityDetailLoading] = useState(false);
   const [cityDetail, setCityDetail] = useState<MapCityDetailResponse | null>(null);
-  const [selectedCityProgramId, setSelectedCityProgramId] = useState<string>("");
+  const [studyPrograms, setStudyPrograms] = useState<StudyProgram[]>([]);
+  const [selectedStudyProgramId, setSelectedStudyProgramId] = useState<string>("");
 
-  const params = useMemo(() => createMapParams(EMPTY_FILTERS), []);
+  const params = useMemo(() => createMapParams({
+    ...EMPTY_FILTERS,
+    ...(mapMetric === "dominant_direction" && selectedStudyProgramId ? { study_program_id: selectedStudyProgramId } : {}),
+  }), [mapMetric, selectedStudyProgramId]);
   const { loading, items, cityPoints, cityStatsLoading, selectedCityStats } = useMapData(params, selected?.periphery_id);
 
   const geojson = useMemo(() => tryParseGeoJson(greeceRegionsRaw), []);
@@ -202,6 +208,37 @@ export default function GraduatesMapPage() {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    listStudyPrograms()
+      .then((response) => {
+        if (!active) return;
+        const items = Array.isArray(response?.items) ? [...response.items] : [];
+        items.sort((left, right) => {
+          const leftLabel = String(left.name_el || left.name_en || left.code || "");
+          const rightLabel = String(right.name_el || right.name_en || right.code || "");
+          const scoreDiff = programSortScore(rightLabel) - programSortScore(leftLabel);
+          if (scoreDiff !== 0) return scoreDiff;
+          return leftLabel.localeCompare(rightLabel, "el");
+        });
+        setStudyPrograms(items);
+      })
+      .catch(() => {
+        if (active) setStudyPrograms([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (mapMetric !== "dominant_direction") return;
+    if (!studyPrograms.length) {
+      setSelectedStudyProgramId("");
+      return;
+    }
+    setSelectedStudyProgramId((current) => (studyPrograms.some((item) => String(item.id) === current) ? current : String(studyPrograms[0].id)));
+  }, [mapMetric, studyPrograms]);
 
   useEffect(() => {
     if (!selectedCityPoint) {
@@ -210,7 +247,11 @@ export default function GraduatesMapPage() {
     }
     let active = true;
     setCityDetailLoading(true);
-    getMapCityDetail({ city_id: selectedCityPoint.city_id, mode: mapMetric })
+    getMapCityDetail({
+      city_id: selectedCityPoint.city_id,
+      mode: mapMetric,
+      ...(mapMetric === "dominant_direction" && selectedStudyProgramId ? { study_program_id: selectedStudyProgramId } : {}),
+    })
       .then((response) => {
         if (!active) return;
         setCityDetail(response || null);
@@ -224,28 +265,23 @@ export default function GraduatesMapPage() {
     return () => {
       active = false;
     };
-  }, [selectedCityPoint?.city_id, mapMetric]);
+  }, [selectedCityPoint?.city_id, mapMetric, selectedStudyProgramId]);
 
+  const selectedStudyProgram = useMemo(() => studyPrograms.find((item) => String(item.id) === selectedStudyProgramId) || null, [studyPrograms, selectedStudyProgramId]);
 
-  useEffect(() => {
-    if (mapMetric !== "dominant_direction") {
-      setSelectedCityProgramId("");
-      return;
-    }
-    const programs = Array.isArray(cityDetail?.programs) ? [...cityDetail.programs] : [];
-    if (!programs.length) {
-      setSelectedCityProgramId("");
-      return;
-    }
-    programs.sort((left, right) => {
-      const scoreDiff = programSortScore(right.program_label) - programSortScore(left.program_label);
-      if (scoreDiff !== 0) return scoreDiff;
-      if (right.total !== left.total) return right.total - left.total;
-      return left.program_label.localeCompare(right.program_label, "el");
-    });
-    const fallbackId = String(programs[0].program_id);
-    setSelectedCityProgramId((current) => (programs.some((program) => String(program.program_id) === current) ? current : fallbackId));
-  }, [cityDetail, mapMetric]);
+  const selectedStudyProgramLabel = useMemo(() => {
+    if (!selectedStudyProgram) return "";
+    return i18n.language === "en"
+      ? String(selectedStudyProgram.name_en || selectedStudyProgram.name_el || selectedStudyProgram.code || "")
+      : String(selectedStudyProgram.name_el || selectedStudyProgram.name_en || selectedStudyProgram.code || "");
+  }, [i18n.language, selectedStudyProgram]);
+
+  const studyProgramOptions = useMemo(() => studyPrograms.map((item) => ({
+    id: String(item.id),
+    label: i18n.language === "en"
+      ? String(item.name_en || item.name_el || item.code || "")
+      : String(item.name_el || item.name_en || item.code || ""),
+  })), [i18n.language, studyPrograms]);
 
   const metricOptions = useMemo(() => ({
     count: {
@@ -259,7 +295,7 @@ export default function GraduatesMapPage() {
       value: (item: GraduatesMapItem) => Math.abs((Number(item.male_count ?? 0) || 0) - (Number(item.female_count ?? 0) || 0)),
     },
     dominant_direction: {
-      label: mt("metricOptions.dominantDirection", { defaultValue: "Κατεύθυνση" }),
+      label: mt("metricOptions.dominantDirection", { defaultValue: "Πρόγραμμα σπουδών" }),
       legend: mt("legendLabels.dominantDirection", { defaultValue: "Κυρίαρχη κατεύθυνση" }),
       value: (item: GraduatesMapItem) => Number(item.dominant_recent_direction_count ?? 0) || 0,
     },
@@ -480,7 +516,7 @@ export default function GraduatesMapPage() {
     if (mapMetric === "dominant_direction") {
       return [
         {
-          title: mt("detailGroups.directions", { defaultValue: "Κατευθύνσεις" }),
+          title: selectedStudyProgramLabel || mt("detailGroups.directions", { defaultValue: "Κατευθύνσεις" }),
           rows: Array.isArray(item.recent_directions)
             ? item.recent_directions.map((entry: any) => ({
                 label: entry.label,
@@ -544,33 +580,18 @@ export default function GraduatesMapPage() {
     }
 
     if (mapMetric === "dominant_direction") {
-      const programs = Array.isArray(cityDetail.programs) ? [...cityDetail.programs] : [];
-      programs.sort((left, right) => {
-        const scoreDiff = programSortScore(right.program_label) - programSortScore(left.program_label);
-        if (scoreDiff !== 0) return scoreDiff;
-        if (right.total !== left.total) return right.total - left.total;
-        return left.program_label.localeCompare(right.program_label, "el");
-      });
-      const activeProgram = programs.find((program) => String(program.program_id) === selectedCityProgramId) || programs[0] || null;
+      const programs = Array.isArray(cityDetail.programs) ? cityDetail.programs : [];
+      const activeProgram = programs.find((program) => String(program.program_id) === selectedStudyProgramId) || programs[0] || null;
       return (
         <div className="map-city-popup-card">
           <div className="map-city-popup-title">{cityDetail.city_name}</div>
-          <div className="map-city-popup-sub">{mt("totalGraduatesLine", { total: cityDetail.total, defaultValue: "Σύνολο αποφοίτων: {{total}}" })}</div>
-          <div className="map-city-popup-list">
-            {programs.length && activeProgram ? (
-              <>
-                <div className="map-city-popup-program">
-                  <select
-                    className="input"
-                    value={String(activeProgram.program_id)}
-                    onChange={(event) => setSelectedCityProgramId(event.target.value)}
-                    aria-label={mt("filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })}
-                  >
-                    {programs.map((program) => (
-                      <option key={program.program_id} value={String(program.program_id)}>{program.program_label}</option>
-                    ))}
-                  </select>
-                </div>
+          {activeProgram ? (
+            <>
+              <div className="map-city-popup-program-heading">
+                <span>{activeProgram.program_label}</span>
+                <strong>{activeProgram.total}</strong>
+              </div>
+              <div className="map-city-popup-list">
                 <div className="map-city-popup-program-list">
                   {activeProgram.directions.map((direction) => (
                     <div className="map-city-popup-row" key={direction.id}>
@@ -579,9 +600,9 @@ export default function GraduatesMapPage() {
                     </div>
                   ))}
                 </div>
-              </>
-            ) : <div className="muted">{mt("cityPopup.noDirections", { defaultValue: "Δεν υπάρχουν διαθέσιμες κατευθύνσεις για την πόλη." })}</div>}
-          </div>
+              </div>
+            </>
+          ) : <div className="muted">{mt("cityPopup.noDirections", { defaultValue: "Δεν υπάρχουν διαθέσιμες κατευθύνσεις για την πόλη." })}</div>}
         </div>
       );
     }
@@ -643,6 +664,7 @@ export default function GraduatesMapPage() {
         .map-top-menu-title { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .map-top-menu-title h2 { margin: 0; }
         .map-metric-group { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; }
+        .map-program-filter { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; width: 100%; }
         .map-metric-button, .map-action-button { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; }
         .map-metric-button.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
         .map-export-menu { position: absolute; top: calc(100% + 8px); right: 0; width: 220px; background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 18px 40px rgba(15,23,42,.16); padding: 8px; z-index: 3000; display: grid; gap: 6px; }
@@ -674,12 +696,12 @@ export default function GraduatesMapPage() {
         .map-city-popup-line { height: 180px; min-height: 180px; }
         .map-city-popup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
         .map-city-popup-value { font-size: 16px; font-weight: 800; color: #0f172a; }
-        .map-city-popup-list, .map-city-popup-program, .map-city-popup-program-list { display: grid; gap: 8px; }
-        .map-city-popup-program { padding-top: 2px; }
+        .map-city-popup-list, .map-city-popup-program-list { display: grid; gap: 8px; }
+        .map-city-popup-program-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 14px; color: #0f172a; font-weight: 700; }
         .map-city-popup-program-title { font-size: 13px; font-weight: 800; color: #0f172a; }
         .map-city-popup-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #334155; font-size: 13px; }
         @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @media (max-width: 640px) { .map-metric-group, .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } }
+        @media (max-width: 640px) { .map-metric-group, .map-summary-grid, .map-city-cards-inline, .map-program-filter { grid-template-columns: 1fr; } }
       `}</style>
 
       <div className="card map-top-menu-card">
@@ -706,6 +728,20 @@ export default function GraduatesMapPage() {
             ) : null}
           </div>
         </div>
+        {mapMetric === "dominant_direction" ? (
+          <div className="map-program-filter">
+            <select
+              className="input"
+              value={selectedStudyProgramId}
+              onChange={(event) => setSelectedStudyProgramId(event.target.value)}
+              aria-label={mt("filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })}
+            >
+              {studyProgramOptions.map((program) => (
+                <option key={program.id} value={program.id}>{program.label}</option>
+              ))}
+            </select>
+          </div>
+        ) : null}
       </div>
 
       <div className="map-summary-grid">
