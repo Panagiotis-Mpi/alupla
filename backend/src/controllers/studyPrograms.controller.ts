@@ -55,9 +55,32 @@ function hasChanges(patch: StudyProgramPatch) {
 
 function getTemplateHeaders(lang: string) {
   if (lang === "en") {
-    return [["Study Program Code", "Study Program Name in Greek", "Study Program Name in English", "Study Program Status"]];
+    return [[
+      "Study Program Code (required)",
+      "Study Program Name in Greek (required)",
+      "Study Program Name in English (optional)",
+      "Study Program Status - Active or Inactive (optional)"
+    ]];
   }
-  return [["Κωδικός Προγράμματος Σπουδών", "Ονομασία Προγράμματος Σπουδών στα Ελληνικά", "Ονομασία Προγράμματος Σπουδών στα Αγγλικά", "Κατάσταση Προγράμματος Σπουδών"]];
+  return [[
+    "Κωδικός Προγράμματος Σπουδών (υποχρεωτικό)",
+    "Ονομασία Προγράμματος Σπουδών στα Ελληνικά (υποχρεωτικό)",
+    "Ονομασία Προγράμματος Σπουδών στα Αγγλικά (προαιρετικό)",
+    "Κατάσταση Προγράμματος Σπουδών - Ενεργό ή Ανενεργό (προαιρετικό)"
+  ]];
+}
+
+function getTemplateFormat(value: unknown) {
+  return String(value ?? "xlsx").toLowerCase() === "csv" ? "csv" : "xlsx";
+}
+
+function csvEscape(value: unknown) {
+  const text = String(value ?? "");
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function buildUtf16CsvBuffer(text: string) {
+  return Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]);
 }
 
 function plainKey(value: string) {
@@ -96,20 +119,24 @@ function normalizeProgramRow(input: Record<string, unknown>) {
     return [plainKey(normalized), value];
   }));
   const code = String(firstFilled(row, [
+    "study_program_code_(required)",
     "study_program_code",
     "program_code",
     "code",
+    "κωδικος_προγραμματος_σπουδων_(υποχρεωτικο)",
     "κωδικος_προγραμματος_σπουδων",
     "κωδικος_προγραμματος",
     "κωδικος"
   ]) ?? "").trim();
   const nameEl = String(firstFilled(row, [
+    "study_program_name_in_greek_(required)",
     "study_program_name_in_greek",
     "program_name_in_greek",
     "study_program_name_(greek)",
     "program_name_(greek)",
     "name_(el)",
     "name_el",
+    "ονομασια_προγραμματος_σπουδων_στα_ελληνικα_(υποχρεωτικο)",
     "ονομασια_προγραμματος_σπουδων_στα_ελληνικα",
     "ονομασια_προγραμματος_στα_ελληνικα",
     "ονομασια_(el)",
@@ -118,21 +145,25 @@ function normalizeProgramRow(input: Record<string, unknown>) {
     "name"
   ]) ?? "").trim();
   const nameEn = String(firstFilled(row, [
+    "study_program_name_in_english_(optional)",
     "study_program_name_in_english",
     "program_name_in_english",
     "study_program_name_(english)",
     "program_name_(english)",
     "name_(en)",
     "name_en",
+    "ονομασια_προγραμματος_σπουδων_στα_αγγλικα_(προαιρετικο)",
     "ονομασια_προγραμματος_σπουδων_στα_αγγλικα",
     "ονομασια_προγραμματος_στα_αγγλικα",
     "ονομασια_(en)",
     "ονομασια_en"
   ]) ?? "").trim();
   const statusValue = firstFilled(row, [
+    "study_program_status_-_active_or_inactive_(optional)",
     "study_program_status",
     "program_status",
     "status",
+    "κατασταση_προγραμματος_σπουδων_-_ενεργο_η_ανενεργο_(προαιρετικο)",
     "κατασταση_προγραμματος_σπουδων",
     "κατασταση_προγραμματος",
     "κατασταση"
@@ -160,13 +191,24 @@ export async function listStudyPrograms(_req: Request, res: Response, next: Next
 export async function downloadStudyProgramsTemplate(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = String(req.query.lang ?? "gr").toLowerCase().startsWith("en") ? "en" : "gr";
-    const ws = XLSX.utils.aoa_to_sheet(getTemplateHeaders(lang));
+    const format = getTemplateFormat(req.query.format);
+    const headers = getTemplateHeaders(lang);
+
+    if (format === "csv") {
+      const csv = headers.map((row) => row.map((cell) => csvEscape(cell)).join("\t")).join("\r\n");
+      const buffer = buildUtf16CsvBuffer(csv);
+      res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
+      res.setHeader("Content-Disposition", 'attachment; filename="study-programs-template.csv"');
+      return res.send(buffer);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(headers);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "study_programs_template");
     const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", 'attachment; filename="study-programs-template.xlsx"');
-    res.send(buffer);
+    return res.send(buffer);
   } catch (error) {
     next(error);
   }

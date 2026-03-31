@@ -66,9 +66,34 @@ function hasChanges(patch: DirectionPatch) {
 
 function getTemplateHeaders(lang: string) {
   if (lang === "en") {
-    return [["Study Program", "Direction Code", "Direction Name in Greek", "Direction Name in English", "Direction Status"]];
+    return [[
+      "Study Program Code or Study Program Name (required)",
+      "Direction Code (required)",
+      "Direction Name in Greek (required)",
+      "Direction Name in English (optional)",
+      "Direction Status - Active or Inactive (optional)"
+    ]];
   }
-  return [["Πρόγραμμα Σπουδών", "Κωδικός Κατεύθυνσης", "Ονομασία Κατεύθυνσης στα Ελληνικά", "Ονομασία Κατεύθυνσης στα Αγγλικά", "Κατάσταση Κατεύθυνσης"]];
+  return [[
+    "Κωδικός ή Ονομασία Προγράμματος Σπουδών (υποχρεωτικό)",
+    "Κωδικός Κατεύθυνσης (υποχρεωτικό)",
+    "Ονομασία Κατεύθυνσης στα Ελληνικά (υποχρεωτικό)",
+    "Ονομασία Κατεύθυνσης στα Αγγλικά (προαιρετικό)",
+    "Κατάσταση Κατεύθυνσης - Ενεργό ή Ανενεργό (προαιρετικό)"
+  ]];
+}
+
+function getTemplateFormat(value: unknown) {
+  return String(value ?? "xlsx").toLowerCase() === "csv" ? "csv" : "xlsx";
+}
+
+function csvEscape(value: unknown) {
+  const text = String(value ?? "");
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function buildUtf16CsvBuffer(text: string) {
+  return Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]);
 }
 
 function readStatus(value: unknown) {
@@ -107,25 +132,31 @@ function normalizeDirectionRow(input: Record<string, unknown>) {
     return [plainKey(normalized), value];
   }));
   const program = String(firstFilled(row, [
+    "study_program_code_or_study_program_name_(required)",
     "study_program",
     "study_program_name",
     "program_name",
+    "κωδικος_η_ονομασια_προγραμματος_σπουδων_(υποχρεωτικο)",
     "προγραμμα_σπουδων",
     "ονομασια_προγραμματος_σπουδων",
     "προγραμμα",
     "program"
   ]) ?? "").trim();
   const code = String(firstFilled(row, [
+    "direction_code_(required)",
     "direction_code",
     "code",
+    "κωδικος_κατευθυνσης_(υποχρεωτικο)",
     "κωδικος_κατευθυνσης",
     "κωδικος"
   ]) ?? "").trim();
   const nameEl = String(firstFilled(row, [
+    "direction_name_in_greek_(required)",
     "direction_name_in_greek",
     "direction_name_(greek)",
     "name_(el)",
     "name_el",
+    "ονομασια_κατευθυνσης_στα_ελληνικα_(υποχρεωτικο)",
     "ονομασια_κατευθυνσης_στα_ελληνικα",
     "ονομασια_(el)",
     "ονομασια_el",
@@ -133,17 +164,21 @@ function normalizeDirectionRow(input: Record<string, unknown>) {
     "name"
   ]) ?? "").trim();
   const nameEn = String(firstFilled(row, [
+    "direction_name_in_english_(optional)",
     "direction_name_in_english",
     "direction_name_(english)",
     "name_(en)",
     "name_en",
+    "ονομασια_κατευθυνσης_στα_αγγλικα_(προαιρετικο)",
     "ονομασια_κατευθυνσης_στα_αγγλικα",
     "ονομασια_(en)",
     "ονομασια_en"
   ]) ?? "").trim();
   const statusValue = firstFilled(row, [
+    "direction_status_-_active_or_inactive_(optional)",
     "direction_status",
     "status",
+    "κατασταση_κατευθυνσης_-_ενεργο_η_ανενεργο_(προαιρετικο)",
     "κατασταση_κατευθυνσης",
     "κατασταση"
   ]);
@@ -204,13 +239,24 @@ export async function listProgramDirections(req: Request, res: Response, next: N
 export async function downloadProgramDirectionsTemplate(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = String(req.query.lang ?? "gr").toLowerCase().startsWith("en") ? "en" : "gr";
-    const ws = XLSX.utils.aoa_to_sheet(getTemplateHeaders(lang));
+    const format = getTemplateFormat(req.query.format);
+    const headers = getTemplateHeaders(lang);
+
+    if (format === "csv") {
+      const csv = headers.map((row) => row.map((cell) => csvEscape(cell)).join("\t")).join("\r\n");
+      const buffer = buildUtf16CsvBuffer(csv);
+      res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
+      res.setHeader("Content-Disposition", 'attachment; filename="program-directions-template.csv"');
+      return res.send(buffer);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(headers);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "program_directions_template");
     const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", 'attachment; filename="program-directions-template.xlsx"');
-    res.send(buffer);
+    return res.send(buffer);
   } catch (error) {
     next(error);
   }
