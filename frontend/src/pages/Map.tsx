@@ -151,9 +151,11 @@ export default function GraduatesMapPage() {
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
   const geoJsonLayerRef = useRef<L.GeoJSON | null>(null);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
+  const programMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showProgramMenu, setShowProgramMenu] = useState(false);
   const [mapZoom, setMapZoom] = useState(6.5);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [selected, setSelected] = useState<GraduatesMapItem | null>(null);
@@ -200,9 +202,13 @@ export default function GraduatesMapPage() {
 
   useEffect(() => {
     function onDocClick(event: MouseEvent) {
-      if (!exportMenuRef.current) return;
-      if (exportMenuRef.current.contains(event.target as Node)) return;
-      setShowExportMenu(false);
+      const target = event.target as Node;
+      if (exportMenuRef.current && !exportMenuRef.current.contains(target)) {
+        setShowExportMenu(false);
+      }
+      if (programMenuRef.current && !programMenuRef.current.contains(target)) {
+        setShowProgramMenu(false);
+      }
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
@@ -664,16 +670,13 @@ export default function GraduatesMapPage() {
         .map-top-menu-title { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .map-top-menu-title h2 { margin: 0; }
         .map-metric-group { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; }
-        .map-metric-button, .map-action-button, .map-program-select-wrap { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; }
-        .map-metric-button.active, .map-program-select-wrap.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
-        .map-program-select-wrap { position: relative; overflow: hidden; padding: 0; }
-        .map-program-select { width: 100%; min-height: 44px; border: 0; outline: none; appearance: none; -webkit-appearance: none; background: transparent; color: inherit; font: inherit; padding: 0 42px 0 16px; cursor: pointer; }
-        .map-program-select-wrap:not(.active) .map-program-select { color: #0f172a; }
-        .map-program-select-wrap.active .map-program-select { color: #fff; font-weight: 700; }
-        .map-program-select-arrow { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 14px; color: inherit; }
-        .map-export-menu { position: absolute; top: calc(100% + 8px); right: 0; width: 220px; background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 18px 40px rgba(15,23,42,.16); padding: 8px; z-index: 3000; display: grid; gap: 6px; }
-        .map-export-item { width: 100%; border: 0; background: transparent; text-align: left; padding: 10px 12px; border-radius: 10px; cursor: pointer; font: inherit; }
-        .map-export-item:hover { background: #f8fafc; }
+        .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; }
+        .map-metric-button.active, .map-program-button.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+        .map-program-button { gap: 8px; }
+        .map-menu { position: absolute; top: calc(100% + 8px); right: 0; width: 220px; background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 18px 40px rgba(15,23,42,.16); padding: 8px; z-index: 3000; display: grid; gap: 6px; }
+        .map-menu-item { width: 100%; border: 0; background: transparent; text-align: left; padding: 10px 12px; border-radius: 10px; cursor: pointer; font: inherit; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .map-menu-item:hover { background: #f8fafc; }
+        .map-menu-item.active { background: #eff6ff; color: #1d4ed8; font-weight: 700; }
         .map-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 12px 0 0; }
         .map-summary-card { min-height: 124px; padding: 18px; display: grid; align-content: space-between; gap: 8px; }
         .map-summary-label { color: #475569; font-size: 17px; line-height: 1.32; }
@@ -719,25 +722,38 @@ export default function GraduatesMapPage() {
               {metricOptions[option].label}
             </button>
           ))}
-          <div className={`btn map-program-select-wrap ${mapMetric === "dominant_direction" ? "active primary" : ""}`}>
-            <select
-              className="map-program-select"
-              value={selectedStudyProgramId}
-              onChange={(event) => {
-                setSelectedStudyProgramId(event.target.value);
-                setMapMetric("dominant_direction");
-              }}
-              onFocus={() => setMapMetric("dominant_direction")}
+          <div ref={programMenuRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              className={`btn map-program-button ${mapMetric === "dominant_direction" ? "active primary" : ""}`}
+              style={{ width: "100%" }}
+              onClick={() => setShowProgramMenu((prev) => !prev)}
+              aria-haspopup="menu"
+              aria-expanded={showProgramMenu}
               aria-label={mt("filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })}
             >
-              {!selectedStudyProgramId ? (
-                <option value="">{metricOptions.dominant_direction.label}</option>
-              ) : null}
-              {studyProgramOptions.map((program) => (
-                <option key={program.id} value={program.id}>{program.label}</option>
-              ))}
-            </select>
-            <span className="map-program-select-arrow">▾</span>
+              <span>{metricOptions.dominant_direction.label}</span>
+              <span aria-hidden="true">▾</span>
+            </button>
+            {showProgramMenu ? (
+              <div className="map-menu">
+                {studyProgramOptions.map((program) => (
+                  <button
+                    key={program.id}
+                    className={`map-menu-item ${selectedStudyProgramId === program.id ? "active" : ""}`}
+                    type="button"
+                    onClick={() => {
+                      setSelectedStudyProgramId(program.id);
+                      setMapMetric("dominant_direction");
+                      setShowProgramMenu(false);
+                    }}
+                  >
+                    <span>{program.label}</span>
+                    <span>{selectedStudyProgramId === program.id ? "✓" : ""}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
           <div ref={exportMenuRef} style={{ position: "relative" }}>
             <button className="btn map-action-button" type="button" style={{ width: "100%" }} onClick={() => setShowExportMenu((prev) => !prev)}>
