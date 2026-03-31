@@ -221,12 +221,12 @@ export default function GraduatesMapPage() {
       value: (item: GraduatesMapItem) => Number(item.count ?? 0) || 0,
     },
     dominant_gender: {
-      label: mt("metricOptions.dominantGender", { defaultValue: "Κυρίαρχο φύλο" }),
+      label: mt("metricOptions.dominantGender", { defaultValue: "Φύλο" }),
       legend: mt("legendLabels.dominantGender", { defaultValue: "Κυρίαρχο φύλο" }),
       value: (item: GraduatesMapItem) => Math.abs((Number(item.male_count ?? 0) || 0) - (Number(item.female_count ?? 0) || 0)),
     },
     dominant_direction: {
-      label: mt("metricOptions.dominantDirection", { defaultValue: "Κυρίαρχη κατεύθυνση" }),
+      label: mt("metricOptions.dominantDirection", { defaultValue: "Κατεύθυνση" }),
       legend: mt("legendLabels.dominantDirection", { defaultValue: "Κυρίαρχη κατεύθυνση" }),
       value: (item: GraduatesMapItem) => Number(item.dominant_recent_direction_count ?? 0) || 0,
     },
@@ -264,6 +264,31 @@ export default function GraduatesMapPage() {
     }
     return [] as Array<{ label: string; color: string }>;
   }, [items, mapMetric, mt]);
+
+  const visibleLegendEntries = useMemo(() => {
+    if (mapMetric === "count") {
+      const scaleBuckets = legendBuckets(maxMetricValue);
+      return Array.from({ length: 5 }).map((_, index) => {
+        const from = scaleBuckets[index];
+        const to = scaleBuckets[index + 1];
+        const mid = (from + to) / 2;
+        return {
+          key: `${from}-${to}`,
+          label: `${Math.round(from)}–${Math.round(to)}`,
+          color: fillColorForCount(mid, maxMetricValue, fillColors),
+          opacity: fillOpacityForCount(mid),
+        };
+      });
+    }
+    return categoricalLegendEntries
+      .filter((entry) => !isPlaceholderLegendLabel(entry.label))
+      .map((entry) => ({
+        key: entry.label,
+        label: entry.label,
+        color: entry.color,
+        opacity: 0.82,
+      }));
+  }, [categoricalLegendEntries, mapMetric, maxMetricValue]);
 
   const valuesRef = useRef(valuesByGreekName);
   const itemsRef = useRef(items);
@@ -704,19 +729,9 @@ export default function GraduatesMapPage() {
             <div style={{ fontWeight: 700, marginBottom: 6 }}>{mt("legend", { defaultValue: "Υπόμνημα" })}</div>
             <div className="muted" style={{ marginBottom: 8 }}>{metricOptions[mapMetric].legend}</div>
             <div style={{ display: "grid", gap: 6 }}>
-              {mapMetric === "count" ? Array.from({ length: 5 }).map((_, index) => {
-                const from = buckets[index];
-                const to = buckets[index + 1];
-                const mid = (from + to) / 2;
-                return (
-                  <div key={`${from}-${to}`} style={{ display: "grid", gridTemplateColumns: "18px 1fr", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 18, height: 12, borderRadius: 999, background: fillColorForCount(mid, maxMetricValue, fillColors), opacity: fillOpacityForCount(mid), border: "1px solid rgba(51,65,85,.18)" }} />
-                    <span>{`${Math.round(from)}–${Math.round(to)}`}</span>
-                  </div>
-                );
-              }) : categoricalLegendEntries.map((entry) => (
-                <div key={entry.label} style={{ display: "grid", gridTemplateColumns: "18px 1fr", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 18, height: 12, borderRadius: 999, background: entry.color, opacity: 0.82, border: "1px solid rgba(51,65,85,.18)" }} />
+              {visibleLegendEntries.map((entry) => (
+                <div key={entry.key} style={{ display: "grid", gridTemplateColumns: "18px 1fr", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 18, height: 12, borderRadius: 999, background: entry.color, opacity: entry.opacity, border: "1px solid rgba(51,65,85,.18)" }} />
                   <span>{entry.label}</span>
                 </div>
               ))}

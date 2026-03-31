@@ -78,7 +78,7 @@
   "avgGraduationYears": "Average graduation time",
   "maleCount": "Men",
   "femaleCount": "Women",
-  "dominantDirection": "Dominant direction",
+  "dominantDirection": "Direction",
   "directionCount": "Direction graduates",
   "cities": "Cities",
   "metricLabel": "Map view",
@@ -90,8 +90,8 @@
     "femalePct": "Female percentage",
     "avgAge": "Average age",
     "avgGrade": "Average grade",
-    "dominantGender": "Dominant gender",
-    "dominantDirection": "Dominant direction"
+    "dominantGender": "Gender",
+    "dominantDirection": "Direction"
   },
   "summary": {
     "title": "Map summary",

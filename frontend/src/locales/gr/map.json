@@ -78,7 +78,7 @@
   "avgGraduationYears": "Μέσος χρόνος αποφοίτησης",
   "maleCount": "Άνδρες",
   "femaleCount": "Γυναίκες",
-  "dominantDirection": "Κυρίαρχη κατεύθυνση",
+  "dominantDirection": "Κατεύθυνση",
   "directionCount": "Απόφοιτοι κατεύθυνσης",
   "cities": "Πόλεις",
   "metricLabel": "Προβολή χάρτη",
@@ -90,8 +90,8 @@
     "femalePct": "Ποσοστό γυναικών",
     "avgAge": "Μέση ηλικία",
     "avgGrade": "Μέσος βαθμός",
-    "dominantGender": "Κυρίαρχο φύλο",
-    "dominantDirection": "Κυρίαρχη κατεύθυνση"
+    "dominantGender": "Φύλο",
+    "dominantDirection": "Κατεύθυνση"
   },
   "summary": {
     "title": "Σύνοψη χάρτη",
