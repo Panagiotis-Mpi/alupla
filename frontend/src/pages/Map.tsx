@@ -77,8 +77,11 @@ function directionColor(label: string) {
 }
 
 function isPlaceholderLegendLabel(value: string) {
-  const normalized = normalizeKey(String(value || "")).replace(/[–—−]/g, "-").replace(/\s+/g, "");
-  return normalized === "1-1";
+  const normalized = normalizeKey(String(value || ""))
+    .replace(/[–—−‑‒﹘﹣]/g, "-")
+    .replace(/\s+/g, "")
+    .trim();
+  return /^\d+-\d+$/.test(normalized) && normalized.split("-")[0] === normalized.split("-")[1];
 }
 
 function colorWithAlpha(color: string, alpha: number) {
@@ -289,6 +292,11 @@ export default function GraduatesMapPage() {
         opacity: 0.82,
       }));
   }, [categoricalLegendEntries, mapMetric, maxMetricValue]);
+
+  const renderedLegendEntries = useMemo(() => {
+    if (mapMetric === "count") return visibleLegendEntries;
+    return visibleLegendEntries.filter((entry) => !isPlaceholderLegendLabel(entry.label));
+  }, [mapMetric, visibleLegendEntries]);
 
   const valuesRef = useRef(valuesByGreekName);
   const itemsRef = useRef(items);
@@ -729,7 +737,7 @@ export default function GraduatesMapPage() {
             <div style={{ fontWeight: 700, marginBottom: 6 }}>{mt("legend", { defaultValue: "Υπόμνημα" })}</div>
             <div className="muted" style={{ marginBottom: 8 }}>{metricOptions[mapMetric].legend}</div>
             <div style={{ display: "grid", gap: 6 }}>
-              {visibleLegendEntries.map((entry) => (
+              {renderedLegendEntries.map((entry) => (
                 <div key={entry.key} style={{ display: "grid", gridTemplateColumns: "18px 1fr", alignItems: "center", gap: 8 }}>
                   <span style={{ width: 18, height: 12, borderRadius: 999, background: entry.color, opacity: entry.opacity, border: "1px solid rgba(51,65,85,.18)" }} />
                   <span>{entry.label}</span>
