@@ -18,7 +18,7 @@
   },
   "table": {
     "id": "#",
-    "ts": "Timestamp",
+    "ts": "Date - Time",
     "level": "Level",
     "actor": "Actor",
     "action": "Action",

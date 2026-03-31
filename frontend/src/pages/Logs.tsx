@@ -9,7 +9,7 @@ import {
   type User,
 } from "../lib/api";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 200;
 
 type LogFilters = {
   actor: string;
@@ -30,6 +30,12 @@ type ActivityLogListResponse = {
   total?: number;
   page?: number;
   pageSize?: number;
+};
+
+type SummaryLayout = {
+  pages: FileSummaryPage[];
+  importTypes: FileSummaryFileType[];
+  exportTypes: FileSummaryFileType[];
 };
 
 const emptyFilters: LogFilters = {
@@ -170,6 +176,48 @@ const knownActionKeys = [
   "map_export"
 ] as const;
 
+const detailFreeActions = new Set([
+  "login",
+  "logout",
+  "register",
+  "request_password_reset",
+  "reset_password",
+  "change_password"
+]);
+
+function getSummaryLayout(role: FileSummaryRole): SummaryLayout {
+  if (role === "visitor") {
+    return {
+      pages: ["statistics", "map"],
+      importTypes: [],
+      exportTypes: ["excel", "csv", "pdf", "png"]
+    };
+  }
+
+  if (role === "secretariat") {
+    return {
+      pages: ["graduates", "academicData", "regions", "statistics", "map"],
+      importTypes: ["excel"],
+      exportTypes: ["excel", "csv", "pdf", "png"]
+    };
+  }
+
+  return {
+    pages: ["graduates", "academicData", "regions", "statistics", "map", "logs"],
+    importTypes: ["excel"],
+    exportTypes: ["excel", "csv", "pdf", "png"]
+  };
+}
+
+function upperFileType(value: string) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "xlsx" || normalized === "xls") return "Excel";
+  if (normalized === "csv") return "CSV";
+  if (normalized === "pdf") return "PDF";
+  if (normalized === "png") return "PNG";
+  return value;
+}
+
 export default function Logs() {
   const { t, i18n } = useTranslation("logs");
   const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
@@ -196,22 +244,157 @@ export default function Logs() {
     return t("summary.roles.visitor");
   }
 
-
   function toLocalizedAction(v: any): string {
     const key = String(v ?? "").trim();
     return actionLabels[activeLang][key as keyof (typeof actionLabels)["gr"]] ?? key.replace(/_/g, " ");
   }
 
-  function toLocalizedDetails(v: any): string {
-    if (v === null || v === undefined || v === "") return "";
-    const raw = typeof v === "object" ? JSON.stringify(v) : String(v);
-    return raw
-      .replaceAll("admin_approved", activeLang === "en" ? "admin approval" : "έγκριση διαχειριστή")
-      .replaceAll("email_verified", activeLang === "en" ? "email verification" : "επαλήθευση email")
-      .replaceAll("is_active", activeLang === "en" ? "active" : "ενεργός")
-      .replaceAll("first_name", activeLang === "en" ? "first name" : "όνομα")
-      .replaceAll("last_name", activeLang === "en" ? "last name" : "επώνυμο")
-      .replaceAll("role", activeLang === "en" ? "role" : "ρόλος");
+  function localDetailLabel(key: string) {
+    const labels = activeLang === "en"
+      ? {
+          file: "File",
+          format: "Type",
+          count: "Rows",
+          total_rows: "Total rows",
+          inserted: "New",
+          updated: "Updated",
+          skipped: "Skipped",
+          deleted: "Deleted",
+          exported: "Exported",
+          page: "Page",
+          years: "Years",
+          role: "Role",
+          status: "Status",
+          study_program: "Study program",
+          direction: "Direction",
+          reason: "Reason"
+        }
+      : {
+          file: "Αρχείο",
+          format: "Τύπος",
+          count: "Γραμμές",
+          total_rows: "Σύνολο γραμμών",
+          inserted: "Νέες",
+          updated: "Ενημερωμένες",
+          skipped: "Παραλείφθηκαν",
+          deleted: "Διαγράφηκαν",
+          exported: "Εξήχθησαν",
+          page: "Σελίδα",
+          years: "Έτη",
+          role: "Ρόλος",
+          status: "Κατάσταση",
+          study_program: "Πρόγραμμα σπουδών",
+          direction: "Κατεύθυνση",
+          reason: "Λόγος"
+        };
+
+    return labels[key as keyof typeof labels] ?? key;
+  }
+
+  function localValue(value: string) {
+    const normalized = String(value ?? "").trim();
+    if (!normalized) return "";
+    if (normalized === "visitor") return t("summary.roles.visitor");
+    if (normalized === "secretariat") return t("summary.roles.secretariat");
+    if (normalized === "super_admin") return t("summary.roles.admin");
+    if (normalized === "graduates") return t("summary.pages.graduates");
+    if (normalized === "academicData") return t("summary.pages.academicData");
+    if (normalized === "regions") return t("summary.pages.regions");
+    if (normalized === "statistics") return t("summary.pages.statistics");
+    if (normalized === "map") return t("summary.pages.map");
+    if (normalized === "logs") return t("summary.pages.logs");
+    if (normalized === "xls" || normalized === "xlsx" || normalized === "excel" || normalized === "csv" || normalized === "pdf" || normalized === "png") {
+      return upperFileType(normalized);
+    }
+    return toLocalizedAction(normalized) || normalized;
+  }
+
+  function parseDetails(value: any) {
+    if (value === null || value === undefined || value === "") return null;
+    if (typeof value === "object") return value;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw;
+    }
+  }
+
+  function formatLogDetails(log: ActivityLog) {
+    if (detailFreeActions.has(String(log.action || "").trim())) {
+      return "";
+    }
+
+    const details = parseDetails(log.details);
+    if (!details) {
+      return "";
+    }
+
+    if (typeof details === "string") {
+      return details;
+    }
+
+    const rawFile = String(details.file ?? details.filename ?? "").trim();
+    const format = String(details.format ?? "").trim();
+    const parts: string[] = [];
+
+    if (rawFile) parts.push(`${localDetailLabel("file")}: ${rawFile}`);
+    if (format) parts.push(`${localDetailLabel("format")}: ${upperFileType(format)}`);
+
+    const counters: Array<[string, any]> = [
+      ["count", details.count],
+      ["total_rows", details.total_rows],
+      ["inserted", details.inserted],
+      ["updated", details.updated],
+      ["skipped", details.skipped],
+      ["deleted", details.deleted],
+      ["exported", details.exported]
+    ];
+
+    for (const [key, value] of counters) {
+      if (value === null || value === undefined || value === "") continue;
+      parts.push(`${localDetailLabel(key)}: ${value}`);
+    }
+
+    const plainFields: Array<[string, any]> = [
+      ["page", details.page],
+      ["role", details.role],
+      ["status", details.status],
+      ["study_program", details.study_program],
+      ["direction", details.direction],
+      ["reason", details.reason]
+    ];
+
+    for (const [key, value] of plainFields) {
+      if (value === null || value === undefined || value === "") continue;
+      parts.push(`${localDetailLabel(key)}: ${localValue(String(value))}`);
+    }
+
+    if (parts.length) {
+      return parts.join(" • ");
+    }
+
+    const fallbackEntries = Object.entries(details)
+      .filter(([, value]) => value !== null && value !== undefined && value !== "")
+      .slice(0, 5)
+      .map(([key, value]) => `${localDetailLabel(key)}: ${typeof value === "string" ? localValue(value) : String(value)}`);
+
+    return fallbackEntries.join(" • ");
+  }
+
+  function formatDateTime(value: string) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    const locale = activeLang === "en" ? "en-GB" : "el-GR";
+    return new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    }).format(date);
   }
 
   const actionForApi = filters.action.trim();
@@ -220,8 +403,11 @@ export default function Logs() {
   const actorIdForApi = actorIsVisitor || !selectedActor ? undefined : selectedActor;
   const roleForApi = actorIsVisitor ? "visitor" : undefined;
 
-  const fileTypes: FileSummaryFileType[] = ["excel", "csv", "pdf", "png"];
-  const pageOrder: FileSummaryPage[] = ["graduates", "academicData", "regions", "statistics", "map", "logs"];
+  const summaryLayout = React.useMemo(() => getSummaryLayout(summaryRole), [summaryRole]);
+  const visibleSummaryRows = React.useMemo(
+    () => summaryLayout.pages.map((pageKey) => fileSummary.find((entry) => entry.page === pageKey)).filter(Boolean) as FileSummaryItem[],
+    [fileSummary, summaryLayout.pages]
+  );
 
   const actionOptions = React.useMemo(() => {
     const options = knownActionKeys.map((key) => ({ value: key, label: toLocalizedAction(key) }));
@@ -235,8 +421,8 @@ export default function Logs() {
       try {
         const data = await listUsers();
         if (cancelled) return;
-        const items = Array.isArray(data?.items) ? data.items : [];
-        const mapped = items
+        const users = Array.isArray(data?.items) ? data.items : [];
+        const mapped = users
           .map((user: User) => ({
             value: String(user.id),
             label: `${String(user.first_name ?? "").trim()} ${String(user.last_name ?? "").trim()}`.trim() || String(user.email ?? "").trim(),
@@ -352,7 +538,7 @@ export default function Logs() {
             className="input"
             value={summaryRole}
             onChange={(e) => setSummaryRole(e.target.value as FileSummaryRole)}
-            style={{ width: 220, minWidth: 220, maxWidth: "100%" }}
+            style={{ width: 230, minWidth: 230, maxWidth: "100%" }}
           >
             <option value="secretariat">{t("summary.roles.secretariat")}</option>
             <option value="super_admin">{t("summary.roles.admin")}</option>
@@ -360,38 +546,35 @@ export default function Logs() {
           </select>
         </div>
 
-        <div className="table-wrap">
-          <table className="table" style={{ minWidth: 1120 }}>
+        <div>
+          <table className="table logs-summary-table" style={{ width: "100%", tableLayout: "fixed" }}>
             <thead>
               <tr>
-                <th rowSpan={2}>{t("summary.page")}</th>
-                <th colSpan={fileTypes.length}>{t("summary.imports")}</th>
-                <th colSpan={fileTypes.length}>{t("summary.exports")}</th>
+                <th rowSpan={2} style={{ width: "28%" }}>{t("summary.page")}</th>
+                {summaryLayout.importTypes.length > 0 && <th colSpan={summaryLayout.importTypes.length}>{t("summary.imports")}</th>}
+                {summaryLayout.exportTypes.length > 0 && <th colSpan={summaryLayout.exportTypes.length}>{t("summary.exports")}</th>}
               </tr>
               <tr>
-                {fileTypes.map((fileType) => (
+                {summaryLayout.importTypes.map((fileType) => (
                   <th key={`import-${fileType}`}>{fileTypeLabel(fileType)}</th>
                 ))}
-                {fileTypes.map((fileType) => (
+                {summaryLayout.exportTypes.map((fileType) => (
                   <th key={`export-${fileType}`}>{fileTypeLabel(fileType)}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {pageOrder.map((pageKey) => {
-                const row = fileSummary.find((entry) => entry.page === pageKey);
-                return (
-                  <tr key={pageKey}>
-                    <td>{pageLabel(pageKey)}</td>
-                    {fileTypes.map((fileType) => (
-                      <td key={`${pageKey}-import-${fileType}`}>{row?.import?.[fileType] ?? 0}</td>
-                    ))}
-                    {fileTypes.map((fileType) => (
-                      <td key={`${pageKey}-export-${fileType}`}>{row?.export?.[fileType] ?? 0}</td>
-                    ))}
-                  </tr>
-                );
-              })}
+              {visibleSummaryRows.map((row) => (
+                <tr key={row.page}>
+                  <td>{pageLabel(row.page)}</td>
+                  {summaryLayout.importTypes.map((fileType) => (
+                    <td key={`${row.page}-import-${fileType}`}>{row.import?.[fileType] ?? 0}</td>
+                  ))}
+                  {summaryLayout.exportTypes.map((fileType) => (
+                    <td key={`${row.page}-export-${fileType}`}>{row.export?.[fileType] ?? 0}</td>
+                  ))}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -481,13 +664,13 @@ export default function Logs() {
 
       <div className="card logs-table-card" style={{ maxWidth: 1120, width: "100%", margin: "0 auto" }}>
         <div className="table-wrap">
-          <table className="table" style={{ minWidth: 1080 }}>
+          <table className="table" style={{ width: "100%", tableLayout: "fixed" }}>
             <thead>
               <tr>
-                <th>{t("table.id")}</th>
-                <th>{t("table.ts")}</th>
-                <th>{t("table.actor")}</th>
-                <th>{t("table.action")}</th>
+                <th style={{ width: 42 }}>{t("table.id")}</th>
+                <th style={{ width: 190 }}>{t("table.ts")}</th>
+                <th style={{ width: 150 }}>{t("table.actor")}</th>
+                <th style={{ width: 150 }}>{t("table.action")}</th>
                 <th>{t("table.details")}</th>
               </tr>
             </thead>
@@ -495,18 +678,11 @@ export default function Logs() {
               {items.map((l) => (
                 <tr key={l.id}>
                   <td>{l.id}</td>
-                  <td style={{ fontFamily: "monospace" }}>{l.created_at}</td>
+                  <td>{formatDateTime(l.created_at)}</td>
                   <td>{actorLabel(l)}</td>
                   <td>{toLocalizedAction(l.action)}</td>
-                  <td
-                    style={{
-                      maxWidth: 620,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {toLocalizedDetails(l.details)}
+                  <td style={{ whiteSpace: "normal", wordBreak: "break-word" }}>
+                    {formatLogDetails(l)}
                   </td>
                 </tr>
               ))}
