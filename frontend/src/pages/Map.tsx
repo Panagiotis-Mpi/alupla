@@ -49,7 +49,8 @@ type MapMetric = "count" | "dominant_gender" | "dominant_direction";
 
 const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
 const genderColors = { male: "#3b82f6", female: "#c084fc", balanced: "#cbd5e1", empty: "#e5e7eb" };
-const directionPalette = ["#2563eb", "#7c3aed", "#0f766e", "#ea580c", "#dc2626", "#0891b2", "#65a30d", "#9333ea"];
+const directionPalette = ["#2563eb", "#dc2626", "#16a34a", "#f59e0b", "#7c3aed", "#0891b2", "#e11d48", "#65a30d", "#ea580c", "#4f46e5", "#db2777", "#0f766e", "#b91c1c", "#0284c7", "#a16207", "#9333ea", "#15803d", "#c2410c", "#1d4ed8", "#be123c"];
+const chartPalette = directionPalette;
 
 function compactNumber(value: number | string | null | undefined) {
   if (value === null || value === undefined || value === "") return "-";
@@ -72,8 +73,16 @@ function hashLabel(value: string) {
   return hash;
 }
 
-function directionColor(label: string) {
+function buildDirectionColorMap(labels: string[]) {
+  const unique = Array.from(new Set(labels.map((label) => String(label || "").trim()).filter(Boolean)));
+  unique.sort((left, right) => left.localeCompare(right, "el"));
+  const pairs = unique.map((label, index) => [label, directionPalette[index % directionPalette.length]]);
+  return new Map<string, string>(pairs);
+}
+
+function directionColor(label: string, colorMap?: Map<string, string>) {
   if (!label) return genderColors.empty;
+  if (colorMap?.has(label)) return colorMap.get(label) || genderColors.empty;
   return directionPalette[hashLabel(label) % directionPalette.length];
 }
 
@@ -300,6 +309,17 @@ export default function GraduatesMapPage() {
       : String(item.name_el || item.name_en || item.code || ""),
   })), [i18n.language, studyPrograms]);
 
+  const directionColorMap = useMemo(() => {
+    if (mapMetric !== "dominant_direction") return new Map<string, string>();
+    const labels = items.flatMap((item) => {
+      const entries = Array.isArray(item.recent_directions) ? item.recent_directions : [];
+      const recentLabels = entries.map((entry: any) => String(entry?.label || "")).filter(Boolean);
+      const dominantLabel = item.dominant_recent_direction ? [String(item.dominant_recent_direction)] : [];
+      return [...recentLabels, ...dominantLabel];
+    });
+    return buildDirectionColorMap(labels);
+  }, [items, mapMetric]);
+
   const metricOptions = useMemo(() => ({
     count: {
       label: mt("metricOptions.count", { defaultValue: "Πλήθος αποφοίτων" }),
@@ -346,10 +366,10 @@ export default function GraduatesMapPage() {
     if (mapMetric === "dominant_direction") {
       return Array.from(new Set(items.map((item) => item.dominant_recent_direction).filter(Boolean) as string[]))
         .filter((label) => !isPlaceholderLegendLabel(label))
-        .map((label) => ({ label, color: directionColor(label) }));
+        .map((label) => ({ label, color: directionColor(label, directionColorMap) }));
     }
     return [] as Array<{ label: string; color: string }>;
-  }, [items, mapMetric, mt]);
+  }, [directionColorMap, items, mapMetric, mt]);
 
   const visibleLegendEntries = useMemo(() => {
     if (mapMetric === "count") {
@@ -411,7 +431,7 @@ export default function GraduatesMapPage() {
     if (mapMetric === "dominant_direction") {
       const label = match?.dominant_recent_direction || "";
       if (!match || !label) return { color: "#334155", weight: 1, fillColor: genderColors.empty, fillOpacity: 0.18 };
-      return { color: "#334155", weight: 1, fillColor: directionColor(label), fillOpacity: 0.82 };
+      return { color: "#334155", weight: 1, fillColor: directionColor(label, directionColorMap), fillOpacity: 0.82 };
     }
     const value = valuesRef.current.get(normalizeKey(featureName(feature))) ?? 0;
     return {
@@ -451,7 +471,7 @@ export default function GraduatesMapPage() {
       entryLayer.setStyle(styleForFeature(feature));
       if (entryLayer.getTooltip()) entryLayer.setTooltipContent(tooltipHtml(feature));
     });
-  }, [items, mapMetric, maxMetricValue, i18n.language]);
+  }, [directionColorMap, items, mapMetric, maxMetricValue, i18n.language]);
 
   const total = useMemo(() => items.reduce((sum, item) => sum + (Number(item.count) || 0), 0), [items]);
   const visibleCities = useVisibleCities(cityPoints, mapBounds, mapZoom);
@@ -628,7 +648,7 @@ export default function GraduatesMapPage() {
     const lineData = {
       labels: popupLabels,
       datasets: (cityDetail.datasets?.length ? cityDetail.datasets : [{ key: "count", label: mt("export.count", { defaultValue: "Απόφοιτοι" }), values: popupLabels.map(() => null) }]).map((dataset, index) => {
-        const color = directionColor(dataset.label || chartPalette[index % chartPalette.length]);
+        const color = directionColor(dataset.label || chartPalette[index % chartPalette.length], directionColorMap);
         return {
           label: dataset.label,
           data: dataset.values,
