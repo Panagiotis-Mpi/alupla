@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
 import Guard from "./components/Guard";
 import { getUser, logout } from "./lib/auth";
+import { pingPresence } from "./lib/api";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -146,6 +147,51 @@ function TopNav() {
   React.useEffect(() => {
     closeMenu();
   }, [closeMenu, location.pathname]);
+
+  React.useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    let stopped = false;
+
+    const sendPresence = async () => {
+      if (stopped || document.visibilityState === "hidden") {
+        return;
+      }
+
+      try {
+        await pingPresence();
+      } catch {
+      }
+    };
+
+    void sendPresence();
+
+    const intervalId = window.setInterval(() => {
+      void sendPresence();
+    }, 30_000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void sendPresence();
+      }
+    };
+
+    const handleFocus = () => {
+      void sendPresence();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      stopped = true;
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [user]);
 
   const visibleLinks = authRoute ? authLinks : navLinks;
 

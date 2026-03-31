@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
 
-const ONLINE_WINDOW_MS = 60_000;
+const ONLINE_WINDOW_MS = 90_000;
 const SALT_ROUNDS = 10;
 
 type AllowedRole = "super_admin" | "secretariat";

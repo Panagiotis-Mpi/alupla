@@ -2,14 +2,17 @@ import type { Request, Response } from "express";
 import { User } from "../models/User";
 
 export async function pingPresence(req: Request, res: Response) {
-  const authUser = (req as any).user as { id: number; role: string } | undefined;
-  if (!authUser) return res.status(401).json({ ok: false, error: { message: "Unauthorized" } });
+  const authUser = req.auth;
+  if (!authUser) {
+    return res.status(401).json({ ok: false, error: { message: "Unauthorized" } });
+  }
+
+  const now = new Date();
 
   await User.update(
-    { last_seen_at: new Date() } as any,
+    { last_seen_at: now } as any,
     { where: { id: authUser.id } }
   );
 
-
-  return res.json({ ok: true });
+  return res.json({ ok: true, last_seen_at: now.toISOString() });
 }

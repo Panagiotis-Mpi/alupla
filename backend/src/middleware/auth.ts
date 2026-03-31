@@ -91,9 +91,11 @@ function setAuthUser(req: Request, user: AuthUser) {
   req.auth = user;
 }
 
+const PRESENCE_TOUCH_INTERVAL_MS = 30 * 1000;
+
 function touchPresence(userId: number) {
   const now = new Date();
-  const cutoff = new Date(now.getTime() - 5 * 60 * 1000);
+  const cutoff = new Date(now.getTime() - PRESENCE_TOUCH_INTERVAL_MS);
 
   return User.update(
     { last_seen_at: now },
@@ -134,6 +136,18 @@ export function authRequired(req: Request, res: Response, next: NextFunction) {
   }
 }
 
+export function superAdminOnly(req: Request, res: Response, next: NextFunction) {
+  const currentUser = req.user;
+  if (!currentUser) {
+    return reject(res, 401, "Unauthorized");
+  }
+
+  if (currentUser.role !== "super_admin") {
+    return reject(res, 403, "Forbidden");
+  }
+
+  return next();
+}
 
 export function allowRoles(roles: Array<AuthUser["role"]>) {
   return (req: Request, res: Response, next: NextFunction) => {

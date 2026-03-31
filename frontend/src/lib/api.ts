@@ -398,7 +398,9 @@ export async function deactivateUser(id: number): Promise<any> {
   return api(`/users/${id}`, { method: "DELETE" });
 }
 
-
+export async function pingPresence(): Promise<any> {
+  return api("/presence/ping", { method: "POST" });
+}
 
 export async function listStudyPrograms(): Promise<{ ok: true; items: StudyProgram[] } | any> {
   return api("/study-programs", { method: "GET" });
@@ -628,6 +630,10 @@ export async function importGraduatesFile(file: File, lang?: string): Promise<an
   return await res.json();
 }
 
+export async function getPublicStudyPrograms(): Promise<{ ok: true; items: StudyProgram[] } | any> {
+  return api("/public/study-programs", { method: "GET" });
+}
+
 export async function getPublicStats(params: {
   graduation_year?: string;
   study_program_id?: string;
@@ -635,6 +641,31 @@ export async function getPublicStats(params: {
   age_group?: string;
 } = {}): Promise<any> {
   return api(`/public/stats${toQueryString(params)}`, { method: "GET" });
+}
+
+export async function getPublicMap(params: {
+  graduation_year?: string;
+  study_program_id?: string;
+  gender?: string;
+  age_group?: string;
+} = {}): Promise<any> {
+  return api(`/public/map${toQueryString(params)}`, { method: "GET" });
+}
+
+export function publicAnonExportUrl(params: {
+  graduation_year?: string;
+  study_program_id?: string;
+  gender?: string;
+  age_group?: string;
+  counts_mode?: string;
+  gender_mode?: string;
+}) {
+  const q = new URLSearchParams();
+  appendQuery(q, params);
+  const token = getToken();
+  if (token) q.set("token", token);
+  const qs = q.toString();
+  return `${API_URL}/public/anonymous-graduates.xls${qs ? `?${qs}` : ""}`;
 }
 
 export async function logPublicExport(action: "map_export" | "statistics_export", format: string): Promise<any> {
