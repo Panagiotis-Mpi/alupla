@@ -4,13 +4,15 @@ import {
   listActivityLogs,
   activityLogsExportUrl,
   getActivityLogFileSummary,
+  listUsers,
   type ActivityLog,
+  type User,
 } from "../lib/api";
 
 const PAGE_SIZE = 20;
 
 type LogFilters = {
-  role: "" | FileSummaryRole;
+  actor: string;
   action: string;
 };
 
@@ -31,7 +33,7 @@ type ActivityLogListResponse = {
 };
 
 const emptyFilters: LogFilters = {
-  role: "",
+  actor: "",
   action: "",
 };
 
@@ -180,6 +182,7 @@ export default function Logs() {
   const [filters, setFilters] = React.useState<LogFilters>(emptyFilters);
   const [summaryRole, setSummaryRole] = React.useState<FileSummaryRole>("secretariat");
   const [fileSummary, setFileSummary] = React.useState<FileSummaryItem[]>([]);
+  const [userOptions, setUserOptions] = React.useState<Array<{ value: string; label: string }>>([]);
 
   function setFilter<K extends keyof LogFilters>(key: K, value: LogFilters[K]) {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -190,15 +193,9 @@ export default function Logs() {
     const ln = (l?.user?.last_name ?? "").trim();
     const full = `${fn} ${ln}`.trim();
     if (full) return full;
-    return activeLang === "en" ? "System" : "Σύστημα";
+    return t("summary.roles.visitor");
   }
 
-  function roleLabel(role: string) {
-    if (role === "secretariat") return t("summary.roles.secretariat");
-    if (role === "super_admin") return t("summary.roles.admin");
-    if (role === "visitor") return t("summary.roles.visitor");
-    return t("filters.all");
-  }
 
   function toLocalizedAction(v: any): string {
     const key = String(v ?? "").trim();
@@ -218,7 +215,10 @@ export default function Logs() {
   }
 
   const actionForApi = filters.action.trim();
-  const roleForApi = filters.role;
+  const selectedActor = filters.actor;
+  const actorIsVisitor = selectedActor === "visitor";
+  const actorIdForApi = actorIsVisitor || !selectedActor ? undefined : selectedActor;
+  const roleForApi = actorIsVisitor ? "visitor" : undefined;
 
   const fileTypes: FileSummaryFileType[] = ["excel", "csv", "pdf", "png"];
   const pageOrder: FileSummaryPage[] = ["graduates", "academicData", "regions", "statistics", "map", "logs"];
@@ -227,6 +227,34 @@ export default function Logs() {
     const options = knownActionKeys.map((key) => ({ value: key, label: toLocalizedAction(key) }));
     return options.sort((a, b) => a.label.localeCompare(b.label, activeLang === "gr" ? "el" : "en"));
   }, [activeLang]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function loadUsers() {
+      try {
+        const data = await listUsers();
+        if (cancelled) return;
+        const items = Array.isArray(data?.items) ? data.items : [];
+        const mapped = items
+          .map((user: User) => ({
+            value: String(user.id),
+            label: `${String(user.first_name ?? "").trim()} ${String(user.last_name ?? "").trim()}`.trim() || String(user.email ?? "").trim(),
+          }))
+          .filter((user: { value: string; label: string }) => user.label)
+          .sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label, activeLang === "gr" ? "el" : "en"));
+
+        setUserOptions([{ value: "visitor", label: t("summary.roles.visitor") }, ...mapped]);
+      } catch {
+        if (!cancelled) setUserOptions([{ value: "visitor", label: t("summary.roles.visitor") }]);
+      }
+    }
+
+    void loadUsers();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeLang, t]);
 
   function pageLabel(pageKey: FileSummaryPage) {
     if (pageKey === "graduates") return t("summary.pages.graduates");
@@ -261,6 +289,7 @@ export default function Logs() {
         page: nextPage,
         pageSize: PAGE_SIZE,
         action: actionForApi || undefined,
+        user_id: actorIdForApi,
         role: roleForApi || undefined,
       }) as ActivityLogListResponse;
       setItems(data.items ?? []);
@@ -286,6 +315,7 @@ export default function Logs() {
   function onExport() {
     const url = activityLogsExportUrl({
       action: actionForApi || undefined,
+      user_id: actorIdForApi,
       role: roleForApi || undefined,
     });
     const a = document.createElement("a");
@@ -298,14 +328,6 @@ export default function Logs() {
 
   return (
     <div className="grid" style={{ gap: 14 }}>
-      <div className="topbar">
-        <h2 style={{ margin: 0 }}>{t("title")}</h2>
-        <button className="btn" onClick={onExport}>
-          {t("actions.exportCsv")}
-        </button>
-        <div className="spacer" />
-      </div>
-
       {err && (
         <div
           className="card"
@@ -315,8 +337,16 @@ export default function Logs() {
         </div>
       )}
 
-      <div className="card logs-summary-card">
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap" }}>
+      <div className="card logs-summary-card" style={{ maxWidth: 1120, width: "100%", margin: "0 auto" }}>
+        <div className="topbar" style={{ alignItems: "center", marginBottom: 12 }}>
+          <h2 style={{ margin: 0 }}>{t("title")}</h2>
+          <button className="btn" onClick={onExport} style={{ minWidth: 170 }}>
+            {t("actions.exportCsv")}
+          </button>
+          <div className="spacer" />
+        </div>
+
+        <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap" }}>
           <h3 style={{ margin: 0 }}>{t("summary.title")}</h3>
           <select
             className="input"
@@ -367,19 +397,21 @@ export default function Logs() {
         </div>
       </div>
 
-      <div className="card logs-filters-card">
+      <div className="card logs-filters-card" style={{ maxWidth: 1120, width: "100%", margin: "0 auto" }}>
         <div className="grid cols2" style={{ gap: 14 }}>
           <div>
             <label className="label">{t("filters.actor")}</label>
             <select
               className="input"
-              value={filters.role}
-              onChange={(e) => setFilter("role", e.target.value as LogFilters["role"])}
+              value={filters.actor}
+              onChange={(e) => setFilter("actor", e.target.value)}
             >
               <option value="">{t("filters.all")}</option>
-              <option value="secretariat">{roleLabel("secretariat")}</option>
-              <option value="super_admin">{roleLabel("super_admin")}</option>
-              <option value="visitor">{roleLabel("visitor")}</option>
+              {userOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -447,7 +479,7 @@ export default function Logs() {
         </div>
       </div>
 
-      <div className="card logs-table-card">
+      <div className="card logs-table-card" style={{ maxWidth: 1120, width: "100%", margin: "0 auto" }}>
         <div className="table-wrap">
           <table className="table" style={{ minWidth: 1080 }}>
             <thead>

@@ -175,7 +175,12 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
       ];
     }
 
-    if (role !== "all") {
+    if (role === "visitor") {
+      where[Op.and] = [
+        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
+        { user_id: null }
+      ];
+    } else if (role !== "all") {
       where[Op.and] = [
         ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
         { "$user.role$": role }
@@ -257,7 +262,12 @@ export async function exportActivityLogsCsv(req: Request, res: Response, next: N
       ];
     }
 
-    if (role !== "all") {
+    if (role === "visitor") {
+      where[Op.and] = [
+        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
+        { user_id: null }
+      ];
+    } else if (role !== "all") {
       where[Op.and] = [
         ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
         { "$user.role$": role }
