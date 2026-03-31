@@ -580,15 +580,17 @@ export async function getMapCityDetail(params: Record<string, any> = {}): Promis
   return api(`/map/city-detail${toQueryString(params)}`, { method: "GET" });
 }
 
-export function activityLogsExportUrl(params: Record<string, any> = {}): string {
+export function activityLogsExportUrl(format: "csv" | "xlsx", params: Record<string, any> = {}, lang?: string): string {
   const q = new URLSearchParams();
   appendQuery(q, params);
+
+  if (lang) q.set("lang", lang);
 
   const token = getToken();
   if (token) q.set("token", token);
 
   const qs = q.toString();
-  return `${API_URL}/activity-logs/export.csv${qs ? `?${qs}` : ""}`;
+  return `${API_URL}/activity-logs/export.${format}${qs ? `?${qs}` : ""}`;
 }
 
 

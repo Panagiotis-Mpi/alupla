@@ -14,11 +14,11 @@
     "resource": "Resource"
   },
   "actions": {
-    "exportCsv": "Export CSV"
+    "export": "Export"
   },
   "table": {
     "id": "#",
-    "ts": "Date - Time",
+    "ts": "Time, Date",
     "level": "Level",
     "actor": "Actor",
     "action": "Action",

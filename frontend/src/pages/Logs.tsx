@@ -190,7 +190,7 @@ function getSummaryLayout(role: FileSummaryRole): SummaryLayout {
     return {
       pages: ["statistics", "map"],
       importTypes: [],
-      exportTypes: ["excel", "csv", "pdf", "png"]
+      exportTypes: ["excel", "csv", "png"]
     };
   }
 
@@ -231,6 +231,8 @@ export default function Logs() {
   const [summaryRole, setSummaryRole] = React.useState<FileSummaryRole>("secretariat");
   const [fileSummary, setFileSummary] = React.useState<FileSummaryItem[]>([]);
   const [userOptions, setUserOptions] = React.useState<Array<{ value: string; label: string }>>([]);
+  const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
+  const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
 
   function setFilter<K extends keyof LogFilters>(key: K, value: LogFilters[K]) {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -387,14 +389,17 @@ export default function Logs() {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
     const locale = activeLang === "en" ? "en-GB" : "el-GR";
-    return new Intl.DateTimeFormat(locale, {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
+    const time = new Intl.DateTimeFormat(locale, {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit"
     }).format(date);
+    const day = new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).format(date);
+    return `${time}, ${day}`;
   }
 
   const actionForApi = filters.action.trim();
@@ -498,18 +503,34 @@ export default function Logs() {
     void loadFileSummary(summaryRole);
   }, [summaryRole]);
 
-  function onExport() {
-    const url = activityLogsExportUrl({
-      action: actionForApi || undefined,
-      user_id: actorIdForApi,
-      role: roleForApi || undefined,
-    });
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!exportMenuRef.current?.contains(event.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  function onExport(format: "csv" | "xlsx") {
+    const url = activityLogsExportUrl(
+      format,
+      {
+        action: actionForApi || undefined,
+        user_id: actorIdForApi,
+        role: roleForApi || undefined,
+      },
+      activeLang
+    );
     const a = document.createElement("a");
     a.href = url;
-    a.download = `logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.csv`;
+    a.download = `logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${format}`;
     document.body.appendChild(a);
     a.click();
     a.remove();
+    setExportMenuOpen(false);
   }
 
   return (
@@ -526,10 +547,37 @@ export default function Logs() {
       <div className="card logs-summary-card" style={{ maxWidth: 1120, width: "100%", margin: "0 auto" }}>
         <div className="topbar" style={{ alignItems: "center", marginBottom: 12 }}>
           <h2 style={{ margin: 0 }}>{t("title")}</h2>
-          <button className="btn" onClick={onExport} style={{ minWidth: 170 }}>
-            {t("actions.exportCsv")}
-          </button>
           <div className="spacer" />
+          <div ref={exportMenuRef} style={{ position: "relative" }}>
+            <button className="btn" onClick={() => setExportMenuOpen((current) => !current)} style={{ minWidth: 170 }}>
+              {t("actions.export")}
+            </button>
+            {exportMenuOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 8px)",
+                  right: 0,
+                  width: 170,
+                  background: "#fff",
+                  border: "1px solid var(--border)",
+                  borderRadius: 14,
+                  boxShadow: "0 18px 40px rgba(15,23,42,.16)",
+                  padding: 8,
+                  zIndex: 50,
+                  display: "grid",
+                  gap: 6,
+                }}
+              >
+                <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => onExport("xlsx")}>
+                  {t("summary.fileTypes.excel")}
+                </button>
+                <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => onExport("csv")}>
+                  {t("summary.fileTypes.csv")}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap" }}>

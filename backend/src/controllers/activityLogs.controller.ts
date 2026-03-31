@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { Op } from "sequelize";
+import XLSX from "xlsx";
 import { ActivityLog } from "../models/ActivityLog";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
@@ -9,6 +10,95 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
 const EXPORT_LIMIT = 5000;
+
+const actionLabels = {
+  gr: {
+    login: "Σύνδεση",
+    logout: "Αποσύνδεση",
+    register: "Εγγραφή",
+    request_password_reset: "Αίτημα αλλαγής κωδικού",
+    reset_password: "Επαναφορά κωδικού",
+    change_password: "Αλλαγή κωδικού",
+    update_profile: "Ενημέρωση προφίλ",
+    upload: "Μεταφόρτωση αρχείου",
+    import_graduates: "Εισαγωγή αποφοίτων",
+    export_graduates: "Εξαγωγή αποφοίτων",
+    export_csv: "Εξαγωγή CSV",
+    export_xlsx: "Εξαγωγή Excel",
+    export_pdf: "Εξαγωγή PDF",
+    map_export: "Εξαγωγή χάρτη",
+    statistics_export: "Εξαγωγή στατιστικών",
+    create_user: "Δημιουργία χρήστη",
+    update_user: "Ενημέρωση χρήστη",
+    reject_user: "Απόρριψη χρήστη",
+    approve_user: "Αποδοχή χρήστη",
+    deactivate_user: "Διαγραφή χρήστη",
+    delete_user: "Διαγραφή χρήστη",
+    "διαγραφή χρήστη": "Διαγραφή χρήστη",
+    create_graduate: "Δημιουργία αποφοίτου",
+    update_graduate: "Ενημέρωση αποφοίτου",
+    delete_graduate: "Διαγραφή αποφοίτου",
+    create_study_program: "Δημιουργία προγράμματος σπουδών",
+    update_study_program: "Ενημέρωση προγράμματος σπουδών",
+    delete_study_program: "Διαγραφή προγράμματος σπουδών",
+    import_study_programs: "Εισαγωγή προγραμμάτων σπουδών",
+    create_program_direction: "Δημιουργία κατεύθυνσης",
+    update_program_direction: "Ενημέρωση κατεύθυνσης",
+    delete_program_direction: "Διαγραφή κατεύθυνσης",
+    import_program_directions: "Εισαγωγή κατευθύνσεων",
+    create_region_periphery: "Δημιουργία περιφέρειας",
+    update_region_periphery: "Ενημέρωση περιφέρειας",
+    delete_region_periphery: "Διαγραφή περιφέρειας",
+    import_region_peripheries: "Εισαγωγή περιφερειών",
+    create_region_city: "Δημιουργία πόλης",
+    update_region_city: "Ενημέρωση πόλης",
+    delete_region_city: "Διαγραφή πόλης",
+    import_region_cities: "Εισαγωγή πόλεων"
+  },
+  en: {
+    login: "Login",
+    logout: "Logout",
+    register: "Registration",
+    request_password_reset: "Password reset request",
+    reset_password: "Password reset",
+    change_password: "Password change",
+    update_profile: "Profile update",
+    upload: "File upload",
+    import_graduates: "Graduate import",
+    export_graduates: "Graduate export",
+    export_csv: "CSV export",
+    export_xlsx: "Excel export",
+    export_pdf: "PDF export",
+    map_export: "Map export",
+    statistics_export: "Statistics export",
+    create_user: "User creation",
+    update_user: "User update",
+    reject_user: "User rejection",
+    approve_user: "User approval",
+    deactivate_user: "User deletion",
+    delete_user: "User deletion",
+    "διαγραφή χρήστη": "User deletion",
+    create_graduate: "Graduate creation",
+    update_graduate: "Graduate update",
+    delete_graduate: "Graduate deletion",
+    create_study_program: "Study program creation",
+    update_study_program: "Study program update",
+    delete_study_program: "Study program deletion",
+    import_study_programs: "Study program import",
+    create_program_direction: "Direction creation",
+    update_program_direction: "Direction update",
+    delete_program_direction: "Direction deletion",
+    import_program_directions: "Direction import",
+    create_region_periphery: "Periphery creation",
+    update_region_periphery: "Periphery update",
+    delete_region_periphery: "Periphery deletion",
+    import_region_peripheries: "Periphery import",
+    create_region_city: "City creation",
+    update_region_city: "City update",
+    delete_region_city: "City deletion",
+    import_region_cities: "City import"
+  }
+} as const;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -242,44 +332,209 @@ export async function getActivityLogFileSummary(req: Request, res: Response, nex
   }
 }
 
+
+function getLanguage(req: Request) {
+  const lang = String(req.query.lang ?? "gr").trim().toLowerCase();
+  return lang.startsWith("en") ? "en" : "gr";
+}
+
+function localDetailLabel(lang: "gr" | "en", key: string) {
+  const labels = lang === "en"
+    ? {
+        file: "File",
+        format: "Type",
+        count: "Rows",
+        total_rows: "Total rows",
+        inserted: "New",
+        updated: "Updated",
+        skipped: "Skipped",
+        deleted: "Deleted",
+        exported: "Exported",
+        page: "Page",
+        years: "Years",
+        role: "Role",
+        status: "Status",
+        study_program: "Study program",
+        direction: "Direction",
+        reason: "Reason"
+      }
+    : {
+        file: "Αρχείο",
+        format: "Τύπος",
+        count: "Γραμμές",
+        total_rows: "Σύνολο γραμμών",
+        inserted: "Νέες",
+        updated: "Ενημερωμένες",
+        skipped: "Παραλείφθηκαν",
+        deleted: "Διαγράφηκαν",
+        exported: "Εξήχθησαν",
+        page: "Σελίδα",
+        years: "Έτη",
+        role: "Ρόλος",
+        status: "Κατάσταση",
+        study_program: "Πρόγραμμα σπουδών",
+        direction: "Κατεύθυνση",
+        reason: "Λόγος"
+      };
+
+  return labels[key as keyof typeof labels] ?? key;
+}
+
+function upperFileType(value: string) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "xlsx" || normalized === "xls") return "Excel";
+  if (normalized === "csv") return "CSV";
+  if (normalized === "pdf") return "PDF";
+  if (normalized === "png") return "PNG";
+  return value;
+}
+
+function localValue(lang: "gr" | "en", value: string) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return "";
+  if (normalized === "visitor") return lang === "en" ? "Visitor" : "Επισκέπτης";
+  if (normalized === "secretariat") return lang === "en" ? "Secretariat" : "Γραμματεία";
+  if (normalized === "super_admin") return lang === "en" ? "Administrator" : "Διαχειριστής";
+  if (normalized === "graduates") return lang === "en" ? "Graduates" : "Απόφοιτοι";
+  if (normalized === "academicData") return lang === "en" ? "Academic data" : "Ακαδημαϊκά δεδομένα";
+  if (normalized === "regions") return lang === "en" ? "Regions" : "Περιοχές";
+  if (normalized === "statistics") return lang === "en" ? "Statistics" : "Στατιστικά";
+  if (normalized === "map") return lang === "en" ? "Map" : "Χάρτης";
+  if (normalized === "logs") return lang === "en" ? "Logs" : "Καταγραφές";
+  return normalized;
+}
+
+function parseDetails(value: unknown) {
+  if (value && typeof value === "object") return value as Record<string, unknown>;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  try {
+    return JSON.parse(trimmed) as Record<string, unknown>;
+  } catch {
+    return trimmed;
+  }
+}
+
+function getLocalizedAction(lang: "gr" | "en", value: unknown) {
+  const key = String(value ?? "").trim();
+  return actionLabels[lang][key as keyof typeof actionLabels.gr] ?? key.replace(/_/g, " ");
+}
+
+function getLocalizedDetails(lang: "gr" | "en", log: any) {
+  const action = String(log?.action ?? "").trim();
+  if (["login", "logout", "register", "request_password_reset", "reset_password", "change_password"].includes(action)) {
+    return "";
+  }
+
+  const details = parseDetails(log?.details);
+  if (!details) return "";
+  if (typeof details === "string") return details;
+
+  const rawFile = String(details.file ?? details.filename ?? "").trim();
+  const format = String(details.format ?? "").trim();
+  const parts: string[] = [];
+
+  if (rawFile) parts.push(`${localDetailLabel(lang, "file")}: ${rawFile}`);
+  if (format) parts.push(`${localDetailLabel(lang, "format")}: ${upperFileType(format)}`);
+
+  for (const [key, value] of [["count", details.count], ["total_rows", details.total_rows], ["inserted", details.inserted], ["updated", details.updated], ["skipped", details.skipped], ["deleted", details.deleted], ["exported", details.exported]] as Array<[string, unknown]>) {
+    if (value === null || value === undefined || value === "") continue;
+    parts.push(`${localDetailLabel(lang, key)}: ${value}`);
+  }
+
+  for (const [key, value] of [["page", details.page], ["role", details.role], ["status", details.status], ["study_program", details.study_program], ["direction", details.direction], ["reason", details.reason]] as Array<[string, unknown]>) {
+    if (value === null || value === undefined || value === "") continue;
+    parts.push(`${localDetailLabel(lang, key)}: ${localValue(lang, String(value))}`);
+  }
+
+  if (parts.length) return parts.join(" • ");
+
+  return Object.entries(details)
+    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .slice(0, 5)
+    .map(([key, value]) => `${localDetailLabel(lang, key)}: ${typeof value === "string" ? localValue(lang, value) : String(value)}`)
+    .join(" • ");
+}
+
+function getActorLabel(lang: "gr" | "en", row: any) {
+  const fn = String(row?.user?.first_name ?? "").trim();
+  const ln = String(row?.user?.last_name ?? "").trim();
+  const full = `${fn} ${ln}`.trim();
+  return full || (lang === "en" ? "Visitor" : "Επισκέπτης");
+}
+
+function formatDateTime(lang: "gr" | "en", value: unknown) {
+  const date = new Date(String(value ?? ""));
+  if (Number.isNaN(date.getTime())) return String(value ?? "");
+  const locale = lang === "en" ? "en-GB" : "el-GR";
+  const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(date);
+  const day = new Intl.DateTimeFormat(locale, { year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+  return `${time}, ${day}`;
+}
+
+async function findLogsForExport(req: Request) {
+  const actor = nonEmptyString(req.query.actor);
+  const role = getRoleFilter(req);
+  const where = buildLogFilters(req);
+
+  if (actor) {
+    where[Op.and] = [
+      ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
+      {
+        [Op.or]: [
+          { "$user.first_name$": { [Op.like]: `%${actor}%` } },
+          { "$user.last_name$": { [Op.like]: `%${actor}%` } },
+          { "$user.email$": { [Op.like]: `%${actor}%` } },
+          { [Op.and]: [{ "$user.first_name$": { [Op.like]: `%${actor.split(/\s+/)[0] ?? actor}%` } }, { "$user.last_name$": { [Op.like]: `%${actor.split(/\s+/).slice(1).join(" ") || actor}%` } }] }
+        ]
+      }
+    ];
+  }
+
+  if (role === "visitor") {
+    where[Op.and] = [
+      ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
+      { user_id: null }
+    ];
+  } else if (role !== "all") {
+    where[Op.and] = [
+      ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
+      { "$user.role$": role }
+    ];
+  }
+
+  return ActivityLog.findAll({
+    where,
+    order: [["created_at", "DESC"]],
+    limit: EXPORT_LIMIT,
+    include: [{ model: User, as: "user", attributes: ["id", "email", "first_name", "last_name", "role"], required: false }]
+  });
+}
+
+function getExportRows(lang: "gr" | "en", rows: any[]) {
+  return rows.map((row) => ({
+    [lang === "en" ? "#" : "#"]: row.id,
+    [lang === "en" ? "Time, Date" : "Ώρα, Ημερομηνία"]: formatDateTime(lang, row.created_at),
+    [lang === "en" ? "User" : "Χρήστης"]: getActorLabel(lang, row),
+    [lang === "en" ? "Action" : "Ενέργεια"]: getLocalizedAction(lang, row.action),
+    [lang === "en" ? "Details" : "Λεπτομέρειες"]: getLocalizedDetails(lang, row)
+  }));
+}
+
+function toCsv(data: Array<Record<string, unknown>>) {
+  if (!data.length) return "";
+  const headers = Object.keys(data[0]);
+  const header = headers.map(csvEscape).join(",");
+  const rows = data.map((row) => headers.map((key) => csvEscape(row[key])).join(","));
+  return [header, ...rows].join("\n");
+}
+
 export async function exportActivityLogsCsv(req: Request, res: Response, next: NextFunction) {
   try {
-    const actor = nonEmptyString(req.query.actor);
-    const role = getRoleFilter(req);
-    const where = buildLogFilters(req);
-
-    if (actor) {
-      where[Op.and] = [
-        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-        {
-          [Op.or]: [
-            { "$user.first_name$": { [Op.like]: `%${actor}%` } },
-            { "$user.last_name$": { [Op.like]: `%${actor}%` } },
-            { "$user.email$": { [Op.like]: `%${actor}%` } },
-            { [Op.and]: [{ "$user.first_name$": { [Op.like]: `%${actor.split(/\s+/)[0] ?? actor}%` } }, { "$user.last_name$": { [Op.like]: `%${actor.split(/\s+/).slice(1).join(" ") || actor}%` } }] }
-          ]
-        }
-      ];
-    }
-
-    if (role === "visitor") {
-      where[Op.and] = [
-        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-        { user_id: null }
-      ];
-    } else if (role !== "all") {
-      where[Op.and] = [
-        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-        { "$user.role$": role }
-      ];
-    }
-
-    const rows = await ActivityLog.findAll({
-      where,
-      order: [["created_at", "DESC"]],
-      limit: EXPORT_LIMIT,
-      include: [{ model: User, as: "user", attributes: ["id", "email", "first_name", "last_name", "role"], required: false }]
-    });
+    const lang = getLanguage(req);
+    const rows = await findLogsForExport(req);
 
     await logAction({
       user_id: req.user?.id ?? null,
@@ -289,11 +544,36 @@ export async function exportActivityLogsCsv(req: Request, res: Response, next: N
       details: { format: "csv", count: rows.length }
     });
 
-    const header = ["id", "created_at", "user_id", "action", "entity_type", "entity_id", "details"].join(",") + "\n";
-    const body = rows.map(toCsvRow).join("\n");
+    const csv = toCsv(getExportRows(lang, rows as any[]));
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", "attachment; filename=activity_logs.csv");
-    res.send(header + body);
+    res.send(csv);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function exportActivityLogsXlsx(req: Request, res: Response, next: NextFunction) {
+  try {
+    const lang = getLanguage(req);
+    const rows = await findLogsForExport(req);
+
+    await logAction({
+      user_id: req.user?.id ?? null,
+      action: "export_xlsx",
+      entity_type: "logs",
+      entity_id: null,
+      details: { format: "xlsx", count: rows.length }
+    });
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(getExportRows(lang, rows as any[]));
+    XLSX.utils.book_append_sheet(workbook, worksheet, lang === "en" ? "Logs" : "Καταγραφές");
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=activity_logs.xlsx");
+    res.send(buffer);
   } catch (error) {
     next(error);
   }
