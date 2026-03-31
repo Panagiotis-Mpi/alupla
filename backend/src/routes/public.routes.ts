@@ -1,10 +1,8 @@
-import { Router } from "express";
-import { listPublicStudyPrograms, publicAnonymousGraduatesCsv, publicExportActivity, publicStats } from "../controllers/public.controller";
+import express from "express";
+import { publicStudyPrograms } from "../controllers/public.controller";
 
-export const publicRouter = Router();
+const router = express.Router();
 
-publicRouter.get("/stats", publicStats);
-publicRouter.get("/study-programs", listPublicStudyPrograms);
-publicRouter.get("/anonymous-graduates.xls", publicAnonymousGraduatesCsv);
+router.get("/study-programs", publicStudyPrograms);
 
-publicRouter.post("/activity-export", publicExportActivity);
+export default router;
