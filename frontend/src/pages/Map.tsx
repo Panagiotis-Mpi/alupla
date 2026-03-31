@@ -271,16 +271,21 @@ export default function GraduatesMapPage() {
   const visibleLegendEntries = useMemo(() => {
     if (mapMetric === "count") {
       const scaleBuckets = legendBuckets(maxMetricValue);
-      return Array.from({ length: 5 }).map((_, index) => {
-        const from = scaleBuckets[index];
-        const to = scaleBuckets[index + 1];
-        const mid = (from + to) / 2;
-        return {
-          key: `${from}-${to}`,
-          label: `${Math.round(from)}–${Math.round(to)}`,
+      const seen = new Set<string>();
+      return Array.from({ length: 5 }).flatMap((_, index) => {
+        const from = Math.round(scaleBuckets[index]);
+        const to = Math.round(scaleBuckets[index + 1]);
+        if (from === 1 && to === 1) return [];
+        const key = `${from}-${to}`;
+        if (seen.has(key)) return [];
+        seen.add(key);
+        const mid = (scaleBuckets[index] + scaleBuckets[index + 1]) / 2;
+        return [{
+          key,
+          label: `${from}–${to}`,
           color: fillColorForCount(mid, maxMetricValue, fillColors),
           opacity: fillOpacityForCount(mid),
-        };
+        }];
       });
     }
     return categoricalLegendEntries
