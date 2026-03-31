@@ -664,9 +664,13 @@ export default function GraduatesMapPage() {
         .map-top-menu-title { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .map-top-menu-title h2 { margin: 0; }
         .map-metric-group { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; }
-        .map-program-filter { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; width: 100%; }
-        .map-metric-button, .map-action-button { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; }
-        .map-metric-button.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+        .map-metric-button, .map-action-button, .map-program-select-wrap { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; }
+        .map-metric-button.active, .map-program-select-wrap.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+        .map-program-select-wrap { position: relative; overflow: hidden; padding: 0; }
+        .map-program-select { width: 100%; min-height: 44px; border: 0; outline: none; appearance: none; -webkit-appearance: none; background: transparent; color: inherit; font: inherit; padding: 0 42px 0 16px; cursor: pointer; }
+        .map-program-select-wrap:not(.active) .map-program-select { color: #0f172a; }
+        .map-program-select-wrap.active .map-program-select { color: #fff; font-weight: 700; }
+        .map-program-select-arrow { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 14px; color: inherit; }
         .map-export-menu { position: absolute; top: calc(100% + 8px); right: 0; width: 220px; background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 18px 40px rgba(15,23,42,.16); padding: 8px; z-index: 3000; display: grid; gap: 6px; }
         .map-export-item { width: 100%; border: 0; background: transparent; text-align: left; padding: 10px 12px; border-radius: 10px; cursor: pointer; font: inherit; }
         .map-export-item:hover { background: #f8fafc; }
@@ -701,7 +705,7 @@ export default function GraduatesMapPage() {
         .map-city-popup-program-title { font-size: 13px; font-weight: 800; color: #0f172a; }
         .map-city-popup-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #334155; font-size: 13px; }
         @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @media (max-width: 640px) { .map-metric-group, .map-summary-grid, .map-city-cards-inline, .map-program-filter { grid-template-columns: 1fr; } }
+        @media (max-width: 640px) { .map-metric-group, .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } }
       `}</style>
 
       <div className="card map-top-menu-card">
@@ -710,11 +714,31 @@ export default function GraduatesMapPage() {
           <span className="badge">{loading ? ct("loading", { defaultValue: "Φόρτωση..." }) : `${total} ${mt("totalInline", { defaultValue: "σύνολο" })}`}</span>
         </div>
         <div className="map-metric-group">
-          {(["count", "dominant_gender", "dominant_direction"] as MapMetric[]).map((option) => (
+          {(["count", "dominant_gender"] as MapMetric[]).map((option) => (
             <button key={option} type="button" className={`btn map-metric-button ${mapMetric === option ? "active primary" : ""}`} onClick={() => setMapMetric(option)}>
               {metricOptions[option].label}
             </button>
           ))}
+          <div className={`btn map-program-select-wrap ${mapMetric === "dominant_direction" ? "active primary" : ""}`}>
+            <select
+              className="map-program-select"
+              value={selectedStudyProgramId}
+              onChange={(event) => {
+                setSelectedStudyProgramId(event.target.value);
+                setMapMetric("dominant_direction");
+              }}
+              onFocus={() => setMapMetric("dominant_direction")}
+              aria-label={mt("filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })}
+            >
+              {!selectedStudyProgramId ? (
+                <option value="">{metricOptions.dominant_direction.label}</option>
+              ) : null}
+              {studyProgramOptions.map((program) => (
+                <option key={program.id} value={program.id}>{program.label}</option>
+              ))}
+            </select>
+            <span className="map-program-select-arrow">▾</span>
+          </div>
           <div ref={exportMenuRef} style={{ position: "relative" }}>
             <button className="btn map-action-button" type="button" style={{ width: "100%" }} onClick={() => setShowExportMenu((prev) => !prev)}>
               {ct("export", { defaultValue: "Εξαγωγή" })}
@@ -728,20 +752,6 @@ export default function GraduatesMapPage() {
             ) : null}
           </div>
         </div>
-        {mapMetric === "dominant_direction" ? (
-          <div className="map-program-filter">
-            <select
-              className="input"
-              value={selectedStudyProgramId}
-              onChange={(event) => setSelectedStudyProgramId(event.target.value)}
-              aria-label={mt("filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })}
-            >
-              {studyProgramOptions.map((program) => (
-                <option key={program.id} value={program.id}>{program.label}</option>
-              ))}
-            </select>
-          </div>
-        ) : null}
       </div>
 
       <div className="map-summary-grid">

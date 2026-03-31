@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { QueryTypes } from "sequelize";
 import XLSX from "xlsx";
 import { sequelize } from "../config/sequelize";

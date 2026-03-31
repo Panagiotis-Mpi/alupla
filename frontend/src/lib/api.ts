@@ -391,7 +391,14 @@ export async function pingPresence(): Promise<any> {
 }
 
 export async function listStudyPrograms(): Promise<{ ok: true; items: StudyProgram[] } | any> {
-  return api("/study-programs", { method: "GET" });
+  if (!getToken()) return api("/public/study-programs", { method: "GET" });
+  try {
+    return await api("/study-programs", { method: "GET" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (/401|403|unauthorized|forbidden/i.test(message)) return api("/public/study-programs", { method: "GET" });
+    throw error;
+  }
 }
 
 
