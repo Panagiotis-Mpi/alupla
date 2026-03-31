@@ -160,6 +160,19 @@ function expandEntries(counts: Map<number, number>, labels: Map<number, string>,
     }));
 }
 
+
+function yearFromDateValue(value: any): number | null {
+  const year = Number(String(value ?? "").slice(0, 4));
+  return Number.isFinite(year) && year > 1900 ? year : null;
+}
+
+function buildYearLabels(years: number[], fallbackStart: number, fallbackEnd: number) {
+  const validYears = years.filter((year) => Number.isFinite(year) && year > 1900);
+  const startYear = validYears.length ? Math.min(fallbackStart, ...validYears) : fallbackStart;
+  const endYear = validYears.length ? Math.max(fallbackEnd, ...validYears) : Math.max(fallbackEnd, fallbackStart);
+  return Array.from({ length: endYear - startYear + 1 }, (_, index) => String(startYear + index));
+}
+
 function pickDirectionDisplay(counts: Map<number, number>, fallbackCounts: Map<number, number>, labels: Map<number, string>, total: number) {
   const source = counts.size ? counts : fallbackCounts;
   const top = pickTopEntry(source, labels);
@@ -502,16 +515,14 @@ export async function getMapTrend(req: Request, res: Response) {
     attributes: ["origin_region_id", "origin_municipality", "gender", "graduation_date", "entry_year", "program_direction_id"],
   });
 
-  const startYear = 2010;
-  const endYear = Math.max(currentYear, startYear);
-  const labels = Array.from({ length: endYear - startYear + 1 }, (_, index) => String(startYear + index));
-  const yearIndex = new Map(labels.map((label, index) => [Number(label), index]));
-
   const matching = (grads as any[]).filter((graduate) => {
     const originId = Number(graduate.origin_region_id) || resolveRegionIdFromMunicipalityName(graduate.origin_municipality);
     const periphery = findPeriphery(originId);
     return periphery && Number(periphery.id) === peripheryId;
   });
+
+  const labels = buildYearLabels(matching.map((graduate) => yearFromDateValue(graduate.graduation_date)).filter(Boolean) as number[], 2010, currentYear);
+  const yearIndex = new Map(labels.map((label, index) => [Number(label), index]));
 
   if (mode === "dominant_gender") {
     const male = labels.map(() => 0);
@@ -519,8 +530,8 @@ export async function getMapTrend(req: Request, res: Response) {
     const total = labels.map(() => 0);
 
     for (const graduate of matching) {
-      const year = Number(String(graduate.graduation_date || "").slice(0, 4));
-      const index = yearIndex.get(year);
+      const year = yearFromDateValue(graduate.graduation_date);
+      const index = yearIndex.get(year || 0);
       if (index === undefined) continue;
       total[index] += 1;
       if (graduate.gender === "M") male[index] += 1;
@@ -539,7 +550,11 @@ export async function getMapTrend(req: Request, res: Response) {
 
   if (mode === "dominant_direction") {
     const startDirectionYear = 2022;
-    const directionLabelsRange = Array.from({ length: Math.max(currentYear, startDirectionYear) - startDirectionYear + 1 }, (_, index) => String(startDirectionYear + index));
+    const directionLabelsRange = buildYearLabels(
+      matching.map((graduate) => Number(graduate.entry_year) || 0).filter((year) => year >= startDirectionYear),
+      startDirectionYear,
+      currentYear,
+    );
     const directionYearIndex = new Map(directionLabelsRange.map((label, index) => [Number(label), index]));
     const totals = new Map<number, number>();
     const matrix = new Map<number, number[]>();
@@ -583,8 +598,8 @@ export async function getMapTrend(req: Request, res: Response) {
 
   const counts = labels.map(() => 0);
   for (const graduate of matching) {
-    const year = Number(String(graduate.graduation_date || "").slice(0, 4));
-    const index = yearIndex.get(year);
+    const year = yearFromDateValue(graduate.graduation_date);
+    const index = yearIndex.get(year || 0);
     if (index === undefined) continue;
     counts[index] += 1;
   }
@@ -722,15 +737,13 @@ export async function getMapCityDetail(req: Request, res: Response) {
     });
   }
 
-  const startYear = 2010;
-  const endYear = Math.max(currentYear, startYear);
-  const labels = Array.from({ length: endYear - startYear + 1 }, (_, index) => String(startYear + index));
+  const labels = buildYearLabels(matching.map((graduate) => yearFromDateValue(graduate.graduation_date)).filter(Boolean) as number[], 2010, currentYear);
   const yearIndex = new Map(labels.map((label, index) => [Number(label), index]));
   const counts = labels.map(() => 0);
 
   for (const graduate of matching) {
-    const year = Number(String(graduate.graduation_date || "").slice(0, 4));
-    const index = yearIndex.get(year);
+    const year = yearFromDateValue(graduate.graduation_date);
+    const index = yearIndex.get(year || 0);
     if (index === undefined) continue;
     counts[index] += 1;
   }
