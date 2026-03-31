@@ -97,6 +97,15 @@ function colorWithAlpha(color: string, alpha: number) {
   return color;
 }
 
+function programSortScore(label: string) {
+  const value = String(label || "");
+  const years = Array.from(value.matchAll(/(19|20)\d{2}/g)).map((match) => Number(match[0]));
+  const current = /σημερα|σήμερα|today|present|current/i.test(value) ? 1 : 0;
+  const maxYear = years.length ? Math.max(...years) : 0;
+  const minYear = years.length ? Math.min(...years) : 0;
+  return current * 1000000 + maxYear * 1000 + minYear;
+}
+
 function slugPart(value: string) {
   return String(value || "")
     .toLowerCase()
@@ -150,6 +159,7 @@ export default function GraduatesMapPage() {
   const [selectedCityPoint, setSelectedCityPoint] = useState<any | null>(null);
   const [cityDetailLoading, setCityDetailLoading] = useState(false);
   const [cityDetail, setCityDetail] = useState<MapCityDetailResponse | null>(null);
+  const [selectedCityProgramId, setSelectedCityProgramId] = useState<string>("");
 
   const params = useMemo(() => createMapParams(EMPTY_FILTERS), []);
   const { loading, items, cityPoints, cityStatsLoading, selectedCityStats } = useMapData(params, selected?.periphery_id);
@@ -216,6 +226,27 @@ export default function GraduatesMapPage() {
       active = false;
     };
   }, [selectedCityPoint?.city_id, mapMetric]);
+
+
+  useEffect(() => {
+    if (mapMetric !== "dominant_direction") {
+      setSelectedCityProgramId("");
+      return;
+    }
+    const programs = Array.isArray(cityDetail?.programs) ? [...cityDetail.programs] : [];
+    if (!programs.length) {
+      setSelectedCityProgramId("");
+      return;
+    }
+    programs.sort((left, right) => {
+      const scoreDiff = programSortScore(right.program_label) - programSortScore(left.program_label);
+      if (scoreDiff !== 0) return scoreDiff;
+      if (right.total !== left.total) return right.total - left.total;
+      return left.program_label.localeCompare(right.program_label, "el");
+    });
+    const fallbackId = String(programs[0].program_id);
+    setSelectedCityProgramId((current) => (programs.some((program) => String(program.program_id) === current) ? current : fallbackId));
+  }, [cityDetail, mapMetric]);
 
   const metricOptions = useMemo(() => ({
     count: {
@@ -514,25 +545,43 @@ export default function GraduatesMapPage() {
     }
 
     if (mapMetric === "dominant_direction") {
-      const programs = Array.isArray(cityDetail.programs) ? cityDetail.programs : [];
+      const programs = Array.isArray(cityDetail.programs) ? [...cityDetail.programs] : [];
+      programs.sort((left, right) => {
+        const scoreDiff = programSortScore(right.program_label) - programSortScore(left.program_label);
+        if (scoreDiff !== 0) return scoreDiff;
+        if (right.total !== left.total) return right.total - left.total;
+        return left.program_label.localeCompare(right.program_label, "el");
+      });
+      const activeProgram = programs.find((program) => String(program.program_id) === selectedCityProgramId) || programs[0] || null;
       return (
         <div className="map-city-popup-card">
           <div className="map-city-popup-title">{cityDetail.city_name}</div>
           <div className="map-city-popup-sub">{mt("totalGraduatesLine", { total: cityDetail.total, defaultValue: "Σύνολο αποφοίτων: {{total}}" })}</div>
           <div className="map-city-popup-list">
-            {programs.length ? programs.map((program) => (
-              <div className="map-city-popup-program" key={program.program_id}>
-                <div className="map-city-popup-program-title">{program.program_label}</div>
+            {programs.length && activeProgram ? (
+              <>
+                <div className="map-city-popup-program">
+                  <select
+                    className="input"
+                    value={String(activeProgram.program_id)}
+                    onChange={(event) => setSelectedCityProgramId(event.target.value)}
+                    aria-label={mt("filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })}
+                  >
+                    {programs.map((program) => (
+                      <option key={program.program_id} value={String(program.program_id)}>{program.program_label}</option>
+                    ))}
+                  </select>
+                </div>
                 <div className="map-city-popup-program-list">
-                  {program.directions.map((direction) => (
+                  {activeProgram.directions.map((direction) => (
                     <div className="map-city-popup-row" key={direction.id}>
                       <span>{direction.label}</span>
                       <strong>{direction.count}</strong>
                     </div>
                   ))}
                 </div>
-              </div>
-            )) : <div className="muted">{mt("cityPopup.noDirections", { defaultValue: "Δεν υπάρχουν διαθέσιμες κατευθύνσεις για την πόλη." })}</div>}
+              </>
+            ) : <div className="muted">{mt("cityPopup.noDirections", { defaultValue: "Δεν υπάρχουν διαθέσιμες κατευθύνσεις για την πόλη." })}</div>}
           </div>
         </div>
       );
