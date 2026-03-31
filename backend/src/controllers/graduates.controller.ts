@@ -283,12 +283,32 @@ function csvEscape(value: unknown, delimiter: string) {
   return escaped;
 }
 
+function wrapDelimitedDisplayValue(value: unknown) {
+  const text = String(value ?? "");
+  if (!text || text.length <= 24 || !/\s/.test(text)) return text;
+  const words = text.split(/\s+/).filter(Boolean);
+  if (!words.length) return text;
+  const parts: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length <= 24) {
+      current = candidate;
+      continue;
+    }
+    if (current) parts.push(current);
+    current = word;
+  }
+  if (current) parts.push(current);
+  return parts.join("\n");
+}
+
 function buildDelimitedText(rows: Array<Record<string, unknown>>, delimiter: string) {
   if (!rows.length) return "";
   const headers = Object.keys(rows[0]);
-  const lines = [headers.map((header) => csvEscape(header, delimiter)).join(delimiter)];
+  const lines = [headers.map((header) => csvEscape(wrapDelimitedDisplayValue(header), delimiter)).join(delimiter)];
   for (const row of rows) {
-    lines.push(headers.map((header) => csvEscape(row[header], delimiter)).join(delimiter));
+    lines.push(headers.map((header) => csvEscape(wrapDelimitedDisplayValue(row[header]), delimiter)).join(delimiter));
   }
   return lines.join("\r\n");
 }

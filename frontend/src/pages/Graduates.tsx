@@ -29,23 +29,107 @@ import { toggleMergedVisibleSelection, toggleSelectionValue } from "./shared/sel
 
 
 
+type RecentGraduateRequest = {
+  params: Record<string, unknown>;
+  ids?: number[];
+  lang: "gr" | "en";
+};
+
+type RecentGraduatePdfItem = Pick<
+  Graduate,
+  | "id"
+  | "ad_code"
+  | "student_number"
+  | "last_name"
+  | "first_name"
+  | "father_name"
+  | "gender"
+  | "entry_year"
+  | "birth_date"
+  | "degree_grade"
+  | "graduation_date"
+  | "oath_date"
+  | "study_program_id"
+  | "program_direction_id"
+  | "origin_region_id"
+  | "origin_municipality"
+>;
+
 type RecentGraduateDownload = {
   id: string;
   signature: string;
   format: "xlsx" | "csv" | "pdf";
   fileName: string;
-  mimeType: string;
-  dataUrl: string;
   createdAt: string;
   lastDownloadedAt: string;
   count: number;
   totalItems: number;
   selectedItems: number;
   filtersLabel: string;
+  request?: RecentGraduateRequest;
+  pdfItems?: RecentGraduatePdfItem[];
 };
 
 const RECENT_GRADUATE_DOWNLOADS_KEY = "alupla.graduates.recentDownloads";
-const MAX_RECENT_GRADUATE_DOWNLOADS = 12;
+const MAX_RECENT_GRADUATE_DOWNLOADS = 8;
+const recentGraduateSessionDownloads = new Map<string, { blob: Blob; fileName: string }>();
+
+function normalizeRecentGraduateDownload(item: any) {
+  if (!item || typeof item !== "object") return null;
+  const format = item.format === "csv" || item.format === "pdf" ? item.format : "xlsx";
+  const fileName = typeof item.fileName === "string" && item.fileName.trim() ? item.fileName : "";
+  if (!fileName) return null;
+
+  const request = item.request && typeof item.request === "object"
+    ? {
+        params: item.request.params && typeof item.request.params === "object" ? item.request.params as Record<string, unknown> : {},
+        ids: Array.isArray(item.request.ids) ? item.request.ids.map((value: unknown) => Number(value)).filter((value: number) => Number.isInteger(value) && value > 0) : undefined,
+        lang: String(item.request.lang || "").toLowerCase().startsWith("en") ? "en" : "gr",
+      }
+    : undefined;
+
+  const pdfItems = Array.isArray(item.pdfItems)
+    ? item.pdfItems
+        .filter((entry: any) => entry && typeof entry === "object")
+        .map((entry: any) => ({
+          id: Number(entry.id) || 0,
+          ad_code: String(entry.ad_code ?? ""),
+          student_number: String(entry.student_number ?? ""),
+          last_name: String(entry.last_name ?? ""),
+          first_name: String(entry.first_name ?? ""),
+          father_name: String(entry.father_name ?? ""),
+          gender: String(entry.gender ?? "").toUpperCase() === "F" ? "F" : "M",
+          entry_year: Number(entry.entry_year) || 0,
+          birth_date: String(entry.birth_date ?? ""),
+          degree_grade: Number(entry.degree_grade) || 0,
+          graduation_date: String(entry.graduation_date ?? ""),
+          oath_date: String(entry.oath_date ?? ""),
+          study_program_id: Number(entry.study_program_id) || 0,
+          program_direction_id: entry.program_direction_id == null || entry.program_direction_id === "" ? null : Number(entry.program_direction_id),
+          origin_region_id: entry.origin_region_id == null || entry.origin_region_id === "" ? null : Number(entry.origin_region_id),
+          origin_municipality: entry.origin_municipality == null ? null : String(entry.origin_municipality),
+        }))
+        .filter((entry: any) => entry.id > 0)
+    : undefined;
+
+  if (format === "pdf" && !pdfItems?.length) return null;
+  if (format !== "pdf" && !request) return null;
+
+  return {
+    id: typeof item.id === "string" && item.id.trim() ? item.id : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    signature: typeof item.signature === "string" && item.signature.trim() ? item.signature : JSON.stringify({ format, fileName }),
+    format,
+    fileName,
+    createdAt: typeof item.createdAt === "string" && item.createdAt ? item.createdAt : new Date().toISOString(),
+    lastDownloadedAt: typeof item.lastDownloadedAt === "string" && item.lastDownloadedAt ? item.lastDownloadedAt : new Date().toISOString(),
+    count: Math.max(1, Number(item.count) || 1),
+    totalItems: Math.max(0, Number(item.totalItems) || 0),
+    selectedItems: Math.max(0, Number(item.selectedItems) || 0),
+    filtersLabel: typeof item.filtersLabel === "string" ? item.filtersLabel : "",
+    request,
+    pdfItems,
+  } satisfies RecentGraduateDownload;
+}
 
 function safeReadRecentGraduateDownloads() {
   if (typeof window === "undefined") return [] as RecentGraduateDownload[];
@@ -54,7 +138,10 @@ function safeReadRecentGraduateDownloads() {
     if (!raw) return [] as RecentGraduateDownload[];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [] as RecentGraduateDownload[];
-    return parsed.filter((item) => item && typeof item === "object" && item.dataUrl && item.fileName) as RecentGraduateDownload[];
+    return parsed
+      .map((item) => normalizeRecentGraduateDownload(item))
+      .filter((item): item is RecentGraduateDownload => Boolean(item))
+      .slice(0, MAX_RECENT_GRADUATE_DOWNLOADS);
   } catch {
     return [] as RecentGraduateDownload[];
   }
@@ -62,7 +149,22 @@ function safeReadRecentGraduateDownloads() {
 
 function writeRecentGraduateDownloads(items: RecentGraduateDownload[]) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(RECENT_GRADUATE_DOWNLOADS_KEY, JSON.stringify(items.slice(0, MAX_RECENT_GRADUATE_DOWNLOADS)));
+  const normalized = items
+    .map((item) => normalizeRecentGraduateDownload(item))
+    .filter((item): item is RecentGraduateDownload => Boolean(item));
+
+  for (let limit = Math.min(MAX_RECENT_GRADUATE_DOWNLOADS, normalized.length || MAX_RECENT_GRADUATE_DOWNLOADS); limit >= 1; limit -= 1) {
+    try {
+      window.localStorage.setItem(RECENT_GRADUATE_DOWNLOADS_KEY, JSON.stringify(normalized.slice(0, limit)));
+      return;
+    } catch {
+    }
+  }
+
+  try {
+    window.localStorage.removeItem(RECENT_GRADUATE_DOWNLOADS_KEY);
+  } catch {
+  }
 }
 
 function formatRecentGraduateDownloadDate(value: string, lang: "gr" | "en") {
@@ -85,25 +187,6 @@ function buildRecentDownloadFiltersLabel(filters: GraduatesFiltersState, lang: "
   if (selectedCount > 0) parts.push(lang === "gr" ? `Επιλεγμένοι: ${selectedCount}` : `Selected: ${selectedCount}`);
   if (!parts.length) parts.push(lang === "gr" ? `Όλο το αποτέλεσμα (${totalCount})` : `Full result (${totalCount})`);
   return parts.join(" · ");
-}
-
-async function blobToDataUrl(blob: Blob) {
-  return await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Failed to read blob"));
-    reader.onerror = () => reject(reader.error || new Error("Failed to read blob"));
-    reader.readAsDataURL(blob);
-  });
-}
-
-function dataUrlToBlob(dataUrl: string) {
-  const [meta, payload] = dataUrl.split(",");
-  const mimeMatch = meta.match(/data:(.*?);base64/);
-  const mimeType = mimeMatch?.[1] || "application/octet-stream";
-  const binary = atob(payload || "");
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return new Blob([bytes], { type: mimeType });
 }
 
 type ImportReport = {
@@ -369,7 +452,9 @@ export default function Graduates() {
   }, [allVisibleSelected, someVisibleSelected]);
 
   useEffect(() => {
-    setRecentDownloads(safeReadRecentGraduateDownloads());
+    const stored = safeReadRecentGraduateDownloads();
+    setRecentDownloads(stored);
+    writeRecentGraduateDownloads(stored);
   }, []);
 
   async function rememberDownload(args: {
@@ -377,36 +462,43 @@ export default function Graduates() {
     format: "xlsx" | "csv" | "pdf";
     fileName: string;
     ids?: number[];
+    request?: RecentGraduateRequest;
+    pdfItems?: RecentGraduatePdfItem[];
   }) {
     const filtersLabel = buildRecentDownloadFiltersLabel(filters, activeLang, args.ids?.length || 0, items.length);
-    const signature = JSON.stringify({ format: args.format, ids: args.ids || [], params: { ...params, page: undefined, pageSize: undefined } });
-    const dataUrl = await blobToDataUrl(args.blob);
+    const signature = JSON.stringify({
+      format: args.format,
+      ids: args.ids || [],
+      params: args.request?.params || {},
+      count: args.pdfItems?.length || 0,
+    });
     const now = new Date().toISOString();
+    recentGraduateSessionDownloads.set(signature, { blob: args.blob, fileName: args.fileName });
     const current = safeReadRecentGraduateDownloads();
     const existing = current.find((item) => item.signature === signature);
     const nextItem: RecentGraduateDownload = existing ? {
       ...existing,
       fileName: args.fileName,
-      mimeType: args.blob.type || existing.mimeType,
-      dataUrl,
       totalItems: items.length,
       selectedItems: args.ids?.length || 0,
       filtersLabel,
       lastDownloadedAt: now,
       count: existing.count + 1,
+      request: args.request || existing.request,
+      pdfItems: args.pdfItems || existing.pdfItems,
     } : {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       signature,
       format: args.format,
       fileName: args.fileName,
-      mimeType: args.blob.type || "application/octet-stream",
-      dataUrl,
       createdAt: now,
       lastDownloadedAt: now,
       count: 1,
       totalItems: items.length,
       selectedItems: args.ids?.length || 0,
       filtersLabel,
+      request: args.request,
+      pdfItems: args.pdfItems,
     };
     const rest = current.filter((item) => item.signature !== signature);
     const next = [nextItem, ...rest].sort((a, b) => {
@@ -414,23 +506,47 @@ export default function Graduates() {
       return new Date(b.lastDownloadedAt).getTime() - new Date(a.lastDownloadedAt).getTime();
     });
     writeRecentGraduateDownloads(next);
-    setRecentDownloads(next);
+    setRecentDownloads(next.slice(0, MAX_RECENT_GRADUATE_DOWNLOADS));
   }
 
-  function downloadStoredExport(item: RecentGraduateDownload) {
-    const blob = dataUrlToBlob(item.dataUrl);
-    downloadBlob(blob, item.fileName);
-    const current = safeReadRecentGraduateDownloads();
-    const next = current.map((entry) => entry.id === item.id ? { ...entry, count: entry.count + 1, lastDownloadedAt: new Date().toISOString() } : entry)
-      .sort((a, b) => (b.count - a.count) || (new Date(b.lastDownloadedAt).getTime() - new Date(a.lastDownloadedAt).getTime()));
-    writeRecentGraduateDownloads(next);
-    setRecentDownloads(next);
+  async function downloadStoredExport(item: RecentGraduateDownload) {
+    try {
+      const cached = recentGraduateSessionDownloads.get(item.signature);
+      if (cached) {
+        downloadBlob(cached.blob, item.fileName);
+      } else if (item.format === "pdf" && item.pdfItems?.length) {
+        const blob = await exportGraduatesPdf({
+          items: item.pdfItems as Graduate[],
+          lang: activeLang,
+          programNameById: programDisplayNameById,
+          directionNameById: directionDisplayNameById,
+          regionNameById,
+        });
+        recentGraduateSessionDownloads.set(item.signature, { blob, fileName: item.fileName });
+        downloadBlob(blob, item.fileName);
+      } else if (item.request) {
+        const blob = await exportGraduatesFile(item.request.params, item.format, item.request.lang);
+        recentGraduateSessionDownloads.set(item.signature, { blob, fileName: item.fileName });
+        downloadBlob(blob, item.fileName);
+      } else {
+        throw new Error(t("export.failed"));
+      }
+
+      const current = safeReadRecentGraduateDownloads();
+      const next = current
+        .map((entry) => entry.id === item.id ? { ...entry, count: entry.count + 1, lastDownloadedAt: new Date().toISOString() } : entry)
+        .sort((a, b) => (b.count - a.count) || (new Date(b.lastDownloadedAt).getTime() - new Date(a.lastDownloadedAt).getTime()));
+      writeRecentGraduateDownloads(next);
+      setRecentDownloads(next.slice(0, MAX_RECENT_GRADUATE_DOWNLOADS));
+    } catch (error: any) {
+      alert(error?.message ?? t("export.failed"));
+    }
   }
 
   function removeStoredExport(itemId: string) {
     const next = safeReadRecentGraduateDownloads().filter((item) => item.id !== itemId);
     writeRecentGraduateDownloads(next);
-    setRecentDownloads(next);
+    setRecentDownloads(next.slice(0, MAX_RECENT_GRADUATE_DOWNLOADS));
   }
 
   function toggleSort(key: SortKey) {
@@ -488,13 +604,41 @@ export default function Graduates() {
         });
         const fileName = `graduates-${timestamp}.pdf`;
         downloadBlob(blob, fileName);
-        await rememberDownload({ blob, format, fileName, ids });
+        await rememberDownload({
+          blob,
+          format,
+          fileName,
+          ids,
+          pdfItems: exportItems.map((item) => ({
+            id: Number(item.id),
+            ad_code: item.ad_code,
+            student_number: item.student_number,
+            last_name: item.last_name,
+            first_name: item.first_name,
+            father_name: item.father_name,
+            gender: item.gender,
+            entry_year: item.entry_year,
+            birth_date: item.birth_date,
+            degree_grade: item.degree_grade,
+            graduation_date: item.graduation_date,
+            oath_date: item.oath_date,
+            study_program_id: item.study_program_id,
+            program_direction_id: item.program_direction_id ?? null,
+            origin_region_id: item.origin_region_id ?? null,
+            origin_municipality: item.origin_municipality ?? null,
+          })),
+        });
         return;
       }
+      const request = {
+        params: { ...exportParams },
+        ids,
+        lang: activeLang,
+      } satisfies RecentGraduateRequest;
       const blob = await exportGraduatesFile(exportParams, format, i18n.resolvedLanguage || i18n.language);
       const fileName = `graduates-${timestamp}.${format}`;
       downloadBlob(blob, fileName);
-      await rememberDownload({ blob, format, fileName, ids });
+      await rememberDownload({ blob, format, fileName, ids, request });
     } catch (error: any) {
       alert(error?.message ?? t("export.failed"));
     }
