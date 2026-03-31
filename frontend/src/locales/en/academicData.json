@@ -44,7 +44,7 @@
     "title": "Directions",
     "count": "{{count}} entries",
     "summary": "Directions: {{count}} total",
-    "filterProgram": "Show directions for the study program:",
+    "filterProgram": "Select a study program to display the corresponding directions:",
     "selectProgram": "Select study program",
     "labels": {
       "program": "Study program *",

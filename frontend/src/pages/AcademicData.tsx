@@ -485,9 +485,9 @@ export default function AcademicData() {
         {hasDirectionDraft && <button className="btn" onClick={() => resetDirectionForm()}>{t("actions.cancel")}</button>}
       </div>
 
-      <div style={{ marginTop: 14 }}>
-        <label className="label">{t("directions.filterProgram")}</label>
-        <select className="input" value={selectedProgramId} onChange={(e) => setSelectedProgramId(e.target.value)}>
+      <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <span className="label" style={{ margin: 0 }}>{t("directions.filterProgram")}</span>
+        <select className="input" style={{ flex: "1 1 320px", minWidth: 260 }} value={selectedProgramId} onChange={(e) => setSelectedProgramId(e.target.value)}>
           {programs.map((item) => (
             <option key={item.id} value={item.id}>{getProgramName(item)}</option>
           ))}
