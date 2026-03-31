@@ -1,8 +1,9 @@
 import express from "express";
 import { publicStudyPrograms } from "../controllers/public.controller";
 
-const router = express.Router();
+const publicRouter = express.Router();
 
-router.get("/study-programs", publicStudyPrograms);
+publicRouter.get("/study-programs", publicStudyPrograms);
 
-export default router;
+export { publicRouter };
+export default publicRouter;
