@@ -116,8 +116,8 @@ async function importPeripheryRows(rows: Record<string, unknown>[], userId: numb
 
   for (const row of rows) {
     const name = getTextCell(row, ["name", "Name", "periphery name", "Periphery name", "όνομα", "Όνομα", "όνομα περιφέρειας", "Όνομα περιφέρειας"]);
-    const latitude = getCoordCell(row, ["latitude", "Latitude", "lat", "Lat"]);
-    const longitude = getCoordCell(row, ["longitude", "Longitude", "lng", "Lng", "lon", "Lon"]);
+    const latitude = getCoordCell(row, ["latitude", "Latitude", "lat", "Lat", "γεωγραφικό πλάτος", "Γεωγραφικό πλάτος", "πλάτος", "Πλάτος"]);
+    const longitude = getCoordCell(row, ["longitude", "Longitude", "lng", "Lng", "lon", "Lon", "γεωγραφικό μήκος", "Γεωγραφικό μήκος", "μήκος", "Μήκος"]);
 
     if (!name) {
       skipped += 1;
@@ -180,8 +180,8 @@ async function importCityRows(rows: Record<string, unknown>[], userId: number | 
   for (const row of rows) {
     const name = getTextCell(row, ["name", "Name", "city", "City", "city name", "City name", "πόλη", "Πόλη", "όνομα", "Όνομα", "όνομα πόλης", "Όνομα πόλης"]);
     const peripheryName = getTextCell(row, ["periphery", "Periphery", "periphery name", "Periphery name", "region", "Region", "περιφέρεια", "Περιφέρεια", "όνομα περιφέρειας", "Όνομα περιφέρειας"]);
-    const latitude = getCoordCell(row, ["latitude", "Latitude", "lat", "Lat"]);
-    const longitude = getCoordCell(row, ["longitude", "Longitude", "lng", "Lng", "lon", "Lon"]);
+    const latitude = getCoordCell(row, ["latitude", "Latitude", "lat", "Lat", "γεωγραφικό πλάτος", "Γεωγραφικό πλάτος", "πλάτος", "Πλάτος"]);
+    const longitude = getCoordCell(row, ["longitude", "Longitude", "lng", "Lng", "lon", "Lon", "γεωγραφικό μήκος", "Γεωγραφικό μήκος", "μήκος", "Μήκος"]);
 
     if (!name || !peripheryName) {
       skipped += 1;

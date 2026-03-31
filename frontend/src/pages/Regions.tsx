@@ -526,12 +526,14 @@ export default function Regions() {
   }
 
   function buildTemplateRows(kind: "PERIPHERY" | "CITY") {
+    const latitudeLabel = t("manage.fields.latitude");
+    const longitudeLabel = t("manage.fields.longitude");
+
     if (kind === "PERIPHERY") {
-      if (activeLang === "en") return [{ Name: "", Latitude: "", Longitude: "" }];
-      return [{ Όνομα: "", Latitude: "", Longitude: "" }];
+      return [{ [t("table.name")]: "", [latitudeLabel]: "", [longitudeLabel]: "" }];
     }
-    if (activeLang === "en") return [{ Name: "", Periphery: "", Latitude: "", Longitude: "" }];
-    return [{ "Όνομα πόλης": "", Περιφέρεια: "", Latitude: "", Longitude: "" }];
+
+    return [{ [t("templates.cityName")]: "", [t("manage.fields.periphery")]: "", [latitudeLabel]: "", [longitudeLabel]: "" }];
   }
 
   function downloadTemplate(kind: "PERIPHERY" | "CITY") {
@@ -539,11 +541,9 @@ export default function Regions() {
     const workbook = XLSX.utils.book_new();
     const rows = buildTemplateRows(kind);
     const sheet = XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(workbook, sheet, kind === "PERIPHERY" ? "Peripheries" : "Cities");
+    XLSX.utils.book_append_sheet(workbook, sheet, kind === "PERIPHERY" ? t("templates.sheetPeripheries") : t("templates.sheetCities"));
     const output = XLSX.write(workbook, { bookType: "xlsx", type: "array", compression: true });
-    const filename = kind === "PERIPHERY"
-      ? activeLang === "en" ? "regions-peripheries-template.xlsx" : "regions-peripheries-template-gr.xlsx"
-      : activeLang === "en" ? "regions-cities-template.xlsx" : "regions-cities-template-gr.xlsx";
+    const filename = kind === "PERIPHERY" ? t("templates.filePeripheries") : t("templates.fileCities");
     downloadBlob(new Blob([output], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), filename);
   }
 

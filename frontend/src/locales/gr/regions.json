@@ -23,8 +23,8 @@
     "fields": {
       "name": "Όνομα πόλης",
       "periphery": "Περιφέρεια",
-      "latitude": "Latitude",
-      "longitude": "Longitude"
+      "latitude": "Γεωγραφικό πλάτος",
+      "longitude": "Γεωγραφικό μήκος"
     },
     "placeholders": {
       "periphery": "Επίλεξε περιφέρεια"
@@ -77,7 +77,7 @@
     "importing": "Εισαγωγή...",
     "importPeripheries": "Εισαγωγή περιφερειών",
     "importCities": "Εισαγωγή πόλεων",
-    "downloadTemplate": "Λήψη template",
+    "downloadTemplate": "Λήψη προτύπου",
     "templatePeripheries": "Περιφέρειες",
     "templateCities": "Πόλεις",
     "deletePeripheries": "Διαγραφή",
@@ -87,5 +87,12 @@
   "confirm": {
     "singleDelete": "Θέλεις σίγουρα να διαγράψεις αυτή την εγγραφή;",
     "bulkDelete": "Θέλεις σίγουρα να διαγράψεις {{count}} εγγραφές;"
+  },
+  "templates": {
+    "sheetPeripheries": "Περιφέρειες",
+    "sheetCities": "Πόλεις",
+    "filePeripheries": "perioxes-perifereies-protypo.xlsx",
+    "fileCities": "perioxes-poleis-protypo.xlsx",
+    "cityName": "Όνομα πόλης"
   }
 }
