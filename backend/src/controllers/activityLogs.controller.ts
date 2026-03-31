@@ -44,7 +44,7 @@ function buildLogFilters(req: Request) {
   }
 
   if (action) {
-    where.action = action;
+    where.action = { [Op.like]: `%${action}%` };
   }
 
   if (entityType) {
@@ -157,12 +157,29 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
     const pageSize = clamp(toInteger(req.query.pageSize, DEFAULT_PAGE_SIZE), 1, MAX_PAGE_SIZE);
     const offset = (page - 1) * pageSize;
 
+    const actor = nonEmptyString(req.query.actor);
+    const where = buildLogFilters(req);
+
+    if (actor) {
+      where[Op.and] = [
+        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
+        {
+          [Op.or]: [
+            { "$user.first_name$": { [Op.like]: `%${actor}%` } },
+            { "$user.last_name$": { [Op.like]: `%${actor}%` } },
+            { "$user.email$": { [Op.like]: `%${actor}%` } },
+            { [Op.and]: [{ "$user.first_name$": { [Op.like]: `%${actor.split(/\s+/)[0] ?? actor}%` } }, { "$user.last_name$": { [Op.like]: `%${actor.split(/\s+/).slice(1).join(" ") || actor}%` } }] }
+          ]
+        }
+      ];
+    }
+
     const { rows, count } = await ActivityLog.findAndCountAll({
-      where: buildLogFilters(req),
+      where,
       limit: pageSize,
       offset,
       order: [["created_at", "DESC"]],
-      include: [{ model: User, as: "user", attributes: ["id", "email", "first_name", "last_name", "role"] }]
+      include: [{ model: User, as: "user", attributes: ["id", "email", "first_name", "last_name", "role"], required: false }]
     });
 
     res.json({ ok: true, page, pageSize, total: count, items: rows });

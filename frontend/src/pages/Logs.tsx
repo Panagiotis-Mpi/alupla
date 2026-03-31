@@ -10,10 +10,8 @@ import {
 const PAGE_SIZE = 20;
 
 type LogFilters = {
-  level: string;
   actor: string;
   action: string;
-  resource: string;
 };
 
 type FileSummaryRole = "secretariat" | "super_admin" | "visitor";
@@ -25,11 +23,16 @@ type FileSummaryItem = {
   export: Record<FileSummaryFileType, number>;
 };
 
+type ActivityLogListResponse = {
+  items?: ActivityLog[];
+  total?: number;
+  page?: number;
+  pageSize?: number;
+};
+
 const emptyFilters: LogFilters = {
-  level: "",
   actor: "",
   action: "",
-  resource: "",
 };
 
 const wideCardStyle: React.CSSProperties = {
@@ -86,29 +89,6 @@ const actionLabels = {
   }
 };
 
-const resourceLabels = {
-  gr: {
-    user: "Χρήστης",
-    users: "Χρήστες",
-    graduate: "Απόφοιτος",
-    graduates: "Απόφοιτοι",
-    system: "Σύστημα",
-    statistics: "Στατιστικά",
-    map: "Χάρτης",
-    logs: "Καταγραφές"
-  },
-  en: {
-    user: "User",
-    users: "Users",
-    graduate: "Graduate",
-    graduates: "Graduates",
-    system: "System",
-    statistics: "Statistics",
-    map: "Map",
-    logs: "Logs"
-  }
-};
-
 export default function Logs() {
   const { t, i18n } = useTranslation("logs");
   const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
@@ -117,6 +97,7 @@ export default function Logs() {
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
   const [page, setPage] = React.useState(1);
+  const [totalItems, setTotalItems] = React.useState(0);
   const [filters, setFilters] = React.useState<LogFilters>(emptyFilters);
   const [summaryRole, setSummaryRole] = React.useState<FileSummaryRole>("secretariat");
   const [fileSummary, setFileSummary] = React.useState<FileSummaryItem[]>([]);
@@ -138,11 +119,6 @@ export default function Logs() {
     return actionLabels[activeLang][key as keyof (typeof actionLabels)["gr"]] ?? key.replace(/_/g, " ");
   }
 
-  function toLocalizedResource(v: any): string {
-    const key = String(v ?? "").trim();
-    return resourceLabels[activeLang][key as keyof (typeof resourceLabels)["gr"]] ?? key;
-  }
-
   function toLocalizedDetails(v: any): string {
     if (v === null || v === undefined || v === "") return "";
     const raw = typeof v === "object" ? JSON.stringify(v) : String(v);
@@ -155,8 +131,8 @@ export default function Logs() {
       .replaceAll("role", activeLang === "en" ? "role" : "ρόλος");
   }
 
-  const actionForApi = (filters.level || filters.action).trim();
-  const resourceForApi = filters.resource.trim();
+  const actionForApi = filters.action.trim();
+  const actorForApi = filters.actor.trim();
 
   const fileTypes: FileSummaryFileType[] = ["excel", "csv", "pdf", "png"];
   const pageOrder: FileSummaryPage[] = ["graduates", "academicData", "regions", "statistics", "map", "logs"];
@@ -186,16 +162,19 @@ export default function Logs() {
     }
   }
 
-  async function load() {
+  async function load(nextPage = page) {
     setLoading(true);
     setErr(null);
     try {
       const data = await listActivityLogs({
+        page: nextPage,
+        pageSize: PAGE_SIZE,
         action: actionForApi || undefined,
-        entity_type: resourceForApi || undefined,
-      });
-      setItems(data.items ?? data);
-      setPage(1);
+        actor: actorForApi || undefined,
+      }) as ActivityLogListResponse;
+      setItems(data.items ?? []);
+      setTotalItems(Number(data.total ?? 0));
+      setPage(Number(data.page ?? nextPage));
     } catch (e: any) {
       setErr(e?.message ?? t("error"));
     } finally {
@@ -222,46 +201,10 @@ export default function Logs() {
     return Array.from(s).sort((a, b) => a.localeCompare(b));
   }, [activeLang, items]);
 
-  const distinctResources = React.useMemo(() => {
-    const s = new Set<string>();
-    for (const l of items) {
-      const v = String((l as any)?.entity_type ?? "").trim();
-      if (v) s.add(v);
-    }
-    return Array.from(s).sort((a, b) => a.localeCompare(b));
-  }, [items]);
-
-  const filteredItems = React.useMemo(() => {
-    const actorNeedle = filters.actor.trim().toLowerCase();
-    const actionNeedle = filters.action.trim().toLowerCase();
-    const levelNeedle = filters.level.trim().toLowerCase();
-    const resourceNeedle = filters.resource.trim().toLowerCase();
-
-    return items.filter((l: any) => {
-      const actor = actorLabel(l).toLowerCase();
-      const action = toLocalizedAction(l?.action ?? "").toLowerCase();
-      const resource = toLocalizedResource(l?.entity_type ?? "").toLowerCase();
-
-      if (actorNeedle && !actor.includes(actorNeedle)) return false;
-      if (resourceNeedle && !resource.includes(resourceNeedle)) return false;
-      if (levelNeedle && !action.includes(levelNeedle)) return false;
-      if (actionNeedle && !action.includes(actionNeedle)) return false;
-
-      return true;
-    });
-  }, [activeLang, items, filters.actor, filters.action, filters.level, filters.resource]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
-  const pageSafe = Math.min(Math.max(1, page), totalPages);
-  const startIdx = (pageSafe - 1) * PAGE_SIZE;
-  const pagedItems = filteredItems.slice(startIdx, startIdx + PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
 
   React.useEffect(() => {
-    if (page !== pageSafe) setPage(pageSafe);
-  }, [filteredItems.length]);
-
-  React.useEffect(() => {
-    void load();
+    void load(1);
   }, []);
 
   React.useEffect(() => {
@@ -271,7 +214,6 @@ export default function Logs() {
   function onExport() {
     const url = activityLogsExportUrl({
       action: actionForApi || undefined,
-      entity_type: resourceForApi || undefined,
     });
     const a = document.createElement("a");
     a.href = url;
@@ -285,11 +227,6 @@ export default function Logs() {
     <div className="grid" style={{ gap: 14 }}>
       <div className="topbar">
         <h2 style={{ margin: 0 }}>{t("title")}</h2>
-        <span className="badge">
-          {loading
-            ? t("badgeLoading")
-            : t("badgeCount", { count: filteredItems.length })}
-        </span>
         <button className="btn" onClick={onExport}>
           {t("actions.exportCsv")}
         </button>
@@ -305,24 +242,24 @@ export default function Logs() {
         </div>
       )}
 
-      <div className="grid cols2" style={{ gap: 14 }}>
-        <div className="card" style={{ overflowX: "auto" }}>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
-            <h3 style={{ margin: 0 }}>{t("summary.title")}</h3>
-            <div className="spacer" />
-            <label className="label" style={{ margin: 0 }}>{t("summary.roleLabel")}</label>
-            <select
-              className="input"
-              value={summaryRole}
-              onChange={(e) => setSummaryRole(e.target.value as FileSummaryRole)}
-              style={{ minWidth: 180 }}
-            >
-              <option value="secretariat">{t("summary.roles.secretariat")}</option>
-              <option value="super_admin">{t("summary.roles.admin")}</option>
-              <option value="visitor">{t("summary.roles.visitor")}</option>
-            </select>
-          </div>
-          <table className="table" style={{ minWidth: 860 }}>
+      <div className="card logs-summary-card" style={wideCardStyle}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+          <h3 style={{ margin: 0 }}>{t("summary.title")}</h3>
+          <div className="spacer" />
+          <label className="label" style={{ margin: 0 }}>{t("summary.roleLabel")}</label>
+          <select
+            className="input"
+            value={summaryRole}
+            onChange={(e) => setSummaryRole(e.target.value as FileSummaryRole)}
+            style={{ minWidth: 180 }}
+          >
+            <option value="secretariat">{t("summary.roles.secretariat")}</option>
+            <option value="super_admin">{t("summary.roles.admin")}</option>
+            <option value="visitor">{t("summary.roles.visitor")}</option>
+          </select>
+        </div>
+        <div className="table-wrap">
+          <table className="table" style={{ minWidth: 1120 }}>
             <thead>
               <tr>
                 <th rowSpan={2}>{t("summary.page")}</th>
@@ -356,150 +293,112 @@ export default function Logs() {
             </tbody>
           </table>
         </div>
+      </div>
 
-        <div className="card">
-          <div className="grid cols2">
-            <div>
-              <label className="label">{t("filters.level")}</label>
-              <input
-                className="input"
-                list="logs-levels"
-                value={filters.level}
-                onChange={(e) => setFilter("level", e.target.value)}
-                placeholder={t("filters.all")}
-              />
-              <datalist id="logs-levels">
-                {distinctActions.map((v) => (
-                  <option key={v} value={v} />
-                ))}
-              </datalist>
-            </div>
-
-            <div>
-              <label className="label">{t("filters.actor")}</label>
-              <input
-                className="input"
-                list="logs-actors"
-                value={filters.actor}
-                onChange={(e) => setFilter("actor", e.target.value)}
-                placeholder={t("filters.all")}
-              />
-              <datalist id="logs-actors">
-                {distinctActors.map((v) => (
-                  <option key={v} value={v} />
-                ))}
-              </datalist>
-            </div>
-
-            <div>
-              <label className="label">{t("filters.action")}</label>
-              <input
-                className="input"
-                list="logs-actions"
-                value={filters.action}
-                onChange={(e) => setFilter("action", e.target.value)}
-                placeholder={t("filters.all")}
-              />
-              <datalist id="logs-actions">
-                {distinctActions.map((v) => (
-                  <option key={v} value={v} />
-                ))}
-              </datalist>
-            </div>
-
-            <div>
-              <label className="label">{t("filters.resource")}</label>
-              <input
-                className="input"
-                list="logs-resources"
-                value={filters.resource}
-                onChange={(e) => setFilter("resource", e.target.value)}
-                placeholder={t("filters.all")}
-              />
-              <datalist id="logs-resources">
-                {distinctResources.map((v) => (
-                  <option key={v} value={toLocalizedResource(v)} />
-                ))}
-              </datalist>
-            </div>
+      <div className="card logs-filters-card" style={wideCardStyle}>
+        <div className="grid cols2" style={{ gap: 14 }}>
+          <div>
+            <label className="label">{t("filters.actor")}</label>
+            <input
+              className="input"
+              list="logs-actors"
+              value={filters.actor}
+              onChange={(e) => setFilter("actor", e.target.value)}
+              placeholder={t("filters.all")}
+            />
+            <datalist id="logs-actors">
+              {distinctActors.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              marginTop: 12,
-              alignItems: "center",
+          <div>
+            <label className="label">{t("filters.action")}</label>
+            <input
+              className="input"
+              list="logs-actions"
+              value={filters.action}
+              onChange={(e) => setFilter("action", e.target.value)}
+              placeholder={t("filters.all")}
+            />
+            <datalist id="logs-actions">
+              {distinctActions.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            marginTop: 12,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <button className="btn" onClick={() => void load(1)}>
+            {t("filters.search")}
+          </button>
+          <button
+            className="btn"
+            onClick={() => {
+              setFilters(emptyFilters);
+              setTimeout(() => void load(1), 0);
             }}
           >
-            <button className="btn" onClick={() => void load()}>
-              {t("filters.search")}
-            </button>
-            <button
-              className="btn"
-              onClick={() => {
-                setFilters(emptyFilters);
-                setTimeout(() => void load(), 0);
-              }}
-            >
-              {t("filters.reset")}
-            </button>
+            {t("filters.reset")}
+          </button>
 
-            <div className="spacer" />
-            <button
-              className="btn"
-              style={{ paddingLeft: 12, paddingRight: 12 }}
-              disabled={pageSafe <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              aria-label={t("aria.previous", { ns: "common" })}
-            >
-              ◀
-            </button>
-            <span
-              className="badge"
-              style={{ minWidth: 44, textAlign: "center" }}
-            >
-              {pageSafe}
-            </span>
-            <button
-              className="btn"
-              style={{ paddingLeft: 12, paddingRight: 12 }}
-              disabled={pageSafe >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              aria-label={t("aria.next", { ns: "common" })}
-            >
-              ▶
-            </button>
-          </div>
+          <div className="spacer" />
+          <button
+            className="btn"
+            style={{ paddingLeft: 12, paddingRight: 12 }}
+            disabled={page <= 1 || loading}
+            onClick={() => void load(Math.max(1, page - 1))}
+            aria-label={t("aria.previous", { ns: "common" })}
+          >
+            ◀
+          </button>
+          <span className="badge" style={{ minWidth: 44, textAlign: "center" }}>
+            {page}
+          </span>
+          <button
+            className="btn"
+            style={{ paddingLeft: 12, paddingRight: 12 }}
+            disabled={page >= totalPages || loading}
+            onClick={() => void load(Math.min(totalPages, page + 1))}
+            aria-label={t("aria.next", { ns: "common" })}
+          >
+            ▶
+          </button>
         </div>
       </div>
 
       <div className="card logs-table-card" style={wideCardStyle}>
         <div className="table-wrap">
-          <table className="table" style={{ minWidth: 1280 }}>
+          <table className="table" style={{ minWidth: 1080 }}>
             <thead>
               <tr>
                 <th>{t("table.id")}</th>
                 <th>{t("table.ts")}</th>
-                <th>{t("table.level")}</th>
                 <th>{t("table.actor")}</th>
                 <th>{t("table.action")}</th>
-                <th>{t("table.resource")}</th>
                 <th>{t("table.details")}</th>
               </tr>
             </thead>
             <tbody>
-              {pagedItems.map((l) => (
+              {items.map((l) => (
                 <tr key={l.id}>
                   <td>{l.id}</td>
                   <td style={{ fontFamily: "monospace" }}>{l.created_at}</td>
-                  <td>{toLocalizedAction(l.action)}</td>
                   <td>{actorLabel(l)}</td>
                   <td>{toLocalizedAction(l.action)}</td>
-                  <td>{toLocalizedResource(l.entity_type ?? "")}</td>
                   <td
                     style={{
-                      maxWidth: 520,
+                      maxWidth: 620,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -510,9 +409,9 @@ export default function Logs() {
                 </tr>
               ))}
 
-              {!pagedItems.length && (
+              {!items.length && (
                 <tr>
-                  <td colSpan={7} className="muted">
+                  <td colSpan={5} className="muted">
                     {t("table.none")}
                   </td>
                 </tr>

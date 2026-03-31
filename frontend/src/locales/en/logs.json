@@ -17,7 +17,7 @@
     "exportCsv": "Export CSV"
   },
   "table": {
-    "id": "ID",
+    "id": "#",
     "ts": "Timestamp",
     "level": "Level",
     "actor": "Actor",
