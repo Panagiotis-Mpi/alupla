@@ -353,18 +353,6 @@ export async function listRegions(req: Request, res: Response, next: NextFunctio
   }
 }
 
-export async function getRegion(req: Request, res: Response, next: NextFunction) {
-  try {
-    const { id, item } = await findRegionById(req.params.id);
-    if (id === null) return badRequest(res, "Invalid id");
-    if (!item) return notFound(res);
-
-    res.json({ ok: true, item });
-  } catch (err) {
-    next(err);
-  }
-}
-
 export async function searchRegions(req: Request, res: Response, next: NextFunction) {
   try {
     const q = typeof req.query.q === "string" ? req.query.q.trim() : "";

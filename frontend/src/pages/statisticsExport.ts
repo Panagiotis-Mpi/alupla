@@ -95,7 +95,7 @@ function exportUtf16Csv(filename: string, textValue: string) {
 
 
 function buildSheets(args: BuildArgs) {
-  const { data, t, activeLang, selectedDirectionProgramId } = args;
+  const { data, activeLang, selectedDirectionProgramId } = args;
   const sheets = new Map<StatisticsChartId, SheetBlock>();
 
   sheets.set("byYear", {

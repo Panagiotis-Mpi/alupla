@@ -216,7 +216,6 @@ export default function Regions() {
       });
   }, [cities, citySortDirection, citySortKey, peripheryNameById]);
 
-  const currentSectionCount = activeSection === "peripheries" ? peripheryRows.length : activeSection === "cities" ? cityRows.length : unmatchedRows.length;
   const currentSelectedCount = activeSection === "peripheries" ? selectedPeripheryIds.length : activeSection === "cities" ? selectedCityIds.length : selectedUnmatchedKeys.length;
 
   const allVisiblePeripheriesSelected = peripheryRows.length > 0 && peripheryRows.every(({ item }) => selectedPeripheryIds.includes(item.id));

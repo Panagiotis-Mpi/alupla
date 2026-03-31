@@ -136,19 +136,6 @@ export function authRequired(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export function superAdminOnly(req: Request, res: Response, next: NextFunction) {
-  const currentUser = req.user;
-  if (!currentUser) {
-    return reject(res, 401, "Unauthorized");
-  }
-
-  if (currentUser.role !== "super_admin") {
-    return reject(res, 403, "Forbidden");
-  }
-
-  return next();
-}
-
 export function allowRoles(roles: Array<AuthUser["role"]>) {
   return (req: Request, res: Response, next: NextFunction) => {
     const currentUser = req.user;

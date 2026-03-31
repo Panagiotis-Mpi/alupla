@@ -16,6 +16,7 @@ import {
   type ProgramDirection,
   type StudyProgram,
 } from "../lib/api";
+import { downloadBlob } from "../lib/download";
 
 type StudyProgramForm = {
   code: string;
@@ -122,16 +123,6 @@ const popoverItemStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
 
 export default function AcademicData() {
   const { t, i18n } = useTranslation("academicData");
@@ -139,7 +130,6 @@ export default function AcademicData() {
 
   const [programs, setPrograms] = React.useState<StudyProgram[]>([]);
   const [directions, setDirections] = React.useState<ProgramDirection[]>([]);
-  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [activeTab, setActiveTab] = React.useState<AcademicTab>("programs");
   const [openMenu, setOpenMenu] = React.useState<ImportMenu>(null);
@@ -169,7 +159,6 @@ export default function AcademicData() {
   async function load() {
     if (inFlight.current) return;
     inFlight.current = true;
-    setLoading(true);
     setError(null);
     try {
       const [programsResult, directionsResult] = await Promise.all([listStudyPrograms(), listProgramDirections()]);
@@ -190,7 +179,6 @@ export default function AcademicData() {
     } catch (e: any) {
       setError(e?.message ?? t("error"));
     } finally {
-      setLoading(false);
       inFlight.current = false;
     }
   }

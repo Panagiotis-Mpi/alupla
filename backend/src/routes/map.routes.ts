@@ -1,13 +1,11 @@
 import { Router } from "express";
-import { getGraduatesMap, getMapCities, getMapCityDetail, getMapFilterOptions, getMapTrend, getRegionCities } from "../controllers/map.controller";
+import { getGraduatesMap, getMapCities, getMapCityDetail, getRegionCities } from "../controllers/map.controller";
 
 const r = Router();
 
-r.get("/filter-options", getMapFilterOptions);
 r.get("/graduates", getGraduatesMap);
 r.get("/cities", getMapCities);
 r.get("/region-cities", getRegionCities);
-r.get("/trend", getMapTrend);
 r.get("/city-detail", getMapCityDetail);
 
 export default r;

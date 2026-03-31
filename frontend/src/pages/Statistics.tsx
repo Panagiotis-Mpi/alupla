@@ -558,7 +558,7 @@ export default function Statistics() {
   const [err, setErr] = React.useState<string | null>(null);
   const [data, setData] = React.useState<any | null>(null);
   const [activeGroup, setActiveGroup] = React.useState<"demographics" | "academic" | "geography">("demographics");
-  const [selectedDirectionProgramId, setSelectedDirectionProgramId] = React.useState<string>("all");
+  const [selectedDirectionProgramId] = React.useState<string>("all");
   const [selectedGenderProgramId, setSelectedGenderProgramId] = React.useState<string>("all");
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedExportFormat, setSelectedExportFormat] = React.useState<"xlsx" | "csv" | "png" | null>(null);

@@ -8,7 +8,6 @@ import {
   exportGraduates,
   exportGraduatesImportTemplate,
   importGraduates,
-  normalizeGraduateOrigins,
 } from "../controllers/graduates.controller";
 import { allowRoles, authRequired } from "../middleware/auth";
 import { upload } from "../middleware/upload";
@@ -25,8 +24,6 @@ graduatesRouter.get("/export", exportGraduates);
 graduatesRouter.get("/import-template", exportGraduatesImportTemplate);
 
 graduatesRouter.post("/import", upload.single("file"), importGraduates);
-
-graduatesRouter.post("/normalize-origins", normalizeGraduateOrigins);
 
 graduatesRouter.get("/:id", getGraduate);
 graduatesRouter.put("/:id", updateGraduate);

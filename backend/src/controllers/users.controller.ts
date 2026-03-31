@@ -73,7 +73,7 @@ async function hashPassword(password: string) {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
 
-export async function listUsers(req: Request, res: Response, next: NextFunction) {
+export async function listUsers(_req: Request, res: Response, next: NextFunction) {
   try {
     const items = await User.findAll({ order: [["id", "ASC"]] });
     res.json({ ok: true, items: items.map(safeUser) });

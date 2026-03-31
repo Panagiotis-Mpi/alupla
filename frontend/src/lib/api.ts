@@ -293,18 +293,6 @@ export type MapCityDetailResponse = {
   }>;
 };
 
-export type MapTrendResponse = {
-  ok: true;
-  labels: string[];
-  datasets: Array<{ key: string; label: string; values: Array<number | null> }>;
-  availableDirections?: Array<{ id: number; label: string }>;
-};
-
-export type MapFilterOptions = {
-  studyPrograms: StudyProgram[];
-  programDirections: ProgramDirection[];
-  regions: Region[];
-};
 
 
 export async function createRegion(payload: { name: string; type: RegionType; parent_id: number | null; latitude: number | null; longitude: number | null }): Promise<{ ok: true; item: Region }> {
@@ -563,14 +551,7 @@ export async function listActivityLogs(params: Record<string, any> = {}): Promis
   return api(`/activity-logs${toQueryString(params)}`, { method: "GET" });
 }
 
-export async function getMapFilterOptions(): Promise<{ ok: true } & MapFilterOptions | any> {
-  return api(`/map/filter-options`, { method: "GET" });
-}
 
-
-export async function getMapTrend(params: Record<string, any> = {}): Promise<MapTrendResponse | any> {
-  return api(`/map/trend${toQueryString(params)}`);
-}
 export async function getGraduatesMap(params: Record<string, any> = {}): Promise<{ ok: true; items: GraduatesMapItem[]; total: number } | any> {
   return api(`/map/graduates${toQueryString(params)}`, { method: "GET" });
 }
@@ -630,10 +611,6 @@ export async function importGraduatesFile(file: File, lang?: string): Promise<an
   return await res.json();
 }
 
-export async function getPublicStudyPrograms(): Promise<{ ok: true; items: StudyProgram[] } | any> {
-  return api("/public/study-programs", { method: "GET" });
-}
-
 export async function getPublicStats(params: {
   graduation_year?: string;
   study_program_id?: string;
@@ -641,31 +618,6 @@ export async function getPublicStats(params: {
   age_group?: string;
 } = {}): Promise<any> {
   return api(`/public/stats${toQueryString(params)}`, { method: "GET" });
-}
-
-export async function getPublicMap(params: {
-  graduation_year?: string;
-  study_program_id?: string;
-  gender?: string;
-  age_group?: string;
-} = {}): Promise<any> {
-  return api(`/public/map${toQueryString(params)}`, { method: "GET" });
-}
-
-export function publicAnonExportUrl(params: {
-  graduation_year?: string;
-  study_program_id?: string;
-  gender?: string;
-  age_group?: string;
-  counts_mode?: string;
-  gender_mode?: string;
-}) {
-  const q = new URLSearchParams();
-  appendQuery(q, params);
-  const token = getToken();
-  if (token) q.set("token", token);
-  const qs = q.toString();
-  return `${API_URL}/public/anonymous-graduates.xls${qs ? `?${qs}` : ""}`;
 }
 
 export async function logPublicExport(action: "map_export" | "statistics_export", format: string): Promise<any> {

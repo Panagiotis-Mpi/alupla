@@ -608,7 +608,6 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
     const headerRow = rows[0];
     const headers = headerRow.map((h) => normHeader(h));
 
-    const col = (name: string) => headers.indexOf(normHeader(name));
 
     
     const idx = {
@@ -1066,51 +1065,3 @@ export async function deleteGraduate(req: Request, res: Response, next: NextFunc
   }
 }
 
-export async function normalizeGraduateOrigins(req: Request, res: Response, next: NextFunction) {
-  try {
-
-    const limit = clamp(toIntParam((req.query.limit as any) ?? 5000, 5000), 1, 20000);
-
-    const grads = await Graduate.findAll({
-      limit,
-      attributes: ["id", "origin_region_id", "origin_municipality"],
-    });
-
-    let changed = 0;
-    let unchanged = 0;
-
-    for (const g of grads as any[]) {
-      const normalized = await normalizeOriginLocation({
-        origin_region_id: g.origin_region_id != null ? Number(g.origin_region_id) : null,
-        origin_municipality: g.origin_municipality ? String(g.origin_municipality) : null,
-      });
-
-      const curRegion = g.origin_region_id != null ? Number(g.origin_region_id) : null;
-      const curMunicipality = g.origin_municipality ? String(g.origin_municipality) : null;
-      if (normalized.origin_region_id !== curRegion || (normalized.origin_municipality ?? null) !== curMunicipality) {
-        await Graduate.update(
-          {
-            origin_region_id: normalized.origin_region_id,
-            origin_municipality: normalized.origin_municipality,
-          },
-          { where: { id: Number(g.id) } }
-        );
-        changed++;
-      } else {
-        unchanged++;
-      }
-    }
-
-    await logAction({
-      user_id: req.user?.id ?? null,
-      action: "normalize_graduate_origins",
-      entity_type: "graduate",
-      entity_id: null,
-      details: { limit, changed, unchanged },
-    });
-
-    res.json({ ok: true, limit, changed, unchanged });
-  } catch (err) {
-    next(err);
-  }
-}
