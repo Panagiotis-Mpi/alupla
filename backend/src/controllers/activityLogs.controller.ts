@@ -158,6 +158,7 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
     const offset = (page - 1) * pageSize;
 
     const actor = nonEmptyString(req.query.actor);
+    const role = getRoleFilter(req);
     const where = buildLogFilters(req);
 
     if (actor) {
@@ -171,6 +172,13 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
             { [Op.and]: [{ "$user.first_name$": { [Op.like]: `%${actor.split(/\s+/)[0] ?? actor}%` } }, { "$user.last_name$": { [Op.like]: `%${actor.split(/\s+/).slice(1).join(" ") || actor}%` } }] }
           ]
         }
+      ];
+    }
+
+    if (role !== "all") {
+      where[Op.and] = [
+        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
+        { "$user.role$": role }
       ];
     }
 
@@ -231,10 +239,36 @@ export async function getActivityLogFileSummary(req: Request, res: Response, nex
 
 export async function exportActivityLogsCsv(req: Request, res: Response, next: NextFunction) {
   try {
+    const actor = nonEmptyString(req.query.actor);
+    const role = getRoleFilter(req);
+    const where = buildLogFilters(req);
+
+    if (actor) {
+      where[Op.and] = [
+        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
+        {
+          [Op.or]: [
+            { "$user.first_name$": { [Op.like]: `%${actor}%` } },
+            { "$user.last_name$": { [Op.like]: `%${actor}%` } },
+            { "$user.email$": { [Op.like]: `%${actor}%` } },
+            { [Op.and]: [{ "$user.first_name$": { [Op.like]: `%${actor.split(/\s+/)[0] ?? actor}%` } }, { "$user.last_name$": { [Op.like]: `%${actor.split(/\s+/).slice(1).join(" ") || actor}%` } }] }
+          ]
+        }
+      ];
+    }
+
+    if (role !== "all") {
+      where[Op.and] = [
+        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
+        { "$user.role$": role }
+      ];
+    }
+
     const rows = await ActivityLog.findAll({
-      where: buildLogFilters(req),
+      where,
       order: [["created_at", "DESC"]],
-      limit: EXPORT_LIMIT
+      limit: EXPORT_LIMIT,
+      include: [{ model: User, as: "user", attributes: ["id", "email", "first_name", "last_name", "role"], required: false }]
     });
 
     await logAction({

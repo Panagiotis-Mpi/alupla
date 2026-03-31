@@ -10,7 +10,7 @@ import {
 const PAGE_SIZE = 20;
 
 type LogFilters = {
-  actor: string;
+  role: "" | FileSummaryRole;
   action: string;
 };
 
@@ -31,21 +31,19 @@ type ActivityLogListResponse = {
 };
 
 const emptyFilters: LogFilters = {
-  actor: "",
+  role: "",
   action: "",
-};
-
-const wideCardStyle: React.CSSProperties = {
-  width: "calc(100vw - 32px)",
-  marginLeft: "calc(50% - 50vw + 16px)",
-  marginRight: 0,
-  boxSizing: "border-box",
 };
 
 const actionLabels = {
   gr: {
     login: "Σύνδεση",
     logout: "Αποσύνδεση",
+    register: "Εγγραφή",
+    request_password_reset: "Αίτημα αλλαγής κωδικού",
+    reset_password: "Επαναφορά κωδικού",
+    change_password: "Αλλαγή κωδικού",
+    update_profile: "Ενημέρωση προφίλ",
     upload: "Μεταφόρτωση αρχείου",
     import_graduates: "Εισαγωγή αποφοίτων",
     export_graduates: "Εξαγωγή αποφοίτων",
@@ -63,11 +61,32 @@ const actionLabels = {
     "διαγραφή χρήστη": "Διαγραφή χρήστη",
     create_graduate: "Δημιουργία αποφοίτου",
     update_graduate: "Ενημέρωση αποφοίτου",
-    delete_graduate: "Διαγραφή αποφοίτου"
+    delete_graduate: "Διαγραφή αποφοίτου",
+    create_study_program: "Δημιουργία προγράμματος σπουδών",
+    update_study_program: "Ενημέρωση προγράμματος σπουδών",
+    delete_study_program: "Διαγραφή προγράμματος σπουδών",
+    import_study_programs: "Εισαγωγή προγραμμάτων σπουδών",
+    create_program_direction: "Δημιουργία κατεύθυνσης",
+    update_program_direction: "Ενημέρωση κατεύθυνσης",
+    delete_program_direction: "Διαγραφή κατεύθυνσης",
+    import_program_directions: "Εισαγωγή κατευθύνσεων",
+    create_region_periphery: "Δημιουργία περιφέρειας",
+    update_region_periphery: "Ενημέρωση περιφέρειας",
+    delete_region_periphery: "Διαγραφή περιφέρειας",
+    import_region_peripheries: "Εισαγωγή περιφερειών",
+    create_region_city: "Δημιουργία πόλης",
+    update_region_city: "Ενημέρωση πόλης",
+    delete_region_city: "Διαγραφή πόλης",
+    import_region_cities: "Εισαγωγή πόλεων"
   },
   en: {
     login: "Login",
     logout: "Logout",
+    register: "Registration",
+    request_password_reset: "Password reset request",
+    reset_password: "Password reset",
+    change_password: "Password change",
+    update_profile: "Profile update",
     upload: "File upload",
     import_graduates: "Graduate import",
     export_graduates: "Graduate export",
@@ -85,9 +104,69 @@ const actionLabels = {
     "διαγραφή χρήστη": "User deletion",
     create_graduate: "Graduate creation",
     update_graduate: "Graduate update",
-    delete_graduate: "Graduate deletion"
+    delete_graduate: "Graduate deletion",
+    create_study_program: "Study program creation",
+    update_study_program: "Study program update",
+    delete_study_program: "Study program deletion",
+    import_study_programs: "Study program import",
+    create_program_direction: "Direction creation",
+    update_program_direction: "Direction update",
+    delete_program_direction: "Direction deletion",
+    import_program_directions: "Direction import",
+    create_region_periphery: "Periphery creation",
+    update_region_periphery: "Periphery update",
+    delete_region_periphery: "Periphery deletion",
+    import_region_peripheries: "Periphery import",
+    create_region_city: "City creation",
+    update_region_city: "City update",
+    delete_region_city: "City deletion",
+    import_region_cities: "City import"
   }
 };
+
+const knownActionKeys = [
+  "login",
+  "logout",
+  "register",
+  "request_password_reset",
+  "reset_password",
+  "change_password",
+  "update_profile",
+  "create_user",
+  "update_user",
+  "reject_user",
+  "approve_user",
+  "deactivate_user",
+  "delete_user",
+  "διαγραφή χρήστη",
+  "create_graduate",
+  "update_graduate",
+  "delete_graduate",
+  "import_graduates",
+  "export_graduates",
+  "create_study_program",
+  "update_study_program",
+  "delete_study_program",
+  "import_study_programs",
+  "create_program_direction",
+  "update_program_direction",
+  "delete_program_direction",
+  "import_program_directions",
+  "create_region_periphery",
+  "update_region_periphery",
+  "delete_region_periphery",
+  "import_region_peripheries",
+  "create_region_city",
+  "update_region_city",
+  "delete_region_city",
+  "import_region_cities",
+  "upload",
+  "export_xlsx",
+  "export_csv",
+  "export_pdf",
+  "statistics_export",
+  "map_export"
+] as const;
 
 export default function Logs() {
   const { t, i18n } = useTranslation("logs");
@@ -114,6 +193,13 @@ export default function Logs() {
     return activeLang === "en" ? "System" : "Σύστημα";
   }
 
+  function roleLabel(role: string) {
+    if (role === "secretariat") return t("summary.roles.secretariat");
+    if (role === "super_admin") return t("summary.roles.admin");
+    if (role === "visitor") return t("summary.roles.visitor");
+    return t("filters.all");
+  }
+
   function toLocalizedAction(v: any): string {
     const key = String(v ?? "").trim();
     return actionLabels[activeLang][key as keyof (typeof actionLabels)["gr"]] ?? key.replace(/_/g, " ");
@@ -132,10 +218,15 @@ export default function Logs() {
   }
 
   const actionForApi = filters.action.trim();
-  const actorForApi = filters.actor.trim();
+  const roleForApi = filters.role;
 
   const fileTypes: FileSummaryFileType[] = ["excel", "csv", "pdf", "png"];
   const pageOrder: FileSummaryPage[] = ["graduates", "academicData", "regions", "statistics", "map", "logs"];
+
+  const actionOptions = React.useMemo(() => {
+    const options = knownActionKeys.map((key) => ({ value: key, label: toLocalizedAction(key) }));
+    return options.sort((a, b) => a.label.localeCompare(b.label, activeLang === "gr" ? "el" : "en"));
+  }, [activeLang]);
 
   function pageLabel(pageKey: FileSummaryPage) {
     if (pageKey === "graduates") return t("summary.pages.graduates");
@@ -170,7 +261,7 @@ export default function Logs() {
         page: nextPage,
         pageSize: PAGE_SIZE,
         action: actionForApi || undefined,
-        actor: actorForApi || undefined,
+        role: roleForApi || undefined,
       }) as ActivityLogListResponse;
       setItems(data.items ?? []);
       setTotalItems(Number(data.total ?? 0));
@@ -181,25 +272,6 @@ export default function Logs() {
       setLoading(false);
     }
   }
-
-  const distinctActions = React.useMemo(() => {
-    const s = new Set<string>();
-    for (const l of items) {
-      const raw = String((l as any)?.action ?? "").trim();
-      const label = toLocalizedAction(raw);
-      if (label) s.add(label);
-    }
-    return Array.from(s).sort((a, b) => a.localeCompare(b, "el"));
-  }, [activeLang, items]);
-
-  const distinctActors = React.useMemo(() => {
-    const s = new Set<string>();
-    for (const l of items) {
-      const v = actorLabel(l);
-      if (v) s.add(v);
-    }
-    return Array.from(s).sort((a, b) => a.localeCompare(b));
-  }, [activeLang, items]);
 
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
 
@@ -214,6 +286,7 @@ export default function Logs() {
   function onExport() {
     const url = activityLogsExportUrl({
       action: actionForApi || undefined,
+      role: roleForApi || undefined,
     });
     const a = document.createElement("a");
     a.href = url;
@@ -242,22 +315,21 @@ export default function Logs() {
         </div>
       )}
 
-      <div className="card logs-summary-card" style={wideCardStyle}>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+      <div className="card logs-summary-card">
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap" }}>
           <h3 style={{ margin: 0 }}>{t("summary.title")}</h3>
-          <div className="spacer" />
-          <label className="label" style={{ margin: 0 }}>{t("summary.roleLabel")}</label>
           <select
             className="input"
             value={summaryRole}
             onChange={(e) => setSummaryRole(e.target.value as FileSummaryRole)}
-            style={{ minWidth: 180 }}
+            style={{ width: 220, minWidth: 220, maxWidth: "100%" }}
           >
             <option value="secretariat">{t("summary.roles.secretariat")}</option>
             <option value="super_admin">{t("summary.roles.admin")}</option>
             <option value="visitor">{t("summary.roles.visitor")}</option>
           </select>
         </div>
+
         <div className="table-wrap">
           <table className="table" style={{ minWidth: 1120 }}>
             <thead>
@@ -295,38 +367,36 @@ export default function Logs() {
         </div>
       </div>
 
-      <div className="card logs-filters-card" style={wideCardStyle}>
+      <div className="card logs-filters-card">
         <div className="grid cols2" style={{ gap: 14 }}>
           <div>
             <label className="label">{t("filters.actor")}</label>
-            <input
+            <select
               className="input"
-              list="logs-actors"
-              value={filters.actor}
-              onChange={(e) => setFilter("actor", e.target.value)}
-              placeholder={t("filters.all")}
-            />
-            <datalist id="logs-actors">
-              {distinctActors.map((v) => (
-                <option key={v} value={v} />
-              ))}
-            </datalist>
+              value={filters.role}
+              onChange={(e) => setFilter("role", e.target.value as LogFilters["role"])}
+            >
+              <option value="">{t("filters.all")}</option>
+              <option value="secretariat">{roleLabel("secretariat")}</option>
+              <option value="super_admin">{roleLabel("super_admin")}</option>
+              <option value="visitor">{roleLabel("visitor")}</option>
+            </select>
           </div>
 
           <div>
             <label className="label">{t("filters.action")}</label>
-            <input
+            <select
               className="input"
-              list="logs-actions"
               value={filters.action}
               onChange={(e) => setFilter("action", e.target.value)}
-              placeholder={t("filters.all")}
-            />
-            <datalist id="logs-actions">
-              {distinctActions.map((v) => (
-                <option key={v} value={v} />
+            >
+              <option value="">{t("filters.all")}</option>
+              {actionOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
-            </datalist>
+            </select>
           </div>
         </div>
 
@@ -377,7 +447,7 @@ export default function Logs() {
         </div>
       </div>
 
-      <div className="card logs-table-card" style={wideCardStyle}>
+      <div className="card logs-table-card">
         <div className="table-wrap">
           <table className="table" style={{ minWidth: 1080 }}>
             <thead>
