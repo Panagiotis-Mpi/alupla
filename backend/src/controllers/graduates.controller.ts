@@ -781,20 +781,22 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       }
     }
 
-    await logAction({
-      user_id: req.user?.id ?? null,
-      action: "import_graduates",
-      entity_type: "graduate",
-      entity_id: null,
-      details: {
-        file: file.originalname,
-        total_rows: rows.length - 1,
-        inserted,
-        updated,
-        skipped,
-        errors: errors.length
-      }
-    });
+    try {
+      await logAction({
+        user_id: req.user?.id ?? null,
+        action: "import_graduates",
+        entity_type: "graduate",
+        entity_id: null,
+        details: {
+          file: file.originalname,
+          total_rows: rows.length - 1,
+          inserted,
+          updated,
+          skipped,
+          errors: errors.length
+        }
+      });
+    } catch {}
 
     return res.json({
       ok: true,

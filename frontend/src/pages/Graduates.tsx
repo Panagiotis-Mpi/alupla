@@ -663,13 +663,17 @@ export default function Graduates() {
       const updated = Number(report?.summary?.updated ?? 0);
       const skipped = Number(report?.summary?.skipped ?? 0);
       const changesCount = inserted + updated;
+
       showToast({
         type: "success",
         title: buildImportTitle(t, inserted, updated, skipped),
         detail: buildImportDetail(t, inserted, updated, skipped),
       });
+
       if (changesCount > 0 || skipped > 0) {
-        await load();
+        try {
+          await load();
+        } catch {}
       }
     } catch (error: any) {
       const reason = normalizeImportErrorMessage(error?.message ?? t("toast.somethingWentWrong"), t);
