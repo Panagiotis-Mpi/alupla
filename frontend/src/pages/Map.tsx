@@ -247,6 +247,17 @@ export default function GraduatesMapPage() {
   }, [mapMetric, studyPrograms]);
 
   useEffect(() => {
+    if (!selected) return;
+    const nextSelected = items.find((item) => item.periphery_id === selected.periphery_id) || null;
+    if (!nextSelected) {
+      setSelected(null);
+      return;
+    }
+    if (nextSelected === selected) return;
+    setSelected(nextSelected);
+  }, [items, selected]);
+
+  useEffect(() => {
     if (!selectedCityPoint) {
       setCityDetail(null);
       return;
