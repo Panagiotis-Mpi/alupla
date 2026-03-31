@@ -203,7 +203,7 @@ function toCsvRow(row: any) {
     row.entity_id ?? "",
     JSON.stringify(row.details ?? null)
   ]
-    .map(csvEscape)
+    .map((value) => csvEscape(value))
     .join(",");
 }
 
