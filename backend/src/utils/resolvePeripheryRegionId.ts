@@ -44,8 +44,14 @@ function pushMatch(map: Map<string, RegionLite[]>, key: string, region: RegionLi
 }
 
 let regionsCache: Promise<RegionLite[]> | null = null;
+let regionLookupsCache: Promise<{
+  regions: RegionLite[];
+  byId: Map<number, RegionLite>;
+  cityByName: Map<string, RegionLite[]>;
+  regionByName: Map<string, RegionLite[]>;
+}> | null = null;
 
-async function loadRegions() {
+async function loadRegions(): Promise<RegionLite[]> {
   if (!regionsCache) {
     regionsCache = Region.findAll({ attributes: ["id", "name", "type", "parent_id"] }).then((rows) =>
       (rows as any[]).map((row) => ({
@@ -57,6 +63,32 @@ async function loadRegions() {
     );
   }
   return regionsCache;
+}
+
+async function loadRegionLookups(): Promise<{
+  regions: RegionLite[];
+  byId: Map<number, RegionLite>;
+  cityByName: Map<string, RegionLite[]>;
+  regionByName: Map<string, RegionLite[]>;
+}> {
+  if (!regionLookupsCache) {
+    regionLookupsCache = loadRegions().then((regions) => {
+      const byId = new Map<number, RegionLite>();
+      const cityByName = new Map<string, RegionLite[]>();
+      const regionByName = new Map<string, RegionLite[]>();
+
+      for (const region of regions) {
+        byId.set(region.id, region);
+        const key = normalizeName(region.name);
+        if (!key) continue;
+        pushMatch(regionByName, key, region);
+        if (region.type === "CITY") pushMatch(cityByName, key, region);
+      }
+
+      return { regions, byId, cityByName, regionByName };
+    });
+  }
+  return regionLookupsCache;
 }
 
 function getPeripheryFromRegion(regionId: number | null | undefined, byId: Map<number, RegionLite>) {
@@ -107,18 +139,7 @@ function pickRegionMatch(
 }
 
 export async function normalizeOriginLocation(input: ResolveOriginInput): Promise<NormalizedOriginResult> {
-  const regions = await loadRegions();
-  const byId = new Map<number, RegionLite>();
-  const cityByName = new Map<string, RegionLite[]>();
-  const regionByName = new Map<string, RegionLite[]>();
-
-  for (const region of regions) {
-    byId.set(region.id, region);
-    const key = normalizeName(region.name);
-    if (!key) continue;
-    pushMatch(regionByName, key, region);
-    if (region.type === "CITY") pushMatch(cityByName, key, region);
-  }
+  const { byId, cityByName, regionByName } = await loadRegionLookups();
 
   const rawMunicipality = toName(input.origin_municipality);
   const normalizedMunicipality = normalizeName(rawMunicipality);

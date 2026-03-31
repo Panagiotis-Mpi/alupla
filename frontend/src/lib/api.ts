@@ -608,19 +608,32 @@ export async function importGraduatesFile(file: File, lang?: string): Promise<an
   const fd = new FormData();
   fd.append("file", file);
   if (lang) fd.append("lang", lang);
-  const res = await fetch(`${API_URL}/graduates/import`, {
-    method: "POST",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: fd
-  });
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/graduates/import`, {
+      method: "POST",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: fd
+    });
+  } catch (error: any) {
+    const message = String(error?.message || "").trim() || "Request failed";
+    throw new Error(message);
+  }
+
   if (!res.ok) {
     const j = await parseJsonSafe(res);
-    const msg = (j as any)?.error?.message || (j as any)?.message || res.statusText;
+    const msg = String((j as any)?.error?.message || (j as any)?.message || res.statusText || "").trim() || `Import request failed (${res.status})`;
     throw new Error(msg);
   }
-  return await res.json();
+
+  const data = await parseJsonSafe(res);
+  if (!data) {
+    throw new Error("Invalid server response");
+  }
+  return data;
 }
 
 export async function getPublicStats(params: {

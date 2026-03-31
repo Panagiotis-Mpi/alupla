@@ -319,10 +319,20 @@ function buildImportDetail(t: (key: string, options?: Record<string, unknown>) =
 }
 
 function normalizeImportErrorMessage(message: string, t: (key: string, options?: Record<string, unknown>) => string) {
-  if (message === "Column birth_year is no longer accepted. Use birth_date instead.") {
+  const normalized = String(message || "").trim();
+  if (!normalized) {
+    return t("toast.somethingWentWrong");
+  }
+  if (normalized === "Column birth_year is no longer accepted. Use birth_date instead.") {
     return t("toast.birthYearRemoved");
   }
-  return message;
+  if (normalized === "Invalid server response") {
+    return t("toast.somethingWentWrong");
+  }
+  if (normalized === "Request failed" || normalized === "Failed to fetch" || normalized.startsWith("Import request failed (")) {
+    return t("toast.somethingWentWrong");
+  }
+  return normalized;
 }
 
 function buildImportTitle(t: (key: string, options?: Record<string, unknown>) => string, inserted: number, updated: number, skipped: number) {

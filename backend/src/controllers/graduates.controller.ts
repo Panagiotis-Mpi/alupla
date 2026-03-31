@@ -9,6 +9,8 @@ import { logAction } from "../services/log.service";
 import * as XLSX from "xlsx";
 import { normHeader, toDateOnly, toInt, toNumber } from "../utils/importUtils";
 import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
+import { Op, Transaction } from "sequelize";
+import { sequelize } from "../config/sequelize";
 
 const EXPORT_LANGS = new Set(["gr", "en"]);
 
@@ -620,16 +622,12 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
     const sheetName = wb.SheetNames[0];
     if (!sheetName) return res.status(400).json({ error: { message: "Empty workbook" } });
     const ws = wb.Sheets[sheetName];
-
-    
     const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" }) as any[][];
     if (rows.length < 2) return res.status(400).json({ error: { message: "No data rows" } });
 
     const headerRow = rows[0];
     const headers = headerRow.map((h) => normHeader(h));
 
-
-    
     const idx = {
       student_number: firstIndex(headers, [...IMPORT_HEADER_ALIASES.student_number]),
       ad_code: firstIndex(headers, [...IMPORT_HEADER_ALIASES.ad_code]),
@@ -641,7 +639,6 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       graduation_date: firstIndex(headers, [...IMPORT_HEADER_ALIASES.graduation_date]),
       oath_date: firstIndex(headers, [...IMPORT_HEADER_ALIASES.oath_date]),
       degree_grade: firstIndex(headers, [...IMPORT_HEADER_ALIASES.degree_grade]),
-      
       birth_year: firstIndex(headers, [...IMPORT_HEADER_ALIASES.birth_year]),
       birth_date: firstIndex(headers, [...IMPORT_HEADER_ALIASES.birth_date]),
       study_program: firstIndex(headers, [...IMPORT_HEADER_ALIASES.study_program]),
@@ -668,8 +665,16 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
     }
 
     type RowError = { row: number; column?: string; message: string; value?: any; details?: string[]; violation_codes?: RuleViolationCode[] };
+    type PreparedRow = {
+      rowNum: number;
+      student_number: string;
+      payload: any;
+    };
+
     const importLang = getRuleLang((req.body as any)?.lang);
     const errors: RowError[] = [];
+    const preparedRows: PreparedRow[] = [];
+    const studentNumbers: string[] = [];
     let inserted = 0;
     let updated = 0;
     let skipped = 0;
@@ -753,32 +758,49 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         continue;
       }
 
-      const payload: any = {
+      preparedRows.push({
+        rowNum,
         student_number,
-        ad_code,
-        last_name,
-        first_name,
-        father_name,
-        gender,
-        entry_year,
-        graduation_date,
-        oath_date,
-        degree_grade,
-        birth_date,
-        study_program_id,
-        program_direction_id: program_direction_id ?? null,
-        origin_region_id: normalizedOrigin.origin_region_id,
-        origin_municipality: normalizedOrigin.origin_municipality,
-      };
+        payload: {
+          student_number,
+          ad_code,
+          last_name,
+          first_name,
+          father_name,
+          gender,
+          entry_year,
+          graduation_date,
+          oath_date,
+          degree_grade,
+          birth_date,
+          study_program_id,
+          program_direction_id: program_direction_id ?? null,
+          origin_region_id: normalizedOrigin.origin_region_id,
+          origin_municipality: normalizedOrigin.origin_municipality,
+        }
+      });
+      studentNumbers.push(student_number);
+    }
 
-      const existing = await Graduate.findOne({ where: { student_number } });
-      if (existing) {
-        await existing.update(payload);
-        updated++;
-      } else {
-        await Graduate.create(payload);
-        inserted++;
-      }
+    if (preparedRows.length) {
+      const existingRows = await Graduate.findAll({
+        where: { student_number: { [Op.in]: Array.from(new Set(studentNumbers)) } },
+        attributes: ["id", "student_number"]
+      });
+      const existingByStudentNumber = new Map(existingRows.map((item: any) => [String(item.student_number), Number(item.id)]));
+
+      await sequelize.transaction(async (transaction: Transaction) => {
+        for (const item of preparedRows) {
+          const existingId = existingByStudentNumber.get(item.student_number);
+          if (existingId) {
+            await Graduate.update(item.payload, { where: { id: existingId }, transaction });
+            updated++;
+            continue;
+          }
+          await Graduate.create(item.payload, { transaction });
+          inserted++;
+        }
+      });
     }
 
     try {
@@ -809,9 +831,23 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         skipped,
         error_count: errors.length
       },
-      errors: errors.slice(0, 500) // cap response size
+      errors: errors.slice(0, 500)
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.name === "SequelizeUniqueConstraintError") {
+      return res.status(400).json({
+        ok: false,
+        error: { message: err?.errors?.[0]?.message || err?.message || "Duplicate value detected during import." }
+      });
+    }
+
+    if (err?.name === "MulterError") {
+      return res.status(400).json({
+        ok: false,
+        error: { message: err?.message || "File upload failed." }
+      });
+    }
+
     next(err);
   }
 }
