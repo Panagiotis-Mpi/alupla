@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { login as apiLogin } from "../lib/api";
-import { setSession } from "../lib/auth";
+import { setSession, type Role } from "../lib/auth";
 
 const pageStyle: React.CSSProperties = {
   minHeight: "calc(100vh - 70px)",
@@ -48,11 +48,14 @@ const linksRowStyle: React.CSSProperties = {
   marginTop: 4,
 };
 
+const ROLE_OPTIONS: Role[] = ["secretariat", "super_admin"];
+
 function Login() {
   const { t } = useTranslation("auth");
   const navigate = useNavigate();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [selectedRole, setSelectedRole] = React.useState<Role>("secretariat");
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
 
@@ -63,8 +66,11 @@ function Login() {
     try {
       const res = await apiLogin(email.trim(), password);
       if (!res?.token || !res?.user) throw new Error("Bad login response");
+      if (res.user.role !== selectedRole) {
+        throw new Error(t(`login.roleMismatch.${selectedRole}`));
+      }
       setSession(res.token, res.user);
-      navigate("/graduates");
+      navigate(res.user.role === "super_admin" ? "/users" : "/graduates");
     } catch (e: any) {
       const message = e?.message;
       if (message === "Account pending admin approval") {
@@ -94,6 +100,39 @@ function Login() {
         </h2>
 
         <form onSubmit={onSubmit} style={{ display: "grid", gap: "1.05rem" }}>
+          <label style={labelStyle}>
+            <span style={labelTextStyle}>{t("login.role")}</span>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                gap: 10,
+              }}
+            >
+              {ROLE_OPTIONS.map((role) => {
+                const active = selectedRole === role;
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => setSelectedRole(role)}
+                    style={{
+                      height: 44,
+                      borderRadius: 12,
+                      border: active ? "1px solid #2563eb" : "1px solid #dbeafe",
+                      background: active ? "rgba(37,99,235,0.08)" : "#ffffff",
+                      color: active ? "#1d4ed8" : "#334155",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {t(`login.roles.${role}`)}
+                  </button>
+                );
+              })}
+            </div>
+          </label>
+
           <label style={labelStyle}>
             <span style={labelTextStyle}>{t("login.email")}</span>
             <input
