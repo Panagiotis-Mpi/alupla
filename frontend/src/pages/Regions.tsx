@@ -67,6 +67,7 @@ export default function Regions() {
   const [unmatchedQuery, setUnmatchedQuery] = useState("");
   const [unmatchedItems, setUnmatchedItems] = useState<UnmatchedCityItem[]>([]);
   const [pendingUnmatchedItem, setPendingUnmatchedItem] = useState<UnmatchedCityItem | null>(null);
+  const [unmatchedCitySelections, setUnmatchedCitySelections] = useState<Record<string, string>>({});
   const [form, setForm] = useState<RegionFormState>(emptyForm);
   const [peripheryForm, setPeripheryForm] = useState<PeripheryFormState>(emptyPeripheryForm);
   const [saving, setSaving] = useState(false);
@@ -303,28 +304,36 @@ export default function Regions() {
     scrollToTop();
   }
 
-  function startResolveUnmatched(item: UnmatchedCityItem) {
-    setPendingUnmatchedItem(item);
-    setCityQuery("");
-    clearFeedback();
-    setActiveSection("cities");
-    scrollToTop();
+  function setUnmatchedCitySelection(item: UnmatchedCityItem, value: string) {
+    const key = unmatchedStorageKey(item.name, item.periphery_id);
+    setUnmatchedCitySelections((state) => ({ ...state, [key]: value }));
   }
 
-  async function assignUnmatchedToCity(city: Region) {
-    if (!pendingUnmatchedItem) return;
-    clearFeedback();
+  async function resolveInlineUnmatched(item: UnmatchedCityItem) {
+    clearUnmatchedFeedback();
+    const key = unmatchedStorageKey(item.name, item.periphery_id);
+    const selectedValue = unmatchedCitySelections[key] || "";
+    const canonicalRegionId = Number(selectedValue);
+    if (!canonicalRegionId) {
+      setUnmatchedError(t("messages.error"));
+      return;
+    }
+
     try {
-      const unresolved = unmatchedItems.find((item) => item.name === pendingUnmatchedItem.name && item.periphery_id === pendingUnmatchedItem.periphery_id);
-      if (!unresolved || !(unresolved as any).id) {
+      if (!(item as any).id) {
         throw new Error(t("messages.error"));
       }
-      await resolveUnmatchedCity({ unresolved_id: Number((unresolved as any).id), canonical_region_id: city.id, create_alias: true });
-      setPendingUnmatchedItem(null);
-      setMessage(t("messages.unmatchedLinked", { city: city.name }));
+      const selectedCity = cities.find((city) => city.id === canonicalRegionId);
+      await resolveUnmatchedCity({ unresolved_id: Number((item as any).id), canonical_region_id: canonicalRegionId, create_alias: true });
+      setUnmatchedCitySelections((state) => {
+        const next = { ...state };
+        delete next[key];
+        return next;
+      });
+      setUnmatchedMessage(t("messages.unmatchedLinked", { city: selectedCity?.name || "" }));
       await refreshLists();
     } catch (err: any) {
-      setError(err?.message || t("messages.error"));
+      setUnmatchedError(err?.message || t("messages.error"));
     }
   }
 
@@ -827,15 +836,6 @@ export default function Regions() {
             </div>
           </form>
 
-          {pendingUnmatchedItem ? (
-            <div style={{ ...successStyle, marginTop: 12 }}>
-              {t("unmatched.resolveHint", {
-                name: pendingUnmatchedItem.name,
-                periphery: pendingUnmatchedItem.periphery_name || t("manage.placeholders.periphery"),
-              })}
-            </div>
-          ) : null}
-
           <div className="topbar" style={{ marginTop: 16 }}>
             <h3 style={zeroMarginStyle}>{t("manage.listTitle")}</h3>
             <div className="spacer" />
@@ -892,9 +892,6 @@ export default function Regions() {
                     <td>
                       <div className="row-actions">
                         <button className="btn" type="button" onClick={() => onEdit(city)}>{t("manage.edit")}</button>
-                        {pendingUnmatchedItem && (pendingUnmatchedItem.periphery_id == null || Number(city.parent_id) === Number(pendingUnmatchedItem.periphery_id)) ? (
-                          <button className="btn" type="button" onClick={() => void assignUnmatchedToCity(city)}>{t("unmatched.linkExisting")}</button>
-                        ) : null}
                         <button className="btn danger" type="button" onClick={() => {
                           if (window.confirm(t("confirm.singleDelete"))) void removeCity(city.id);
                         }}>{t("manage.delete")}</button>
@@ -962,9 +959,23 @@ export default function Regions() {
                       <td>{item.count}</td>
                       <td>{item.periphery_name ?? "-"}</td>
                       <td>
-                        <div className="row-actions">
+                        <div className="row-actions" style={{ flexWrap: "wrap", gap: 8 }}>
                           <button className="btn" type="button" onClick={() => useUnmatchedCity(item)}>{t("unmatched.useInForm")}</button>
-                          <button className="btn" type="button" onClick={() => startResolveUnmatched(item)}>{t("unmatched.linkExisting")}</button>
+                          <span className="muted">{t("unmatched.linkLabel")}</span>
+                          <select
+                            className="input"
+                            style={{ minWidth: 220 }}
+                            value={unmatchedCitySelections[rowKey] || ""}
+                            onChange={(e) => setUnmatchedCitySelection(item, e.target.value)}
+                          >
+                            <option value="">{t("unmatched.selectCity")}</option>
+                            {cityRows
+                              .filter(({ item: city }) => item.periphery_id == null || Number(city.parent_id) === Number(item.periphery_id))
+                              .map(({ item: city }) => (
+                                <option key={city.id} value={city.id}>{city.name}</option>
+                              ))}
+                          </select>
+                          <button className="btn" type="button" onClick={() => void resolveInlineUnmatched(item)} disabled={!unmatchedCitySelections[rowKey]}>{t("unmatched.confirmLink")}</button>
                         </div>
                       </td>
                     </tr>

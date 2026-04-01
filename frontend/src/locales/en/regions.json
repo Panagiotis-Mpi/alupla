@@ -50,7 +50,7 @@
     "search": "Search unmatched city",
     "searchButton": "Search",
     "empty": "No unmatched cities found.",
-    "useInForm": "Use in form",
+    "useInForm": "Add city",
     "columns": {
       "name": "City",
       "count": "Occurrences",
@@ -58,7 +58,10 @@
       "actions": "Action"
     },
     "linkExisting": "Match",
-    "resolveHint": "Match the new region {{name}} with an existing city in periphery {{periphery}}."
+    "resolveHint": "Match the new region {{name}} with an existing city in periphery {{periphery}}.",
+    "linkLabel": "Match:",
+    "selectCity": "Select city",
+    "confirmLink": "Ok"
   },
   "peripheries": {
     "title": "Peripheries",
