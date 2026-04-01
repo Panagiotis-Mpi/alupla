@@ -19,6 +19,7 @@ export type PeripheryFormState = {
 };
 
 export type UnmatchedCityItem = {
+  id?: number;
   name: string;
   count: number;
   periphery_id: number | null;

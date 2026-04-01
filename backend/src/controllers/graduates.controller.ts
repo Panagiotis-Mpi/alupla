@@ -730,6 +730,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
 
       const normalizedOrigin = await normalizeOriginLocation({
         origin_region_id: origin_region_id ?? null,
+        origin_city_region_id: null,
         origin_municipality,
       });
 
@@ -776,6 +777,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
           study_program_id,
           program_direction_id: program_direction_id ?? null,
           origin_region_id: normalizedOrigin.origin_region_id,
+          origin_city_region_id: normalizedOrigin.origin_city_region_id,
           origin_municipality: normalizedOrigin.origin_municipality,
         }
       });
@@ -942,6 +944,7 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
 
     const normalizedOrigin = await normalizeOriginLocation({
       origin_region_id: origin_region_id ?? null,
+      origin_city_region_id: toNullableNumber(body.origin_city_region_id),
       origin_municipality,
     });
 
@@ -963,6 +966,7 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
       study_program_id,
       program_direction_id,
       origin_region_id: normalizedOrigin.origin_region_id,
+      origin_city_region_id: normalizedOrigin.origin_city_region_id,
       origin_municipality: normalizedOrigin.origin_municipality
     } as any);
 
@@ -1030,6 +1034,13 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       originRegionTouched = true;
     }
 
+    if (body.origin_city_region_id !== undefined) {
+      const origin_city_region_id = toNullableNumber(body.origin_city_region_id);
+      if (Number.isNaN(origin_city_region_id as any)) return bad(res, "origin_city_region_id must be a number");
+      (item as any).origin_city_region_id = origin_city_region_id;
+      originRegionTouched = true;
+    }
+
     const setIf = (key: string, fn?: (v: any) => any) => {
       if (body[key] !== undefined) (item as any)[key] = fn ? fn(body[key]) : body[key];
     };
@@ -1050,6 +1061,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     if (originRegionTouched) {
       const normalized = await normalizeOriginLocation({
         origin_region_id: (item as any).origin_region_id ?? null,
+        origin_city_region_id: (item as any).origin_city_region_id ?? null,
         origin_municipality: (item as any).origin_municipality ?? null,
       });
       const managedOriginError = ensureManagedOrigin(
@@ -1059,6 +1071,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       );
       if (managedOriginError) return bad(res, managedOriginError);
       (item as any).origin_region_id = normalized.origin_region_id;
+      (item as any).origin_city_region_id = normalized.origin_city_region_id;
       (item as any).origin_municipality = normalized.origin_municipality;
     }
 

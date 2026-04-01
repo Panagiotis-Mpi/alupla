@@ -1,91 +1,80 @@
 import { Region } from "../models/Region";
+import { RegionAlias } from "../models/RegionAlias";
+import { cleanRegionText, normalizeRegionText } from "./regionText";
 
 type ResolveOriginInput = {
   origin_region_id: number | null;
+  origin_city_region_id?: number | null;
   origin_municipality: string | null;
 };
 
 type RegionLite = {
   id: number;
   name: string;
+  normalized_name: string;
   type: string;
   parent_id: number | null;
 };
 
+type AliasLite = {
+  region_id: number;
+  normalized_alias: string;
+};
+
 export type NormalizedOriginResult = {
   origin_region_id: number | null;
+  origin_city_region_id: number | null;
   origin_municipality: string | null;
-  city_region_id: number | null;
 };
 
 const MAX_PARENT_STEPS = 25;
-
-function toName(value: unknown) {
-  return String(value ?? "").trim();
-}
-
-function normalizeName(value: unknown) {
-  return toName(value)
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .replace(/\./g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+let regionLookupsCache: Promise<{
+  byId: Map<number, RegionLite>;
+  cityByKey: Map<string, RegionLite[]>;
+  peripheryByKey: Map<string, RegionLite[]>;
+  aliasByKey: Map<string, RegionLite[]>;
+}> | null = null;
 
 function pushMatch(map: Map<string, RegionLite[]>, key: string, region: RegionLite) {
   const items = map.get(key);
-  if (items) {
-    items.push(region);
-    return;
-  }
-  map.set(key, [region]);
+  if (items) items.push(region);
+  else map.set(key, [region]);
 }
 
-let regionsCache: Promise<RegionLite[]> | null = null;
-let regionLookupsCache: Promise<{
-  regions: RegionLite[];
-  byId: Map<number, RegionLite>;
-  cityByName: Map<string, RegionLite[]>;
-  regionByName: Map<string, RegionLite[]>;
-}> | null = null;
-
-async function loadRegions(): Promise<RegionLite[]> {
-  if (!regionsCache) {
-    regionsCache = Region.findAll({ attributes: ["id", "name", "type", "parent_id"] }).then((rows) =>
-      (rows as any[]).map((row) => ({
-        id: Number(row.id),
-        name: String(row.name ?? ""),
-        type: String(row.type ?? ""),
-        parent_id: row.parent_id != null ? Number(row.parent_id) : null,
-      }))
-    );
-  }
-  return regionsCache;
-}
-
-async function loadRegionLookups(): Promise<{
-  regions: RegionLite[];
-  byId: Map<number, RegionLite>;
-  cityByName: Map<string, RegionLite[]>;
-  regionByName: Map<string, RegionLite[]>;
-}> {
+async function loadRegionLookups() {
   if (!regionLookupsCache) {
-    regionLookupsCache = loadRegions().then((regions) => {
+    regionLookupsCache = Promise.all([
+      Region.findAll({ attributes: ["id", "name", "normalized_name", "type", "parent_id"] }),
+      RegionAlias.findAll({ attributes: ["region_id", "normalized_alias"] }),
+    ]).then(([regions, aliases]) => {
       const byId = new Map<number, RegionLite>();
-      const cityByName = new Map<string, RegionLite[]>();
-      const regionByName = new Map<string, RegionLite[]>();
+      const cityByKey = new Map<string, RegionLite[]>();
+      const peripheryByKey = new Map<string, RegionLite[]>();
+      const aliasByKey = new Map<string, RegionLite[]>();
 
-      for (const region of regions) {
+      for (const row of regions as any[]) {
+        const region: RegionLite = {
+          id: Number(row.id),
+          name: String(row.name ?? ""),
+          normalized_name: String(row.normalized_name ?? normalizeRegionText(row.name)),
+          type: String(row.type ?? ""),
+          parent_id: row.parent_id != null ? Number(row.parent_id) : null,
+        };
         byId.set(region.id, region);
-        const key = normalizeName(region.name);
-        if (!key) continue;
-        pushMatch(regionByName, key, region);
-        if (region.type === "CITY") pushMatch(cityByName, key, region);
+        if (region.normalized_name) {
+          if (region.type === "CITY") pushMatch(cityByKey, region.normalized_name, region);
+          if (region.type === "PERIPHERY") pushMatch(peripheryByKey, region.normalized_name, region);
+        }
       }
 
-      return { regions, byId, cityByName, regionByName };
+      for (const row of aliases as any[]) {
+        const region = byId.get(Number(row.region_id));
+        const key = String(row.normalized_alias ?? "");
+        if (!region || !key) continue;
+        pushMatch(aliasByKey, key, region);
+      }
+
+      return { byId, cityByKey, peripheryByKey, aliasByKey };
     });
   }
   return regionLookupsCache;
@@ -106,67 +95,54 @@ function getPeripheryFromRegion(regionId: number | null | undefined, byId: Map<n
   return null;
 }
 
-function pickRegionMatch(
-  normalizedMunicipality: string,
-  preferredPeripheryId: number | null,
-  cityByName: Map<string, RegionLite[]>,
-  regionByName: Map<string, RegionLite[]>,
-  byId: Map<number, RegionLite>
-) {
-  if (!normalizedMunicipality) return null;
-
-  const cityCandidates = cityByName.get(normalizedMunicipality) ?? [];
+function pickScopedRegion(candidates: RegionLite[], preferredPeripheryId: number | null, byId: Map<number, RegionLite>) {
+  if (!candidates.length) return null;
   if (preferredPeripheryId) {
-    const scoped = cityCandidates.find((item) => {
-      const periphery = getPeripheryFromRegion(item.id, byId);
-      return periphery ? periphery.id === preferredPeripheryId : false;
-    });
+    const scoped = candidates.find((item) => getPeripheryFromRegion(item.id, byId)?.id === preferredPeripheryId);
     if (scoped) return scoped;
   }
+  return candidates[0] ?? null;
+}
 
-  if (cityCandidates[0]) return cityCandidates[0];
-
-  const regionCandidates = regionByName.get(normalizedMunicipality) ?? [];
-  if (preferredPeripheryId) {
-    const scoped = regionCandidates.find((item) => {
-      const periphery = getPeripheryFromRegion(item.id, byId);
-      return periphery ? periphery.id === preferredPeripheryId : false;
-    });
-    if (scoped) return scoped;
-  }
-
-  return regionCandidates[0] ?? null;
+export function clearRegionLookupCache() {
+  regionLookupsCache = null;
 }
 
 export async function normalizeOriginLocation(input: ResolveOriginInput): Promise<NormalizedOriginResult> {
-  const { byId, cityByName, regionByName } = await loadRegionLookups();
+  const { byId, cityByKey, peripheryByKey, aliasByKey } = await loadRegionLookups();
 
-  const rawMunicipality = toName(input.origin_municipality);
-  const normalizedMunicipality = normalizeName(rawMunicipality);
+  const rawMunicipality = cleanRegionText(input.origin_municipality);
+  const normalizedMunicipality = normalizeRegionText(rawMunicipality);
+  const explicitCity = input.origin_city_region_id != null ? byId.get(Number(input.origin_city_region_id)) ?? null : null;
   const currentRegion = input.origin_region_id != null ? byId.get(Number(input.origin_region_id)) ?? null : null;
-  const currentPeriphery = currentRegion ? getPeripheryFromRegion(currentRegion.id, byId) : null;
-  const preferredPeripheryId = currentPeriphery ? currentPeriphery.id : currentRegion?.type === "PERIPHERY" ? currentRegion.id : null;
+  const currentPeriphery = explicitCity
+    ? getPeripheryFromRegion(explicitCity.id, byId)
+    : currentRegion
+      ? getPeripheryFromRegion(currentRegion.id, byId) ?? (currentRegion.type === "PERIPHERY" ? currentRegion : null)
+      : null;
+  const preferredPeripheryId = currentPeriphery?.id ?? null;
 
-  let matchedRegion = pickRegionMatch(normalizedMunicipality, preferredPeripheryId, cityByName, regionByName, byId);
+  let matchedCity = explicitCity?.type === "CITY" ? explicitCity : null;
 
-  if (!matchedRegion && currentRegion?.type === "CITY") {
-    matchedRegion = currentRegion;
+  if (!matchedCity && normalizedMunicipality) {
+    matchedCity = pickScopedRegion(cityByKey.get(normalizedMunicipality) ?? [], preferredPeripheryId, byId);
   }
 
-  const periphery = matchedRegion
-    ? getPeripheryFromRegion(matchedRegion.id, byId)
-    : currentRegion
-      ? getPeripheryFromRegion(currentRegion.id, byId)
-      : null;
+  if (!matchedCity && normalizedMunicipality) {
+    const aliasHit = pickScopedRegion(aliasByKey.get(normalizedMunicipality) ?? [], preferredPeripheryId, byId);
+    if (aliasHit?.type === "CITY") matchedCity = aliasHit;
+  }
 
-  const municipality = matchedRegion?.type === "CITY"
-    ? matchedRegion.name
-    : rawMunicipality || (currentRegion?.type === "CITY" ? currentRegion.name : null);
+  let matchedPeriphery = matchedCity ? getPeripheryFromRegion(matchedCity.id, byId) : currentPeriphery;
+
+  if (!matchedPeriphery && normalizedMunicipality) {
+    matchedPeriphery = pickScopedRegion(peripheryByKey.get(normalizedMunicipality) ?? [], null, byId);
+  }
 
   return {
-    origin_region_id: periphery ? periphery.id : null,
-    origin_municipality: municipality || null,
-    city_region_id: matchedRegion?.type === "CITY" ? matchedRegion.id : null,
+    origin_region_id: matchedPeriphery?.id ?? null,
+    origin_city_region_id: matchedCity?.id ?? null,
+    origin_municipality: matchedCity?.name ?? (rawMunicipality || null),
   };
 }
 

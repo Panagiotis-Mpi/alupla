@@ -534,6 +534,15 @@ export async function listUnmatchedCities(params: { q?: string } = {}): Promise<
 }
 
 
+
+export async function resolveUnmatchedCity(payload: { unresolved_id: number; canonical_region_id: number; create_alias?: boolean }): Promise<any> {
+  return api(`/regions/unmatched-cities/resolve`, { method: "POST", body: payload });
+}
+
+export async function dismissUnmatchedCities(ids: number[]): Promise<any> {
+  return api(`/regions/unmatched-cities/dismiss`, { method: "POST", body: { ids } });
+}
+
 export async function importRegionsFile(file: File, mode: "PERIPHERY" | "CITY"): Promise<any> {
   const token = getToken();
   const fd = new FormData();

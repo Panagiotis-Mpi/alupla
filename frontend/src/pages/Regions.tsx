@@ -4,9 +4,11 @@ import { useTranslation } from "react-i18next";
 import {
   createRegion,
   deleteRegion,
+  dismissUnmatchedCities,
   importRegionsFile,
   listRegions,
   listUnmatchedCities,
+  resolveUnmatchedCity,
   searchRegions,
   updateRegion,
   type Region,
@@ -34,7 +36,6 @@ import {
   PeripheryFormState,
   PeripherySortKey,
   replaceVisibleSelection,
-  readIgnoredUnmatched,
   RegionFormState,
   RegionSection,
   sectionLabel,
@@ -52,7 +53,6 @@ import {
   unmatchedStorageKey,
   UnmatchedCityItem,
   UnmatchedSortKey,
-  writeIgnoredUnmatched,
   zeroMarginStyle,
 } from "./regions/shared";
 
@@ -66,7 +66,7 @@ export default function Regions() {
   const [cityQuery, setCityQuery] = useState("");
   const [unmatchedQuery, setUnmatchedQuery] = useState("");
   const [unmatchedItems, setUnmatchedItems] = useState<UnmatchedCityItem[]>([]);
-  const [ignoredUnmatchedKeys, setIgnoredUnmatchedKeys] = useState<string[]>(() => readIgnoredUnmatched());
+  const [pendingUnmatchedItem, setPendingUnmatchedItem] = useState<UnmatchedCityItem | null>(null);
   const [form, setForm] = useState<RegionFormState>(emptyForm);
   const [peripheryForm, setPeripheryForm] = useState<PeripheryFormState>(emptyPeripheryForm);
   const [saving, setSaving] = useState(false);
@@ -136,10 +136,6 @@ export default function Regions() {
   }, []);
 
   useEffect(() => {
-    writeIgnoredUnmatched(ignoredUnmatchedKeys);
-  }, [ignoredUnmatchedKeys]);
-
-  useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
       if (importMenuRef.current && !importMenuRef.current.contains(target)) setImportMenuOpen(false);
@@ -157,7 +153,6 @@ export default function Regions() {
 
   const unmatchedRows = useMemo(() => {
     return [...unmatchedItems]
-      .filter((item) => !ignoredUnmatchedKeys.includes(unmatchedStorageKey(item.name, item.periphery_id)))
       .map((item, index) => ({ item, index }))
       .sort((left, right) => {
         let result = 0;
@@ -173,7 +168,7 @@ export default function Regions() {
         }
         return applyDirection(result, unmatchedSortDirection);
       });
-  }, [ignoredUnmatchedKeys, unmatchedItems, unmatchedSortDirection, unmatchedSortKey]);
+  }, [unmatchedItems, unmatchedSortDirection, unmatchedSortKey]);
 
   const peripheryRows = useMemo(() => {
     return [...peripheries]
@@ -296,6 +291,7 @@ export default function Regions() {
   }
 
   function useUnmatchedCity(item: UnmatchedCityItem) {
+    setPendingUnmatchedItem(item);
     setForm((state) => ({
       ...state,
       id: null,
@@ -324,14 +320,18 @@ export default function Regions() {
         longitude: form.longitude === "" ? null : Number(form.longitude),
       };
 
-      if (form.id) {
-        await updateRegion(form.id, payload);
-        setMessage(t("messages.updated"));
-      } else {
-        await createRegion(payload);
-        setMessage(t("messages.created"));
+      const response = form.id ? await updateRegion(form.id, payload) : await createRegion(payload);
+      const canonicalRegionId = Number(response?.item?.id ?? form.id ?? 0);
+
+      if (pendingUnmatchedItem && canonicalRegionId > 0) {
+        const unresolved = unmatchedItems.find((item) => item.name === pendingUnmatchedItem.name && item.periphery_id === pendingUnmatchedItem.periphery_id);
+        if (unresolved && (unresolved as any).id) {
+          await resolveUnmatchedCity({ unresolved_id: Number((unresolved as any).id), canonical_region_id: canonicalRegionId, create_alias: true });
+        }
       }
 
+      setMessage(form.id ? t("messages.updated") : t("messages.created"));
+      setPendingUnmatchedItem(null);
       resetForm();
       await refreshLists();
     } catch (err: any) {
@@ -428,6 +428,7 @@ export default function Regions() {
       await deleteRegion(id);
       setMessage(t("messages.deleted"));
       if (form.id === id) resetForm();
+      setPendingUnmatchedItem((current) => (current && Number(current.periphery_id ?? 0) === 0 ? null : current));
       setSelectedCityIds((current) => current.filter((item) => item !== id));
       await refreshLists();
     } catch (err: any) {
@@ -435,12 +436,18 @@ export default function Regions() {
     }
   }
 
-  function hideUnmatched(keys: string[]) {
+  async function hideUnmatched(keys: string[]) {
     if (!keys.length) return;
     clearUnmatchedFeedback();
-    setIgnoredUnmatchedKeys((current) => Array.from(new Set([...current, ...keys])));
+    const ids = unmatchedRows
+      .filter(({ item }) => keys.includes(unmatchedStorageKey(item.name, item.periphery_id)))
+      .map(({ item }) => Number((item as any).id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    if (!ids.length) return;
+    await dismissUnmatchedCities(ids);
     setSelectedUnmatchedKeys((current) => current.filter((item) => !keys.includes(item)));
     setUnmatchedMessage(keys.length === 1 ? t("messages.unmatchedDeletedSingle") : t("messages.unmatchedDeletedMany", { count: keys.length }));
+    await loadUnmatched();
   }
 
   async function onDeleteSelected() {
@@ -486,7 +493,7 @@ export default function Regions() {
 
     if (!selectedUnmatchedKeys.length) return;
     if (!window.confirm(t("confirm.bulkDelete", { count: selectedUnmatchedKeys.length }))) return;
-    hideUnmatched(selectedUnmatchedKeys);
+    await hideUnmatched(selectedUnmatchedKeys);
   }
 
   function togglePeripherySelection(id: number) {
