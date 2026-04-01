@@ -71,10 +71,14 @@ function localizedName(row: NamedCountRow, activeLang: "el" | "en") {
   return text(row.name_el ?? row.name_en ?? row.name ?? row.label);
 }
 
+const CSV_SEPARATOR = ";";
+
 function csvCell(value: unknown) {
   const v = String(value ?? "");
-  if (/["\n\r\t,;]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
-  return v;
+  const escaped = v.replace(/"/g, '""');
+  if (/["
+	;]/.test(v)) return `"${escaped}"`;
+  return escaped;
 }
 
 function utf16Blob(textValue: string) {
@@ -254,9 +258,9 @@ function workbookSheetName(name: string, usedNames: Set<string>) {
 function csvLines(block: SheetBlock) {
   const lines: string[] = [block.name];
   const headers = Object.keys(block.rows[0] ?? {});
-  if (headers.length) lines.push(headers.map(csvCell).join(","));
+  if (headers.length) lines.push(headers.map(csvCell).join(CSV_SEPARATOR));
   block.rows.forEach((row) => {
-    lines.push(headers.map((header) => csvCell(row[header])).join(","));
+    lines.push(headers.map((header) => csvCell(row[header])).join(CSV_SEPARATOR));
   });
   return lines;
 }
