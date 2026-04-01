@@ -173,12 +173,14 @@ export default function GraduatesMapPage() {
   const [cityDetail, setCityDetail] = useState<MapCityDetailResponse | null>(null);
   const [studyPrograms, setStudyPrograms] = useState<StudyProgram[]>([]);
   const [selectedStudyProgramId, setSelectedStudyProgramId] = useState<string>("");
+  const [directionModeReady, setDirectionModeReady] = useState(false);
 
   const params = useMemo(() => createMapParams({
     ...EMPTY_FILTERS,
-    ...(mapMetric === "dominant_direction" && selectedStudyProgramId ? { study_program_id: selectedStudyProgramId } : {}),
-  }), [mapMetric, selectedStudyProgramId]);
-  const { loading, items, cityPoints, cityStatsLoading, selectedCityStats } = useMapData(params, selected?.periphery_id);
+    ...(mapMetric === "dominant_direction" && directionModeReady && selectedStudyProgramId ? { study_program_id: selectedStudyProgramId } : {}),
+  }), [directionModeReady, mapMetric, selectedStudyProgramId]);
+  const shouldShowDirectionData = mapMetric !== "dominant_direction" || (directionModeReady && !!selectedStudyProgramId);
+  const { loading, items, cityPoints, cityStatsLoading, selectedCityStats } = useMapData(params, shouldShowDirectionData ? selected?.periphery_id : null);
 
   const geojson = useMemo(() => tryParseGeoJson(greeceRegionsRaw), []);
   const geojsonBounds = useMemo(() => {
@@ -237,6 +239,10 @@ export default function GraduatesMapPage() {
           return leftLabel.localeCompare(rightLabel, "el");
         });
         setStudyPrograms(items);
+        setSelectedStudyProgramId((current) => {
+          if (current && items.some((item) => String(item.id) === current)) return current;
+          return items[0] ? String(items[0].id) : "";
+        });
       })
       .catch(() => {
         if (active) setStudyPrograms([]);
@@ -247,13 +253,30 @@ export default function GraduatesMapPage() {
   }, []);
 
   useEffect(() => {
-    if (mapMetric !== "dominant_direction") return;
+    if (mapMetric !== "dominant_direction") {
+      setDirectionModeReady(false);
+      return;
+    }
     if (!studyPrograms.length) {
       setSelectedStudyProgramId("");
+      setDirectionModeReady(false);
       return;
     }
     setSelectedStudyProgramId((current) => (studyPrograms.some((item) => String(item.id) === current) ? current : String(studyPrograms[0].id)));
-  }, [mapMetric, studyPrograms]);
+    setDirectionModeReady((current) => current || !!selectedStudyProgramId);
+  }, [mapMetric, selectedStudyProgramId, studyPrograms]);
+
+  useEffect(() => {
+    if (mapMetric !== "dominant_direction") return;
+    if (!selectedStudyProgramId) return;
+    setDirectionModeReady(true);
+  }, [mapMetric, selectedStudyProgramId]);
+
+  useEffect(() => {
+    if (mapMetric !== "dominant_direction") return;
+    if (directionModeReady && selectedStudyProgramId) return;
+    setSelectedCityPoint(null);
+  }, [directionModeReady, mapMetric, selectedStudyProgramId]);
 
   useEffect(() => {
     if (!selected) return;
@@ -898,13 +921,19 @@ export default function GraduatesMapPage() {
         <>
           <div className="card map-combined-details-card">
             <div style={{ fontWeight: 800, fontSize: 18 }}>{mt("infoTitle", { defaultValue: "Πληροφορίες" })}</div>
-            <InfoBox title={selected.periphery_name} totalText={mt("totalGraduatesLine", { total: selected.count, defaultValue: "Σύνολο αποφοίτων: {{total}}" })} groups={detailGroups(selected)} />
-            <div style={{ fontWeight: 700 }}>{mt("citiesTitle", { defaultValue: "Πόλεις" })}</div>
-            {cityStatsLoading ? <div className="muted">{ct("loading", { defaultValue: "Φόρτωση..." })}</div> : selectedCityStats.length ? (
-              <div className="map-city-cards-inline">
-                {selectedCityStats.map((city) => <InfoBox key={city.city} title={city.city} totalText={mt("totalGraduatesLine", { total: city.count, defaultValue: "Σύνολο αποφοίτων: {{total}}" })} groups={detailGroups(city)} />)}
-              </div>
-            ) : <div className="muted">{mt("noCities", { defaultValue: "Δεν υπάρχουν διαθέσιμες πόλεις για την τρέχουσα περιφέρεια." })}</div>}
+            {shouldShowDirectionData ? (
+              <>
+                <InfoBox title={selected.periphery_name} totalText={mt("totalGraduatesLine", { total: selected.count, defaultValue: "Σύνολο αποφοίτων: {{total}}" })} groups={detailGroups(selected)} />
+                <div style={{ fontWeight: 700 }}>{mt("citiesTitle", { defaultValue: "Πόλεις" })}</div>
+                {cityStatsLoading ? <div className="muted">{ct("loading", { defaultValue: "Φόρτωση..." })}</div> : selectedCityStats.length ? (
+                  <div className="map-city-cards-inline">
+                    {selectedCityStats.map((city) => <InfoBox key={city.city} title={city.city} totalText={mt("totalGraduatesLine", { total: city.count, defaultValue: "Σύνολο αποφοίτων: {{total}}" })} groups={detailGroups(city)} />)}
+                  </div>
+                ) : <div className="muted">{mt("noCities", { defaultValue: "Δεν υπάρχουν διαθέσιμες πόλεις για την τρέχουσα περιφέρεια." })}</div>}
+              </>
+            ) : (
+              <div className="muted">{ct("loading", { defaultValue: "Φόρτωση..." })}</div>
+            )}
           </div>
         </>
       ) : items.length ? (
