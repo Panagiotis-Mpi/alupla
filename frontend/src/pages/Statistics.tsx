@@ -220,10 +220,12 @@ function ScrollableLineChart(props: {
 }) {
   const isCompact = useCompactStatisticsLayout();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 68, props.maxLabelWidth ?? 128);
+  const shouldScroll = props.labels.length > 6 || (props.datasetCount ?? 1) > 1;
+  const minWidth = shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
 
   return (
-    <div style={{ width: "100%", maxWidth: "100%", overflowX: isCompact ? "hidden" : "auto", overflowY: "hidden", paddingBottom: 4 }}>
-      <div style={{ minWidth: isCompact ? "100%" : contentWidth, width: "100%", height: props.height ?? 280 }}>
+    <div style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+      <div style={{ minWidth: shouldScroll ? minWidth : "100%", width: shouldScroll ? "max-content" : "100%", height: props.height ?? 280 }}>
         <Line data={props.data} options={props.options} />
       </div>
     </div>
@@ -242,11 +244,12 @@ function ScrollableBarChart(props: {
 }) {
   const isCompact = useCompactStatisticsLayout();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
-  const useFullWidth = isCompact || (!props.forceScrollable && props.labels.length <= 7);
+  const shouldScroll = !!props.forceScrollable || props.labels.length > 7 || (props.datasetCount ?? 1) > 1;
+  const minWidth = shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
 
   return (
-    <div style={{ width: "100%", maxWidth: "100%", overflowX: isCompact ? "hidden" : "auto", overflowY: "hidden", paddingBottom: 4 }}>
-      <div style={{ minWidth: useFullWidth ? "100%" : contentWidth, width: "100%", height: props.height ?? 280 }}>
+    <div style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+      <div style={{ minWidth: shouldScroll ? minWidth : "100%", width: shouldScroll ? "max-content" : "100%", height: props.height ?? 280 }}>
         <Bar data={props.data} options={props.options} />
       </div>
     </div>
@@ -329,6 +332,25 @@ function BarChartCard(props: {
   );
 }
 
+function ScrollablePieChart(props: {
+  data: any;
+  options: any;
+  height?: number;
+  labels: string[];
+}) {
+  const isCompact = useCompactStatisticsLayout();
+  const shouldScroll = props.labels.length > 6;
+  const minWidth = shouldScroll ? Math.max(560, props.labels.length * 72) : 0;
+
+  return (
+    <div style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+      <div style={{ minWidth: shouldScroll ? Math.max(minWidth, isCompact ? 560 : 640) : "100%", width: shouldScroll ? "max-content" : "100%", height: props.height ?? 340 }}>
+        <Pie data={props.data} options={props.options} />
+      </div>
+    </div>
+  );
+}
+
 function PieChartCard(props: {
   title: string;
   labels: string[];
@@ -356,39 +378,39 @@ function PieChartCard(props: {
         <h3 style={{ margin: 0 }}>{props.title}</h3>
         {props.control}
       </div>
-      <div style={{ width: "100%", height: props.height ?? 340 }}>
-        <Pie
-          data={chartData}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: "bottom",
-                labels: {
-                  boxWidth: 12,
-                  boxHeight: 12,
-                  padding: 14,
-                  usePointStyle: true,
-                  pointStyle: "circle",
-                  font: { size: 12, weight: "600" },
-                },
+      <ScrollablePieChart
+        height={props.height ?? 340}
+        labels={props.labels}
+        data={chartData}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                boxWidth: 12,
+                boxHeight: 12,
+                padding: 14,
+                usePointStyle: true,
+                pointStyle: "circle",
+                font: { size: 12, weight: "600" },
               },
-              tooltip: {
-                callbacks: {
-                  label: (context: any) => {
-                    const label = String(context.label ?? "");
-                    const value = Number(context.parsed ?? 0);
-                    const total = (context.dataset.data ?? []).reduce((sum: number, current: number) => sum + Number(current ?? 0), 0);
-                    const percent = total > 0 ? ` (${((value / total) * 100).toFixed(1)}%)` : "";
-                    return `${label}: ${value}${percent}`;
-                  },
+            },
+            tooltip: {
+              callbacks: {
+                label: (context: any) => {
+                  const label = String(context.label ?? "");
+                  const value = Number(context.parsed ?? 0);
+                  const total = (context.dataset.data ?? []).reduce((sum: number, current: number) => sum + Number(current ?? 0), 0);
+                  const percent = total > 0 ? ` (${((value / total) * 100).toFixed(1)}%)` : "";
+                  return `${label}: ${value}${percent}`;
                 },
               },
             },
-          } as any}
-        />
-      </div>
+          },
+        } as any}
+      />
     </div>
   );
 }
@@ -401,7 +423,7 @@ function MultiPieChartRow(props: {
   compact?: boolean;
 }) {
   const isCompact = useCompactStatisticsLayout();
-  const useCompactLayout = props.compact || isCompact;
+  const useCompactLayout = props.compact;
 
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
@@ -413,8 +435,53 @@ function MultiPieChartRow(props: {
           {props.pies.map((pie, index) => (
             <div key={`${pie.title}-${index}`} style={{ border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 18, padding: 14, background: "rgba(248, 250, 252, 0.76)", display: "grid", gap: 10 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>{pie.title}</div>
-              <div style={{ width: "100%", height: 300 }}>
-                <Pie
+              <ScrollablePieChart
+                height={300}
+                labels={pie.labels}
+                data={{
+                  labels: pie.labels,
+                  datasets: [{
+                    data: pie.values,
+                    backgroundColor: pieColors(pie.labels.length),
+                    borderColor: "#ffffff",
+                    borderWidth: 2,
+                    hoverOffset: 8,
+                  }],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: "bottom",
+                      labels: { boxWidth: 10, boxHeight: 10, padding: 12, usePointStyle: true, pointStyle: "circle", font: { size: 11, weight: "600" } },
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: (context: any) => {
+                          const label = String(context.label ?? "");
+                          const value = Number(context.parsed ?? 0);
+                          const total = (context.dataset.data ?? []).reduce((sum: number, current: number) => sum + Number(current ?? 0), 0);
+                          const percent = total > 0 ? ` (${((value / total) * 100).toFixed(1)}%)` : "";
+                          return `${label}: ${value}${percent}`;
+                        },
+                      },
+                    },
+                  },
+                } as any}
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ width: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+          <div style={{ display: "grid", gap: 12, gridAutoFlow: "column", gridAutoColumns: isCompact ? "minmax(360px, 88vw)" : "minmax(520px, calc((100% - 12px) / 2))", alignItems: "stretch" }}>
+            {props.pies.map((pie, index) => (
+              <div key={`${pie.title}-${index}`} style={{ border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 18, padding: 14, background: "rgba(248, 250, 252, 0.76)", display: "grid", gap: 10 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>{pie.title}</div>
+                <ScrollablePieChart
+                  height={340}
+                  labels={pie.labels}
                   data={{
                     labels: pie.labels,
                     datasets: [{
@@ -447,51 +514,6 @@ function MultiPieChartRow(props: {
                     },
                   } as any}
                 />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={{ width: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4 }}>
-          <div style={{ display: "grid", gap: 12, gridAutoFlow: "column", gridAutoColumns: "minmax(520px, calc((100% - 12px) / 2))", alignItems: "stretch" }}>
-            {props.pies.map((pie, index) => (
-              <div key={`${pie.title}-${index}`} style={{ border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 18, padding: 14, background: "rgba(248, 250, 252, 0.76)", display: "grid", gap: 10 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>{pie.title}</div>
-                <div style={{ width: "100%", height: 340 }}>
-                  <Pie
-                    data={{
-                      labels: pie.labels,
-                      datasets: [{
-                        data: pie.values,
-                        backgroundColor: pieColors(pie.labels.length),
-                        borderColor: "#ffffff",
-                        borderWidth: 2,
-                        hoverOffset: 8,
-                      }],
-                    }}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: "bottom",
-                          labels: { boxWidth: 10, boxHeight: 10, padding: 12, usePointStyle: true, pointStyle: "circle", font: { size: 11, weight: "600" } },
-                        },
-                        tooltip: {
-                          callbacks: {
-                            label: (context: any) => {
-                              const label = String(context.label ?? "");
-                              const value = Number(context.parsed ?? 0);
-                              const total = (context.dataset.data ?? []).reduce((sum: number, current: number) => sum + Number(current ?? 0), 0);
-                              const percent = total > 0 ? ` (${((value / total) * 100).toFixed(1)}%)` : "";
-                              return `${label}: ${value}${percent}`;
-                            },
-                          },
-                        },
-                      },
-                    } as any}
-                  />
-                </div>
               </div>
             ))}
           </div>
