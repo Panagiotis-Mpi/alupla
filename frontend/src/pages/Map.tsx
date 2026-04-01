@@ -52,6 +52,19 @@ const genderColors = { male: "#3b82f6", female: "#c084fc", balanced: "#cbd5e1", 
 const directionPalette = ["#2563eb", "#dc2626", "#16a34a", "#f59e0b", "#7c3aed", "#0891b2", "#e11d48", "#65a30d", "#ea580c", "#4f46e5", "#db2777", "#0f766e", "#b91c1c", "#0284c7", "#a16207", "#9333ea", "#15803d", "#c2410c", "#1d4ed8", "#be123c"];
 const chartPalette = directionPalette;
 
+function useCompactMapViewport() {
+  const [isCompact, setIsCompact] = useState(() => typeof window !== "undefined" ? window.innerWidth <= 820 : false);
+
+  useEffect(() => {
+    const update = () => setIsCompact(window.innerWidth <= 820);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return isCompact;
+}
+
 function compactNumber(value: number | string | null | undefined) {
   if (value === null || value === undefined || value === "") return "-";
   const numeric = Number(value);
@@ -174,6 +187,11 @@ export default function GraduatesMapPage() {
   const [studyPrograms, setStudyPrograms] = useState<StudyProgram[]>([]);
   const [selectedStudyProgramId, setSelectedStudyProgramId] = useState<string>("");
   const [directionModeReady, setDirectionModeReady] = useState(false);
+  const isCompactViewport = useCompactMapViewport();
+  const fitPadding = isCompactViewport ? [18, 18] as [number, number] : [6, 6] as [number, number];
+  const fitMaxZoom = isCompactViewport ? 6.25 : 6.75;
+  const initialZoom = isCompactViewport ? 6.2 : 6.75;
+  const minMapZoom = isCompactViewport ? 5.6 : 5.8;
 
   const params = useMemo(() => createMapParams({
     ...EMPTY_FILTERS,
@@ -199,7 +217,7 @@ export default function GraduatesMapPage() {
     const map = mapRef.current;
     const sync = () => {
       map.invalidateSize();
-      map.fitBounds(geojsonBounds, { padding: [6, 6], maxZoom: 6.75 });
+      map.fitBounds(geojsonBounds, { padding: fitPadding, maxZoom: fitMaxZoom });
       setMapZoom(map.getZoom());
       setMapBounds(map.getBounds());
     };
@@ -209,7 +227,7 @@ export default function GraduatesMapPage() {
       window.cancelAnimationFrame(frame);
       window.clearTimeout(timer);
     };
-  }, [geojsonBounds]);
+  }, [fitMaxZoom, fitPadding, geojsonBounds]);
 
   useEffect(() => {
     function onDocClick(event: MouseEvent) {
@@ -836,12 +854,12 @@ export default function GraduatesMapPage() {
           <div className="alupla-map map-canvas" ref={mapCanvasRef}>
             <MapContainer
               center={[38.6, 24.0]}
-              zoom={6.75 as any}
-              minZoom={5.8 as any}
+              zoom={initialZoom as any}
+              minZoom={minMapZoom as any}
               zoomSnap={0.25}
               whenCreated={(map) => {
                 mapRef.current = map;
-                if (geojsonBounds) map.fitBounds(geojsonBounds, { padding: [6, 6], maxZoom: 6.75 });
+                if (geojsonBounds) map.fitBounds(geojsonBounds, { padding: fitPadding, maxZoom: fitMaxZoom });
                 setMapZoom(map.getZoom());
                 setMapBounds(map.getBounds());
               }}

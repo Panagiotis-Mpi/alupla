@@ -196,6 +196,19 @@ function chartContentWidth(labels: string[], datasetCount = 1, minLabelWidth = 6
   return Math.max(640, labels.length * Math.max(labelWidth, 44 * Math.max(1, datasetCount)));
 }
 
+function useCompactStatisticsLayout() {
+  const [isCompact, setIsCompact] = React.useState(() => typeof window !== "undefined" ? window.innerWidth <= 820 : false);
+
+  React.useEffect(() => {
+    const update = () => setIsCompact(window.innerWidth <= 820);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return isCompact;
+}
+
 function ScrollableLineChart(props: {
   data: any;
   options: any;
@@ -205,11 +218,12 @@ function ScrollableLineChart(props: {
   minLabelWidth?: number;
   maxLabelWidth?: number;
 }) {
+  const isCompact = useCompactStatisticsLayout();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 68, props.maxLabelWidth ?? 128);
 
   return (
-    <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4 }}>
-      <div style={{ minWidth: contentWidth, width: "100%", height: props.height ?? 280 }}>
+    <div style={{ width: "100%", maxWidth: "100%", overflowX: isCompact ? "hidden" : "auto", overflowY: "hidden", paddingBottom: 4 }}>
+      <div style={{ minWidth: isCompact ? "100%" : contentWidth, width: "100%", height: props.height ?? 280 }}>
         <Line data={props.data} options={props.options} />
       </div>
     </div>
@@ -226,11 +240,12 @@ function ScrollableBarChart(props: {
   maxLabelWidth?: number;
   forceScrollable?: boolean;
 }) {
+  const isCompact = useCompactStatisticsLayout();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
-  const useFullWidth = !props.forceScrollable && props.labels.length <= 7;
+  const useFullWidth = isCompact || (!props.forceScrollable && props.labels.length <= 7);
 
   return (
-    <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 4 }}>
+    <div style={{ width: "100%", maxWidth: "100%", overflowX: isCompact ? "hidden" : "auto", overflowY: "hidden", paddingBottom: 4 }}>
       <div style={{ minWidth: useFullWidth ? "100%" : contentWidth, width: "100%", height: props.height ?? 280 }}>
         <Bar data={props.data} options={props.options} />
       </div>
@@ -385,13 +400,16 @@ function MultiPieChartRow(props: {
   chartId?: string;
   compact?: boolean;
 }) {
+  const isCompact = useCompactStatisticsLayout();
+  const useCompactLayout = props.compact || isCompact;
+
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
-      {props.compact ? (
-        <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+      {useCompactLayout ? (
+        <div style={{ display: "grid", gap: 12, gridTemplateColumns: isCompact ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
           {props.pies.map((pie, index) => (
             <div key={`${pie.title}-${index}`} style={{ border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 18, padding: 14, background: "rgba(248, 250, 252, 0.76)", display: "grid", gap: 10 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>{pie.title}</div>
@@ -856,7 +874,8 @@ export default function Statistics() {
     boxSizing: "border-box",
     padding: "0 18px",
     fontSize: 14,
-    whiteSpace: "nowrap",
+    whiteSpace: "normal",
+    lineHeight: 1.3,
   };
 
 
@@ -1038,14 +1057,14 @@ export default function Statistics() {
 
   return (
     <>
-      <div className="grid" style={{ gap: 18 }} ref={pageRef}>
-        <div className="card" style={{ padding: 14 }}>
+      <div className="page-stable-shell statistics-page" ref={pageRef}>
+        <div className="card page-header-card" style={{ padding: 14 }}>
           <div style={{ display: "grid", gap: 14 }}>
             <div style={{ display: "grid", gap: 14 }}>
               <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
 
               <div style={sectionMenuStyle}>
-                <div style={sectionButtonsStyle}>
+                <div className="page-header-actions-grid" style={sectionButtonsStyle}>
                   {(["demographics", "academic", "geography"] as const).map((groupKey) => (
                     <button
                       key={groupKey}

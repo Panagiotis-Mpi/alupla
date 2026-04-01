@@ -534,7 +534,7 @@ export default function Logs() {
   }
 
   return (
-    <div className="grid" style={{ gap: 14 }}>
+    <div className="page-stable-shell">
       {err && (
         <div
           className="card"
@@ -544,7 +544,7 @@ export default function Logs() {
         </div>
       )}
 
-      <div className="card logs-summary-card" style={{ maxWidth: 1120, width: "100%", margin: "0 auto" }}>
+      <div className="card logs-summary-card page-header-card mobile-table-card">
         <div className="topbar" style={{ alignItems: "center", justifyContent: "space-between", marginBottom: 12, width: "100%" }}>
           <h2 style={{ margin: 0 }}>{t("title")}</h2>
           <div ref={exportMenuRef} style={{ position: "relative", marginLeft: "auto" }}>
@@ -593,7 +593,7 @@ export default function Logs() {
           </select>
         </div>
 
-        <div>
+        <div className="table-wrap">
           <table className="table logs-summary-table" style={{ width: "100%", minWidth: 720, tableLayout: "fixed" }}>
             <thead>
               <tr>
@@ -627,7 +627,7 @@ export default function Logs() {
         </div>
       </div>
 
-      <div className="card logs-filters-card" style={{ maxWidth: 1120, width: "100%", margin: "0 auto" }}>
+      <div className="card logs-filters-card page-header-card">
         <div className="grid cols2" style={{ gap: 14 }}>
           <div>
             <label className="label">{t("filters.actor")}</label>
@@ -709,7 +709,7 @@ export default function Logs() {
         </div>
       </div>
 
-      <div className="card logs-table-card" style={{ maxWidth: 1120, width: "100%", margin: "0 auto" }}>
+      <div className="card logs-table-card page-header-card mobile-table-card">
         <div className="table-wrap">
           <table className="table" style={{ width: "100%", minWidth: 860, tableLayout: "fixed" }}>
             <thead>
