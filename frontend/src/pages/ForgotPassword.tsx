@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { requestPasswordReset } from "../lib/api";
 
@@ -53,6 +53,13 @@ const errorStyle: React.CSSProperties = {
   padding: "10px 12px",
   color: "#991b1b",
 };
+const successStyle: React.CSSProperties = {
+  borderRadius: 12,
+  border: "1px solid rgba(34,197,94,0.2)",
+  background: "rgba(34,197,94,0.08)",
+  padding: "10px 12px",
+  color: "#166534",
+};
 const submitStyle: React.CSSProperties = {
   height: 46,
   borderRadius: 12,
@@ -62,28 +69,6 @@ const submitStyle: React.CSSProperties = {
   fontWeight: 800,
   fontSize: "1.02rem",
   boxShadow: "0 10px 22px rgba(37,99,235,0.22)",
-};
-const tokenCardStyle: React.CSSProperties = {
-  borderRadius: 14,
-  border: "1px solid #e5edff",
-  background: "#f8fbff",
-  padding: "1rem 1rem",
-};
-const tokenLabelStyle: React.CSSProperties = {
-  fontSize: 12,
-  marginBottom: 6,
-  opacity: 0.85,
-  color: "#334155",
-};
-const secondaryButtonStyle: React.CSSProperties = {
-  height: 40,
-  padding: "0 14px",
-  borderRadius: 12,
-  border: "1px solid #93c5fd",
-  background: "#f0f6ff",
-  color: "#1e3a8a",
-  fontWeight: 800,
-  cursor: "pointer",
 };
 const footerLinksStyle: React.CSSProperties = {
   display: "flex",
@@ -97,20 +82,19 @@ const footerLinksStyle: React.CSSProperties = {
 
 export default function ForgotPassword() {
   const { t } = useTranslation("auth");
-  const nav = useNavigate();
   const [email, setEmail] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
-  const [token, setToken] = React.useState<string | null>(null);
+  const [done, setDone] = React.useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
-    setToken(null);
+    setDone(false);
     setLoading(true);
     try {
-      const res = await requestPasswordReset(email.trim());
-      if (res?.reset_token) setToken(String(res.reset_token));
+      await requestPasswordReset(email.trim());
+      setDone(true);
     } catch (e: any) {
       setErr(e?.message ?? t("forgot.failed"));
     } finally {
@@ -136,6 +120,7 @@ export default function ForgotPassword() {
           </label>
 
           {err && <div style={errorStyle}>{err}</div>}
+          {done && <div style={successStyle}>{t("forgot.sent")}</div>}
 
           <button
             disabled={loading}
@@ -144,22 +129,6 @@ export default function ForgotPassword() {
           >
             {loading ? t("common.loading") : t("forgot.button")}
           </button>
-
-          {token && (
-            <div style={tokenCardStyle}>
-              <div style={tokenLabelStyle}>{t("forgot.tokenLabel")}</div>
-              <code style={{ wordBreak: "break-all", color: "#0f172a" }}>{token}</code>
-              <div style={{ marginTop: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => nav(`/reset?token=${encodeURIComponent(token)}`)}
-                  style={secondaryButtonStyle}
-                >
-                  {t("forgot.resetNow")}
-                </button>
-              </div>
-            </div>
-          )}
 
           <div style={footerLinksStyle}>
             <Link to="/login" style={{ color: "#1e3a8a", fontWeight: 700 }}>

@@ -5,6 +5,8 @@ import { Op } from "sequelize";
 import { User } from "../models/User";
 import { signToken } from "../utils/jwt";
 import { logAction } from "../services/log.service";
+import { sendPasswordResetEmail } from "../services/mail.service";
+import { env } from "../config/env";
 
 function fail(res: Response, status: number, message: string) {
   return res.status(status).json({ ok: false, error: { message } });
@@ -196,21 +198,36 @@ export async function requestPasswordReset(req: Request, res: Response) {
     return fail(res, 400, "Missing email");
   }
 
-  const user = await findActiveUserByEmail(email);
+  const normalizedEmail = String(email).trim().toLowerCase();
+  if (!isValidEmail(normalizedEmail)) {
+    return fail(res, 400, "Invalid email");
+  }
+
+  const user = await findActiveUserByEmail(normalizedEmail);
   if (!user) {
     return res.json({ ok: true });
   }
 
   const resetToken = createHexToken();
   const resetExpires = addHours(PASSWORD_RESET_HOURS);
+  const resetUrl = `${env.appUrl}/reset?token=${encodeURIComponent(resetToken)}`;
 
   user.password_reset_token = resetToken;
   user.password_reset_expires = resetExpires;
   await user.save();
 
+  try {
+    await sendPasswordResetEmail(user.email, resetUrl);
+  } catch (error) {
+    user.password_reset_token = null;
+    user.password_reset_expires = null;
+    await user.save();
+    return fail(res, 500, "Failed to send reset email");
+  }
+
   await logAction({ user_id: user.id, action: "request_password_reset", entity_type: "user", entity_id: user.id });
 
-  return res.json({ ok: true, reset_token: resetToken, reset_expires: resetExpires });
+  return res.json({ ok: true });
 }
 
 export async function resetPassword(req: Request, res: Response) {
