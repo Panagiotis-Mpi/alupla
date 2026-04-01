@@ -959,12 +959,12 @@ export default function Regions() {
                       <td>{item.count}</td>
                       <td>{item.periphery_name ?? "-"}</td>
                       <td>
-                        <div className="row-actions" style={{ flexWrap: "wrap", gap: 8 }}>
+                        <div className="row-actions" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", whiteSpace: "nowrap" }}>
                           <button className="btn" type="button" onClick={() => useUnmatchedCity(item)}>{t("unmatched.useInForm")}</button>
-                          <span className="muted">{t("unmatched.linkLabel")}</span>
+                          <span className="muted" style={{ marginLeft: 4 }}>{t("unmatched.linkLabel")}</span>
                           <select
                             className="input"
-                            style={{ minWidth: 220 }}
+                            style={{ width: 220, minWidth: 220, maxWidth: 220, marginBottom: 0 }}
                             value={unmatchedCitySelections[rowKey] || ""}
                             onChange={(e) => setUnmatchedCitySelection(item, e.target.value)}
                           >
@@ -975,7 +975,7 @@ export default function Regions() {
                                 <option key={city.id} value={city.id}>{city.name}</option>
                               ))}
                           </select>
-                          <button className="btn" type="button" onClick={() => void resolveInlineUnmatched(item)} disabled={!unmatchedCitySelections[rowKey]}>{t("unmatched.confirmLink")}</button>
+                          <button className="btn" type="button" style={{ marginLeft: 2 }} onClick={() => void resolveInlineUnmatched(item)} disabled={!unmatchedCitySelections[rowKey]}>{t("unmatched.confirmLink")}</button>
                         </div>
                       </td>
                     </tr>
