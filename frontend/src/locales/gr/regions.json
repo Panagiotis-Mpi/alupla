@@ -42,7 +42,9 @@
     "importError": "Η εισαγωγή δεν ολοκληρώθηκε.",
     "importDone": "Προστέθηκαν {{inserted}}, ενημερώθηκαν {{updated}}, παραλείφθηκαν {{skipped}}.",
     "unmatchedDeletedSingle": "Η εγγραφή αφαιρέθηκε από τη λίστα.",
-    "unmatchedDeletedMany": "Αφαιρέθηκαν {{count}} εγγραφές από τη λίστα."
+    "unmatchedDeletedMany": "Αφαιρέθηκαν {{count}} εγγραφές από τη λίστα.",
+    "unmatchedLinked": "Η νέα περιοχή αντιστοιχίστηκε με την πόλη {{city}}.",
+    "unmatchedPeripheryMismatch": "Η πόλη πρέπει να ανήκει στην ίδια περιφέρεια."
   },
   "unmatched": {
     "title": "Νέα περιοχή",
@@ -55,7 +57,10 @@
       "count": "Εμφανίσεις",
       "periphery": "Προτεινόμενη περιφέρεια",
       "actions": "Ενέργεια"
-    }
+    },
+    "linkExisting": "Αντιστοίχιση",
+    "linking": "Αντιστοίχιση...",
+    "linkingHint": "Επίλεξε υπάρχουσα πόλη για αντιστοίχιση της «{{name}}» στην περιφέρεια {{periphery}}."
   },
   "peripheries": {
     "title": "Περιφέρειες",

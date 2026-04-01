@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import {
   createRegion,
   deleteRegion,
-  dismissUnmatchedCities,
   importRegionsFile,
   listRegions,
   listUnmatchedCities,
@@ -89,7 +88,7 @@ export default function Regions() {
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [selectedPeripheryIds, setSelectedPeripheryIds] = useState<number[]>([]);
   const [selectedCityIds, setSelectedCityIds] = useState<number[]>([]);
-  const [selectedUnmatchedKeys, setSelectedUnmatchedKeys] = useState<string[]>([]);
+  const [linkingUnmatchedId, setLinkingUnmatchedId] = useState<number | null>(null);
 
   const cityImportRef = useRef<HTMLInputElement | null>(null);
   const peripheryImportRef = useRef<HTMLInputElement | null>(null);
@@ -211,11 +210,10 @@ export default function Regions() {
       });
   }, [cities, citySortDirection, citySortKey, peripheryNameById]);
 
-  const currentSelectedCount = activeSection === "peripheries" ? selectedPeripheryIds.length : activeSection === "cities" ? selectedCityIds.length : selectedUnmatchedKeys.length;
+  const currentSelectedCount = activeSection === "peripheries" ? selectedPeripheryIds.length : activeSection === "cities" ? selectedCityIds.length : 0;
 
   const allVisiblePeripheriesSelected = peripheryRows.length > 0 && peripheryRows.every(({ item }) => selectedPeripheryIds.includes(item.id));
   const allVisibleCitiesSelected = cityRows.length > 0 && cityRows.every(({ item }) => selectedCityIds.includes(item.id));
-  const allVisibleUnmatchedSelected = unmatchedRows.length > 0 && unmatchedRows.every(({ item }) => selectedUnmatchedKeys.includes(unmatchedStorageKey(item.name, item.periphery_id)));
 
   useEffect(() => {
     if (selectAllPeripheriesRef.current) {
@@ -229,11 +227,6 @@ export default function Regions() {
     }
   }, [allVisibleCitiesSelected, selectedCityIds.length]);
 
-  useEffect(() => {
-    if (selectAllUnmatchedRef.current) {
-      selectAllUnmatchedRef.current.indeterminate = !!selectedUnmatchedKeys.length && !allVisibleUnmatchedSelected;
-    }
-  }, [allVisibleUnmatchedSelected, selectedUnmatchedKeys.length]);
 
   useEffect(() => {
     setSelectedPeripheryIds((current) => current.filter((id) => peripheries.some((item) => item.id === id)));
@@ -243,9 +236,6 @@ export default function Regions() {
     setSelectedCityIds((current) => current.filter((id) => cities.some((item) => item.id === id)));
   }, [cities]);
 
-  useEffect(() => {
-    setSelectedUnmatchedKeys((current) => current.filter((key) => unmatchedRows.some(({ item }) => unmatchedStorageKey(item.name, item.periphery_id) === key)));
-  }, [unmatchedRows]);
 
   function clearFeedback() {
     setError("");
@@ -264,6 +254,7 @@ export default function Regions() {
 
   function resetForm() {
     setForm(emptyForm);
+    setPendingUnmatchedItem(null);
     clearFeedback();
   }
 
@@ -301,6 +292,40 @@ export default function Regions() {
     clearFeedback();
     setActiveSection("cities");
     scrollToTop();
+  }
+
+  async function mapUnmatchedCity(item: UnmatchedCityItem) {
+    setPendingUnmatchedItem(item);
+    setCityQuery(item.name);
+    clearFeedback();
+    clearUnmatchedFeedback();
+    setActiveSection("cities");
+    await loadCities(item.name);
+    scrollToTop();
+  }
+
+  async function linkPendingUnmatchedToCity(city: Region) {
+    if (!pendingUnmatchedItem || !(pendingUnmatchedItem as any).id) return;
+    if (pendingUnmatchedItem.periphery_id != null && Number(city.parent_id || 0) !== Number(pendingUnmatchedItem.periphery_id)) {
+      setError(t("messages.unmatchedPeripheryMismatch"));
+      return;
+    }
+
+    setLinkingUnmatchedId(city.id);
+    clearFeedback();
+    clearUnmatchedFeedback();
+
+    try {
+      await resolveUnmatchedCity({ unresolved_id: Number((pendingUnmatchedItem as any).id), canonical_region_id: city.id, create_alias: true });
+      setPendingUnmatchedItem(null);
+      setUnmatchedMessage(t("messages.unmatchedLinked", { city: city.name }));
+      setActiveSection("unmatched");
+      await refreshLists();
+    } catch (err: any) {
+      setError(err?.message || t("messages.error"));
+    } finally {
+      setLinkingUnmatchedId(null);
+    }
   }
 
   async function refreshLists() {
@@ -436,19 +461,6 @@ export default function Regions() {
     }
   }
 
-  async function hideUnmatched(keys: string[]) {
-    if (!keys.length) return;
-    clearUnmatchedFeedback();
-    const ids = unmatchedRows
-      .filter(({ item }) => keys.includes(unmatchedStorageKey(item.name, item.periphery_id)))
-      .map(({ item }) => Number((item as any).id))
-      .filter((id) => Number.isFinite(id) && id > 0);
-    if (!ids.length) return;
-    await dismissUnmatchedCities(ids);
-    setSelectedUnmatchedKeys((current) => current.filter((item) => !keys.includes(item)));
-    setUnmatchedMessage(keys.length === 1 ? t("messages.unmatchedDeletedSingle") : t("messages.unmatchedDeletedMany", { count: keys.length }));
-    await loadUnmatched();
-  }
 
   async function onDeleteSelected() {
     if (activeSection === "peripheries") {
@@ -491,9 +503,7 @@ export default function Regions() {
       return;
     }
 
-    if (!selectedUnmatchedKeys.length) return;
-    if (!window.confirm(t("confirm.bulkDelete", { count: selectedUnmatchedKeys.length }))) return;
-    await hideUnmatched(selectedUnmatchedKeys);
+    return;
   }
 
   function togglePeripherySelection(id: number) {
@@ -528,8 +538,7 @@ export default function Regions() {
 
   function deleteButtonLabel(section: RegionSection) {
     if (section === "peripheries") return t("topbar.deletePeripheries");
-    if (section === "cities") return t("topbar.deleteCities");
-    return t("topbar.deleteUnmatched");
+    return t("topbar.deleteCities");
   }
 
   function buildTemplateRows(kind: "PERIPHERY" | "CITY") {
@@ -646,15 +655,17 @@ export default function Regions() {
               ) : null}
             </div>
 
-            <button
-              className="btn danger"
-              type="button"
-              style={topButtonStyle}
-              onClick={() => void onDeleteSelected()}
-              disabled={!currentSelectedCount}
-            >
-              {deleteButtonLabel(activeSection)}
-            </button>
+            {activeSection !== "unmatched" ? (
+              <button
+                className="btn danger"
+                type="button"
+                style={topButtonStyle}
+                onClick={() => void onDeleteSelected()}
+                disabled={!currentSelectedCount}
+              >
+                {deleteButtonLabel(activeSection)}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -765,6 +776,13 @@ export default function Regions() {
             ) : null}
           </div>
 
+          {pendingUnmatchedItem ? (
+            <div style={{ ...countBadgeStyle, marginTop: 12, display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <span>{t("unmatched.linkingHint", { name: pendingUnmatchedItem.name, periphery: pendingUnmatchedItem.periphery_name ?? "-" })}</span>
+              <button className="btn" type="button" onClick={resetForm}>{t("manage.clear")}</button>
+            </div>
+          ) : null}
+
           <form className="grid" style={formGridStyle} onSubmit={onSubmit}>
             <div>
               <div className="muted" style={fieldLabelStyle}>{t("manage.fields.name")}</div>
@@ -856,6 +874,16 @@ export default function Regions() {
                     <td>{city.longitude ?? "-"}</td>
                     <td>
                       <div className="row-actions">
+                        {pendingUnmatchedItem ? (
+                          <button
+                            className="btn"
+                            type="button"
+                            disabled={linkingUnmatchedId === city.id || (pendingUnmatchedItem.periphery_id != null && Number(city.parent_id || 0) !== Number(pendingUnmatchedItem.periphery_id))}
+                            onClick={() => void linkPendingUnmatchedToCity(city)}
+                          >
+                            {linkingUnmatchedId === city.id ? t("unmatched.linking") : t("unmatched.linkExisting")}
+                          </button>
+                        ) : null}
                         <button className="btn" type="button" onClick={() => onEdit(city)}>{t("manage.edit")}</button>
                         <button className="btn danger" type="button" onClick={() => {
                           if (window.confirm(t("confirm.singleDelete"))) void removeCity(city.id);
@@ -891,9 +919,6 @@ export default function Regions() {
             <table className="table">
               <thead>
                 <tr>
-                  <th style={{ width: 42 }}>
-                    <input ref={selectAllUnmatchedRef} type="checkbox" checked={allVisibleUnmatchedSelected} onChange={toggleAllUnmatched} />
-                  </th>
                   <th style={sortableHeaderStyle} onClick={() => {
                     const direction = nextDirection(unmatchedSortKey, "number", unmatchedSortDirection);
                     setUnmatchedSortKey("number");
@@ -919,7 +944,6 @@ export default function Regions() {
               </thead>
               <tbody>
                 {unmatchedRows.map(({ item }, index) => {
-                  const rowKey = unmatchedStorageKey(item.name, item.periphery_id);
                   return (
                     <tr key={rowKey}>
                       <td>
@@ -932,9 +956,7 @@ export default function Regions() {
                       <td>
                         <div className="row-actions">
                           <button className="btn" type="button" onClick={() => useUnmatchedCity(item)}>{t("unmatched.useInForm")}</button>
-                          <button className="btn danger" type="button" onClick={() => {
-                            if (window.confirm(t("confirm.singleDelete"))) hideUnmatched([rowKey]);
-                          }}>{t("manage.delete")}</button>
+                          <button className="btn" type="button" onClick={() => void mapUnmatchedCity(item)}>{t("unmatched.linkExisting")}</button>
                         </div>
                       </td>
                     </tr>
@@ -942,7 +964,7 @@ export default function Regions() {
                 })}
                 {!unmatchedRows.length && (
                   <tr>
-                    <td colSpan={6} className="muted">{t("unmatched.empty")}</td>
+                    <td colSpan={5} className="muted">{t("unmatched.empty")}</td>
                   </tr>
                 )}
               </tbody>
