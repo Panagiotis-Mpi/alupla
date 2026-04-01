@@ -82,16 +82,12 @@ async function ensureAlias(regionId: number, alias: string, aliasType = "manual"
   }
 }
 
-async function refreshUnresolvedQueue() {
-  const [regions, aliases, graduates] = await Promise.all([
-    Region.findAll({ attributes: ["id", "type", "parent_id", "normalized_name"] }),
-    RegionAlias.findAll({ attributes: ["region_id", "normalized_alias"] }),
-    Graduate.findAll({ attributes: ["id", "origin_region_id", "origin_city_region_id", "origin_municipality"] }),
-  ]);
-
+function buildPeripheryNameHelpers(regions: any[]) {
   const byId = new Map<number, any>();
-  const cityKeys = new Set<string>();
-  const aliasKeys = new Set<string>();
+
+  for (const row of regions as any[]) {
+    byId.set(Number(row.id), row);
+  }
 
   const findPeripheryId = (regionId: unknown) => {
     let currentId = Number(regionId || 0) || 0;
@@ -106,26 +102,44 @@ async function refreshUnresolvedQueue() {
     return null;
   };
 
-  for (const row of regions as any[]) {
-    byId.set(Number(row.id), row);
-  }
+  const getPeripheryNormalizedName = (regionId: unknown) => {
+    const peripheryId = findPeripheryId(regionId);
+    if (!peripheryId) return null;
+    const periphery = byId.get(peripheryId);
+    if (!periphery) return null;
+    return String(periphery.normalized_name || normalizeRegionText(periphery.name) || "") || null;
+  };
+
+  return { byId, findPeripheryId, getPeripheryNormalizedName };
+}
+
+async function refreshUnresolvedQueue() {
+  const [regions, aliases, graduates] = await Promise.all([
+    Region.findAll({ attributes: ["id", "name", "type", "parent_id", "normalized_name"] }),
+    RegionAlias.findAll({ attributes: ["region_id", "normalized_alias"] }),
+    Graduate.findAll({ attributes: ["id", "origin_region_id", "origin_city_region_id", "origin_municipality"] }),
+  ]);
+
+  const { byId, findPeripheryId, getPeripheryNormalizedName } = buildPeripheryNameHelpers(regions as any[]);
+  const cityKeys = new Set<string>();
+  const aliasKeys = new Set<string>();
 
   for (const row of regions as any[]) {
     if (String(row.type) !== "CITY") continue;
-    const normalizedName = String(row.normalized_name || "");
+    const normalizedName = String(row.normalized_name || normalizeRegionText(row.name));
     if (!normalizedName) continue;
-    const peripheryId = findPeripheryId(row.id);
-    cityKeys.add(`${normalizedName}::${peripheryId ?? "none"}`);
+    const peripheryName = getPeripheryNormalizedName(row.id);
+    cityKeys.add(`${normalizedName}::${peripheryName ?? "none"}`);
     cityKeys.add(`${normalizedName}::none`);
   }
 
   for (const row of aliases as any[]) {
     const region = byId.get(Number(row.region_id));
     if (!region) continue;
-    const peripheryId = findPeripheryId(region.id);
     const normalizedAlias = String(row.normalized_alias || "");
     if (!normalizedAlias) continue;
-    aliasKeys.add(`${normalizedAlias}::${peripheryId ?? "none"}`);
+    const peripheryName = getPeripheryNormalizedName(region.id);
+    aliasKeys.add(`${normalizedAlias}::${peripheryName ?? "none"}`);
     aliasKeys.add(`${normalizedAlias}::none`);
   }
 
@@ -166,7 +180,8 @@ async function refreshUnresolvedQueue() {
     const normalized = normalizeRegionText(raw);
     if (!normalized) continue;
     const peripheryId = nextPeripheryId;
-    if (cityKeys.has(`${normalized}::${peripheryId ?? "none"}`) || aliasKeys.has(`${normalized}::${peripheryId ?? "none"}`)) continue;
+    const peripheryName = getPeripheryNormalizedName(peripheryId);
+    if (cityKeys.has(`${normalized}::${peripheryName ?? "none"}`) || aliasKeys.has(`${normalized}::${peripheryName ?? "none"}`)) continue;
     const groupKey = `${normalized}::${peripheryId ?? "none"}`;
     const current = grouped.get(groupKey);
     if (current) current.count += 1;
@@ -194,6 +209,101 @@ async function refreshUnresolvedQueue() {
       await leftover.update({ count: 0 });
     }
   }
+}
+
+
+async function applyCanonicalCityToGraduates(unresolved: any, region: any) {
+  const rawNormalized = String(unresolved.normalized_raw_name || normalizeRegionText(unresolved.raw_name));
+  const [grads, regions] = await Promise.all([
+    Graduate.findAll({ attributes: ["id", "origin_region_id", "origin_city_region_id", "origin_municipality"] }),
+    Region.findAll({ attributes: ["id", "name", "type", "parent_id", "normalized_name"] }),
+  ]);
+
+  const { findPeripheryId, getPeripheryNormalizedName } = buildPeripheryNameHelpers(regions as any[]);
+  const unresolvedPeripheryName = getPeripheryNormalizedName(unresolved.periphery_id);
+  const regionPeripheryName = getPeripheryNormalizedName(region.id);
+
+  for (const graduate of grads as any[]) {
+    if (normalizeRegionText(graduate.origin_municipality) !== rawNormalized) continue;
+
+    const currentNormalized = await normalizeOriginLocation({
+      origin_region_id: graduate.origin_region_id != null ? Number(graduate.origin_region_id) : null,
+      origin_city_region_id: graduate.origin_city_region_id != null ? Number(graduate.origin_city_region_id) : null,
+      origin_municipality: graduate.origin_municipality ?? null,
+    });
+
+    const currentPeripheryId = currentNormalized.origin_region_id != null ? findPeripheryId(currentNormalized.origin_region_id) ?? Number(currentNormalized.origin_region_id) : null;
+    const currentPeripheryName = getPeripheryNormalizedName(currentPeripheryId);
+
+    if (
+      unresolved.periphery_id != null &&
+      currentPeripheryId != null &&
+      currentPeripheryId !== Number(unresolved.periphery_id) &&
+      unresolvedPeripheryName &&
+      currentPeripheryName !== unresolvedPeripheryName
+    ) {
+      continue;
+    }
+
+    const nextValue = await normalizeOriginLocation({
+      origin_region_id: Number((region as any).parent_id || 0) || null,
+      origin_city_region_id: Number(region.id),
+      origin_municipality: graduate.origin_municipality,
+    });
+
+    if (regionPeripheryName && getPeripheryNormalizedName(nextValue.origin_region_id) !== regionPeripheryName) {
+      nextValue.origin_region_id = Number((region as any).parent_id || 0) || null;
+    }
+
+    await graduate.update(nextValue);
+  }
+}
+
+async function autoResolveDirectMatches(userId: number | null = null) {
+  const [pendingItems, regions] = await Promise.all([
+    UnresolvedRegion.findAll({ where: { status: "pending", count: { [Op.gt]: 0 } } }),
+    Region.findAll({ attributes: ["id", "name", "normalized_name", "type", "parent_id"] }),
+  ]);
+
+  const { getPeripheryNormalizedName } = buildPeripheryNameHelpers(regions as any[]);
+  const cities = (regions as any[]).filter((item) => String(item.type) === "CITY");
+  const cityByScopedKey = new Map<string, any>();
+  const cityByName = new Map<string, any[]>();
+
+  for (const city of cities as any[]) {
+    const normalizedName = String(city.normalized_name || normalizeRegionText(city.name));
+    const peripheryName = getPeripheryNormalizedName(city.id);
+    cityByScopedKey.set(`${normalizedName}::${peripheryName ?? "none"}`, city);
+    const items = cityByName.get(normalizedName);
+    if (items) items.push(city);
+    else cityByName.set(normalizedName, [city]);
+  }
+
+  let changed = false;
+
+  for (const unresolved of pendingItems as any[]) {
+    const normalizedName = String(unresolved.normalized_raw_name || normalizeRegionText(unresolved.raw_name));
+    const peripheryName = getPeripheryNormalizedName(unresolved.periphery_id);
+
+    let region = cityByScopedKey.get(`${normalizedName}::${peripheryName ?? "none"}`) ?? null;
+    if (!region && !peripheryName) {
+      const matches = cityByName.get(normalizedName) ?? [];
+      if (matches.length === 1) region = matches[0];
+    }
+    if (!region) continue;
+
+    await ensureAlias(Number(region.id), String(unresolved.raw_name), "auto");
+    await applyCanonicalCityToGraduates(unresolved, region);
+    await unresolved.update({
+      status: "resolved",
+      canonical_region_id: Number(region.id),
+      resolved_by_user_id: userId,
+      count: 0,
+    });
+    changed = true;
+  }
+
+  if (changed) clearRegionLookupCache();
 }
 
 async function importPeripheryRows(rows: Record<string, unknown>[], userId: number | null) {
@@ -350,6 +460,8 @@ export async function searchRegions(req: Request, res: Response, next: NextFunct
 export async function listUnmatchedCities(req: Request, res: Response, next: NextFunction) {
   try {
     await refreshUnresolvedQueue();
+    await autoResolveDirectMatches(req.user?.id ?? null);
+    await refreshUnresolvedQueue();
     const q = cleanRegionText(req.query.q ?? "");
     const where: any = { status: "pending", count: { [Op.gt]: 0 } };
     if (q) where.raw_name = { [Op.iLike]: `%${q}%` };
@@ -390,17 +502,7 @@ export async function resolveUnmatchedCity(req: Request, res: Response, next: Ne
     if (createAlias) await ensureAlias(Number(region.id), String(unresolved.raw_name), "unresolved");
 
     const rawNormalized = String(unresolved.normalized_raw_name || normalizeRegionText(unresolved.raw_name));
-    const grads = await Graduate.findAll({ attributes: ["id", "origin_region_id", "origin_city_region_id", "origin_municipality"] });
-    for (const graduate of grads as any[]) {
-      if (normalizeRegionText(graduate.origin_municipality) !== rawNormalized) continue;
-      if (unresolved.periphery_id != null && Number(graduate.origin_region_id || 0) !== Number(unresolved.periphery_id)) continue;
-      const normalized = await normalizeOriginLocation({
-        origin_region_id: unresolved.periphery_id != null ? Number(unresolved.periphery_id) : graduate.origin_region_id,
-        origin_city_region_id: Number(region.id),
-        origin_municipality: graduate.origin_municipality,
-      });
-      await graduate.update(normalized);
-    }
+    await applyCanonicalCityToGraduates(unresolved, region);
 
     await unresolved.update({ status: "resolved", canonical_region_id: Number(region.id), resolved_by_user_id: req.user?.id ?? null, count: 0 });
     clearRegionLookupCache();
