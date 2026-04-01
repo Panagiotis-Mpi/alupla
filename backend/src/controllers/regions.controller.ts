@@ -378,7 +378,7 @@ export async function createRegion(req: Request, res: Response, next: NextFuncti
     const type = String(req.body?.type ?? "").trim();
     if (type !== "CITY" && type !== "PERIPHERY") return badRequest(res, "Only CITY or PERIPHERY creation is supported");
     const validated = await validateRegionPayload(req.body, type as any);
-    if ("error" in validated) return badRequest(res, validated.error);
+    if ("error" in validated) return badRequest(res, validated.error ?? "Invalid region payload");
     const item = await Region.create(validated.value as any);
     await ensureAlias(Number((item as any).id), String(validated.value.name), "canonical");
     clearRegionLookupCache();
@@ -398,7 +398,7 @@ export async function updateRegion(req: Request, res: Response, next: NextFuncti
     const itemType = String((item as any).type ?? "");
     if (itemType !== "CITY" && itemType !== "PERIPHERY") return badRequest(res, "Only CITY or PERIPHERY update is supported");
     const validated = await validateRegionPayload({ ...req.body, type: itemType }, itemType as any, id);
-    if ("error" in validated) return badRequest(res, validated.error);
+    if ("error" in validated) return badRequest(res, validated.error ?? "Invalid region payload");
     await item.update(validated.value as any);
     await ensureAlias(id, String(validated.value.name), "canonical");
     clearRegionLookupCache();

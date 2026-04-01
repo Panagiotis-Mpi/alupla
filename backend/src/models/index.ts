@@ -55,7 +55,8 @@ async function ensureColumn(table: string, column: string, definition: any) {
 
 async function ensureIndex(table: string, fields: string[], name: string, options: Record<string, unknown> = {}) {
   const qi = sequelize.getQueryInterface();
-  const indexes = await qi.showIndex(table);
+  const rawIndexes = await qi.showIndex(table);
+  const indexes = Array.isArray(rawIndexes) ? rawIndexes : [];
   if (!indexes.some((item: any) => item.name === name)) {
     await qi.addIndex(table, fields, { name, ...options });
   }
