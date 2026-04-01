@@ -86,35 +86,86 @@ async function refreshUnresolvedQueue() {
   const [regions, aliases, graduates] = await Promise.all([
     Region.findAll({ attributes: ["id", "type", "parent_id", "normalized_name"] }),
     RegionAlias.findAll({ attributes: ["region_id", "normalized_alias"] }),
-    Graduate.findAll({ attributes: ["origin_region_id", "origin_city_region_id", "origin_municipality"] }),
+    Graduate.findAll({ attributes: ["id", "origin_region_id", "origin_city_region_id", "origin_municipality"] }),
   ]);
 
   const byId = new Map<number, any>();
   const cityKeys = new Set<string>();
   const aliasKeys = new Set<string>();
+
+  const findPeripheryId = (regionId: unknown) => {
+    let currentId = Number(regionId || 0) || 0;
+    let guard = 0;
+    while (currentId > 0 && guard < 20) {
+      guard += 1;
+      const current = byId.get(currentId);
+      if (!current) return null;
+      if (String(current.type) === "PERIPHERY") return currentId;
+      currentId = Number(current.parent_id || 0) || 0;
+    }
+    return null;
+  };
+
   for (const row of regions as any[]) {
     byId.set(Number(row.id), row);
-    if (String(row.type) === "CITY" && String(row.normalized_name || "")) {
-      const peripheryId = Number(row.parent_id || 0) || 0;
-      cityKeys.add(`${row.normalized_name}::${peripheryId || "none"}`);
-      cityKeys.add(`${row.normalized_name}::none`);
-    }
   }
+
+  for (const row of regions as any[]) {
+    if (String(row.type) !== "CITY") continue;
+    const normalizedName = String(row.normalized_name || "");
+    if (!normalizedName) continue;
+    const peripheryId = findPeripheryId(row.id);
+    cityKeys.add(`${normalizedName}::${peripheryId ?? "none"}`);
+    cityKeys.add(`${normalizedName}::none`);
+  }
+
   for (const row of aliases as any[]) {
     const region = byId.get(Number(row.region_id));
-    const peripheryId = Number(region?.parent_id || 0) || 0;
-    aliasKeys.add(`${row.normalized_alias}::${peripheryId || "none"}`);
-    aliasKeys.add(`${row.normalized_alias}::none`);
+    if (!region) continue;
+    const peripheryId = findPeripheryId(region.id);
+    const normalizedAlias = String(row.normalized_alias || "");
+    if (!normalizedAlias) continue;
+    aliasKeys.add(`${normalizedAlias}::${peripheryId ?? "none"}`);
+    aliasKeys.add(`${normalizedAlias}::none`);
   }
 
   const grouped = new Map<string, { raw_name: string; normalized_raw_name: string; periphery_id: number | null; count: number }>();
 
   for (const row of graduates as any[]) {
-    if (row.origin_city_region_id) continue;
-    const raw = cleanRegionText(row.origin_municipality);
+    const normalizedOrigin = await normalizeOriginLocation({
+      origin_region_id: row.origin_region_id != null ? Number(row.origin_region_id) : null,
+      origin_city_region_id: row.origin_city_region_id != null ? Number(row.origin_city_region_id) : null,
+      origin_municipality: row.origin_municipality ?? null,
+    });
+
+    const nextPeripheryId = normalizedOrigin.origin_region_id != null ? findPeripheryId(normalizedOrigin.origin_region_id) ?? Number(normalizedOrigin.origin_region_id) : null;
+    const currentPeripheryId = row.origin_region_id != null ? findPeripheryId(row.origin_region_id) ?? Number(row.origin_region_id) : null;
+    const currentCityId = row.origin_city_region_id != null ? Number(row.origin_city_region_id) : null;
+    const nextCityId = normalizedOrigin.origin_city_region_id != null ? Number(normalizedOrigin.origin_city_region_id) : null;
+    const nextMunicipality = normalizedOrigin.origin_municipality ?? null;
+    const currentMunicipality = row.origin_municipality != null ? String(row.origin_municipality) : null;
+
+    if (
+      currentPeripheryId !== nextPeripheryId ||
+      currentCityId !== nextCityId ||
+      String(currentMunicipality || "") !== String(nextMunicipality || "")
+    ) {
+      await Graduate.update(
+        {
+          origin_region_id: nextPeripheryId,
+          origin_city_region_id: nextCityId,
+          origin_municipality: nextMunicipality,
+        },
+        { where: { id: Number(row.id) } }
+      );
+    }
+
+    if (nextCityId) continue;
+
+    const raw = cleanRegionText(nextMunicipality);
     const normalized = normalizeRegionText(raw);
     if (!normalized) continue;
-    const peripheryId = row.origin_region_id != null ? Number(row.origin_region_id) : null;
+    const peripheryId = nextPeripheryId;
     if (cityKeys.has(`${normalized}::${peripheryId ?? "none"}`) || aliasKeys.has(`${normalized}::${peripheryId ?? "none"}`)) continue;
     const groupKey = `${normalized}::${peripheryId ?? "none"}`;
     const current = grouped.get(groupKey);
