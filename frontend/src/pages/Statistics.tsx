@@ -109,6 +109,8 @@ function buildBarChartOptions(options?: {
   beginAtZero?: boolean;
   min?: number;
   max?: number;
+  xTickRotation?: number;
+  xTickFormatter?: (label: string) => string | string[];
 }) {
   const labels = options?.labels ?? [];
   if (options?.horizontal) {
@@ -159,7 +161,17 @@ function buildBarChartOptions(options?: {
     scales: {
       x: {
         stacked: !!options?.stacked,
-        ticks: { autoSkip: false, maxRotation: 0, minRotation: 0, color: chartTickColor, font: { size: 13, weight: "600" } },
+        ticks: {
+          autoSkip: false,
+          maxRotation: options?.xTickRotation ?? 0,
+          minRotation: options?.xTickRotation ?? 0,
+          color: chartTickColor,
+          font: { size: 13, weight: "600" },
+          callback: function (_: any, index: number) {
+            const label = String(labels[index] ?? "");
+            return options?.xTickFormatter ? options.xTickFormatter(label) : label;
+          },
+        },
         grid: { display: false },
         border: { display: false },
       },
@@ -188,6 +200,34 @@ function buildLineDataset(label: string, data: number[], color: string, backgrou
     pointHoverRadius: 4,
     borderWidth: 3,
   };
+}
+
+
+function wrapAxisLabel(label: string, maxLineLength = 18, maxLines = 3) {
+  const words = String(label ?? "").split(/\s+/).filter(Boolean);
+  if (!words.length) return "";
+
+  const lines: string[] = [];
+  let current = "";
+
+  words.forEach((word) => {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length <= maxLineLength || !current) {
+      current = next;
+      return;
+    }
+    lines.push(current);
+    current = word;
+  });
+
+  if (current) lines.push(current);
+
+  if (lines.length <= maxLines) return lines;
+
+  const visible = lines.slice(0, maxLines);
+  const tail = lines.slice(maxLines - 1).join(" ");
+  visible[maxLines - 1] = tail.length > maxLineLength ? `${tail.slice(0, maxLineLength - 1)}…` : tail;
+  return visible;
 }
 
 function chartContentWidth(labels: string[], datasetCount = 1, minLabelWidth = 68, maxLabelWidth = 128) {
@@ -573,6 +613,11 @@ function VerticalBarChartCard(props: {
   maxValue?: number;
   height?: number;
   chartId?: string;
+  minLabelWidth?: number;
+  maxLabelWidth?: number;
+  forceScrollable?: boolean;
+  xTickRotation?: number;
+  xTickFormatter?: (label: string) => string | string[];
 }) {
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
@@ -582,10 +627,18 @@ function VerticalBarChartCard(props: {
       <ScrollableBarChart
         height={props.height ?? 320}
         labels={props.labels}
-        minLabelWidth={92}
-        maxLabelWidth={152}
+        minLabelWidth={props.minLabelWidth ?? 92}
+        maxLabelWidth={props.maxLabelWidth ?? 152}
+        forceScrollable={props.forceScrollable}
         data={{ labels: props.labels, datasets: [buildBarDataset(props.title, props.values)] }}
-        options={buildBarChartOptions({ labels: props.labels, beginAtZero: false, min: props.minValue ?? 0, max: props.maxValue })}
+        options={buildBarChartOptions({
+          labels: props.labels,
+          beginAtZero: false,
+          min: props.minValue ?? 0,
+          max: props.maxValue,
+          xTickRotation: props.xTickRotation,
+          xTickFormatter: props.xTickFormatter,
+        })}
       />
     </div>
   );
@@ -1187,7 +1240,7 @@ export default function Statistics() {
               <PieChartCard chartId="studyProgram" title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={360} />
               <BarChartCard chartId="gradeByYear" title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
               <BarChartCard chartId="gradeDistribution" title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
-              <VerticalBarChartCard chartId="avgGradeByProgram" title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} height={320} />
+              <VerticalBarChartCard chartId="avgGradeByProgram" title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} height={360} minLabelWidth={148} maxLabelWidth={200} forceScrollable xTickFormatter={(label) => wrapAxisLabel(label, 18, 3)} />
               <BarChartCard chartId="timeToDegreeByEntryYear" title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
               <BarChartCard chartId="timeToDegreeDistribution" title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
               <MultiPieChartRow chartId="direction" title={t("sections.direction")} pies={directionPies} />
