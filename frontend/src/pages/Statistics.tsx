@@ -131,24 +131,59 @@ function replaceCanvasNodes(sourceRoot: HTMLElement, cloneRoot: HTMLElement) {
   });
 }
 
+function expandSnapshotClone(sourceRoot: HTMLElement, cloneRoot: HTMLElement) {
+  const sourceNodes = [sourceRoot, ...Array.from(sourceRoot.querySelectorAll<HTMLElement>("*"))];
+  const cloneNodes = [cloneRoot, ...Array.from(cloneRoot.querySelectorAll<HTMLElement>("*"))];
+
+  sourceNodes.forEach((sourceNode, index) => {
+    const cloneNode = cloneNodes[index];
+    if (!cloneNode) return;
+
+    const computed = window.getComputedStyle(sourceNode);
+    const hasHorizontalOverflow = sourceNode.scrollWidth > sourceNode.clientWidth + 4;
+    const hasVerticalOverflow = sourceNode.scrollHeight > sourceNode.clientHeight + 4;
+    const overflowX = computed.overflowX;
+    const overflowY = computed.overflowY;
+
+    if (hasHorizontalOverflow && (overflowX === "auto" || overflowX === "scroll" || overflowX === "hidden")) {
+      cloneNode.style.overflowX = "visible";
+      cloneNode.style.width = `${Math.ceil(sourceNode.scrollWidth)}px`;
+      cloneNode.style.maxWidth = "none";
+      cloneNode.style.minWidth = `${Math.ceil(sourceNode.scrollWidth)}px`;
+    }
+
+    if (hasVerticalOverflow && (overflowY === "auto" || overflowY === "scroll" || overflowY === "hidden")) {
+      cloneNode.style.overflowY = "visible";
+      cloneNode.style.height = `${Math.ceil(sourceNode.scrollHeight)}px`;
+      cloneNode.style.maxHeight = "none";
+      cloneNode.style.minHeight = `${Math.ceil(sourceNode.scrollHeight)}px`;
+    }
+  });
+}
+
 async function renderElementSnapshot(element: HTMLElement) {
   const rect = element.getBoundingClientRect();
-  const width = Math.ceil(rect.width);
-  const height = Math.ceil(rect.height);
+  const width = Math.ceil(Math.max(rect.width, element.scrollWidth));
+  const height = Math.ceil(Math.max(rect.height, element.scrollHeight));
   const clone = element.cloneNode(true) as HTMLElement;
 
   clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
   copyComputedStyles(element, clone);
   replaceCanvasNodes(element, clone);
+  expandSnapshotClone(element, clone);
   clone.style.margin = "0";
   clone.style.width = `${width}px`;
+  clone.style.maxWidth = "none";
+  clone.style.minWidth = `${width}px`;
   clone.style.height = `${height}px`;
+  clone.style.maxHeight = "none";
 
   const wrapper = document.createElement("div");
   wrapper.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
   wrapper.style.width = `${width}px`;
   wrapper.style.height = `${height}px`;
   wrapper.style.background = "#ffffff";
+  wrapper.style.overflow = "visible";
   wrapper.appendChild(clone);
 
   const serialized = new XMLSerializer().serializeToString(wrapper);

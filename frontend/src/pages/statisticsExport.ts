@@ -277,34 +277,62 @@ export function exportStatisticsWorkbookFile(args: BuildArgs) {
 
 export function exportStatisticsCsvFile(args: BuildArgs) {
   const blocks = buildSheets(args);
-  const groupOrder: Array<{ name: string; chartIds: StatisticsChartId[] }> = [
-    { name: "demographics", chartIds: ["gender", "birthYear", "genderByProgram"] },
-    { name: "academic", chartIds: ["byYear", "studyProgram", "gradeByYear", "gradeDistribution", "avgGradeByProgram", "timeToDegreeByEntryYear", "timeToDegreeDistribution", "direction"] },
-    { name: "geography", chartIds: ["originRegion", "originMunicipality"] },
+  const groupOrder: Array<{ key: string; name: string; chartIds: StatisticsChartId[] }> = [
+    {
+      key: "demographics",
+      name: args.activeLang === "en" ? "Demographic Data" : "Δημογραφικά στοιχεία",
+      chartIds: ["gender", "birthYear", "genderByProgram"],
+    },
+    {
+      key: "academic",
+      name: args.activeLang === "en" ? "Academic Data" : "Ακαδημαϊκά στοιχεία",
+      chartIds: ["byYear", "studyProgram", "gradeByYear", "gradeDistribution", "avgGradeByProgram", "timeToDegreeByEntryYear", "timeToDegreeDistribution", "direction"],
+    },
+    {
+      key: "geography",
+      name: args.activeLang === "en" ? "Geographic Distribution" : "Γεωγραφική κατανομή",
+      chartIds: ["originRegion", "originMunicipality"],
+    },
   ];
 
-  let exported = 0;
+  const lines: string[] = [];
+  let exportedBlocks = 0;
 
   groupOrder.forEach((group) => {
     const groupBlocks = blocks.filter((block) => group.chartIds.includes(block.chartId));
     if (!groupBlocks.length) return;
 
-    const lines: string[] = [];
+    if (lines.length) {
+      lines.push("");
+      lines.push("");
+    }
+
+    lines.push(group.name);
+    lines.push("==================================================");
+    lines.push("");
+
     groupBlocks.forEach((block, index) => {
       lines.push(...csvLines(block));
-      if (index < groupBlocks.length - 1) lines.push("");
-    });
+      exportedBlocks += 1;
 
-    exportUtf16Csv(`alupla_statistics_${group.name}.csv`, lines.join("\r\n"));
-    exported += 1;
+      if (index < groupBlocks.length - 1) {
+        lines.push("");
+        lines.push("--------------------------------------------------");
+        lines.push("");
+      }
+    });
   });
 
-  if (!exported && blocks.length) {
-    const lines: string[] = [];
+  if (!exportedBlocks && blocks.length) {
     blocks.forEach((block, index) => {
       lines.push(...csvLines(block));
-      if (index < blocks.length - 1) lines.push("");
+      if (index < blocks.length - 1) {
+        lines.push("");
+        lines.push("--------------------------------------------------");
+        lines.push("");
+      }
     });
-    exportUtf16Csv("alupla_statistics_export.csv", lines.join("\r\n"));
   }
+
+  if (lines.length) exportUtf16Csv("alupla_statistics_export.csv", lines.join("\r\n"));
 }
