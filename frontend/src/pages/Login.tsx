@@ -151,10 +151,6 @@ function Login() {
             <Link to="/register" style={{ color: "#1e3a8a", fontWeight: 700 }}>
               {t("login.register")}
             </Link>
-            <span style={{ opacity: 0.6 }}>·</span>
-            <Link to="/forgot" style={{ color: "#1e3a8a", fontWeight: 700 }}>
-              {t("login.forgot")}
-            </Link>
           </div>
         </form>
       </div>
