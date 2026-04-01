@@ -22,7 +22,7 @@ const emptyForm: UserFormState = {
 };
 
 const clickableHeaderStyle: React.CSSProperties = { cursor: "pointer" };
-const inlineSelectStyle: React.CSSProperties = { padding: 6 };
+const inlineSelectStyle: React.CSSProperties = { padding: 6, minWidth: 130 };
 const monospaceBadgeStyle: React.CSSProperties = { fontFamily: "monospace" };
 const passwordFieldStyle: React.CSSProperties = { gridColumn: "span 2" };
 const passwordHintStyle: React.CSSProperties = { whiteSpace: "pre-line" };
@@ -178,7 +178,7 @@ export default function Users() {
 
       <div className="card">
         <div className="table-wrap">
-          <table className="table">
+          <table className="table" style={{ minWidth: 780 }}>
             <thead>
               <tr>
                 <th style={clickableHeaderStyle} onClick={() => toggleSort("id")}>{t("table.id")}{getSortArrow("id")}</th>

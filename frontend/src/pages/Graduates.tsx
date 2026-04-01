@@ -839,7 +839,7 @@ export default function Graduates() {
 
             <div style={{ display: "grid", gap: 10, width: "100%" }}>
               <input className="input" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t("topbar.searchPlaceholder")} />
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, width: "100%", alignItems: "stretch" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, width: "100%", alignItems: "stretch" }}>
                 <Link className="btn primary" to="/graduates/new" style={{ ...topButtonStyle, textDecoration: "none", width: "100%", justifyContent: "center" }}>
                   {t("topbar.newGraduate")}
                 </Link>
@@ -867,7 +867,7 @@ export default function Graduates() {
                     {importBusy ? t("topbar.importing") : t("topbar.import")}
                   </button>
                   {importMenuOpen ? (
-                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, width: "max-content", maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
                       {importActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
                     </div>
                   ) : null}
@@ -882,7 +882,7 @@ export default function Graduates() {
                     {t("topbar.downloadTemplate")}
                   </button>
                   {templateMenuOpen ? (
-                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, width: "max-content", maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
                       {templateActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
                     </div>
                   ) : null}
@@ -897,13 +897,13 @@ export default function Graduates() {
                     {t("topbar.export")}
                   </button>
                   {exportMenuOpen ? (
-                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, width: "max-content", maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
                       {exportActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
                     </div>
                   ) : null}
                 </div>
                 <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "center", width: "100%" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, width: "calc(75% - 2.5px)", alignItems: "stretch" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, width: "100%", alignItems: "stretch" }}>
                     <div ref={recentDownloadsRef} style={{ position: "relative" }}>
                       <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => toggleMenu("recent")}>
                         {t("topbar.myFrequentDownloads")}

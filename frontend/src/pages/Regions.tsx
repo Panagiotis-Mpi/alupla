@@ -959,12 +959,12 @@ export default function Regions() {
                       <td>{item.count}</td>
                       <td>{item.periphery_name ?? "-"}</td>
                       <td>
-                        <div className="row-actions" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", whiteSpace: "nowrap" }}>
+                        <div className="row-actions" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                           <button className="btn" type="button" onClick={() => useUnmatchedCity(item)}>{t("unmatched.useInForm")}</button>
                           <span className="muted" style={{ marginLeft: 4 }}>{t("unmatched.linkLabel")}</span>
                           <select
                             className="input"
-                            style={{ width: 220, minWidth: 220, maxWidth: 220, marginBottom: 0 }}
+                            style={{ flex: "1 1 180px", width: "100%", minWidth: 0, maxWidth: 240, marginBottom: 0 }}
                             value={unmatchedCitySelections[rowKey] || ""}
                             onChange={(e) => setUnmatchedCitySelection(item, e.target.value)}
                           >

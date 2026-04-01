@@ -35,7 +35,7 @@ a{color:inherit}
   border-radius:10px;
 }
 
-.btn{border:1px solid var(--border);background:var(--surface);padding:8px 10px;border-radius:12px;cursor:pointer;transition:background .15s ease,border-color .15s ease,transform .05s ease}
+.btn{border:1px solid var(--border);background:var(--surface);padding:8px 10px;border-radius:12px;cursor:pointer;transition:background .15s ease,border-color .15s ease,transform .05s ease;display:inline-flex;align-items:center;justify-content:center;min-width:0}
 .btn:hover{background:#f8fafc;border-color:#cbd5e1}
 .btn:active{transform:translateY(1px)}
 .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
@@ -61,9 +61,11 @@ hr{border:none;border-top:1px solid #eef2f7;margin:12px 0}
 
 .nav-links,.nav-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .nav-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.lang-switcher{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lang-switcher{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
 .lang-switcher-separator{opacity:.6}
 .app-shell{min-height:100vh;display:flex;flex-direction:column}
+.badge{display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;color:#334155;font-size:13px;line-height:1.2;min-width:0;max-width:100%;word-break:break-word}
+.user-profile-btn{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .app-content{flex:1;width:100%}
 .mobile-drawer-brand{cursor:pointer}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -110,7 +112,9 @@ hr{border:none;border-top:1px solid #eef2f7;margin:12px 0}
   .topbar{align-items:stretch}
   .topbar > .btn,
   .topbar > a.btn,
-  .topbar > .badge{width:100%}
+  .topbar > .badge,
+  .topbar > div > .btn,
+  .topbar > div > a.btn{width:100%}
   .grid.cols2,.grid.cols3,.grid.cols4{grid-template-columns:1fr}
   .row-actions{flex-direction:column}
   .map-canvas{height:60vh;min-height:380px}
@@ -119,7 +123,7 @@ hr{border:none;border-top:1px solid #eef2f7;margin:12px 0}
   .nav-right{gap:6px}
   .lang-switcher{gap:6px}
   .lang-switcher .btn{width:auto;padding:8px 8px}
-  .nav-actions .user-profile-btn{max-width:120px;width:auto !important;padding:8px 10px}
+  .nav-actions .user-profile-btn{max-width:104px;width:auto !important;padding:8px 10px}
   .mobile-login{padding:8px 10px;width:auto !important}
 }
 

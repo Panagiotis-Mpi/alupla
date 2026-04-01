@@ -548,7 +548,7 @@ export default function Logs() {
         <div className="topbar" style={{ alignItems: "center", justifyContent: "space-between", marginBottom: 12, width: "100%" }}>
           <h2 style={{ margin: 0 }}>{t("title")}</h2>
           <div ref={exportMenuRef} style={{ position: "relative", marginLeft: "auto" }}>
-            <button className="btn" onClick={() => setExportMenuOpen((current) => !current)} style={{ minWidth: 170, width: "auto" }}>
+            <button className="btn" onClick={() => setExportMenuOpen((current) => !current)} style={{ minWidth: 0, width: "100%", maxWidth: 220 }}>
               {t("actions.export")}
             </button>
             {exportMenuOpen && (
@@ -585,7 +585,7 @@ export default function Logs() {
             className="input"
             value={summaryRole}
             onChange={(e) => setSummaryRole(e.target.value as FileSummaryRole)}
-            style={{ width: 230, minWidth: 230, maxWidth: "100%" }}
+            style={{ width: "100%", minWidth: 0, maxWidth: 280, flex: "1 1 220px" }}
           >
             <option value="secretariat">{t("summary.roles.secretariat")}</option>
             <option value="super_admin">{t("summary.roles.admin")}</option>
@@ -594,7 +594,7 @@ export default function Logs() {
         </div>
 
         <div>
-          <table className="table logs-summary-table" style={{ width: "100%", tableLayout: "fixed" }}>
+          <table className="table logs-summary-table" style={{ width: "100%", minWidth: 720, tableLayout: "fixed" }}>
             <thead>
               <tr>
                 <th rowSpan={2} style={{ width: "28%" }}>{t("summary.page")}</th>
@@ -711,7 +711,7 @@ export default function Logs() {
 
       <div className="card logs-table-card" style={{ maxWidth: 1120, width: "100%", margin: "0 auto" }}>
         <div className="table-wrap">
-          <table className="table" style={{ width: "100%", tableLayout: "fixed" }}>
+          <table className="table" style={{ width: "100%", minWidth: 860, tableLayout: "fixed" }}>
             <thead>
               <tr>
                 <th style={{ width: 42 }}>{t("table.id")}</th>

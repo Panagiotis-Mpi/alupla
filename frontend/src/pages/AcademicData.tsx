@@ -87,7 +87,7 @@ const pageMenuStatsStyle: React.CSSProperties = {
 };
 const pageMenuButtonsStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
   gap: 10,
   alignItems: "stretch",
   marginTop: 16,
@@ -487,7 +487,7 @@ export default function AcademicData() {
 
       <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <span className="label" style={{ margin: 0 }}>{t("directions.filterProgram")}</span>
-        <select className="input" style={{ flex: "1 1 320px", minWidth: 260 }} value={selectedProgramId} onChange={(e) => setSelectedProgramId(e.target.value)}>
+        <select className="input" style={{ flex: "1 1 280px", minWidth: 0, width: "100%" }} value={selectedProgramId} onChange={(e) => setSelectedProgramId(e.target.value)}>
           {programs.map((item) => (
             <option key={item.id} value={item.id}>{getProgramName(item)}</option>
           ))}
