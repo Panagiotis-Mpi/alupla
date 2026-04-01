@@ -96,9 +96,15 @@ export default function Profile() {
 
   return (
     <div className="grid" style={{ gap: 16 }}>
-      <h2>{t("title")}</h2>
+      <div className="card" style={cardGridStyle}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <h2 style={{ margin: 0 }}>{t("title")}</h2>
 
-      <div className="card">
+          <button className="btn primary" onClick={toggleEditing}>
+            {t("editProfile.button")}
+          </button>
+        </div>
+
         <div>
           <strong>{t("info.email")}:</strong> {user.email}
         </div>
@@ -107,12 +113,6 @@ export default function Profile() {
         </div>
         <div>
           <strong>{t("info.role")}:</strong> {roleLabel}
-        </div>
-
-        <div style={{ marginTop: 12 }}>
-          <button className="btn primary" onClick={toggleEditing}>
-            {t("editProfile.button")}
-          </button>
         </div>
       </div>
 

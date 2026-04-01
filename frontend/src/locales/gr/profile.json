@@ -6,7 +6,7 @@
     "role": "Ρόλος"
   },
   "roles": {
-    "super_admin": "Super Admin",
+    "super_admin": "Διαχειριστής",
     "secretariat": "Γραμματεία"
   },
   "editProfile": {
