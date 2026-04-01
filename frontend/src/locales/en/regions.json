@@ -43,8 +43,7 @@
     "importDone": "Inserted {{inserted}}, updated {{updated}}, skipped {{skipped}}.",
     "unmatchedDeletedSingle": "The entry was removed from the list.",
     "unmatchedDeletedMany": "Removed {{count}} entries from the list.",
-    "unmatchedLinked": "The new region was matched to city {{city}}.",
-    "unmatchedPeripheryMismatch": "The city must belong to the same periphery."
+    "unmatchedLinked": "The unmatched city was linked to {{city}}."
   },
   "unmatched": {
     "title": "New region",
@@ -58,9 +57,8 @@
       "periphery": "Suggested periphery",
       "actions": "Action"
     },
-    "linkExisting": "Match existing",
-    "linking": "Matching...",
-    "linkingHint": "Choose an existing city to match \"{{name}}\" in periphery {{periphery}}."
+    "linkExisting": "Match",
+    "resolveHint": "Match the new region {{name}} with an existing city in periphery {{periphery}}."
   },
   "peripheries": {
     "title": "Peripheries",
