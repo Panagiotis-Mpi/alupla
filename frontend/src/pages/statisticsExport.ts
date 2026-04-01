@@ -236,30 +236,75 @@ function buildSheets(args: BuildArgs) {
     .filter((sheet): sheet is SheetBlock => !!sheet && sheet.rows.length > 0);
 }
 
+function workbookSheetName(name: string, usedNames: Set<string>) {
+  const base = name.slice(0, 31) || "Sheet";
+  let candidate = base;
+  let counter = 2;
+
+  while (usedNames.has(candidate)) {
+    const suffix = `_${counter}`;
+    candidate = `${base.slice(0, Math.max(0, 31 - suffix.length))}${suffix}`;
+    counter += 1;
+  }
+
+  usedNames.add(candidate);
+  return candidate;
+}
+
+function csvLines(block: SheetBlock) {
+  const lines: string[] = [block.name];
+  const headers = Object.keys(block.rows[0] ?? {});
+  if (headers.length) lines.push(headers.map(csvCell).join(","));
+  block.rows.forEach((row) => {
+    lines.push(headers.map((header) => csvCell(row[header])).join(","));
+  });
+  return lines;
+}
+
 export function exportStatisticsWorkbookFile(args: BuildArgs) {
   const workbook = XLSX.utils.book_new();
+  const usedNames = new Set<string>();
+
   for (const sheet of buildSheets(args)) {
     const ws = XLSX.utils.json_to_sheet(sheet.rows);
     const headers = Object.keys(sheet.rows[0] ?? {});
     ws["!cols"] = headers.map((header) => ({ wch: Math.max(18, String(header).length + 4) }));
-    XLSX.utils.book_append_sheet(workbook, ws, sheet.name.slice(0, 31));
+    XLSX.utils.book_append_sheet(workbook, ws, workbookSheetName(sheet.name, usedNames));
   }
+
   exportWorkbook("alupla_statistics_export.xlsx", workbook);
 }
 
 export function exportStatisticsCsvFile(args: BuildArgs) {
   const blocks = buildSheets(args);
-  const lines: string[] = [];
+  const groupOrder: Array<{ name: string; chartIds: StatisticsChartId[] }> = [
+    { name: "demographics", chartIds: ["gender", "birthYear", "genderByProgram"] },
+    { name: "academic", chartIds: ["byYear", "studyProgram", "gradeByYear", "gradeDistribution", "avgGradeByProgram", "timeToDegreeByEntryYear", "timeToDegreeDistribution", "direction"] },
+    { name: "geography", chartIds: ["originRegion", "originMunicipality"] },
+  ];
 
-  blocks.forEach((block, index) => {
-    lines.push(csvCell(block.name));
-    const headers = Object.keys(block.rows[0] ?? {});
-    lines.push(headers.map(csvCell).join("\t"));
-    block.rows.forEach((row) => {
-      lines.push(headers.map((header) => csvCell(row[header])).join("\t"));
+  let exported = 0;
+
+  groupOrder.forEach((group) => {
+    const groupBlocks = blocks.filter((block) => group.chartIds.includes(block.chartId));
+    if (!groupBlocks.length) return;
+
+    const lines: string[] = [];
+    groupBlocks.forEach((block, index) => {
+      lines.push(...csvLines(block));
+      if (index < groupBlocks.length - 1) lines.push("");
     });
-    if (index < blocks.length - 1) lines.push("");
+
+    exportUtf16Csv(`alupla_statistics_${group.name}.csv`, lines.join("\r\n"));
+    exported += 1;
   });
 
-  exportUtf16Csv("alupla_statistics_export.csv", lines.join("\r\n"));
+  if (!exported && blocks.length) {
+    const lines: string[] = [];
+    blocks.forEach((block, index) => {
+      lines.push(...csvLines(block));
+      if (index < blocks.length - 1) lines.push("");
+    });
+    exportUtf16Csv("alupla_statistics_export.csv", lines.join("\r\n"));
+  }
 }

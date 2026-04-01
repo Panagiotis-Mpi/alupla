@@ -85,6 +85,84 @@ function fileSlug(value: string) {
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "") || "chart";
 }
+function copyComputedStyles(source: Element, target: Element) {
+  const sourceChildren = Array.from(source.children);
+  const targetChildren = Array.from(target.children);
+  const computed = window.getComputedStyle(source as HTMLElement);
+  const styleText = Array.from(computed)
+    .map((name) => `${name}:${computed.getPropertyValue(name)};`)
+    .join("");
+
+  target.setAttribute("style", styleText);
+
+  for (let i = 0; i < sourceChildren.length; i += 1) {
+    if (targetChildren[i]) copyComputedStyles(sourceChildren[i], targetChildren[i]);
+  }
+}
+
+function replaceCanvasNodes(sourceRoot: HTMLElement, cloneRoot: HTMLElement) {
+  const sourceCanvases = Array.from(sourceRoot.querySelectorAll("canvas"));
+  const cloneCanvases = Array.from(cloneRoot.querySelectorAll("canvas"));
+
+  sourceCanvases.forEach((sourceCanvas, index) => {
+    const cloneCanvas = cloneCanvases[index];
+    if (!cloneCanvas) return;
+
+    const image = document.createElement("img");
+
+    try {
+      image.src = sourceCanvas.toDataURL("image/png");
+    } catch {
+      return;
+    }
+
+    const width = sourceCanvas.width || sourceCanvas.clientWidth || cloneCanvas.clientWidth;
+    const height = sourceCanvas.height || sourceCanvas.clientHeight || cloneCanvas.clientHeight;
+
+    image.width = width;
+    image.height = height;
+    image.style.width = `${cloneCanvas.clientWidth || sourceCanvas.clientWidth || width}px`;
+    image.style.height = `${cloneCanvas.clientHeight || sourceCanvas.clientHeight || height}px`;
+    image.style.display = window.getComputedStyle(sourceCanvas).display;
+    image.style.maxWidth = "100%";
+    image.style.objectFit = "contain";
+
+    cloneCanvas.replaceWith(image);
+  });
+}
+
+async function renderElementSnapshot(element: HTMLElement) {
+  const rect = element.getBoundingClientRect();
+  const width = Math.ceil(rect.width);
+  const height = Math.ceil(rect.height);
+  const clone = element.cloneNode(true) as HTMLElement;
+
+  clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+  copyComputedStyles(element, clone);
+  replaceCanvasNodes(element, clone);
+  clone.style.margin = "0";
+  clone.style.width = `${width}px`;
+  clone.style.height = `${height}px`;
+
+  const wrapper = document.createElement("div");
+  wrapper.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+  wrapper.style.width = `${width}px`;
+  wrapper.style.height = `${height}px`;
+  wrapper.style.background = "#ffffff";
+  wrapper.appendChild(clone);
+
+  const serialized = new XMLSerializer().serializeToString(wrapper);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${serialized}</foreignObject></svg>`;
+
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("image_error"));
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  });
+
+  return { image, width, height };
+}
 
 function buildBarDataset(label: string, data: number[], color = "#2563eb", backgroundColor = solidBlueFill) {
   return {
@@ -1055,54 +1133,71 @@ export default function Statistics() {
 
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
 
-    const padding = 36;
-    const titleSpace = 42;
+    const selectedSet = new Set(selectedChartIds);
+    const groupsForExport = chartGroups
+      .map((group) => ({
+        ...group,
+        charts: group.charts.filter((chart) => selectedSet.has(chart.id)),
+      }))
+      .filter((group) => group.charts.length > 0);
 
-    for (const chartId of selectedChartIds) {
-      const card = root.querySelector<HTMLElement>(`[data-export-chart-id="${chartId}"]`);
-      if (!card) continue;
+    for (const group of groupsForExport) {
+      const chunks = group.key === "academic" && group.charts.length > 4
+        ? [group.charts.slice(0, 4), group.charts.slice(4)]
+        : [group.charts];
 
-      const canvas = card.querySelector("canvas");
-      if (!canvas) continue;
+      for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
+        const charts = chunks[chunkIndex];
+        const snapshots = [] as Array<{ image: HTMLImageElement; width: number; height: number }>;
 
-      const title = card.querySelector("h3")?.textContent?.trim() || t("pageTitle");
-      const width = canvas.width || Math.round(canvas.getBoundingClientRect().width * 2);
-      const height = canvas.height || Math.round(canvas.getBoundingClientRect().height * 2);
+        for (const chart of charts) {
+          const card = root.querySelector<HTMLElement>(`[data-export-chart-id="${chart.id}"]`);
+          if (!card) continue;
+          snapshots.push(await renderElementSnapshot(card));
+        }
 
-      const out = document.createElement("canvas");
-      out.width = width + padding * 2;
-      out.height = height + padding * 2 + titleSpace;
+        if (!snapshots.length) continue;
 
-      const ctx = out.getContext("2d");
-      if (!ctx) continue;
+        const padding = 24;
+        const gap = 20;
+        const titleHeight = 52;
+        const canvasWidth = Math.max(...snapshots.map((snapshot) => snapshot.width)) + padding * 2;
+        const canvasHeight = titleHeight + padding + snapshots.reduce((total, snapshot) => total + snapshot.height, 0) + gap * Math.max(0, snapshots.length - 1) + padding;
+        const out = document.createElement("canvas");
 
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, out.width, out.height);
-      ctx.fillStyle = "#0f172a";
-      ctx.font = '700 22px Arial, sans-serif';
-      ctx.fillText(title, padding, padding + 24);
+        out.width = canvasWidth * 2;
+        out.height = canvasHeight * 2;
 
-      const cardY = padding + titleSpace - 6;
-      ctx.fillStyle = "#ffffff";
-      ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(padding - 12, cardY, width + 24, height + 24, 18);
-      ctx.fill();
-      ctx.stroke();
-      ctx.drawImage(canvas, padding, cardY + 12, width, height);
+        const ctx = out.getContext("2d");
+        if (!ctx) continue;
 
-      const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, "image/png"));
-      if (!blob) continue;
+        ctx.scale(2, 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        ctx.fillStyle = "#0f172a";
+        ctx.font = '700 24px Arial, sans-serif';
+        ctx.fillText(group.label, padding, 34);
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `alupla_statistics_${fileSlug(title)}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+        let offsetY = titleHeight;
+        snapshots.forEach((snapshot, snapshotIndex) => {
+          ctx.drawImage(snapshot.image, padding, offsetY, snapshot.width, snapshot.height);
+          offsetY += snapshot.height;
+          if (snapshotIndex < snapshots.length - 1) offsetY += gap;
+        });
+
+        const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, "image/png"));
+        if (!blob) continue;
+
+        const suffix = chunks.length > 1 ? `_${chunkIndex + 1}` : "";
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `alupla_statistics_${fileSlug(group.label)}${suffix}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
     }
   }
 
