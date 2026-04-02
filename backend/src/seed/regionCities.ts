@@ -1,4 +1,5 @@
 import { Region } from "../models/Region";
+import { normalizeRegionText } from "../utils/regionText";
 
 type CitySeed = {
   region: string;
@@ -107,9 +108,12 @@ export async function ensureRegionCitiesSeeded(): Promise<void> {
       },
     });
 
+    const normalizedName = normalizeRegionText(city.name);
+
     if (!existing) {
       await Region.create({
         name: city.name,
+        normalized_name: normalizedName,
         type: "CITY",
         parent_id: Number(parent.id),
         latitude: city.latitude,
@@ -120,11 +124,17 @@ export async function ensureRegionCitiesSeeded(): Promise<void> {
 
     const lat = existing.latitude as any;
     const lng = existing.longitude as any;
-    const needsUpdate = lat === null || lng === null || Number.isNaN(Number(lat)) || Number.isNaN(Number(lng));
+    const needsCoords = lat === null || lng === null || Number.isNaN(Number(lat)) || Number.isNaN(Number(lng));
+    const needsNormalized = !String(existing.normalized_name || "").trim() && normalizedName;
 
-    if (needsUpdate) {
-      existing.latitude = city.latitude as any;
-      existing.longitude = city.longitude as any;
+    if (needsCoords || needsNormalized) {
+      if (needsCoords) {
+        existing.latitude = city.latitude as any;
+        existing.longitude = city.longitude as any;
+      }
+      if (needsNormalized) {
+        existing.normalized_name = normalizedName as any;
+      }
       await existing.save();
     }
   }

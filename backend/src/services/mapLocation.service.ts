@@ -199,6 +199,16 @@ function peripheryFromAddress(address: Record<string, string> | undefined, perip
   return null;
 }
 
+
+function resolveNormalizedCityName(...values: Array<unknown>) {
+  for (const value of values) {
+    const cleaned = cleanRegionText(value);
+    const normalized = normalizeRegionText(cleaned);
+    if (normalized) return { cleaned, normalized };
+  }
+  return { cleaned: null, normalized: null };
+}
+
 function cityNameFromAddress(rawName: string, address: Record<string, string> | undefined) {
   const candidate = cleanRegionText(
     address?.city ||
@@ -282,9 +292,11 @@ async function geocodeCity(rawCityName: string, preferredPeripheryId: number | n
 }
 
 async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId: number | null) {
-  const normalized = normalizeRegionText(rawCityName);
+  const rawResolved = resolveNormalizedCityName(rawCityName);
+  if (!rawResolved.normalized) return null;
+
   const lookups = await loadRegionLookups();
-  const existing = pickScopedCity(lookups.cityByNormalized.get(normalized) || [], preferredPeripheryId, lookups.byId);
+  const existing = pickScopedCity(lookups.cityByNormalized.get(rawResolved.normalized) || [], preferredPeripheryId, lookups.byId);
 
   if (existing && existing.latitude !== null && existing.longitude !== null) {
     const periphery = getPeripheryFromRegionId(existing.id, lookups.byId);
@@ -316,23 +328,33 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
   const peripheryId = geocoded.peripheryId ?? preferredPeripheryId;
   const periphery = peripheryId ? lookups.byId.get(peripheryId) ?? null : null;
 
-  if (!city && peripheryId) {
-    city = await Region.create({
-      name: geocoded.cityName || cleanRegionText(rawCityName),
-      normalized_name: normalizeRegionText(geocoded.cityName || rawCityName),
-      external_ref_id: geocoded.externalRefId,
-      type: "CITY",
-      parent_id: peripheryId,
-      latitude: geocoded.lat,
-      longitude: geocoded.lng,
-    } as any) as any;
-    clearLocationCaches();
+  const cityResolved = resolveNormalizedCityName(geocoded.cityName, rawCityName);
+  const cityName = cityResolved.cleaned;
+  const normalizedCityName = cityResolved.normalized;
+
+  if (!city && peripheryId && cityName && normalizedCityName) {
+    const scopedMatch = pickScopedCity(lookups.cityByNormalized.get(normalizedCityName) || [], peripheryId, lookups.byId);
+    if (scopedMatch) {
+      city = scopedMatch;
+    } else {
+      city = await Region.create({
+        name: cityName,
+        normalized_name: normalizedCityName,
+        external_ref_id: geocoded.externalRefId,
+        type: "CITY",
+        parent_id: peripheryId,
+        latitude: geocoded.lat,
+        longitude: geocoded.lng,
+      } as any) as any;
+      clearLocationCaches();
+    }
   } else if (city) {
     const updatePayload: Record<string, unknown> = {};
     if (city.latitude === null || city.longitude === null) {
       updatePayload.latitude = geocoded.lat;
       updatePayload.longitude = geocoded.lng;
     }
+    if (!city.normalized_name && normalizedCityName) updatePayload.normalized_name = normalizedCityName;
     if (!city.external_ref_id && geocoded.externalRefId) updatePayload.external_ref_id = geocoded.externalRefId;
     if (Object.keys(updatePayload).length) {
       await Region.update(updatePayload, { where: { id: city.id } });
@@ -388,6 +410,17 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
   }
 
   const normalized = normalizeRegionText(rawCityName);
+  if (!normalized) {
+    return {
+      cityId: explicitCity?.id ?? null,
+      cityName: explicitCity?.name ?? rawCityName,
+      peripheryId: periphery ? periphery.id : null,
+      peripheryName: periphery ? periphery.name : null,
+      latitude: explicitCity?.latitude ?? null,
+      longitude: explicitCity?.longitude ?? null,
+    };
+  }
+
   const existing = pickScopedCity(lookups.cityByNormalized.get(normalized) || [], preferredPeripheryId, lookups.byId);
   if (existing && existing.latitude !== null && existing.longitude !== null) {
     const existingPeriphery = getPeripheryFromRegionId(existing.id, lookups.byId);
