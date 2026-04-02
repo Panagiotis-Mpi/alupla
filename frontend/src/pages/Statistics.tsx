@@ -1008,8 +1008,14 @@ export default function Statistics() {
     values: [Number(selectedGenderProgramRow?.male ?? 0), Number(selectedGenderProgramRow?.female ?? 0)],
   }), [selectedGenderProgramRow, t]);
 
-  const graduationYears = byYearRows.map((row) => Number(row.label)).filter((value) => Number.isFinite(value));
-  const largestYear = graduationYears.length ? Math.max(...graduationYears) : "-";
+  const maxGraduationYears = yearsToDegreeDistributionRaw.labels.reduce<number | null>((current, label, index) => {
+    const numericLabel = Number(label);
+    const count = Number(yearsToDegreeDistributionRaw.values[index] ?? 0);
+    if (!Number.isFinite(numericLabel) || count <= 0) return current;
+    if (current === null || numericLabel > current) return numericLabel;
+    return current;
+  }, null);
+  const longestStudyYears = maxGraduationYears === null ? "-" : maxGraduationYears;
   const busiestYearIndex = byYearRows.length ? byYearRows.findIndex((row) => row.value === Math.max(...byYearRows.map((item) => item.value))) : -1;
   const busiestYear = busiestYearIndex >= 0 ? byYearRows[busiestYearIndex].label : "-";
   const busiestCityIndex = municipalities.values.length ? municipalities.values.findIndex((value) => value === Math.max(...municipalities.values)) : -1;
@@ -1153,12 +1159,12 @@ export default function Statistics() {
     total,
     avgAge,
     avgGrade,
-    largestYear,
+    longestStudyYears,
     busiestYear,
     busiestCity,
     selectedDirectionProgramId,
     selectedChartIds,
-  }), [activeLang, avgAge, avgGrade, busiestCity, busiestYear, data, largestYear, selectedChartIds, selectedDirectionProgramId, t, total]);
+  }), [activeLang, avgAge, avgGrade, busiestCity, busiestYear, data, longestStudyYears, selectedChartIds, selectedDirectionProgramId, t, total]);
 
   async function exportSelectedChartsAsPng() {
     if (!selectedChartIds.length) return;
@@ -1322,7 +1328,7 @@ export default function Statistics() {
               <MetricCard label={t("cards.avgGrade")} value={avgGrade} />
             </div>
             <div style={metricBottomRowStyle}>
-              <MetricCard label={t("cards.earliestYear")} value={largestYear} />
+              <MetricCard label={t("cards.earliestYear")} value={longestStudyYears} />
               <MetricCard label={t("cards.topGraduationYear")} value={busiestYear} />
               <MetricCard label={t("cards.topCity")} value={busiestCity} />
             </div>

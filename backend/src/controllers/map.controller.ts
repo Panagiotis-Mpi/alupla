@@ -194,6 +194,18 @@ function pickDirectionDisplay(counts: Map<number, number>, labels: Map<number, s
   };
 }
 
+function matchesSelectedStudyProgram(
+  graduateStudyProgramId: number,
+  directionId: number,
+  selectedStudyProgramId: number | null,
+  directionProgramIds: Map<number, number>,
+) {
+  if (!selectedStudyProgramId) return true;
+  if (graduateStudyProgramId === selectedStudyProgramId) return true;
+  const directionProgramId = directionId ? (directionProgramIds.get(directionId) || 0) : 0;
+  return directionProgramId === selectedStudyProgramId;
+}
+
 function isDirectionAllowed(
   directionId: number,
   graduateStudyProgramId: number,
@@ -285,16 +297,18 @@ export async function getGraduatesMap(req: Request, res: Response) {
       directionCounts: new Map<number, number>(),
     };
 
+    const studyProgramId = Number(g.study_program_id) || 0;
+    const programDirectionId = Number(g.program_direction_id) || 0;
+    if (!matchesSelectedStudyProgram(studyProgramId, programDirectionId, selectedStudyProgramId, directionProgramIds)) continue;
+
     cur.count += 1;
     if (g.gender === "M") cur.male += 1;
     if (g.gender === "F") cur.female += 1;
 
-    const studyProgramId = Number(g.study_program_id) || 0;
     if (studyProgramId > 0) {
       cur.programCounts.set(studyProgramId, (cur.programCounts.get(studyProgramId) || 0) + 1);
     }
 
-    const programDirectionId = Number(g.program_direction_id) || 0;
     if (isDirectionAllowed(programDirectionId, studyProgramId, selectedStudyProgramId, directionProgramIds)) {
       cur.directionCounts.set(programDirectionId, (cur.directionCounts.get(programDirectionId) || 0) + 1);
     }
@@ -323,7 +337,8 @@ export async function getGraduatesMap(req: Request, res: Response) {
 
   const items = Array.from(groups.values())
     .map((x) => {
-      const directionDisplay = pickDirectionDisplay(x.directionCounts, programDirectionLabels, x.count);
+      const directionTotal = collapseCountsByLabel(x.directionCounts, programDirectionLabels).reduce((sum, entry) => sum + entry.count, 0);
+      const directionDisplay = pickDirectionDisplay(x.directionCounts, programDirectionLabels, directionTotal || x.count);
       return {
         periphery_id: x.periphery_id,
         periphery_name: x.periphery_name,
@@ -353,14 +368,26 @@ export async function getGraduatesMap(req: Request, res: Response) {
 
 export async function getMapCities(req: Request, res: Response) {
   const { where } = buildMapWhere(req);
+  const selectedStudyProgramId = toInt(req.query.study_program_id);
   const groups = new Map<string, any>();
+  const directions = selectedStudyProgramId
+    ? await ProgramDirection.findAll({ attributes: ["id", "study_program_id"] })
+    : [];
+  const directionProgramIds = new Map<number, number>();
+
+  for (const item of directions as any[]) {
+    directionProgramIds.set(Number(item.id), Number(item.study_program_id) || 0);
+  }
 
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_region_id", "origin_city_region_id", "origin_municipality"],
+    attributes: ["origin_region_id", "origin_city_region_id", "origin_municipality", "study_program_id", "program_direction_id"],
   });
 
   for (const g of grads as any[]) {
+    const studyProgramId = Number(g.study_program_id) || 0;
+    const programDirectionId = Number(g.program_direction_id) || 0;
+    if (!matchesSelectedStudyProgram(studyProgramId, programDirectionId, selectedStudyProgramId, directionProgramIds)) continue;
     const resolvedLocation = await resolveMapLocation({
       origin_region_id: Number(g.origin_region_id) || null,
       origin_city_region_id: Number(g.origin_city_region_id) || null,
@@ -449,6 +476,10 @@ export async function getRegionCities(req: Request, res: Response) {
       directionCounts: new Map<number, number>(),
     };
 
+    const studyProgramId = Number(g.study_program_id) || 0;
+    const programDirectionId = Number(g.program_direction_id) || 0;
+    if (!matchesSelectedStudyProgram(studyProgramId, programDirectionId, selectedStudyProgramId, directionProgramIds)) continue;
+
     cur.count += 1;
     if (g.gender === "M") cur.male += 1;
     if (g.gender === "F") cur.female += 1;
@@ -472,8 +503,6 @@ export async function getRegionCities(req: Request, res: Response) {
       cur.graduationDurationCount += 1;
     }
 
-    const studyProgramId = Number(g.study_program_id) || 0;
-    const programDirectionId = Number(g.program_direction_id) || 0;
     if (isDirectionAllowed(programDirectionId, studyProgramId, selectedStudyProgramId, directionProgramIds)) {
       cur.directionCounts.set(programDirectionId, (cur.directionCounts.get(programDirectionId) || 0) + 1);
     }
@@ -483,7 +512,8 @@ export async function getRegionCities(req: Request, res: Response) {
 
   const items = Array.from(groups.values())
     .map((x) => {
-      const directionDisplay = pickDirectionDisplay(x.directionCounts, programDirectionLabels, x.count);
+      const directionTotal = collapseCountsByLabel(x.directionCounts, programDirectionLabels).reduce((sum, entry) => sum + entry.count, 0);
+      const directionDisplay = pickDirectionDisplay(x.directionCounts, programDirectionLabels, directionTotal || x.count);
       return {
         city: x.city,
         count: x.count,

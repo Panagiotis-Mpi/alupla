@@ -942,7 +942,7 @@ export default function GraduatesMapPage() {
             {shouldShowDirectionData ? (
               <>
                 <InfoBox title={selected.periphery_name} totalText={mt("totalGraduatesLine", { total: selected.count, defaultValue: "Σύνολο αποφοίτων: {{total}}" })} groups={detailGroups(selected)} />
-                <div style={{ fontWeight: 700 }}>{mt("citiesTitle", { defaultValue: "Πόλεις" })}</div>
+                <div style={{ fontWeight: 700 }}>{mt("citiesTitle", { defaultValue: "Πόλεις" })} ({selectedCityStats.length})</div>
                 {cityStatsLoading ? <div className="muted">{ct("loading", { defaultValue: "Φόρτωση..." })}</div> : selectedCityStats.length ? (
                   <div className="map-city-cards-inline">
                     {selectedCityStats.map((city) => <InfoBox key={city.city} title={city.city} totalText={mt("totalGraduatesLine", { total: city.count, defaultValue: "Σύνολο αποφοίτων: {{total}}" })} groups={detailGroups(city)} />)}
