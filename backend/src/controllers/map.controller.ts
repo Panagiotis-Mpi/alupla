@@ -466,8 +466,7 @@ export async function getRegionCities(req: Request, res: Response) {
     .sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
       return a.city.localeCompare(b.city, "el");
-    })
-    .slice(0, 3);
+    });
 
   return res.json({ ok: true, items });
 }
