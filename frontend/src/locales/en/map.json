@@ -47,7 +47,8 @@
     "cityCount": "City graduate count",
     "selectionTitle": "Export category selection",
     "selectionSubtitle": "Choose which categories you want to download",
-    "exportSelected": "Export selected"
+    "exportSelected": "Export selected",
+    "categoryColumn": "Category"
   },
   "map": {
     "total": "Total: {{total}}"

@@ -47,7 +47,8 @@
     "cityCount": "Πλήθος αποφοίτων πόλης",
     "selectionTitle": "Επιλογή κατηγοριών εξαγωγής",
     "selectionSubtitle": "Επίλεξε ποιες κατηγορίες θέλεις να κατεβάσεις",
-    "exportSelected": "Εξαγωγή επιλεγμένων"
+    "exportSelected": "Εξαγωγή επιλεγμένων",
+    "categoryColumn": "Κατηγορία"
   },
   "map": {
     "total": "Σύνολο: {{total}}"

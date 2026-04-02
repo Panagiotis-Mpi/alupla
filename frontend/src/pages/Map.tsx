@@ -584,7 +584,8 @@ export default function GraduatesMapPage() {
   }
 
   function openExportSelection(format: ExportFormat) {
-    setSelectedExportCategories(exportCategoryOptions.map((item) => item.id));
+    setSelectedExportCategories([]);
+    setSelectedExportStudyProgramIds([]);
     setSelectedExportFormat(format);
     setShowExportMenu(false);
   }
@@ -606,9 +607,6 @@ export default function GraduatesMapPage() {
     setSelectedExportStudyProgramIds((prev) => prev.includes(programId) ? prev.filter((item) => item !== programId) : [...prev, programId]);
   }
 
-  function toggleAllExportStudyPrograms() {
-    setSelectedExportStudyProgramIds((prev) => prev.length === studyProgramOptions.length ? [] : studyProgramOptions.map((item) => item.id));
-  }
 
   async function loadExportCategoryData(metric: MapMetric, studyProgramId?: string) {
     const nextParams = createMapParams({
@@ -748,17 +746,31 @@ export default function GraduatesMapPage() {
     return text;
   }
 
-  function buildCsvFromBlocks(blocks: Array<{ title: string; rows: Record<string, any>[] }>) {
-    const lines: string[] = [];
-    blocks.forEach((block, blockIndex) => {
-      if (blockIndex > 0) lines.push("");
-      lines.push(escapeCsv(block.title));
-      const headers = Object.keys(block.rows[0] || {});
-      if (!headers.length) return;
-      lines.push(headers.map(escapeCsv).join(","));
-      block.rows.forEach((row) => lines.push(headers.map((header) => escapeCsv((row as any)[header])).join(",")));
-    });
+  function buildCsvRows(categoryLabel: string, rows: Record<string, any>[], programLabel = "") {
+    return rows.map((row) => ({
+      [mt("export.categoryColumn", { defaultValue: "Κατηγορία" })]: categoryLabel,
+      [mt("filters.studyProgram", { defaultValue: "Πρόγραμμα σπουδών" })]: programLabel,
+      ...row,
+    }));
+  }
+
+  function buildCsvText(rows: Record<string, any>[]) {
+    const headers = Object.keys(rows[0] || {});
+    if (!headers.length) return "";
+    const lines = [headers.map(escapeCsv).join(",")];
+    rows.forEach((row) => lines.push(headers.map((header) => escapeCsv((row as any)[header])).join(",")));
     return lines.join("\r\n");
+  }
+
+  function applySheetLayout(sheet: XLSX.WorkSheet, rows: Record<string, any>[]) {
+    const headers = Object.keys(rows[0] || {});
+    if (!headers.length) return;
+    sheet["!cols"] = headers.map((header) => {
+      const values = rows.map((row) => String((row as any)[header] ?? ""));
+      const maxLength = Math.max(header.length, ...values.map((value) => value.length));
+      return { wch: Math.min(42, Math.max(14, maxLength + 4)) };
+    });
+    sheet["!autofilter"] = { ref: sheet["!ref"] || `A1:${String.fromCharCode(64 + headers.length)}1` };
   }
 
   async function waitForMapFrame() {
@@ -906,16 +918,18 @@ export default function GraduatesMapPage() {
       } else {
         const workbook = XLSX.utils.book_new();
         const usedNames = new Set<string>();
-        const csvBlocks: Array<{ title: string; rows: Record<string, any>[] }> = [];
+        const csvRows: Array<Record<string, any>> = [];
         for (const category of selectedExportCategories) {
           if (category === "count") {
             const response = await loadExportCategoryData("count");
             const rows = buildCountSheetRows(response.items, response.cityPoints);
             const title = mt("metricOptions.count", { defaultValue: "Πλήθος αποφοίτων" });
             if (selectedExportFormat === "xlsx") {
-              XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), workbookSheetName(title, usedNames));
+              const sheet = XLSX.utils.json_to_sheet(rows);
+              applySheetLayout(sheet, rows);
+              XLSX.utils.book_append_sheet(workbook, sheet, workbookSheetName(title, usedNames));
             }
-            csvBlocks.push({ title, rows });
+            csvRows.push(...buildCsvRows(title, rows));
             continue;
           }
           if (category === "dominant_gender") {
@@ -923,24 +937,29 @@ export default function GraduatesMapPage() {
             const rows = buildGenderSheetRows(response.items, response.cityPoints);
             const title = mt("metricOptions.dominantGender", { defaultValue: "Φύλο" });
             if (selectedExportFormat === "xlsx") {
-              XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), workbookSheetName(title, usedNames));
+              const sheet = XLSX.utils.json_to_sheet(rows);
+              applySheetLayout(sheet, rows);
+              XLSX.utils.book_append_sheet(workbook, sheet, workbookSheetName(title, usedNames));
             }
-            csvBlocks.push({ title, rows });
+            csvRows.push(...buildCsvRows(title, rows));
             continue;
           }
           for (const programId of selectedExportStudyProgramIds) {
             const response = await loadExportCategoryData("dominant_direction", programId);
             const rows = buildDirectionSheetRows(response.items, response.cityPoints);
-            const programLabel = studyProgramOptions.find((item) => item.id === programId)?.label || mt("metricOptions.dominantDirection", { defaultValue: "Πρόγραμμα σπουδών" });
-            const title = `${mt("metricOptions.dominantDirection", { defaultValue: "Πρόγραμμα σπουδών" })} - ${programLabel}`;
+            const categoryTitle = mt("metricOptions.dominantDirection", { defaultValue: "Πρόγραμμα σπουδών" });
+            const programLabel = studyProgramOptions.find((item) => item.id === programId)?.label || categoryTitle;
+            const sheetTitle = `${categoryTitle} - ${programLabel}`;
             if (selectedExportFormat === "xlsx") {
-              XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), workbookSheetName(title, usedNames));
+              const sheet = XLSX.utils.json_to_sheet(rows);
+              applySheetLayout(sheet, rows);
+              XLSX.utils.book_append_sheet(workbook, sheet, workbookSheetName(sheetTitle, usedNames));
             }
-            csvBlocks.push({ title, rows });
+            csvRows.push(...buildCsvRows(categoryTitle, rows, programLabel));
           }
         }
         if (selectedExportFormat === "xlsx") exportWorkbook("alupla_map_export.xlsx", workbook);
-        if (selectedExportFormat === "csv") exportCsvText("alupla_map_export.csv", buildCsvFromBlocks(csvBlocks));
+        if (selectedExportFormat === "csv") exportCsvText("alupla_map_export.csv", buildCsvText(csvRows));
       }
       try { await logPublicExport("map_export", selectedExportFormat); } catch {}
       setSelectedExportFormat(null);
@@ -1384,7 +1403,7 @@ export default function GraduatesMapPage() {
             display: "grid",
             placeItems: "center",
             padding: 16,
-            zIndex: 60,
+            zIndex: 1000,
           }}
         >
           <div
@@ -1398,6 +1417,8 @@ export default function GraduatesMapPage() {
               gap: 12,
               padding: 14,
               overflow: "hidden",
+              background: "#ffffff",
+              opacity: 1,
             }}
           >
             <div className="topbar" style={{ marginBottom: 0, gap: 10, alignItems: "flex-start" }}>
@@ -1418,17 +1439,13 @@ export default function GraduatesMapPage() {
               {exportCategoryOptions.map((category) => {
                 const isSelected = selectedExportCategories.includes(category.id);
                 return (
-                  <div key={category.id} style={{ display: "grid", gap: 8, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 10, background: "rgba(248, 250, 252, 0.76)" }}>
+                  <div key={category.id} style={{ display: "grid", gap: 8, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 10, background: "#f8fafc" }}>
                     <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700 }}>
                       <input type="checkbox" checked={isSelected} onChange={() => toggleExportCategory(category.id)} />
                       <span>{category.label}</span>
                     </label>
                     {category.id === "dominant_direction" && isSelected ? (
                       <div style={{ display: "grid", gap: 8, paddingLeft: 28 }}>
-                        <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700 }}>
-                          <input type="checkbox" checked={selectedExportStudyProgramIds.length === studyProgramOptions.length && studyProgramOptions.length > 0} onChange={toggleAllExportStudyPrograms} />
-                          <span>{ct("all", { defaultValue: "Όλα" })}</span>
-                        </label>
                         <div style={{ display: "grid", gap: 6 }}>
                           {studyProgramOptions.map((program) => (
                             <label key={program.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
