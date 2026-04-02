@@ -85,7 +85,9 @@ const actionLabels = {
     create_region_city: "Δημιουργία πόλης",
     update_region_city: "Ενημέρωση πόλης",
     delete_region_city: "Διαγραφή πόλης",
-    import_region_cities: "Εισαγωγή πόλεων"
+    import_region_cities: "Εισαγωγή πόλεων",
+    resolve_unmatched_city: "Αντιστοίχιση μη αναγνωρισμένης πόλης",
+    dismiss_unmatched_cities: "Απόρριψη μη αναγνωρισμένων πόλεων"
   },
   en: {
     login: "Login",
@@ -128,7 +130,9 @@ const actionLabels = {
     create_region_city: "City creation",
     update_region_city: "City update",
     delete_region_city: "City deletion",
-    import_region_cities: "City import"
+    import_region_cities: "City import",
+    resolve_unmatched_city: "Resolve unmatched city",
+    dismiss_unmatched_cities: "Dismiss unmatched cities"
   }
 };
 
@@ -168,6 +172,8 @@ const knownActionKeys = [
   "update_region_city",
   "delete_region_city",
   "import_region_cities",
+  "resolve_unmatched_city",
+  "dismiss_unmatched_cities",
   "upload",
   "export_xlsx",
   "export_csv",
@@ -269,7 +275,19 @@ export default function Logs() {
           status: "Status",
           study_program: "Study program",
           direction: "Direction",
-          reason: "Reason"
+          reason: "Reason",
+          changed: "Changed fields",
+          errors: "Errors",
+          selected: "Selected",
+          limit: "Limit",
+          missing: "Missing",
+          name: "Name",
+          name_el: "Name (Greek)",
+          parent_id: "Parent region",
+          study_program_id: "Study program ID",
+          unresolved_id: "Unresolved ID",
+          raw_name: "Raw name",
+          ids: "IDs"
         }
       : {
           file: "Αρχείο",
@@ -287,7 +305,19 @@ export default function Logs() {
           status: "Κατάσταση",
           study_program: "Πρόγραμμα σπουδών",
           direction: "Κατεύθυνση",
-          reason: "Λόγος"
+          reason: "Λόγος",
+          changed: "Αλλαγμένα πεδία",
+          errors: "Σφάλματα",
+          selected: "Επιλεγμένα",
+          limit: "Όριο",
+          missing: "Λείπουν",
+          name: "Όνομα",
+          name_el: "Όνομα (Ελληνικά)",
+          parent_id: "Γονική περιοχή",
+          study_program_id: "ID προγράμματος σπουδών",
+          unresolved_id: "ID εκκρεμότητας",
+          raw_name: "Αρχικό όνομα",
+          ids: "IDs"
         };
 
     return labels[key as keyof typeof labels] ?? key;
@@ -305,6 +335,11 @@ export default function Logs() {
     if (normalized === "statistics") return t("summary.pages.statistics");
     if (normalized === "map") return t("summary.pages.map");
     if (normalized === "logs") return t("summary.pages.logs");
+    if (normalized === "pending") return activeLang === "en" ? "Pending" : "Σε εκκρεμότητα";
+    if (normalized === "resolved") return activeLang === "en" ? "Resolved" : "Αντιστοιχισμένη";
+    if (normalized === "dismissed") return activeLang === "en" ? "Dismissed" : "Απορρίφθηκε";
+    if (normalized === "city") return activeLang === "en" ? "City" : "Πόλη";
+    if (normalized === "periphery") return activeLang === "en" ? "Periphery" : "Περιφέρεια";
     if (normalized === "xls" || normalized === "xlsx" || normalized === "excel" || normalized === "csv" || normalized === "pdf" || normalized === "png") {
       return upperFileType(normalized);
     }
@@ -334,7 +369,7 @@ export default function Logs() {
     }
 
     if (typeof details === "string") {
-      return details;
+      return localValue(details);
     }
 
     const rawFile = String(details.file ?? details.filename ?? "").trim();
@@ -351,7 +386,10 @@ export default function Logs() {
       ["updated", details.updated],
       ["skipped", details.skipped],
       ["deleted", details.deleted],
-      ["exported", details.exported]
+      ["exported", details.exported],
+      ["errors", details.errors],
+      ["selected", details.selected],
+      ["limit", details.limit]
     ];
 
     for (const [key, value] of counters) {
@@ -365,12 +403,33 @@ export default function Logs() {
       ["status", details.status],
       ["study_program", details.study_program],
       ["direction", details.direction],
-      ["reason", details.reason]
+      ["reason", details.reason],
+      ["name", details.name],
+      ["name_el", details.name_el],
+      ["parent_id", details.parent_id],
+      ["study_program_id", details.study_program_id],
+      ["unresolved_id", details.unresolved_id],
+      ["raw_name", details.raw_name],
+      ["missing", details.missing]
     ];
 
     for (const [key, value] of plainFields) {
       if (value === null || value === undefined || value === "") continue;
       parts.push(`${localDetailLabel(key)}: ${localValue(String(value))}`);
+    }
+
+    const arrayFields: Array<[string, any]> = [
+      ["changed", details.changed],
+      ["ids", details.ids]
+    ];
+
+    for (const [key, value] of arrayFields) {
+      if (value === null || value === undefined || value === "") continue;
+      const rendered = Array.isArray(value)
+        ? value.map((item) => localValue(String(item))).join(", ")
+        : localValue(String(value));
+      if (!rendered) continue;
+      parts.push(`${localDetailLabel(key)}: ${rendered}`);
     }
 
     if (parts.length) {
