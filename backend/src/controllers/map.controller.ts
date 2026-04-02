@@ -23,6 +23,24 @@ function normalizeKey(value: string | null | undefined) {
 }
 type AgeGroup = "23-26" | "27-30" | "31+";
 
+
+function parseDateValue(value: unknown): Date | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function calculateAgeAtDate(birthValue: unknown, referenceValue: unknown): number | null {
+  const birthDate = parseDateValue(birthValue);
+  const referenceDate = parseDateValue(referenceValue);
+  if (!birthDate || !referenceDate || referenceDate < birthDate) return null;
+  let age = referenceDate.getFullYear() - birthDate.getFullYear();
+  const monthDiff = referenceDate.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && referenceDate.getDate() < birthDate.getDate())) age -= 1;
+  return age >= 0 ? age : null;
+}
+
+
 function ageGroupToRange(g: AgeGroup): [number, number | null] {
   if (g === "23-26") return [23, 26];
   if (g === "27-30") return [27, 30];
@@ -170,7 +188,7 @@ function isDirectionAllowed(
 }
 
 export async function getGraduatesMap(req: Request, res: Response) {
-  const { where, currentYear } = buildMapWhere(req);
+  const { where } = buildMapWhere(req);
   const selectedStudyProgramId = toInt(req.query.study_program_id);
   const { regions, findPeriphery } = await loadRegions();
   const [studyPrograms, programDirections] = await Promise.all([
@@ -262,9 +280,9 @@ export async function getGraduatesMap(req: Request, res: Response) {
       cur.directionCounts.set(programDirectionId, (cur.directionCounts.get(programDirectionId) || 0) + 1);
     }
 
-    const by = Number(String(g.birth_date ?? "").slice(0, 4));
-    if (Number.isFinite(by) && by > 1900) {
-      cur.ageSum += currentYear - by;
+    const graduationAge = calculateAgeAtDate(g.birth_date, g.graduation_date);
+    if (graduationAge !== null) {
+      cur.ageSum += graduationAge;
       cur.ageCount += 1;
     }
 
@@ -359,7 +377,7 @@ export async function getRegionCities(req: Request, res: Response) {
   const peripheryId = toInt(req.query.periphery_id);
   if (!peripheryId) return res.status(400).json({ ok: false, error: "periphery_id is required" });
 
-  const { where, currentYear } = buildMapWhere(req);
+  const { where } = buildMapWhere(req);
   const selectedStudyProgramId = toInt(req.query.study_program_id);
   const { findPeriphery, findRegion } = await loadRegions();
   const directions = await ProgramDirection.findAll({ attributes: ["id", "study_program_id", "code", "name_el", "name_en"] });
@@ -416,9 +434,9 @@ export async function getRegionCities(req: Request, res: Response) {
     if (g.gender === "M") cur.male += 1;
     if (g.gender === "F") cur.female += 1;
 
-    const by = Number(String(g.birth_date ?? "").slice(0, 4));
-    if (Number.isFinite(by) && by > 1900) {
-      cur.ageSum += currentYear - by;
+    const graduationAge = calculateAgeAtDate(g.birth_date, g.graduation_date);
+    if (graduationAge !== null) {
+      cur.ageSum += graduationAge;
       cur.ageCount += 1;
     }
 

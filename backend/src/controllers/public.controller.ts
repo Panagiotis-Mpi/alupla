@@ -192,7 +192,7 @@ export async function publicStats(req: Request, res: Response) {
     const total = Number(totalRow?.[0]?.total ?? 0);
 
     const avgRow = await sequelize.query<{ avg_age: number | null; avg_degree_grade: number | null }>(
-      `SELECT AVG(EXTRACT(YEAR FROM age(current_date, ${birthExpr}))) as avg_age,
+      `SELECT AVG(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) as avg_age,
               AVG(g.degree_grade) as avg_degree_grade
        FROM graduates g ${sqlWhere}`,
       { replacements: repl, type: QueryTypes.SELECT }

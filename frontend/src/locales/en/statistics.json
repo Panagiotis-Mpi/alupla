@@ -13,7 +13,7 @@
   },
   "cards": {
     "total": "Total graduates",
-    "avgAge": "Average age",
+    "avgAge": "Average graduation age",
     "avgGrade": "Average degree grade",
     "topAgeGroup": "Most common age group",
     "earliestYear": "Earliest graduation year",

@@ -35,12 +35,12 @@
     "notReady": "Map is not ready for export",
     "periphery": "Region",
     "count": "Graduates",
-    "avgAge": "Average age",
+    "avgAge": "Average graduation age",
     "malePct": "% Male",
     "femalePct": "% Female",
     "avgGrade": "Average grade",
     "countDetailed": "Region graduate count",
-    "avgAgeDetailed": "Region average graduate age",
+    "avgAgeDetailed": "Region average graduation age",
     "malePctDetailed": "Region male graduates percentage",
     "femalePctDetailed": "Region female graduates percentage",
     "avgGradeDetailed": "Region average graduation grade"
@@ -54,7 +54,7 @@
     "selectHint": "Click a region for details.",
     "region": "Region",
     "total": "Total graduates",
-    "avgAge": "Avg age",
+    "avgAge": "Average graduation age",
     "male": "Male",
     "female": "Female"
   },
@@ -71,7 +71,7 @@
   "exportExcel": "Export Excel",
   "exportCsv": "Export CSV",
   "totalLabel": "Total",
-  "avgAge": "Average age",
+  "avgAge": "Average graduation age",
   "malePct": "% Male",
   "femalePct": "% Female",
   "avgGrade": "Average grade",
@@ -88,7 +88,7 @@
     "count": "Graduate count",
     "malePct": "Male percentage",
     "femalePct": "Female percentage",
-    "avgAge": "Average age",
+    "avgAge": "Average graduation age",
     "avgGrade": "Average grade",
     "dominantGender": "Gender",
     "dominantDirection": "Study program"
@@ -99,7 +99,7 @@
     "metric": "Current map view",
     "topPeriphery": "Region with the most graduates",
     "topCity": "City with the most graduates",
-    "avgAge": "Average graduate age",
+    "avgAge": "Average graduation age",
     "fromCurrentFilters": "Calculated from the current filters"
   },
   "detailGroups": {
