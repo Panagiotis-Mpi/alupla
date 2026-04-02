@@ -113,6 +113,7 @@
     "highContrast": "Υψηλή αντίθεση",
     "underlineLinks": "Επισήμανση συνδέσμων",
     "enabled": "Ενεργό",
-    "disabled": "Ανενεργό"
+    "disabled": "Ανενεργό",
+    "fontLevel": "Επίπεδο {{current}} από {{total}}"
   }
 }

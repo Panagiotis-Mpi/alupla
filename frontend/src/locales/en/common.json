@@ -113,6 +113,7 @@
     "highContrast": "High contrast",
     "underlineLinks": "Link highlighting",
     "enabled": "Enabled",
-    "disabled": "Disabled"
+    "disabled": "Disabled",
+    "fontLevel": "Level {{current}} of {{total}}"
   }
 }

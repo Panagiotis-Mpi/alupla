@@ -10,6 +10,9 @@ import {
 
 type ToggleKey = "highContrast" | "underlineLinks";
 
+const MIN_FONT_SCALE = -3;
+const MAX_FONT_SCALE = 5;
+
 function FontSizeControls({
   value,
   onChange,
@@ -19,35 +22,45 @@ function FontSizeControls({
   onChange: (value: AccessibilitySettings["fontScale"]) => void;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
+  const canDecrease = value > MIN_FONT_SCALE;
+  const canIncrease = value < MAX_FONT_SCALE;
+
   return (
-    <div className="accessibility-font-controls" role="group" aria-label={t("accessibility.fontSize")}>
-      <button
-        type="button"
-        className={`accessibility-icon-btn${value === -1 ? " is-active" : ""}`}
-        onClick={() => onChange(-1)}
-        aria-label={t("accessibility.decreaseText")}
-        title={t("accessibility.decreaseText")}
-      >
-        <span aria-hidden="true">A−</span>
-      </button>
-      <button
-        type="button"
-        className={`accessibility-icon-btn${value === 0 ? " is-active" : ""}`}
-        onClick={() => onChange(0)}
-        aria-label={t("accessibility.resetText")}
-        title={t("accessibility.resetText")}
-      >
-        <span aria-hidden="true">↺</span>
-      </button>
-      <button
-        type="button"
-        className={`accessibility-icon-btn${value === 1 ? " is-active" : ""}`}
-        onClick={() => onChange(1)}
-        aria-label={t("accessibility.increaseText")}
-        title={t("accessibility.increaseText")}
-      >
-        <span aria-hidden="true">A+</span>
-      </button>
+    <div className="accessibility-font-controls-wrap">
+      <div className="accessibility-font-controls" role="group" aria-label={t("accessibility.fontSize")}>
+        <button
+          type="button"
+          className="accessibility-icon-btn"
+          onClick={() => canDecrease && onChange((value - 1) as AccessibilitySettings["fontScale"])}
+          aria-label={t("accessibility.decreaseText")}
+          title={t("accessibility.decreaseText")}
+          disabled={!canDecrease}
+        >
+          <span aria-hidden="true">A−</span>
+        </button>
+        <button
+          type="button"
+          className={`accessibility-icon-btn${value === 0 ? " is-active" : ""}`}
+          onClick={() => onChange(0)}
+          aria-label={t("accessibility.resetText")}
+          title={t("accessibility.resetText")}
+        >
+          <span aria-hidden="true">↺</span>
+        </button>
+        <button
+          type="button"
+          className="accessibility-icon-btn"
+          onClick={() => canIncrease && onChange((value + 1) as AccessibilitySettings["fontScale"])}
+          aria-label={t("accessibility.increaseText")}
+          title={t("accessibility.increaseText")}
+          disabled={!canIncrease}
+        >
+          <span aria-hidden="true">A+</span>
+        </button>
+      </div>
+      <div className="accessibility-font-status" aria-live="polite">
+        {t("accessibility.fontLevel", { current: value + 4, total: 9 })}
+      </div>
     </div>
   );
 }
