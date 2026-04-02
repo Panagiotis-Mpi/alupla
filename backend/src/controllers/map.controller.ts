@@ -5,12 +5,22 @@ import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
 import { ProgramDirection } from "../models/ProgramDirection";
 import { buildGraduateWhere } from "../utils/buildGraduateWhere";
+import { resolveMapLocation } from "../services/mapLocation.service";
 
 function toInt(v: any): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? Math.trunc(n) : null;
 }
 
+
+function normalizeKey(value: string | null | undefined) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 type AgeGroup = "23-26" | "27-30" | "31+";
 
 function ageGroupToRange(g: AgeGroup): [number, number | null] {
@@ -149,7 +159,7 @@ function pickDirectionDisplay(counts: Map<number, number>, labels: Map<number, s
 
 export async function getGraduatesMap(req: Request, res: Response) {
   const { where, currentYear } = buildMapWhere(req);
-  const { regions, findPeriphery, resolveRegionIdFromMunicipalityName } = await loadRegions();
+  const { regions, findPeriphery } = await loadRegions();
   const [studyPrograms, programDirections] = await Promise.all([
     StudyProgram.findAll({ attributes: ["id", "code", "name_el", "name_en"] }),
     ProgramDirection.findAll({ attributes: ["id", "code", "name_el", "name_en"] }),
@@ -195,8 +205,12 @@ export async function getGraduatesMap(req: Request, res: Response) {
   }
 
   for (const g of grads as any[]) {
-    const originId = Number(g.origin_city_region_id) || Number(g.origin_region_id) || resolveRegionIdFromMunicipalityName(g.origin_municipality);
-    const per = findPeriphery(originId);
+    const resolvedLocation = await resolveMapLocation({
+      origin_region_id: Number(g.origin_region_id) || null,
+      origin_city_region_id: Number(g.origin_city_region_id) || null,
+      origin_municipality: g.origin_municipality || null,
+    });
+    const per = resolvedLocation?.peripheryId ? findPeriphery(resolvedLocation.peripheryId) : null;
     if (!per) continue;
 
     const id = Number(per.id);
@@ -286,27 +300,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
 
 export async function getMapCities(req: Request, res: Response) {
   const { where } = buildMapWhere(req);
-  const { regions, findPeriphery, resolveRegionIdFromMunicipalityName } = await loadRegions();
-
-  const cityRegions = (regions as any[]).filter((region) => String(region.type) === "CITY" && region.latitude !== null && region.longitude !== null);
-  const cityById = new Map<number, any>();
-  const groups = new Map<number, any>();
-
-  for (const city of cityRegions) {
-    const cityId = Number(city.id);
-    if (!cityId) continue;
-    const per = findPeriphery(city.parent_id ? Number(city.parent_id) : cityId);
-    cityById.set(cityId, city);
-    groups.set(cityId, {
-      city_id: cityId,
-      city_name: String(city.name),
-      periphery_id: per ? Number(per.id) : null,
-      periphery_name: per ? String(per.name) : "",
-      latitude: city.latitude ?? null,
-      longitude: city.longitude ?? null,
-      count: 0,
-    });
-  }
+  const groups = new Map<string, any>();
 
   const grads = await Graduate.findAll({
     where,
@@ -314,15 +308,24 @@ export async function getMapCities(req: Request, res: Response) {
   });
 
   for (const g of grads as any[]) {
-    let cityId = Number(g.origin_city_region_id) || 0;
-    if (!cityId) cityId = Number(g.origin_region_id) || 0;
-    const directHit = cityById.get(cityId);
-    if (!directHit) {
-      cityId = resolveRegionIdFromMunicipalityName(g.origin_municipality) || 0;
-    }
-    if (!cityId || !groups.has(cityId)) continue;
-    const cur = groups.get(cityId);
+    const resolvedLocation = await resolveMapLocation({
+      origin_region_id: Number(g.origin_region_id) || null,
+      origin_city_region_id: Number(g.origin_city_region_id) || null,
+      origin_municipality: g.origin_municipality || null,
+    });
+    if (!resolvedLocation?.cityName || resolvedLocation.latitude === null || resolvedLocation.longitude === null) continue;
+    const key = `${resolvedLocation.cityId || normalizeKey(resolvedLocation.cityName)}::${resolvedLocation.peripheryId || "none"}`;
+    const cur = groups.get(key) || {
+      city_id: resolvedLocation.cityId || 0,
+      city_name: resolvedLocation.cityName,
+      periphery_id: resolvedLocation.peripheryId,
+      periphery_name: resolvedLocation.peripheryName || "",
+      latitude: resolvedLocation.latitude,
+      longitude: resolvedLocation.longitude,
+      count: 0,
+    };
     cur.count += 1;
+    groups.set(key, cur);
   }
 
   const items = Array.from(groups.values())
@@ -341,7 +344,7 @@ export async function getRegionCities(req: Request, res: Response) {
   if (!peripheryId) return res.status(400).json({ ok: false, error: "periphery_id is required" });
 
   const { where, currentYear } = buildMapWhere(req);
-  const { findPeriphery, findRegion, resolveRegionIdFromMunicipalityName } = await loadRegions();
+  const { findPeriphery, findRegion } = await loadRegions();
   const directions = await ProgramDirection.findAll({ attributes: ["id", "code", "name_el", "name_en"] });
   const programDirectionLabels = new Map<number, string>();
 
@@ -357,13 +360,15 @@ export async function getRegionCities(req: Request, res: Response) {
   const groups = new Map<string, any>();
 
   for (const g of grads as any[]) {
-    const resolvedCityId = Number(g.origin_city_region_id) || resolveRegionIdFromMunicipalityName(g.origin_municipality);
-    const originId = resolvedCityId || Number(g.origin_region_id);
-    const per = findPeriphery(originId);
-    if (!per || Number(per.id) !== peripheryId) continue;
+    const resolvedLocation = await resolveMapLocation({
+      origin_region_id: Number(g.origin_region_id) || null,
+      origin_city_region_id: Number(g.origin_city_region_id) || null,
+      origin_municipality: g.origin_municipality || null,
+    });
+    if (!resolvedLocation?.peripheryId || Number(resolvedLocation.peripheryId) !== peripheryId) continue;
 
-    const regionCity = findRegion(resolvedCityId);
-    const name = String(regionCity?.type === "CITY" ? regionCity.name : g.origin_municipality || "").trim();
+    const regionCity = resolvedLocation.cityId ? findRegion(resolvedLocation.cityId) : null;
+    const name = String(regionCity?.type === "CITY" ? regionCity.name : resolvedLocation.cityName || g.origin_municipality || "").trim();
     if (!name) continue;
 
     const key = name
@@ -452,7 +457,7 @@ export async function getMapCityDetail(req: Request, res: Response) {
 
   const mode = String(req.query.mode || "count");
   const { where, currentYear } = buildMapWhere(req);
-  const { findRegion, resolveRegionIdFromMunicipalityName } = await loadRegions();
+  const { findRegion } = await loadRegions();
   const city = findRegion(cityId);
 
   if (!city || String((city as any).type) !== "CITY") {
@@ -483,14 +488,15 @@ export async function getMapCityDetail(req: Request, res: Response) {
     attributes: ["origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "graduation_date", "entry_year", "study_program_id", "program_direction_id"],
   });
 
-  const matching = (grads as any[]).filter((graduate) => {
-    const directRegionId = Number(graduate.origin_city_region_id) || Number(graduate.origin_region_id) || 0;
-    const directRegion = directRegionId ? findRegion(directRegionId) : null;
-    const directCityId = directRegion && String((directRegion as any).type) === "CITY" ? directRegionId : 0;
-    const fallbackCityId = resolveRegionIdFromMunicipalityName(graduate.origin_municipality) || 0;
-    const resolvedCityId = directCityId || fallbackCityId;
-    return resolvedCityId === cityId;
-  });
+  const matching: any[] = [];
+  for (const graduate of grads as any[]) {
+    const resolvedLocation = await resolveMapLocation({
+      origin_region_id: Number(graduate.origin_region_id) || null,
+      origin_city_region_id: Number(graduate.origin_city_region_id) || null,
+      origin_municipality: graduate.origin_municipality || null,
+    });
+    if (Number(resolvedLocation?.cityId || 0) === cityId) matching.push(graduate);
+  }
 
   if (mode === "dominant_gender") {
     const male = matching.filter((graduate) => graduate.gender === "M").length;

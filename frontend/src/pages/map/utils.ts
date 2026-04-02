@@ -47,7 +47,8 @@ export function mapCityLabel(city: MapCityPoint): string {
 }
 
 export function mapCityKey(city: MapCityPoint): string {
-  return `db-${city.city_id}`;
+  if (Number(city.city_id) > 0) return `db-${city.city_id}`;
+  return `name-${normalizeKey(city.city_name)}-${normalizeKey(city.periphery_name)}`;
 }
 
 export function tryParseGeoJson(raw: string): any | null {
