@@ -520,6 +520,51 @@ html.accessibility-high-contrast .accessibility-icon-btn.is-active{
   background:#ffffff !important;
   color:#000000 !important;
 }
+
+html.accessibility-high-contrast .lang-switcher .btn[aria-pressed="true"]{
+  background:#000000 !important;
+  color:#ffffff !important;
+  border-color:#ffffff !important;
+  box-shadow:inset 0 0 0 2px #ffffff !important;
+}
+html.accessibility-high-contrast .lang-switcher .btn[aria-pressed="true"] *{
+  color:#ffffff !important;
+}
+html.accessibility-high-contrast .accessibility-panel .accessibility-panel-header strong,
+html.accessibility-high-contrast .accessibility-panel .accessibility-section-title,
+html.accessibility-high-contrast .accessibility-panel .accessibility-font-status,
+html.accessibility-high-contrast .accessibility-panel .accessibility-panel-actions .btn,
+html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn,
+html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn *,
+html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn,
+html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn *{
+  color:inherit !important;
+}
+html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn,
+html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn{
+  background:#111111 !important;
+  color:#ffffff !important;
+  border-color:#ffffff !important;
+}
+html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn:disabled,
+html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn:disabled{
+  background:#111111 !important;
+  color:#6b7280 !important;
+  border-color:#4b5563 !important;
+  opacity:1 !important;
+}
+html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn.is-active,
+html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn.is-active,
+html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn[aria-pressed="true"]{
+  background:#ffffff !important;
+  color:#000000 !important;
+  border-color:#ffffff !important;
+}
+html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn.is-active *,
+html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn.is-active *,
+html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn[aria-pressed="true"] *{
+  color:#000000 !important;
+}
 html.accessibility-high-contrast .recharts-text,
 html.accessibility-high-contrast .recharts-label,
 html.accessibility-high-contrast .recharts-cartesian-axis-tick-value,
