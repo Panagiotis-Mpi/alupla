@@ -157,22 +157,38 @@ function pickDirectionDisplay(counts: Map<number, number>, labels: Map<number, s
   };
 }
 
+function isDirectionAllowed(
+  directionId: number,
+  graduateStudyProgramId: number,
+  selectedStudyProgramId: number | null,
+  directionProgramIds: Map<number, number>,
+) {
+  if (!directionId) return false;
+  if (!selectedStudyProgramId) return true;
+  const directionProgramId = directionProgramIds.get(directionId) || graduateStudyProgramId || 0;
+  return directionProgramId === selectedStudyProgramId;
+}
+
 export async function getGraduatesMap(req: Request, res: Response) {
   const { where, currentYear } = buildMapWhere(req);
+  const selectedStudyProgramId = toInt(req.query.study_program_id);
   const { regions, findPeriphery } = await loadRegions();
   const [studyPrograms, programDirections] = await Promise.all([
     StudyProgram.findAll({ attributes: ["id", "code", "name_el", "name_en"] }),
-    ProgramDirection.findAll({ attributes: ["id", "code", "name_el", "name_en"] }),
+    ProgramDirection.findAll({ attributes: ["id", "study_program_id", "code", "name_el", "name_en"] }),
   ]);
   const studyProgramLabels = new Map<number, string>();
   const programDirectionLabels = new Map<number, string>();
+  const directionProgramIds = new Map<number, number>();
 
   for (const item of studyPrograms as any[]) {
     studyProgramLabels.set(Number(item.id), String(item.name_el || item.name_en || item.code || ""));
   }
 
   for (const item of programDirections as any[]) {
-    programDirectionLabels.set(Number(item.id), String(item.name_el || item.name_en || item.code || ""));
+    const id = Number(item.id);
+    programDirectionLabels.set(id, String(item.name_el || item.name_en || item.code || ""));
+    directionProgramIds.set(id, Number(item.study_program_id) || 0);
   }
 
   const grads = await Graduate.findAll({
@@ -242,7 +258,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
     }
 
     const programDirectionId = Number(g.program_direction_id) || 0;
-    if (programDirectionId > 0) {
+    if (isDirectionAllowed(programDirectionId, studyProgramId, selectedStudyProgramId, directionProgramIds)) {
       cur.directionCounts.set(programDirectionId, (cur.directionCounts.get(programDirectionId) || 0) + 1);
     }
 
@@ -344,12 +360,16 @@ export async function getRegionCities(req: Request, res: Response) {
   if (!peripheryId) return res.status(400).json({ ok: false, error: "periphery_id is required" });
 
   const { where, currentYear } = buildMapWhere(req);
+  const selectedStudyProgramId = toInt(req.query.study_program_id);
   const { findPeriphery, findRegion } = await loadRegions();
-  const directions = await ProgramDirection.findAll({ attributes: ["id", "code", "name_el", "name_en"] });
+  const directions = await ProgramDirection.findAll({ attributes: ["id", "study_program_id", "code", "name_el", "name_en"] });
   const programDirectionLabels = new Map<number, string>();
+  const directionProgramIds = new Map<number, number>();
 
   for (const item of directions as any[]) {
-    programDirectionLabels.set(Number(item.id), String(item.name_el || item.name_en || item.code || ""));
+    const id = Number(item.id);
+    programDirectionLabels.set(id, String(item.name_el || item.name_en || item.code || ""));
+    directionProgramIds.set(id, Number(item.study_program_id) || 0);
   }
 
   const grads = await Graduate.findAll({
@@ -415,8 +435,9 @@ export async function getRegionCities(req: Request, res: Response) {
       cur.graduationDurationCount += 1;
     }
 
+    const studyProgramId = Number(g.study_program_id) || 0;
     const programDirectionId = Number(g.program_direction_id) || 0;
-    if (programDirectionId > 0) {
+    if (isDirectionAllowed(programDirectionId, studyProgramId, selectedStudyProgramId, directionProgramIds)) {
       cur.directionCounts.set(programDirectionId, (cur.directionCounts.get(programDirectionId) || 0) + 1);
     }
 
@@ -456,6 +477,7 @@ export async function getMapCityDetail(req: Request, res: Response) {
   if (!cityId) return res.status(400).json({ ok: false, error: "city_id is required" });
 
   const mode = String(req.query.mode || "count");
+  const selectedStudyProgramId = toInt(req.query.study_program_id);
   const { where, currentYear } = buildMapWhere(req);
   const { findRegion } = await loadRegions();
   const city = findRegion(cityId);
@@ -521,8 +543,9 @@ export async function getMapCityDetail(req: Request, res: Response) {
 
     for (const graduate of matching) {
       const directionId = Number(graduate.program_direction_id) || 0;
-      if (!directionId) continue;
-      const programId = directionProgramIds.get(directionId) || Number(graduate.study_program_id) || 0;
+      const studyProgramId = Number(graduate.study_program_id) || 0;
+      if (!isDirectionAllowed(directionId, studyProgramId, selectedStudyProgramId, directionProgramIds)) continue;
+      const programId = directionProgramIds.get(directionId) || studyProgramId || 0;
       if (!programId) continue;
 
       const programMap = byProgram.get(programId) || new Map<number, number>();
