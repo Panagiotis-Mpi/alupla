@@ -4,7 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./i18n";
 import "./styles.css";
-import { applyAccessibilitySettings, readAccessibilitySettings } from "./lib/accessibility";
+import { applyAccessibilitySettings, initAccessibility, readAccessibilitySettings } from "./lib/accessibility";
 
 const root = document.getElementById("root");
 
@@ -13,6 +13,7 @@ if (!root) {
 }
 
 applyAccessibilitySettings(readAccessibilitySettings());
+initAccessibility();
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>

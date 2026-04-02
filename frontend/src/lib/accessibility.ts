@@ -5,6 +5,55 @@ export type AccessibilitySettings = {
 };
 
 const STORAGE_KEY = "alupla.accessibility";
+const FONT_TARGET_SELECTOR = [
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "p",
+  "span",
+  "label",
+  "a",
+  "button",
+  "input",
+  "select",
+  "textarea",
+  "option",
+  "small",
+  "strong",
+  "em",
+  "li",
+  "dt",
+  "dd",
+  "legend",
+  "summary",
+  "code",
+  "pre",
+  "td",
+  "th",
+  "caption",
+  "figcaption",
+  "blockquote",
+  "cite",
+  "time",
+  "div",
+].join(",");
+const FONT_SCALE_MULTIPLIERS: Record<AccessibilitySettings["fontScale"], number> = {
+  [-3]: 0.82,
+  [-2]: 0.88,
+  [-1]: 0.94,
+  0: 1,
+  1: 1.08,
+  2: 1.16,
+  3: 1.24,
+  4: 1.32,
+  5: 1.4,
+};
+
+let fontObserver: MutationObserver | null = null;
+let scheduledAnimationFrame = 0;
 
 export const defaultAccessibilitySettings: AccessibilitySettings = {
   fontScale: 0,
@@ -45,6 +94,108 @@ function normalizeSettings(value: Record<string, unknown> | null | undefined): A
   };
 }
 
+
+function getFontScaleMultiplier(fontScale: AccessibilitySettings["fontScale"]) {
+  return FONT_SCALE_MULTIPLIERS[fontScale] ?? 1;
+}
+
+function applyFontSizeToElement(element: HTMLElement, multiplier: number) {
+  if (!canUseDom()) {
+    return;
+  }
+
+  const computedFontSize = Number.parseFloat(window.getComputedStyle(element).fontSize || "0");
+  if (!Number.isFinite(computedFontSize) || computedFontSize <= 0) {
+    return;
+  }
+
+  const storedBaseSize = Number.parseFloat(element.dataset.a11yBaseFontSize || "");
+  const baseSize = Number.isFinite(storedBaseSize) && storedBaseSize > 0
+    ? storedBaseSize
+    : computedFontSize / multiplier;
+
+  element.dataset.a11yBaseFontSize = String(baseSize);
+
+  if (Math.abs(multiplier - 1) < 0.001) {
+    element.style.removeProperty("font-size");
+    return;
+  }
+
+  element.style.setProperty("font-size", `${Math.max(baseSize * multiplier, 10)}px`, "important");
+}
+
+function applyFontScaleToSubtree(root: ParentNode, multiplier: number) {
+  if (!(root instanceof Element || root instanceof Document || root instanceof DocumentFragment)) {
+    return;
+  }
+
+  const nodes: HTMLElement[] = [];
+
+  if (root instanceof Element && root.matches(FONT_TARGET_SELECTOR)) {
+    nodes.push(root as HTMLElement);
+  }
+
+  if ("querySelectorAll" in root) {
+    nodes.push(...Array.from(root.querySelectorAll<HTMLElement>(FONT_TARGET_SELECTOR)));
+  }
+
+  for (const element of nodes) {
+    if (element.closest("svg")) {
+      continue;
+    }
+
+    applyFontSizeToElement(element, multiplier);
+  }
+}
+
+function scheduleFullFontRefresh(multiplier: number) {
+  if (!canUseDom()) {
+    return;
+  }
+
+  if (scheduledAnimationFrame) {
+    window.cancelAnimationFrame(scheduledAnimationFrame);
+  }
+
+  scheduledAnimationFrame = window.requestAnimationFrame(() => {
+    scheduledAnimationFrame = 0;
+    applyFontScaleToSubtree(document.body, multiplier);
+  });
+}
+
+export function initAccessibility() {
+  if (!canUseDom() || fontObserver) {
+    return;
+  }
+
+  const syncAddedNodes = () => {
+    const settings = readAccessibilitySettings();
+    const multiplier = getFontScaleMultiplier(settings.fontScale);
+
+    if (Math.abs(multiplier - 1) < 0.001) {
+      return;
+    }
+
+    scheduleFullFontRefresh(multiplier);
+  };
+
+  fontObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type !== "childList" || !mutation.addedNodes.length) {
+        continue;
+      }
+
+      syncAddedNodes();
+      return;
+    }
+  });
+
+  fontObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+}
+
 export function readAccessibilitySettings(): AccessibilitySettings {
   if (!canUseDom()) {
     return defaultAccessibilitySettings;
@@ -76,6 +227,7 @@ export function applyAccessibilitySettings(settings: AccessibilitySettings) {
   }
 
   const root = document.documentElement;
+  const multiplier = getFontScaleMultiplier(settings.fontScale);
   root.classList.remove(
     "accessibility-font-scale--3",
     "accessibility-font-scale--2",
@@ -90,6 +242,11 @@ export function applyAccessibilitySettings(settings: AccessibilitySettings) {
   root.classList.add(`accessibility-font-scale-${settings.fontScale}`.replace("--", "--"));
   root.classList.toggle("accessibility-high-contrast", settings.highContrast);
   root.classList.toggle("accessibility-underline-links", settings.underlineLinks);
+  root.style.setProperty("--accessibility-font-multiplier", String(multiplier));
+
+  if (document.body) {
+    applyFontScaleToSubtree(document.body, multiplier);
+  }
 }
 
 export function resetAccessibilitySettings() {

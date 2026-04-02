@@ -403,29 +403,36 @@ html.accessibility-font-scale-3{font-size:19px}
 html.accessibility-font-scale-4{font-size:20px}
 html.accessibility-font-scale-5{font-size:21px}
 html.accessibility-high-contrast{
-  --bg:#020617;
+  --bg:#000000;
   --surface:#000000;
   --text:#ffffff;
-  --muted:#e2e8f0;
+  --muted:#f8fafc;
   --border:#ffffff;
   --shadow:0 0 0 rgba(0,0,0,0);
-  --primary:#22d3ee;
-  --primaryHover:#67e8f9;
-  --danger:#f87171;
+  --primary:#ffffff;
+  --primaryHover:#ffffff;
+  --danger:#ff4d4f;
 }
-html.accessibility-high-contrast body{
-  background:var(--bg);
-  color:var(--text);
+html.accessibility-high-contrast body,
+html.accessibility-high-contrast .app-shell,
+html.accessibility-high-contrast .app-content,
+html.accessibility-high-contrast .container{
+  background:var(--bg) !important;
+  color:var(--text) !important;
 }
 html.accessibility-high-contrast a{
-  color:#67e8f9;
+  color:#7dd3fc !important;
+}
+html.accessibility-high-contrast .app-shell :is(div,section,article,aside,header,footer,main,nav,form,fieldset,legend,table,thead,tbody,tfoot,tr,th,td,caption,ul,ol,li,dl,dt,dd,p,span,label,strong,small){
+  color:#ffffff;
+  border-color:#ffffff;
 }
 html.accessibility-high-contrast .card,
-html.accessibility-high-contrast .btn,
 html.accessibility-high-contrast .input,
 html.accessibility-high-contrast .nav,
 html.accessibility-high-contrast .mobile-drawer,
 html.accessibility-high-contrast .public-home-card,
+html.accessibility-high-contrast .public-home-shell,
 html.accessibility-high-contrast .accessibility-trigger,
 html.accessibility-high-contrast .accessibility-panel,
 html.accessibility-high-contrast .accessibility-icon-btn,
@@ -433,7 +440,24 @@ html.accessibility-high-contrast .accessibility-toggle-btn,
 html.accessibility-high-contrast .app-footer,
 html.accessibility-high-contrast .table-wrap,
 html.accessibility-high-contrast .modal-card,
-html.accessibility-high-contrast .drawer-panel{
+html.accessibility-high-contrast .drawer-panel,
+html.accessibility-high-contrast .auth-subcard,
+html.accessibility-high-contrast .auth-subcard-muted,
+html.accessibility-high-contrast .auth-subcard-white,
+html.accessibility-high-contrast .page-header-card,
+html.accessibility-high-contrast .mobile-table-card,
+html.accessibility-high-contrast .table,
+html.accessibility-high-contrast select,
+html.accessibility-high-contrast textarea,
+html.accessibility-high-contrast input{
+  background:#000000 !important;
+  color:#ffffff !important;
+  border-color:#ffffff !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .app-shell [style*="background"],
+html.accessibility-high-contrast .app-shell [style*="background-color"],
+html.accessibility-high-contrast .app-shell [style*="box-shadow"]{
   background:#000000 !important;
   color:#ffffff !important;
   border-color:#ffffff !important;
@@ -445,27 +469,45 @@ html.accessibility-high-contrast table,
 html.accessibility-high-contrast tr,
 html.accessibility-high-contrast td,
 html.accessibility-high-contrast th{
+  background:#000000 !important;
   border-color:#ffffff !important;
   color:#ffffff !important;
 }
-html.accessibility-high-contrast .btn:not(.danger),
-html.accessibility-high-contrast button:not(.danger){
-  background:#22d3ee;
-  color:#000000;
-  border-color:#ffffff;
+html.accessibility-high-contrast .table th{
+  opacity:1 !important;
+}
+html.accessibility-high-contrast .btn,
+html.accessibility-high-contrast button{
+  background:#000000 !important;
+  color:#ffffff !important;
+  border-color:#ffffff !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .btn.primary,
+html.accessibility-high-contrast button.primary,
+html.accessibility-high-contrast .btn[aria-pressed="true"],
+html.accessibility-high-contrast button[aria-pressed="true"]{
+  background:#ffffff !important;
+  color:#000000 !important;
 }
 html.accessibility-high-contrast .btn.danger,
 html.accessibility-high-contrast button.danger{
-  background:#f87171;
-  color:#000000;
-  border-color:#ffffff;
+  background:#ff4d4f !important;
+  color:#ffffff !important;
+  border-color:#ffffff !important;
 }
 html.accessibility-high-contrast .badge,
 html.accessibility-high-contrast .chip,
 html.accessibility-high-contrast .pill{
-  background:#111827 !important;
+  background:#000000 !important;
   color:#ffffff !important;
   border:1px solid #ffffff !important;
+}
+html.accessibility-high-contrast .muted,
+html.accessibility-high-contrast .label,
+html.accessibility-high-contrast ::placeholder{
+  color:#ffffff !important;
+  opacity:1 !important;
 }
 html.accessibility-high-contrast .accessibility-trigger,
 html.accessibility-high-contrast .accessibility-icon-btn,
@@ -477,6 +519,34 @@ html.accessibility-high-contrast .accessibility-toggle-btn.is-active,
 html.accessibility-high-contrast .accessibility-icon-btn.is-active{
   background:#ffffff !important;
   color:#000000 !important;
+}
+html.accessibility-high-contrast .recharts-text,
+html.accessibility-high-contrast .recharts-label,
+html.accessibility-high-contrast .recharts-cartesian-axis-tick-value,
+html.accessibility-high-contrast .recharts-legend-item-text,
+html.accessibility-high-contrast .recharts-tooltip-label,
+html.accessibility-high-contrast .recharts-tooltip-item-name,
+html.accessibility-high-contrast .recharts-tooltip-item-value{
+  fill:#ffffff !important;
+  color:#ffffff !important;
+}
+html.accessibility-high-contrast .recharts-cartesian-axis-line,
+html.accessibility-high-contrast .recharts-cartesian-axis-tick-line,
+html.accessibility-high-contrast .recharts-cartesian-grid line,
+html.accessibility-high-contrast .recharts-reference-line line,
+html.accessibility-high-contrast .recharts-polar-grid-angle line,
+html.accessibility-high-contrast .recharts-polar-grid-concentric polygon,
+html.accessibility-high-contrast .recharts-polar-grid-concentric circle{
+  stroke:#ffffff !important;
+  opacity:.35;
+}
+html.accessibility-high-contrast .leaflet-container,
+html.accessibility-high-contrast .leaflet-control,
+html.accessibility-high-contrast .leaflet-popup-content-wrapper,
+html.accessibility-high-contrast .leaflet-popup-tip{
+  background:#000000 !important;
+  color:#ffffff !important;
+  border-color:#ffffff !important;
 }
 html.accessibility-high-contrast img,
 html.accessibility-high-contrast video,
