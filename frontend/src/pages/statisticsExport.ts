@@ -73,7 +73,7 @@ function localizedName(row: NamedCountRow, activeLang: "el" | "en") {
 
 function csvCell(value: unknown) {
   const v = String(value ?? "");
-  if (/["\n\r\t,;]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
+  if (/["\n\r\t]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
   return v;
 }
 
@@ -254,9 +254,9 @@ function workbookSheetName(name: string, usedNames: Set<string>) {
 function csvLines(block: SheetBlock) {
   const lines: string[] = [block.name];
   const headers = Object.keys(block.rows[0] ?? {});
-  if (headers.length) lines.push(headers.map(csvCell).join(","));
+  if (headers.length) lines.push(headers.map(csvCell).join("\t"));
   block.rows.forEach((row) => {
-    lines.push(headers.map((header) => csvCell(row[header])).join(","));
+    lines.push(headers.map((header) => csvCell(row[header])).join("\t"));
   });
   return lines;
 }
