@@ -154,7 +154,7 @@ async function loadBoundaries() {
           normalizedName: normalizeRegionText(feature?.properties?.name_greek || feature?.properties?.name || ""),
           polygons: polygons.filter((ring: any) => Array.isArray(ring)),
         } as BoundaryFeature;
-      }).filter((item) => item.name && item.polygons.length > 0);
+      }).filter((item: BoundaryFeature) => item.name && item.polygons.length > 0);
     })();
   }
   return boundaryPromise;
