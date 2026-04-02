@@ -8,32 +8,77 @@ import {
   writeAccessibilitySettings,
 } from "../lib/accessibility";
 
-type ToggleKey = keyof AccessibilitySettings;
+type ToggleKey = "highContrast" | "underlineLinks";
 
-type ToggleItem = {
-  key: ToggleKey;
+function FontSizeControls({
+  value,
+  onChange,
+  t,
+}: {
+  value: AccessibilitySettings["fontScale"];
+  onChange: (value: AccessibilitySettings["fontScale"]) => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  return (
+    <div className="accessibility-font-controls" role="group" aria-label={t("accessibility.fontSize")}>
+      <button
+        type="button"
+        className={`accessibility-icon-btn${value === -1 ? " is-active" : ""}`}
+        onClick={() => onChange(-1)}
+        aria-label={t("accessibility.decreaseText")}
+        title={t("accessibility.decreaseText")}
+      >
+        <span aria-hidden="true">A−</span>
+      </button>
+      <button
+        type="button"
+        className={`accessibility-icon-btn${value === 0 ? " is-active" : ""}`}
+        onClick={() => onChange(0)}
+        aria-label={t("accessibility.resetText")}
+        title={t("accessibility.resetText")}
+      >
+        <span aria-hidden="true">↺</span>
+      </button>
+      <button
+        type="button"
+        className={`accessibility-icon-btn${value === 1 ? " is-active" : ""}`}
+        onClick={() => onChange(1)}
+        aria-label={t("accessibility.increaseText")}
+        title={t("accessibility.increaseText")}
+      >
+        <span aria-hidden="true">A+</span>
+      </button>
+    </div>
+  );
+}
+
+function ToggleButton({
+  label,
+  active,
+  onClick,
+  icon,
+  stateLabel,
+}: {
   label: string;
-};
-
-function buildToggleItems(t: ReturnType<typeof useTranslation>["t"]): ToggleItem[] {
-  return [
-    {
-      key: "largeText",
-      label: t("accessibility.largeText", { defaultValue: "Μεγαλύτερο κείμενο" }),
-    },
-    {
-      key: "highContrast",
-      label: t("accessibility.highContrast", { defaultValue: "Υψηλή αντίθεση" }),
-    },
-    {
-      key: "reduceMotion",
-      label: t("accessibility.reduceMotion", { defaultValue: "Μείωση κίνησης" }),
-    },
-    {
-      key: "underlineLinks",
-      label: t("accessibility.underlineLinks", { defaultValue: "Υπογράμμιση συνδέσμων" }),
-    },
-  ];
+  active: boolean;
+  onClick: () => void;
+  icon: string;
+  stateLabel: string;
+}) {
+  return (
+    <div className="accessibility-toggle-block">
+      <div className="accessibility-section-title">{label}</div>
+      <button
+        type="button"
+        className={`accessibility-toggle-btn${active ? " is-active" : ""}`}
+        onClick={onClick}
+        aria-pressed={active}
+      >
+        <span className="accessibility-toggle-icon" aria-hidden="true">{icon}</span>
+        <span>{stateLabel}</span>
+      </button>
+    </div>
+  );
 }
 
 export default function AccessibilityMenu() {
@@ -83,15 +128,22 @@ export default function AccessibilityMenu() {
     };
   }, [open]);
 
-  const items = React.useMemo(() => buildToggleItems(t), [t]);
-
   const toggleSetting = React.useCallback((key: ToggleKey) => {
     setSettings((current) => ({ ...current, [key]: !current[key] }));
+  }, []);
+
+  const setFontScale = React.useCallback((fontScale: AccessibilitySettings["fontScale"]) => {
+    setSettings((current) => ({ ...current, fontScale }));
   }, []);
 
   const handleReset = React.useCallback(() => {
     setSettings(resetAccessibilitySettings());
   }, []);
+
+  const stateLabel = React.useCallback(
+    (active: boolean) => (active ? t("accessibility.enabled") : t("accessibility.disabled")),
+    [t],
+  );
 
   return (
     <div className="accessibility-menu">
@@ -118,31 +170,41 @@ export default function AccessibilityMenu() {
         >
           <div className="accessibility-panel-header">
             <strong>{t("accessibility.title", { defaultValue: "Προσβασιμότητα" })}</strong>
-            <button type="button" className="btn" onClick={() => setOpen(false)}>
-              {t("common.close", { defaultValue: "Κλείσιμο" })}
-            </button>
-          </div>
-
-          <div className="accessibility-panel-note">
-            {t("accessibility.note", { defaultValue: "Προσαρμογές για πιο άνετη ανάγνωση και πλοήγηση." })}
           </div>
 
           <div className="accessibility-options">
-            {items.map((item) => (
-              <label key={item.key} className="accessibility-option">
-                <span>{item.label}</span>
-                <input
-                  type="checkbox"
-                  checked={settings[item.key]}
-                  onChange={() => toggleSetting(item.key)}
-                />
-              </label>
-            ))}
+            <div className="accessibility-control-block accessibility-control-block-font">
+              <div className="accessibility-section-title">{t("accessibility.fontSize")}</div>
+              <FontSizeControls value={settings.fontScale} onChange={setFontScale} t={t} />
+            </div>
+
+            <div className="accessibility-control-block">
+              <ToggleButton
+                label={t("accessibility.highContrast")}
+                active={settings.highContrast}
+                onClick={() => toggleSetting("highContrast")}
+                icon="◐"
+                stateLabel={stateLabel(settings.highContrast)}
+              />
+            </div>
+
+            <div className="accessibility-control-block">
+              <ToggleButton
+                label={t("accessibility.underlineLinks")}
+                active={settings.underlineLinks}
+                onClick={() => toggleSetting("underlineLinks")}
+                icon="🔗"
+                stateLabel={stateLabel(settings.underlineLinks)}
+              />
+            </div>
           </div>
 
           <div className="accessibility-panel-actions">
             <button type="button" className="btn" onClick={handleReset}>
               {t("accessibility.reset", { defaultValue: "Επαναφορά" })}
+            </button>
+            <button type="button" className="btn" onClick={() => setOpen(false)}>
+              {t("common.close", { defaultValue: "Κλείσιμο" })}
             </button>
           </div>
         </div>

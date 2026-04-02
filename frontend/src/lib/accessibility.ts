@@ -1,16 +1,14 @@
 export type AccessibilitySettings = {
-  largeText: boolean;
+  fontScale: -1 | 0 | 1;
   highContrast: boolean;
-  reduceMotion: boolean;
   underlineLinks: boolean;
 };
 
 const STORAGE_KEY = "alupla.accessibility";
 
 export const defaultAccessibilitySettings: AccessibilitySettings = {
-  largeText: false,
+  fontScale: 0,
   highContrast: false,
-  reduceMotion: false,
   underlineLinks: false,
 };
 
@@ -18,11 +16,30 @@ function canUseDom() {
   return typeof window !== "undefined" && typeof document !== "undefined";
 }
 
-function normalizeSettings(value: Partial<AccessibilitySettings> | null | undefined): AccessibilitySettings {
+function clampFontScale(value: unknown): AccessibilitySettings["fontScale"] {
+  if (value === -1 || value === 0 || value === 1) {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    if (value < 0) {
+      return -1;
+    }
+    if (value > 0) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+function normalizeSettings(value: Record<string, unknown> | null | undefined): AccessibilitySettings {
+  const fontScale = value?.fontScale;
+  const legacyLargeText = Boolean(value?.largeText);
+
   return {
-    largeText: Boolean(value?.largeText),
+    fontScale: fontScale == null ? (legacyLargeText ? 1 : 0) : clampFontScale(fontScale),
     highContrast: Boolean(value?.highContrast),
-    reduceMotion: Boolean(value?.reduceMotion),
     underlineLinks: Boolean(value?.underlineLinks),
   };
 }
@@ -38,7 +55,7 @@ export function readAccessibilitySettings(): AccessibilitySettings {
       return defaultAccessibilitySettings;
     }
 
-    return normalizeSettings(JSON.parse(raw) as Partial<AccessibilitySettings>);
+    return normalizeSettings(JSON.parse(raw) as Record<string, unknown>);
   } catch {
     return defaultAccessibilitySettings;
   }
@@ -58,9 +75,9 @@ export function applyAccessibilitySettings(settings: AccessibilitySettings) {
   }
 
   const root = document.documentElement;
-  root.classList.toggle("accessibility-large-text", settings.largeText);
+  root.classList.toggle("accessibility-font-small", settings.fontScale === -1);
+  root.classList.toggle("accessibility-font-large", settings.fontScale === 1);
   root.classList.toggle("accessibility-high-contrast", settings.highContrast);
-  root.classList.toggle("accessibility-reduce-motion", settings.reduceMotion);
   root.classList.toggle("accessibility-underline-links", settings.underlineLinks);
 }
 

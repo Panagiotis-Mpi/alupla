@@ -106,10 +106,13 @@
     "open": "Accessibility menu",
     "shortLabel": "A",
     "reset": "Reset",
-    "largeText": "Larger text",
+    "fontSize": "Text size",
+    "increaseText": "Increase text",
+    "decreaseText": "Decrease text",
+    "resetText": "Reset text",
     "highContrast": "High contrast",
-    "reduceMotion": "Reduce motion",
-    "underlineLinks": "Underline links",
-    "note": "Adjust the interface for easier reading and navigation."
+    "underlineLinks": "Link highlighting",
+    "enabled": "Enabled",
+    "disabled": "Disabled"
   }
 }
