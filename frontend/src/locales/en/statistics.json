@@ -16,7 +16,7 @@
     "avgAge": "Average graduation age",
     "avgGrade": "Average degree grade",
     "topAgeGroup": "Most common age group",
-    "earliestYear": "Earliest graduation year",
+    "earliestYear": "Latest graduation year",
     "latestYear": "Latest graduation year",
     "topGraduationYear": "Year with the most graduates",
     "topCity": "City with the most graduates"

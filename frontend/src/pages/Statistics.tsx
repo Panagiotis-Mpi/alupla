@@ -1009,7 +1009,7 @@ export default function Statistics() {
   }), [selectedGenderProgramRow, t]);
 
   const graduationYears = byYearRows.map((row) => Number(row.label)).filter((value) => Number.isFinite(value));
-  const earliestYear = graduationYears.length ? Math.min(...graduationYears) : "-";
+  const largestYear = graduationYears.length ? Math.max(...graduationYears) : "-";
   const busiestYearIndex = byYearRows.length ? byYearRows.findIndex((row) => row.value === Math.max(...byYearRows.map((item) => item.value))) : -1;
   const busiestYear = busiestYearIndex >= 0 ? byYearRows[busiestYearIndex].label : "-";
   const busiestCityIndex = municipalities.values.length ? municipalities.values.findIndex((value) => value === Math.max(...municipalities.values)) : -1;
@@ -1153,12 +1153,12 @@ export default function Statistics() {
     total,
     avgAge,
     avgGrade,
-    earliestYear,
+    largestYear,
     busiestYear,
     busiestCity,
     selectedDirectionProgramId,
     selectedChartIds,
-  }), [activeLang, avgAge, avgGrade, busiestCity, busiestYear, data, earliestYear, selectedChartIds, selectedDirectionProgramId, t, total]);
+  }), [activeLang, avgAge, avgGrade, busiestCity, busiestYear, data, largestYear, selectedChartIds, selectedDirectionProgramId, t, total]);
 
   async function exportSelectedChartsAsPng() {
     if (!selectedChartIds.length) return;
@@ -1322,7 +1322,7 @@ export default function Statistics() {
               <MetricCard label={t("cards.avgGrade")} value={avgGrade} />
             </div>
             <div style={metricBottomRowStyle}>
-              <MetricCard label={t("cards.earliestYear")} value={earliestYear} />
+              <MetricCard label={t("cards.earliestYear")} value={largestYear} />
               <MetricCard label={t("cards.topGraduationYear")} value={busiestYear} />
               <MetricCard label={t("cards.topCity")} value={busiestCity} />
             </div>

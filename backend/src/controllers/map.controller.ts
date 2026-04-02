@@ -151,27 +151,46 @@ function pickTopEntry(counts: Map<number, number>, labels: Map<number, string>) 
   return { label: labels.get(topId) || null, count: topCount };
 }
 
+function collapseCountsByLabel(counts: Map<number, number>, labels: Map<number, string>) {
+  const grouped = new Map<string, { id: number; label: string; count: number }>();
+
+  for (const [id, count] of counts.entries()) {
+    if (count <= 0) continue;
+    const label = String(labels.get(id) || id).trim();
+    if (!label) continue;
+    const key = normalizeKey(label);
+    const current = grouped.get(key);
+    if (current) {
+      current.count += count;
+      if (label.localeCompare(current.label, "el") < 0) current.label = label;
+      if (id < current.id) current.id = id;
+      continue;
+    }
+    grouped.set(key, { id, label, count });
+  }
+
+  return Array.from(grouped.values()).sort((left, right) => {
+    if (right.count !== left.count) return right.count - left.count;
+    return left.label.localeCompare(right.label, "el");
+  });
+}
+
 function expandEntries(counts: Map<number, number>, labels: Map<number, string>, total: number) {
-  return Array.from(counts.entries())
-    .filter(([, count]) => count > 0)
-    .sort((left, right) => {
-      if (right[1] !== left[1]) return right[1] - left[1];
-      return (labels.get(left[0]) || "").localeCompare(labels.get(right[0]) || "", "el");
-    })
-    .map(([id, count]) => ({
-      id,
-      label: labels.get(id) || String(id),
-      count,
-      pct: total > 0 ? Math.round((count / total) * 1000) / 10 : 0,
-    }));
+  return collapseCountsByLabel(counts, labels).map((entry) => ({
+    id: entry.id,
+    label: entry.label,
+    count: entry.count,
+    pct: total > 0 ? Math.round((entry.count / total) * 1000) / 10 : 0,
+  }));
 }
 
 function pickDirectionDisplay(counts: Map<number, number>, labels: Map<number, string>, total: number) {
-  const top = pickTopEntry(counts, labels);
+  const entries = expandEntries(counts, labels, total);
+  const top = entries[0] || null;
   return {
-    label: top.label,
-    count: top.count,
-    entries: expandEntries(counts, labels, total),
+    label: top?.label || null,
+    count: top?.count || 0,
+    entries,
   };
 }
 
@@ -572,17 +591,11 @@ export async function getMapCityDetail(req: Request, res: Response) {
 
     const programs = Array.from(byProgram.entries())
       .map(([programId, counts]) => {
-        const directions = Array.from(counts.entries())
-          .filter(([, count]) => count > 0)
-          .sort((left, right) => {
-            if (right[1] !== left[1]) return right[1] - left[1];
-            return (directionLabels.get(left[0]) || "").localeCompare(directionLabels.get(right[0]) || "", "el");
-          })
-          .map(([directionId, count]) => ({
-            id: directionId,
-            label: directionLabels.get(directionId) || String(directionId),
-            count,
-          }));
+        const directions = collapseCountsByLabel(counts, directionLabels).map((entry) => ({
+          id: entry.id,
+          label: entry.label,
+          count: entry.count,
+        }));
 
         return {
           program_id: programId,
