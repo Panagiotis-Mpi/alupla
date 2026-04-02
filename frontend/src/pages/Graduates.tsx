@@ -731,10 +731,33 @@ export default function Graduates() {
     { key: "csv", label: t("topbar.templateCsv"), onClick: () => { closeMenus(); void onDownloadTemplate("csv"); } },
   ];
 
+  const exportSelectionMessage = activeLang === "gr" ? "Δεν έχεις επιλέξει απόφοιτους." : "You have not selected graduates.";
+
   const exportActions = [
-    { key: "xlsx", label: t("topbar.exportExcel"), onClick: () => { closeMenus(); void onExport("xlsx", selectedIds.length ? selectedIds : undefined); } },
-    { key: "csv", label: t("topbar.exportCsv"), onClick: () => { closeMenus(); void onExport("csv", selectedIds.length ? selectedIds : undefined); } },
-    { key: "pdf", label: t("topbar.exportPdf"), onClick: () => { closeMenus(); void onExport("pdf", selectedIds.length ? selectedIds : undefined); } },
+    { key: "xlsx", label: t("topbar.exportExcel"), onClick: () => {
+      closeMenus();
+      if (!selectedIds.length) {
+        alert(exportSelectionMessage);
+        return;
+      }
+      void onExport("xlsx", selectedIds);
+    } },
+    { key: "csv", label: t("topbar.exportCsv"), onClick: () => {
+      closeMenus();
+      if (!selectedIds.length) {
+        alert(exportSelectionMessage);
+        return;
+      }
+      void onExport("csv", selectedIds);
+    } },
+    { key: "pdf", label: t("topbar.exportPdf"), onClick: () => {
+      closeMenus();
+      if (!selectedIds.length) {
+        alert(exportSelectionMessage);
+        return;
+      }
+      void onExport("pdf", selectedIds);
+    } },
   ];
 
   const wideCardStyle: React.CSSProperties = {
@@ -839,7 +862,7 @@ export default function Graduates() {
 
             <div style={{ display: "grid", gap: 10, width: "100%" }}>
               <input className="input" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t("topbar.searchPlaceholder")} />
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, width: "100%", alignItems: "stretch" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, width: "100%", alignItems: "stretch" }}>
                 <Link className="btn primary" to="/graduates/new" style={{ ...topButtonStyle, textDecoration: "none", width: "100%", justifyContent: "center" }}>
                   {t("topbar.newGraduate")}
                 </Link>

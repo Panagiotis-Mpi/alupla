@@ -139,8 +139,6 @@ const actionLabels = {
 const knownActionKeys = [
   "login",
   "register",
-  "request_password_reset",
-  "reset_password",
   "change_password",
   "update_profile",
   "create_user",
@@ -169,8 +167,6 @@ const detailFreeActions = new Set([
   "login",
   "logout",
   "register",
-  "request_password_reset",
-  "reset_password",
   "change_password"
 ]);
 
