@@ -832,10 +832,25 @@ export default function GraduatesMapPage() {
               {ct("export", { defaultValue: "Εξαγωγή" })}
             </button>
             {showExportMenu ? (
-              <div className="map-export-menu">
-                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>Excel</button>
-                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>CSV</button>
-                <button className="map-export-item" type="button" onClick={() => { setShowExportMenu(false); void onExportPng(); }}>PNG</button>
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 8px)",
+                  right: 0,
+                  minWidth: 180,
+                  borderRadius: 14,
+                  border: "1px solid rgba(148, 163, 184, 0.28)",
+                  background: "#fff",
+                  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.16)",
+                  padding: 8,
+                  zIndex: 20,
+                  display: "grid",
+                  gap: 6,
+                }}
+              >
+                <button className="btn" type="button" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => { setShowExportMenu(false); void onExportExcel(); }}>Excel</button>
+                <button className="btn" type="button" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => { setShowExportMenu(false); void onExportCsv(); }}>CSV</button>
+                <button className="btn" type="button" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => { setShowExportMenu(false); void onExportPng(); }}>PNG</button>
               </div>
             ) : null}
           </div>
