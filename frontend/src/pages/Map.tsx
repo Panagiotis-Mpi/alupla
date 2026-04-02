@@ -364,7 +364,7 @@ export default function GraduatesMapPage() {
       setSelectedExportStudyProgramIds([]);
       return;
     }
-    setSelectedExportStudyProgramIds((prev) => prev.length ? prev.filter((id) => studyProgramOptions.some((item) => item.id === id)) : studyProgramOptions.map((item) => item.id));
+    setSelectedExportStudyProgramIds((prev) => prev.filter((id) => studyProgramOptions.some((item) => item.id === id)));
   }, [studyProgramOptions]);
 
   const exportCategoryOptions = useMemo(() => ([
@@ -596,15 +596,45 @@ export default function GraduatesMapPage() {
   }
 
   function toggleExportCategory(category: ExportCategoryKey) {
+    if (category === "dominant_direction") {
+      const programIds = studyProgramOptions.map((item) => item.id);
+      setSelectedExportCategories((prev) => {
+        const isSelected = prev.includes(category);
+        if (isSelected) return prev.filter((item) => item !== category);
+        return [...prev, category];
+      });
+      setSelectedExportStudyProgramIds((prev) => {
+        const hasAll = programIds.length > 0 && programIds.every((id) => prev.includes(id));
+        return hasAll ? prev : programIds;
+      });
+      return;
+    }
     setSelectedExportCategories((prev) => prev.includes(category) ? prev.filter((item) => item !== category) : [...prev, category]);
   }
 
   function toggleAllExportCategories() {
-    setSelectedExportCategories((prev) => prev.length === exportCategoryOptions.length ? [] : exportCategoryOptions.map((item) => item.id));
+    setSelectedExportCategories((prev) => {
+      if (prev.length === exportCategoryOptions.length) return [];
+      return exportCategoryOptions.map((item) => item.id);
+    });
+    setSelectedExportStudyProgramIds((prev) => {
+      const programIds = studyProgramOptions.map((item) => item.id);
+      const hasAll = programIds.length > 0 && programIds.every((id) => prev.includes(id));
+      return hasAll ? [] : programIds;
+    });
   }
 
   function toggleExportStudyProgram(programId: string) {
-    setSelectedExportStudyProgramIds((prev) => prev.includes(programId) ? prev.filter((item) => item !== programId) : [...prev, programId]);
+    setSelectedExportStudyProgramIds((prev) => {
+      const next = prev.includes(programId) ? prev.filter((item) => item !== programId) : [...prev, programId];
+      setSelectedExportCategories((current) => {
+        const hasCategory = current.includes("dominant_direction");
+        if (next.length && !hasCategory) return [...current, "dominant_direction"];
+        if (!next.length && hasCategory) return current.filter((item) => item !== "dominant_direction");
+        return current;
+      });
+      return next;
+    });
   }
 
 
@@ -705,14 +735,14 @@ export default function GraduatesMapPage() {
       });
       rows.push({
         [mt("export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(item.periphery_name),
-        [mt("dominantDirection", { defaultValue: "Πρόγραμμα σπουδών" })]: excelCellValue(item.dominant_recent_direction ?? ""),
+        [mt("legendLabels.dominantDirection", { defaultValue: "Κυρίαρχη κατεύθυνση" })]: excelCellValue(item.dominant_recent_direction ?? ""),
         [mt("directionCount", { defaultValue: "Απόφοιτοι κατεύθυνσης" })]: excelCellValue(item.dominant_recent_direction_count ?? 0),
         [mt("citiesTitle", { defaultValue: "Πόλεις" })]: "",
         [mt("export.cityCount", { defaultValue: "Πλήθος αποφοίτων πόλης" })]: "",
       });
       peripheryCities.forEach((city) => rows.push({
         [mt("export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(item.periphery_name),
-        [mt("dominantDirection", { defaultValue: "Πρόγραμμα σπουδών" })]: "",
+        [mt("legendLabels.dominantDirection", { defaultValue: "Κυρίαρχη κατεύθυνση" })]: "",
         [mt("directionCount", { defaultValue: "Απόφοιτοι κατεύθυνσης" })]: "",
         [mt("citiesTitle", { defaultValue: "Πόλεις" })]: excelCellValue(city.city_name),
         [mt("export.cityCount", { defaultValue: "Πλήθος αποφοίτων πόλης" })]: excelCellValue(city.count),
@@ -1444,7 +1474,7 @@ export default function GraduatesMapPage() {
                       <input type="checkbox" checked={isSelected} onChange={() => toggleExportCategory(category.id)} />
                       <span>{category.label}</span>
                     </label>
-                    {category.id === "dominant_direction" && isSelected ? (
+                    {category.id === "dominant_direction" ? (
                       <div style={{ display: "grid", gap: 8, paddingLeft: 28 }}>
                         <div style={{ display: "grid", gap: 6 }}>
                           {studyProgramOptions.map((program) => (
