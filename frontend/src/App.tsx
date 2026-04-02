@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
 import Guard from "./components/Guard";
@@ -11,7 +11,6 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Graduates from "./pages/Graduates";
 import GraduateForm from "./pages/GraduateForm";
-import Regions from "./pages/Regions";
 import Profile from "./pages/Profile";
 import Users from "./pages/Users";
 import Logs from "./pages/Logs";
@@ -72,24 +71,19 @@ function buildNavLinks(
     return [statisticsLink, mapLink];
   }
 
-  const graduateLinks: NavLinkItem[] = [
+  const mainLinks: NavLinkItem[] = [
     { to: "/graduates", label: t("nav.graduates") },
     { to: "/academic-data", label: academicDataLabel },
     statisticsLink,
     mapLink,
-    { to: "/regions", label: t("nav.regions", { defaultValue: "Περιοχές" }) },
   ];
 
   if (role !== SUPER_ADMIN_ROLE) {
-    return graduateLinks;
+    return mainLinks;
   }
 
   return [
-    graduateLinks[0],
-    graduateLinks[1],
-    graduateLinks[2],
-    graduateLinks[3],
-    graduateLinks[4],
+    ...mainLinks,
     { to: "/users", label: t("nav.users") },
     { to: "/logs", label: t("nav.logs") },
   ];
@@ -374,14 +368,7 @@ export default function App() {
               </Guard>
             }
           />
-          <Route
-            path="/regions"
-            element={
-              <Guard allow={["secretariat", "super_admin"]}>
-                <Regions />
-              </Guard>
-            }
-          />
+          <Route path="/regions" element={<Navigate to="/graduates" replace />} />
           <Route path="*" element={<Login />} />
         </Routes>
       </div>

@@ -1,28 +1,8 @@
 import { Router } from "express";
 import { allowRoles, authRequired } from "../middleware/auth";
-import { upload } from "../middleware/upload";
-import {
-  createRegion,
-  deleteRegion,
-  dismissUnmatchedCities,
-  importRegions,
-  listRegions,
-  listUnmatchedCities,
-  resolveUnmatchedCity,
-  searchRegions,
-  updateRegion,
-} from "../controllers/regions.controller";
+import { listRegions } from "../controllers/regions.controller";
 
 export const regionsRouter = Router();
 
 regionsRouter.use(authRequired, allowRoles(["secretariat", "super_admin"]));
-
 regionsRouter.get("/", listRegions);
-regionsRouter.get("/search", searchRegions);
-regionsRouter.get("/unmatched-cities", listUnmatchedCities);
-regionsRouter.post("/unmatched-cities/resolve", resolveUnmatchedCity);
-regionsRouter.post("/unmatched-cities/dismiss", dismissUnmatchedCities);
-regionsRouter.post("/import", upload.single("file"), importRegions);
-regionsRouter.post("/", createRegion);
-regionsRouter.put("/:id", updateRegion);
-regionsRouter.delete("/:id", deleteRegion);

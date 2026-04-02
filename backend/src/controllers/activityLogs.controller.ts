@@ -233,7 +233,6 @@ function getLogPage(row: any) {
 
   if (action === "import_graduates" || action === "export_graduates") return "graduates";
   if (action === "import_study_programs" || action === "import_program_directions") return "academicData";
-  if (action === "import_region_peripheries" || action === "import_region_cities") return "regions";
   if (action === "statistics_export" || entityType === "statistics") return "statistics";
   if (action === "map_export" || entityType === "map") return "map";
   if ((action === "export_csv" || action === "export_pdf") && entityType === "logs") return "logs";
@@ -342,7 +341,7 @@ export async function getActivityLogFileSummary(req: Request, res: Response, nex
     });
 
     const roleFilter = getRoleFilter(req);
-    const pages = ["graduates", "academicData", "regions", "statistics", "map", "logs"];
+    const pages = ["graduates", "academicData", "statistics", "map", "logs"];
     const fileTypes = ["excel", "csv", "pdf", "png"];
     const baseCell = () => ({ excel: 0, csv: 0, pdf: 0, png: 0 });
     const summary = pages.map((page) => ({

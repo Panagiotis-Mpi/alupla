@@ -18,7 +18,7 @@ type LogFilters = {
 
 type FileSummaryRole = "secretariat" | "super_admin" | "visitor";
 type FileSummaryFileType = "excel" | "csv" | "pdf" | "png";
-type FileSummaryPage = "graduates" | "academicData" | "regions" | "statistics" | "map" | "logs";
+type FileSummaryPage = "graduates" | "academicData" | "statistics" | "map" | "logs";
 type FileSummaryItem = {
   page: FileSummaryPage;
   import: Record<FileSummaryFileType, number>;
@@ -202,14 +202,14 @@ function getSummaryLayout(role: FileSummaryRole): SummaryLayout {
 
   if (role === "secretariat") {
     return {
-      pages: ["graduates", "academicData", "regions", "statistics", "map"],
+      pages: ["graduates", "academicData", "statistics", "map"],
       importTypes: ["excel"],
       exportTypes: ["excel", "csv", "pdf", "png"]
     };
   }
 
   return {
-    pages: ["graduates", "academicData", "regions", "statistics", "map", "logs"],
+    pages: ["graduates", "academicData", "statistics", "map", "logs"],
     importTypes: ["excel"],
     exportTypes: ["excel", "csv", "pdf", "png"]
   };
@@ -331,7 +331,6 @@ export default function Logs() {
     if (normalized === "super_admin") return t("summary.roles.admin");
     if (normalized === "graduates") return t("summary.pages.graduates");
     if (normalized === "academicData") return t("summary.pages.academicData");
-    if (normalized === "regions") return t("summary.pages.regions");
     if (normalized === "statistics") return t("summary.pages.statistics");
     if (normalized === "map") return t("summary.pages.map");
     if (normalized === "logs") return t("summary.pages.logs");
@@ -509,7 +508,6 @@ export default function Logs() {
   function pageLabel(pageKey: FileSummaryPage) {
     if (pageKey === "graduates") return t("summary.pages.graduates");
     if (pageKey === "academicData") return t("summary.pages.academicData");
-    if (pageKey === "regions") return t("summary.pages.regions");
     if (pageKey === "statistics") return t("summary.pages.statistics");
     if (pageKey === "map") return t("summary.pages.map");
     return t("summary.pages.logs");
