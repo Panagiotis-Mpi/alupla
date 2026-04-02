@@ -599,14 +599,36 @@ html.accessibility-high-contrast canvas,
 html.accessibility-high-contrast svg{
   filter:grayscale(100%) contrast(125%);
 }
-html.accessibility-underline-links a{
-  text-decoration:underline;
-  text-underline-offset:3px;
+html.accessibility-underline-links :is(a, button, .btn, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], summary, .brand){
+  text-decoration-line:underline;
   text-decoration-thickness:2px;
-}
-html.accessibility-underline-links .btn{
-  text-decoration:underline;
   text-underline-offset:3px;
+  text-decoration-skip-ink:none;
+}
+html.accessibility-underline-links :is(a, button, .btn, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], summary, .brand):not(:disabled){
+  box-shadow:inset 0 -2px 0 currentColor;
+}
+html.accessibility-underline-links .accessibility-trigger,
+html.accessibility-underline-links .accessibility-icon-btn,
+html.accessibility-underline-links .accessibility-toggle-btn,
+html.accessibility-underline-links .lang-switcher-separator{
+  text-decoration:none;
+  box-shadow:none;
+}
+html.accessibility-underline-links :is(.btn, button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], summary){
+  font-weight:700;
+}
+html.accessibility-underline-links .nav :is(.btn, button, .brand),
+html.accessibility-underline-links .topbar :is(.btn, button),
+html.accessibility-underline-links .page-header-card :is(.btn, button),
+html.accessibility-underline-links .mobile-drawer :is(.btn, button, a){
+  outline:2px solid currentColor;
+  outline-offset:2px;
+}
+html.accessibility-underline-links .table :is(th button, td button, td .btn, td a),
+html.accessibility-underline-links .mobile-table-card :is(button, .btn, a){
+  outline:2px solid currentColor;
+  outline-offset:2px;
 }
 
 @media (max-width: 640px){
