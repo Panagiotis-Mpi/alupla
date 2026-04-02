@@ -10,7 +10,6 @@ import enGraduates from "./locales/en/graduates.json";
 import enLogs from "./locales/en/logs.json";
 import enMap from "./locales/en/map.json";
 import enProfile from "./locales/en/profile.json";
-import enRegions from "./locales/en/regions.json";
 import enStatistics from "./locales/en/statistics.json";
 import enUsers from "./locales/en/users.json";
 import grAcademicData from "./locales/gr/academicData.json";
@@ -21,7 +20,6 @@ import grGraduates from "./locales/gr/graduates.json";
 import grLogs from "./locales/gr/logs.json";
 import grMap from "./locales/gr/map.json";
 import grProfile from "./locales/gr/profile.json";
-import grRegions from "./locales/gr/regions.json";
 import grStatistics from "./locales/gr/statistics.json";
 import grUsers from "./locales/gr/users.json";
 
@@ -31,7 +29,6 @@ const resources = {
     graduates: grGraduates,
     auth: grAuth,
     graduateForm: grGraduateForm,
-    regions: grRegions,
     users: grUsers,
     logs: grLogs,
     profile: grProfile,
@@ -44,7 +41,6 @@ const resources = {
     graduates: enGraduates,
     auth: enAuth,
     graduateForm: enGraduateForm,
-    regions: enRegions,
     users: enUsers,
     logs: enLogs,
     profile: enProfile,

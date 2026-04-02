@@ -295,18 +295,6 @@ export type MapCityDetailResponse = {
 
 
 
-export async function createRegion(payload: { name: string; type: RegionType; parent_id: number | null; latitude: number | null; longitude: number | null }): Promise<{ ok: true; item: Region }> {
-  return api("/regions", { method: "POST", body: payload });
-}
-
-export async function updateRegion(id: number, payload: { name: string; type: RegionType; parent_id: number | null; latitude: number | null; longitude: number | null }): Promise<{ ok: true; item: Region }> {
-  return api(`/regions/${id}`, { method: "PUT", body: payload });
-}
-
-export async function deleteRegion(id: number): Promise<any> {
-  return api(`/regions/${id}`, { method: "DELETE" });
-}
-
 export async function login(email: string, password: string): Promise<{ ok: true; token: string; user: any } | any> {
   return api("/auth/login", {
     method: "POST",
@@ -523,44 +511,6 @@ export async function listRegions(parentIdOrParams: any = {}): Promise<any> {
       : parentIdOrParams || {};
 
   return api(`/regions${toQueryString(params)}`, { method: "GET" });
-}
-
-export async function searchRegions(params: { q?: string; type?: string; parent_id?: number | null } = {}): Promise<any> {
-  return api(`/regions/search${toQueryString(params)}`, { method: "GET" });
-}
-
-export async function listUnmatchedCities(params: { q?: string } = {}): Promise<any> {
-  return api(`/regions/unmatched-cities${toQueryString(params)}`, { method: "GET" });
-}
-
-
-
-export async function resolveUnmatchedCity(payload: { unresolved_id: number; canonical_region_id: number; create_alias?: boolean }): Promise<any> {
-  return api(`/regions/unmatched-cities/resolve`, { method: "POST", body: payload });
-}
-
-export async function dismissUnmatchedCities(ids: number[]): Promise<any> {
-  return api(`/regions/unmatched-cities/dismiss`, { method: "POST", body: { ids } });
-}
-
-export async function importRegionsFile(file: File, mode: "PERIPHERY" | "CITY"): Promise<any> {
-  const token = getToken();
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("mode", mode);
-  const res = await fetch(`${API_URL}/regions/import`, {
-    method: "POST",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: fd
-  });
-  if (!res.ok) {
-    const j = await parseJsonSafe(res);
-    const msg = (j as any)?.error?.message || (j as any)?.message || res.statusText;
-    throw new Error(msg);
-  }
-  return await res.json();
 }
 
 export async function listActivityLogs(params: Record<string, any> = {}): Promise<any> {

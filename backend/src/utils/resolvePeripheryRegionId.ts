@@ -145,8 +145,3 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
     origin_municipality: matchedCity?.name ?? (rawMunicipality || null),
   };
 }
-
-export async function resolvePeripheryRegionId(input: ResolveOriginInput): Promise<number | null> {
-  const normalized = await normalizeOriginLocation(input);
-  return normalized.origin_region_id;
-}

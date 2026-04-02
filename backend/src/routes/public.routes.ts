@@ -16,4 +16,3 @@ publicRouter.get("/anonymous-graduates.xls", publicAnonymousGraduatesCsv);
 publicRouter.post("/activity-export", publicExportActivity);
 
 export { publicRouter };
-export default publicRouter;
