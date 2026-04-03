@@ -113,6 +113,19 @@ function nonEmptyString(value: unknown) {
   const normalized = String(value ?? "").trim();
   return normalized.length > 0 ? normalized : undefined;
 }
+function parseLogDetails(value: unknown) {
+  if (value && typeof value === "object") return value as Record<string, unknown>;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  try {
+    return JSON.parse(trimmed) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 
 function csvEscape(value: unknown, delimiter = ",") {
   const text = value === null || value === undefined ? "" : String(value);
@@ -216,10 +229,17 @@ function getRoleFilter(req: Request) {
 }
 
 function getRoleBucket(row: any) {
+  const details = parseLogDetails(row?.details);
+  const detailRole = String((details as any)?.actor_role ?? "").trim().toLowerCase();
+  if (detailRole === "secretariat") return "secretariat";
+  if (detailRole === "super_admin") return "super_admin";
+  if (detailRole === "visitor") return "visitor";
+
   const role = String(row?.user?.role ?? "").trim().toLowerCase();
   if (role === "secretariat") return "secretariat";
   if (role === "super_admin") return "super_admin";
-  return "visitor";
+  if (row?.user_id == null) return "visitor";
+  return "unknown";
 }
 
 function matchesRole(row: any, roleFilter: string) {
@@ -335,9 +355,8 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
 export async function getActivityLogFileSummary(req: Request, res: Response, next: NextFunction) {
   try {
     const rows = await ActivityLog.findAll({
-      order: [["created_at", "DESC"]],
-      limit: EXPORT_LIMIT,
-      include: [{ model: User, as: "user", attributes: ["id", "role"] }]
+      attributes: ["id", "user_id", "action", "entity_type", "details", "created_at"],
+      include: [{ model: User, as: "user", attributes: ["id", "role"], required: false }]
     });
 
     const roleFilter = getRoleFilter(req);
@@ -503,7 +522,17 @@ function getActorLabel(lang: "gr" | "en", row: any) {
   const fn = String(row?.user?.first_name ?? "").trim();
   const ln = String(row?.user?.last_name ?? "").trim();
   const full = `${fn} ${ln}`.trim();
-  return full || (lang === "en" ? "Visitor" : "Επισκέπτης");
+  if (full) return full;
+
+  const details = parseDetails(row?.details);
+  if (details && typeof details === "object") {
+    const actorName = String((details as any).actor_name ?? "").trim();
+    if (actorName) return actorName;
+    const actorEmail = String((details as any).actor_email ?? "").trim();
+    if (actorEmail) return actorEmail;
+  }
+
+  return lang === "en" ? "Visitor" : "Επισκέπτης";
 }
 
 function formatDateTime(lang: "gr" | "en", value: unknown) {
