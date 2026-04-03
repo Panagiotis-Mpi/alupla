@@ -194,6 +194,27 @@ function getSummaryLayout(role: FileSummaryRole): SummaryLayout {
   };
 }
 
+
+
+type SummaryOperation = "import" | "export";
+
+const summarySupportMatrix: Record<FileSummaryPage, { import: FileSummaryFileType[]; export: FileSummaryFileType[] }> = {
+  graduates: { import: ["excel"], export: ["excel", "csv", "pdf"] },
+  academicData: { import: ["excel"], export: [] },
+  statistics: { import: [], export: ["excel", "csv", "png"] },
+  map: { import: [], export: ["excel", "csv", "png"] },
+  logs: { import: [], export: ["excel", "csv"] }
+};
+
+function isSummaryCellSupported(page: FileSummaryPage, operation: SummaryOperation, fileType: FileSummaryFileType) {
+  return summarySupportMatrix[page][operation].includes(fileType);
+}
+
+function summaryCellValue(row: FileSummaryItem, operation: SummaryOperation, fileType: FileSummaryFileType) {
+  if (!isSummaryCellSupported(row.page, operation, fileType)) return "-";
+  return row[operation]?.[fileType] ?? 0;
+}
+
 function upperFileType(value: string) {
   const normalized = String(value || "").trim().toLowerCase();
   if (normalized === "xlsx" || normalized === "xls") return "Excel";
@@ -651,10 +672,10 @@ export default function Logs() {
                 <tr key={row.page}>
                   <td>{pageLabel(row.page)}</td>
                   {summaryLayout.importTypes.map((fileType) => (
-                    <td key={`${row.page}-import-${fileType}`}>{row.import?.[fileType] ?? 0}</td>
+                    <td key={`${row.page}-import-${fileType}`}>{summaryCellValue(row, "import", fileType)}</td>
                   ))}
                   {summaryLayout.exportTypes.map((fileType) => (
-                    <td key={`${row.page}-export-${fileType}`}>{row.export?.[fileType] ?? 0}</td>
+                    <td key={`${row.page}-export-${fileType}`}>{summaryCellValue(row, "export", fileType)}</td>
                   ))}
                 </tr>
               ))}
