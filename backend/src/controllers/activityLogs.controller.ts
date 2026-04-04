@@ -251,11 +251,34 @@ function getLogPage(row: any) {
   const action = String(row?.action ?? "").trim();
   const entityType = String(row?.entity_type ?? "").trim();
 
-  if (action === "import_graduates" || action === "export_graduates") return "graduates";
-  if (action === "import_study_programs" || action === "import_program_directions") return "academicData";
-  if (action === "statistics_export" || entityType === "statistics") return "statistics";
-  if (action === "map_export" || entityType === "map") return "map";
-  if ((action === "export_csv" || action === "export_pdf") && entityType === "logs") return "logs";
+  if (action === "import_graduates" || action === "export_graduates" || entityType === "graduate") {
+    return "graduates";
+  }
+
+  if (
+    action === "import_study_programs" ||
+    action === "import_program_directions" ||
+    action === "import_region_peripheries" ||
+    action === "import_region_cities" ||
+    entityType === "study_program" ||
+    entityType === "program_direction" ||
+    entityType === "region" ||
+    entityType === "regions"
+  ) {
+    return "academicData";
+  }
+
+  if (action === "statistics_export" || entityType === "statistics") {
+    return "statistics";
+  }
+
+  if (action === "map_export" || entityType === "map") {
+    return "map";
+  }
+
+  if (entityType === "logs") {
+    return "logs";
+  }
 
   return null;
 }
@@ -296,6 +319,7 @@ function getFileType(row: any) {
     return "excel";
   }
 
+  if (action === "export_xlsx") return "excel";
   if (action === "export_csv") return "csv";
   if (action === "export_pdf") return "pdf";
 
