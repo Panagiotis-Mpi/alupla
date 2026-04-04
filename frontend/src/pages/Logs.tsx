@@ -739,7 +739,7 @@ export default function Logs() {
               display: "flex",
               gap: 10,
               alignItems: "center",
-              justifyContent: isCompact ? "flex-start" : "space-between",
+              justifyContent: "flex-start",
               flexWrap: isCompact ? "wrap" : "nowrap",
             }}
           >
@@ -748,14 +748,16 @@ export default function Logs() {
                 display: "flex",
                 gap: 10,
                 alignItems: "center",
-                flexWrap: "wrap",
+                flexWrap: isCompact ? "wrap" : "nowrap",
+                width: isCompact ? "100%" : "auto",
               }}
             >
-              <button className="btn" onClick={() => void load(1)}>
+              <button className="btn" onClick={() => void load(1)} style={{ width: isCompact ? "100%" : "auto" }}>
                 {t("filters.search")}
               </button>
               <button
                 className="btn"
+                style={{ width: isCompact ? "100%" : "auto" }}
                 onClick={() => {
                   setFilters(emptyFilters);
                   setTimeout(() => void load(1), 0);
@@ -763,81 +765,81 @@ export default function Logs() {
               >
                 {t("filters.reset")}
               </button>
-            </div>
 
-            {!isCompact && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                  gap: 10,
-                  flexWrap: "nowrap",
-                  marginLeft: "auto",
-                }}
-              >
-                <button
-                  className="btn"
+              {!isCompact && (
+                <div
                   style={{
-                    width: 42,
-                    minWidth: 42,
-                    height: 42,
-                    padding: 0,
-                    borderRadius: 12,
-                    display: "inline-flex",
+                    display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 18,
-                    lineHeight: 1,
-                    fontWeight: 600,
-                    flex: "0 0 auto",
-                  }}
-                  disabled={page <= 1 || loading}
-                  onClick={() => void load(Math.max(1, page - 1))}
-                  aria-label={t("aria.previous", { ns: "common" })}
-                >
-                  ‹
-                </button>
-                <span
-                  className="badge"
-                  style={{
-                    minWidth: 52,
-                    height: 42,
-                    padding: "0 14px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    textAlign: "center",
-                    borderRadius: 12,
-                    flex: "0 0 auto",
+                    justifyContent: "flex-start",
+                    gap: 10,
+                    flexWrap: "nowrap",
+                    marginLeft: 12,
                   }}
                 >
-                  {page}
-                </span>
-                <button
-                  className="btn"
-                  style={{
-                    width: 42,
-                    minWidth: 42,
-                    height: 42,
-                    padding: 0,
-                    borderRadius: 12,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 18,
-                    lineHeight: 1,
-                    fontWeight: 600,
-                    flex: "0 0 auto",
-                  }}
-                  disabled={page >= totalPages || loading}
-                  onClick={() => void load(Math.min(totalPages, page + 1))}
-                  aria-label={t("aria.next", { ns: "common" })}
-                >
-                  ›
-                </button>
-              </div>
-            )}
+                  <button
+                    className="btn"
+                    style={{
+                      width: 42,
+                      minWidth: 42,
+                      height: 42,
+                      padding: 0,
+                      borderRadius: 12,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 18,
+                      lineHeight: 1,
+                      fontWeight: 600,
+                      flex: "0 0 auto",
+                    }}
+                    disabled={page <= 1 || loading}
+                    onClick={() => void load(Math.max(1, page - 1))}
+                    aria-label={t("aria.previous", { ns: "common" })}
+                  >
+                    ‹
+                  </button>
+                  <span
+                    className="badge"
+                    style={{
+                      minWidth: 52,
+                      height: 42,
+                      padding: "0 14px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      textAlign: "center",
+                      borderRadius: 12,
+                      flex: "0 0 auto",
+                    }}
+                  >
+                    {page}
+                  </span>
+                  <button
+                    className="btn"
+                    style={{
+                      width: 42,
+                      minWidth: 42,
+                      height: 42,
+                      padding: 0,
+                      borderRadius: 12,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 18,
+                      lineHeight: 1,
+                      fontWeight: 600,
+                      flex: "0 0 auto",
+                    }}
+                    disabled={page >= totalPages || loading}
+                    onClick={() => void load(Math.min(totalPages, page + 1))}
+                    aria-label={t("aria.next", { ns: "common" })}
+                  >
+                    ›
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {isCompact && (
