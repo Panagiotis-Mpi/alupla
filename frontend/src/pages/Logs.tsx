@@ -721,48 +721,104 @@ export default function Logs() {
 
         <div
           style={{
-            display: "flex",
-            gap: 10,
+            display: "grid",
+            gap: 12,
             marginTop: 12,
-            alignItems: "center",
-            flexWrap: "wrap",
           }}
         >
-          <button className="btn" onClick={() => void load(1)}>
-            {t("filters.search")}
-          </button>
-          <button
-            className="btn"
-            onClick={() => {
-              setFilters(emptyFilters);
-              setTimeout(() => void load(1), 0);
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              alignItems: "center",
+              flexWrap: "wrap",
             }}
           >
-            {t("filters.reset")}
-          </button>
+            <button className="btn" onClick={() => void load(1)}>
+              {t("filters.search")}
+            </button>
+            <button
+              className="btn"
+              onClick={() => {
+                setFilters(emptyFilters);
+                setTimeout(() => void load(1), 0);
+              }}
+            >
+              {t("filters.reset")}
+            </button>
+          </div>
 
-          <div className="spacer" />
-          <button
-            className="btn"
-            style={{ paddingLeft: 12, paddingRight: 12 }}
-            disabled={page <= 1 || loading}
-            onClick={() => void load(Math.max(1, page - 1))}
-            aria-label={t("aria.previous", { ns: "common" })}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              flexWrap: "nowrap",
+              width: "100%",
+            }}
           >
-            ◀
-          </button>
-          <span className="badge" style={{ minWidth: 44, textAlign: "center" }}>
-            {page}
-          </span>
-          <button
-            className="btn"
-            style={{ paddingLeft: 12, paddingRight: 12 }}
-            disabled={page >= totalPages || loading}
-            onClick={() => void load(Math.min(totalPages, page + 1))}
-            aria-label={t("aria.next", { ns: "common" })}
-          >
-            ▶
-          </button>
+            <button
+              className="btn"
+              style={{
+                width: 42,
+                minWidth: 42,
+                height: 42,
+                padding: 0,
+                borderRadius: 12,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 18,
+                lineHeight: 1,
+                fontWeight: 600,
+                flex: "0 0 auto",
+              }}
+              disabled={page <= 1 || loading}
+              onClick={() => void load(Math.max(1, page - 1))}
+              aria-label={t("aria.previous", { ns: "common" })}
+            >
+              ‹
+            </button>
+            <span
+              className="badge"
+              style={{
+                minWidth: 52,
+                height: 42,
+                padding: "0 14px",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                borderRadius: 12,
+                flex: "0 0 auto",
+              }}
+            >
+              {page}
+            </span>
+            <button
+              className="btn"
+              style={{
+                width: 42,
+                minWidth: 42,
+                height: 42,
+                padding: 0,
+                borderRadius: 12,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 18,
+                lineHeight: 1,
+                fontWeight: 600,
+                flex: "0 0 auto",
+              }}
+              disabled={page >= totalPages || loading}
+              onClick={() => void load(Math.min(totalPages, page + 1))}
+              aria-label={t("aria.next", { ns: "common" })}
+            >
+              ›
+            </button>
+          </div>
         </div>
       </div>
 
