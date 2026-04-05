@@ -1159,7 +1159,7 @@ export async function deleteGraduate(req: Request, res: Response, next: NextFunc
       action: "delete_graduate",
       entity_type: "graduate",
       entity_id: id,
-      details: null
+      details: { student_number: String((item as any).student_number ?? "").trim() }
     });
 
     res.json({ ok: true });

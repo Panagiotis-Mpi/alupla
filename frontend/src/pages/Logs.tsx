@@ -292,10 +292,29 @@ export default function Logs() {
           name: "Name",
           name_el: "Name (Greek)",
           parent_id: "Parent region",
-          study_program_id: "Study program ID",
-          unresolved_id: "Unresolved ID",
+          study_program_id: "Study program",
+          unresolved_id: "Pending item",
           raw_name: "Raw name",
-          ids: "IDs"
+          ids: "IDs",
+          student_number: "Student number",
+          first_name: "First name",
+          last_name: "Last name",
+          father_name: "Father name",
+          degree_grade: "Grade",
+          graduation_date: "Graduation date",
+          oath_date: "Oath date",
+          entry_year: "Entry year",
+          birth_date: "Birth date",
+          gender: "Gender",
+          origin_region_id: "Region",
+          origin_city_region_id: "City",
+          origin_municipality: "Municipality",
+          program_direction_id: "Direction",
+          email: "Email",
+          role_id: "Role",
+          is_active: "Active",
+          approved: "Approved",
+          code: "Code"
         }
       : {
           file: "Αρχείο",
@@ -322,13 +341,99 @@ export default function Logs() {
           name: "Όνομα",
           name_el: "Όνομα (Ελληνικά)",
           parent_id: "Γονική περιοχή",
-          study_program_id: "ID προγράμματος σπουδών",
-          unresolved_id: "ID εκκρεμότητας",
+          study_program_id: "Πρόγραμμα σπουδών",
+          unresolved_id: "Εκκρεμότητα",
           raw_name: "Αρχικό όνομα",
-          ids: "IDs"
+          ids: "IDs",
+          student_number: "Αριθμός μητρώου",
+          first_name: "Όνομα",
+          last_name: "Επώνυμο",
+          father_name: "Πατρώνυμο",
+          degree_grade: "Βαθμός",
+          graduation_date: "Ημερομηνία αποφοίτησης",
+          oath_date: "Ημερομηνία ορκωμοσίας",
+          entry_year: "Έτος εισαγωγής",
+          birth_date: "Ημερομηνία γέννησης",
+          gender: "Φύλο",
+          origin_region_id: "Περιφέρεια",
+          origin_city_region_id: "Πόλη",
+          origin_municipality: "Δήμος",
+          program_direction_id: "Κατεύθυνση",
+          email: "Email",
+          role_id: "Ρόλος",
+          is_active: "Ενεργός",
+          approved: "Εγκεκριμένος",
+          code: "Κωδικός"
         };
 
     return labels[key as keyof typeof labels] ?? key;
+  }
+
+  function localFieldName(value: string) {
+    const normalized = String(value ?? "").trim();
+    if (!normalized) return "";
+    return localDetailLabel(normalized);
+  }
+
+  function joinParts(parts: Array<string | null | undefined>) {
+    return parts.map((part) => String(part ?? "").trim()).filter(Boolean).join(", ");
+  }
+
+  function formatChangedFields(value: unknown) {
+    const items = Array.isArray(value) ? value : [value];
+    const names = items
+      .map((item) => localFieldName(String(item ?? "")))
+      .filter(Boolean);
+
+    if (!names.length) return "";
+    return activeLang === "en"
+      ? `Changed fields: ${names.join(", ")}`
+      : `Αλλαγμένα πεδία: ${names.join(", ")}`;
+  }
+
+  function formatExportDetails(details: Record<string, any>) {
+    const format = upperFileType(String(details.format ?? details.file_type ?? "").trim());
+    const count = details.count ?? details.exported;
+    const selected = details.selected;
+    const page = localValue(String(details.page ?? ""));
+    const parts: string[] = [];
+
+    if (format) parts.push(format);
+    if (count !== null && count !== undefined && count !== "") {
+      parts.push(activeLang === "en" ? `${count} records` : `${count} εγγραφές`);
+    }
+    if (selected !== null && selected !== undefined && selected !== "" && Number(selected) > 0) {
+      parts.push(activeLang === "en" ? `${selected} selected` : `${selected} επιλεγμένα`);
+    }
+    if (page) {
+      parts.push(activeLang === "en" ? `Page: ${page}` : `Σελίδα: ${page}`);
+    }
+
+    return parts.join(", ");
+  }
+
+  function formatImportDetails(details: Record<string, any>) {
+    const file = String(details.file ?? details.filename ?? "").trim();
+    const parts: string[] = [];
+
+    if (file) parts.push(`${localDetailLabel("file")}: ${file}`);
+    if (details.total_rows !== null && details.total_rows !== undefined && details.total_rows !== "") {
+      parts.push(activeLang === "en" ? `Total rows: ${details.total_rows}` : `Σύνολο γραμμών: ${details.total_rows}`);
+    }
+    if (details.inserted !== null && details.inserted !== undefined && details.inserted !== "") {
+      parts.push(activeLang === "en" ? `New: ${details.inserted}` : `Νέες: ${details.inserted}`);
+    }
+    if (details.updated !== null && details.updated !== undefined && details.updated !== "") {
+      parts.push(activeLang === "en" ? `Updated: ${details.updated}` : `Ενημερωμένες: ${details.updated}`);
+    }
+    if (details.skipped !== null && details.skipped !== undefined && details.skipped !== "") {
+      parts.push(activeLang === "en" ? `Skipped: ${details.skipped}` : `Παραλείφθηκαν: ${details.skipped}`);
+    }
+    if (details.errors !== null && details.errors !== undefined && details.errors !== "") {
+      parts.push(activeLang === "en" ? `Errors: ${details.errors}` : `Σφάλματα: ${details.errors}`);
+    }
+
+    return parts.join(", ");
   }
 
   function localValue(value: string) {
@@ -366,7 +471,8 @@ export default function Logs() {
   }
 
   function formatLogDetails(log: ActivityLog) {
-    if (detailFreeActions.has(String(log.action || "").trim())) {
+    const action = String(log.action || "").trim();
+    if (detailFreeActions.has(action)) {
       return "";
     }
 
@@ -379,14 +485,50 @@ export default function Logs() {
       return localValue(details);
     }
 
-    const rawFile = String(details.file ?? details.filename ?? "").trim();
-    const format = String(details.format ?? "").trim();
-    const parts: string[] = [];
+    const studentNumber = String(details.student_number ?? "").trim();
+    if (studentNumber) {
+      return `${localDetailLabel("student_number")}: ${studentNumber}`;
+    }
 
-    if (rawFile) parts.push(`${localDetailLabel("file")}: ${rawFile}`);
-    if (format) parts.push(`${localDetailLabel("format")}: ${upperFileType(format)}`);
+    if (action === "import_graduates") {
+      return formatImportDetails(details);
+    }
 
-    const counters: Array<[string, any]> = [
+    if (["export_graduates", "export_csv", "export_xlsx", "export_pdf", "statistics_export", "map_export"].includes(action)) {
+      const exportText = formatExportDetails(details);
+      if (exportText) return exportText;
+    }
+
+    if (details.changed !== null && details.changed !== undefined && details.changed !== "") {
+      const changedText = formatChangedFields(details.changed);
+      if (changedText) return changedText;
+    }
+
+    if (details.code || details.name || details.name_el) {
+      const code = String(details.code ?? "").trim();
+      const name = String(details.name ?? details.name_el ?? "").trim();
+      return joinParts([
+        code ? `${localDetailLabel("code")}: ${code}` : "",
+        name ? `${localDetailLabel("name")}: ${name}` : ""
+      ]);
+    }
+
+    const plainPairs: Array<[string, any]> = [
+      ["file", details.file ?? details.filename],
+      ["role", details.role],
+      ["status", details.status],
+      ["page", details.page],
+      ["study_program", details.study_program],
+      ["study_program_id", details.study_program_id],
+      ["direction", details.direction],
+      ["reason", details.reason],
+      ["parent_id", details.parent_id],
+      ["unresolved_id", details.unresolved_id],
+      ["raw_name", details.raw_name],
+      ["missing", details.missing]
+    ];
+
+    const counterPairs: Array<[string, any]> = [
       ["count", details.count],
       ["total_rows", details.total_rows],
       ["inserted", details.inserted],
@@ -399,42 +541,31 @@ export default function Logs() {
       ["limit", details.limit]
     ];
 
-    for (const [key, value] of counters) {
+    const arrayPairs: Array<[string, any]> = [
+      ["ids", details.ids]
+    ];
+
+    const parts: string[] = [];
+
+    for (const [key, value] of plainPairs) {
+      if (value === null || value === undefined || value === "") continue;
+      const rendered = Array.isArray(value)
+        ? value.map((item) => localValue(String(item))).filter(Boolean).join(", ")
+        : localValue(String(value)) || String(value);
+      if (!rendered) continue;
+      parts.push(`${localDetailLabel(key)}: ${rendered}`);
+    }
+
+    for (const [key, value] of counterPairs) {
       if (value === null || value === undefined || value === "") continue;
       parts.push(`${localDetailLabel(key)}: ${value}`);
     }
 
-    const plainFields: Array<[string, any]> = [
-      ["page", details.page],
-      ["role", details.role],
-      ["status", details.status],
-      ["study_program", details.study_program],
-      ["direction", details.direction],
-      ["reason", details.reason],
-      ["name", details.name],
-      ["name_el", details.name_el],
-      ["parent_id", details.parent_id],
-      ["study_program_id", details.study_program_id],
-      ["unresolved_id", details.unresolved_id],
-      ["raw_name", details.raw_name],
-      ["missing", details.missing]
-    ];
-
-    for (const [key, value] of plainFields) {
-      if (value === null || value === undefined || value === "") continue;
-      parts.push(`${localDetailLabel(key)}: ${localValue(String(value))}`);
-    }
-
-    const arrayFields: Array<[string, any]> = [
-      ["changed", details.changed],
-      ["ids", details.ids]
-    ];
-
-    for (const [key, value] of arrayFields) {
+    for (const [key, value] of arrayPairs) {
       if (value === null || value === undefined || value === "") continue;
       const rendered = Array.isArray(value)
-        ? value.map((item) => localValue(String(item))).join(", ")
-        : localValue(String(value));
+        ? value.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ")
+        : String(value);
       if (!rendered) continue;
       parts.push(`${localDetailLabel(key)}: ${rendered}`);
     }
@@ -446,7 +577,12 @@ export default function Logs() {
     const fallbackEntries = Object.entries(details)
       .filter(([, value]) => value !== null && value !== undefined && value !== "")
       .slice(0, 5)
-      .map(([key, value]) => `${localDetailLabel(key)}: ${typeof value === "string" ? localValue(value) : String(value)}`);
+      .map(([key, value]) => {
+        if (Array.isArray(value)) {
+          return `${localDetailLabel(key)}: ${value.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ")}`;
+        }
+        return `${localDetailLabel(key)}: ${typeof value === "string" ? (localValue(value) || value) : String(value)}`;
+      });
 
     return fallbackEntries.join(", ");
   }
