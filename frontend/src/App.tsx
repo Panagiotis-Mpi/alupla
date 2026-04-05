@@ -7,8 +7,6 @@ import { getUser, logout } from "./lib/auth";
 import { pingPresence } from "./lib/api";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 import Graduates from "./pages/Graduates";
 import GraduateForm from "./pages/GraduateForm";
 import Profile from "./pages/Profile";
@@ -26,7 +24,7 @@ type NavLinkItem = {
   label: string;
 };
 
-const AUTH_PATHS = ["/login", "/register", "/forgot", "/reset"];
+const AUTH_PATHS = ["/login", "/register"];
 const COMPACT_WIDTH = 820;
 const SUPER_ADMIN_ROLE = "super_admin";
 
@@ -308,8 +306,6 @@ export default function App() {
           <Route path="/" element={<PublicHome />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/forgot" element={<ForgotPassword />} />
-          <Route path="/reset" element={<ResetPassword />} />
           <Route path="/map" element={<Map />} />
           <Route path="/statistics" element={<Statistics />} />
           <Route

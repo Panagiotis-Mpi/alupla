@@ -62,24 +62,13 @@ function tokenFromAuthorizationHeader(headerValue: string): string | null {
   return token || null;
 }
 
-function tokenFromQuery(req: Request): string | null {
-  const query = (req as any).query;
-  if (!query || typeof query.token !== "string") {
+function getRequestToken(req: Request): string | null {
+  const { authorization } = req.headers;
+  if (typeof authorization !== "string") {
     return null;
   }
 
-  const token = normalizeTokenValue(query.token);
-  return token || null;
-}
-
-function getRequestToken(req: Request): string | null {
-  const { authorization } = req.headers;
-  if (typeof authorization === "string") {
-    const headerToken = tokenFromAuthorizationHeader(authorization);
-    if (headerToken) return headerToken;
-  }
-
-  return tokenFromQuery(req);
+  return tokenFromAuthorizationHeader(authorization);
 }
 
 function isAllowedRole(role: unknown): role is AuthUser["role"] {
@@ -108,7 +97,7 @@ function touchPresence(userId: number) {
   );
 }
 
-export function authRequired(req: Request, res: Response, next: NextFunction) {
+export async function authRequired(req: Request, res: Response, next: NextFunction) {
   const token = getRequestToken(req);
   if (!token) {
     return reject(res, 401, "Missing token");
@@ -116,15 +105,20 @@ export function authRequired(req: Request, res: Response, next: NextFunction) {
 
   try {
     const payload = verifyToken(token);
-    const role = (payload as any).role;
+    const userId = Number((payload as any).sub);
 
-    if (!isAllowedRole(role)) {
+    if (!Number.isFinite(userId) || userId <= 0) {
+      return reject(res, 401, "Invalid token");
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user || !user.is_active || !isAllowedRole(user.role)) {
       return reject(res, 401, "Invalid token");
     }
 
     const authUser: AuthUser = {
-      id: Number(payload.sub),
-      role
+      id: user.id,
+      role: user.role
     };
 
     setAuthUser(req, authUser);
