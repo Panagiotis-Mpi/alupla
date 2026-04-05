@@ -796,7 +796,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
   XLSX.utils.book_append_sheet(workbook, countsSheet, "Πλήθος αποφοίτων");
   XLSX.utils.book_append_sheet(workbook, genderSheet, "Αναλογία φύλων");
 
-  await logPublicExportAction(req, "statistics_export", "statistics", {
+  await logPublicExportAction(req, "export_xlsx", "statistics", {
     format: "xls",
     page: "statistics",
     graduation_year: req.query.graduation_year ?? null,
@@ -823,6 +823,14 @@ export async function publicExportActivity(req: Request, res: Response) {
   }
 
   const entityType = action === "map_export" ? "map" : "statistics";
-  await logPublicExportAction(req, action, entityType, { format, page: entityType });
+  const exportAction = format === "pdf"
+    ? "export_pdf"
+    : format === "png"
+      ? "export_png"
+      : format === "csv"
+        ? "export_csv"
+        : "export_xlsx";
+
+  await logPublicExportAction(req, exportAction, entityType, { format, page: entityType });
   return res.json({ ok: true });
 }

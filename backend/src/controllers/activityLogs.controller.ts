@@ -191,7 +191,7 @@ function buildLogFilters(req: Request) {
   }
 
   if (action) {
-    where.action = action;
+    where.action = { [Op.like]: `%${action}%` };
   }
 
   if (entityType) {
@@ -206,28 +206,6 @@ function buildLogFilters(req: Request) {
   }
 
   return where;
-}
-
-
-function getRequestedFormat(action: string) {
-  const normalized = String(action ?? "").trim();
-  if (normalized === "export_xlsx") return "excel";
-  if (normalized === "export_csv") return "csv";
-  if (normalized === "export_pdf") return "pdf";
-  if (normalized === "export_png") return "png";
-  return null;
-}
-
-function matchesRequestedAction(row: any, requestedAction: string | undefined) {
-  const normalized = String(requestedAction ?? "").trim();
-  if (!normalized) return true;
-
-  const requestedFormat = getRequestedFormat(normalized);
-  if (requestedFormat) {
-    return getOperation(row) === "export" && getFileType(row) === requestedFormat;
-  }
-
-  return String(row?.action ?? "").trim() === normalized;
 }
 
 function toCsvRow(row: any) {
@@ -274,12 +252,16 @@ function matchesRole(row: any, roleFilter: string) {
 function getLogPage(row: any) {
   const action = String(row?.action ?? "").trim();
   const entityType = String(row?.entity_type ?? "").trim();
+  const details = row?.details && typeof row.details === "object" ? row.details : {};
+  const detailsPage = String((details as any)?.page ?? "").trim();
 
-  if (action === "import_graduates" || action === "export_graduates" || entityType === "graduate") {
+
+  if (detailsPage === "graduates" || action === "import_graduates" || action === "export_graduates" || entityType === "graduate") {
     return "graduates";
   }
 
   if (
+    detailsPage === "academicData" ||
     action === "import_study_programs" ||
     action === "import_program_directions" ||
     action === "import_region_peripheries" ||
@@ -292,15 +274,15 @@ function getLogPage(row: any) {
     return "academicData";
   }
 
-  if (action === "statistics_export" || entityType === "statistics") {
+  if (detailsPage === "statistics" || action === "statistics_export" || entityType === "statistics") {
     return "statistics";
   }
 
-  if (action === "map_export" || entityType === "map") {
+  if (detailsPage === "map" || action === "map_export" || entityType === "map") {
     return "map";
   }
 
-  if (entityType === "logs") {
+  if (detailsPage === "logs" || entityType === "logs") {
     return "logs";
   }
 
@@ -346,6 +328,7 @@ function getFileType(row: any) {
   if (action === "export_xlsx") return "excel";
   if (action === "export_csv") return "csv";
   if (action === "export_pdf") return "pdf";
+  if (action === "export_png") return "png";
 
   return null;
 }
@@ -386,20 +369,15 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
       ];
     }
 
-    const requestedAction = nonEmptyString(req.query.action);
-    if (requestedAction) delete where.action;
-
-    const rows = await ActivityLog.findAll({
+    const { rows, count } = await ActivityLog.findAndCountAll({
       where,
+      limit: pageSize,
+      offset,
       order: [["created_at", "DESC"]],
       include: [{ model: User, as: "user", attributes: ["id", "email", "first_name", "last_name", "role"], required: false }]
     });
 
-    const filteredRows = rows.filter((row) => matchesRequestedAction(row, requestedAction));
-    const total = filteredRows.length;
-    const items = filteredRows.slice(offset, offset + pageSize);
-
-    res.json({ ok: true, page, pageSize, total, items });
+    res.json({ ok: true, page, pageSize, total: count, items: rows });
   } catch (error) {
     next(error);
   }
@@ -543,58 +521,42 @@ function getLocalizedDetails(lang: "gr" | "en", log: any) {
 
   const details = parseDetails(log?.details);
   if (!details) return "";
-  if (typeof details === "string") return localValue(lang, details) || details;
+  if (typeof details === "string") return details;
 
-  const studentNumber = String((details as any).student_number ?? "").trim();
+  if (action === "διαγραφή χρήστη") {
+    const deletedName = String(details.name ?? "").trim();
+    if (deletedName) return deletedName;
+  }
+
+  const studentNumber = String(details.student_number ?? "").trim();
   if (studentNumber) {
-    return lang === "en" ? `Student number: ${studentNumber}` : `Αριθμός μητρώου: ${studentNumber}`;
+    return `${lang === "en" ? "Student number" : "Αριθμός μητρώου"}: ${studentNumber}`;
   }
 
-  const deletedIds = Array.isArray((details as any).ids)
-    ? (details as any).ids.map((value: unknown) => String(value ?? "").trim()).filter(Boolean)
-    : [];
-  if (deletedIds.length) {
-    return lang === "en"
-      ? `Graduate deletion: ${deletedIds.join(", ")}`
-      : `Διαγραφή αποφοίτων: ${deletedIds.join(", ")}`;
+  const rawFile = String(details.file ?? details.filename ?? "").trim();
+  const format = String(details.format ?? "").trim();
+  const parts: string[] = [];
+
+  if (rawFile) parts.push(`${localDetailLabel(lang, "file")}: ${rawFile}`);
+  if (format) parts.push(`${localDetailLabel(lang, "format")}: ${upperFileType(format)}`);
+
+  for (const [key, value] of [["count", details.count], ["total_rows", details.total_rows], ["inserted", details.inserted], ["updated", details.updated], ["skipped", details.skipped], ["deleted", details.deleted], ["exported", details.exported]] as Array<[string, unknown]>) {
+    if (value === null || value === undefined || value === "") continue;
+    parts.push(`${localDetailLabel(lang, key)}: ${value}`);
   }
 
-  const deletedUserName = String((details as any).name ?? "").trim();
-  if (["delete_user", "deactivate_user", "διαγραφή χρήστη"].includes(action) && deletedUserName) {
-    return deletedUserName;
+  for (const [key, value] of [["page", details.page], ["role", details.role], ["status", details.status], ["study_program", details.study_program], ["direction", details.direction], ["reason", details.reason]] as Array<[string, unknown]>) {
+    if (value === null || value === undefined || value === "") continue;
+    parts.push(`${localDetailLabel(lang, key)}: ${localValue(lang, String(value))}`);
   }
 
-  if (action === "import_graduates") {
-    const parts: string[] = [];
-    const rawFile = String((details as any).file ?? (details as any).filename ?? "").trim();
-    if (rawFile) parts.push(`${localDetailLabel(lang, "file")}: ${rawFile}`);
-    for (const [key, value] of [["total_rows", (details as any).total_rows], ["inserted", (details as any).inserted], ["updated", (details as any).updated], ["skipped", (details as any).skipped], ["errors", (details as any).errors]] as Array<[string, unknown]>) {
-      if (value === null || value === undefined || value === "") continue;
-      parts.push(`${localDetailLabel(lang, key)}: ${value}`);
-    }
-    return parts.join(", ");
-  }
+  if (parts.length) return parts.join(", ");
 
-  if (getOperation(log) === "export") {
-    const format = upperFileType(String((details as any).format ?? (details as any).file_type ?? "").trim());
-    const page = localValue(lang, String((details as any).page ?? ""));
-    if (format && page) {
-      return lang === "en" ? `${format} export from ${page}` : `Εξαγωγή ${format} από ${page}`;
-    }
-    if (format) {
-      return lang === "en" ? `${format} export` : `Εξαγωγή ${format}`;
-    }
-  }
-
-  const changed = Array.isArray((details as any).changed) ? (details as any).changed : [];
-  if (changed.length) {
-    const names = changed.map((value: unknown) => localDetailLabel(lang, String(value ?? ""))).filter(Boolean);
-    if (names.length) return lang === "en" ? `Changed: ${names.join(", ")}` : `Αλλαγές: ${names.join(", ")}`;
-  }
-
-  if (deletedUserName) return deletedUserName;
-
-  return "";
+  return Object.entries(details)
+    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .slice(0, 5)
+    .map(([key, value]) => `${localDetailLabel(lang, key)}: ${typeof value === "string" ? localValue(lang, value) : String(value)}`)
+    .join(", ");
 }
 
 function getActorLabel(lang: "gr" | "en", row: any) {
@@ -638,8 +600,6 @@ async function findLogsForExport(req: Request) {
   const actor = nonEmptyString(req.query.actor);
   const role = getRoleFilter(req);
   const where = buildLogFilters(req);
-  const requestedAction = nonEmptyString(req.query.action);
-  if (requestedAction) delete where.action;
 
   if (actor) {
     where[Op.and] = [
@@ -667,13 +627,12 @@ async function findLogsForExport(req: Request) {
     ];
   }
 
-  const rows = await ActivityLog.findAll({
+  return ActivityLog.findAll({
     where,
     order: [["created_at", "DESC"]],
+    limit: EXPORT_LIMIT,
     include: [{ model: User, as: "user", attributes: ["id", "email", "first_name", "last_name", "role"], required: false }]
   });
-
-  return rows.filter((row) => matchesRequestedAction(row, requestedAction)).slice(0, EXPORT_LIMIT);
 }
 
 function getExportRows(lang: "gr" | "en", rows: any[]) {
@@ -696,7 +655,7 @@ export async function exportActivityLogsCsv(req: Request, res: Response, next: N
       action: "export_csv",
       entity_type: "logs",
       entity_id: null,
-      details: { format: "csv", count: rows.length, page: "logs" }
+      details: { format: "csv", page: "logs", count: rows.length }
     });
 
     const exportRows = getExportRows(lang, rows as any[]);
@@ -720,7 +679,7 @@ export async function exportActivityLogsXlsx(req: Request, res: Response, next: 
       action: "export_xlsx",
       entity_type: "logs",
       entity_id: null,
-      details: { format: "xlsx", count: rows.length, page: "logs" }
+      details: { format: "xlsx", page: "logs", count: rows.length }
     });
 
     const workbook = XLSX.utils.book_new();
