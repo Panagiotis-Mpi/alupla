@@ -26,7 +26,6 @@ const actionLabels = {
     export_csv: "Εξαγωγή CSV",
     export_xlsx: "Εξαγωγή Excel",
     export_pdf: "Εξαγωγή PDF",
-    export_png: "Εξαγωγή PNG",
     map_export: "Εξαγωγή χάρτη",
     statistics_export: "Εξαγωγή στατιστικών",
     create_user: "Δημιουργία χρήστη",
@@ -70,7 +69,6 @@ const actionLabels = {
     export_csv: "CSV export",
     export_xlsx: "Excel export",
     export_pdf: "PDF export",
-    export_png: "PNG export",
     map_export: "Map export",
     statistics_export: "Statistics export",
     create_user: "User creation",
@@ -252,16 +250,12 @@ function matchesRole(row: any, roleFilter: string) {
 function getLogPage(row: any) {
   const action = String(row?.action ?? "").trim();
   const entityType = String(row?.entity_type ?? "").trim();
-  const details = row?.details && typeof row.details === "object" ? row.details : {};
-  const detailsPage = String((details as any)?.page ?? "").trim();
 
-
-  if (detailsPage === "graduates" || action === "import_graduates" || action === "export_graduates" || entityType === "graduate") {
+  if (action === "import_graduates" || action === "export_graduates" || entityType === "graduate") {
     return "graduates";
   }
 
   if (
-    detailsPage === "academicData" ||
     action === "import_study_programs" ||
     action === "import_program_directions" ||
     action === "import_region_peripheries" ||
@@ -274,15 +268,15 @@ function getLogPage(row: any) {
     return "academicData";
   }
 
-  if (detailsPage === "statistics" || action === "statistics_export" || entityType === "statistics") {
+  if (action === "statistics_export" || entityType === "statistics") {
     return "statistics";
   }
 
-  if (detailsPage === "map" || action === "map_export" || entityType === "map") {
+  if (action === "map_export" || entityType === "map") {
     return "map";
   }
 
-  if (detailsPage === "logs" || entityType === "logs") {
+  if (entityType === "logs") {
     return "logs";
   }
 
@@ -328,7 +322,6 @@ function getFileType(row: any) {
   if (action === "export_xlsx") return "excel";
   if (action === "export_csv") return "csv";
   if (action === "export_pdf") return "pdf";
-  if (action === "export_png") return "png";
 
   return null;
 }
@@ -523,16 +516,6 @@ function getLocalizedDetails(lang: "gr" | "en", log: any) {
   if (!details) return "";
   if (typeof details === "string") return details;
 
-  if (action === "διαγραφή χρήστη") {
-    const deletedName = String(details.name ?? "").trim();
-    if (deletedName) return deletedName;
-  }
-
-  const studentNumber = String(details.student_number ?? "").trim();
-  if (studentNumber) {
-    return `${lang === "en" ? "Student number" : "Αριθμός μητρώου"}: ${studentNumber}`;
-  }
-
   const rawFile = String(details.file ?? details.filename ?? "").trim();
   const format = String(details.format ?? "").trim();
   const parts: string[] = [];
@@ -655,7 +638,7 @@ export async function exportActivityLogsCsv(req: Request, res: Response, next: N
       action: "export_csv",
       entity_type: "logs",
       entity_id: null,
-      details: { format: "csv", page: "logs", count: rows.length }
+      details: { format: "csv", count: rows.length }
     });
 
     const exportRows = getExportRows(lang, rows as any[]);
@@ -679,7 +662,7 @@ export async function exportActivityLogsXlsx(req: Request, res: Response, next: 
       action: "export_xlsx",
       entity_type: "logs",
       entity_id: null,
-      details: { format: "xlsx", page: "logs", count: rows.length }
+      details: { format: "xlsx", count: rows.length }
     });
 
     const workbook = XLSX.utils.book_new();

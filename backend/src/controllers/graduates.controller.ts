@@ -559,10 +559,10 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
 
     await logAction({
       user_id: req.user?.id ?? null,
-      action: format === "csv" ? "export_csv" : "export_xlsx",
+      action: "export_graduates",
       entity_type: "graduate",
       entity_id: null,
-      details: { format, page: "graduates", limit: ids.length ? null : limit, count: data.length, selected: ids.length || 0 }
+      details: { format, limit: ids.length ? null : limit, count: data.length, selected: ids.length || 0 }
     });
 
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
@@ -603,10 +603,10 @@ export async function logGraduatesPdfExport(req: Request, res: Response, next: N
 
     await logAction({
       user_id: req.user?.id ?? null,
-      action: "export_pdf",
+      action: "export_graduates",
       entity_type: "graduate",
       entity_id: null,
-      details: { format: "pdf", page: "graduates", limit: null, count, selected: ids.length || 0 }
+      details: { format: "pdf", limit: null, count, selected: ids.length || 0 }
     });
 
     res.json({ ok: true, count });

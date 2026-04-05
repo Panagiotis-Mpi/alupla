@@ -174,15 +174,7 @@ export async function deactivateUser(req: Request, res: Response, next: NextFunc
 
     if (req.auth!.id === u.id) return bad(res, "Cannot deactivate yourself");
 
-    const deletedUserName = `${String(u.first_name ?? "").trim()} ${String(u.last_name ?? "").trim()}`.trim() || String(u.email ?? "").trim();
-
-    await logAction({
-      user_id: req.auth!.id,
-      action: "διαγραφή χρήστη",
-      entity_type: "user",
-      entity_id: u.id,
-      details: deletedUserName ? { name: deletedUserName } : null
-    });
+    await logAction({ user_id: req.auth!.id, action: "διαγραφή χρήστη", entity_type: "user", entity_id: u.id });
     await u.destroy();
 
     res.json({ ok: true });

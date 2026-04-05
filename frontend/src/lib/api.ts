@@ -504,10 +504,6 @@ export async function deleteGraduate(id: number | string): Promise<any> {
   return api(`/graduates/${id}`, { method: "DELETE" });
 }
 
-export async function deleteGraduates(ids: Array<number | string>): Promise<any> {
-  return api(`/graduates`, { method: "DELETE", body: { ids } });
-}
-
 export async function listRegions(parentIdOrParams: any = {}): Promise<any> {
   const params: Record<string, any> =
     typeof parentIdOrParams === "number" || parentIdOrParams === null

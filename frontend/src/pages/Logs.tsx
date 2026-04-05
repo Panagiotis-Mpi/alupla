@@ -58,7 +58,6 @@ const actionLabels = {
     export_csv: "Εξαγωγή CSV",
     export_xlsx: "Εξαγωγή Excel",
     export_pdf: "Εξαγωγή PDF",
-    export_png: "Εξαγωγή PNG",
     map_export: "Εξαγωγή χάρτη",
     statistics_export: "Εξαγωγή στατιστικών",
     create_user: "Δημιουργία χρήστη",
@@ -104,7 +103,6 @@ const actionLabels = {
     export_csv: "CSV export",
     export_xlsx: "Excel export",
     export_pdf: "PDF export",
-    export_png: "PNG export",
     map_export: "Map export",
     statistics_export: "Statistics export",
     create_user: "User creation",
@@ -161,8 +159,6 @@ const knownActionKeys = [
   "import_program_directions",
   "export_xlsx",
   "export_csv",
-  "export_pdf",
-  "export_png",
   "statistics_export",
   "map_export"
 ] as const;
@@ -489,11 +485,6 @@ export default function Logs() {
       return localValue(details);
     }
 
-    if (action === "διαγραφή χρήστη") {
-      const deletedName = String(details.name ?? "").trim();
-      if (deletedName) return deletedName;
-    }
-
     const studentNumber = String(details.student_number ?? "").trim();
     if (studentNumber) {
       return `${localDetailLabel("student_number")}: ${studentNumber}`;
@@ -503,7 +494,7 @@ export default function Logs() {
       return formatImportDetails(details);
     }
 
-    if (["export_graduates", "export_csv", "export_xlsx", "export_pdf", "export_png", "statistics_export", "map_export"].includes(action)) {
+    if (["export_graduates", "export_csv", "export_xlsx", "export_pdf", "statistics_export", "map_export"].includes(action)) {
       const exportText = formatExportDetails(details);
       if (exportText) return exportText;
     }
