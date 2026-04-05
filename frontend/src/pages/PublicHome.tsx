@@ -6,8 +6,8 @@ export default function PublicHome() {
   const { t } = useTranslation("common");
 
   const actions = [
-    { to: "/map", label: t("home.map"), className: "public-home-action primary" },
-    { to: "/statistics", label: t("home.stats"), className: "public-home-action secondary" },
+    { to: "/statistics", label: t("home.stats"), className: "public-home-action primary" },
+    { to: "/map", label: t("home.map"), className: "public-home-action secondary" },
     { to: "/login", label: t("nav.login"), className: "public-home-action ghost" },
   ];
 
