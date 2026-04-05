@@ -584,6 +584,32 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
   }
 }
 
+export async function logGraduatesPdfExport(req: Request, res: Response, next: NextFunction) {
+  try {
+    const where = buildGraduateWhere(req.body as Record<string, unknown>);
+    const ids = parseIds((req.body as Record<string, unknown>)?.ids);
+
+    if (ids.length) {
+      (where as any).id = ids;
+    }
+
+    const count = ids.length ? ids.length : await Graduate.count({ where });
+
+    await logAction({
+      user_id: req.user?.id ?? null,
+      action: "export_graduates",
+      entity_type: "graduate",
+      entity_id: null,
+      details: { format: "pdf", limit: null, count, selected: ids.length || 0 }
+    });
+
+    res.json({ ok: true, count });
+  } catch (err) {
+    next(err);
+  }
+}
+
+
 export async function exportGraduatesImportTemplate(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = getExportLang(req.query.lang);

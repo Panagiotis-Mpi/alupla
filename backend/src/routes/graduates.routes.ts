@@ -7,6 +7,7 @@ import {
   updateGraduate,
   exportGraduates,
   exportGraduatesImportTemplate,
+  logGraduatesPdfExport,
   importGraduates,
 } from "../controllers/graduates.controller";
 import { allowRoles, authRequired } from "../middleware/auth";
@@ -22,6 +23,7 @@ graduatesRouter.post("/", createGraduate);
 
 graduatesRouter.get("/export", exportGraduates);
 graduatesRouter.get("/import-template", exportGraduatesImportTemplate);
+graduatesRouter.post("/export-pdf-log", logGraduatesPdfExport);
 
 graduatesRouter.post("/import", upload.single("file"), importGraduates);
 

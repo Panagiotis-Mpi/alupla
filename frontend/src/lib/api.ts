@@ -564,6 +564,10 @@ export async function downloadGraduatesImportTemplate(format: "xlsx" | "csv", la
   return fetchBlob("/graduates/import-template", { format }, lang);
 }
 
+export async function logGraduatesPdfExport(params: Record<string, any>): Promise<any> {
+  return api("/graduates/export-pdf-log", { method: "POST", body: params });
+}
+
 export async function importGraduatesFile(file: File, lang?: string): Promise<any> {
   const token = getToken();
   const fd = new FormData();

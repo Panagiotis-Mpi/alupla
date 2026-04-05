@@ -6,6 +6,7 @@ import {
   downloadGraduatesImportTemplate,
   exportGraduatesFile,
   importGraduatesFile,
+  logGraduatesPdfExport,
   type Graduate,
   type StudyProgram,
 } from "../lib/api";
@@ -374,7 +375,6 @@ export default function Graduates() {
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [recentDownloadsOpen, setRecentDownloadsOpen] = useState(false);
   const [recentDownloads, setRecentDownloads] = useState<RecentGraduateDownload[]>([]);
-  const [isCompact, setIsCompact] = useState(() => typeof window !== "undefined" ? window.innerWidth <= 820 : false);
 
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const importFileRef = useRef<HTMLInputElement | null>(null);
@@ -415,13 +415,6 @@ export default function Graduates() {
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
   const someVisibleSelected = visibleIds.some((id) => selectedIds.includes(id));
   const groupedImportIssues = useMemo(() => groupImportErrors(importReport?.errors), [importReport]);
-
-  useEffect(() => {
-    const update = () => setIsCompact(window.innerWidth <= 820);
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
 
   function showToast(nextToast: ToastState) {
     setToast(nextToast);
@@ -646,6 +639,7 @@ export default function Graduates() {
             origin_municipality: item.origin_municipality ?? null,
           })),
         });
+        await logGraduatesPdfExport(exportParams);
         return;
       }
       const request = {
@@ -870,7 +864,7 @@ export default function Graduates() {
 
             <div style={{ display: "grid", gap: 10, width: "100%" }}>
               <input className="input" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t("topbar.searchPlaceholder")} />
-              <div style={{ display: "grid", gridTemplateColumns: isCompact ? "repeat(auto-fit, minmax(150px, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: 10, width: "100%", alignItems: "stretch" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, width: "100%", alignItems: "stretch" }}>
                 <Link className="btn primary" to="/graduates/new" style={{ ...topButtonStyle, textDecoration: "none", width: "100%", justifyContent: "center" }}>
                   {t("topbar.newGraduate")}
                 </Link>
@@ -974,7 +968,7 @@ export default function Graduates() {
                     <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => setShowFilters((current) => !current)}>
                       {activeLang === "gr" ? "Φίλτρα" : "Filters"}
                     </button>
-                    <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => void onDeleteSelected()} disabled={!selectedIds.length}>
+                    <button className="btn danger" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => void onDeleteSelected()} disabled={!selectedIds.length}>
                       {t("topbar.delete")}
                     </button>
                   </div>
