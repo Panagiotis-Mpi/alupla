@@ -19,7 +19,7 @@ const TABLE_HEADER_FONT = '600 10px "Segoe UI", Arial, sans-serif';
 const TABLE_FONT = '10px "Segoe UI", Arial, sans-serif';
 const TABLE_HEADER_LINE_HEIGHT = 14;
 const TABLE_LINE_HEIGHT = 13;
-const COLUMN_WIDTHS = [40, 52, 76, 72, 78, 54, 48, 54, 58, 64, 64, 122, 112, 78, 96, 88, 104];
+const COLUMN_WIDTHS = [40, 52, 76, 72, 78, 54, 48, 54, 58, 64, 64, 122, 112, 96, 88, 104];
 
 function formatGenderValue(value: unknown, lang: ExportLang) {
   const normalized = String(value ?? "").trim().toLowerCase();
@@ -77,7 +77,6 @@ function getLabels(lang: ExportLang) {
       oath_date: "Oath date",
       study_program: "Study program",
       direction: "Direction",
-      origin_type: "Origin category",
       origin_country: "Country",
       origin_region: "Region",
       origin_municipality: "City"
@@ -98,7 +97,6 @@ function getLabels(lang: ExportLang) {
     oath_date: "Ημ. ορκωμοσίας",
     study_program: "Πρόγραμμα σπουδών",
     direction: "Κατεύθυνση",
-    origin_type: "Κατηγορία καταγωγής",
     origin_country: "Χώρα",
     origin_region: "Περιφέρεια",
     origin_municipality: "Πόλη"
@@ -119,10 +117,7 @@ function buildRows(args: {
     const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
     const directionName = directionNameById.get(Number(item.program_direction_id)) ?? "";
     const originType = item.origin_type ?? ((item.origin_foreign_country || item.origin_foreign_city) ? "abroad" : "greece");
-    const originTypeLabel = originType === "abroad" ? (lang === "en" ? "Abroad" : "Εξωτερικό") : (lang === "en" ? "Greece" : "Ελλάδα");
-    const countryName = originType === "abroad"
-      ? String(item.origin_foreign_country ?? "")
-      : formatCountryValue(regionNameById.get(Number(item.origin_country_region_id)) ?? "", lang);
+    const countryName = formatCountryValue(regionNameById.get(Number(item.origin_country_region_id)) ?? String(item.origin_foreign_country ?? ""), lang);
     const regionName = originType === "abroad"
       ? ""
       : regionNameById.get(Number(item.origin_region_id)) ?? "";
@@ -144,7 +139,6 @@ function buildRows(args: {
       [labels.oath_date]: formatDateValue(item.oath_date),
       [labels.study_program]: studyProgramName,
       [labels.direction]: directionName,
-      [labels.origin_type]: originTypeLabel,
       [labels.origin_country]: countryName,
       [labels.origin_region]: regionName,
       [labels.origin_municipality]: municipalityName

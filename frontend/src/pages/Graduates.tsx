@@ -110,6 +110,7 @@ function normalizeRecentGraduateDownload(item: any) {
           oath_date: String(entry.oath_date ?? ""),
           study_program_id: Number(entry.study_program_id) || 0,
           program_direction_id: entry.program_direction_id == null || entry.program_direction_id === "" ? null : Number(entry.program_direction_id),
+          origin_country_region_id: entry.origin_country_region_id == null || entry.origin_country_region_id === "" ? null : Number(entry.origin_country_region_id),
           origin_region_id: entry.origin_region_id == null || entry.origin_region_id === "" ? null : Number(entry.origin_region_id),
           origin_municipality: entry.origin_municipality == null ? null : String(entry.origin_municipality),
           origin_type: String(entry.origin_type ?? "").toLowerCase() === "abroad" ? "abroad" : "greece",
@@ -189,10 +190,7 @@ function buildRecentDownloadFiltersLabel(filters: GraduatesFiltersState, lang: "
   if (filters.gender) parts.push(`${lang === "gr" ? "Φύλο" : "Gender"}: ${filters.gender}`);
   if (filters.study_program_id) parts.push(`${lang === "gr" ? "Πρόγραμμα" : "Program"}: ${filters.study_program_id}`);
   if (filters.program_direction_id) parts.push(`${lang === "gr" ? "Κατεύθυνση" : "Direction"}: ${filters.program_direction_id}`);
-  if (filters.origin_type) parts.push(`${lang === "gr" ? "Κατηγορία" : "Origin type"}: ${filters.origin_type === "abroad" ? (lang === "gr" ? "Εξωτερικό" : "Abroad") : (lang === "gr" ? "Ελλάδα" : "Greece")}`);
   if (filters.origin_region_id) parts.push(`${lang === "gr" ? "Περιφέρεια" : "Region"}: ${filters.origin_region_id}`);
-  if (filters.origin_foreign_country_like) parts.push(`${lang === "gr" ? "Χώρα εξωτερικού" : "Foreign country"}: ${filters.origin_foreign_country_like}`);
-  if (filters.origin_foreign_city_like) parts.push(`${lang === "gr" ? "Πόλη εξωτερικού" : "Foreign city"}: ${filters.origin_foreign_city_like}`);
   if (filters.entry_year_from || filters.entry_year_to) parts.push(`${lang === "gr" ? "Έτος εισαγωγής" : "Entry year"}: ${filters.entry_year_from || "…"}-${filters.entry_year_to || "…"}`);
   if (selectedCount > 0) parts.push(lang === "gr" ? `Επιλεγμένοι: ${selectedCount}` : `Selected: ${selectedCount}`);
   if (!parts.length) parts.push(lang === "gr" ? `Όλο το αποτέλεσμα (${totalCount})` : `Full result (${totalCount})`);
@@ -235,12 +233,11 @@ function getImportColumnLabel(column: string, t: (key: string, options?: Record<
     oath_date: t("table.oathDate"),
     degree_grade: t("table.degreeGrade"),
     study_program: t("table.studyProgram"),
-    origin_type: t("table.originType"),
     origin_country: t("table.country"),
     origin_region: t("table.region"),
     origin_municipality: t("table.originMunicipality"),
     origin_foreign_country: t("table.country"),
-    origin_foreign_city: t("filters.foreignCity"),
+    origin_foreign_city: t("table.originMunicipality"),
   };
   return labels[column] || column;
 }
@@ -270,10 +267,6 @@ function getImportIssueHint(column: string, reasons: string[], t: (key: string, 
 
   if (column === "origin_region") {
     return t("toast.hintRegion");
-  }
-
-  if (column === "origin_type") {
-    return t("toast.hintOriginType");
   }
 
   if (["origin_country", "origin_foreign_country"].includes(column)) {
@@ -656,6 +649,7 @@ export default function Graduates() {
             oath_date: item.oath_date,
             study_program_id: item.study_program_id,
             program_direction_id: item.program_direction_id ?? null,
+            origin_country_region_id: item.origin_country_region_id ?? null,
             origin_region_id: item.origin_region_id ?? null,
             origin_municipality: item.origin_municipality ?? null,
             origin_type: item.origin_type ?? ((item.origin_foreign_country || item.origin_foreign_city) ? "abroad" : "greece"),

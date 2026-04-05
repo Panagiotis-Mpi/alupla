@@ -16,7 +16,6 @@ export type SortKey =
   | "oath_date"
   | "study_program"
   | "direction"
-  | "origin_type"
   | "origin_country"
   | "origin_region"
   | "origin_municipality";
@@ -40,11 +39,8 @@ export type GraduatesFiltersState = {
   oath_date_to: string;
   study_program_id: string;
   program_direction_id: string;
-  origin_type: string;
   origin_region_id: string;
   origin_municipality_like: string;
-  origin_foreign_country_like: string;
-  origin_foreign_city_like: string;
 };
 
 export const EMPTY_GRADUATES_FILTERS: GraduatesFiltersState = {
@@ -66,11 +62,8 @@ export const EMPTY_GRADUATES_FILTERS: GraduatesFiltersState = {
   oath_date_to: "",
   study_program_id: "",
   program_direction_id: "",
-  origin_type: "",
   origin_region_id: "",
   origin_municipality_like: "",
-  origin_foreign_country_like: "",
-  origin_foreign_city_like: "",
 };
 
 function Field(props: { label: string; children: React.ReactNode; span?: number }) {
@@ -190,25 +183,16 @@ export function createRegionMap(items: Array<Record<string, unknown>>) {
 
 
 export function getGraduateOriginRegionDisplay(graduate: Graduate, regionNameById: Map<number, string>) {
-  const originType = graduate.origin_type ?? ((graduate.origin_foreign_country || graduate.origin_foreign_city) ? "abroad" : "greece");
-  if (originType === "abroad") {
-    return String(graduate.origin_foreign_country ?? "").trim();
+  const countryName = getGraduateOriginCountryDisplay(graduate, regionNameById);
+  const normalizedCountry = normalizeDisplayText(countryName);
+  if (normalizedCountry && normalizedCountry !== normalizeDisplayText("Ελλάδα") && normalizedCountry !== normalizeDisplayText("Greece")) {
+    return "";
   }
   return regionNameById.get(Number(graduate.origin_region_id)) ?? "";
 }
 
-export function getGraduateOriginTypeDisplay(graduate: Graduate, t?: (key: string) => string) {
-  const originType = graduate.origin_type ?? ((graduate.origin_foreign_country || graduate.origin_foreign_city) ? "abroad" : "greece");
-  if (originType === "abroad") return t ? t("filters.originTypeAbroad") : "Abroad";
-  return t ? t("filters.originTypeGreece") : "Greece";
-}
-
 export function getGraduateOriginCountryDisplay(graduate: Graduate, regionNameById: Map<number, string>, t?: (key: string) => string) {
-  const originType = graduate.origin_type ?? ((graduate.origin_foreign_country || graduate.origin_foreign_city) ? "abroad" : "greece");
-  if (originType === "abroad") {
-    return String(graduate.origin_foreign_country ?? "").trim();
-  }
-  const countryName = regionNameById.get(Number(graduate.origin_country_region_id)) ?? "";
+  const countryName = regionNameById.get(Number(graduate.origin_country_region_id)) ?? String(graduate.origin_foreign_country ?? "").trim();
   const normalized = normalizeDisplayText(countryName);
   if (normalized === normalizeDisplayText("Ελλάδα") || normalized === normalizeDisplayText("Greece")) {
     return t ? t("filters.originTypeGreece") : "Greece";
@@ -217,9 +201,8 @@ export function getGraduateOriginCountryDisplay(graduate: Graduate, regionNameBy
 }
 
 export function getGraduateOriginMunicipalityDisplay(graduate: Graduate) {
-  const originType = graduate.origin_type ?? ((graduate.origin_foreign_country || graduate.origin_foreign_city) ? "abroad" : "greece");
-  if (originType === "abroad") {
-    return String(graduate.origin_foreign_city ?? "").trim();
+  if (graduate.origin_foreign_city) {
+    return String(graduate.origin_foreign_city).trim();
   }
   return graduate.origin_municipality ?? "";
 }
@@ -248,9 +231,6 @@ export function getGraduateSortValue(args: {
   }
   if (key === "direction") {
     return directionNameById.get(Number(graduate.program_direction_id)) ?? "";
-  }
-  if (key === "origin_type") {
-    return getGraduateOriginTypeDisplay(graduate);
   }
   if (key === "origin_country") {
     return getGraduateOriginCountryDisplay(graduate, regionNameById);
@@ -321,7 +301,6 @@ export function filterAndSortGraduates(args: {
       graduate.oath_date,
       programNameById.get(Number(graduate.study_program_id)) ?? "",
       directionNameById.get(Number(graduate.program_direction_id)) ?? "",
-      getGraduateOriginTypeDisplay(graduate),
       getGraduateOriginCountryDisplay(graduate, regionNameById),
       getGraduateOriginRegionDisplay(graduate, regionNameById),
       getGraduateOriginMunicipalityDisplay(graduate),
@@ -437,13 +416,6 @@ export function GraduatesFilters(props: {
           ))}
         </select>
       </Field>
-      <Field label={t("filters.originType")}>
-        <select className="input" value={filters.origin_type} onChange={(e) => setFilters((current) => ({ ...current, origin_type: e.target.value }))}>
-          <option value="">{t("filters.all")}</option>
-          <option value="greece">{t("filters.originTypeGreece")}</option>
-          <option value="abroad">{t("filters.originTypeAbroad")}</option>
-        </select>
-      </Field>
       <Field label={t("filters.region")}>
         <select className="input" value={filters.origin_region_id} onChange={(e) => setFilters((current) => ({ ...current, origin_region_id: e.target.value }))}>
           <option value="">{t("filters.all")}</option>
@@ -456,12 +428,6 @@ export function GraduatesFilters(props: {
       </Field>
       <Field label={t("table.originMunicipality")}>
         <input className="input" value={filters.origin_municipality_like} onChange={(e) => setFilters((current) => ({ ...current, origin_municipality_like: e.target.value }))} />
-      </Field>
-      <Field label={t("filters.foreignCountry")}>
-        <input className="input" value={filters.origin_foreign_country_like} onChange={(e) => setFilters((current) => ({ ...current, origin_foreign_country_like: e.target.value }))} />
-      </Field>
-      <Field label={t("filters.foreignCity")}>
-        <input className="input" value={filters.origin_foreign_city_like} onChange={(e) => setFilters((current) => ({ ...current, origin_foreign_city_like: e.target.value }))} />
       </Field>
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-start" }}>
         <button className="btn" onClick={onSearch}>

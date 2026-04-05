@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import type { Graduate } from "../../lib/api";
-import { formatValue, getGraduateOriginCountryDisplay, getGraduateOriginMunicipalityDisplay, getGraduateOriginRegionDisplay, getGraduateOriginTypeDisplay, type SortKey } from "./shared";
+import { formatValue, getGraduateOriginCountryDisplay, getGraduateOriginMunicipalityDisplay, getGraduateOriginRegionDisplay, type SortKey } from "./shared";
 
 export function GraduatesTable(props: {
   visibleItems: Graduate[];
@@ -41,7 +41,7 @@ export function GraduatesTable(props: {
           msOverflowStyle: "none",
         }}
       >
-        <table className="table" style={{ minWidth: 2240 }}>
+        <table className="table" style={{ minWidth: 2140 }}>
           <thead>
             <tr>
               <th style={{ width: 44 }}><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} /></th>
@@ -58,7 +58,6 @@ export function GraduatesTable(props: {
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("oath_date")}>{t("table.oathDate")}{getSortIndicator("oath_date")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("study_program")}>{t("table.studyProgram")}{getSortIndicator("study_program")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("direction")}>{t("table.direction")}{getSortIndicator("direction")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_type")}>{t("table.originType")}{getSortIndicator("origin_type")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_country")}>{t("table.country")}{getSortIndicator("origin_country")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_region")}>{t("table.region")}{getSortIndicator("origin_region")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_municipality")}>{t("table.originMunicipality")}{getSortIndicator("origin_municipality")}</button></th>
