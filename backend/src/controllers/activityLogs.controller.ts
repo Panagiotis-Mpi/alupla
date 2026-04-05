@@ -188,7 +188,17 @@ function buildLogFilters(req: Request) {
     where.user_id = Number(userId);
   }
 
-  if (action) {
+  if (action === "export_logs") {
+    where[Op.and] = [
+      ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
+      {
+        [Op.or]: [
+          { action: "export_csv", entity_type: "logs" },
+          { action: "export_xlsx", entity_type: "logs" }
+        ]
+      }
+    ];
+  } else if (action) {
     where.action = { [Op.like]: `%${action}%` };
   }
 
@@ -501,8 +511,11 @@ function parseDetails(value: unknown) {
   }
 }
 
-function getLocalizedAction(lang: "gr" | "en", value: unknown) {
+function getLocalizedAction(lang: "gr" | "en", value: unknown, log?: any) {
   const key = String(value ?? "").trim();
+  if ((key === "export_csv" || key === "export_xlsx") && String(log?.entity_type ?? "").trim() === "logs") {
+    return lang === "en" ? "Log export" : "Εξαγωγή καταγραφών";
+  }
   return actionLabels[lang][key as keyof typeof actionLabels.gr] ?? key.replace(/_/g, " ");
 }
 
@@ -515,6 +528,21 @@ function getLocalizedDetails(lang: "gr" | "en", log: any) {
   const details = parseDetails(log?.details);
   if (!details) return "";
   if (typeof details === "string") return details;
+
+  if (["διαγραφή χρήστη", "delete_user", "deactivate_user"].includes(action)) {
+    return String((details as any).target_name ?? "").trim();
+  }
+
+  if ((action === "export_csv" || action === "export_xlsx") && String(log?.entity_type ?? "").trim() === "logs") {
+    const format = upperFileType(String((details as any).format ?? "").trim());
+    const count = (details as any).count ?? (details as any).exported;
+    const parts: string[] = [];
+    if (format) parts.push(format);
+    if (count !== null && count !== undefined && count !== "") {
+      parts.push(lang === "en" ? `${count} records` : `${count} εγγραφές`);
+    }
+    return parts.join(", ");
+  }
 
   const rawFile = String(details.file ?? details.filename ?? "").trim();
   const format = String(details.format ?? "").trim();
@@ -623,7 +651,7 @@ function getExportRows(lang: "gr" | "en", rows: any[]) {
     [lang === "en" ? "#" : "#"]: row.id,
     [lang === "en" ? "Time, Date" : "Ώρα, Ημερομηνία"]: formatDateTime(lang, row.created_at),
     [lang === "en" ? "User" : "Χρήστης"]: getActorLabel(lang, row),
-    [lang === "en" ? "Action" : "Ενέργεια"]: getLocalizedAction(lang, row.action),
+    [lang === "en" ? "Action" : "Ενέργεια"]: getLocalizedAction(lang, row.action, row),
     [lang === "en" ? "Details" : "Λεπτομέρειες"]: getLocalizedDetails(lang, row)
   }));
 }

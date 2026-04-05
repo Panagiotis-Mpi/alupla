@@ -157,8 +157,7 @@ const knownActionKeys = [
   "update_program_direction",
   "delete_program_direction",
   "import_program_directions",
-  "export_xlsx",
-  "export_csv",
+  "export_logs",
   "statistics_export",
   "map_export"
 ] as const;
@@ -260,8 +259,11 @@ export default function Logs() {
     return t("summary.roles.visitor");
   }
 
-  function toLocalizedAction(v: any): string {
+  function toLocalizedAction(v: any, log?: ActivityLog): string {
     const key = String(v ?? "").trim();
+    if ((key === "export_csv" || key === "export_xlsx" || key === "export_logs") && String(log?.entity_type ?? "logs").trim() === "logs") {
+      return activeLang === "en" ? "Log export" : "Εξαγωγή καταγραφών";
+    }
     return actionLabels[activeLang][key as keyof (typeof actionLabels)["gr"]] ?? key.replace(/_/g, " ");
   }
 
@@ -485,6 +487,10 @@ export default function Logs() {
       return localValue(details);
     }
 
+    if (["διαγραφή χρήστη", "delete_user", "deactivate_user"].includes(action)) {
+      return String(details.target_name ?? "").trim();
+    }
+
     const studentNumber = String(details.student_number ?? "").trim();
     if (studentNumber) {
       return `${localDetailLabel("student_number")}: ${studentNumber}`;
@@ -620,7 +626,7 @@ export default function Logs() {
   );
 
   const actionOptions = React.useMemo(() => {
-    const options = knownActionKeys.map((key) => ({ value: key, label: toLocalizedAction(key) }));
+    const options = knownActionKeys.map((key) => ({ value: key, label: toLocalizedAction(key as any) }));
     return options.sort((a, b) => a.label.localeCompare(b.label, activeLang === "gr" ? "el" : "en"));
   }, [activeLang]);
 
@@ -1075,7 +1081,7 @@ export default function Logs() {
                   <td>{l.id}</td>
                   <td>{formatDateTime(l.created_at)}</td>
                   <td>{actorLabel(l)}</td>
-                  <td>{toLocalizedAction(l.action)}</td>
+                  <td>{toLocalizedAction(l.action, l)}</td>
                   <td style={{ whiteSpace: "normal", wordBreak: "break-word" }}>
                     {formatLogDetails(l)}
                   </td>
