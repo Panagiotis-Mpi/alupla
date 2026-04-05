@@ -265,11 +265,17 @@ function parseImportGender(value: unknown) {
 }
 
 function parseIds(idsRaw: unknown): number[] {
-  if (typeof idsRaw !== "string") return [];
+  const values = Array.isArray(idsRaw)
+    ? idsRaw
+    : typeof idsRaw === "string"
+      ? idsRaw.split(",")
+      : idsRaw == null
+        ? []
+        : [idsRaw];
+
   return Array.from(
     new Set(
-      idsRaw
-        .split(",")
+      values
         .map((v) => Number(String(v).trim()))
         .filter((v) => Number.isInteger(v) && v > 0)
     )
