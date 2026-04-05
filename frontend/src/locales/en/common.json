@@ -22,8 +22,8 @@
   },
   "home": {
     "heroTitle": "ALUPLA | Graduate Platform",
-    "heroLead": "ALUPLA is a graduate management and presentation platform for the Department of Computer Engineering and Informatics of the University of Patras. Its name comes from the words Alumni Platform (University of Patras).",
-    "heroSublead": "As a visitor, you can explore two main sections: Statistics with anonymized aggregate information and the Map with a geographic view of graduates and key indicators by area.",
+    "heroLead": "ALUPLA is a modern platform for visualizing and analyzing graduate data from the Department of Computer Engineering and Informatics of the University of Patras. Its name is derived from the words Alumni Platform (University of Patras).",
+    "heroSublead": "Through the platform, you can explore anonymized statistical data and navigate the map, discovering the geographic distribution of graduates and key indicators by area.",
     "map": "Graduate Map",
     "stats": "Statistics & Charts",
     "heroLoginHint": "For Secretariat / Admin access:"
