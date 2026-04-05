@@ -410,6 +410,16 @@ function isGreeceCountryValue(value: unknown) {
   return normalized === normalizeRegionText("Ελλάδα") || normalized === normalizeRegionText("Greece");
 }
 
+function isAbroadOriginInput(countryName: unknown, countryRegionId: unknown, greeceRegionId: number | null, foreignCity: unknown) {
+  const normalizedCountry = trimNullableText(countryName);
+  if (normalizedCountry) return !isGreeceCountryValue(normalizedCountry);
+
+  const countryId = toNullableNumber(countryRegionId);
+  if (countryId != null && greeceRegionId != null && countryId !== greeceRegionId) return true;
+
+  return !!trimNullableText(foreignCity);
+}
+
 function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number, any>, directionsById: Map<number, any>, regionsById: Map<number, any>) {
   const labels = getColumnLabels(lang);
 
@@ -1051,17 +1061,18 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     if (origin_country_region_id === null) return bad(res, "origin_country_region_id is required");
     if (Number.isNaN(origin_country_region_id as any)) return bad(res, "origin_country_region_id must be a number");
     const selectedCountryName = String(regionsById.get(Number(origin_country_region_id))?.name ?? "").trim();
-    const origin_country_name = trimNullableText(body.origin_country) ?? trimNullableText(body.origin_foreign_country) ?? selectedCountryName ?? null;
-    const is_abroad = !!(origin_country_name && !isGreeceCountryValue(origin_country_name));
+    const origin_country_name = trimNullableText(body.origin_country) ?? trimNullableText(body.origin_foreign_country) ?? trimNullableText(selectedCountryName);
+    const origin_foreign_city = trimNullableText(body.origin_foreign_city);
+    const is_abroad = isAbroadOriginInput(origin_country_name, origin_country_region_id, defaultGreeceId, origin_foreign_city);
     let originPayload: Record<string, unknown>;
 
     if (is_abroad) {
-      const origin_foreign_city = trimNullableText(body.origin_foreign_city);
-      if (!origin_country_name) return bad(res, "origin_country is required");
+      const resolvedCountryName = origin_country_name ?? trimNullableText(selectedCountryName);
+      if (!resolvedCountryName) return bad(res, "origin_country is required");
       if (!origin_foreign_city) return bad(res, "origin_foreign_city is required");
 
       originPayload = {
-        origin_country: origin_country_name,
+        origin_country: resolvedCountryName,
         origin_foreign_city,
         origin_country_region_id,
         origin_periphery_region_id: null,
@@ -1232,13 +1243,15 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     setIf("origin_municipality", (v) => (v === "" ? null : String(v ?? "").trim()));
 
     const selectedCountryName = String(regionsById.get(Number((item as any).origin_country_region_id))?.name ?? "").trim();
-    const currentCountryName = trimNullableText((item as any).origin_country) ?? selectedCountryName ?? null;
-    const isAbroad = !!(currentCountryName && !isGreeceCountryValue(currentCountryName));
+    const currentCountryName = trimNullableText((item as any).origin_country) ?? trimNullableText(selectedCountryName);
+    const currentForeignCity = trimNullableText((item as any).origin_foreign_city);
+    const isAbroad = isAbroadOriginInput(currentCountryName, (item as any).origin_country_region_id ?? null, defaultGreeceId, currentForeignCity);
 
     if (isAbroad) {
-      (item as any).origin_country = currentCountryName;
+      (item as any).origin_country = currentCountryName ?? trimNullableText(selectedCountryName);
       if (!(item as any).origin_country) return bad(res, "origin_country is required");
-      if (!(item as any).origin_foreign_city) return bad(res, "origin_foreign_city is required");
+      if (!currentForeignCity) return bad(res, "origin_foreign_city is required");
+      (item as any).origin_foreign_city = currentForeignCity;
       (item as any).origin_periphery_region_id = null;
       (item as any).origin_region_id = null;
       (item as any).origin_city_region_id = null;

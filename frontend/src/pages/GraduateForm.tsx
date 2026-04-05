@@ -110,7 +110,7 @@ export default function GraduateForm(props: { mode: Mode }) {
         birth_date: (g.item as any).birth_date ?? "",
         graduation_date: g.item.graduation_date ?? "",
         oath_date: g.item.oath_date ?? "",
-        origin_foreign_country: g.item.origin_foreign_country ?? null,
+        origin_foreign_country: g.item.origin_country ?? null,
         origin_foreign_city: g.item.origin_foreign_city ?? null,
         origin_country_region_id: g.item.origin_country_region_id ?? null,
         origin_periphery_region_id: g.item.origin_periphery_region_id ?? g.item.origin_region_id ?? null,
