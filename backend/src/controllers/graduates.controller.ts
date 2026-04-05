@@ -807,9 +807,9 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const origin_type = parseImportOriginType(get("origin_type"));
       const origin_country_source = get("origin_country");
       const origin_country_text = String(origin_country_source ?? "").trim() || null;
-      const origin_country_region_id = origin_type === "abroad" ? null : (resolveRegionId(origin_country_source, regionsById) ?? toInt(get("origin_country_region_id")) ?? defaultGreeceId);
+      const origin_country_region_id = origin_type === "abroad" ? null : (resolveRegionId(origin_country_source, regionsById) ?? defaultGreeceId);
       const origin_region_source = get("origin_region");
-      const origin_periphery_region_id = origin_type === "abroad" ? null : (resolveRegionId(origin_region_source, regionsById) ?? toInt(get("origin_region_id")));
+      const origin_periphery_region_id = origin_type === "abroad" ? null : resolveRegionId(origin_region_source, regionsById);
       const origin_municipality = String(get("origin_municipality")).trim() || null;
       const origin_foreign_country = origin_type === "abroad" ? origin_country_text : null;
       const origin_foreign_city = origin_type === "abroad" ? origin_municipality : null;
