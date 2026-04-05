@@ -41,6 +41,8 @@ export type GraduatesFiltersState = {
   program_direction_id: string;
   origin_region_id: string;
   origin_municipality_like: string;
+  origin_foreign_country_like: string;
+  origin_foreign_city_like: string;
 };
 
 export const EMPTY_GRADUATES_FILTERS: GraduatesFiltersState = {
@@ -64,6 +66,8 @@ export const EMPTY_GRADUATES_FILTERS: GraduatesFiltersState = {
   program_direction_id: "",
   origin_region_id: "",
   origin_municipality_like: "",
+  origin_foreign_country_like: "",
+  origin_foreign_city_like: "",
 };
 
 function Field(props: { label: string; children: React.ReactNode; span?: number }) {
@@ -183,16 +187,18 @@ export function createRegionMap(items: Array<Record<string, unknown>>) {
 
 
 export function getGraduateOriginRegionDisplay(graduate: Graduate, regionNameById: Map<number, string>) {
-  const countryName = getGraduateOriginCountryDisplay(graduate, regionNameById);
-  const normalizedCountry = normalizeDisplayText(countryName);
-  if (normalizedCountry && normalizedCountry !== normalizeDisplayText("Ελλάδα") && normalizedCountry !== normalizeDisplayText("Greece")) {
+  if (String(graduate.origin_foreign_country ?? "").trim()) {
     return "";
   }
   return regionNameById.get(Number(graduate.origin_region_id)) ?? "";
 }
 
 export function getGraduateOriginCountryDisplay(graduate: Graduate, regionNameById: Map<number, string>, t?: (key: string) => string) {
-  const countryName = regionNameById.get(Number(graduate.origin_country_region_id)) ?? String(graduate.origin_foreign_country ?? "").trim();
+  const foreignCountry = String(graduate.origin_foreign_country ?? "").trim();
+  if (foreignCountry) {
+    return foreignCountry;
+  }
+  const countryName = regionNameById.get(Number(graduate.origin_country_region_id)) ?? "";
   const normalized = normalizeDisplayText(countryName);
   if (normalized === normalizeDisplayText("Ελλάδα") || normalized === normalizeDisplayText("Greece")) {
     return t ? t("filters.originTypeGreece") : "Greece";
@@ -201,8 +207,9 @@ export function getGraduateOriginCountryDisplay(graduate: Graduate, regionNameBy
 }
 
 export function getGraduateOriginMunicipalityDisplay(graduate: Graduate) {
-  if (graduate.origin_foreign_city) {
-    return String(graduate.origin_foreign_city).trim();
+  const foreignCity = String(graduate.origin_foreign_city ?? "").trim();
+  if (foreignCity) {
+    return foreignCity;
   }
   return graduate.origin_municipality ?? "";
 }
@@ -428,6 +435,12 @@ export function GraduatesFilters(props: {
       </Field>
       <Field label={t("table.originMunicipality")}>
         <input className="input" value={filters.origin_municipality_like} onChange={(e) => setFilters((current) => ({ ...current, origin_municipality_like: e.target.value }))} />
+      </Field>
+      <Field label={t("filters.foreignCountry")}>
+        <input className="input" value={filters.origin_foreign_country_like} onChange={(e) => setFilters((current) => ({ ...current, origin_foreign_country_like: e.target.value }))} />
+      </Field>
+      <Field label={t("filters.foreignCity")}>
+        <input className="input" value={filters.origin_foreign_city_like} onChange={(e) => setFilters((current) => ({ ...current, origin_foreign_city_like: e.target.value }))} />
       </Field>
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-start" }}>
         <button className="btn" onClick={onSearch}>

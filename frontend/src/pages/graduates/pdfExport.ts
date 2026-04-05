@@ -116,14 +116,10 @@ function buildRows(args: {
   return items.map((item) => {
     const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
     const directionName = directionNameById.get(Number(item.program_direction_id)) ?? "";
-    const originType = item.origin_type ?? ((item.origin_foreign_country || item.origin_foreign_city) ? "abroad" : "greece");
-    const countryName = formatCountryValue(regionNameById.get(Number(item.origin_country_region_id)) ?? String(item.origin_foreign_country ?? ""), lang);
-    const regionName = originType === "abroad"
-      ? ""
-      : regionNameById.get(Number(item.origin_region_id)) ?? "";
-    const municipalityName = originType === "abroad"
-      ? String(item.origin_foreign_city ?? "")
-      : item.origin_municipality ?? "";
+    const foreignCountry = String(item.origin_foreign_country ?? "").trim();
+    const countryName = foreignCountry || formatCountryValue(regionNameById.get(Number(item.origin_country_region_id)) ?? "", lang);
+    const regionName = foreignCountry ? "" : regionNameById.get(Number(item.origin_region_id)) ?? "";
+    const municipalityName = String(item.origin_foreign_city ?? "").trim() || (item.origin_municipality ?? "");
 
     return {
       [labels.ad_code]: item.ad_code ?? "",

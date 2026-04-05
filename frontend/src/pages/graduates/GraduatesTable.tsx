@@ -41,7 +41,7 @@ export function GraduatesTable(props: {
           msOverflowStyle: "none",
         }}
       >
-        <table className="table" style={{ minWidth: 2140 }}>
+        <table className="table" style={{ minWidth: 2240 }}>
           <thead>
             <tr>
               <th style={{ width: 44 }}><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} /></th>
@@ -85,7 +85,6 @@ export function GraduatesTable(props: {
                   <td>{formatValue(graduate.oath_date, "date")}</td>
                   <td>{programNameById.get(Number(graduate.study_program_id)) ?? ""}</td>
                   <td>{directionNameById.get(Number(graduate.program_direction_id)) ?? ""}</td>
-                  <td>{formatValue(getGraduateOriginTypeDisplay(graduate, t))}</td>
                   <td>{formatValue(getGraduateOriginCountryDisplay(graduate, regionNameById, t))}</td>
                   <td>{formatValue(getGraduateOriginRegionDisplay(graduate, regionNameById))}</td>
                   <td>{formatValue(getGraduateOriginMunicipalityDisplay(graduate))}</td>
@@ -104,7 +103,7 @@ export function GraduatesTable(props: {
             })}
             {!visibleItems.length ? (
               <tr>
-                <td colSpan={19} className="muted">
+                <td colSpan={18} className="muted">
                   {t("table.empty")}
                 </td>
               </tr>
