@@ -51,7 +51,7 @@
     "originType": "Origin category",
     "originTypeGreece": "Greece",
     "originTypeAbroad": "Abroad",
-    "foreignCountry": "Foreign country",
+    "foreignCountry": "Country",
     "foreignCity": "Foreign city"
   },
   "table": {
@@ -74,7 +74,9 @@
     "edit": "Edit",
     "delete": "Delete",
     "empty": "No results.",
-    "region": "Region"
+    "region": "Region",
+    "originType": "Origin category",
+    "country": "Country"
   },
   "toast": {
     "importCompleted": "Import completed",

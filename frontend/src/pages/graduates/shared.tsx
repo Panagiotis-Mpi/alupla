@@ -16,6 +16,8 @@ export type SortKey =
   | "oath_date"
   | "study_program"
   | "direction"
+  | "origin_type"
+  | "origin_country"
   | "origin_region"
   | "origin_municipality";
 
@@ -170,6 +172,14 @@ export function createNameMap(items: Array<Record<string, unknown>>, activeLang:
   return map;
 }
 
+function normalizeDisplayText(value: unknown) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
 export function createRegionMap(items: Array<Record<string, unknown>>) {
   const map = new Map<number, string>();
   for (const item of items || []) {
@@ -185,6 +195,25 @@ export function getGraduateOriginRegionDisplay(graduate: Graduate, regionNameByI
     return String(graduate.origin_foreign_country ?? "").trim();
   }
   return regionNameById.get(Number(graduate.origin_region_id)) ?? "";
+}
+
+export function getGraduateOriginTypeDisplay(graduate: Graduate, t?: (key: string) => string) {
+  const originType = graduate.origin_type ?? ((graduate.origin_foreign_country || graduate.origin_foreign_city) ? "abroad" : "greece");
+  if (originType === "abroad") return t ? t("filters.originTypeAbroad") : "Abroad";
+  return t ? t("filters.originTypeGreece") : "Greece";
+}
+
+export function getGraduateOriginCountryDisplay(graduate: Graduate, regionNameById: Map<number, string>, t?: (key: string) => string) {
+  const originType = graduate.origin_type ?? ((graduate.origin_foreign_country || graduate.origin_foreign_city) ? "abroad" : "greece");
+  if (originType === "abroad") {
+    return String(graduate.origin_foreign_country ?? "").trim();
+  }
+  const countryName = regionNameById.get(Number(graduate.origin_country_region_id)) ?? "";
+  const normalized = normalizeDisplayText(countryName);
+  if (normalized === normalizeDisplayText("Ελλάδα") || normalized === normalizeDisplayText("Greece")) {
+    return t ? t("filters.originTypeGreece") : "Greece";
+  }
+  return countryName;
 }
 
 export function getGraduateOriginMunicipalityDisplay(graduate: Graduate) {
@@ -219,6 +248,12 @@ export function getGraduateSortValue(args: {
   }
   if (key === "direction") {
     return directionNameById.get(Number(graduate.program_direction_id)) ?? "";
+  }
+  if (key === "origin_type") {
+    return getGraduateOriginTypeDisplay(graduate);
+  }
+  if (key === "origin_country") {
+    return getGraduateOriginCountryDisplay(graduate, regionNameById);
   }
   if (key === "origin_region") {
     return getGraduateOriginRegionDisplay(graduate, regionNameById);
@@ -286,6 +321,8 @@ export function filterAndSortGraduates(args: {
       graduate.oath_date,
       programNameById.get(Number(graduate.study_program_id)) ?? "",
       directionNameById.get(Number(graduate.program_direction_id)) ?? "",
+      getGraduateOriginTypeDisplay(graduate),
+      getGraduateOriginCountryDisplay(graduate, regionNameById),
       getGraduateOriginRegionDisplay(graduate, regionNameById),
       getGraduateOriginMunicipalityDisplay(graduate),
       graduate.origin_foreign_country,

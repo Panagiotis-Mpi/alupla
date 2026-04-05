@@ -85,7 +85,7 @@ function getColumnLabels(lang: ExportLang) {
       direction: "Direction",
       origin_type: "Origin type",
       origin_country: "Country",
-      origin_region: "Periphery",
+      origin_region: "Region",
       origin_municipality: "City"
     } as const;
   }
@@ -109,6 +109,45 @@ function getColumnLabels(lang: ExportLang) {
     origin_region: "Περιφέρεια",
     origin_municipality: "Πόλη"
   } as const;
+}
+
+const GRADUATES_COLUMN_KEYS = [
+  "ad_code",
+  "student_number",
+  "last_name",
+  "first_name",
+  "father_name",
+  "gender",
+  "entry_year",
+  "birth_date",
+  "degree_grade",
+  "graduation_date",
+  "oath_date",
+  "study_program",
+  "direction",
+  "origin_type",
+  "origin_country",
+  "origin_region",
+  "origin_municipality",
+] as const;
+
+function getStrictTemplateHeaderRows(lang: ExportLang) {
+  const labels = getColumnLabels(lang);
+  return GRADUATES_COLUMN_KEYS.map((key) => labels[key]);
+}
+
+function getMatchedTemplateHeaderKeys(headers: string[]) {
+  const normalizedHeaders = headers.map((header) => normHeader(header));
+  const gr = getStrictTemplateHeaderRows("gr").map((header) => normHeader(header));
+  const en = getStrictTemplateHeaderRows("en").map((header) => normHeader(header));
+
+  const same = (expected: string[]) => expected.length === normalizedHeaders.length && expected.every((value, index) => value === normalizedHeaders[index]);
+
+  if (same(gr) || same(en)) {
+    return Object.fromEntries(GRADUATES_COLUMN_KEYS.map((key, index) => [key, index])) as Record<(typeof GRADUATES_COLUMN_KEYS)[number], number>;
+  }
+
+  return null;
 }
 
 const IMPORT_HEADER_ALIASES = {
@@ -359,15 +398,25 @@ function formatDateDisplay(value: unknown) {
   return `${day}/${month}/${year}`;
 }
 
-function formatGenderValue(value: unknown) {
+function formatGenderValue(value: unknown, lang: ExportLang) {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) {
-    return "Άνδρας";
+    return lang === "en" ? "Male" : "Άνδρας";
   }
   if (["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalized)) {
-    return "Γυναίκα";
+    return lang === "en" ? "Female" : "Γυναίκα";
   }
   return String(value ?? "").trim();
+}
+
+function formatCountryValue(value: unknown, lang: ExportLang) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  const normalized = normalizeRegionText(text);
+  if (normalized === normalizeRegionText("Ελλάδα") || normalized === normalizeRegionText("Greece")) {
+    return lang === "en" ? "Greece" : "Ελλάδα";
+  }
+  return text;
 }
 
 function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number, any>, directionsById: Map<number, any>, regionsById: Map<number, any>) {
@@ -385,7 +434,7 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
     const regionName = originType === "abroad" ? "" : (region ? String(region.name ?? "") : "");
     const countryName = originType === "abroad"
       ? String(item.origin_foreign_country ?? "")
-      : (() => { const country = regionsById.get(Number(item.origin_country_region_id)); return country ? String(country.name ?? "") : ""; })();
+      : (() => { const country = regionsById.get(Number(item.origin_country_region_id)); return formatCountryValue(country ? String(country.name ?? "") : "", lang); })();
     const municipalityName = originType === "abroad" ? String(item.origin_foreign_city ?? "") : (item.origin_municipality ?? "");
 
     return {
@@ -394,7 +443,7 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
       [labels.last_name]: item.last_name ?? "",
       [labels.first_name]: item.first_name ?? "",
       [labels.father_name]: item.father_name ?? "",
-      [labels.gender]: formatGenderValue(item.gender),
+      [labels.gender]: formatGenderValue(item.gender, lang),
       [labels.entry_year]: item.entry_year ?? "",
       [labels.birth_date]: formatDateDisplay(item.birth_date),
       [labels.degree_grade]: item.degree_grade ?? "",
@@ -411,26 +460,7 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
 }
 
 function getTemplateHeaders(lang: ExportLang) {
-  const labels = getColumnLabels(lang);
-  return [[
-    labels.ad_code,
-    labels.student_number,
-    labels.last_name,
-    labels.first_name,
-    labels.father_name,
-    labels.gender,
-    labels.entry_year,
-    labels.birth_date,
-    labels.degree_grade,
-    labels.graduation_date,
-    labels.oath_date,
-    labels.study_program,
-    labels.direction,
-    labels.origin_type,
-    labels.origin_country,
-    labels.origin_region,
-    labels.origin_municipality
-  ]];
+  return [getStrictTemplateHeaderRows(lang)];
 }
 
 async function getReferenceMaps() {
@@ -704,46 +734,36 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
     if (rows.length < 2) return res.status(400).json({ error: { message: "No data rows" } });
 
     const headerRow = rows[0];
-    const headers = headerRow.map((h) => normHeader(h));
+    const headers = headerRow.map((header) => String(header ?? "").trim());
+    const matchedHeaderKeys = getMatchedTemplateHeaderKeys(headers);
+
+    if (!matchedHeaderKeys) {
+      return res.status(400).json({
+        error: {
+          message: "Invalid import template columns. Use the exact graduate import template header order in Greek or English.",
+        }
+      });
+    }
 
     const idx = {
-      student_number: firstIndex(headers, [...IMPORT_HEADER_ALIASES.student_number]),
-      ad_code: firstIndex(headers, [...IMPORT_HEADER_ALIASES.ad_code]),
-      last_name: firstIndex(headers, [...IMPORT_HEADER_ALIASES.last_name]),
-      first_name: firstIndex(headers, [...IMPORT_HEADER_ALIASES.first_name]),
-      father_name: firstIndex(headers, [...IMPORT_HEADER_ALIASES.father_name]),
-      gender: firstIndex(headers, [...IMPORT_HEADER_ALIASES.gender]),
-      entry_year: firstIndex(headers, [...IMPORT_HEADER_ALIASES.entry_year]),
-      graduation_date: firstIndex(headers, [...IMPORT_HEADER_ALIASES.graduation_date]),
-      oath_date: firstIndex(headers, [...IMPORT_HEADER_ALIASES.oath_date]),
-      degree_grade: firstIndex(headers, [...IMPORT_HEADER_ALIASES.degree_grade]),
-      birth_year: firstIndex(headers, [...IMPORT_HEADER_ALIASES.birth_year]),
-      birth_date: firstIndex(headers, [...IMPORT_HEADER_ALIASES.birth_date]),
-      study_program: firstIndex(headers, [...IMPORT_HEADER_ALIASES.study_program]),
-      study_program_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.study_program_id]),
-      program_direction: firstIndex(headers, [...IMPORT_HEADER_ALIASES.program_direction]),
-      program_direction_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.program_direction_id]),
-      origin_type: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_type]),
-      origin_country: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_country]),
-      origin_country_region_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_country_region_id]),
-      origin_region: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_region]),
-      origin_region_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_region_id]),
-      origin_municipality: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_municipality]),
+      ad_code: matchedHeaderKeys.ad_code,
+      student_number: matchedHeaderKeys.student_number,
+      last_name: matchedHeaderKeys.last_name,
+      first_name: matchedHeaderKeys.first_name,
+      father_name: matchedHeaderKeys.father_name,
+      gender: matchedHeaderKeys.gender,
+      entry_year: matchedHeaderKeys.entry_year,
+      birth_date: matchedHeaderKeys.birth_date,
+      degree_grade: matchedHeaderKeys.degree_grade,
+      graduation_date: matchedHeaderKeys.graduation_date,
+      oath_date: matchedHeaderKeys.oath_date,
+      study_program: matchedHeaderKeys.study_program,
+      program_direction: matchedHeaderKeys.direction,
+      origin_type: matchedHeaderKeys.origin_type,
+      origin_country: matchedHeaderKeys.origin_country,
+      origin_region: matchedHeaderKeys.origin_region,
+      origin_municipality: matchedHeaderKeys.origin_municipality,
     };
-
-    const required = ["student_number","ad_code","last_name","first_name","father_name","gender","entry_year","graduation_date","oath_date","degree_grade","study_program","birth_date"];
-    const missingRequired = required.filter((k) => (idx as any)[k] === -1);
-    if (missingRequired.length) {
-      return res.status(400).json({
-        error: { message: "Missing required columns", details: { missing: missingRequired } }
-      });
-    }
-
-    if (idx.birth_year >= 0) {
-      return res.status(400).json({
-        error: { message: "Column birth_year is no longer accepted. Use birth_date instead." }
-      });
-    }
 
     type RowError = { row: number; column?: string; message: string; value?: any; details?: string[]; violation_codes?: RuleViolationCode[] };
     type PreparedRow = {
@@ -778,17 +798,17 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const graduation_date = toDateOnly(get("graduation_date"));
       const oath_date = toDateOnly(get("oath_date"));
       const degree_grade = toNumber(get("degree_grade"));
-      const birth_date = idx.birth_date >= 0 ? toDateOnly(get("birth_date" as any)) : null;
-      const study_program_source = idx.study_program >= 0 ? get("study_program") : get("study_program_id");
+      const birth_date = toDateOnly(get("birth_date" as any));
+      const study_program_source = get("study_program");
       const study_program_id = resolveStudyProgramId(study_program_source, programsById);
-      const program_direction_source = idx.program_direction >= 0 ? get("program_direction") : get("program_direction_id");
+      const program_direction_source = get("program_direction");
       const program_direction_id = resolveProgramDirectionId(program_direction_source, directionsById, study_program_id);
       const defaultGreeceId = Array.from(regionsById.values()).find((item: any) => normalizeRegionText(item?.name) === normalizeRegionText("Ελλάδα"))?.id ?? null;
-      const origin_type = idx.origin_type >= 0 ? parseImportOriginType(get("origin_type")) : "greece";
-      const origin_country_source = idx.origin_country >= 0 ? get("origin_country") : get("origin_country_region_id");
+      const origin_type = parseImportOriginType(get("origin_type"));
+      const origin_country_source = get("origin_country");
       const origin_country_text = String(origin_country_source ?? "").trim() || null;
       const origin_country_region_id = origin_type === "abroad" ? null : (resolveRegionId(origin_country_source, regionsById) ?? toInt(get("origin_country_region_id")) ?? defaultGreeceId);
-      const origin_region_source = idx.origin_region >= 0 ? get("origin_region") : get("origin_region_id");
+      const origin_region_source = get("origin_region");
       const origin_periphery_region_id = origin_type === "abroad" ? null : (resolveRegionId(origin_region_source, regionsById) ?? toInt(get("origin_region_id")));
       const origin_municipality = String(get("origin_municipality")).trim() || null;
       const origin_foreign_country = origin_type === "abroad" ? origin_country_text : null;

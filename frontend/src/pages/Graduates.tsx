@@ -235,11 +235,11 @@ function getImportColumnLabel(column: string, t: (key: string, options?: Record<
     oath_date: t("table.oathDate"),
     degree_grade: t("table.degreeGrade"),
     study_program: t("table.studyProgram"),
-    origin_type: t("filters.originType"),
-    origin_country: t("filters.foreignCountry"),
+    origin_type: t("table.originType"),
+    origin_country: t("table.country"),
     origin_region: t("table.region"),
     origin_municipality: t("table.originMunicipality"),
-    origin_foreign_country: t("filters.foreignCountry"),
+    origin_foreign_country: t("table.country"),
     origin_foreign_city: t("filters.foreignCity"),
   };
   return labels[column] || column;

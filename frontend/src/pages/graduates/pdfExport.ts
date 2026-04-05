@@ -19,13 +19,23 @@ const TABLE_HEADER_FONT = '600 10px "Segoe UI", Arial, sans-serif';
 const TABLE_FONT = '10px "Segoe UI", Arial, sans-serif';
 const TABLE_HEADER_LINE_HEIGHT = 14;
 const TABLE_LINE_HEIGHT = 13;
-const COLUMN_WIDTHS = [44, 58, 88, 82, 88, 62, 52, 56, 64, 72, 72, 150, 142, 96, 126];
+const COLUMN_WIDTHS = [40, 52, 76, 72, 78, 54, 48, 54, 58, 64, 64, 122, 112, 78, 96, 88, 104];
 
-function formatGenderGreek(value: unknown) {
+function formatGenderValue(value: unknown, lang: ExportLang) {
   const normalized = String(value ?? "").trim().toLowerCase();
-  if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) return "Άνδρας";
-  if (["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalized)) return "Γυναίκα";
+  if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) return lang === "en" ? "Male" : "Άνδρας";
+  if (["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalized)) return lang === "en" ? "Female" : "Γυναίκα";
   return String(value ?? "").trim();
+}
+
+function formatCountryValue(value: unknown, lang: ExportLang) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  const normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  if (normalized === "ελλαδα" || normalized === "greece") {
+    return lang === "en" ? "Greece" : "Ελλάδα";
+  }
+  return text;
 }
 
 function formatDateValue(value: unknown) {
@@ -67,6 +77,8 @@ function getLabels(lang: ExportLang) {
       oath_date: "Oath date",
       study_program: "Study program",
       direction: "Direction",
+      origin_type: "Origin category",
+      origin_country: "Country",
       origin_region: "Region",
       origin_municipality: "City"
     } as const;
@@ -86,6 +98,8 @@ function getLabels(lang: ExportLang) {
     oath_date: "Ημ. ορκωμοσίας",
     study_program: "Πρόγραμμα σπουδών",
     direction: "Κατεύθυνση",
+    origin_type: "Κατηγορία καταγωγής",
+    origin_country: "Χώρα",
     origin_region: "Περιφέρεια",
     origin_municipality: "Πόλη"
   } as const;
@@ -105,8 +119,12 @@ function buildRows(args: {
     const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
     const directionName = directionNameById.get(Number(item.program_direction_id)) ?? "";
     const originType = item.origin_type ?? ((item.origin_foreign_country || item.origin_foreign_city) ? "abroad" : "greece");
-    const regionName = originType === "abroad"
+    const originTypeLabel = originType === "abroad" ? (lang === "en" ? "Abroad" : "Εξωτερικό") : (lang === "en" ? "Greece" : "Ελλάδα");
+    const countryName = originType === "abroad"
       ? String(item.origin_foreign_country ?? "")
+      : formatCountryValue(regionNameById.get(Number(item.origin_country_region_id)) ?? "", lang);
+    const regionName = originType === "abroad"
+      ? ""
       : regionNameById.get(Number(item.origin_region_id)) ?? "";
     const municipalityName = originType === "abroad"
       ? String(item.origin_foreign_city ?? "")
@@ -118,7 +136,7 @@ function buildRows(args: {
       [labels.last_name]: item.last_name ?? "",
       [labels.first_name]: item.first_name ?? "",
       [labels.father_name]: item.father_name ?? "",
-      [labels.gender]: formatGenderGreek(item.gender),
+      [labels.gender]: formatGenderValue(item.gender, lang),
       [labels.entry_year]: item.entry_year == null ? "" : String(item.entry_year),
       [labels.birth_date]: formatDateValue(item.birth_date),
       [labels.degree_grade]: item.degree_grade == null ? "" : String(item.degree_grade),
@@ -126,6 +144,8 @@ function buildRows(args: {
       [labels.oath_date]: formatDateValue(item.oath_date),
       [labels.study_program]: studyProgramName,
       [labels.direction]: directionName,
+      [labels.origin_type]: originTypeLabel,
+      [labels.origin_country]: countryName,
       [labels.origin_region]: regionName,
       [labels.origin_municipality]: municipalityName
     } satisfies PdfRow;

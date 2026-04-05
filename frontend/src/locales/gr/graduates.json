@@ -51,7 +51,7 @@
     "originType": "Κατηγορία καταγωγής",
     "originTypeGreece": "Ελλάδα",
     "originTypeAbroad": "Εξωτερικό",
-    "foreignCountry": "Χώρα εξωτερικού",
+    "foreignCountry": "Χώρα",
     "foreignCity": "Πόλη εξωτερικού"
   },
   "table": {
@@ -74,7 +74,9 @@
     "edit": "Επεξεργασία",
     "delete": "Διαγραφή",
     "empty": "Δεν υπάρχουν αποτελέσματα.",
-    "region": "Περιφέρεια"
+    "region": "Περιφέρεια",
+    "originType": "Κατηγορία καταγωγής",
+    "country": "Χώρα"
   },
   "toast": {
     "importCompleted": "Η εισαγωγή ολοκληρώθηκε",
