@@ -34,7 +34,12 @@
     "required": "Λείπει υποχρεωτικό πεδίο:",
     "choice": "Επιλογή",
     "genderMale": "Άντρας",
-    "genderFemale": "Γυναίκα"
+    "genderFemale": "Γυναίκα",
+    "originType": "Κατηγορία καταγωγής",
+    "originTypeGreece": "Ελλάδα",
+    "originTypeAbroad": "Εξωτερικό",
+    "foreignCountry": "Χώρα εξωτερικού",
+    "foreignCity": "Πόλη εξωτερικού"
   },
   "tip": "",
   "error": "Σφάλμα",

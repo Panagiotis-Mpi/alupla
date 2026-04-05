@@ -2,6 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/sequelize";
 
 export type Gender = "M" | "F";
+export type OriginType = "greece" | "abroad";
 
 export class Graduate extends Model {
   declare id: number;
@@ -18,6 +19,9 @@ export class Graduate extends Model {
   declare gender: Gender;
   declare study_program_id: number;
   declare program_direction_id: number | null;
+  declare origin_type: OriginType;
+  declare origin_foreign_country: string | null;
+  declare origin_foreign_city: string | null;
   declare origin_country_region_id: number | null;
   declare origin_periphery_region_id: number | null;
   declare origin_region_id: number | null;
@@ -41,6 +45,9 @@ Graduate.init(
     gender: { type: DataTypes.ENUM("M", "F"), allowNull: false },
     study_program_id: { type: DataTypes.INTEGER, allowNull: false },
     program_direction_id: { type: DataTypes.INTEGER, allowNull: true },
+    origin_type: { type: DataTypes.ENUM("greece", "abroad"), allowNull: false, defaultValue: "greece" },
+    origin_foreign_country: { type: DataTypes.STRING(120), allowNull: true },
+    origin_foreign_city: { type: DataTypes.STRING(120), allowNull: true },
     origin_country_region_id: { type: DataTypes.INTEGER, allowNull: true },
     origin_periphery_region_id: { type: DataTypes.INTEGER, allowNull: true },
     origin_region_id: { type: DataTypes.INTEGER, allowNull: true },

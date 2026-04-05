@@ -34,7 +34,12 @@
     "required": "Missing required field:",
     "choice": "Select",
     "genderMale": "Male",
-    "genderFemale": "Female"
+    "genderFemale": "Female",
+    "originType": "Origin category",
+    "originTypeGreece": "Greece",
+    "originTypeAbroad": "Abroad",
+    "foreignCountry": "Foreign country",
+    "foreignCity": "Foreign city"
   },
   "tip": "",
   "error": "Error",
