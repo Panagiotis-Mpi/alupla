@@ -34,13 +34,13 @@ function setTextFilters(where: GraduateWhere, query: Query) {
     { field: "father_name", exactKey: "father_name", likeKey: "father_name_like" },
     { field: "student_number", exactKey: "student_number", likeKey: "student_number_like" },
     { field: "origin_municipality", exactKey: "origin_municipality", likeKey: "origin_municipality_like" },
-    { field: "origin_foreign_country", exactKey: "origin_foreign_country", likeKey: "origin_foreign_country_like" },
+    { field: "origin_country", exactKey: "origin_country", likeKey: "origin_country_like" },
     { field: "origin_foreign_city", exactKey: "origin_foreign_city", likeKey: "origin_foreign_city_like" }
   ];
 
   for (const pair of pairs) {
-    const exactValue = readString(query[pair.exactKey]);
-    const likeValue = readString(query[pair.likeKey]);
+    const exactValue = readString(query[pair.exactKey]) ?? (pair.field == "origin_country" ? readString(query.origin_foreign_country) : undefined);
+    const likeValue = readString(query[pair.likeKey]) ?? (pair.field == "origin_country" ? readString(query.origin_foreign_country_like) : undefined);
 
     if (exactValue) where[pair.field] = exactValue;
     if (likeValue) where[pair.field] = contains(likeValue);
@@ -53,10 +53,6 @@ function setEnumAndForeignKeyFilters(where: GraduateWhere, query: Query) {
     where.gender = gender;
   }
 
-  const originType = readString(query.origin_type);
-  if (originType === "greece" || originType === "abroad") {
-    where.origin_type = originType;
-  }
 
   const studyProgramId = readNumber(query.study_program_id);
   if (studyProgramId !== undefined) {
@@ -168,7 +164,7 @@ function setGlobalSearch(where: GraduateWhere, query: Query) {
     { student_number: contains(keyword) },
     { ad_code: contains(keyword) },
     { origin_municipality: contains(keyword) },
-    { origin_foreign_country: contains(keyword) },
+    { origin_country: contains(keyword) },
     { origin_foreign_city: contains(keyword) }
   ];
 }

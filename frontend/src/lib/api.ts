@@ -205,8 +205,7 @@ export type Graduate = {
   gender: "M" | "F";
   study_program_id: number;
   program_direction_id?: number | null;
-  origin_type?: "greece" | "abroad";
-  origin_foreign_country?: string | null;
+  origin_country?: string | null;
   origin_foreign_city?: string | null;
   origin_country_region_id?: number | null;
   origin_periphery_region_id?: number | null;

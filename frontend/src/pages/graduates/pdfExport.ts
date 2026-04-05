@@ -116,8 +116,8 @@ function buildRows(args: {
   return items.map((item) => {
     const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
     const directionName = directionNameById.get(Number(item.program_direction_id)) ?? "";
-    const foreignCountry = String(item.origin_foreign_country ?? "").trim();
-    const countryName = foreignCountry || formatCountryValue(regionNameById.get(Number(item.origin_country_region_id)) ?? "", lang);
+    const explicitCountry = String((item as any).origin_country ?? item.origin_foreign_country ?? "").trim();
+    const countryName = explicitCountry || formatCountryValue(regionNameById.get(Number(item.origin_country_region_id)) ?? "", lang);
     const regionName = foreignCountry ? "" : regionNameById.get(Number(item.origin_region_id)) ?? "";
     const municipalityName = String(item.origin_foreign_city ?? "").trim() || (item.origin_municipality ?? "");
 

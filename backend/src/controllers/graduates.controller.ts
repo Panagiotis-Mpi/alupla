@@ -300,16 +300,6 @@ function parseStoredGender(value: unknown) {
   return raw === "M" || raw === "F" ? raw : null;
 }
 
-function parseOriginType(value: unknown): "greece" | "abroad" {
-  return String(value ?? "").trim().toLowerCase() === "abroad" ? "abroad" : "greece";
-}
-
-function parseImportOriginType(value: unknown): "greece" | "abroad" {
-  const normalized = normHeader(String(value ?? "").trim());
-  if (["abroad", "foreign", "overseas", "εξωτερικο", "εξωτερικό"].includes(normalized)) return "abroad";
-  return "greece";
-}
-
 function getGreeceRegionId(regionsById: Map<number, any>) {
   return Array.from(regionsById.values()).find((item: any) => normalizeRegionText(item?.name) === normalizeRegionText("Ελλάδα"))?.id ?? null;
 }
@@ -415,6 +405,11 @@ function formatCountryValue(value: unknown, lang: ExportLang) {
   return text;
 }
 
+function isGreeceCountryValue(value: unknown) {
+  const normalized = normalizeRegionText(String(value ?? "").trim());
+  return normalized === normalizeRegionText("Ελλάδα") || normalized === normalizeRegionText("Greece");
+}
+
 function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number, any>, directionsById: Map<number, any>, regionsById: Map<number, any>) {
   const labels = getColumnLabels(lang);
 
@@ -424,12 +419,13 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
     const direction = directionsById.get(Number(item.program_direction_id));
     const studyProgramName = studyProgram ? String(studyProgram.name_el ?? studyProgram.name_en ?? studyProgram.code ?? studyProgram.id) : "";
     const directionName = direction ? String(direction.name_el ?? direction.name_en ?? direction.code ?? direction.id) : "";
-    const originType = parseOriginType(item.origin_type ?? ((item.origin_foreign_country || item.origin_foreign_city) ? "abroad" : "greece"));
     const region = regionsById.get(Number(item.origin_periphery_region_id ?? item.origin_region_id));
-    const regionName = originType === "abroad" ? "" : (region ? String(region.name ?? "") : "");
     const country = regionsById.get(Number(item.origin_country_region_id));
-    const countryName = formatCountryValue(country ? String(country.name ?? "") : String(item.origin_foreign_country ?? ""), lang);
-    const municipalityName = originType === "abroad" ? String(item.origin_foreign_city ?? "") : (item.origin_municipality ?? "");
+    const rawCountryName = String(item.origin_country ?? country?.name ?? "");
+    const isGreece = isGreeceCountryValue(rawCountryName) || (country ? isGreeceCountryValue(country.name) : false);
+    const regionName = isGreece ? (region ? String(region.name ?? "") : "") : "";
+    const countryName = formatCountryValue(rawCountryName || String(country?.name ?? ""), lang);
+    const municipalityName = isGreece ? (item.origin_municipality ?? "") : String(item.origin_foreign_city ?? item.origin_municipality ?? "");
 
     return {
       [labels.ad_code]: item.ad_code ?? "",
@@ -798,13 +794,12 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const defaultGreeceId = Array.from(regionsById.values()).find((item: any) => normalizeRegionText(item?.name) === normalizeRegionText("Ελλάδα"))?.id ?? null;
       const origin_country_source = get("origin_country");
       const origin_country_region_id = resolveRegionId(origin_country_source, regionsById) ?? null;
-      const origin_country_name = origin_country_region_id ? String(regionsById.get(origin_country_region_id)?.name ?? "").trim() : null;
-      const origin_type = origin_country_region_id && defaultGreeceId && origin_country_region_id !== defaultGreeceId ? "abroad" : "greece";
+      const origin_country_name = trimNullableText(origin_country_source) ?? (origin_country_region_id ? String(regionsById.get(origin_country_region_id)?.name ?? "").trim() : null);
+      const is_abroad = !!(origin_country_name && !isGreeceCountryValue(origin_country_name));
       const origin_region_source = get("origin_region");
-      const origin_periphery_region_id = origin_type === "abroad" ? null : resolveRegionId(origin_region_source, regionsById);
+      const origin_periphery_region_id = is_abroad ? null : resolveRegionId(origin_region_source, regionsById);
       const origin_municipality = String(get("origin_municipality")).trim() || null;
-      const origin_foreign_country = origin_type === "abroad" ? origin_country_name : null;
-      const origin_foreign_city = origin_type === "abroad" ? origin_municipality : null;
+      const origin_foreign_city = is_abroad ? origin_municipality : null;
 
       const rowProblems: RowError[] = [];
       const reqStr = (val: string, colName: string) => { if (!val) rowProblems.push({ row: rowNum, column: colName, message: "Required" }); };
@@ -820,8 +815,8 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       if (degree_grade === null) rowProblems.push({ row: rowNum, column: "degree_grade", message: "Invalid number", value: get("degree_grade") });
       if (!birth_date) rowProblems.push({ row: rowNum, column: "birth_date", message: "Invalid date", value: get("birth_date" as any) });
       if (!study_program_id) rowProblems.push({ row: rowNum, column: "study_program", message: "Invalid value", value: study_program_source });
-      if (origin_type === "abroad") {
-        if (!origin_country_region_id) rowProblems.push({ row: rowNum, column: "origin_country", message: "Invalid value", value: origin_country_source });
+      if (!origin_country_name) rowProblems.push({ row: rowNum, column: "origin_country", message: "Required", value: origin_country_source });
+      if (is_abroad) {
         if (!origin_foreign_city) rowProblems.push({ row: rowNum, column: "origin_municipality", message: "Required", value: get("origin_municipality") });
       } else {
         if (!origin_country_region_id) rowProblems.push({ row: rowNum, column: "origin_country", message: "Invalid value", value: origin_country_source });
@@ -835,7 +830,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       }
 
       let normalizedOrigin: NormalizedOriginResult | null = null;
-      if (origin_type === "greece") {
+      if (!is_abroad) {
         normalizedOrigin = await normalizeOriginLocation({
           origin_country_region_id: origin_country_region_id ?? null,
           origin_periphery_region_id: origin_periphery_region_id ?? null,
@@ -887,14 +882,13 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
           birth_date,
           study_program_id,
           program_direction_id: program_direction_id ?? null,
-          origin_type,
-          origin_foreign_country: origin_type === "abroad" ? origin_foreign_country : null,
-          origin_foreign_city: origin_type === "abroad" ? origin_foreign_city : null,
-          origin_country_region_id: origin_type === "abroad" ? origin_country_region_id : normalizedOrigin?.origin_country_region_id ?? null,
-          origin_periphery_region_id: normalizedOrigin?.origin_periphery_region_id ?? null,
-          origin_region_id: normalizedOrigin?.origin_region_id ?? null,
-          origin_city_region_id: normalizedOrigin?.origin_city_region_id ?? null,
-          origin_municipality: normalizedOrigin?.origin_municipality ?? null,
+          origin_country: is_abroad ? origin_country_name : "Ελλάδα",
+          origin_foreign_city: is_abroad ? origin_foreign_city : null,
+          origin_country_region_id: is_abroad ? origin_country_region_id : normalizedOrigin?.origin_country_region_id ?? null,
+          origin_periphery_region_id: is_abroad ? null : normalizedOrigin?.origin_periphery_region_id ?? null,
+          origin_region_id: is_abroad ? null : normalizedOrigin?.origin_region_id ?? null,
+          origin_city_region_id: is_abroad ? null : normalizedOrigin?.origin_city_region_id ?? null,
+          origin_municipality: is_abroad ? null : normalizedOrigin?.origin_municipality ?? null,
         }
       });
       studentNumbers.push(student_number);
@@ -1056,19 +1050,18 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     const origin_country_region_id = toNullableNumber(body.origin_country_region_id) ?? defaultGreeceId;
     if (origin_country_region_id === null) return bad(res, "origin_country_region_id is required");
     if (Number.isNaN(origin_country_region_id as any)) return bad(res, "origin_country_region_id must be a number");
-    const origin_country_name = String(regionsById.get(Number(origin_country_region_id))?.name ?? "").trim();
-    const origin_type = defaultGreeceId != null && Number(origin_country_region_id) !== Number(defaultGreeceId) ? "abroad" : "greece";
+    const selectedCountryName = String(regionsById.get(Number(origin_country_region_id))?.name ?? "").trim();
+    const origin_country_name = trimNullableText(body.origin_country) ?? trimNullableText(body.origin_foreign_country) ?? selectedCountryName ?? null;
+    const is_abroad = !!(origin_country_name && !isGreeceCountryValue(origin_country_name));
     let originPayload: Record<string, unknown>;
 
-    if (origin_type === "abroad") {
-      const origin_foreign_country = trimNullableText(body.origin_foreign_country) ?? origin_country_name ?? null;
+    if (is_abroad) {
       const origin_foreign_city = trimNullableText(body.origin_foreign_city);
-      if (!origin_foreign_country) return bad(res, "origin_foreign_country is required");
+      if (!origin_country_name) return bad(res, "origin_country is required");
       if (!origin_foreign_city) return bad(res, "origin_foreign_city is required");
 
       originPayload = {
-        origin_type,
-        origin_foreign_country,
+        origin_country: origin_country_name,
         origin_foreign_city,
         origin_country_region_id,
         origin_periphery_region_id: null,
@@ -1098,8 +1091,7 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
       if (managedOriginError) return bad(res, managedOriginError);
 
       originPayload = {
-        origin_type,
-        origin_foreign_country: null,
+        origin_country: "Ελλάδα",
         origin_foreign_city: null,
         origin_country_region_id: normalizedOrigin.origin_country_region_id,
         origin_periphery_region_id: normalizedOrigin.origin_periphery_region_id,
@@ -1184,9 +1176,6 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
 
     const { regionsById } = await getReferenceMaps();
     const defaultGreeceId = getGreeceRegionId(regionsById);
-    if (!(item as any).origin_type) {
-      (item as any).origin_type = "greece";
-    }
 
     let originRegionTouched = false;
     let foreignOriginTouched = false;
@@ -1212,8 +1201,11 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       originRegionTouched = true;
     }
 
-    if (body.origin_foreign_country !== undefined) {
-      (item as any).origin_foreign_country = trimNullableText(body.origin_foreign_country);
+    if (body.origin_country !== undefined) {
+      (item as any).origin_country = trimNullableText(body.origin_country);
+      foreignOriginTouched = true;
+    } else if (body.origin_foreign_country !== undefined) {
+      (item as any).origin_country = trimNullableText(body.origin_foreign_country);
       foreignOriginTouched = true;
     }
 
@@ -1239,21 +1231,19 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     if (body.origin_municipality !== undefined) originRegionTouched = true;
     setIf("origin_municipality", (v) => (v === "" ? null : String(v ?? "").trim()));
 
-    const currentCountryId = Number((item as any).origin_country_region_id ?? defaultGreeceId ?? null);
-    const inferredOriginType = Number.isFinite(currentCountryId) && defaultGreeceId != null && currentCountryId !== Number(defaultGreeceId) ? "abroad" : "greece";
-    (item as any).origin_type = inferredOriginType;
+    const selectedCountryName = String(regionsById.get(Number((item as any).origin_country_region_id))?.name ?? "").trim();
+    const currentCountryName = trimNullableText((item as any).origin_country) ?? selectedCountryName ?? null;
+    const isAbroad = !!(currentCountryName && !isGreeceCountryValue(currentCountryName));
 
-    if ((item as any).origin_type === "abroad") {
-      const selectedCountryName = String(regionsById.get(Number((item as any).origin_country_region_id))?.name ?? "").trim();
-      (item as any).origin_foreign_country = trimNullableText((item as any).origin_foreign_country) ?? selectedCountryName ?? null;
-      if (!(item as any).origin_country_region_id) return bad(res, "origin_country_region_id is required");
-      if (!(item as any).origin_foreign_country) return bad(res, "origin_foreign_country is required");
+    if (isAbroad) {
+      (item as any).origin_country = currentCountryName;
+      if (!(item as any).origin_country) return bad(res, "origin_country is required");
       if (!(item as any).origin_foreign_city) return bad(res, "origin_foreign_city is required");
       (item as any).origin_periphery_region_id = null;
       (item as any).origin_region_id = null;
       (item as any).origin_city_region_id = null;
       (item as any).origin_municipality = null;
-    } else if (originRegionTouched || foreignOriginTouched || body.origin_type !== undefined || body.origin_country_region_id !== undefined) {
+    } else if (originRegionTouched || foreignOriginTouched || body.origin_country_region_id !== undefined || body.origin_country !== undefined || body.origin_foreign_country !== undefined) {
       if (!(item as any).origin_country_region_id && defaultGreeceId != null) {
         (item as any).origin_country_region_id = defaultGreeceId;
       }
@@ -1272,7 +1262,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
         regionsById
       );
       if (managedOriginError) return bad(res, managedOriginError);
-      (item as any).origin_foreign_country = null;
+      (item as any).origin_country = "Ελλάδα";
       (item as any).origin_foreign_city = null;
       (item as any).origin_country_region_id = normalized.origin_country_region_id;
       (item as any).origin_periphery_region_id = normalized.origin_periphery_region_id;

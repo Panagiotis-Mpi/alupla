@@ -111,7 +111,7 @@ function normalizeRecentGraduateDownload(item: any) {
           program_direction_id: entry.program_direction_id == null || entry.program_direction_id === "" ? null : Number(entry.program_direction_id),
           origin_region_id: entry.origin_region_id == null || entry.origin_region_id === "" ? null : Number(entry.origin_region_id),
           origin_municipality: entry.origin_municipality == null ? null : String(entry.origin_municipality),
-          origin_foreign_country: entry.origin_foreign_country == null ? null : String(entry.origin_foreign_country),
+          origin_country: entry.origin_country == null ? (entry.origin_foreign_country == null ? null : String(entry.origin_foreign_country)) : String(entry.origin_country),
           origin_foreign_city: entry.origin_foreign_city == null ? null : String(entry.origin_foreign_city),
         }))
         .filter((entry: any) => entry.id > 0)
@@ -650,7 +650,7 @@ export default function Graduates() {
             program_direction_id: item.program_direction_id ?? null,
             origin_region_id: item.origin_region_id ?? null,
             origin_municipality: item.origin_municipality ?? null,
-            origin_foreign_country: item.origin_foreign_country ?? null,
+            origin_country: item.origin_country ?? item.origin_foreign_country ?? null,
             origin_foreign_city: item.origin_foreign_city ?? null,
           })),
         });
