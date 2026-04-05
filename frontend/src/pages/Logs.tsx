@@ -440,7 +440,7 @@ export default function Logs() {
     }
 
     if (parts.length) {
-      return parts.join(" • ");
+      return parts.join(", ");
     }
 
     const fallbackEntries = Object.entries(details)
@@ -448,7 +448,7 @@ export default function Logs() {
       .slice(0, 5)
       .map(([key, value]) => `${localDetailLabel(key)}: ${typeof value === "string" ? localValue(value) : String(value)}`);
 
-    return fallbackEntries.join(" • ");
+    return fallbackEntries.join(", ");
   }
 
   function formatDateTime(value: string) {

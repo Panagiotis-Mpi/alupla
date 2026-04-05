@@ -533,13 +533,13 @@ function getLocalizedDetails(lang: "gr" | "en", log: any) {
     parts.push(`${localDetailLabel(lang, key)}: ${localValue(lang, String(value))}`);
   }
 
-  if (parts.length) return parts.join(" • ");
+  if (parts.length) return parts.join(", ");
 
   return Object.entries(details)
     .filter(([, value]) => value !== null && value !== undefined && value !== "")
     .slice(0, 5)
     .map(([key, value]) => `${localDetailLabel(lang, key)}: ${typeof value === "string" ? localValue(lang, value) : String(value)}`)
-    .join(" • ");
+    .join(", ");
 }
 
 function getActorLabel(lang: "gr" | "en", row: any) {
