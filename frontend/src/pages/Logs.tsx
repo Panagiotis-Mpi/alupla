@@ -58,6 +58,7 @@ const actionLabels = {
     export_csv: "Εξαγωγή CSV",
     export_xlsx: "Εξαγωγή Excel",
     export_pdf: "Εξαγωγή PDF",
+    export_png: "Εξαγωγή PNG",
     map_export: "Εξαγωγή χάρτη",
     statistics_export: "Εξαγωγή στατιστικών",
     create_user: "Δημιουργία χρήστη",
@@ -103,6 +104,7 @@ const actionLabels = {
     export_csv: "CSV export",
     export_xlsx: "Excel export",
     export_pdf: "PDF export",
+    export_png: "PNG export",
     map_export: "Map export",
     statistics_export: "Statistics export",
     create_user: "User creation",
@@ -159,6 +161,8 @@ const knownActionKeys = [
   "import_program_directions",
   "export_xlsx",
   "export_csv",
+  "export_pdf",
+  "export_png",
   "statistics_export",
   "map_export"
 ] as const;
@@ -393,23 +397,15 @@ export default function Logs() {
 
   function formatExportDetails(details: Record<string, any>) {
     const format = upperFileType(String(details.format ?? details.file_type ?? "").trim());
-    const count = details.count ?? details.exported;
-    const selected = details.selected;
     const page = localValue(String(details.page ?? ""));
-    const parts: string[] = [];
 
-    if (format) parts.push(format);
-    if (count !== null && count !== undefined && count !== "") {
-      parts.push(activeLang === "en" ? `${count} records` : `${count} εγγραφές`);
+    if (format && page) {
+      return activeLang === "en" ? `${format} export from ${page}` : `Εξαγωγή ${format} από ${page}`;
     }
-    if (selected !== null && selected !== undefined && selected !== "" && Number(selected) > 0) {
-      parts.push(activeLang === "en" ? `${selected} selected` : `${selected} επιλεγμένα`);
+    if (format) {
+      return activeLang === "en" ? `${format} export` : `Εξαγωγή ${format}`;
     }
-    if (page) {
-      parts.push(activeLang === "en" ? `Page: ${page}` : `Σελίδα: ${page}`);
-    }
-
-    return parts.join(", ");
+    return "";
   }
 
   function formatImportDetails(details: Record<string, any>) {
@@ -458,6 +454,10 @@ export default function Logs() {
     return toLocalizedAction(normalized) || normalized;
   }
 
+  function getOperationLabelAction(action: string) {
+    return ["export_graduates", "export_csv", "export_xlsx", "export_pdf", "export_png", "statistics_export", "map_export"].includes(action);
+  }
+
   function parseDetails(value: any) {
     if (value === null || value === undefined || value === "") return null;
     if (typeof value === "object") return value;
@@ -490,101 +490,37 @@ export default function Logs() {
       return `${localDetailLabel("student_number")}: ${studentNumber}`;
     }
 
+    const deletedIds = Array.isArray(details.ids)
+      ? details.ids.map((value: unknown) => String(value ?? "").trim()).filter(Boolean)
+      : [];
+    if (deletedIds.length) {
+      return activeLang === "en"
+        ? `Graduate deletion: ${deletedIds.join(", ")}`
+        : `Διαγραφή αποφοίτων: ${deletedIds.join(", ")}`;
+    }
+
+    const deletedUserName = String(details.name ?? "").trim();
+    if (["delete_user", "deactivate_user", "διαγραφή χρήστη"].includes(action) && deletedUserName) {
+      return deletedUserName;
+    }
+
     if (action === "import_graduates") {
       return formatImportDetails(details);
     }
 
-    if (["export_graduates", "export_csv", "export_xlsx", "export_pdf", "statistics_export", "map_export"].includes(action)) {
+    if (getOperationLabelAction(action)) {
       const exportText = formatExportDetails(details);
       if (exportText) return exportText;
     }
 
     if (details.changed !== null && details.changed !== undefined && details.changed !== "") {
       const changedText = formatChangedFields(details.changed);
-      if (changedText) return changedText;
+      if (changedText) return changedText.replace(activeLang === "en" ? "Changed fields:" : "Αλλαγμένα πεδία:", activeLang === "en" ? "Changed:" : "Αλλαγές:");
     }
 
-    if (details.code || details.name || details.name_el) {
-      const code = String(details.code ?? "").trim();
-      const name = String(details.name ?? details.name_el ?? "").trim();
-      return joinParts([
-        code ? `${localDetailLabel("code")}: ${code}` : "",
-        name ? `${localDetailLabel("name")}: ${name}` : ""
-      ]);
-    }
+    if (deletedUserName) return deletedUserName;
 
-    const plainPairs: Array<[string, any]> = [
-      ["file", details.file ?? details.filename],
-      ["role", details.role],
-      ["status", details.status],
-      ["page", details.page],
-      ["study_program", details.study_program],
-      ["study_program_id", details.study_program_id],
-      ["direction", details.direction],
-      ["reason", details.reason],
-      ["parent_id", details.parent_id],
-      ["unresolved_id", details.unresolved_id],
-      ["raw_name", details.raw_name],
-      ["missing", details.missing]
-    ];
-
-    const counterPairs: Array<[string, any]> = [
-      ["count", details.count],
-      ["total_rows", details.total_rows],
-      ["inserted", details.inserted],
-      ["updated", details.updated],
-      ["skipped", details.skipped],
-      ["deleted", details.deleted],
-      ["exported", details.exported],
-      ["errors", details.errors],
-      ["selected", details.selected],
-      ["limit", details.limit]
-    ];
-
-    const arrayPairs: Array<[string, any]> = [
-      ["ids", details.ids]
-    ];
-
-    const parts: string[] = [];
-
-    for (const [key, value] of plainPairs) {
-      if (value === null || value === undefined || value === "") continue;
-      const rendered = Array.isArray(value)
-        ? value.map((item) => localValue(String(item))).filter(Boolean).join(", ")
-        : localValue(String(value)) || String(value);
-      if (!rendered) continue;
-      parts.push(`${localDetailLabel(key)}: ${rendered}`);
-    }
-
-    for (const [key, value] of counterPairs) {
-      if (value === null || value === undefined || value === "") continue;
-      parts.push(`${localDetailLabel(key)}: ${value}`);
-    }
-
-    for (const [key, value] of arrayPairs) {
-      if (value === null || value === undefined || value === "") continue;
-      const rendered = Array.isArray(value)
-        ? value.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ")
-        : String(value);
-      if (!rendered) continue;
-      parts.push(`${localDetailLabel(key)}: ${rendered}`);
-    }
-
-    if (parts.length) {
-      return parts.join(", ");
-    }
-
-    const fallbackEntries = Object.entries(details)
-      .filter(([, value]) => value !== null && value !== undefined && value !== "")
-      .slice(0, 5)
-      .map(([key, value]) => {
-        if (Array.isArray(value)) {
-          return `${localDetailLabel(key)}: ${value.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ")}`;
-        }
-        return `${localDetailLabel(key)}: ${typeof value === "string" ? (localValue(value) || value) : String(value)}`;
-      });
-
-    return fallbackEntries.join(", ");
+    return "";
   }
 
   function formatDateTime(value: string) {

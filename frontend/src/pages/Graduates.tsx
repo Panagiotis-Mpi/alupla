@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   deleteGraduate,
+  deleteGraduates,
   downloadGraduatesImportTemplate,
   exportGraduatesFile,
   importGraduatesFile,
@@ -707,7 +708,7 @@ export default function Graduates() {
       return;
     }
     try {
-      await Promise.all(selectedIds.map((id) => deleteGraduate(id)));
+      await deleteGraduates(selectedIds);
       setSelectedIds([]);
       await load();
     } catch (error: any) {

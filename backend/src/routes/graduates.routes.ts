@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createGraduate,
   deleteGraduate,
+  deleteGraduates,
   getGraduate,
   listGraduates,
   updateGraduate,
@@ -26,6 +27,8 @@ graduatesRouter.get("/import-template", exportGraduatesImportTemplate);
 graduatesRouter.post("/export-pdf-log", logGraduatesPdfExport);
 
 graduatesRouter.post("/import", upload.single("file"), importGraduates);
+
+graduatesRouter.delete("/", deleteGraduates);
 
 graduatesRouter.get("/:id", getGraduate);
 graduatesRouter.put("/:id", updateGraduate);

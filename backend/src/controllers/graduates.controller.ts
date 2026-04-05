@@ -562,7 +562,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
       action: "export_graduates",
       entity_type: "graduate",
       entity_id: null,
-      details: { format, limit: ids.length ? null : limit, count: data.length, selected: ids.length || 0 }
+      details: { format, limit: ids.length ? null : limit, count: data.length, selected: ids.length || 0, page: "graduates" }
     });
 
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
@@ -606,7 +606,7 @@ export async function logGraduatesPdfExport(req: Request, res: Response, next: N
       action: "export_graduates",
       entity_type: "graduate",
       entity_id: null,
-      details: { format: "pdf", limit: null, count, selected: ids.length || 0 }
+      details: { format: "pdf", limit: null, count, selected: ids.length || 0, page: "graduates" }
     });
 
     res.json({ ok: true, count });
@@ -1143,6 +1143,38 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     next(err);
   }
 }
+
+export async function deleteGraduates(req: Request, res: Response, next: NextFunction) {
+  try {
+    const ids = Array.isArray(req.body?.ids)
+      ? req.body.ids.map((value: unknown) => Number(value)).filter((value: number) => Number.isFinite(value))
+      : [];
+
+    if (!ids.length) return bad(res, "ids are required");
+
+    const items = await Graduate.findAll({ where: { id: ids as any } });
+    if (!items.length) return res.json({ ok: true, deleted: 0 });
+
+    const studentNumbers = items
+      .map((item) => String((item as any).student_number ?? "").trim())
+      .filter(Boolean);
+
+    await Graduate.destroy({ where: { id: items.map((item) => (item as any).id) as any } });
+
+    await logAction({
+      user_id: req.user?.id ?? null,
+      action: "delete_graduate",
+      entity_type: "graduate",
+      entity_id: null,
+      details: { ids: studentNumbers }
+    });
+
+    res.json({ ok: true, deleted: items.length });
+  } catch (err) {
+    next(err);
+  }
+}
+
 
 export async function deleteGraduate(req: Request, res: Response, next: NextFunction) {
   try {

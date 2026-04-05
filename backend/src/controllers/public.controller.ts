@@ -798,6 +798,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
 
   await logPublicExportAction(req, "statistics_export", "statistics", {
     format: "xls",
+    page: "statistics",
     graduation_year: req.query.graduation_year ?? null,
     study_program_id: req.query.study_program_id ?? null,
     gender: req.query.gender ?? null,
@@ -822,6 +823,6 @@ export async function publicExportActivity(req: Request, res: Response) {
   }
 
   const entityType = action === "map_export" ? "map" : "statistics";
-  await logPublicExportAction(req, action, entityType, { format });
+  await logPublicExportAction(req, action, entityType, { format, page: entityType });
   return res.json({ ok: true });
 }
