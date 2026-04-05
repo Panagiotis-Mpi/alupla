@@ -47,7 +47,12 @@
     "region": "Region",
     "page": "page {{page}}",
     "male": "Male",
-    "female": "Female"
+    "female": "Female",
+    "originType": "Origin category",
+    "originTypeGreece": "Greece",
+    "originTypeAbroad": "Abroad",
+    "foreignCountry": "Foreign country",
+    "foreignCity": "Foreign city"
   },
   "table": {
     "id": "ID",
@@ -106,7 +111,10 @@
     "hintAdDuplicate": "A.D. must be unique and must not be repeated in the file.",
     "hintText": "The field must be filled in with valid text.",
     "birthYearRemoved": "The Birth year column is no longer accepted. Use Birth date only.",
-    "hintGeneric": "Check the field value and correct it according to the template format."
+    "hintGeneric": "Check the field value and correct it according to the template format.",
+    "hintOriginType": "Allowed values: Greece or Abroad.",
+    "hintForeignCountry": "For an abroad graduate, fill in the country correctly.",
+    "hintForeignCity": "For an abroad graduate, fill in the city correctly."
   },
   "confirm": {
     "deleteGraduate": "Delete graduate #{{id}}?",

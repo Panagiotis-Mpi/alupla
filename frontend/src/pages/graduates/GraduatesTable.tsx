@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import type { Graduate } from "../../lib/api";
-import { formatValue, type SortKey } from "./shared";
+import { formatValue, getGraduateOriginMunicipalityDisplay, getGraduateOriginRegionDisplay, type SortKey } from "./shared";
 
 export function GraduatesTable(props: {
   visibleItems: Graduate[];
@@ -84,8 +84,8 @@ export function GraduatesTable(props: {
                   <td>{formatValue(graduate.oath_date, "date")}</td>
                   <td>{programNameById.get(Number(graduate.study_program_id)) ?? ""}</td>
                   <td>{directionNameById.get(Number(graduate.program_direction_id)) ?? ""}</td>
-                  <td>{regionNameById.get(Number(graduate.origin_region_id)) ?? ""}</td>
-                  <td>{formatValue(graduate.origin_municipality)}</td>
+                  <td>{formatValue(getGraduateOriginRegionDisplay(graduate, regionNameById))}</td>
+                  <td>{formatValue(getGraduateOriginMunicipalityDisplay(graduate))}</td>
                   <td>
                     <div className="row-actions">
                       <Link className="btn" to={`/graduates/${graduate.id}`} style={{ textDecoration: "none" }}>

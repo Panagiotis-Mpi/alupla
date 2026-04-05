@@ -33,7 +33,9 @@ function setTextFilters(where: GraduateWhere, query: Query) {
     { field: "first_name", exactKey: "first_name", likeKey: "first_name_like" },
     { field: "father_name", exactKey: "father_name", likeKey: "father_name_like" },
     { field: "student_number", exactKey: "student_number", likeKey: "student_number_like" },
-    { field: "origin_municipality", exactKey: "origin_municipality", likeKey: "origin_municipality_like" }
+    { field: "origin_municipality", exactKey: "origin_municipality", likeKey: "origin_municipality_like" },
+    { field: "origin_foreign_country", exactKey: "origin_foreign_country", likeKey: "origin_foreign_country_like" },
+    { field: "origin_foreign_city", exactKey: "origin_foreign_city", likeKey: "origin_foreign_city_like" }
   ];
 
   for (const pair of pairs) {
@@ -49,6 +51,11 @@ function setEnumAndForeignKeyFilters(where: GraduateWhere, query: Query) {
   const gender = readString(query.gender);
   if (gender === "M" || gender === "F") {
     where.gender = gender;
+  }
+
+  const originType = readString(query.origin_type);
+  if (originType === "greece" || originType === "abroad") {
+    where.origin_type = originType;
   }
 
   const studyProgramId = readNumber(query.study_program_id);
@@ -160,7 +167,9 @@ function setGlobalSearch(where: GraduateWhere, query: Query) {
     { father_name: contains(keyword) },
     { student_number: contains(keyword) },
     { ad_code: contains(keyword) },
-    { origin_municipality: contains(keyword) }
+    { origin_municipality: contains(keyword) },
+    { origin_foreign_country: contains(keyword) },
+    { origin_foreign_city: contains(keyword) }
   ];
 }
 

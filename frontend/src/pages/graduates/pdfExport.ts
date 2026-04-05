@@ -104,7 +104,13 @@ function buildRows(args: {
   return items.map((item) => {
     const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
     const directionName = directionNameById.get(Number(item.program_direction_id)) ?? "";
-    const regionName = regionNameById.get(Number(item.origin_region_id)) ?? "";
+    const originType = item.origin_type ?? ((item.origin_foreign_country || item.origin_foreign_city) ? "abroad" : "greece");
+    const regionName = originType === "abroad"
+      ? String(item.origin_foreign_country ?? "")
+      : regionNameById.get(Number(item.origin_region_id)) ?? "";
+    const municipalityName = originType === "abroad"
+      ? String(item.origin_foreign_city ?? "")
+      : item.origin_municipality ?? "";
 
     return {
       [labels.ad_code]: item.ad_code ?? "",
@@ -121,7 +127,7 @@ function buildRows(args: {
       [labels.study_program]: studyProgramName,
       [labels.direction]: directionName,
       [labels.origin_region]: regionName,
-      [labels.origin_municipality]: item.origin_municipality ?? ""
+      [labels.origin_municipality]: municipalityName
     } satisfies PdfRow;
   });
 }

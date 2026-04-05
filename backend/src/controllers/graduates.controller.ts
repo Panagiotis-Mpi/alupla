@@ -83,6 +83,7 @@ function getColumnLabels(lang: ExportLang) {
       oath_date: "Oath date",
       study_program: "Study program",
       direction: "Direction",
+      origin_type: "Origin type",
       origin_country: "Country",
       origin_region: "Periphery",
       origin_municipality: "City"
@@ -103,6 +104,7 @@ function getColumnLabels(lang: ExportLang) {
     oath_date: "Ημ. ορκωμοσίας",
     study_program: "Πρόγραμμα σπουδών",
     direction: "Κατεύθυνση",
+    origin_type: "Κατηγορία καταγωγής",
     origin_country: "Χώρα",
     origin_region: "Περιφέρεια",
     origin_municipality: "Πόλη"
@@ -126,6 +128,7 @@ const IMPORT_HEADER_ALIASES = {
   study_program_id: ["study_program_id","study_prog","program_id","προγραμμα","πρόγραμμα","program"],
   program_direction: ["program_direction","program_direction_id","program_dir","direction_id","κατευθυνση","κατεύθυνση","direction"],
   program_direction_id: ["program_direction_id","program_dir","direction_id","κατευθυνση","κατεύθυνση","direction"],
+  origin_type: ["origin_type","origin category","category","κατηγορία καταγωγής","κατηγορια καταγωγης","κατηγορία","κατηγορια"],
   origin_country: ["origin_country","origin_country_region_id","country","χώρα","χωρα"],
   origin_country_region_id: ["origin_country_region_id","origin_country","country_id","country","χώρα","χωρα"],
   origin_region: ["origin_region","origin_periphery_region_id","origin_region_id","origin_regio","region_id","περιοχη","περιοχή","περιφέρεια","region","periphery"],
@@ -266,6 +269,12 @@ function parseOriginType(value: unknown): "greece" | "abroad" {
   return String(value ?? "").trim().toLowerCase() === "abroad" ? "abroad" : "greece";
 }
 
+function parseImportOriginType(value: unknown): "greece" | "abroad" {
+  const normalized = normHeader(String(value ?? "").trim());
+  if (["abroad", "foreign", "overseas", "εξωτερικο", "εξωτερικό"].includes(normalized)) return "abroad";
+  return "greece";
+}
+
 function getGreeceRegionId(regionsById: Map<number, any>) {
   return Array.from(regionsById.values()).find((item: any) => normalizeRegionText(item?.name) === normalizeRegionText("Ελλάδα"))?.id ?? null;
 }
@@ -370,8 +379,14 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
     const direction = directionsById.get(Number(item.program_direction_id));
     const studyProgramName = studyProgram ? String(studyProgram.name_el ?? studyProgram.name_en ?? studyProgram.code ?? studyProgram.id) : "";
     const directionName = direction ? String(direction.name_el ?? direction.name_en ?? direction.code ?? direction.id) : "";
+    const originType = parseOriginType(item.origin_type ?? ((item.origin_foreign_country || item.origin_foreign_city) ? "abroad" : "greece"));
     const region = regionsById.get(Number(item.origin_periphery_region_id ?? item.origin_region_id));
-    const regionName = region ? String(region.name ?? "") : "";
+    const originTypeLabel = originType === "abroad" ? (lang === "en" ? "Abroad" : "Εξωτερικό") : (lang === "en" ? "Greece" : "Ελλάδα");
+    const regionName = originType === "abroad" ? "" : (region ? String(region.name ?? "") : "");
+    const countryName = originType === "abroad"
+      ? String(item.origin_foreign_country ?? "")
+      : (() => { const country = regionsById.get(Number(item.origin_country_region_id)); return country ? String(country.name ?? "") : ""; })();
+    const municipalityName = originType === "abroad" ? String(item.origin_foreign_city ?? "") : (item.origin_municipality ?? "");
 
     return {
       [labels.ad_code]: item.ad_code ?? "",
@@ -387,9 +402,10 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
       [labels.oath_date]: formatDateDisplay(item.oath_date),
       [labels.study_program]: studyProgramName,
       [labels.direction]: directionName,
-      [labels.origin_country]: (() => { const country = regionsById.get(Number(item.origin_country_region_id)); return country ? String(country.name ?? "") : ""; })(),
+      [labels.origin_type]: originTypeLabel,
+      [labels.origin_country]: countryName,
       [labels.origin_region]: regionName,
-      [labels.origin_municipality]: item.origin_municipality ?? ""
+      [labels.origin_municipality]: municipalityName
     };
   });
 }
@@ -410,6 +426,7 @@ function getTemplateHeaders(lang: ExportLang) {
     labels.oath_date,
     labels.study_program,
     labels.direction,
+    labels.origin_type,
     labels.origin_country,
     labels.origin_region,
     labels.origin_municipality
@@ -706,6 +723,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       study_program_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.study_program_id]),
       program_direction: firstIndex(headers, [...IMPORT_HEADER_ALIASES.program_direction]),
       program_direction_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.program_direction_id]),
+      origin_type: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_type]),
       origin_country: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_country]),
       origin_country_region_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_country_region_id]),
       origin_region: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_region]),
@@ -766,11 +784,15 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const program_direction_source = idx.program_direction >= 0 ? get("program_direction") : get("program_direction_id");
       const program_direction_id = resolveProgramDirectionId(program_direction_source, directionsById, study_program_id);
       const defaultGreeceId = Array.from(regionsById.values()).find((item: any) => normalizeRegionText(item?.name) === normalizeRegionText("Ελλάδα"))?.id ?? null;
+      const origin_type = idx.origin_type >= 0 ? parseImportOriginType(get("origin_type")) : "greece";
       const origin_country_source = idx.origin_country >= 0 ? get("origin_country") : get("origin_country_region_id");
-      const origin_country_region_id = resolveRegionId(origin_country_source, regionsById) ?? toInt(get("origin_country_region_id")) ?? defaultGreeceId;
+      const origin_country_text = String(origin_country_source ?? "").trim() || null;
+      const origin_country_region_id = origin_type === "abroad" ? null : (resolveRegionId(origin_country_source, regionsById) ?? toInt(get("origin_country_region_id")) ?? defaultGreeceId);
       const origin_region_source = idx.origin_region >= 0 ? get("origin_region") : get("origin_region_id");
-      const origin_periphery_region_id = resolveRegionId(origin_region_source, regionsById) ?? toInt(get("origin_region_id"));
+      const origin_periphery_region_id = origin_type === "abroad" ? null : (resolveRegionId(origin_region_source, regionsById) ?? toInt(get("origin_region_id")));
       const origin_municipality = String(get("origin_municipality")).trim() || null;
+      const origin_foreign_country = origin_type === "abroad" ? origin_country_text : null;
+      const origin_foreign_city = origin_type === "abroad" ? origin_municipality : null;
 
       const rowProblems: RowError[] = [];
       const reqStr = (val: string, colName: string) => { if (!val) rowProblems.push({ row: rowNum, column: colName, message: "Required" }); };
@@ -786,8 +808,13 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       if (degree_grade === null) rowProblems.push({ row: rowNum, column: "degree_grade", message: "Invalid number", value: get("degree_grade") });
       if (!birth_date) rowProblems.push({ row: rowNum, column: "birth_date", message: "Invalid date", value: get("birth_date" as any) });
       if (!study_program_id) rowProblems.push({ row: rowNum, column: "study_program", message: "Invalid value", value: study_program_source });
-      if (!origin_country_region_id && String(origin_country_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_country", message: "Invalid value", value: origin_country_source });
-      if (!origin_periphery_region_id && String(origin_region_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_region", message: "Invalid value", value: origin_region_source });
+      if (origin_type === "abroad") {
+        if (!origin_foreign_country) rowProblems.push({ row: rowNum, column: "origin_country", message: "Required", value: origin_country_source });
+        if (!origin_foreign_city) rowProblems.push({ row: rowNum, column: "origin_municipality", message: "Required", value: get("origin_municipality") });
+      } else {
+        if (!origin_country_region_id && String(origin_country_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_country", message: "Invalid value", value: origin_country_source });
+        if (!origin_periphery_region_id && String(origin_region_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_region", message: "Invalid value", value: origin_region_source });
+      }
 
       if (rowProblems.length) {
         errors.push(...rowProblems);
@@ -795,19 +822,22 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         continue;
       }
 
-      const normalizedOrigin = await normalizeOriginLocation({
-        origin_country_region_id: origin_country_region_id ?? null,
-        origin_periphery_region_id: origin_periphery_region_id ?? null,
-        origin_region_id: origin_periphery_region_id ?? null,
-        origin_city_region_id: null,
-        origin_municipality,
-      });
+      let normalizedOrigin: NormalizedOriginResult | null = null;
+      if (origin_type === "greece") {
+        normalizedOrigin = await normalizeOriginLocation({
+          origin_country_region_id: origin_country_region_id ?? null,
+          origin_periphery_region_id: origin_periphery_region_id ?? null,
+          origin_region_id: origin_periphery_region_id ?? null,
+          origin_city_region_id: null,
+          origin_municipality,
+        });
 
-      const managedOriginError = ensureManagedOrigin(normalizedOrigin, origin_country_region_id ?? null, origin_periphery_region_id ?? null, origin_municipality, regionsById);
-      if (managedOriginError) {
-        errors.push({ row: rowNum, column: "origin_municipality", message: managedOriginError, value: origin_municipality });
-        skipped++;
-        continue;
+        const managedOriginError = ensureManagedOrigin(normalizedOrigin, origin_country_region_id ?? null, origin_periphery_region_id ?? null, origin_municipality, regionsById);
+        if (managedOriginError) {
+          errors.push({ row: rowNum, column: "origin_municipality", message: managedOriginError, value: origin_municipality });
+          skipped++;
+          continue;
+        }
       }
 
       const ruleViolations = getGraduateRuleViolations({
@@ -845,11 +875,14 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
           birth_date,
           study_program_id,
           program_direction_id: program_direction_id ?? null,
-          origin_country_region_id: normalizedOrigin.origin_country_region_id,
-          origin_periphery_region_id: normalizedOrigin.origin_periphery_region_id,
-          origin_region_id: normalizedOrigin.origin_region_id,
-          origin_city_region_id: normalizedOrigin.origin_city_region_id,
-          origin_municipality: normalizedOrigin.origin_municipality,
+          origin_type,
+          origin_foreign_country: origin_type === "abroad" ? origin_foreign_country : null,
+          origin_foreign_city: origin_type === "abroad" ? origin_foreign_city : null,
+          origin_country_region_id: normalizedOrigin?.origin_country_region_id ?? null,
+          origin_periphery_region_id: normalizedOrigin?.origin_periphery_region_id ?? null,
+          origin_region_id: normalizedOrigin?.origin_region_id ?? null,
+          origin_city_region_id: normalizedOrigin?.origin_city_region_id ?? null,
+          origin_municipality: normalizedOrigin?.origin_municipality ?? null,
         }
       });
       studentNumbers.push(student_number);
