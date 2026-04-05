@@ -1,5 +1,5 @@
 import { Region } from "../models/Region";
-
+import { normalizeRegionText } from "../utils/regionText";
 
 type PeripherySeed = {
   name: string;
@@ -24,28 +24,36 @@ const PERIPHERIES: PeripherySeed[] = [
 ];
 
 export async function ensurePeripheriesSeeded(): Promise<void> {
+  const greece = await Region.findOne({ where: { type: "COUNTRY", normalized_name: normalizeRegionText("Ελλάδα") } });
+  if (!greece) return;
+
   for (const p of PERIPHERIES) {
-    const existing = await Region.findOne({ where: { type: "PERIPHERY", name: p.name } });
+    const normalizedName = normalizeRegionText(p.name);
+    const existing = await Region.findOne({ where: { type: "PERIPHERY", normalized_name: normalizedName } });
 
     if (!existing) {
       await Region.create({
         name: p.name,
+        normalized_name: normalizedName,
         type: "PERIPHERY",
-        parent_id: null,
+        parent_id: Number(greece.id),
         latitude: p.latitude,
         longitude: p.longitude,
       } as any);
       continue;
     }
 
+    const nextPayload: Record<string, unknown> = {};
     const lat = existing.latitude as any;
     const lng = existing.longitude as any;
-    const needsUpdate = lat === null || lng === null || Number.isNaN(Number(lat)) || Number.isNaN(Number(lng));
-
-    if (needsUpdate) {
-      existing.latitude = p.latitude as any;
-      existing.longitude = p.longitude as any;
-      await existing.save();
+    if (existing.parent_id == null) nextPayload.parent_id = Number(greece.id);
+    if (lat === null || lng === null || Number.isNaN(Number(lat)) || Number.isNaN(Number(lng))) {
+      nextPayload.latitude = p.latitude;
+      nextPayload.longitude = p.longitude;
+    }
+    if (!String(existing.normalized_name || "").trim()) nextPayload.normalized_name = normalizedName;
+    if (Object.keys(nextPayload).length) {
+      await existing.update(nextPayload, { silent: true });
     }
   }
 }

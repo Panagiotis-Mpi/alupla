@@ -23,6 +23,7 @@
     "directionHint": "Filled dynamically from the selected program.",
     "studentNumberDup": "Student No.",
     "entryYearDup": "Entry year",
+    "country": "Country",
     "regionSearch": "Periphery",
     "regionPlaceholder": "e.g. Patra",
     "select": "Select:",

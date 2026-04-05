@@ -23,6 +23,7 @@
     "directionHint": "Συμπληρώνεται δυναμικά από το πρόγραμμα.",
     "studentNumberDup": "ΑΜ",
     "entryYearDup": "Έτος Εγγραφής",
+    "country": "Χώρα",
     "regionSearch": "Περιφέρεια",
     "regionPlaceholder": "π.χ. Πάτρ",
     "select": "Επιλογή:",

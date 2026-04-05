@@ -1,7 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/sequelize";
 
-export type RegionType = "PERIPHERY" | "NOMOS" | "DIMOS" | "CITY";
+export type RegionType = "COUNTRY" | "PERIPHERY" | "CITY" | "FOREIGN_CITY";
 
 export class Region extends Model {
   declare id: number;
@@ -20,7 +20,7 @@ Region.init(
     name: { type: DataTypes.STRING(255), allowNull: false },
     normalized_name: { type: DataTypes.STRING(255), allowNull: false, defaultValue: "" },
     external_ref_id: { type: DataTypes.STRING(255), allowNull: true },
-    type: { type: DataTypes.ENUM("PERIPHERY", "NOMOS", "DIMOS", "CITY"), allowNull: false },
+    type: { type: DataTypes.ENUM("COUNTRY", "PERIPHERY", "CITY", "FOREIGN_CITY"), allowNull: false },
     parent_id: { type: DataTypes.INTEGER, allowNull: true },
     latitude: { type: DataTypes.DECIMAL(10, 7), allowNull: true },
     longitude: { type: DataTypes.DECIMAL(10, 7), allowNull: true }

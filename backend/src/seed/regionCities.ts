@@ -100,15 +100,14 @@ export async function ensureRegionCitiesSeeded(): Promise<void> {
     const parent = peripheryByName.get(city.region);
     if (!parent) continue;
 
+    const normalizedName = normalizeRegionText(city.name);
     const existing = await Region.findOne({
       where: {
         type: "CITY",
-        name: city.name,
+        normalized_name: normalizedName,
         parent_id: Number(parent.id),
       },
     });
-
-    const normalizedName = normalizeRegionText(city.name);
 
     if (!existing) {
       await Region.create({
@@ -122,20 +121,14 @@ export async function ensureRegionCitiesSeeded(): Promise<void> {
       continue;
     }
 
+    const payload: Record<string, unknown> = {};
     const lat = existing.latitude as any;
     const lng = existing.longitude as any;
-    const needsCoords = lat === null || lng === null || Number.isNaN(Number(lat)) || Number.isNaN(Number(lng));
-    const needsNormalized = !String(existing.normalized_name || "").trim() && normalizedName;
-
-    if (needsCoords || needsNormalized) {
-      if (needsCoords) {
-        existing.latitude = city.latitude as any;
-        existing.longitude = city.longitude as any;
-      }
-      if (needsNormalized) {
-        existing.normalized_name = normalizedName as any;
-      }
-      await existing.save();
+    if (lat === null || lng === null || Number.isNaN(Number(lat)) || Number.isNaN(Number(lng))) {
+      payload.latitude = city.latitude;
+      payload.longitude = city.longitude;
     }
+    if (!String(existing.normalized_name || "").trim()) payload.normalized_name = normalizedName;
+    if (Object.keys(payload).length) await existing.update(payload, { silent: true });
   }
 }

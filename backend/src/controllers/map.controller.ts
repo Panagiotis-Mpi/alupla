@@ -242,7 +242,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
 
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id", "program_direction_id"],
+    attributes: ["origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id", "program_direction_id"],
   });
 
   const groups = new Map<number, any>();
@@ -271,7 +271,9 @@ export async function getGraduatesMap(req: Request, res: Response) {
 
   for (const g of grads as any[]) {
     const resolvedLocation = await resolveMapLocation({
-      origin_region_id: Number(g.origin_region_id) || null,
+      origin_country_region_id: Number(g.origin_country_region_id) || null,
+      origin_periphery_region_id: Number(g.origin_periphery_region_id) || Number(g.origin_region_id) || null,
+      origin_region_id: Number(g.origin_periphery_region_id) || Number(g.origin_region_id) || null,
       origin_city_region_id: Number(g.origin_city_region_id) || null,
       origin_municipality: g.origin_municipality || null,
     });
@@ -389,7 +391,9 @@ export async function getMapCities(req: Request, res: Response) {
     const programDirectionId = Number(g.program_direction_id) || 0;
     if (!matchesSelectedStudyProgram(studyProgramId, programDirectionId, selectedStudyProgramId, directionProgramIds)) continue;
     const resolvedLocation = await resolveMapLocation({
-      origin_region_id: Number(g.origin_region_id) || null,
+      origin_country_region_id: Number(g.origin_country_region_id) || null,
+      origin_periphery_region_id: Number(g.origin_periphery_region_id) || Number(g.origin_region_id) || null,
+      origin_region_id: Number(g.origin_periphery_region_id) || Number(g.origin_region_id) || null,
       origin_city_region_id: Number(g.origin_city_region_id) || null,
       origin_municipality: g.origin_municipality || null,
     });
@@ -438,14 +442,16 @@ export async function getRegionCities(req: Request, res: Response) {
 
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id", "program_direction_id"],
+    attributes: ["origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id", "program_direction_id"],
   });
 
   const groups = new Map<string, any>();
 
   for (const g of grads as any[]) {
     const resolvedLocation = await resolveMapLocation({
-      origin_region_id: Number(g.origin_region_id) || null,
+      origin_country_region_id: Number(g.origin_country_region_id) || null,
+      origin_periphery_region_id: Number(g.origin_periphery_region_id) || Number(g.origin_region_id) || null,
+      origin_region_id: Number(g.origin_periphery_region_id) || Number(g.origin_region_id) || null,
       origin_city_region_id: Number(g.origin_city_region_id) || null,
       origin_municipality: g.origin_municipality || null,
     });

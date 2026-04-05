@@ -180,7 +180,7 @@ export type ProgramDirection = {
   is_active: 0 | 1 | boolean;
 };
 
-export type RegionType = "PERIPHERY" | "NOMOS" | "DIMOS" | "CITY";
+export type RegionType = "COUNTRY" | "PERIPHERY" | "CITY" | "FOREIGN_CITY";
 export type Region = {
   id: number;
   name: string;
@@ -205,7 +205,10 @@ export type Graduate = {
   gender: "M" | "F";
   study_program_id: number;
   program_direction_id?: number | null;
+  origin_country_region_id?: number | null;
+  origin_periphery_region_id?: number | null;
   origin_region_id?: number | null;
+  origin_city_region_id?: number | null;
   origin_municipality?: string | null;
   created_at?: string;
   updated_at?: string;

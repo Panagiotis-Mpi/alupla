@@ -9,6 +9,7 @@ import { logAction } from "../services/log.service";
 import * as XLSX from "xlsx";
 import { normHeader, toDateOnly, toInt, toNumber } from "../utils/importUtils";
 import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
+import { normalizeRegionText } from "../utils/regionText";
 import { Op, Transaction } from "sequelize";
 import { sequelize } from "../config/sequelize";
 
@@ -82,7 +83,8 @@ function getColumnLabels(lang: ExportLang) {
       oath_date: "Oath date",
       study_program: "Study program",
       direction: "Direction",
-      origin_region: "Region",
+      origin_country: "Country",
+      origin_region: "Periphery",
       origin_municipality: "City"
     } as const;
   }
@@ -101,6 +103,7 @@ function getColumnLabels(lang: ExportLang) {
     oath_date: "Ημ. ορκωμοσίας",
     study_program: "Πρόγραμμα σπουδών",
     direction: "Κατεύθυνση",
+    origin_country: "Χώρα",
     origin_region: "Περιφέρεια",
     origin_municipality: "Πόλη"
   } as const;
@@ -123,9 +126,11 @@ const IMPORT_HEADER_ALIASES = {
   study_program_id: ["study_program_id","study_prog","program_id","προγραμμα","πρόγραμμα","program"],
   program_direction: ["program_direction","program_direction_id","program_dir","direction_id","κατευθυνση","κατεύθυνση","direction"],
   program_direction_id: ["program_direction_id","program_dir","direction_id","κατευθυνση","κατεύθυνση","direction"],
-  origin_region: ["origin_region","origin_region_id","origin_regio","region_id","περιοχη","περιοχή","περιφέρεια","region"],
-  origin_region_id: ["origin_region_id","origin_regio","region_id","περιοχη","περιοχή","περιφέρεια","region"],
-  origin_municipality: ["origin_municipality","δημος","δήμος","πόλη","municipality","city","δήμος προέλευσης","municipality of origin"],
+  origin_country: ["origin_country","origin_country_region_id","country","χώρα","χωρα"],
+  origin_country_region_id: ["origin_country_region_id","origin_country","country_id","country","χώρα","χωρα"],
+  origin_region: ["origin_region","origin_periphery_region_id","origin_region_id","origin_regio","region_id","περιοχη","περιοχή","περιφέρεια","region","periphery"],
+  origin_region_id: ["origin_periphery_region_id","origin_region_id","origin_regio","region_id","περιοχη","περιοχή","περιφέρεια","region","periphery"],
+  origin_municipality: ["origin_municipality","πόλη","municipality","city","foreign_city","city of origin"],
 } as const;
 
 const GRADUATE_SORT_FIELDS = new Set([
@@ -352,7 +357,7 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
     const direction = directionsById.get(Number(item.program_direction_id));
     const studyProgramName = studyProgram ? String(studyProgram.name_el ?? studyProgram.name_en ?? studyProgram.code ?? studyProgram.id) : "";
     const directionName = direction ? String(direction.name_el ?? direction.name_en ?? direction.code ?? direction.id) : "";
-    const region = regionsById.get(Number(item.origin_region_id));
+    const region = regionsById.get(Number(item.origin_periphery_region_id ?? item.origin_region_id));
     const regionName = region ? String(region.name ?? "") : "";
 
     return {
@@ -369,6 +374,7 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
       [labels.oath_date]: formatDateDisplay(item.oath_date),
       [labels.study_program]: studyProgramName,
       [labels.direction]: directionName,
+      [labels.origin_country]: (() => { const country = regionsById.get(Number(item.origin_country_region_id)); return country ? String(country.name ?? "") : ""; })(),
       [labels.origin_region]: regionName,
       [labels.origin_municipality]: item.origin_municipality ?? ""
     };
@@ -391,6 +397,7 @@ function getTemplateHeaders(lang: ExportLang) {
     labels.oath_date,
     labels.study_program,
     labels.direction,
+    labels.origin_country,
     labels.origin_region,
     labels.origin_municipality
   ]];
@@ -481,17 +488,26 @@ function resolveProgramDirectionId(value: unknown, directionsById: Map<number, a
   return null;
 }
 
-function hasOriginValue(origin_region_id: number | null | undefined, origin_municipality: string | null | undefined) {
-  return origin_region_id != null || String(origin_municipality ?? "").trim().length > 0;
+function hasOriginValue(origin_country_region_id: number | null | undefined, origin_region_id: number | null | undefined, origin_municipality: string | null | undefined) {
+  return origin_country_region_id != null || origin_region_id != null || String(origin_municipality ?? "").trim().length > 0;
 }
 
 function ensureManagedOrigin(
   normalizedOrigin: NormalizedOriginResult,
+  origin_country_region_id: number | null | undefined,
   origin_region_id: number | null | undefined,
-  origin_municipality: string | null | undefined
+  origin_municipality: string | null | undefined,
+  regionsById?: Map<number, any>
 ) {
-  void normalizedOrigin;
-  if (!hasOriginValue(origin_region_id, origin_municipality)) return null;
+  if (!hasOriginValue(origin_country_region_id, origin_region_id, origin_municipality)) return null;
+  if (!normalizedOrigin.origin_country_region_id) return "origin_country_region_id is required";
+  if (!normalizedOrigin.origin_municipality) return "origin_municipality is required";
+  if (regionsById) {
+    const country = regionsById.get(Number(normalizedOrigin.origin_country_region_id));
+    const isGreece = normalizeRegionText(country?.name) === normalizeRegionText("Ελλάδα");
+    if (isGreece && !normalizedOrigin.origin_periphery_region_id) return "origin_periphery_region_id is required for Greece";
+    if (!isGreece && normalizedOrigin.origin_periphery_region_id) return "origin_periphery_region_id must be empty for foreign countries";
+  }
   return null;
 }
 
@@ -677,6 +693,8 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       study_program_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.study_program_id]),
       program_direction: firstIndex(headers, [...IMPORT_HEADER_ALIASES.program_direction]),
       program_direction_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.program_direction_id]),
+      origin_country: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_country]),
+      origin_country_region_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_country_region_id]),
       origin_region: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_region]),
       origin_region_id: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_region_id]),
       origin_municipality: firstIndex(headers, [...IMPORT_HEADER_ALIASES.origin_municipality]),
@@ -734,8 +752,11 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const study_program_id = resolveStudyProgramId(study_program_source, programsById);
       const program_direction_source = idx.program_direction >= 0 ? get("program_direction") : get("program_direction_id");
       const program_direction_id = resolveProgramDirectionId(program_direction_source, directionsById, study_program_id);
+      const defaultGreeceId = Array.from(regionsById.values()).find((item: any) => normalizeRegionText(item?.name) === normalizeRegionText("Ελλάδα"))?.id ?? null;
+      const origin_country_source = idx.origin_country >= 0 ? get("origin_country") : get("origin_country_region_id");
+      const origin_country_region_id = resolveRegionId(origin_country_source, regionsById) ?? toInt(get("origin_country_region_id")) ?? defaultGreeceId;
       const origin_region_source = idx.origin_region >= 0 ? get("origin_region") : get("origin_region_id");
-      const origin_region_id = resolveRegionId(origin_region_source, regionsById) ?? toInt(get("origin_region_id"));
+      const origin_periphery_region_id = resolveRegionId(origin_region_source, regionsById) ?? toInt(get("origin_region_id"));
       const origin_municipality = String(get("origin_municipality")).trim() || null;
 
       const rowProblems: RowError[] = [];
@@ -752,7 +773,8 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       if (degree_grade === null) rowProblems.push({ row: rowNum, column: "degree_grade", message: "Invalid number", value: get("degree_grade") });
       if (!birth_date) rowProblems.push({ row: rowNum, column: "birth_date", message: "Invalid date", value: get("birth_date" as any) });
       if (!study_program_id) rowProblems.push({ row: rowNum, column: "study_program", message: "Invalid value", value: study_program_source });
-      if (!origin_region_id && String(origin_region_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_region", message: "Invalid value", value: origin_region_source });
+      if (!origin_country_region_id && String(origin_country_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_country", message: "Invalid value", value: origin_country_source });
+      if (!origin_periphery_region_id && String(origin_region_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_region", message: "Invalid value", value: origin_region_source });
 
       if (rowProblems.length) {
         errors.push(...rowProblems);
@@ -761,12 +783,14 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       }
 
       const normalizedOrigin = await normalizeOriginLocation({
-        origin_region_id: origin_region_id ?? null,
+        origin_country_region_id: origin_country_region_id ?? null,
+        origin_periphery_region_id: origin_periphery_region_id ?? null,
+        origin_region_id: origin_periphery_region_id ?? null,
         origin_city_region_id: null,
         origin_municipality,
       });
 
-      const managedOriginError = ensureManagedOrigin(normalizedOrigin, origin_region_id ?? null, origin_municipality);
+      const managedOriginError = ensureManagedOrigin(normalizedOrigin, origin_country_region_id ?? null, origin_periphery_region_id ?? null, origin_municipality, regionsById);
       if (managedOriginError) {
         errors.push({ row: rowNum, column: "origin_municipality", message: managedOriginError, value: origin_municipality });
         skipped++;
@@ -808,6 +832,8 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
           birth_date,
           study_program_id,
           program_direction_id: program_direction_id ?? null,
+          origin_country_region_id: normalizedOrigin.origin_country_region_id,
+          origin_periphery_region_id: normalizedOrigin.origin_periphery_region_id,
           origin_region_id: normalizedOrigin.origin_region_id,
           origin_city_region_id: normalizedOrigin.origin_city_region_id,
           origin_municipality: normalizedOrigin.origin_municipality,
@@ -967,20 +993,26 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
       return bad(res, "program_direction_id does not belong to study_program_id");
     }
 
-    const origin_region_id = toNullableNumber(body.origin_region_id);
-    if (origin_region_id === null) return bad(res, "origin_region_id is required");
-    if (Number.isNaN(origin_region_id as any)) return bad(res, "origin_region_id must be a number");
+    const { regionsById } = await getReferenceMaps();
+    const origin_country_region_id = toNullableNumber(body.origin_country_region_id);
+    if (origin_country_region_id === null) return bad(res, "origin_country_region_id is required");
+    if (Number.isNaN(origin_country_region_id as any)) return bad(res, "origin_country_region_id must be a number");
+
+    const origin_periphery_region_id = toNullableNumber(body.origin_periphery_region_id ?? body.origin_region_id);
+    if (Number.isNaN(origin_periphery_region_id as any)) return bad(res, "origin_periphery_region_id must be a number");
 
     const origin_municipality = String(body.origin_municipality ?? "").trim();
     if (!origin_municipality) return bad(res, "origin_municipality is required");
 
     const normalizedOrigin = await normalizeOriginLocation({
-      origin_region_id: origin_region_id ?? null,
+      origin_country_region_id: origin_country_region_id ?? null,
+      origin_periphery_region_id: origin_periphery_region_id ?? null,
+      origin_region_id: origin_periphery_region_id ?? null,
       origin_city_region_id: toNullableNumber(body.origin_city_region_id),
       origin_municipality,
     });
 
-    const managedOriginError = ensureManagedOrigin(normalizedOrigin, origin_region_id ?? null, origin_municipality);
+    const managedOriginError = ensureManagedOrigin(normalizedOrigin, origin_country_region_id ?? null, origin_periphery_region_id ?? null, origin_municipality, regionsById);
     if (managedOriginError) return bad(res, managedOriginError);
 
     const created = await Graduate.create({
@@ -997,6 +1029,8 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
       gender,
       study_program_id,
       program_direction_id,
+      origin_country_region_id: normalizedOrigin.origin_country_region_id,
+      origin_periphery_region_id: normalizedOrigin.origin_periphery_region_id,
       origin_region_id: normalizedOrigin.origin_region_id,
       origin_city_region_id: normalizedOrigin.origin_city_region_id,
       origin_municipality: normalizedOrigin.origin_municipality
@@ -1058,11 +1092,20 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       (item as any).program_direction_id = program_direction_id;
     }
 
+    const { regionsById } = await getReferenceMaps();
     let originRegionTouched = false;
-    if (body.origin_region_id !== undefined) {
-      const origin_region_id = toNullableNumber(body.origin_region_id);
-      if (Number.isNaN(origin_region_id as any)) return bad(res, "origin_region_id must be a number");
-      (item as any).origin_region_id = origin_region_id;
+    if (body.origin_country_region_id !== undefined) {
+      const origin_country_region_id = toNullableNumber(body.origin_country_region_id);
+      if (Number.isNaN(origin_country_region_id as any)) return bad(res, "origin_country_region_id must be a number");
+      (item as any).origin_country_region_id = origin_country_region_id;
+      originRegionTouched = true;
+    }
+
+    if (body.origin_periphery_region_id !== undefined || body.origin_region_id !== undefined) {
+      const origin_periphery_region_id = toNullableNumber(body.origin_periphery_region_id ?? body.origin_region_id);
+      if (Number.isNaN(origin_periphery_region_id as any)) return bad(res, "origin_periphery_region_id must be a number");
+      (item as any).origin_periphery_region_id = origin_periphery_region_id;
+      (item as any).origin_region_id = origin_periphery_region_id;
       originRegionTouched = true;
     }
 
@@ -1092,16 +1135,22 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
 
     if (originRegionTouched) {
       const normalized = await normalizeOriginLocation({
-        origin_region_id: (item as any).origin_region_id ?? null,
+        origin_country_region_id: (item as any).origin_country_region_id ?? null,
+        origin_periphery_region_id: (item as any).origin_periphery_region_id ?? (item as any).origin_region_id ?? null,
+        origin_region_id: (item as any).origin_periphery_region_id ?? (item as any).origin_region_id ?? null,
         origin_city_region_id: (item as any).origin_city_region_id ?? null,
         origin_municipality: (item as any).origin_municipality ?? null,
       });
       const managedOriginError = ensureManagedOrigin(
         normalized,
-        (item as any).origin_region_id ?? null,
-        (item as any).origin_municipality ?? null
+        (item as any).origin_country_region_id ?? null,
+        (item as any).origin_periphery_region_id ?? (item as any).origin_region_id ?? null,
+        (item as any).origin_municipality ?? null,
+        regionsById
       );
       if (managedOriginError) return bad(res, managedOriginError);
+      (item as any).origin_country_region_id = normalized.origin_country_region_id;
+      (item as any).origin_periphery_region_id = normalized.origin_periphery_region_id;
       (item as any).origin_region_id = normalized.origin_region_id;
       (item as any).origin_city_region_id = normalized.origin_city_region_id;
       (item as any).origin_municipality = normalized.origin_municipality;

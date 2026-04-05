@@ -26,6 +26,8 @@ type ResolvedMapLocation = {
 };
 
 type GraduateOriginInput = {
+  origin_country_region_id?: number | null;
+  origin_periphery_region_id?: number | null;
   origin_region_id?: number | null;
   origin_city_region_id?: number | null;
   origin_municipality?: string | null;
@@ -380,6 +382,16 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
   const rawCityName = cleanRegionText(input.origin_municipality);
 
   const explicitCity = explicitCityId ? lookups.byId.get(explicitCityId) ?? null : null;
+  if (explicitCity && explicitCity.type === "FOREIGN_CITY") {
+    return {
+      cityId: explicitCity.id,
+      cityName: explicitCity.name,
+      peripheryId: null,
+      peripheryName: null,
+      latitude: explicitCity.latitude,
+      longitude: explicitCity.longitude,
+    };
+  }
   if (explicitCity && explicitCity.type === "CITY") {
     const periphery = getPeripheryFromRegionId(explicitCity.id, lookups.byId);
     if ((explicitCity.latitude !== null && explicitCity.longitude !== null) || !rawCityName) {
@@ -394,7 +406,19 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
     }
   }
 
+  const countryId = input.origin_country_region_id ? Number(input.origin_country_region_id) : null;
+  const country = countryId ? lookups.byId.get(countryId) ?? null : null;
   const region = explicitRegionId ? lookups.byId.get(explicitRegionId) ?? null : null;
+  if (country && country.type === "COUNTRY" && normalizeRegionText(country.name) !== normalizeRegionText("Ελλάδα")) {
+    return {
+      cityId: explicitCity?.id ?? null,
+      cityName: explicitCity?.name ?? rawCityName,
+      peripheryId: null,
+      peripheryName: null,
+      latitude: explicitCity?.latitude ?? null,
+      longitude: explicitCity?.longitude ?? null,
+    };
+  }
   const periphery = explicitCity ? getPeripheryFromRegionId(explicitCity.id, lookups.byId) : region?.type === "PERIPHERY" ? region : getPeripheryFromRegionId(explicitRegionId, lookups.byId);
   const preferredPeripheryId = periphery ? periphery.id : null;
 

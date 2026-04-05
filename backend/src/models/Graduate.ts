@@ -18,6 +18,8 @@ export class Graduate extends Model {
   declare gender: Gender;
   declare study_program_id: number;
   declare program_direction_id: number | null;
+  declare origin_country_region_id: number | null;
+  declare origin_periphery_region_id: number | null;
   declare origin_region_id: number | null;
   declare origin_city_region_id: number | null;
   declare origin_municipality: string | null;
@@ -39,6 +41,8 @@ Graduate.init(
     gender: { type: DataTypes.ENUM("M", "F"), allowNull: false },
     study_program_id: { type: DataTypes.INTEGER, allowNull: false },
     program_direction_id: { type: DataTypes.INTEGER, allowNull: true },
+    origin_country_region_id: { type: DataTypes.INTEGER, allowNull: true },
+    origin_periphery_region_id: { type: DataTypes.INTEGER, allowNull: true },
     origin_region_id: { type: DataTypes.INTEGER, allowNull: true },
     origin_city_region_id: { type: DataTypes.INTEGER, allowNull: true },
     origin_municipality: { type: DataTypes.STRING(150), allowNull: true }

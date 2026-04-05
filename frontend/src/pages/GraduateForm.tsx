@@ -26,14 +26,8 @@ function getGraduateValidationIssue(form: Partial<Graduate>, t: (key: string, op
   const birthYear = yearFromDate((form as any).birth_date);
   const graduationYear = yearFromDate(form.graduation_date);
 
-  if (birthYear && graduationYear && graduationYear - birthYear < 23) {
-    return t("validation.minAge");
-  }
-
-  if (Number.isFinite(entryYear) && graduationYear && graduationYear - entryYear < 5) {
-    return t("validation.minDuration");
-  }
-
+  if (birthYear && graduationYear && graduationYear - birthYear < 23) return t("validation.minAge");
+  if (Number.isFinite(entryYear) && graduationYear && graduationYear - entryYear < 5) return t("validation.minDuration");
   return null;
 }
 
@@ -51,9 +45,18 @@ const empty: Partial<Graduate> = {
   birth_date: "",
   graduation_date: "",
   oath_date: "",
+  origin_country_region_id: null,
+  origin_periphery_region_id: null,
   origin_region_id: null,
+  origin_city_region_id: null,
   origin_municipality: null
 };
+
+function isGreekCountry(countryId: number | null | undefined, countries: Region[]) {
+  if (!countryId) return false;
+  const country = countries.find((item) => item.id === countryId);
+  return String(country?.name || "").trim().toLowerCase() === "ελλάδα";
+}
 
 export default function GraduateForm(props: { mode: Mode }) {
   const { t, i18n } = useTranslation("graduateForm");
@@ -62,6 +65,7 @@ export default function GraduateForm(props: { mode: Mode }) {
 
   const [programs, setPrograms] = useState<StudyProgram[]>([]);
   const [directions, setDirections] = useState<ProgramDirection[]>([]);
+  const [countries, setCountries] = useState<Region[]>([]);
   const [peripheries, setPeripheries] = useState<Region[]>([]);
   const [cities, setCities] = useState<Region[]>([]);
   const [saving, setSaving] = useState(false);
@@ -71,14 +75,24 @@ export default function GraduateForm(props: { mode: Mode }) {
   const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
 
   const gradId = useMemo(() => (isEdit ? Number(id) : null), [id, isEdit]);
+  const greeceSelected = useMemo(() => isGreekCountry(form.origin_country_region_id ?? null, countries), [countries, form.origin_country_region_id]);
 
   useEffect(() => {
     (async () => {
-      const sp = await listStudyPrograms();
+      const [sp, countriesResponse] = await Promise.all([
+        listStudyPrograms(),
+        listRegions({ parent_id: null, type: "COUNTRY" })
+      ]);
       setPrograms(sp.items);
+      setCountries(countriesResponse.items || []);
 
       if (!isEdit) {
-        if (sp.items.length) setForm((f) => ({ ...f, study_program_id: sp.items[0].id }));
+        const defaultCountry = (countriesResponse.items || []).find((item: Region) => String(item.name || "").trim().toLowerCase() === "ελλάδα");
+        setForm((f) => ({
+          ...f,
+          study_program_id: sp.items[0]?.id ?? f.study_program_id,
+          origin_country_region_id: defaultCountry?.id ?? f.origin_country_region_id ?? null,
+        }));
         return;
       }
 
@@ -92,7 +106,10 @@ export default function GraduateForm(props: { mode: Mode }) {
         birth_date: (g.item as any).birth_date ?? "",
         graduation_date: g.item.graduation_date ?? "",
         oath_date: g.item.oath_date ?? "",
-        origin_region_id: g.item.origin_region_id ?? null,
+        origin_country_region_id: g.item.origin_country_region_id ?? null,
+        origin_periphery_region_id: g.item.origin_periphery_region_id ?? g.item.origin_region_id ?? null,
+        origin_region_id: g.item.origin_periphery_region_id ?? g.item.origin_region_id ?? null,
+        origin_city_region_id: g.item.origin_city_region_id ?? null,
         origin_municipality: g.item.origin_municipality ?? null,
         program_direction_id: g.item.program_direction_id ?? null,
       });
@@ -116,37 +133,67 @@ export default function GraduateForm(props: { mode: Mode }) {
   }, [form.study_program_id]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const r = await listRegions({ parent_id: null, type: "PERIPHERY" });
-        setPeripheries(r.items || []);
-      } catch {
-        setPeripheries([]);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    const regionId = Number(form.origin_region_id);
-    if (!Number.isFinite(regionId) || regionId <= 0) {
+    if (!Number.isFinite(Number(form.origin_country_region_id))) {
+      setPeripheries([]);
       setCities([]);
-      setForm((current) => (current.origin_municipality ? { ...current, origin_municipality: null } : current));
+      return;
+    }
+
+    if (!greeceSelected) {
+      setPeripheries([]);
+      setForm((current) => {
+        const next = {
+          ...current,
+          origin_periphery_region_id: null,
+          origin_region_id: null,
+          origin_city_region_id: null,
+        };
+        return next;
+      });
+      (async () => {
+        try {
+          const response = await listRegions({ type: "FOREIGN_CITY", parent_id: Number(form.origin_country_region_id) });
+          setCities(response.items || []);
+        } catch {
+          setCities([]);
+        }
+      })();
       return;
     }
 
     (async () => {
       try {
-        const response = await listRegions({ type: "CITY", parent_id: regionId });
+        const greeceId = Number(form.origin_country_region_id);
+        const r = await listRegions({ parent_id: greeceId, type: "PERIPHERY" });
+        setPeripheries(r.items || []);
+      } catch {
+        setPeripheries([]);
+      }
+    })();
+  }, [form.origin_country_region_id, greeceSelected]);
+
+  useEffect(() => {
+    if (!greeceSelected) return;
+    const peripheryId = Number(form.origin_periphery_region_id ?? form.origin_region_id);
+    if (!Number.isFinite(peripheryId) || peripheryId <= 0) {
+      setCities([]);
+      setForm((current) => ({ ...current, origin_city_region_id: null, origin_municipality: null, origin_region_id: current.origin_periphery_region_id ?? null }));
+      return;
+    }
+
+    (async () => {
+      try {
+        const response = await listRegions({ type: "CITY", parent_id: peripheryId });
         setCities(response.items || []);
       } catch {
         setCities([]);
       }
     })();
-  }, [form.origin_region_id]);
+  }, [form.origin_periphery_region_id, form.origin_region_id, greeceSelected]);
 
   const validateRequired = (): string | null => {
     if (isEdit) return null;
-    const required: Array<[keyof Graduate | string, any, string]> = [
+    const required: Array<[string, any, string]> = [
       ["ad_code", form.ad_code, t("labels.adCode")],
       ["last_name", form.last_name, t("labels.lastName")],
       ["first_name", form.first_name, t("labels.firstName")],
@@ -160,14 +207,15 @@ export default function GraduateForm(props: { mode: Mode }) {
       ["oath_date", form.oath_date, t("labels.oathDate")],
       ["study_program_id", form.study_program_id, t("labels.studyProgram")],
       ["program_direction_id", form.program_direction_id, t("labels.direction")],
-      ["origin_region_id", form.origin_region_id, t("labels.regionSearch")],
+      ["origin_country_region_id", form.origin_country_region_id, t("labels.country")],
       ["origin_municipality", form.origin_municipality, t("labels.originText")],
     ];
+    if (greeceSelected) required.push(["origin_periphery_region_id", form.origin_periphery_region_id, t("labels.regionSearch")]);
+
     for (const [_k, v, label] of required) {
-      if (v === null || v === undefined || String(v).trim() === "") {
-        return label;
-      }
+      if (v === null || v === undefined || String(v).trim() === "") return label;
     }
+
     return null;
   };
 
@@ -189,11 +237,14 @@ export default function GraduateForm(props: { mode: Mode }) {
         return;
       }
 
-      if (isEdit && gradId) {
-        await updateGraduate(gradId, form);
-      } else {
-        await createGraduate(form);
-      }
+      const payload = {
+        ...form,
+        origin_periphery_region_id: greeceSelected ? form.origin_periphery_region_id ?? form.origin_region_id ?? null : null,
+        origin_region_id: greeceSelected ? form.origin_periphery_region_id ?? form.origin_region_id ?? null : null,
+      };
+
+      if (isEdit && gradId) await updateGraduate(gradId, payload);
+      else await createGraduate(payload);
       nav("/graduates");
     } catch (e: any) {
       alert(e?.response?.data?.error?.message ?? e?.message ?? t("error"));
@@ -216,7 +267,6 @@ export default function GraduateForm(props: { mode: Mode }) {
     fontWeight: 800,
     color: "#475569"
   };
-
 
   return (
     <div className="grid" style={{ gap: 16 }}>
@@ -264,11 +314,11 @@ export default function GraduateForm(props: { mode: Mode }) {
             </div>
             <div style={fieldStyle(t("labels.entryYearReq"))}>
               <label style={labelStyle}>{t("labels.entryYearReq")}</label>
-              <input className="input" inputMode="numeric" value={form.entry_year ?? ""} onChange={(e) => setForm((f) => ({ ...f, entry_year: e.target.value ? Number(e.target.value) : ("" as any) }))} placeholder="" />
+              <input className="input" inputMode="numeric" value={form.entry_year ?? ""} onChange={(e) => setForm((f) => ({ ...f, entry_year: e.target.value ? Number(e.target.value) : ("" as any) }))} />
             </div>
             <div style={fieldStyle(t("labels.degreeGrade"))}>
               <label style={labelStyle}>{t("labels.degreeGrade")}</label>
-              <input className="input" inputMode="decimal" value={form.degree_grade ?? ""} onChange={(e) => setForm((f) => ({ ...f, degree_grade: e.target.value ? Number(e.target.value) : ("" as any) }))} placeholder="" />
+              <input className="input" inputMode="decimal" value={form.degree_grade ?? ""} onChange={(e) => setForm((f) => ({ ...f, degree_grade: e.target.value ? Number(e.target.value) : ("" as any) }))} />
             </div>
             <div style={fieldStyle(t("labels.graduationDate"))}>
               <label style={labelStyle}>{t("labels.graduationDate")}</label>
@@ -291,25 +341,47 @@ export default function GraduateForm(props: { mode: Mode }) {
                 {directions.map((d) => <option key={d.id} value={d.id}>{activeLang === "en" ? d.name_en || d.name_el : d.name_el || d.name_en}</option>)}
               </select>
             </div>
-            <div style={fieldStyle(t("labels.regionSearch"))}>
-              <label style={labelStyle}>{t("labels.regionSearch")}</label>
-              <select className="input" value={form.origin_region_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_region_id: e.target.value ? Number(e.target.value) : null, origin_municipality: null }))}>
+            <div style={fieldStyle(t("labels.country"))}>
+              <label style={labelStyle}>{t("labels.country")}</label>
+              <select className="input" value={form.origin_country_region_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_country_region_id: e.target.value ? Number(e.target.value) : null, origin_periphery_region_id: null, origin_region_id: null, origin_city_region_id: null, origin_municipality: null }))}>
                 <option value="">{t("labels.choice")}</option>
-                {peripheries.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                {countries.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </div>
-            <div style={fieldStyle(t("labels.originText"))}>
-              <label style={labelStyle}>{t("labels.originText")}</label>
-              <select
-                className="input"
-                value={form.origin_municipality ?? ""}
-                onChange={(e) => setForm((f) => ({ ...f, origin_municipality: e.target.value || null }))}
-                disabled={!Number.isFinite(Number(form.origin_region_id))}
-              >
-                <option value="" hidden>{t("labels.choice")}</option>
-                {cities.map((item) => <option key={`${item.id}-${item.name}`} value={item.name}>{item.name}</option>)}
-              </select>
-            </div>
+            {greeceSelected ? (
+              <div style={fieldStyle(t("labels.regionSearch"))}>
+                <label style={labelStyle}>{t("labels.regionSearch")}</label>
+                <select className="input" value={form.origin_periphery_region_id ?? form.origin_region_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_periphery_region_id: e.target.value ? Number(e.target.value) : null, origin_region_id: e.target.value ? Number(e.target.value) : null, origin_city_region_id: null, origin_municipality: null }))}>
+                  <option value="">{t("labels.choice")}</option>
+                  {peripheries.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </div>
+            ) : (
+              <div style={fieldStyle(t("labels.originText"))}>
+                <label style={labelStyle}>{t("labels.originText")}</label>
+                <select className="input" value={form.origin_city_region_id ?? ""} onChange={(e) => {
+                  const cityId = e.target.value ? Number(e.target.value) : null;
+                  const city = cities.find((item) => item.id === cityId);
+                  setForm((f) => ({ ...f, origin_city_region_id: cityId, origin_municipality: city?.name ?? null }));
+                }} disabled={!Number.isFinite(Number(form.origin_country_region_id))}>
+                  <option value="">{t("labels.choice")}</option>
+                  {cities.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </div>
+            )}
+            {greeceSelected ? (
+              <div style={fieldStyle(t("labels.originText"))}>
+                <label style={labelStyle}>{t("labels.originText")}</label>
+                <select className="input" value={form.origin_city_region_id ?? ""} onChange={(e) => {
+                  const cityId = e.target.value ? Number(e.target.value) : null;
+                  const city = cities.find((item) => item.id === cityId);
+                  setForm((f) => ({ ...f, origin_city_region_id: cityId, origin_municipality: city?.name ?? null }));
+                }} disabled={!Number.isFinite(Number(form.origin_periphery_region_id ?? form.origin_region_id))}>
+                  <option value="">{t("labels.choice")}</option>
+                  {cities.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </div>
+            ) : null}
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap", paddingTop: 6 }}>
