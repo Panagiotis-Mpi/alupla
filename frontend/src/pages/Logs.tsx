@@ -455,12 +455,15 @@ export default function Logs() {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
     const locale = activeLang === "en" ? "en-GB" : "el-GR";
+    const baseOptions = { timeZone: "Europe/Athens" } as const;
     const time = new Intl.DateTimeFormat(locale, {
+      ...baseOptions,
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit"
     }).format(date);
     const day = new Intl.DateTimeFormat(locale, {
+      ...baseOptions,
       year: "numeric",
       month: "2-digit",
       day: "2-digit"

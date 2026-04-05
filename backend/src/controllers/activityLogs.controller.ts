@@ -563,8 +563,19 @@ function formatDateTime(lang: "gr" | "en", value: unknown) {
   const date = new Date(String(value ?? ""));
   if (Number.isNaN(date.getTime())) return String(value ?? "");
   const locale = lang === "en" ? "en-GB" : "el-GR";
-  const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(date);
-  const day = new Intl.DateTimeFormat(locale, { year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+  const baseOptions = { timeZone: "Europe/Athens" } as const;
+  const time = new Intl.DateTimeFormat(locale, {
+    ...baseOptions,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  }).format(date);
+  const day = new Intl.DateTimeFormat(locale, {
+    ...baseOptions,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(date);
   return `${time}, ${day}`;
 }
 
