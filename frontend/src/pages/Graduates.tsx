@@ -639,7 +639,7 @@ export default function Graduates() {
             origin_municipality: item.origin_municipality ?? null,
           })),
         });
-        await logGraduatesPdfExport(exportParams);
+        await logGraduatesPdfExport(ids?.length ? { ...exportParams, ids } : exportParams);
         return;
       }
       const request = {
