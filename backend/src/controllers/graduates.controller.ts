@@ -32,19 +32,16 @@ import {
   parseIds,
   parseImportGender,
   parseSort,
+  parseStoredGender,
+  requireDateOnly,
+  requireNonEmptyString,
+  requireNumberField,
   isGreeceCountryValue,
   toNullableNumber,
   trimNullableText,
 } from "./graduates.helpers";
 import { applyOriginPatch, buildCreateOriginPayload, buildExportRows, ensureManagedOrigin, getReferenceMaps, getTemplateHeaders, resolveProgramDirectionId, resolveRegionId, resolveStudyProgramId } from "./graduates.shared";
 import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
-import {
-  applyGraduateScalarPatch,
-  readCreateGraduateInput,
-  readProgramDirectionId,
-  validateCreateGraduateInput,
-  validateStoredGraduate,
-} from "./graduates.record";
 
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
   try {
@@ -477,14 +474,54 @@ export async function getGraduate(req: Request, res: Response, next: NextFunctio
 export async function createGraduate(req: Request, res: Response, next: NextFunction) {
   try {
     const body = req.body ?? {};
-    const input = readCreateGraduateInput(body);
-    const inputError = validateCreateGraduateInput(input);
-    if (inputError) return bad(res, inputError);
 
-    const program = await StudyProgram.findByPk(input.study_program_id);
+    const ad_code_in = String(body.ad_code ?? "").trim();
+    const last_name = String(body.last_name ?? "").trim();
+    const first_name = String(body.first_name ?? "").trim();
+    const father_name = String(body.father_name ?? "").trim();
+    const student_number = String(body.student_number ?? "").trim();
+    const gender = String(body.gender ?? "").trim();
+
+    const study_program_id = Number(body.study_program_id);
+    const entry_year = Number(body.entry_year);
+    const degree_grade = Number(body.degree_grade);
+
+    const graduation_date = String(body.graduation_date ?? "").trim(); // YYYY-MM-DD
+    const oath_date = String(body.oath_date ?? "").trim(); // YYYY-MM-DD
+    const birth_date = String(body.birth_date ?? "").trim(); // YYYY-MM-DD
+
+    const requiredStringError =
+      requireNonEmptyString(res, last_name, "last_name") ??
+      requireNonEmptyString(res, first_name, "first_name") ??
+      requireNonEmptyString(res, father_name, "father_name") ??
+      requireNonEmptyString(res, student_number, "student_number");
+    if (requiredStringError) return requiredStringError;
+
+    if (!parseStoredGender(gender)) return bad(res, "gender must be 'M' or 'F'");
+
+    const requiredNumberError =
+      requireNumberField(res, study_program_id, "study_program_id") ??
+      requireNumberField(res, entry_year, "entry_year") ??
+      requireNumberField(res, degree_grade, "degree_grade");
+    if (requiredNumberError) return requiredNumberError;
+
+    const dateError =
+      requireDateOnly(res, graduation_date, "graduation_date") ??
+      requireDateOnly(res, oath_date, "oath_date") ??
+      requireDateOnly(res, birth_date, "birth_date");
+    if (dateError) return dateError;
+
+    const createRuleViolation = getGraduateRuleViolations({
+      entry_year,
+      birth_date,
+      graduation_date,
+    }, "en")[0];
+    if (createRuleViolation) return bad(res, createRuleViolation.message);
+
+    const program = await StudyProgram.findByPk(study_program_id);
     if (!program) return bad(res, "study_program_id not found");
 
-    const program_direction_id = readProgramDirectionId(body.program_direction_id);
+    const program_direction_id = toNullableNumber(body.program_direction_id);
     if (program_direction_id === null) return bad(res, "program_direction_id is required");
     if (Number.isNaN(program_direction_id as any)) return bad(res, "program_direction_id must be a number");
     const dir = await ProgramDirection.findByPk(program_direction_id);
@@ -499,18 +536,18 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     const originPayload = originResult.payload;
 
     const created = await Graduate.create({
-      ad_code: input.ad_code || `AD-${input.student_number}`,
-      last_name: input.last_name,
-      first_name: input.first_name,
-      father_name: input.father_name,
-      degree_grade: input.degree_grade,
-      graduation_date: input.graduation_date,
-      oath_date: input.oath_date,
-      entry_year: input.entry_year,
-      student_number: input.student_number,
-      birth_date: input.birth_date,
-      gender: input.gender,
-      study_program_id: input.study_program_id,
+      ad_code: ad_code_in || `AD-${student_number}`,
+      last_name,
+      first_name,
+      father_name,
+      degree_grade,
+      graduation_date,
+      oath_date,
+      entry_year,
+      student_number,
+      birth_date,
+      gender,
+      study_program_id,
       program_direction_id,
       ...originPayload
     } as any);
@@ -520,7 +557,7 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
       action: "create_graduate",
       entity_type: "graduate",
       entity_id: (created as any).id,
-      details: { student_number: input.student_number }
+      details: { student_number }
     });
 
     res.status(201).json({ ok: true, item: created });
@@ -551,13 +588,13 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     }
 
     if (body.gender !== undefined) {
-      const gender = String(body.gender ?? "").trim();
-      if (gender !== "M" && gender !== "F") return bad(res, "gender must be 'M' or 'F'");
-      (item as any).gender = gender;
+      const g = String(body.gender ?? "").trim();
+      if (g !== "M" && g !== "F") return bad(res, "gender must be 'M' or 'F'");
+      (item as any).gender = g;
     }
 
     if (body.program_direction_id !== undefined) {
-      const program_direction_id = readProgramDirectionId(body.program_direction_id);
+      const program_direction_id = toNullableNumber(body.program_direction_id);
       if (Number.isNaN(program_direction_id as any)) return bad(res, "program_direction_id must be a number");
 
       if (program_direction_id !== null) {
@@ -573,14 +610,44 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
 
     const { regionsById } = await getReferenceMaps();
 
-    applyGraduateScalarPatch(item as any, body);
+    const setIf = (key: string, fn?: (v: any) => any) => {
+      if (body[key] !== undefined) (item as any)[key] = fn ? fn(body[key]) : body[key];
+    };
+
+    setIf("last_name", (v) => String(v ?? "").trim());
+    setIf("first_name", (v) => String(v ?? "").trim());
+    setIf("father_name", (v) => String(v ?? "").trim());
+    setIf("ad_code", (v) => String(v ?? "").trim());
+    setIf("student_number", (v) => String(v ?? "").trim());
+    setIf("degree_grade", (v) => (v === "" ? NaN : Number(v)));
+    setIf("graduation_date", (v) => String(v ?? "").trim());
+    setIf("oath_date", (v) => String(v ?? "").trim());
+    setIf("entry_year", (v) => (v === "" ? NaN : Number(v)));
+    setIf("birth_date", (v) => String(v ?? "").trim());
 
     const originError = await applyOriginPatch(item as any, body, regionsById);
     if (originError) return bad(res, originError);
 
     if (body.study_program_id !== undefined) (item as any).study_program_id = nextStudyProgramId;
-    const validationError = validateStoredGraduate(item as any);
-    if (validationError) return bad(res, validationError);
+    if (!String((item as any).ad_code ?? "").trim()) return bad(res, "ad_code cannot be empty");
+    if (!String((item as any).last_name ?? "").trim()) return bad(res, "last_name cannot be empty");
+    if (!String((item as any).first_name ?? "").trim()) return bad(res, "first_name cannot be empty");
+    if (!String((item as any).father_name ?? "").trim()) return bad(res, "father_name cannot be empty");
+    if (!String((item as any).student_number ?? "").trim()) return bad(res, "student_number cannot be empty");
+
+    if (!Number.isFinite(Number((item as any).entry_year))) return bad(res, "entry_year must be a number");
+    if (!Number.isFinite(Number((item as any).degree_grade))) return bad(res, "degree_grade must be a number");
+
+    if (!DATE_ONLY_RE.test(String((item as any).graduation_date ?? ""))) return bad(res, "graduation_date must be YYYY-MM-DD");
+    if (!DATE_ONLY_RE.test(String((item as any).oath_date ?? ""))) return bad(res, "oath_date must be YYYY-MM-DD");
+    if (!DATE_ONLY_RE.test(String((item as any).birth_date ?? ""))) return bad(res, "birth_date must be YYYY-MM-DD");
+
+    const updateRuleViolation = getGraduateRuleViolations({
+      entry_year: Number((item as any).entry_year),
+      birth_date: String((item as any).birth_date ?? ""),
+      graduation_date: String((item as any).graduation_date ?? ""),
+    }, "en")[0];
+    if (updateRuleViolation) return bad(res, updateRuleViolation.message);
 
     await item.save();
 
