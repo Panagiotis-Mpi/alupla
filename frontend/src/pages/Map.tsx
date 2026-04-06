@@ -27,7 +27,7 @@ import {
   type StudyProgram,
 } from "../lib/api";
 import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
-import { excelCellValue, exportCsvText, exportElementAsPng, exportWorkbook } from "./map/mapExport";
+import { exportCsvText, exportElementAsPng, exportWorkbook } from "./map/mapExport";
 import { useMapData, useVisibleCities } from "./map/hooks";
 import { EMPTY_FILTERS } from "./map/types";
 import {
@@ -44,6 +44,32 @@ import {
   tryParseGeoJson,
 } from "./map/utils";
 import { MapViewportWatcher } from "./map/shared";
+import {
+  InfoBox,
+  buildDirectionColorMap,
+  colorWithAlpha,
+  compactNumber,
+  detailValue,
+  directionColor,
+  genderColors,
+  isPlaceholderLegendLabel,
+  programSortScore,
+  slugPart,
+  useCompactMapViewport,
+} from "./map/viewHelpers";
+import {
+  applySheetLayout,
+  buildBaseExportRows,
+  buildCountSheetRows,
+  buildCsvRows,
+  buildCsvText,
+  buildDirectionSheetRows,
+  buildGenderSheetRows,
+  exportCombinedSnapshots,
+  renderMapSnapshot,
+  waitForMapFrame,
+  workbookSheetName,
+} from "./map/exportSelection";
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip, Legend, ArcElement);
 
@@ -52,121 +78,7 @@ type ExportFormat = "xlsx" | "csv" | "png";
 type ExportCategoryKey = MapMetric;
 
 const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
-const genderColors = { male: "#3b82f6", female: "#c084fc", balanced: "#cbd5e1", empty: "#e5e7eb" };
-const directionPalette = ["#2563eb", "#dc2626", "#16a34a", "#f59e0b", "#7c3aed", "#0891b2", "#e11d48", "#65a30d", "#ea580c", "#4f46e5", "#db2777", "#0f766e", "#b91c1c", "#0284c7", "#a16207", "#9333ea", "#15803d", "#c2410c", "#1d4ed8", "#be123c"];
-const chartPalette = directionPalette;
-
-function useCompactMapViewport() {
-  const [isCompact, setIsCompact] = useState(() => typeof window !== "undefined" ? window.innerWidth <= 820 : false);
-
-  useEffect(() => {
-    const update = () => setIsCompact(window.innerWidth <= 820);
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
-  return isCompact;
-}
-
-function compactNumber(value: number | string | null | undefined) {
-  if (value === null || value === undefined || value === "") return "-";
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return String(value);
-  if (Number.isInteger(numeric)) return String(numeric);
-  return numeric.toFixed(1);
-}
-
-function detailValue(value: number | string | null | undefined, suffix = "") {
-  if (value === null || value === undefined || value === "") return "-";
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return `${value}${suffix}`;
-  return `${compactNumber(numeric)}${suffix}`;
-}
-
-function hashLabel(value: string) {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-  return hash;
-}
-
-function buildDirectionColorMap(labels: string[]) {
-  const unique = Array.from(new Set(labels.map((label) => String(label || "").trim()).filter(Boolean)));
-  unique.sort((left, right) => left.localeCompare(right, "el"));
-  const pairs = unique.map((label, index) => [label, directionPalette[index % directionPalette.length]]);
-  return new Map<string, string>(pairs);
-}
-
-function directionColor(label: string, colorMap?: Map<string, string>) {
-  if (!label) return genderColors.empty;
-  if (colorMap?.has(label)) return colorMap.get(label) || genderColors.empty;
-  return directionPalette[hashLabel(label) % directionPalette.length];
-}
-
-function isPlaceholderLegendLabel(value: string) {
-  const normalized = normalizeKey(String(value || ""))
-    .replace(/[–—−‑‒﹘﹣]/g, "-")
-    .replace(/\s+/g, "")
-    .trim();
-  return /^\d+-\d+$/.test(normalized) && normalized.split("-")[0] === normalized.split("-")[1];
-}
-
-function colorWithAlpha(color: string, alpha: number) {
-  if (color.startsWith("#") && (color.length === 7 || color.length === 4)) {
-    const hex = color.length === 4
-      ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
-      : color;
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r},${g},${b},${alpha})`;
-  }
-  return color;
-}
-
-function programSortScore(label: string) {
-  const value = String(label || "");
-  const years = Array.from(value.matchAll(/(19|20)\d{2}/g)).map((match) => Number(match[0]));
-  const current = /σημερα|σήμερα|today|present|current/i.test(value) ? 1 : 0;
-  const maxYear = years.length ? Math.max(...years) : 0;
-  const minYear = years.length ? Math.min(...years) : 0;
-  return current * 1000000 + maxYear * 1000 + minYear;
-}
-
-function slugPart(value: string) {
-  return String(value || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "map";
-}
-
-function InfoBox({ title, totalText, groups }: { title: string; totalText: string; groups: Array<{ title: string; rows: Array<{ label: string; value: string }> }> }) {
-  return (
-    <div className="map-info-box">
-      <div className="map-info-box-header">
-        <div className="map-info-box-title">{title}</div>
-        <div className="map-info-total-line">{totalText}</div>
-      </div>
-      <div className="map-info-groups">
-        {groups.filter((group) => group.rows.length > 0).map((group) => (
-          <div className="map-info-group" key={`${title}-${group.title}`}>
-            <div className="map-info-group-title">{group.title}</div>
-            <div className="map-info-metrics">
-              {group.rows.map((row) => (
-                <div className="map-info-metric" key={`${title}-${group.title}-${row.label}`}>
-                  <div className="map-info-metric-label">{row.label}</div>
-                  <div className="map-info-metric-value">{row.value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+const chartPalette = ["#2563eb", "#dc2626", "#16a34a", "#f59e0b", "#7c3aed", "#0891b2", "#e11d48", "#65a30d", "#ea580c", "#4f46e5", "#db2777", "#0f766e", "#b91c1c", "#0284c7", "#a16207", "#9333ea", "#15803d", "#c2410c", "#1d4ed8", "#be123c"];
 
 export default function GraduatesMapPage() {
   const { t, i18n } = useTranslation(["map", "common"]);
@@ -558,13 +470,7 @@ export default function GraduatesMapPage() {
   const geoRenderKey = useMemo(() => `${mapMetric}:${items.map((item) => `${item.periphery_id}:${metricOptions[mapMetric].value(item)}`).join("|")}`, [items, mapMetric, metricOptions]);
 
   function exportRows() {
-    return items.map((item) => ({
-      [mt("export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(item.periphery_name),
-      [mt("export.countDetailed", { defaultValue: "Πλήθος αποφοίτων περιφέρειας" })]: excelCellValue(item.count),
-      [mt("maleCount", { defaultValue: "Άνδρες" })]: excelCellValue(item.male_count ?? 0),
-      [mt("femaleCount", { defaultValue: "Γυναίκες" })]: excelCellValue(item.female_count ?? 0),
-      [mt("dominantDirection", { defaultValue: "Κυρίαρχη κατεύθυνση" })]: excelCellValue(item.dominant_recent_direction ?? ""),
-    }));
+    return buildBaseExportRows(items, mt);
   }
 
   function currentFilenameBase() {
@@ -653,255 +559,6 @@ export default function GraduatesMapPage() {
     };
   }
 
-  function buildCountSheetRows(exportItems: GraduatesMapItem[], exportCities: any[]) {
-    const cityMap = new Map<string, any[]>();
-    exportCities.forEach((city) => {
-      const key = String(city.periphery_id || "");
-      const current = cityMap.get(key) || [];
-      current.push(city);
-      cityMap.set(key, current);
-    });
-    const rows: Record<string, any>[] = [];
-    exportItems.forEach((item) => {
-      const peripheryCities = [...(cityMap.get(String(item.periphery_id || "")) || [])].sort((left, right) => {
-        if (right.count !== left.count) return right.count - left.count;
-        return String(left.city_name || "").localeCompare(String(right.city_name || ""), "el");
-      });
-      rows.push({
-        [mt("export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(item.periphery_name),
-        [mt("export.countDetailed", { defaultValue: "Πλήθος αποφοίτων περιφέρειας" })]: excelCellValue(item.count),
-        [mt("citiesTitle", { defaultValue: "Πόλεις" })]: "",
-        [mt("export.cityCount", { defaultValue: "Πλήθος αποφοίτων πόλης" })]: "",
-      });
-      peripheryCities.forEach((city) => rows.push({
-        [mt("export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(item.periphery_name),
-        [mt("export.countDetailed", { defaultValue: "Πλήθος αποφοίτων περιφέρειας" })]: "",
-        [mt("citiesTitle", { defaultValue: "Πόλεις" })]: excelCellValue(city.city_name),
-        [mt("export.cityCount", { defaultValue: "Πλήθος αποφοίτων πόλης" })]: excelCellValue(city.count),
-      }));
-    });
-    return rows;
-  }
-
-  function buildGenderSheetRows(exportItems: GraduatesMapItem[], exportCities: any[]) {
-    const cityMap = new Map<string, any[]>();
-    exportCities.forEach((city) => {
-      const key = String(city.periphery_id || "");
-      const current = cityMap.get(key) || [];
-      current.push(city);
-      cityMap.set(key, current);
-    });
-    const rows: Record<string, any>[] = [];
-    exportItems.forEach((item) => {
-      const peripheryCities = [...(cityMap.get(String(item.periphery_id || "")) || [])].sort((left, right) => {
-        if (right.count !== left.count) return right.count - left.count;
-        return String(left.city_name || "").localeCompare(String(right.city_name || ""), "el");
-      });
-      rows.push({
-        [mt("export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(item.periphery_name),
-        [mt("maleCount", { defaultValue: "Άνδρες" })]: excelCellValue(item.male_count ?? 0),
-        [mt("femaleCount", { defaultValue: "Γυναίκες" })]: excelCellValue(item.female_count ?? 0),
-        [mt("malePct", { defaultValue: "% Άνδρες" })]: excelCellValue(item.male_pct ?? 0),
-        [mt("femalePct", { defaultValue: "% Γυναίκες" })]: excelCellValue(item.female_pct ?? 0),
-        [mt("citiesTitle", { defaultValue: "Πόλεις" })]: "",
-        [mt("export.cityCount", { defaultValue: "Πλήθος αποφοίτων πόλης" })]: "",
-      });
-      peripheryCities.forEach((city) => rows.push({
-        [mt("export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(item.periphery_name),
-        [mt("maleCount", { defaultValue: "Άνδρες" })]: "",
-        [mt("femaleCount", { defaultValue: "Γυναίκες" })]: "",
-        [mt("malePct", { defaultValue: "% Άνδρες" })]: "",
-        [mt("femalePct", { defaultValue: "% Γυναίκες" })]: "",
-        [mt("citiesTitle", { defaultValue: "Πόλεις" })]: excelCellValue(city.city_name),
-        [mt("export.cityCount", { defaultValue: "Πλήθος αποφοίτων πόλης" })]: excelCellValue(city.count),
-      }));
-    });
-    return rows;
-  }
-
-  function buildDirectionSheetRows(exportItems: GraduatesMapItem[], exportCities: any[]) {
-    const cityMap = new Map<string, any[]>();
-    exportCities.forEach((city) => {
-      const key = String(city.periphery_id || "");
-      const current = cityMap.get(key) || [];
-      current.push(city);
-      cityMap.set(key, current);
-    });
-    const rows: Record<string, any>[] = [];
-    exportItems.forEach((item) => {
-      const peripheryCities = [...(cityMap.get(String(item.periphery_id || "")) || [])].sort((left, right) => {
-        if (right.count !== left.count) return right.count - left.count;
-        return String(left.city_name || "").localeCompare(String(right.city_name || ""), "el");
-      });
-      rows.push({
-        [mt("export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(item.periphery_name),
-        [mt("legendLabels.dominantDirection", { defaultValue: "Κυρίαρχη κατεύθυνση" })]: excelCellValue(item.dominant_recent_direction ?? ""),
-        [mt("directionCount", { defaultValue: "Απόφοιτοι κατεύθυνσης" })]: excelCellValue(item.dominant_recent_direction_count ?? 0),
-        [mt("citiesTitle", { defaultValue: "Πόλεις" })]: "",
-        [mt("export.cityCount", { defaultValue: "Πλήθος αποφοίτων πόλης" })]: "",
-      });
-      peripheryCities.forEach((city) => rows.push({
-        [mt("export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(item.periphery_name),
-        [mt("legendLabels.dominantDirection", { defaultValue: "Κυρίαρχη κατεύθυνση" })]: "",
-        [mt("directionCount", { defaultValue: "Απόφοιτοι κατεύθυνσης" })]: "",
-        [mt("citiesTitle", { defaultValue: "Πόλεις" })]: excelCellValue(city.city_name),
-        [mt("export.cityCount", { defaultValue: "Πλήθος αποφοίτων πόλης" })]: excelCellValue(city.count),
-      }));
-    });
-    return rows;
-  }
-
-  function workbookSheetName(name: string, used: Set<string>) {
-    let next = String(name || "Sheet").replace(/[\/?*\[\]:]/g, " ").trim() || "Sheet";
-    next = next.slice(0, 31);
-    if (!used.has(next)) {
-      used.add(next);
-      return next;
-    }
-    let index = 2;
-    while (true) {
-      const suffix = `_${index}`;
-      const candidate = `${next.slice(0, Math.max(1, 31 - suffix.length))}${suffix}`;
-      if (!used.has(candidate)) {
-        used.add(candidate);
-        return candidate;
-      }
-      index += 1;
-    }
-  }
-
-  function escapeCsv(value: unknown) {
-    const text = String(value ?? "");
-    if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
-    return text;
-  }
-
-  function buildCsvRows(categoryLabel: string, rows: Record<string, any>[], programLabel = "") {
-    return rows.map((row) => ({
-      [mt("export.categoryColumn", { defaultValue: "Κατηγορία" })]: categoryLabel,
-      [mt("filters.studyProgram", { defaultValue: "Πρόγραμμα σπουδών" })]: programLabel,
-      ...row,
-    }));
-  }
-
-  function buildCsvText(rows: Record<string, any>[]) {
-    const headers = Object.keys(rows[0] || {});
-    if (!headers.length) return "";
-    const lines = [headers.map(escapeCsv).join(",")];
-    rows.forEach((row) => lines.push(headers.map((header) => escapeCsv((row as any)[header])).join(",")));
-    return lines.join("\r\n");
-  }
-
-  function applySheetLayout(sheet: XLSX.WorkSheet, rows: Record<string, any>[]) {
-    const headers = Object.keys(rows[0] || {});
-    if (!headers.length) return;
-    sheet["!cols"] = headers.map((header) => {
-      const values = rows.map((row) => String((row as any)[header] ?? ""));
-      const maxLength = Math.max(header.length, ...values.map((value) => value.length));
-      return { wch: Math.min(42, Math.max(14, maxLength + 4)) };
-    });
-    sheet["!autofilter"] = { ref: sheet["!ref"] || `A1:${String.fromCharCode(64 + headers.length)}1` };
-  }
-
-  async function waitForMapFrame() {
-    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-    await new Promise<void>((resolve) => window.setTimeout(resolve, 240));
-    if (mapRef.current) mapRef.current.invalidateSize();
-    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-  }
-
-  async function renderMapSnapshot(element: HTMLElement) {
-    const rect = element.getBoundingClientRect();
-    const width = Math.ceil(rect.width);
-    const height = Math.ceil(rect.height);
-    const clone = element.cloneNode(true) as HTMLElement;
-    const sourceNodes = [element, ...Array.from(element.querySelectorAll<HTMLElement>("*"))];
-    const cloneNodes = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>("*"))];
-
-    sourceNodes.forEach((sourceNode, index) => {
-      const cloneNode = cloneNodes[index];
-      if (!cloneNode) return;
-      const computed = window.getComputedStyle(sourceNode);
-      cloneNode.setAttribute("style", Array.from(computed).map((name) => `${name}:${computed.getPropertyValue(name)};`).join(""));
-    });
-
-    Array.from(element.querySelectorAll("canvas")).forEach((sourceCanvas, index) => {
-      const cloneCanvas = clone.querySelectorAll("canvas")[index];
-      if (!cloneCanvas) return;
-      const image = document.createElement("img");
-      try {
-        image.src = (sourceCanvas as HTMLCanvasElement).toDataURL("image/png");
-      } catch {
-        return;
-      }
-      image.style.width = `${cloneCanvas.clientWidth || (sourceCanvas as HTMLCanvasElement).clientWidth}px`;
-      image.style.height = `${cloneCanvas.clientHeight || (sourceCanvas as HTMLCanvasElement).clientHeight}px`;
-      cloneCanvas.replaceWith(image);
-    });
-
-    clone.style.margin = "0";
-    clone.style.width = `${width}px`;
-    clone.style.height = `${height}px`;
-    const wrapper = document.createElement("div");
-    wrapper.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-    wrapper.style.width = `${width}px`;
-    wrapper.style.height = `${height}px`;
-    wrapper.style.background = "#ffffff";
-    wrapper.appendChild(clone);
-    const serialized = new XMLSerializer().serializeToString(wrapper);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${serialized}</foreignObject></svg>`;
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error("image_error"));
-      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-    });
-    return { image, width, height };
-  }
-
-  async function exportCombinedSnapshots(filename: string, title: string, snapshots: Array<{ image: HTMLImageElement; width: number; height: number; caption?: string }>) {
-    if (!snapshots.length) return;
-    const padding = 20;
-    const gap = 18;
-    const titleHeight = 42;
-    const captionHeight = 28;
-    const width = Math.max(...snapshots.map((snapshot) => snapshot.width)) + padding * 2;
-    const height = titleHeight + padding + snapshots.reduce((sum, snapshot) => sum + snapshot.height + (snapshot.caption ? captionHeight : 0), 0) + gap * Math.max(0, snapshots.length - 1) + padding;
-    const canvas = document.createElement("canvas");
-    canvas.width = width * 2;
-    canvas.height = height * 2;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.scale(2, 2);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = "#0f172a";
-    ctx.font = '700 22px Arial, sans-serif';
-    ctx.fillText(title, padding, 30);
-    let offsetY = titleHeight;
-    snapshots.forEach((snapshot, index) => {
-      if (snapshot.caption) {
-        ctx.fillStyle = "#334155";
-        ctx.font = '700 16px Arial, sans-serif';
-        ctx.fillText(snapshot.caption, padding, offsetY + 18);
-        offsetY += captionHeight;
-      }
-      ctx.drawImage(snapshot.image, padding, offsetY, snapshot.width, snapshot.height);
-      offsetY += snapshot.height;
-      if (index < snapshots.length - 1) offsetY += gap;
-    });
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-    if (!blob) return;
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  }
-
   async function exportMapSelectionAsPng() {
     if (!mapCanvasRef.current) return;
     const previousMetric = mapMetric;
@@ -915,7 +572,7 @@ export default function GraduatesMapPage() {
           for (const programId of programIds) {
             setSelectedStudyProgramId(programId);
             setMapMetric("dominant_direction");
-            await waitForMapFrame();
+            await waitForMapFrame(mapRef);
             const snapshot = await renderMapSnapshot(mapCanvasRef.current);
             snapshots.push({ ...snapshot, caption: studyProgramOptions.find((item) => item.id === programId)?.label || "" });
           }
@@ -923,13 +580,13 @@ export default function GraduatesMapPage() {
           continue;
         }
         setMapMetric(category);
-        await waitForMapFrame();
+        await waitForMapFrame(mapRef);
         snapshotsByCategory.push({ key: category, snapshots: [await renderMapSnapshot(mapCanvasRef.current)] });
       }
     } finally {
       setMapMetric(previousMetric);
       setSelectedStudyProgramId(previousStudyProgramId);
-      await waitForMapFrame();
+      await waitForMapFrame(mapRef);
     }
 
     for (const entry of snapshotsByCategory) {
@@ -952,31 +609,31 @@ export default function GraduatesMapPage() {
         for (const category of selectedExportCategories) {
           if (category === "count") {
             const response = await loadExportCategoryData("count");
-            const rows = buildCountSheetRows(response.items, response.cityPoints);
+            const rows = buildCountSheetRows(response.items, response.cityPoints, mt);
             const title = mt("metricOptions.count", { defaultValue: "Πλήθος αποφοίτων" });
             if (selectedExportFormat === "xlsx") {
               const sheet = XLSX.utils.json_to_sheet(rows);
               applySheetLayout(sheet, rows);
               XLSX.utils.book_append_sheet(workbook, sheet, workbookSheetName(title, usedNames));
             }
-            csvRows.push(...buildCsvRows(title, rows));
+            csvRows.push(...buildCsvRows(title, rows, mt));
             continue;
           }
           if (category === "dominant_gender") {
             const response = await loadExportCategoryData("dominant_gender");
-            const rows = buildGenderSheetRows(response.items, response.cityPoints);
+            const rows = buildGenderSheetRows(response.items, response.cityPoints, mt);
             const title = mt("metricOptions.dominantGender", { defaultValue: "Φύλο" });
             if (selectedExportFormat === "xlsx") {
               const sheet = XLSX.utils.json_to_sheet(rows);
               applySheetLayout(sheet, rows);
               XLSX.utils.book_append_sheet(workbook, sheet, workbookSheetName(title, usedNames));
             }
-            csvRows.push(...buildCsvRows(title, rows));
+            csvRows.push(...buildCsvRows(title, rows, mt));
             continue;
           }
           for (const programId of selectedExportStudyProgramIds) {
             const response = await loadExportCategoryData("dominant_direction", programId);
-            const rows = buildDirectionSheetRows(response.items, response.cityPoints);
+            const rows = buildDirectionSheetRows(response.items, response.cityPoints, mt);
             const categoryTitle = mt("metricOptions.dominantDirection", { defaultValue: "Πρόγραμμα σπουδών" });
             const programLabel = studyProgramOptions.find((item) => item.id === programId)?.label || categoryTitle;
             const sheetTitle = `${categoryTitle} - ${programLabel}`;
@@ -985,7 +642,7 @@ export default function GraduatesMapPage() {
               applySheetLayout(sheet, rows);
               XLSX.utils.book_append_sheet(workbook, sheet, workbookSheetName(sheetTitle, usedNames));
             }
-            csvRows.push(...buildCsvRows(categoryTitle, rows, programLabel));
+            csvRows.push(...buildCsvRows(categoryTitle, rows, mt, programLabel));
           }
         }
         if (selectedExportFormat === "xlsx") exportWorkbook("alupla_map_export.xlsx", workbook);
