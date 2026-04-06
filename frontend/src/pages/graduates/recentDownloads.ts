@@ -1,0 +1,172 @@
+import type { Graduate } from "../../lib/api";
+import type { GraduatesFiltersState } from "./shared";
+
+export type RecentGraduateRequest = {
+  params: Record<string, unknown>;
+  ids?: number[];
+  lang: "gr" | "en";
+};
+
+export type RecentGraduatePdfItem = Pick<
+  Graduate,
+  | "id"
+  | "ad_code"
+  | "student_number"
+  | "last_name"
+  | "first_name"
+  | "father_name"
+  | "gender"
+  | "entry_year"
+  | "birth_date"
+  | "degree_grade"
+  | "graduation_date"
+  | "oath_date"
+  | "study_program_id"
+  | "program_direction_id"
+  | "origin_region_id"
+  | "origin_municipality"
+  | "origin_foreign_city"
+>;
+
+export type RecentGraduateDownload = {
+  id: string;
+  signature: string;
+  format: "xlsx" | "csv" | "pdf";
+  fileName: string;
+  createdAt: string;
+  lastDownloadedAt: string;
+  count: number;
+  totalItems: number;
+  selectedItems: number;
+  filtersLabel: string;
+  request?: RecentGraduateRequest;
+  pdfItems?: RecentGraduatePdfItem[];
+};
+
+export const MAX_RECENT_GRADUATE_DOWNLOADS = 8;
+const RECENT_GRADUATE_DOWNLOADS_KEY = "alupla.graduates.recentDownloads";
+export const recentGraduateSessionDownloads = new Map<string, { blob: Blob; fileName: string }>();
+
+export function normalizeRecentGraduateDownload(item: any): RecentGraduateDownload | null {
+  if (!item || typeof item !== "object") return null;
+  const format = item.format === "csv" || item.format === "pdf" ? item.format : "xlsx";
+  const fileName = typeof item.fileName === "string" && item.fileName.trim() ? item.fileName : "";
+  if (!fileName) return null;
+
+  const request = item.request && typeof item.request === "object"
+    ? {
+        params: item.request.params && typeof item.request.params === "object" ? item.request.params as Record<string, unknown> : {},
+        ids: Array.isArray(item.request.ids) ? item.request.ids.map((value: unknown) => Number(value)).filter((value: number) => Number.isInteger(value) && value > 0) : undefined,
+        lang: String(item.request.lang || "").toLowerCase().startsWith("en") ? "en" : "gr",
+      }
+    : undefined;
+
+  const pdfItems = Array.isArray(item.pdfItems)
+    ? item.pdfItems
+        .filter((entry: any) => entry && typeof entry === "object")
+        .map((entry: any) => ({
+          id: Number(entry.id) || 0,
+          ad_code: String(entry.ad_code ?? ""),
+          student_number: String(entry.student_number ?? ""),
+          last_name: String(entry.last_name ?? ""),
+          first_name: String(entry.first_name ?? ""),
+          father_name: String(entry.father_name ?? ""),
+          gender: String(entry.gender ?? "").toUpperCase() === "F" ? "F" : "M",
+          entry_year: Number(entry.entry_year) || 0,
+          birth_date: String(entry.birth_date ?? ""),
+          degree_grade: Number(entry.degree_grade) || 0,
+          graduation_date: String(entry.graduation_date ?? ""),
+          oath_date: String(entry.oath_date ?? ""),
+          study_program_id: Number(entry.study_program_id) || 0,
+          program_direction_id: entry.program_direction_id == null || entry.program_direction_id === "" ? null : Number(entry.program_direction_id),
+          origin_region_id: entry.origin_region_id == null || entry.origin_region_id === "" ? null : Number(entry.origin_region_id),
+          origin_municipality: entry.origin_municipality == null ? null : String(entry.origin_municipality),
+          origin_foreign_city: entry.origin_foreign_city == null ? null : String(entry.origin_foreign_city),
+        }))
+        .filter((entry) => entry.id > 0)
+    : undefined;
+
+  return {
+    id: typeof item.id === "string" && item.id.trim() ? item.id : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    signature: typeof item.signature === "string" && item.signature.trim() ? item.signature : `${format}:${fileName}`,
+    format,
+    fileName,
+    createdAt: typeof item.createdAt === "string" && item.createdAt.trim() ? item.createdAt : new Date().toISOString(),
+    lastDownloadedAt: typeof item.lastDownloadedAt === "string" && item.lastDownloadedAt.trim() ? item.lastDownloadedAt : new Date().toISOString(),
+    count: Number(item.count) || 0,
+    totalItems: Number(item.totalItems) || 0,
+    selectedItems: Number(item.selectedItems) || 0,
+    filtersLabel: typeof item.filtersLabel === "string" ? item.filtersLabel : "",
+    request,
+    pdfItems: pdfItems?.length ? pdfItems : undefined,
+  };
+}
+
+export function safeReadRecentGraduateDownloads() {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(RECENT_GRADUATE_DOWNLOADS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => normalizeRecentGraduateDownload(item))
+      .filter(Boolean) as RecentGraduateDownload[];
+  } catch {
+    return [];
+  }
+}
+
+export function writeRecentGraduateDownloads(items: RecentGraduateDownload[]) {
+  if (typeof window === "undefined") return;
+  const normalized = items
+    .map((item) => normalizeRecentGraduateDownload(item))
+    .filter(Boolean) as RecentGraduateDownload[];
+
+  for (let limit = Math.min(MAX_RECENT_GRADUATE_DOWNLOADS, normalized.length || MAX_RECENT_GRADUATE_DOWNLOADS); limit >= 1; limit -= 1) {
+    try {
+      window.localStorage.setItem(RECENT_GRADUATE_DOWNLOADS_KEY, JSON.stringify(normalized.slice(0, limit)));
+      return;
+    } catch {
+    }
+  }
+
+  try {
+    window.localStorage.removeItem(RECENT_GRADUATE_DOWNLOADS_KEY);
+  } catch {
+  }
+}
+
+export function formatRecentGraduateDownloadDate(value: string, lang: "gr" | "en") {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "el-GR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
+export function buildRecentDownloadFiltersLabel(filters: GraduatesFiltersState, lang: "gr" | "en", selectedCount: number, totalCount: number) {
+  const parts: string[] = [];
+
+  const years = Array.isArray(filters.years) ? filters.years.filter(Boolean) : [];
+  if (years.length) parts.push((lang === "en" ? "Years" : "Έτη") + `: ${years.join(", ")}`);
+
+  const studyPrograms = Array.isArray(filters.studyProgramIds) ? filters.studyProgramIds.filter(Boolean) : [];
+  if (studyPrograms.length) parts.push((lang === "en" ? "Programs" : "Προγράμματα") + `: ${studyPrograms.join(", ")}`);
+
+  const directions = Array.isArray(filters.programDirectionIds) ? filters.programDirectionIds.filter(Boolean) : [];
+  if (directions.length) parts.push((lang === "en" ? "Directions" : "Κατευθύνσεις") + `: ${directions.join(", ")}`);
+
+  const genders = Array.isArray(filters.genders) ? filters.genders.filter(Boolean) : [];
+  if (genders.length) parts.push((lang === "en" ? "Gender" : "Φύλο") + `: ${genders.join(", ")}`);
+
+  const quick = String(filters.quickSearch ?? "").trim();
+  if (quick) parts.push((lang === "en" ? "Search" : "Αναζήτηση") + `: ${quick}`);
+
+  const counts = lang === "en"
+    ? `${selectedCount || totalCount} / ${totalCount} selected`
+    : `${selectedCount || totalCount} / ${totalCount} επιλεγμένα`;
+
+  return [...parts, counts].join(" • ");
+}
