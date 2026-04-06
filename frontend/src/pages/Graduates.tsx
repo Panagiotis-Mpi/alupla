@@ -666,7 +666,7 @@ export default function Graduates() {
                     <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => setShowFilters((current) => !current)}>
                       {activeLang === "gr" ? "Φίλτρα" : "Filters"}
                     </button>
-                    <button className="btn danger" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => void onDeleteSelected()} disabled={!selectedIds.length}>
+                    <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => void onDeleteSelected()} disabled={!selectedIds.length}>
                       {t("topbar.delete")}
                     </button>
                   </div>
