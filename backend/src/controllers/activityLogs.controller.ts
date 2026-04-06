@@ -17,10 +17,15 @@ import {
   buildUtf16CsvBuffer,
   clamp,
   getFileType,
+  getLanguage,
+  getLocalizedAction,
+  getLocalizedDetails,
   getLogPage,
   getOperation,
   getRoleFilter,
+  localValue,
   matchesRole,
+  parseDetails,
   nonEmptyString,
   toInteger,
 } from "./activityLogs.helpers";
@@ -116,148 +121,6 @@ export async function getActivityLogFileSummary(req: Request, res: Response, nex
 }
 
 
-function getLanguage(req: Request) {
-  const lang = String(req.query.lang ?? "gr").trim().toLowerCase();
-  return lang.startsWith("en") ? "en" : "gr";
-}
-
-function localDetailLabel(lang: "gr" | "en", key: string) {
-  const labels = lang === "en"
-    ? {
-        file: "File",
-        format: "Type",
-        count: "Rows",
-        total_rows: "Total rows",
-        inserted: "New",
-        updated: "Updated",
-        skipped: "Skipped",
-        deleted: "Deleted",
-        exported: "Exported",
-        page: "Page",
-        years: "Years",
-        role: "Role",
-        status: "Status",
-        study_program: "Study program",
-        direction: "Direction",
-        reason: "Reason"
-      }
-    : {
-        file: "Αρχείο",
-        format: "Τύπος",
-        count: "Γραμμές",
-        total_rows: "Σύνολο γραμμών",
-        inserted: "Νέες",
-        updated: "Ενημερωμένες",
-        skipped: "Παραλείφθηκαν",
-        deleted: "Διαγράφηκαν",
-        exported: "Εξήχθησαν",
-        page: "Σελίδα",
-        years: "Έτη",
-        role: "Ρόλος",
-        status: "Κατάσταση",
-        study_program: "Πρόγραμμα σπουδών",
-        direction: "Κατεύθυνση",
-        reason: "Λόγος"
-      };
-
-  return labels[key as keyof typeof labels] ?? key;
-}
-
-function upperFileType(value: string) {
-  const normalized = String(value || "").trim().toLowerCase();
-  if (normalized === "xlsx" || normalized === "xls") return "Excel";
-  if (normalized === "csv") return "CSV";
-  if (normalized === "pdf") return "PDF";
-  if (normalized === "png") return "PNG";
-  return value;
-}
-
-function localValue(lang: "gr" | "en", value: string) {
-  const normalized = String(value ?? "").trim();
-  if (!normalized) return "";
-  if (normalized === "visitor") return lang === "en" ? "Visitor" : "Επισκέπτης";
-  if (normalized === "secretariat") return lang === "en" ? "Secretariat" : "Γραμματεία";
-  if (normalized === "super_admin") return lang === "en" ? "Administrator" : "Διαχειριστής";
-  if (normalized === "graduates") return lang === "en" ? "Graduates" : "Απόφοιτοι";
-  if (normalized === "academicData") return lang === "en" ? "Academic data" : "Ακαδημαϊκά δεδομένα";
-  if (normalized === "regions") return lang === "en" ? "Regions" : "Περιοχές";
-  if (normalized === "statistics") return lang === "en" ? "Statistics" : "Στατιστικά";
-  if (normalized === "map") return lang === "en" ? "Map" : "Χάρτης";
-  if (normalized === "logs") return lang === "en" ? "Logs" : "Καταγραφές";
-  return normalized;
-}
-
-function parseDetails(value: unknown) {
-  if (value && typeof value === "object") return value as Record<string, unknown>;
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  try {
-    return JSON.parse(trimmed) as Record<string, unknown>;
-  } catch {
-    return trimmed;
-  }
-}
-
-function getLocalizedAction(lang: "gr" | "en", value: unknown, log?: any) {
-  const key = String(value ?? "").trim();
-  if ((key === "export_csv" || key === "export_xlsx") && String(log?.entity_type ?? "").trim() === "logs") {
-    return lang === "en" ? "Log export" : "Εξαγωγή καταγραφών";
-  }
-  return actionLabels[lang][key as keyof typeof actionLabels.gr] ?? key.replace(/_/g, " ");
-}
-
-function getLocalizedDetails(lang: "gr" | "en", log: any) {
-  const action = String(log?.action ?? "").trim();
-  if (["login", "logout", "register", "request_password_reset", "reset_password", "change_password"].includes(action)) {
-    return "";
-  }
-
-  const details = parseDetails(log?.details);
-  if (!details) return "";
-  if (typeof details === "string") return details;
-
-  if (["διαγραφή χρήστη", "delete_user", "deactivate_user"].includes(action)) {
-    return String((details as any).target_name ?? "").trim();
-  }
-
-  if ((action === "export_csv" || action === "export_xlsx") && String(log?.entity_type ?? "").trim() === "logs") {
-    const format = upperFileType(String((details as any).format ?? "").trim());
-    const count = (details as any).count ?? (details as any).exported;
-    const parts: string[] = [];
-    if (format) parts.push(format);
-    if (count !== null && count !== undefined && count !== "") {
-      parts.push(lang === "en" ? `${count} records` : `${count} εγγραφές`);
-    }
-    return parts.join(", ");
-  }
-
-  const rawFile = String(details.file ?? details.filename ?? "").trim();
-  const format = String(details.format ?? "").trim();
-  const parts: string[] = [];
-
-  if (rawFile) parts.push(`${localDetailLabel(lang, "file")}: ${rawFile}`);
-  if (format) parts.push(`${localDetailLabel(lang, "format")}: ${upperFileType(format)}`);
-
-  for (const [key, value] of [["count", details.count], ["total_rows", details.total_rows], ["inserted", details.inserted], ["updated", details.updated], ["skipped", details.skipped], ["deleted", details.deleted], ["exported", details.exported]] as Array<[string, unknown]>) {
-    if (value === null || value === undefined || value === "") continue;
-    parts.push(`${localDetailLabel(lang, key)}: ${value}`);
-  }
-
-  for (const [key, value] of [["page", details.page], ["role", details.role], ["status", details.status], ["study_program", details.study_program], ["direction", details.direction], ["reason", details.reason]] as Array<[string, unknown]>) {
-    if (value === null || value === undefined || value === "") continue;
-    parts.push(`${localDetailLabel(lang, key)}: ${localValue(lang, String(value))}`);
-  }
-
-  if (parts.length) return parts.join(", ");
-
-  return Object.entries(details)
-    .filter(([, value]) => value !== null && value !== undefined && value !== "")
-    .slice(0, 5)
-    .map(([key, value]) => `${localDetailLabel(lang, key)}: ${typeof value === "string" ? localValue(lang, value) : String(value)}`)
-    .join(", ");
-}
 
 function getActorLabel(lang: "gr" | "en", row: any) {
   const fn = String(row?.user?.first_name ?? "").trim();

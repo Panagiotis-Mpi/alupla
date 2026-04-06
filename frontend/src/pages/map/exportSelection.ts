@@ -270,3 +270,27 @@ export async function exportCombinedSnapshots(filename: string, title: string, s
   link.remove();
   URL.revokeObjectURL(url);
 }
+
+export function toggleExportCategorySelection(current: string[], category: string) {
+  return current.includes(category) ? current.filter((item) => item !== category) : [...current, category];
+}
+
+export function toggleAllExportCategorySelection(current: string[], allCategories: string[]) {
+  return current.length === allCategories.length ? [] : [...allCategories];
+}
+
+export function syncDirectionSelection(currentPrograms: string[], allPrograms: string[]) {
+  if (!allPrograms.length) return [];
+  const hasAll = allPrograms.every((programId) => currentPrograms.includes(programId));
+  return hasAll ? currentPrograms : [...allPrograms];
+}
+
+export function toggleStudyProgramSelection(currentCategories: string[], currentPrograms: string[], programId: string) {
+  const nextPrograms = currentPrograms.includes(programId)
+    ? currentPrograms.filter((item) => item !== programId)
+    : [...currentPrograms, programId];
+  const nextCategories = nextPrograms.length
+    ? currentCategories.includes("dominant_direction") ? currentCategories : [...currentCategories, "dominant_direction"]
+    : currentCategories.filter((item) => item !== "dominant_direction");
+  return { nextCategories, nextPrograms };
+}

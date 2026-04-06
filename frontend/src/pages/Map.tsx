@@ -67,6 +67,10 @@ import {
   buildGenderSheetRows,
   exportCombinedSnapshots,
   renderMapSnapshot,
+  syncDirectionSelection,
+  toggleAllExportCategorySelection,
+  toggleExportCategorySelection,
+  toggleStudyProgramSelection,
   waitForMapFrame,
   workbookSheetName,
 } from "./map/exportSelection";
@@ -501,42 +505,31 @@ export default function GraduatesMapPage() {
   function toggleExportCategory(category: ExportCategoryKey) {
     if (category === "dominant_direction") {
       const programIds = studyProgramOptions.map((item) => item.id);
-      setSelectedExportCategories((prev) => {
-        const isSelected = prev.includes(category);
-        if (isSelected) return prev.filter((item) => item !== category);
-        return [...prev, category];
-      });
-      setSelectedExportStudyProgramIds((prev) => {
-        const hasAll = programIds.length > 0 && programIds.every((id) => prev.includes(id));
-        return hasAll ? prev : programIds;
-      });
+      setSelectedExportCategories((prev) => toggleExportCategorySelection(prev, category));
+      setSelectedExportStudyProgramIds((prev) => syncDirectionSelection(prev, programIds));
       return;
     }
-    setSelectedExportCategories((prev) => prev.includes(category) ? prev.filter((item) => item !== category) : [...prev, category]);
+    setSelectedExportCategories((prev) => toggleExportCategorySelection(prev, category));
   }
 
   function toggleAllExportCategories() {
-    setSelectedExportCategories((prev) => {
-      if (prev.length === exportCategoryOptions.length) return [];
-      return exportCategoryOptions.map((item) => item.id);
-    });
+    const programIds = studyProgramOptions.map((item) => item.id);
+    setSelectedExportCategories((prev) => toggleAllExportCategorySelection(prev, exportCategoryOptions.map((item) => item.id)) as ExportCategoryKey[]);
     setSelectedExportStudyProgramIds((prev) => {
-      const programIds = studyProgramOptions.map((item) => item.id);
       const hasAll = programIds.length > 0 && programIds.every((id) => prev.includes(id));
-      return hasAll ? [] : programIds;
+      return hasAll ? [] : [...programIds];
     });
   }
 
   function toggleExportStudyProgram(programId: string) {
-    setSelectedExportStudyProgramIds((prev) => {
-      const next = prev.includes(programId) ? prev.filter((item) => item !== programId) : [...prev, programId];
-      setSelectedExportCategories((current) => {
-        const hasCategory = current.includes("dominant_direction");
-        if (next.length && !hasCategory) return [...current, "dominant_direction"];
-        if (!next.length && hasCategory) return current.filter((item) => item !== "dominant_direction");
-        return current;
+    setSelectedExportStudyProgramIds((prevPrograms) => {
+      let nextPrograms = prevPrograms;
+      setSelectedExportCategories((prevCategories) => {
+        const next = toggleStudyProgramSelection(prevCategories, prevPrograms, programId);
+        nextPrograms = next.nextPrograms;
+        return next.nextCategories as ExportCategoryKey[];
       });
-      return next;
+      return nextPrograms;
     });
   }
 

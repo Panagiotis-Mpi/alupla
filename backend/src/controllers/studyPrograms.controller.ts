@@ -6,6 +6,7 @@ import { ProgramDirection } from "../models/ProgramDirection";
 import { StudyProgram } from "../models/StudyProgram";
 import { logAction } from "../services/log.service";
 import { normHeader } from "../utils/importUtils";
+import { hasPatchChanges, invalid, missing, parseId, readText } from "../utils/academicDataCrud";
 import {
   encodeUtf16WithBom,
   escapeDelimitedCell,
@@ -23,23 +24,6 @@ type StudyProgramPatch = {
   is_active?: boolean;
 };
 
-function readText(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function invalid(res: Response, message: string) {
-  return res.status(400).json({ ok: false, error: { message } });
-}
-
-function missing(res: Response, message: string) {
-  return res.status(404).json({ ok: false, error: { message } });
-}
-
-function parseId(value: unknown) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
 async function findStudyProgramOrFail(id: number, res: Response) {
   const item = await StudyProgram.findByPk(id);
   if (!item) {
@@ -56,10 +40,6 @@ async function findDuplicateStudyProgram(code: string, nameEl: string, excludedI
       [Op.or]: [{ code }, { name_el: nameEl }]
     }
   });
-}
-
-function hasChanges(patch: StudyProgramPatch) {
-  return Object.keys(patch).length > 0;
 }
 
 function getTemplateHeaders(lang: string) {
@@ -308,7 +288,7 @@ export async function updateStudyProgram(req: Request, res: Response, next: Next
       patch.is_active = Boolean(req.body.is_active);
     }
 
-    if (!hasChanges(patch)) {
+    if (!hasPatchChanges(patch)) {
       return invalid(res, "No changes provided");
     }
 

@@ -3,35 +3,9 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { Op } from "sequelize";
 import { User } from "../models/User";
-import { signToken } from "../utils/jwt";
 import { logAction } from "../services/log.service";
-
-function fail(res: Response, status: number, message: string) {
-  return res.status(status).json({ ok: false, error: { message } });
-}
-
-function isStrongPassword(value: string) {
-  return value.length >= 8 && /[A-Za-z]/.test(value) && /[0-9]/.test(value) && /[^A-Za-z0-9]/.test(value);
-}
-
-function isValidEmail(value: string) {
-  const email = String(value).trim().toLowerCase();
-  if (!email || email.length > 254 || email.includes("..")) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-function safeUser(user: User) {
-  return {
-    id: user.id,
-    first_name: user.first_name,
-    last_name: user.last_name,
-    email: user.email,
-    role: user.role,
-    is_active: user.is_active,
-    created_at: (user as any).created_at,
-    updated_at: (user as any).updated_at
-  };
-}
+import { signToken } from "../utils/jwt";
+import { fail, hashPassword, isStrongPassword, isValidEmail, normalizeEmail, normalizeText, toSafeUser } from "../utils/userAccounts";
 
 function createHexToken() {
   return crypto.randomBytes(32).toString("hex");
@@ -62,7 +36,7 @@ export async function register(req: Request, res: Response) {
     return fail(res, 400, "Weak password (min 8, letter+number+symbol)");
   }
 
-  const normalizedEmail = String(email).trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(email);
   if (!isValidEmail(normalizedEmail)) {
     return fail(res, 400, "Invalid email");
   }
@@ -71,11 +45,11 @@ export async function register(req: Request, res: Response) {
     return fail(res, 409, "Email already exists");
   }
 
-  const password_hash = await bcrypt.hash(String(password), 10);
+  const password_hash = await hashPassword(String(password));
 
   const user = await User.create({
-    first_name: String(first_name).trim(),
-    last_name: String(last_name).trim(),
+    first_name: normalizeText(first_name),
+    last_name: normalizeText(last_name),
     email: normalizedEmail,
     password_hash,
     role: "secretariat",
@@ -95,7 +69,7 @@ export async function register(req: Request, res: Response) {
   return res.json({
     ok: true,
     token,
-    user: safeUser(user)
+    user: toSafeUser(user)
   });
 }
 
@@ -122,7 +96,7 @@ export async function login(req: Request, res: Response) {
 
   await logAction({ user_id: user.id, action: "login", entity_type: "system", entity_id: null });
 
-  return res.json({ ok: true, token, user: safeUser(user) });
+  return res.json({ ok: true, token, user: toSafeUser(user) });
 }
 
 export async function updateProfile(req: Request, res: Response) {
@@ -138,7 +112,7 @@ export async function updateProfile(req: Request, res: Response) {
     return fail(res, 404, "Not found");
   }
 
-  const normalizedEmail = String(email).trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(email);
   const existingUser = await User.findOne({
     where: {
       email: normalizedEmail,
@@ -150,14 +124,14 @@ export async function updateProfile(req: Request, res: Response) {
     return fail(res, 409, "Email already exists");
   }
 
-  user.first_name = String(first_name).trim();
-  user.last_name = String(last_name).trim();
+  user.first_name = normalizeText(first_name);
+  user.last_name = normalizeText(last_name);
   user.email = normalizedEmail;
   await user.save();
 
   await logAction({ user_id: user.id, action: "update_profile", entity_type: "user", entity_id: user.id });
 
-  return res.json({ ok: true, user: safeUser(user) });
+  return res.json({ ok: true, user: toSafeUser(user) });
 }
 
 export async function changePassword(req: Request, res: Response) {
@@ -182,7 +156,7 @@ export async function changePassword(req: Request, res: Response) {
     return fail(res, 401, "Wrong current password");
   }
 
-  user.password_hash = await bcrypt.hash(String(new_password), 10);
+  user.password_hash = await hashPassword(String(new_password));
   await user.save();
 
   await logAction({ user_id: user.id, action: "change_password", entity_type: "user", entity_id: user.id });
@@ -235,7 +209,7 @@ export async function resetPassword(req: Request, res: Response) {
     return fail(res, 400, "Invalid/expired token");
   }
 
-  user.password_hash = await bcrypt.hash(String(new_password), 10);
+  user.password_hash = await hashPassword(String(new_password));
   user.password_reset_token = null;
   user.password_reset_expires = null;
   await user.save();
@@ -251,5 +225,5 @@ export async function me(req: Request, res: Response) {
   if (!user) {
     return fail(res, 404, "Not found");
   }
-  return res.json({ ok: true, user: safeUser(user) });
+  return res.json({ ok: true, user: toSafeUser(user) });
 }

@@ -331,19 +331,96 @@ export function getLocalizedAction(lang: "gr" | "en", value: unknown, log?: any)
   return actionLabels[lang][key as keyof typeof actionLabels.gr] ?? key.replace(/_/g, " ");
 }
 
-export function getLocalizedDetails(lang: "gr" | "en", raw: unknown) {
-  const details = parseDetails(raw);
-  if (!details || typeof details === "string") return details || "";
+export function getLocalizedDetails(lang: "gr" | "en", log: any) {
+  const action = String(log?.action ?? "").trim();
+  if (["login", "logout", "register", "request_password_reset", "reset_password", "change_password"].includes(action)) {
+    return "";
+  }
+
+  const details = parseDetails(log?.details);
+  if (!details) return "";
+  if (typeof details === "string") return details;
+
+  if (["διαγραφή χρήστη", "delete_user", "deactivate_user"].includes(action)) {
+    return String((details as any).target_name ?? "").trim();
+  }
+
+  if ((action === "export_csv" || action === "export_xlsx") && String(log?.entity_type ?? "").trim() === "logs") {
+    const format = upperFileType(String((details as any).format ?? "").trim());
+    const count = (details as any).count ?? (details as any).exported;
+    const parts: string[] = [];
+    if (format) parts.push(format);
+    if (count !== null && count !== undefined && count !== "") {
+      parts.push(lang === "en" ? `${count} records` : `${count} εγγραφές`);
+    }
+    return parts.join(", ");
+  }
+
+  const rawFile = String(details.file ?? details.filename ?? "").trim();
+  const format = String(details.format ?? "").trim();
   const parts: string[] = [];
-  for (const [key, value] of Object.entries(details)) {
+
+  if (rawFile) parts.push(`${localDetailLabel(lang, "file")}: ${rawFile}`);
+  if (format) parts.push(`${localDetailLabel(lang, "format")}: ${upperFileType(format)}`);
+
+  const orderedKeys = [
+    "count",
+    "total_rows",
+    "inserted",
+    "updated",
+    "skipped",
+    "deleted",
+    "exported",
+    "page",
+    "years",
+    "role",
+    "status",
+    "study_program",
+    "study_program_id",
+    "direction",
+    "reason",
+    "changed",
+    "errors",
+    "selected",
+    "limit",
+    "missing",
+    "name",
+    "name_el",
+    "parent_id",
+    "code",
+    "city",
+    "city_id",
+    "periphery",
+    "periphery_id",
+    "country",
+  ];
+
+  const seen = new Set<string>(["file", "filename", "format"]);
+  for (const key of orderedKeys) {
+    if (!(key in details) || seen.has(key)) continue;
+    seen.add(key);
+    const value = (details as any)[key];
     if (value === null || value === undefined || value === "") continue;
     if (Array.isArray(value)) {
-      parts.push(`${localDetailLabel(lang, key)}: ${value.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ")}`);
+      const rendered = value.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ");
+      if (rendered) parts.push(`${localDetailLabel(lang, key)}: ${rendered}`);
       continue;
     }
     const rendered = typeof value === "string" ? localValue(lang, value) || value : String(value);
     parts.push(`${localDetailLabel(lang, key)}: ${rendered}`);
   }
+
+  for (const [key, value] of Object.entries(details)) {
+    if (seen.has(key) || value === null || value === undefined || value === "") continue;
+    if (Array.isArray(value)) {
+      const rendered = value.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ");
+      if (rendered) parts.push(`${localDetailLabel(lang, key)}: ${rendered}`);
+      continue;
+    }
+    const rendered = typeof value === "string" ? localValue(lang, value) || value : String(value);
+    parts.push(`${localDetailLabel(lang, key)}: ${rendered}`);
+  }
+
   return parts.join(", ");
 }
 
@@ -376,6 +453,6 @@ export function getExportRows(rows: any[], lang: "gr" | "en") {
     [lang === "en" ? "Role" : "Ρόλος"]: localValue(lang, String(row?.user?.role ?? row?.details?.actor_role ?? row?.user_id == null ? "visitor" : "")),
     [lang === "en" ? "Action" : "Ενέργεια"]: getLocalizedAction(lang, row.action, row),
     [lang === "en" ? "Entity" : "Αντικείμενο"]: localValue(lang, String(row.entity_type ?? "")),
-    [lang === "en" ? "Details" : "Λεπτομέρειες"]: getLocalizedDetails(lang, row.details),
+    [lang === "en" ? "Details" : "Λεπτομέρειες"]: getLocalizedDetails(lang, row),
   }));
 }

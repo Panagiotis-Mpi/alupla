@@ -137,3 +137,18 @@ export function StatisticsExportSelectionModal(props: {
     </div>
   );
 }
+
+export function toggleChartSelection(current: StatisticsChartId[], chartId: StatisticsChartId) {
+  return current.includes(chartId) ? current.filter((item) => item !== chartId) : [...current, chartId];
+}
+
+export function toggleChartGroupSelection(current: StatisticsChartId[], groupChartIds: StatisticsChartId[]) {
+  const everySelected = groupChartIds.every((id) => current.includes(id));
+  return everySelected
+    ? current.filter((id) => !groupChartIds.includes(id))
+    : [...new Set([...current, ...groupChartIds])];
+}
+
+export function toggleAllChartsSelection(current: StatisticsChartId[], allChartIds: StatisticsChartId[]) {
+  return current.length === allChartIds.length ? [] : [...allChartIds];
+}

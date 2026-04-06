@@ -24,7 +24,7 @@ import {
   StatisticsGroupMenu,
   StatisticsSummaryCards,
 } from "./statistics/sections";
-import { StatisticsExportMenu, StatisticsExportSelectionModal } from "./statistics/exportSelection";
+import { StatisticsExportMenu, StatisticsExportSelectionModal, toggleAllChartsSelection, toggleChartGroupSelection, toggleChartSelection } from "./statistics/exportSelection";
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, BarElement, ArcElement, Filler, Tooltip, Legend);
 
@@ -420,19 +420,15 @@ export default function Statistics() {
   };
 
   function toggleAllCharts() {
-    setSelectedChartIds((prev) => (prev.length === allChartIds.length ? [] : [...allChartIds]));
+    setSelectedChartIds((prev) => toggleAllChartsSelection(prev, allChartIds));
   }
 
   function toggleGroupCharts(chartIds: StatisticsChartId[]) {
-    setSelectedChartIds((prev) => {
-      const everySelected = chartIds.every((id) => prev.includes(id));
-      if (everySelected) return prev.filter((id) => !chartIds.includes(id));
-      return Array.from(new Set([...prev, ...chartIds]));
-    });
+    setSelectedChartIds((prev) => toggleChartGroupSelection(prev, chartIds));
   }
 
   function toggleSingleChart(chartId: StatisticsChartId) {
-    setSelectedChartIds((prev) => (prev.includes(chartId) ? prev.filter((id) => id !== chartId) : [...prev, chartId]));
+    setSelectedChartIds((prev) => toggleChartSelection(prev, chartId));
   }
 
   const exportFormatLabel = React.useMemo(() => {
