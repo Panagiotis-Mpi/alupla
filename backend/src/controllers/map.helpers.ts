@@ -1,8 +1,37 @@
 import type { Request } from "express";
 import { Op } from "sequelize";
 import { buildGraduateWhere } from "../utils/buildGraduateWhere";
+import { Region } from "../models/Region";
 
 export type AgeGroup = "23-26" | "27-30" | "31+";
+
+export async function loadRegions() {
+  const regions = await Region.findAll({
+    attributes: ["id", "name", "type", "parent_id", "latitude", "longitude"],
+    order: [["name", "ASC"]],
+  });
+
+  const byId = new Map<number, any>();
+  for (const region of regions as any[]) {
+    byId.set(Number(region.id), region);
+  }
+
+  return {
+    regions,
+    findRegion(regionId: number | null | undefined) {
+      return regionId ? byId.get(Number(regionId)) || null : null;
+    },
+    findPeriphery(regionId: number | null | undefined) {
+      let current = regionId ? byId.get(Number(regionId)) || null : null;
+      while (current) {
+        if (String(current.type) === "PERIPHERY") return current;
+        const parentId = Number(current.parent_id) || 0;
+        current = parentId ? byId.get(parentId) || null : null;
+      }
+      return null;
+    },
+  };
+}
 
 export function toInt(value: unknown): number | null {
   const n = Number(value);

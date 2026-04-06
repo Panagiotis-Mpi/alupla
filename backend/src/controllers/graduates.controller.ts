@@ -25,6 +25,7 @@ import {
   getExportLang,
   getGraduateFileFormat,
   getGraduateRuleViolations,
+  getGreeceRegionId,
   getMatchedTemplateHeaderKeys,
   getRuleLang,
   notFound,
@@ -40,6 +41,7 @@ import {
   trimNullableText,
 } from "./graduates.helpers";
 import { applyOriginPatch, buildCreateOriginPayload, buildExportRows, ensureManagedOrigin, getReferenceMaps, getTemplateHeaders, resolveProgramDirectionId, resolveRegionId, resolveStudyProgramId } from "./graduates.shared";
+import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
 
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
   try {
@@ -249,7 +251,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
     let updated = 0;
     let skipped = 0;
 
-    const defaultGreeceId = Array.from(regionsById.values()).find((item: any) => normalizeRegionText(item?.name) === normalizeRegionText("Ελλάδα"))?.id ?? null;
+    const defaultGreeceId = getGreeceRegionId(regionsById);
 
     for (let r = 1; r < rows.length; r++) {
       const arr = rows[r];

@@ -30,11 +30,12 @@ export function termLabel(term: string) {
   return term;
 }
 
-async function queryRows<T>(sql: string, context: PublicWhereContext) {
-  return sequelize.query<T>(sql, {
+async function queryRows<T extends Record<string, unknown>>(sql: string, context: PublicWhereContext): Promise<T[]> {
+  const rows = await sequelize.query(sql, {
     replacements: context.repl,
     type: QueryTypes.SELECT,
   });
+  return rows as T[];
 }
 
 export async function loadPublicStatsBundle(context: PublicWhereContext) {
@@ -234,9 +235,9 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
   }
 
   return {
-    total: Number(totalRow?.[0]?.total ?? 0),
-    avg_age: avgRow?.[0]?.avg_age != null ? Number(avgRow[0].avg_age) : null,
-    avg_degree_grade: avgRow?.[0]?.avg_degree_grade != null ? Number(avgRow[0].avg_degree_grade) : null,
+    total: Number(totalRow[0]?.total ?? 0),
+    avg_age: avgRow[0]?.avg_age != null ? Number(avgRow[0].avg_age) : null,
+    avg_degree_grade: avgRow[0]?.avg_degree_grade != null ? Number(avgRow[0].avg_degree_grade) : null,
     byYear,
     byTerm,
     gender,

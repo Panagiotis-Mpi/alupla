@@ -4,7 +4,7 @@ import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
 import { ProgramDirection } from "../models/ProgramDirection";
 import { resolveMapLocation } from "../services/mapLocation.service";
-import { buildMapWhere, calculateAgeAtDate, collapseCountsByLabel, isDirectionAllowed, isGreekMapGraduate, matchesSelectedStudyProgram, normalizeKey, pickDirectionDisplay, pickTopName, toInt } from "./map.helpers";
+import { buildMapWhere, calculateAgeAtDate, collapseCountsByLabel, isDirectionAllowed, isGreekMapGraduate, loadRegions, matchesSelectedStudyProgram, normalizeKey, pickDirectionDisplay, pickTopName, toInt } from "./map.helpers";
 
 export async function getGraduatesMap(req: Request, res: Response) {
   const { where } = buildMapWhere(req);
