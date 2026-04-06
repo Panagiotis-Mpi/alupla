@@ -444,7 +444,7 @@ export function GraduatesFilters(props: {
       <Field label={t("table.originMunicipality")}>
         <input className="input" value={filters.origin_municipality_like} onChange={(e) => setFilters((current) => ({ ...current, origin_municipality_like: e.target.value }))} />
       </Field>
-      <Field label={t("filters.foreignCountry")}>
+      <Field label={t("table.country")}>
         <input className="input" value={filters.origin_foreign_country_like} onChange={(e) => setFilters((current) => ({ ...current, origin_foreign_country_like: e.target.value }))} />
       </Field>
       <Field label={t("filters.foreignCity")}>

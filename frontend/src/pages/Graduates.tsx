@@ -188,7 +188,7 @@ function buildRecentDownloadFiltersLabel(filters: GraduatesFiltersState, lang: "
   if (filters.study_program_id) parts.push(`${lang === "gr" ? "Πρόγραμμα" : "Program"}: ${filters.study_program_id}`);
   if (filters.program_direction_id) parts.push(`${lang === "gr" ? "Κατεύθυνση" : "Direction"}: ${filters.program_direction_id}`);
   if (filters.origin_region_id) parts.push(`${lang === "gr" ? "Περιφέρεια" : "Region"}: ${filters.origin_region_id}`);
-  if (filters.origin_foreign_country_like) parts.push(`${lang === "gr" ? "Χώρα εξωτερικού" : "Foreign country"}: ${filters.origin_foreign_country_like}`);
+  if (filters.origin_foreign_country_like) parts.push(`${lang === "gr" ? "Χώρα" : "Country"}: ${filters.origin_foreign_country_like}`);
   if (filters.origin_foreign_city_like) parts.push(`${lang === "gr" ? "Πόλη εξωτερικού" : "Foreign city"}: ${filters.origin_foreign_city_like}`);
   if (filters.entry_year_from || filters.entry_year_to) parts.push(`${lang === "gr" ? "Έτος εισαγωγής" : "Entry year"}: ${filters.entry_year_from || "…"}-${filters.entry_year_to || "…"}`);
   if (selectedCount > 0) parts.push(lang === "gr" ? `Επιλεγμένοι: ${selectedCount}` : `Selected: ${selectedCount}`);

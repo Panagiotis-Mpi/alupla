@@ -118,7 +118,9 @@ function buildRows(args: {
     const directionName = directionNameById.get(Number(item.program_direction_id)) ?? "";
     const explicitCountry = String((item as any).origin_country ?? item.origin_foreign_country ?? "").trim();
     const countryName = explicitCountry || formatCountryValue(regionNameById.get(Number(item.origin_country_region_id)) ?? "", lang);
-    const regionName = foreignCountry ? "" : regionNameById.get(Number(item.origin_region_id)) ?? "";
+    const normalizedCountry = formatCountryValue(countryName, lang).normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+    const isGreece = normalizedCountry === "greece" || normalizedCountry === "ελλαδα";
+    const regionName = isGreece ? regionNameById.get(Number(item.origin_region_id)) ?? "" : "";
     const municipalityName = String(item.origin_foreign_city ?? "").trim() || (item.origin_municipality ?? "");
 
     return {
