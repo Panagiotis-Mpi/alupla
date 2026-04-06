@@ -15,18 +15,16 @@ import {
   ArcElement,
 } from "chart.js";
 import { fileSlug, renderElementSnapshot } from "./statistics/snapshot";
+import { buildLineDataset } from "./statistics/ui";
 import {
-  BarChartCard,
-  ChartCard,
-  MetricCard,
-  MultiPieChartRow,
-  PieChartCard,
-  ScrollableLineChart,
-  SectionTitle,
-  VerticalBarChartCard,
-  buildLineDataset,
-  wrapAxisLabel,
-} from "./statistics/ui";
+  AcademicCharts,
+  DemographicsCharts,
+  ExportChartsSurface,
+  GeographyCharts,
+  StatisticsGroupMenu,
+  StatisticsSummaryCards,
+} from "./statistics/sections";
+import { StatisticsExportMenu, StatisticsExportSelectionModal } from "./statistics/exportSelection";
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, BarElement, ArcElement, Filler, Tooltip, Legend);
 
@@ -68,7 +66,6 @@ export default function Statistics() {
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedExportFormat, setSelectedExportFormat] = React.useState<"xlsx" | "csv" | "png" | null>(null);
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
-  const exportModalBodyRef = React.useRef<HTMLDivElement | null>(null);
   const pageRef = React.useRef<HTMLDivElement | null>(null);
   const exportSurfaceRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -576,203 +573,140 @@ export default function Statistics() {
           <div style={{ display: "grid", gap: 14 }}>
             <div style={{ display: "grid", gap: 14 }}>
               <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
-
-              <div style={sectionMenuStyle}>
-                <div className="page-header-actions-grid" style={sectionButtonsStyle}>
-                  {(["demographics", "academic", "geography"] as const).map((groupKey) => (
-                    <button
-                      key={groupKey}
-                      type="button"
-                      className={activeGroup === groupKey ? "btn primary" : "btn"}
-                      style={topButtonStyle}
-                      onClick={() => setActiveGroup(groupKey)}
-                    >
-                      {t(`groups.${groupKey}`)}
-                    </button>
-                  ))}
-                  <div style={{ position: "relative" }} ref={exportMenuRef}>
-                    <button className="btn" type="button" style={topButtonStyle} onClick={() => setExportOpen((open) => !open)}>
-                      {t("actions.export", { defaultValue: "Εξαγωγή" })}
-                    </button>
-                    {exportOpen ? (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: "calc(100% + 8px)",
-                          right: 0,
-                          minWidth: 180,
-                          borderRadius: 14,
-                          border: "1px solid rgba(148, 163, 184, 0.28)",
-                          background: "#fff",
-                          boxShadow: "0 18px 40px rgba(15, 23, 42, 0.16)",
-                          padding: 8,
-                          zIndex: 20,
-                          display: "grid",
-                          gap: 6,
-                        }}
-                      >
-                        <button className="btn" type="button" style={{ ...topButtonStyle, justifyContent: "flex-start" }} onClick={() => openExportSelection("xlsx")}>Excel</button>
-                        <button className="btn" type="button" style={{ ...topButtonStyle, justifyContent: "flex-start" }} onClick={() => openExportSelection("csv")}>CSV</button>
-                        <button className="btn" type="button" style={{ ...topButtonStyle, justifyContent: "flex-start" }} onClick={() => openExportSelection("png")}>PNG</button>
-                      </div>
-                    ) : null}
+              <StatisticsGroupMenu
+                t={t}
+                activeGroup={activeGroup}
+                setActiveGroup={setActiveGroup}
+                topButtonStyle={topButtonStyle}
+                sectionMenuStyle={sectionMenuStyle}
+                sectionButtonsStyle={sectionButtonsStyle}
+                exportButton={(
+                  <div ref={exportMenuRef}>
+                    <StatisticsExportMenu
+                      t={t}
+                      open={exportOpen}
+                      topButtonStyle={topButtonStyle}
+                      onToggle={() => setExportOpen((open) => !open)}
+                      onPick={openExportSelection}
+                    />
                   </div>
-                </div>
-              </div>
+                )}
+              />
             </div>
           </div>
         </div>
 
-        <div style={sectionWrapStyle}>
-          <div style={metricGridStyle}>
-            <div style={metricTopRowStyle}>
-              <MetricCard label={t("cards.total")} value={total} />
-              <MetricCard label={t("cards.avgAge")} value={avgAge} />
-              <MetricCard label={t("cards.avgGrade")} value={avgGrade} />
-            </div>
-            <div style={metricBottomRowStyle}>
-              <MetricCard label={t("cards.earliestYear")} value={longestStudyYears} />
-              <MetricCard label={t("cards.topGraduationYear")} value={busiestYear} />
-              <MetricCard label={t("cards.topCity")} value={busiestCity} />
-            </div>
-          </div>
-        </div>
+        <StatisticsSummaryCards
+          t={t}
+          total={total}
+          avgAge={avgAge}
+          avgGrade={avgGrade}
+          longestStudyYears={longestStudyYears}
+          busiestYear={busiestYear}
+          busiestCity={busiestCity}
+          sectionWrapStyle={sectionWrapStyle}
+          metricGridStyle={metricGridStyle}
+          metricTopRowStyle={metricTopRowStyle}
+          metricBottomRowStyle={metricBottomRowStyle}
+        />
 
         {activeGroup === "demographics" ? (
-          <div style={sectionWrapStyle}>
-            <SectionTitle title={t("groups.demographics")} subtitle={t("groupText.demographics")} />
-            <div className="grid cols1" style={{ gap: 14 }}>
-              <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="gender">
-                <div className="topbar" style={compactTopbarStyle}>
-                  <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
-                </div>
-                <ScrollableLineChart
-                  height={320}
-                  labels={(genderChartData as any).labels ?? []}
-                  datasetCount={((genderChartData as any).datasets ?? []).length}
-                  data={genderChartData as any}
-                  options={genderChartOptions as any}
-                />
-              </div>
-              <ChartCard chartId="birthYear" title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} height={320} />
-              <PieChartCard chartId="genderByProgram" title={t("sections.genderByProgram")} labels={genderByProgramPie.labels} values={genderByProgramPie.values} height={360} control={genderProgramSelect} />
-            </div>
-          </div>
+          <DemographicsCharts
+            t={t}
+            cardInnerStyle={cardInnerStyle}
+            compactTopbarStyle={compactTopbarStyle}
+            genderChartData={genderChartData}
+            genderChartOptions={genderChartOptions}
+            countChartData={countChartData}
+            countChartOptions={countChartOptions}
+            birthYears={birthYears}
+            genderByProgramPie={genderByProgramPie}
+            genderProgramSelect={genderProgramSelect}
+            studyPrograms={studyPrograms}
+            avgGradesByYear={avgGradesByYear}
+            gradeBins={gradeBins}
+            avgGradeByProgram={avgGradeByProgram}
+            yearsToDegree={yearsToDegree}
+            yearsToDegreeDistribution={yearsToDegreeDistribution}
+            directionPies={directionPies}
+            regions={regions}
+            municipalities={municipalities}
+            countries={countries}
+            total={total}
+            abroadCount={abroadCount}
+          />
         ) : null}
 
         {activeGroup === "academic" ? (
-          <div style={sectionWrapStyle}>
-            <SectionTitle title={t("groups.academic")} subtitle={t("groupText.academic")} />
-            <div className="grid cols1" style={{ gap: 14 }}>
-              <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="byYear">
-                <div className="topbar" style={compactTopbarStyle}>
-                  <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
-                </div>
-                <ScrollableLineChart
-                  height={320}
-                  labels={(countChartData as any).labels ?? []}
-                  datasetCount={((countChartData as any).datasets ?? []).length}
-                  data={countChartData as any}
-                  options={countChartOptions as any}
-                />
-              </div>
-              <PieChartCard chartId="studyProgram" title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={360} />
-              <BarChartCard chartId="gradeByYear" title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
-              <BarChartCard chartId="gradeDistribution" title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
-              <VerticalBarChartCard chartId="avgGradeByProgram" title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} height={360} minLabelWidth={148} maxLabelWidth={200} forceScrollable xTickFormatter={(label) => wrapAxisLabel(label, 18, 3)} />
-              <BarChartCard chartId="timeToDegreeByEntryYear" title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
-              <BarChartCard chartId="timeToDegreeDistribution" title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
-              <MultiPieChartRow chartId="direction" title={t("sections.direction")} pies={directionPies} />
-            </div>
-          </div>
+          <AcademicCharts
+            t={t}
+            cardInnerStyle={cardInnerStyle}
+            compactTopbarStyle={compactTopbarStyle}
+            genderChartData={genderChartData}
+            genderChartOptions={genderChartOptions}
+            countChartData={countChartData}
+            countChartOptions={countChartOptions}
+            birthYears={birthYears}
+            genderByProgramPie={genderByProgramPie}
+            genderProgramSelect={genderProgramSelect}
+            studyPrograms={studyPrograms}
+            avgGradesByYear={avgGradesByYear}
+            gradeBins={gradeBins}
+            avgGradeByProgram={avgGradeByProgram}
+            yearsToDegree={yearsToDegree}
+            yearsToDegreeDistribution={yearsToDegreeDistribution}
+            directionPies={directionPies}
+            regions={regions}
+            municipalities={municipalities}
+            countries={countries}
+            total={total}
+            abroadCount={abroadCount}
+          />
         ) : null}
 
         {activeGroup === "geography" ? (
-          <div style={sectionWrapStyle}>
-            <SectionTitle title={t("groups.geography")} subtitle={t("groupText.geography")} />
-            <div className="grid cols1" style={{ gap: 14 }}>
-              <BarChartCard chartId="originRegion" title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
-              <BarChartCard chartId="originMunicipality" title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
-              <BarChartCard chartId="originCountry" title={t("sections.originCountry")} labels={countries.labels} values={countries.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
-              <PieChartCard chartId="abroadShare" title={t("sections.abroadShare")} labels={[t("table.greece"), t("table.abroad")]} values={[Math.max(0, total - abroadCount), abroadCount]} height={340} />
-            </div>
-          </div>
+          <GeographyCharts
+            t={t}
+            cardInnerStyle={cardInnerStyle}
+            compactTopbarStyle={compactTopbarStyle}
+            genderChartData={genderChartData}
+            genderChartOptions={genderChartOptions}
+            countChartData={countChartData}
+            countChartOptions={countChartOptions}
+            birthYears={birthYears}
+            genderByProgramPie={genderByProgramPie}
+            genderProgramSelect={genderProgramSelect}
+            studyPrograms={studyPrograms}
+            avgGradesByYear={avgGradesByYear}
+            gradeBins={gradeBins}
+            avgGradeByProgram={avgGradeByProgram}
+            yearsToDegree={yearsToDegree}
+            yearsToDegreeDistribution={yearsToDegreeDistribution}
+            directionPies={directionPies}
+            regions={regions}
+            municipalities={municipalities}
+            countries={countries}
+            total={total}
+            abroadCount={abroadCount}
+          />
         ) : null}
       </div>
+
       {selectedExportFormat ? (
-        <div
-          onClick={closeExportSelection}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15, 23, 42, 0.34)",
-            display: "grid",
-            placeItems: "center",
-            padding: 16,
-            zIndex: 60,
-          }}
-        >
-          <div
-            className="card"
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              width: "min(680px, 100%)",
-              maxHeight: "min(78vh, 760px)",
-              display: "grid",
-              gridTemplateRows: "auto minmax(0, 1fr) auto",
-              gap: 12,
-              padding: 14,
-              overflow: "hidden",
-            }}
-          >
-            <div className="topbar" style={{ marginBottom: 0, gap: 10, alignItems: "flex-start" }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: 18 }}>{t("actions.exportSelectionTitle", { defaultValue: "Επιλογή διαγραμμάτων" })}</h3>
-                <div className="muted" style={{ marginTop: 4, fontSize: 13 }}>
-                  {t("actions.exportSelectionSubtitle", { defaultValue: "Επίλεξε ποια διαγράμματα θέλεις να κατεβάσεις" })} · {exportFormatLabel}
-                </div>
-              </div>
-            </div>
-
-            <div ref={exportModalBodyRef} style={{ display: "grid", gap: 10, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
-              <label style={{ ...selectionRowStyle, fontWeight: 700 }}>
-                <input type="checkbox" style={selectionCheckboxStyle} checked={allChartsSelected} onChange={toggleAllCharts} />
-                <span>{t("actions.selectAll", { defaultValue: "Όλα" })}</span>
-              </label>
-
-              {chartGroups.map((group) => {
-                const groupChartIds = group.charts.map((chart) => chart.id);
-                const groupChecked = groupChartIds.every((id) => selectedChartIds.includes(id));
-
-                return (
-                  <div key={group.key} style={{ display: "grid", gap: 8, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 10, background: "rgba(248, 250, 252, 0.76)" }}>
-                    <label style={{ ...selectionRowStyle, fontWeight: 700 }}>
-                      <input type="checkbox" style={selectionCheckboxStyle} checked={groupChecked} onChange={() => toggleGroupCharts(groupChartIds)} />
-                      <span>{group.label}</span>
-                    </label>
-                    <div style={{ display: "grid", gap: 6 }}>
-                      {group.charts.map((chart) => (
-                        <label key={chart.id} style={selectionRowStyle}>
-                          <input type="checkbox" style={selectionCheckboxStyle} checked={selectedChartIds.includes(chart.id)} onChange={() => toggleSingleChart(chart.id)} />
-                          <span>{chart.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap", paddingTop: 2 }}>
-              <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={closeExportSelection}>
-                {t("actions.cancel", { defaultValue: "Ακύρωση" })}
-              </button>
-              <button type="button" className="btn primary" disabled={!selectedChartIds.length} style={{ opacity: selectedChartIds.length ? 1 : 0.55 }} onClick={() => void handleExportAction()}>
-                {t("actions.exportSelected", { defaultValue: "Εξαγωγή επιλεγμένων" })}
-              </button>
-            </div>
-          </div>
-        </div>
+        <StatisticsExportSelectionModal
+          t={t}
+          exportFormatLabel={exportFormatLabel}
+          chartGroups={chartGroups}
+          selectedChartIds={selectedChartIds}
+          allChartsSelected={allChartsSelected}
+          selectionRowStyle={selectionRowStyle}
+          selectionCheckboxStyle={selectionCheckboxStyle}
+          onClose={closeExportSelection}
+          onToggleAll={toggleAllCharts}
+          onToggleGroup={toggleGroupCharts}
+          onToggleChart={toggleSingleChart}
+          onConfirm={() => void handleExportAction()}
+        />
       ) : null}
 
       <div
@@ -790,45 +724,30 @@ export default function Statistics() {
           background: "#ffffff",
         }}
       >
-        <div style={{ display: "grid", gap: 14 }}>
-          <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="gender">
-            <div className="topbar" style={compactTopbarStyle}>
-              <h3 style={{ margin: 0 }}>{t("sections.gender")}</h3>
-            </div>
-            <ScrollableLineChart
-              height={320}
-              labels={(genderChartData as any).labels ?? []}
-              datasetCount={((genderChartData as any).datasets ?? []).length}
-              data={genderChartData as any}
-              options={genderChartOptions as any}
-            />
-          </div>
-          <ChartCard chartId="birthYear" title={t("sections.birthYear")} labels={birthYears.labels} values={birthYears.values} height={320} />
-          <PieChartCard chartId="genderByProgram" title={t("sections.genderByProgram")} labels={genderByProgramPie.labels} values={genderByProgramPie.values} height={360} control={genderProgramSelect} />
-          <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="byYear">
-            <div className="topbar" style={compactTopbarStyle}>
-              <h3 style={{ margin: 0 }}>{t("sections.byYear")}</h3>
-            </div>
-            <ScrollableLineChart
-              height={320}
-              labels={(countChartData as any).labels ?? []}
-              datasetCount={((countChartData as any).datasets ?? []).length}
-              data={countChartData as any}
-              options={countChartOptions as any}
-            />
-          </div>
-          <PieChartCard chartId="studyProgram" title={t("sections.studyProgram")} labels={studyPrograms.labels} values={studyPrograms.values} height={360} />
-          <BarChartCard chartId="gradeByYear" title={t("sections.gradeByYear")} labels={avgGradesByYear.labels} values={avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
-          <BarChartCard chartId="gradeDistribution" title={t("sections.gradeDistribution")} labels={gradeBins.labels} values={gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
-          <VerticalBarChartCard chartId="avgGradeByProgram" title={t("sections.avgGradeByProgram")} labels={avgGradeByProgram.labels} values={avgGradeByProgram.values} minValue={5} maxValue={10} height={320} />
-          <BarChartCard chartId="timeToDegreeByEntryYear" title={t("sections.timeToDegreeByEntryYear")} labels={yearsToDegree.labels} values={yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
-          <BarChartCard chartId="timeToDegreeDistribution" title={t("sections.timeToDegreeDistribution")} labels={yearsToDegreeDistribution.labels} values={yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
-          <MultiPieChartRow chartId="direction" title={t("sections.direction")} pies={directionPies} compact />
-          <BarChartCard chartId="originRegion" title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
-          <BarChartCard chartId="originMunicipality" title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
-          <BarChartCard chartId="originCountry" title={t("sections.originCountry")} labels={countries.labels} values={countries.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
-          <PieChartCard chartId="abroadShare" title={t("sections.abroadShare")} labels={[t("table.greece"), t("table.abroad")]} values={[Math.max(0, total - abroadCount), abroadCount]} height={340} />
-        </div>
+        <ExportChartsSurface
+          t={t}
+          cardInnerStyle={cardInnerStyle}
+          compactTopbarStyle={compactTopbarStyle}
+          genderChartData={genderChartData}
+          genderChartOptions={genderChartOptions}
+          countChartData={countChartData}
+          countChartOptions={countChartOptions}
+          birthYears={birthYears}
+          genderByProgramPie={genderByProgramPie}
+          genderProgramSelect={genderProgramSelect}
+          studyPrograms={studyPrograms}
+          avgGradesByYear={avgGradesByYear}
+          gradeBins={gradeBins}
+          avgGradeByProgram={avgGradeByProgram}
+          yearsToDegree={yearsToDegree}
+          yearsToDegreeDistribution={yearsToDegreeDistribution}
+          directionPies={directionPies}
+          regions={regions}
+          municipalities={municipalities}
+          countries={countries}
+          total={total}
+          abroadCount={abroadCount}
+        />
       </div>
     </>
   );

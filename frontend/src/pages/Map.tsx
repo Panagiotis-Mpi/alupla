@@ -4,7 +4,6 @@ import { GeoJSON, MapContainer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import * as XLSX from "xlsx";
-import { Line, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -44,10 +43,11 @@ import {
   tryParseGeoJson,
 } from "./map/utils";
 import { MapViewportWatcher } from "./map/shared";
+import { MapTopControls, MapExportSelectionModal } from "./map/controls";
+import { MapCityPopupContent } from "./map/cityPopup";
 import {
   InfoBox,
   buildDirectionColorMap,
-  colorWithAlpha,
   compactNumber,
   detailValue,
   directionColor,
@@ -78,7 +78,6 @@ type ExportFormat = "xlsx" | "csv" | "png";
 type ExportCategoryKey = MapMetric;
 
 const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
-const chartPalette = ["#2563eb", "#dc2626", "#16a34a", "#f59e0b", "#7c3aed", "#0891b2", "#e11d48", "#65a30d", "#ea580c", "#4f46e5", "#db2777", "#0f766e", "#b91c1c", "#0284c7", "#a16207", "#9333ea", "#15803d", "#c2410c", "#1d4ed8", "#be123c"];
 
 export default function GraduatesMapPage() {
   const { t, i18n } = useTranslation(["map", "common"]);
@@ -88,8 +87,6 @@ export default function GraduatesMapPage() {
   const mapRef = useRef<L.Map | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
   const geoJsonLayerRef = useRef<L.GeoJSON | null>(null);
-  const exportMenuRef = useRef<HTMLDivElement | null>(null);
-  const programMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -727,107 +724,19 @@ export default function GraduatesMapPage() {
   }
 
   function renderCityPopupContent() {
-    if (cityDetailLoading) return <div className="muted">{ct("loading", { defaultValue: "Φόρτωση..." })}</div>;
-    if (!cityDetail) return <div className="muted">{mt("cityPopup.noData", { defaultValue: "Δεν υπάρχουν διαθέσιμα στοιχεία για την πόλη." })}</div>;
-
-    if (mapMetric === "dominant_gender") {
-      const pieData = {
-        labels: [mt("maleCount", { defaultValue: "Άνδρες" }), mt("femaleCount", { defaultValue: "Γυναίκες" })],
-        datasets: [
-          {
-            data: [Number(cityDetail.male_count ?? 0), Number(cityDetail.female_count ?? 0)],
-            backgroundColor: [genderColors.male, genderColors.female],
-            borderColor: [genderColors.male, genderColors.female],
-            borderWidth: 1,
-          },
-        ],
-      };
-      const pieOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        plugins: { legend: { position: "bottom" as const } },
-      };
-
-      return (
-        <div className="map-city-popup-card">
-          <div className="map-city-popup-title">{cityDetail.city_name}</div>
-          <div className="map-city-popup-sub">{mt("totalGraduatesLine", { total: cityDetail.total, defaultValue: "Σύνολο αποφοίτων: {{total}}" })}</div>
-          <div className="map-city-popup-chart">{Number(cityDetail.total) > 0 ? <Pie data={pieData as any} options={pieOptions as any} /> : <div className="muted">{mt("cityPopup.noData", { defaultValue: "Δεν υπάρχουν διαθέσιμα στοιχεία για την πόλη." })}</div>}</div>
-          <div className="map-city-popup-grid">
-            <div><div className="map-city-popup-label">{mt("maleCount", { defaultValue: "Άνδρες" })}</div><div className="map-city-popup-value">{detailValue(cityDetail.male_pct, "%")}</div></div>
-            <div><div className="map-city-popup-label">{mt("femaleCount", { defaultValue: "Γυναίκες" })}</div><div className="map-city-popup-value">{detailValue(cityDetail.female_pct, "%")}</div></div>
-          </div>
-        </div>
-      );
-    }
-
-    if (mapMetric === "dominant_direction") {
-      const programs = Array.isArray(cityDetail.programs) ? cityDetail.programs : [];
-      const activeProgram = programs.find((program) => String(program.program_id) === selectedStudyProgramId) || programs[0] || null;
-      return (
-        <div className="map-city-popup-card">
-          <div className="map-city-popup-title">{cityDetail.city_name}</div>
-          {activeProgram ? (
-            <>
-              <div className="map-city-popup-program-heading">
-                <span>{activeProgram.program_label}</span>
-                <strong>{activeProgram.total}</strong>
-              </div>
-              <div className="map-city-popup-list">
-                <div className="map-city-popup-program-list">
-                  {activeProgram.directions.map((direction) => (
-                    <div className="map-city-popup-row" key={direction.id}>
-                      <span>{direction.label}</span>
-                      <strong>{direction.count}</strong>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          ) : <div className="muted">{mt("cityPopup.noDirections", { defaultValue: "Δεν υπάρχουν διαθέσιμες κατευθύνσεις για την πόλη." })}</div>}
-        </div>
-      );
-    }
-
-    const popupLabels = cityDetail.labels?.length ? cityDetail.labels : Array.from({ length: 8 }, () => "");
-    const lineData = {
-      labels: popupLabels,
-      datasets: (cityDetail.datasets?.length ? cityDetail.datasets : [{ key: "count", label: mt("export.count", { defaultValue: "Απόφοιτοι" }), values: popupLabels.map(() => null) }]).map((dataset, index) => {
-        const color = directionColor(dataset.label || chartPalette[index % chartPalette.length], directionColorMap);
-        return {
-          label: dataset.label,
-          data: dataset.values,
-          borderColor: color,
-          backgroundColor: colorWithAlpha(color, 0.18),
-          pointBackgroundColor: color,
-          pointBorderColor: color,
-          fill: true,
-          borderWidth: 2,
-          pointRadius: cityDetail.datasets?.length ? 2 : 0,
-          tension: 0.28,
-        };
-      }),
-    };
-    const lineOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 as any }, grid: { color: "rgba(148,163,184,.18)" } },
-        x: { ticks: { autoSkip: true, maxRotation: 0, minRotation: 0 }, grid: { color: "rgba(148,163,184,.18)" } },
-      },
-    };
-
     return (
-      <div className="map-city-popup-card">
-        <div className="map-city-popup-title">{cityDetail.city_name}</div>
-        <div className="map-city-popup-sub">{mt("totalGraduatesLine", { total: cityDetail.total, defaultValue: "Σύνολο αποφοίτων: {{total}}" })}</div>
-        <div className="map-city-popup-chart map-city-popup-line"><Line data={lineData as any} options={lineOptions as any} /></div>
-      </div>
+      <MapCityPopupContent
+        ct={ct}
+        mt={mt}
+        mapMetric={mapMetric}
+        cityDetailLoading={cityDetailLoading}
+        cityDetail={cityDetail}
+        selectedStudyProgramId={selectedStudyProgramId}
+        directionColorMap={directionColorMap}
+      />
     );
   }
+
 
   return (
     <div className="container">
@@ -888,79 +797,27 @@ export default function GraduatesMapPage() {
         @media (max-width: 640px) { .map-metric-group, .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } }
       `}</style>
 
-      <div className="card map-top-menu-card">
-        <div className="map-top-menu-title">
-          <h2>{mt("title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
-          <span className="badge">{loading ? ct("loading", { defaultValue: "Φόρτωση..." }) : `${total} ${mt("totalInline", { defaultValue: "σύνολο" })}`}</span>
-        </div>
-        <div className="map-metric-group">
-          {(["count", "dominant_gender"] as MapMetric[]).map((option) => (
-            <button key={option} type="button" className={`btn map-metric-button ${mapMetric === option ? "active primary" : ""}`} onClick={() => setMapMetric(option)}>
-              {metricOptions[option].label}
-            </button>
-          ))}
-          <div ref={programMenuRef} style={{ position: "relative" }}>
-            <button
-              type="button"
-              className={`btn map-program-button ${mapMetric === "dominant_direction" ? "active primary" : ""}`}
-              style={{ width: "100%" }}
-              onClick={() => setShowProgramMenu((prev) => !prev)}
-              aria-haspopup="menu"
-              aria-expanded={showProgramMenu}
-              aria-label={mt("filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })}
-            >
-              <span>{metricOptions.dominant_direction.label}</span>
-              <span aria-hidden="true">▾</span>
-            </button>
-            {showProgramMenu ? (
-              <div className="map-menu">
-                {studyProgramOptions.map((program) => (
-                  <button
-                    key={program.id}
-                    className={`map-menu-item ${selectedStudyProgramId === program.id ? "active" : ""}`}
-                    type="button"
-                    onClick={() => {
-                      setSelectedStudyProgramId(program.id);
-                      setMapMetric("dominant_direction");
-                      setShowProgramMenu(false);
-                    }}
-                  >
-                    <span>{program.label}</span>
-                    <span>{selectedStudyProgramId === program.id ? "✓" : ""}</span>
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
-          <div ref={exportMenuRef} style={{ position: "relative" }}>
-            <button className="btn map-action-button" type="button" style={{ width: "100%" }} onClick={() => setShowExportMenu((prev) => !prev)}>
-              {ct("export", { defaultValue: "Εξαγωγή" })}
-            </button>
-            {showExportMenu ? (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 8px)",
-                  right: 0,
-                  minWidth: 180,
-                  borderRadius: 14,
-                  border: "1px solid rgba(148, 163, 184, 0.28)",
-                  background: "#fff",
-                  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.16)",
-                  padding: 8,
-                  zIndex: 20,
-                  display: "grid",
-                  gap: 6,
-                }}
-              >
-                <button className="btn" type="button" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => openExportSelection("xlsx")}>Excel</button>
-                <button className="btn" type="button" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => openExportSelection("csv")}>CSV</button>
-                <button className="btn" type="button" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => openExportSelection("png")}>PNG</button>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
+      <MapTopControls
+        mt={mt}
+        ct={ct}
+        loading={loading}
+        total={total}
+        mapMetric={mapMetric}
+        metricOptions={metricOptions}
+        showProgramMenu={showProgramMenu}
+        showExportMenu={showExportMenu}
+        studyProgramOptions={studyProgramOptions}
+        selectedStudyProgramId={selectedStudyProgramId}
+        onMetricChange={setMapMetric}
+        onToggleProgramMenu={() => setShowProgramMenu((prev) => !prev)}
+        onToggleExportMenu={() => setShowExportMenu((prev) => !prev)}
+        onProgramSelect={(programId) => {
+          setSelectedStudyProgramId(programId);
+          setMapMetric("dominant_direction");
+          setShowProgramMenu(false);
+        }}
+        onExportPick={openExportSelection}
+      />
 
       <div className="map-summary-grid">
         <div className="card map-summary-card"><div className="map-summary-label">{mt("summary.total", { defaultValue: "Σύνολο αποφοίτων" })}</div><div className="map-summary-value">{total}</div></div>
@@ -1081,83 +938,21 @@ export default function GraduatesMapPage() {
       )}
 
       {selectedExportFormat ? (
-        <div
-          onClick={closeExportSelection}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15, 23, 42, 0.34)",
-            display: "grid",
-            placeItems: "center",
-            padding: 16,
-            zIndex: 1000,
-          }}
-        >
-          <div
-            className="card"
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              width: "min(680px, 100%)",
-              maxHeight: "min(78vh, 760px)",
-              display: "grid",
-              gridTemplateRows: "auto minmax(0, 1fr) auto",
-              gap: 12,
-              padding: 14,
-              overflow: "hidden",
-              background: "#ffffff",
-              opacity: 1,
-            }}
-          >
-            <div className="topbar" style={{ marginBottom: 0, gap: 10, alignItems: "flex-start" }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: 18 }}>{mt("export.selectionTitle", { defaultValue: "Επιλογή κατηγοριών εξαγωγής" })}</h3>
-                <div className="muted" style={{ marginTop: 4, fontSize: 13 }}>
-                  {mt("export.selectionSubtitle", { defaultValue: "Επίλεξε ποιες κατηγορίες θέλεις να κατεβάσεις" })} · {selectedExportFormat.toUpperCase()}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gap: 10, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700 }}>
-                <input type="checkbox" checked={selectedExportCategories.length === exportCategoryOptions.length && exportCategoryOptions.length > 0} onChange={toggleAllExportCategories} />
-                <span>{ct("all", { defaultValue: "Όλα" })}</span>
-              </label>
-
-              {exportCategoryOptions.map((category) => {
-                const isSelected = selectedExportCategories.includes(category.id);
-                return (
-                  <div key={category.id} style={{ display: "grid", gap: 8, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 10, background: "#f8fafc" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700 }}>
-                      <input type="checkbox" checked={isSelected} onChange={() => toggleExportCategory(category.id)} />
-                      <span>{category.label}</span>
-                    </label>
-                    {category.id === "dominant_direction" ? (
-                      <div style={{ display: "grid", gap: 8, paddingLeft: 28 }}>
-                        <div style={{ display: "grid", gap: 6 }}>
-                          {studyProgramOptions.map((program) => (
-                            <label key={program.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <input type="checkbox" checked={selectedExportStudyProgramIds.includes(program.id)} onChange={() => toggleExportStudyProgram(program.id)} />
-                              <span>{program.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap", paddingTop: 2 }}>
-              <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={closeExportSelection}>
-                {ct("cancel", { defaultValue: "Ακύρωση" })}
-              </button>
-              <button type="button" className="btn primary" disabled={!selectedExportCategories.length || exportingSelection || (selectedExportCategories.includes("dominant_direction") && !selectedExportStudyProgramIds.length)} style={{ opacity: !selectedExportCategories.length || (selectedExportCategories.includes("dominant_direction") && !selectedExportStudyProgramIds.length) ? 0.55 : 1 }} onClick={() => void handleExportSelection()}>
-                {exportingSelection ? ct("loading", { defaultValue: "Φόρτωση..." }) : mt("export.exportSelected", { defaultValue: "Εξαγωγή επιλεγμένων" })}
-              </button>
-            </div>
-          </div>
-        </div>
+        <MapExportSelectionModal
+          mt={mt}
+          ct={ct}
+          selectedExportFormat={selectedExportFormat}
+          exportCategoryOptions={exportCategoryOptions}
+          selectedExportCategories={selectedExportCategories}
+          selectedExportStudyProgramIds={selectedExportStudyProgramIds}
+          studyProgramOptions={studyProgramOptions}
+          exportingSelection={exportingSelection}
+          onClose={closeExportSelection}
+          onToggleAllCategories={toggleAllExportCategories}
+          onToggleCategory={toggleExportCategory}
+          onToggleStudyProgram={toggleExportStudyProgram}
+          onConfirm={() => void handleExportSelection()}
+        />
       ) : null}
     </div>
   );
