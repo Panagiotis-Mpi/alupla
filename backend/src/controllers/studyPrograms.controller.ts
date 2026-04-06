@@ -6,6 +6,15 @@ import { ProgramDirection } from "../models/ProgramDirection";
 import { StudyProgram } from "../models/StudyProgram";
 import { logAction } from "../services/log.service";
 import { normHeader } from "../utils/importUtils";
+import {
+  encodeUtf16WithBom,
+  escapeDelimitedCell,
+  normalizeImportKey,
+  parseActiveFlag,
+  pickFirstFilled,
+  readWorksheetRows,
+  resolveTemplateFormat
+} from "../utils/spreadsheetTemplate";
 
 type StudyProgramPatch = {
   code?: string;
@@ -70,55 +79,12 @@ function getTemplateHeaders(lang: string) {
   ]];
 }
 
-function getTemplateFormat(value: unknown) {
-  return String(value ?? "xlsx").toLowerCase() === "csv" ? "csv" : "xlsx";
-}
-
-function csvEscape(value: unknown) {
-  const text = String(value ?? "");
-  return `"${text.replace(/"/g, '""')}"`;
-}
-
-function buildUtf16CsvBuffer(text: string) {
-  return Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]);
-}
-
-function plainKey(value: string) {
-  return value.normalize("NFD").replace(/\p{Diacritic}/gu, "");
-}
-
-function firstFilled(row: Record<string, unknown>, keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value === undefined || value === null) continue;
-    if (String(value).trim() === "") continue;
-    return value;
-  }
-  return undefined;
-}
-
-function asRows(file: Express.Multer.File | undefined) {
-  if (!file) return [] as Record<string, unknown>[];
-  const workbook = XLSX.read(file.buffer, { type: "buffer", cellDates: true });
-  const firstSheet = workbook.SheetNames[0];
-  if (!firstSheet) return [] as Record<string, unknown>[];
-  return XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[firstSheet], { defval: "" });
-}
-
-function readStatus(value: unknown) {
-  const text = String(value ?? "").trim().toLowerCase();
-  if (!text) return true;
-  if (["1", "true", "yes", "y", "active", "ενεργό", "ενεργη", "ενεργο"].includes(text)) return true;
-  if (["0", "false", "no", "n", "inactive", "ανενεργό", "ανενεργη", "ανενεργο"].includes(text)) return false;
-  return true;
-}
-
 function normalizeProgramRow(input: Record<string, unknown>) {
   const row = Object.fromEntries(Object.entries(input).map(([key, value]) => {
     const normalized = normHeader(key);
-    return [plainKey(normalized), value];
+    return [normalizeImportKey(normalized), value];
   }));
-  const code = String(firstFilled(row, [
+  const code = String(pickFirstFilled(row, [
     "study_program_code_(required)",
     "study_program_code",
     "program_code",
@@ -128,7 +94,7 @@ function normalizeProgramRow(input: Record<string, unknown>) {
     "κωδικος_προγραμματος",
     "κωδικος"
   ]) ?? "").trim();
-  const nameEl = String(firstFilled(row, [
+  const nameEl = String(pickFirstFilled(row, [
     "study_program_name_in_greek_(required)",
     "study_program_name_in_greek",
     "program_name_in_greek",
@@ -144,7 +110,7 @@ function normalizeProgramRow(input: Record<string, unknown>) {
     "ονομασια",
     "name"
   ]) ?? "").trim();
-  const nameEn = String(firstFilled(row, [
+  const nameEn = String(pickFirstFilled(row, [
     "study_program_name_in_english_(optional)",
     "study_program_name_in_english",
     "program_name_in_english",
@@ -158,7 +124,7 @@ function normalizeProgramRow(input: Record<string, unknown>) {
     "ονομασια_(en)",
     "ονομασια_en"
   ]) ?? "").trim();
-  const statusValue = firstFilled(row, [
+  const statusValue = pickFirstFilled(row, [
     "study_program_status_-_active_or_inactive_(optional)",
     "study_program_status",
     "program_status",
@@ -172,7 +138,7 @@ function normalizeProgramRow(input: Record<string, unknown>) {
     code,
     name_el: nameEl,
     name_en: nameEn || null,
-    is_active: readStatus(statusValue),
+    is_active: parseActiveFlag(statusValue),
   };
 }
 
@@ -191,12 +157,12 @@ export async function listStudyPrograms(_req: Request, res: Response, next: Next
 export async function downloadStudyProgramsTemplate(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = String(req.query.lang ?? "gr").toLowerCase().startsWith("en") ? "en" : "gr";
-    const format = getTemplateFormat(req.query.format);
+    const format = resolveTemplateFormat(req.query.format);
     const headers = getTemplateHeaders(lang);
 
     if (format === "csv") {
-      const csv = headers.map((row) => row.map((cell) => csvEscape(cell)).join("\t")).join("\r\n");
-      const buffer = buildUtf16CsvBuffer(csv);
+      const csv = headers.map((row) => row.map((cell) => escapeDelimitedCell(cell)).join("\t")).join("\r\n");
+      const buffer = encodeUtf16WithBom(csv);
       res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
       res.setHeader("Content-Disposition", 'attachment; filename="study-programs-template.csv"');
       return res.send(buffer);
@@ -216,7 +182,7 @@ export async function downloadStudyProgramsTemplate(req: Request, res: Response,
 
 export async function importStudyPrograms(req: Request, res: Response, next: NextFunction) {
   try {
-    const rows = asRows(req.file);
+    const rows = readWorksheetRows(req.file);
     if (!rows.length) {
       return invalid(res, "Empty file");
     }
