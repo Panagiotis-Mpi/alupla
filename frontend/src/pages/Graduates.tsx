@@ -25,6 +25,15 @@ import {
   type SortKey,
 } from "./graduates/shared";
 import { loadGraduatesScreen, useMenuDismiss, useSyncedScrollbar } from "./graduates/hooks";
+import {
+  buildImportDetail,
+  buildImportTitle,
+  getImportColumnLabel,
+  getImportIssueHint,
+  groupImportErrors,
+  normalizeImportErrorMessage,
+  type ImportIssueGroup,
+} from "./graduates/importFeedback";
 import { downloadBlob } from "../lib/download";
 import { toggleMergedVisibleSelection, toggleSelectionValue } from "./shared/selection";
 
@@ -209,161 +218,6 @@ type ToastState = {
   title: string;
   detail?: string;
 };
-
-type ImportIssueGroup = {
-  key: string;
-  column: string;
-  rows: number[];
-  reasons: string[];
-};
-
-function getImportColumnLabel(column: string, t: (key: string, options?: Record<string, unknown>) => string) {
-  const labels: Record<string, string> = {
-    student_number: t("table.am"),
-    ad_code: t("table.ad"),
-    last_name: t("table.lastName"),
-    first_name: t("table.firstName"),
-    father_name: t("table.fatherName"),
-    gender: t("table.gender"),
-    entry_year: t("table.entryYear"),
-    birth_date: t("table.birthDate"),
-    graduation_date: t("table.graduationDate"),
-    oath_date: t("table.oathDate"),
-    degree_grade: t("table.degreeGrade"),
-    study_program: t("table.studyProgram"),
-    origin_country: t("table.country"),
-    origin_region: t("table.region"),
-    origin_municipality: t("table.originMunicipality"),
-    origin_country: t("table.country"),
-    origin_foreign_city: t("filters.foreignCity"),
-  };
-  return labels[column] || column;
-}
-
-function getImportIssueHint(column: string, reasons: string[], t: (key: string, options?: Record<string, unknown>) => string) {
-  const all = reasons.join(" ");
-
-  if (column === "gender") {
-    return t("toast.hintGender");
-  }
-
-  if (["graduation_date", "oath_date", "birth_date"].includes(column)) {
-    return t("toast.hintDate");
-  }
-
-  if (column === "entry_year") {
-    return t("toast.hintYear");
-  }
-
-  if (column === "degree_grade") {
-    return t("toast.hintGrade");
-  }
-
-  if (column === "study_program") {
-    return t("toast.hintStudyProgram");
-  }
-
-  if (column === "origin_region") {
-    return t("toast.hintRegion");
-  }
-
-  if (["origin_country"].includes(column)) {
-    return t("toast.hintForeignCountry");
-  }
-
-  if (["origin_municipality", "origin_foreign_city"].includes(column)) {
-    return t("toast.hintForeignCity");
-  }
-
-  if (column === "student_number") {
-    if (all.includes("Duplicate")) return t("toast.hintAmDuplicate");
-    return t("toast.hintAm");
-  }
-
-  if (column === "ad_code") {
-    if (all.includes("Duplicate")) return t("toast.hintAdDuplicate");
-    return t("toast.hintAd");
-  }
-
-  if (["last_name", "first_name", "father_name"].includes(column)) {
-    return t("toast.hintText");
-  }
-
-  return t("toast.hintGeneric");
-}
-
-function groupImportErrors(errors: Array<Record<string, unknown>> | undefined) {
-  if (!Array.isArray(errors) || !errors.length) {
-    return [] as ImportIssueGroup[];
-  }
-
-  const groups = new Map<string, ImportIssueGroup>();
-
-  for (const error of errors) {
-    const column = String(error?.column || "general");
-    const key = column;
-    const row = Number(error?.row);
-    const message = String(error?.message || "").trim();
-    const details = Array.isArray(error?.details) ? error.details.map((item) => String(item || "").trim()).filter(Boolean) : [];
-    const reasons = [message, ...details].filter(Boolean);
-
-    const current = groups.get(key);
-    if (current) {
-      if (Number.isFinite(row) && !current.rows.includes(row)) current.rows.push(row);
-      for (const reason of reasons) {
-        if (reason && !current.reasons.includes(reason)) current.reasons.push(reason);
-      }
-      continue;
-    }
-
-    groups.set(key, {
-      key,
-      column,
-      rows: Number.isFinite(row) ? [row] : [],
-      reasons,
-    });
-  }
-
-  return Array.from(groups.values()).sort((a, b) => a.column.localeCompare(b.column));
-}
-
-function buildImportDetail(t: (key: string, options?: Record<string, unknown>) => string, inserted: number, updated: number, skipped: number) {
-  return t("toast.importSummaryHuman", { inserted, updated, skipped });
-}
-
-function normalizeImportErrorMessage(message: string, t: (key: string, options?: Record<string, unknown>) => string) {
-  const normalized = String(message || "").trim();
-  if (!normalized) {
-    return t("toast.somethingWentWrong");
-  }
-  if (normalized === "Column birth_year is no longer accepted. Use birth_date instead.") {
-    return t("toast.birthYearRemoved");
-  }
-  if (normalized === "Invalid server response") {
-    return t("toast.somethingWentWrong");
-  }
-  if (normalized === "Request failed" || normalized === "Failed to fetch" || normalized.startsWith("Import request failed (")) {
-    return t("toast.somethingWentWrong");
-  }
-  return normalized;
-}
-
-function buildImportTitle(t: (key: string, options?: Record<string, unknown>) => string, inserted: number, updated: number, skipped: number) {
-  if (inserted > 0 && updated > 0) {
-    return t("toast.importCompletedMixed");
-  }
-  if (inserted > 0) {
-    return t("toast.importCompletedInserted", { inserted });
-  }
-  if (updated > 0) {
-    return t("toast.importCompletedUpdated", { updated });
-  }
-  if (skipped > 0) {
-    return t("toast.importCompletedSkipped", { skipped });
-  }
-  return t("toast.importCompleted");
-}
-
 
 export default function Graduates() {
   const { t, i18n } = useTranslation("graduates");

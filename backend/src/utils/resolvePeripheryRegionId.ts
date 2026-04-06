@@ -1,4 +1,4 @@
-import { Region } from "../models/Region";
+import { Region, type RegionType } from "../models/Region";
 import { RegionAlias } from "../models/RegionAlias";
 import { cleanRegionText, normalizeRegionText } from "./regionText";
 
@@ -14,8 +14,22 @@ type RegionLite = {
   id: number;
   name: string;
   normalized_name: string;
-  type: string;
+  type: RegionType;
   parent_id: number | null;
+};
+
+type RegionAliasLite = {
+  region_id: number;
+  normalized_alias: string;
+};
+
+type RegionLookups = {
+  byId: Map<number, RegionLite>;
+  cityByKey: Map<string, RegionLite[]>;
+  foreignCityByKey: Map<string, RegionLite[]>;
+  peripheryByKey: Map<string, RegionLite[]>;
+  countryByKey: Map<string, RegionLite[]>;
+  aliasByKey: Map<string, RegionLite[]>;
 };
 
 export type NormalizedOriginResult = {
@@ -29,28 +43,24 @@ export type NormalizedOriginResult = {
 const MAX_PARENT_STEPS = 25;
 const GREECE_KEYS = new Set([normalizeRegionText("Ελλάδα"), normalizeRegionText("Greece")]);
 
-let regionLookupsCache: Promise<{
-  byId: Map<number, RegionLite>;
-  cityByKey: Map<string, RegionLite[]>;
-  foreignCityByKey: Map<string, RegionLite[]>;
-  peripheryByKey: Map<string, RegionLite[]>;
-  countryByKey: Map<string, RegionLite[]>;
-  aliasByKey: Map<string, RegionLite[]>;
-}> | null = null;
+let regionLookupsCache: Promise<RegionLookups> | null = null;
 
 function pushMatch(map: Map<string, RegionLite[]>, key: string, region: RegionLite) {
-  const items = map.get(key);
-  if (items) items.push(region);
-  else map.set(key, [region]);
+  const existing = map.get(key);
+  if (existing) {
+    existing.push(region);
+    return;
+  }
+  map.set(key, [region]);
 }
 
 function isGreece(region: RegionLite | null | undefined) {
-  if (!region || region.type !== "COUNTRY") return false;
-  return GREECE_KEYS.has(region.normalized_name);
+  return Boolean(region && region.type === "COUNTRY" && GREECE_KEYS.has(region.normalized_name));
 }
 
-function getAncestor(regionId: number | null | undefined, targetType: string, byId: Map<number, RegionLite>) {
+function getAncestor(regionId: number | null | undefined, targetType: RegionType, byId: Map<number, RegionLite>) {
   if (!regionId) return null;
+
   let current = byId.get(Number(regionId)) ?? null;
   let steps = 0;
 
@@ -64,55 +74,76 @@ function getAncestor(regionId: number | null | undefined, targetType: string, by
 }
 
 function pickScopedRegion(candidates: RegionLite[], preferredParentId: number | null, byId: Map<number, RegionLite>, mode: "greece" | "foreign") {
-  if (!candidates.length) return null;
+  if (candidates.length === 0) return null;
+
   if (preferredParentId) {
-    const scoped = candidates.find((item) => {
-      if (mode === "greece") return getAncestor(item.id, "PERIPHERY", byId)?.id === preferredParentId;
+    const scopedMatch = candidates.find((item) => {
+      if (mode === "greece") {
+        return getAncestor(item.id, "PERIPHERY", byId)?.id === preferredParentId;
+      }
       return item.parent_id === preferredParentId;
     });
-    if (scoped) return scoped;
+
+    if (scopedMatch) return scopedMatch;
   }
+
   return candidates[0] ?? null;
+}
+
+function toRegionLite(row: Region) {
+  return {
+    id: Number(row.id),
+    name: String(row.name ?? ""),
+    normalized_name: String(row.normalized_name ?? normalizeRegionText(row.name)),
+    type: row.type,
+    parent_id: row.parent_id != null ? Number(row.parent_id) : null,
+  } satisfies RegionLite;
+}
+
+function createRegionLookups(regions: Region[], aliases: RegionAliasLite[]) {
+  const lookups: RegionLookups = {
+    byId: new Map<number, RegionLite>(),
+    cityByKey: new Map<string, RegionLite[]>(),
+    foreignCityByKey: new Map<string, RegionLite[]>(),
+    peripheryByKey: new Map<string, RegionLite[]>(),
+    countryByKey: new Map<string, RegionLite[]>(),
+    aliasByKey: new Map<string, RegionLite[]>(),
+  };
+
+  for (const row of regions) {
+    const region = toRegionLite(row);
+    lookups.byId.set(region.id, region);
+
+    if (!region.normalized_name) {
+      continue;
+    }
+
+    if (region.type === "CITY") pushMatch(lookups.cityByKey, region.normalized_name, region);
+    if (region.type === "FOREIGN_CITY") pushMatch(lookups.foreignCityByKey, region.normalized_name, region);
+    if (region.type === "PERIPHERY") pushMatch(lookups.peripheryByKey, region.normalized_name, region);
+    if (region.type === "COUNTRY") pushMatch(lookups.countryByKey, region.normalized_name, region);
+  }
+
+  for (const alias of aliases) {
+    const region = lookups.byId.get(Number(alias.region_id));
+    const key = String(alias.normalized_alias ?? "");
+
+    if (!region || !key) {
+      continue;
+    }
+
+    pushMatch(lookups.aliasByKey, key, region);
+  }
+
+  return lookups;
 }
 
 async function loadRegionLookups() {
   if (!regionLookupsCache) {
     regionLookupsCache = Promise.all([
       Region.findAll({ attributes: ["id", "name", "normalized_name", "type", "parent_id"] }),
-      RegionAlias.findAll({ attributes: ["region_id", "normalized_alias"] }),
-    ]).then(([regions, aliases]) => {
-      const byId = new Map<number, RegionLite>();
-      const cityByKey = new Map<string, RegionLite[]>();
-      const foreignCityByKey = new Map<string, RegionLite[]>();
-      const peripheryByKey = new Map<string, RegionLite[]>();
-      const countryByKey = new Map<string, RegionLite[]>();
-      const aliasByKey = new Map<string, RegionLite[]>();
-
-      for (const row of regions as any[]) {
-        const region: RegionLite = {
-          id: Number(row.id),
-          name: String(row.name ?? ""),
-          normalized_name: String(row.normalized_name ?? normalizeRegionText(row.name)),
-          type: String(row.type ?? ""),
-          parent_id: row.parent_id != null ? Number(row.parent_id) : null,
-        };
-        byId.set(region.id, region);
-        if (!region.normalized_name) continue;
-        if (region.type === "CITY") pushMatch(cityByKey, region.normalized_name, region);
-        if (region.type === "FOREIGN_CITY") pushMatch(foreignCityByKey, region.normalized_name, region);
-        if (region.type === "PERIPHERY") pushMatch(peripheryByKey, region.normalized_name, region);
-        if (region.type === "COUNTRY") pushMatch(countryByKey, region.normalized_name, region);
-      }
-
-      for (const row of aliases as any[]) {
-        const region = byId.get(Number(row.region_id));
-        const key = String(row.normalized_alias ?? "");
-        if (!region || !key) continue;
-        pushMatch(aliasByKey, key, region);
-      }
-
-      return { byId, cityByKey, foreignCityByKey, peripheryByKey, countryByKey, aliasByKey };
-    });
+      RegionAlias.findAll({ attributes: ["region_id", "normalized_alias"], raw: true }) as Promise<RegionAliasLite[]>,
+    ]).then(([regions, aliases]) => createRegionLookups(regions, aliases));
   }
 
   return regionLookupsCache;
@@ -121,10 +152,11 @@ async function loadRegionLookups() {
 function findCountryFromText(value: string, countryByKey: Map<string, RegionLite[]>, aliasByKey: Map<string, RegionLite[]>) {
   const normalized = normalizeRegionText(value);
   if (!normalized) return null;
-  const direct = (countryByKey.get(normalized) ?? [])[0];
-  if (direct) return direct;
-  const aliasHit = (aliasByKey.get(normalized) ?? []).find((item) => item.type === "COUNTRY");
-  return aliasHit ?? null;
+
+  const directMatch = (countryByKey.get(normalized) ?? [])[0];
+  if (directMatch) return directMatch;
+
+  return (aliasByKey.get(normalized) ?? []).find((item) => item.type === "COUNTRY") ?? null;
 }
 
 export function clearRegionLookupCache() {
@@ -149,20 +181,26 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
   if (!country && rawMunicipality) country = findCountryFromText(rawMunicipality, countryByKey, aliasByKey);
 
   if (!country) {
-    const greece = (countryByKey.get(normalizeRegionText("Ελλάδα")) ?? [])[0] ?? null;
-    if (greece) country = greece;
+    country = (countryByKey.get(normalizeRegionText("Ελλάδα")) ?? [])[0] ?? null;
   }
 
   if (isGreece(country)) {
     if (normalizedMunicipality) {
-      if (!periphery && city?.type === "CITY") periphery = getAncestor(city.id, "PERIPHERY", byId);
+      if (!periphery && city?.type === "CITY") {
+        periphery = getAncestor(city.id, "PERIPHERY", byId);
+      }
+
       if (!city || city.type !== "CITY") {
         city = pickScopedRegion(cityByKey.get(normalizedMunicipality) ?? [], periphery?.id ?? null, byId, "greece");
       }
+
       if (!city) {
-        const aliasHit = pickScopedRegion(aliasByKey.get(normalizedMunicipality) ?? [], periphery?.id ?? null, byId, "greece");
-        if (aliasHit?.type === "CITY") city = aliasHit;
+        const aliasMatch = pickScopedRegion(aliasByKey.get(normalizedMunicipality) ?? [], periphery?.id ?? null, byId, "greece");
+        if (aliasMatch?.type === "CITY") {
+          city = aliasMatch;
+        }
       }
+
       if (!periphery) {
         periphery = pickScopedRegion(peripheryByKey.get(normalizedMunicipality) ?? [], null, byId, "greece");
       }
@@ -189,9 +227,12 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
     if (!city || city.type !== "FOREIGN_CITY") {
       city = pickScopedRegion(foreignCityByKey.get(normalizedMunicipality) ?? [], country?.id ?? null, byId, "foreign");
     }
+
     if (!city) {
-      const aliasHit = pickScopedRegion(aliasByKey.get(normalizedMunicipality) ?? [], country?.id ?? null, byId, "foreign");
-      if (aliasHit?.type === "FOREIGN_CITY") city = aliasHit;
+      const aliasMatch = pickScopedRegion(aliasByKey.get(normalizedMunicipality) ?? [], country?.id ?? null, byId, "foreign");
+      if (aliasMatch?.type === "FOREIGN_CITY") {
+        city = aliasMatch;
+      }
     }
   }
 
