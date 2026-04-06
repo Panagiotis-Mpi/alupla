@@ -41,7 +41,7 @@ export type GraduatesFiltersState = {
   program_direction_id: string;
   origin_region_id: string;
   origin_municipality_like: string;
-  origin_foreign_country_like: string;
+  origin_country_like: string;
   origin_foreign_city_like: string;
 };
 
@@ -66,7 +66,7 @@ export const EMPTY_GRADUATES_FILTERS: GraduatesFiltersState = {
   program_direction_id: "",
   origin_region_id: "",
   origin_municipality_like: "",
-  origin_foreign_country_like: "",
+  origin_country_like: "",
   origin_foreign_city_like: "",
 };
 
@@ -441,7 +441,7 @@ export function GraduatesFilters(props: {
         <input className="input" value={filters.origin_municipality_like} onChange={(e) => setFilters((current) => ({ ...current, origin_municipality_like: e.target.value }))} />
       </Field>
       <Field label={t("table.country")}>
-        <input className="input" value={filters.origin_foreign_country_like} onChange={(e) => setFilters((current) => ({ ...current, origin_foreign_country_like: e.target.value }))} />
+        <input className="input" value={filters.origin_country_like} onChange={(e) => setFilters((current) => ({ ...current, origin_country_like: e.target.value }))} />
       </Field>
       <Field label={t("filters.foreignCity")}>
         <input className="input" value={filters.origin_foreign_city_like} onChange={(e) => setFilters((current) => ({ ...current, origin_foreign_city_like: e.target.value }))} />

@@ -39,8 +39,8 @@ function setTextFilters(where: GraduateWhere, query: Query) {
   ];
 
   for (const pair of pairs) {
-    const exactValue = readString(query[pair.exactKey]) ?? (pair.field == "origin_country" ? readString(query.origin_foreign_country) : undefined);
-    const likeValue = readString(query[pair.likeKey]) ?? (pair.field == "origin_country" ? readString(query.origin_foreign_country_like) : undefined);
+    const exactValue = readString(query[pair.exactKey]);
+    const likeValue = readString(query[pair.likeKey]);
 
     if (exactValue) where[pair.field] = exactValue;
     if (likeValue) where[pair.field] = contains(likeValue);

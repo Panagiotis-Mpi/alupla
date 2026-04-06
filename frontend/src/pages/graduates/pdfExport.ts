@@ -116,7 +116,7 @@ function buildRows(args: {
   return items.map((item) => {
     const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
     const directionName = directionNameById.get(Number(item.program_direction_id)) ?? "";
-    const explicitCountry = String((item as any).origin_country ?? item.origin_foreign_country ?? "").trim();
+    const explicitCountry = String((item as any).origin_country ?? "").trim();
     const countryName = formatCountryValue(explicitCountry || String(regionNameById.get(Number(item.origin_country_region_id)) ?? ""));
     const normalizedCountry = countryName.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
     const isGreece = normalizedCountry === "greece" || normalizedCountry === "ελλαδα";

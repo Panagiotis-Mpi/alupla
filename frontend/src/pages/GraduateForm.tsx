@@ -45,7 +45,6 @@ const empty: Partial<Graduate> = {
   birth_date: "",
   graduation_date: "",
   oath_date: "",
-  origin_foreign_country: null,
   origin_foreign_city: null,
   origin_country_region_id: null,
   origin_periphery_region_id: null,
@@ -94,8 +93,7 @@ export default function GraduateForm(props: { mode: Mode }) {
           ...f,
                   study_program_id: sp.items[0]?.id ?? f.study_program_id,
           origin_country_region_id: defaultCountry?.id ?? f.origin_country_region_id ?? null,
-          origin_foreign_country: null,
-          origin_foreign_city: null,
+                  origin_foreign_city: null,
         }));
         return;
       }
@@ -110,7 +108,6 @@ export default function GraduateForm(props: { mode: Mode }) {
         birth_date: (g.item as any).birth_date ?? "",
         graduation_date: g.item.graduation_date ?? "",
         oath_date: g.item.oath_date ?? "",
-        origin_foreign_country: g.item.origin_country ?? null,
         origin_foreign_city: g.item.origin_foreign_city ?? null,
         origin_country_region_id: g.item.origin_country_region_id ?? null,
         origin_periphery_region_id: g.item.origin_periphery_region_id ?? g.item.origin_region_id ?? null,
@@ -124,16 +121,6 @@ export default function GraduateForm(props: { mode: Mode }) {
       setDirections(dirs.items);
     })();
   }, [gradId, isEdit]);
-
-  useEffect(() => {
-    if (!countries.length) return;
-    if (form.origin_country_region_id != null) return;
-    const foreignCountry = String(form.origin_foreign_country ?? "").trim().toLowerCase();
-    if (!foreignCountry) return;
-    const matchedCountry = countries.find((item) => String(item.name ?? "").trim().toLowerCase() === foreignCountry);
-    if (!matchedCountry) return;
-    setForm((current) => ({ ...current, origin_country_region_id: matchedCountry.id }));
-  }, [countries, form.origin_country_region_id, form.origin_foreign_country]);
 
   useEffect(() => {
     const spid = Number(form.study_program_id);
@@ -265,13 +252,12 @@ export default function GraduateForm(props: { mode: Mode }) {
 
       const payload = {
         ...form,
-        origin_type: greeceSelected ? "greece" : "abroad",
         origin_country_region_id: form.origin_country_region_id ?? null,
         origin_periphery_region_id: greeceSelected ? form.origin_periphery_region_id ?? form.origin_region_id ?? null : null,
         origin_region_id: greeceSelected ? form.origin_periphery_region_id ?? form.origin_region_id ?? null : null,
         origin_city_region_id: greeceSelected ? form.origin_city_region_id ?? null : null,
         origin_municipality: greeceSelected ? form.origin_municipality ?? null : null,
-        origin_foreign_country: greeceSelected ? null : (countries.find((item) => Number(item.id) === Number(form.origin_country_region_id))?.name ?? form.origin_foreign_country ?? null),
+        origin_country: greeceSelected ? "Ελλάδα" : (countries.find((item) => Number(item.id) === Number(form.origin_country_region_id))?.name ?? form.origin_country ?? null),
         origin_foreign_city: greeceSelected ? null : form.origin_foreign_city ?? null,
       };
 
@@ -386,7 +372,7 @@ export default function GraduateForm(props: { mode: Mode }) {
                   origin_region_id: nextIsGreece ? f.origin_region_id ?? null : null,
                   origin_city_region_id: nextIsGreece ? f.origin_city_region_id ?? null : null,
                   origin_municipality: nextIsGreece ? f.origin_municipality ?? null : null,
-                  origin_foreign_country: nextIsGreece ? null : nextCountry?.name ?? null,
+                  origin_country: nextIsGreece ? "Ελλάδα" : nextCountry?.name ?? null,
                   origin_foreign_city: nextIsGreece ? null : f.origin_foreign_city ?? null,
                 }));
               }}>

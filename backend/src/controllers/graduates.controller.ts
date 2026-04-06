@@ -1065,7 +1065,7 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     if (origin_country_region_id === null) return bad(res, "origin_country_region_id is required");
     if (Number.isNaN(origin_country_region_id as any)) return bad(res, "origin_country_region_id must be a number");
     const selectedCountryName = String(regionsById.get(Number(origin_country_region_id))?.name ?? "").trim();
-    const origin_country_name = trimNullableText(body.origin_country) ?? trimNullableText(body.origin_foreign_country) ?? trimNullableText(selectedCountryName);
+    const origin_country_name = trimNullableText(body.origin_country) ?? trimNullableText(selectedCountryName);
     const origin_foreign_city = trimNullableText(body.origin_foreign_city);
     const is_abroad = isAbroadOriginInput(origin_country_name, origin_country_region_id, defaultGreeceId, origin_foreign_city);
     let originPayload: Record<string, unknown>;
@@ -1219,9 +1219,6 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     if (body.origin_country !== undefined) {
       (item as any).origin_country = trimNullableText(body.origin_country);
       foreignOriginTouched = true;
-    } else if (body.origin_foreign_country !== undefined) {
-      (item as any).origin_country = trimNullableText(body.origin_foreign_country);
-      foreignOriginTouched = true;
     }
 
     if (body.origin_foreign_city !== undefined) {
@@ -1260,7 +1257,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       (item as any).origin_region_id = null;
       (item as any).origin_city_region_id = null;
       (item as any).origin_municipality = null;
-    } else if (originRegionTouched || foreignOriginTouched || body.origin_country_region_id !== undefined || body.origin_country !== undefined || body.origin_foreign_country !== undefined) {
+    } else if (originRegionTouched || foreignOriginTouched || body.origin_country_region_id !== undefined || body.origin_country !== undefined) {
       if (!(item as any).origin_country_region_id && defaultGreeceId != null) {
         (item as any).origin_country_region_id = defaultGreeceId;
       }
