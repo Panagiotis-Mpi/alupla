@@ -34,6 +34,8 @@
     "direction": "Graduates by direction",
     "originRegion": "Graduates by region of origin",
     "originMunicipality": "Graduates by city of origin",
+    "originCountry": "Graduates by country of origin",
+    "abroadShare": "Graduates from abroad",
     "avgGradeByProgram": "Average degree grade by study program",
     "genderByProgram": "Male and female ratio by study program",
     "timeToDegreeDistribution": "Graduates by total study completion years"
@@ -52,7 +54,9 @@
     "otherRegions": "Other regions",
     "otherCities": "Other cities",
     "topRegion": "Top region",
-    "topCity": "Top city"
+    "topCity": "Top city",
+    "greece": "Greece",
+    "abroad": "Abroad"
   },
   "loading": "Loading...",
   "error": "Something went wrong",

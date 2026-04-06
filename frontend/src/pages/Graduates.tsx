@@ -412,7 +412,7 @@ export default function Graduates() {
     }
     return directions.filter((item) => Number(item?.study_program_id) === Number(filters.study_program_id));
   }, [directions, filters.study_program_id]);
-  const renderGender = (value: unknown) => renderGenderValue(value, (key) => t(key));
+  const renderGender = (value: unknown) => renderGenderValue(value);
 
   const visibleItems = useMemo(() => filterAndSortGraduates({
     items,

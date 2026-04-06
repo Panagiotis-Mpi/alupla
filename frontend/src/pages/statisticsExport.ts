@@ -15,6 +15,8 @@ export type StatisticsChartId =
   | "direction"
   | "originRegion"
   | "originMunicipality"
+  | "originCountry"
+  | "abroadShare"
   | "timeToDegreeByEntryYear"
   | "timeToDegreeDistribution"
 ;
@@ -206,6 +208,32 @@ function buildSheets(args: BuildArgs) {
       [activeLang === "en" ? "City of Origin" : "Πόλη καταγωγής"]: text(row.name),
       [activeLang === "en" ? "Graduate Count" : "Πλήθος αποφοίτων"]: num(row.count),
     })),
+  });
+
+  sheets.set("originCountry", {
+    chartId: "originCountry",
+    name: activeLang === "en" ? "Graduate Count by Country of Origin" : "Πλήθος αποφοίτων ανά χώρα καταγωγής",
+    rows: (data?.origin_country_distribution ?? []).map((row: NamedCountRow) => ({
+      [activeLang === "en" ? "Country of Origin" : "Χώρα καταγωγής"]: localizedName(row, activeLang),
+      [activeLang === "en" ? "Graduate Count" : "Πλήθος αποφοίτων"]: num(row.count),
+    })),
+  });
+
+  sheets.set("abroadShare", {
+    chartId: "abroadShare",
+    name: activeLang === "en" ? "Graduates from Abroad" : "Απόφοιτοι από το εξωτερικό",
+    rows: [
+      {
+        [activeLang === "en" ? "Category" : "Κατηγορία"]: activeLang === "en" ? "Abroad" : "Εξωτερικό",
+        [activeLang === "en" ? "Graduate Count" : "Πλήθος αποφοίτων"]: num(data?.abroad_count),
+        [activeLang === "en" ? "Percentage" : "Ποσοστό"]: num(data?.abroad_pct),
+      },
+      {
+        [activeLang === "en" ? "Category" : "Κατηγορία"]: activeLang === "en" ? "Greece" : "Ελλάδα",
+        [activeLang === "en" ? "Graduate Count" : "Πλήθος αποφοίτων"]: Math.max(0, num(args.total) - num(data?.abroad_count)),
+        [activeLang === "en" ? "Percentage" : "Ποσοστό"]: Math.max(0, 100 - num(data?.abroad_pct)),
+      },
+    ],
   });
 
   sheets.set("timeToDegreeByEntryYear", {

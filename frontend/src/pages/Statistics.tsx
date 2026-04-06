@@ -806,6 +806,8 @@ export default function Statistics() {
         charts: [
           { id: "originRegion" as StatisticsChartId, label: t("sections.originRegion") },
           { id: "originMunicipality" as StatisticsChartId, label: t("sections.originMunicipality") },
+          { id: "originCountry" as StatisticsChartId, label: t("sections.originCountry") },
+          { id: "abroadShare" as StatisticsChartId, label: t("sections.abroadShare") },
         ],
       },
     ],
@@ -966,6 +968,7 @@ export default function Statistics() {
   const directionRows = React.useMemo(() => (Array.isArray(data?.direction_distribution) ? (data.direction_distribution as NamedCountRow[]) : []), [data]);
   const regions = seriesFromRows(data?.origin_region_distribution, { labelKey: "name" });
   const municipalities = seriesFromRows(data?.origin_municipality_distribution, { labelKey: "name" });
+  const countries = seriesFromRows(data?.origin_country_distribution, { labelKey: "name" });
   const yearsToDegree = seriesFromRows(data?.avg_years_to_degree_by_entry_year, { labelKey: "entry_year", valueKey: "avg_years" });
   const yearsToDegreeDistributionRaw = seriesFromRows(data?.years_to_degree_distribution);
 
@@ -1020,6 +1023,7 @@ export default function Statistics() {
   const busiestYear = busiestYearIndex >= 0 ? byYearRows[busiestYearIndex].label : "-";
   const busiestCityIndex = municipalities.values.length ? municipalities.values.findIndex((value) => value === Math.max(...municipalities.values)) : -1;
   const busiestCity = busiestCityIndex >= 0 ? municipalities.labels[busiestCityIndex] : "-";
+  const abroadCount = Number(data?.abroad_count ?? 0);
 
   const directionProgramOptions = React.useMemo(() => {
     const rows = Array.isArray(data?.study_program_distribution) ? (data.study_program_distribution as NamedCountRow[]) : [];
@@ -1390,6 +1394,8 @@ export default function Statistics() {
             <div className="grid cols1" style={{ gap: 14 }}>
               <BarChartCard chartId="originRegion" title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
               <BarChartCard chartId="originMunicipality" title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
+              <BarChartCard chartId="originCountry" title={t("sections.originCountry")} labels={countries.labels} values={countries.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
+              <PieChartCard chartId="abroadShare" title={t("sections.abroadShare")} labels={[t("table.greece"), t("table.abroad")]} values={[Math.max(0, total - abroadCount), abroadCount]} height={340} />
             </div>
           </div>
         ) : null}
@@ -1521,6 +1527,8 @@ export default function Statistics() {
           <MultiPieChartRow chartId="direction" title={t("sections.direction")} pies={directionPies} compact />
           <BarChartCard chartId="originRegion" title={t("sections.originRegion")} labels={regions.labels} values={regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
           <BarChartCard chartId="originMunicipality" title={t("sections.originMunicipality")} labels={municipalities.labels} values={municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
+          <BarChartCard chartId="originCountry" title={t("sections.originCountry")} labels={countries.labels} values={countries.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
+          <PieChartCard chartId="abroadShare" title={t("sections.abroadShare")} labels={[t("table.greece"), t("table.abroad")]} values={[Math.max(0, total - abroadCount), abroadCount]} height={340} />
         </div>
       </div>
     </>

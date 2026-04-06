@@ -384,23 +384,23 @@ function formatDateDisplay(value: unknown) {
   return `${day}/${month}/${year}`;
 }
 
-function formatGenderValue(value: unknown, lang: ExportLang) {
+function formatGenderValue(value: unknown) {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) {
-    return lang === "en" ? "Male" : "Άνδρας";
+    return "Άνδρας";
   }
   if (["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalized)) {
-    return lang === "en" ? "Female" : "Γυναίκα";
+    return "Γυναίκα";
   }
   return String(value ?? "").trim();
 }
 
-function formatCountryValue(value: unknown, lang: ExportLang) {
+function formatCountryValue(value: unknown) {
   const text = String(value ?? "").trim();
   if (!text) return "";
   const normalized = normalizeRegionText(text);
   if (normalized === normalizeRegionText("Ελλάδα") || normalized === normalizeRegionText("Greece")) {
-    return lang === "en" ? "Greece" : "Ελλάδα";
+    return "Ελλάδα";
   }
   return text;
 }
@@ -434,7 +434,7 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
     const rawCountryName = String(item.origin_country ?? country?.name ?? "");
     const isGreece = isGreeceCountryValue(rawCountryName) || (country ? isGreeceCountryValue(country.name) : false);
     const regionName = isGreece ? (region ? String(region.name ?? "") : "") : "";
-    const countryName = formatCountryValue(rawCountryName || String(country?.name ?? ""), lang);
+    const countryName = formatCountryValue(rawCountryName || String(country?.name ?? ""));
     const municipalityName = isGreece ? (item.origin_municipality ?? "") : String(item.origin_foreign_city ?? item.origin_municipality ?? "");
 
     return {
@@ -443,7 +443,7 @@ function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number
       [labels.last_name]: item.last_name ?? "",
       [labels.first_name]: item.first_name ?? "",
       [labels.father_name]: item.father_name ?? "",
-      [labels.gender]: formatGenderValue(item.gender, lang),
+      [labels.gender]: formatGenderValue(item.gender),
       [labels.entry_year]: item.entry_year ?? "",
       [labels.birth_date]: formatDateDisplay(item.birth_date),
       [labels.degree_grade]: item.degree_grade ?? "",

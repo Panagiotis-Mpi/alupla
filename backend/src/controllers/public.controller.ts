@@ -531,11 +531,59 @@ export async function publicStats(req: Request, res: Response) {
       municipalityGroups.set(key, current);
     }
 
+    const foreignCityWhere = sqlWhere
+      ? `${sqlWhere} AND g.origin_foreign_city IS NOT NULL AND btrim(g.origin_foreign_city) <> ''`
+      : `WHERE g.origin_foreign_city IS NOT NULL AND btrim(g.origin_foreign_city) <> ''`;
+
+    const rawForeignCityDistribution = await sequelize.query<{ name: string; count: number }>(
+      `SELECT g.origin_foreign_city as name,
+              COUNT(*)::int as count
+       FROM graduates g ${foreignCityWhere}
+       GROUP BY g.origin_foreign_city
+       ORDER BY count DESC, g.origin_foreign_city ASC`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
+
+    for (const row of rawForeignCityDistribution) {
+      const rawName = String(row.name ?? "").trim();
+      if (!rawName) continue;
+      const key = normalizePlaceName(rawName);
+      const current = municipalityGroups.get(key) ?? { name: rawName, count: 0 };
+      current.count += Number(row.count) || 0;
+      municipalityGroups.set(key, current);
+    }
+
     const originMunicipalityDistribution = Array.from(municipalityGroups.values())
       .sort((a, b) => {
         if (b.count !== a.count) return b.count - a.count;
         return a.name.localeCompare(b.name, "el");
       });
+
+    const originCountryDistribution = await sequelize.query<{ name_el: string; name_en: string; count: number }>(
+      `SELECT CASE
+                WHEN COALESCE(NULLIF(TRIM(g.origin_country), ''), '') = '' THEN 'Άγνωστη χώρα'
+                WHEN LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) IN ('ελλαδα', 'greece') THEN 'Ελλάδα'
+                ELSE TRIM(g.origin_country)
+              END as name_el,
+              CASE
+                WHEN COALESCE(NULLIF(TRIM(g.origin_country), ''), '') = '' THEN 'Unknown country'
+                WHEN LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) IN ('ελλαδα', 'greece') THEN 'Greece'
+                ELSE TRIM(g.origin_country)
+              END as name_en,
+              COUNT(*)::int as count
+       FROM graduates g ${sqlWhere}
+       GROUP BY 1, 2
+       ORDER BY count DESC, name_el ASC`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
+
+    const abroadSummaryRow = await sequelize.query<{ abroad_count: number }>(
+      `SELECT COUNT(*)::int as abroad_count
+       FROM graduates g
+       ${sqlWhere ? `${sqlWhere} AND` : 'WHERE'} COALESCE(NULLIF(TRIM(g.origin_country), ''), '') <> ''
+         AND LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) NOT IN ('ελλαδα', 'greece')`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
 
     const oathYearDistribution = await sequelize.query<{ year: number; count: number }>(
       `SELECT EXTRACT(YEAR FROM g.oath_date)::int as year,
@@ -597,6 +645,9 @@ export async function publicStats(req: Request, res: Response) {
         name_el: r.name_el ?? 'Άγνωστη περιοχή',
         name_en: r.name_en ?? 'Unknown region',
       })),
+      origin_country_distribution: originCountryDistribution,
+      abroad_count: Number(abroadSummaryRow?.[0]?.abroad_count ?? 0),
+      abroad_pct: total > 0 ? Math.round((Number(abroadSummaryRow?.[0]?.abroad_count ?? 0) / total) * 1000) / 10 : 0,
       origin_municipality_distribution: originMunicipalityDistribution,
       oath_year_distribution: oathYearDistribution,
       direction_by_year: [],

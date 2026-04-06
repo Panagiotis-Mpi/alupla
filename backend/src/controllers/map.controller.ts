@@ -21,6 +21,18 @@ function normalizeKey(value: string | null | undefined) {
     .replace(/\s+/g, " ")
     .trim();
 }
+function isGreeceOriginValue(value: unknown) {
+  const normalized = normalizeKey(String(value ?? ""));
+  return normalized === normalizeKey("Ελλάδα") || normalized === normalizeKey("Greece");
+}
+
+function isGreekMapGraduate(graduate: any) {
+  const explicitCountry = String(graduate?.origin_country ?? "").trim();
+  if (explicitCountry) return isGreeceOriginValue(explicitCountry);
+  if (String(graduate?.origin_foreign_city ?? "").trim()) return false;
+  return !!graduate?.origin_country_region_id;
+}
+
 type AgeGroup = "23-26" | "27-30" | "31+";
 
 
@@ -242,7 +254,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
 
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id", "program_direction_id"],
+    attributes: ["origin_country", "origin_foreign_city", "origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id", "program_direction_id"],
   });
 
   const groups = new Map<number, any>();
@@ -270,6 +282,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
   }
 
   for (const g of grads as any[]) {
+    if (!isGreekMapGraduate(g)) continue;
     const resolvedLocation = await resolveMapLocation({
       origin_country_region_id: Number(g.origin_country_region_id) || null,
       origin_periphery_region_id: Number(g.origin_periphery_region_id) || Number(g.origin_region_id) || null,
@@ -442,12 +455,13 @@ export async function getRegionCities(req: Request, res: Response) {
 
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id", "program_direction_id"],
+    attributes: ["origin_country", "origin_foreign_city", "origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id", "program_direction_id"],
   });
 
   const groups = new Map<string, any>();
 
   for (const g of grads as any[]) {
+    if (!isGreekMapGraduate(g)) continue;
     const resolvedLocation = await resolveMapLocation({
       origin_country_region_id: Number(g.origin_country_region_id) || null,
       origin_periphery_region_id: Number(g.origin_periphery_region_id) || Number(g.origin_region_id) || null,

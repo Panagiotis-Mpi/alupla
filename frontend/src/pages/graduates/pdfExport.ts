@@ -21,19 +21,19 @@ const TABLE_HEADER_LINE_HEIGHT = 14;
 const TABLE_LINE_HEIGHT = 13;
 const COLUMN_WIDTHS = [40, 52, 76, 72, 78, 54, 48, 54, 58, 64, 64, 122, 112, 96, 88, 104];
 
-function formatGenderValue(value: unknown, lang: ExportLang) {
+function formatGenderValue(value: unknown) {
   const normalized = String(value ?? "").trim().toLowerCase();
-  if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) return lang === "en" ? "Male" : "Άνδρας";
-  if (["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalized)) return lang === "en" ? "Female" : "Γυναίκα";
+  if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) return "Άνδρας";
+  if (["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalized)) return "Γυναίκα";
   return String(value ?? "").trim();
 }
 
-function formatCountryValue(value: unknown, lang: ExportLang) {
+function formatCountryValue(value: unknown) {
   const text = String(value ?? "").trim();
   if (!text) return "";
   const normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
   if (normalized === "ελλαδα" || normalized === "greece") {
-    return lang === "en" ? "Greece" : "Ελλάδα";
+    return "Ελλάδα";
   }
   return text;
 }
@@ -117,8 +117,8 @@ function buildRows(args: {
     const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
     const directionName = directionNameById.get(Number(item.program_direction_id)) ?? "";
     const explicitCountry = String((item as any).origin_country ?? item.origin_foreign_country ?? "").trim();
-    const countryName = explicitCountry || formatCountryValue(regionNameById.get(Number(item.origin_country_region_id)) ?? "", lang);
-    const normalizedCountry = formatCountryValue(countryName, lang).normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+    const countryName = formatCountryValue(explicitCountry || String(regionNameById.get(Number(item.origin_country_region_id)) ?? ""));
+    const normalizedCountry = countryName.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
     const isGreece = normalizedCountry === "greece" || normalizedCountry === "ελλαδα";
     const regionName = isGreece ? regionNameById.get(Number(item.origin_region_id)) ?? "" : "";
     const municipalityName = String(item.origin_foreign_city ?? "").trim() || (item.origin_municipality ?? "");
@@ -129,7 +129,7 @@ function buildRows(args: {
       [labels.last_name]: item.last_name ?? "",
       [labels.first_name]: item.first_name ?? "",
       [labels.father_name]: item.father_name ?? "",
-      [labels.gender]: formatGenderValue(item.gender, lang),
+      [labels.gender]: formatGenderValue(item.gender),
       [labels.entry_year]: item.entry_year == null ? "" : String(item.entry_year),
       [labels.birth_date]: formatDateValue(item.birth_date),
       [labels.degree_grade]: item.degree_grade == null ? "" : String(item.degree_grade),
