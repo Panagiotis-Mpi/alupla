@@ -44,9 +44,15 @@ import {
   safeReadRecentGraduateDownloads,
   writeRecentGraduateDownloads,
   type RecentGraduateDownload,
-  type RecentGraduatePdfItem,
   type RecentGraduateRequest,
 } from "./graduates/recentDownloads";
+import {
+  buildGraduateExportFileName,
+  createGraduateExportRequest,
+  createGraduatePdfItems,
+  touchRecentGraduateDownload,
+  upsertRecentGraduateDownload,
+} from "./graduates/exporting";
 
 
 export default function Graduates() {
@@ -182,35 +188,16 @@ export default function Graduates() {
     const now = new Date().toISOString();
     recentGraduateSessionDownloads.set(signature, { blob: args.blob, fileName: args.fileName });
     const current = safeReadRecentGraduateDownloads();
-    const existing = current.find((item) => item.signature === signature);
-    const nextItem: RecentGraduateDownload = existing ? {
-      ...existing,
-      fileName: args.fileName,
-      totalItems: items.length,
-      selectedItems: args.ids?.length || 0,
-      filtersLabel,
-      lastDownloadedAt: now,
-      count: existing.count + 1,
-      request: args.request || existing.request,
-      pdfItems: args.pdfItems || existing.pdfItems,
-    } : {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    const next = upsertRecentGraduateDownload({
+      current,
       signature,
-      format: args.format,
       fileName: args.fileName,
-      createdAt: now,
-      lastDownloadedAt: now,
-      count: 1,
+      format: args.format,
       totalItems: items.length,
       selectedItems: args.ids?.length || 0,
       filtersLabel,
       request: args.request,
       pdfItems: args.pdfItems,
-    };
-    const rest = current.filter((item) => item.signature !== signature);
-    const next = [nextItem, ...rest].sort((a, b) => {
-      if (b.count !== a.count) return b.count - a.count;
-      return new Date(b.lastDownloadedAt).getTime() - new Date(a.lastDownloadedAt).getTime();
     });
     writeRecentGraduateDownloads(next);
     setRecentDownloads(next.slice(0, MAX_RECENT_GRADUATE_DOWNLOADS));
@@ -240,9 +227,7 @@ export default function Graduates() {
       }
 
       const current = safeReadRecentGraduateDownloads();
-      const next = current
-        .map((entry) => entry.id === item.id ? { ...entry, count: entry.count + 1, lastDownloadedAt: new Date().toISOString() } : entry)
-        .sort((a, b) => (b.count - a.count) || (new Date(b.lastDownloadedAt).getTime() - new Date(a.lastDownloadedAt).getTime()));
+      const next = touchRecentGraduateDownload(current, item.id);
       writeRecentGraduateDownloads(next);
       setRecentDownloads(next.slice(0, MAX_RECENT_GRADUATE_DOWNLOADS));
     } catch (error: any) {
@@ -297,7 +282,7 @@ export default function Graduates() {
       exportParams.ids = ids;
     }
     try {
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      const fileName = buildGraduateExportFileName(format);
       if (format === "pdf") {
         const exportItems = ids?.length
           ? items.filter((item) => ids.includes(Number(item.id)))
@@ -309,44 +294,19 @@ export default function Graduates() {
           directionNameById: directionDisplayNameById,
           regionNameById,
         });
-        const fileName = `graduates-${timestamp}.pdf`;
         downloadBlob(blob, fileName);
         await rememberDownload({
           blob,
           format,
           fileName,
           ids,
-          pdfItems: exportItems.map((item) => ({
-            id: Number(item.id),
-            ad_code: item.ad_code,
-            student_number: item.student_number,
-            last_name: item.last_name,
-            first_name: item.first_name,
-            father_name: item.father_name,
-            gender: item.gender,
-            entry_year: item.entry_year,
-            birth_date: item.birth_date,
-            degree_grade: item.degree_grade,
-            graduation_date: item.graduation_date,
-            oath_date: item.oath_date,
-            study_program_id: item.study_program_id,
-            program_direction_id: item.program_direction_id ?? null,
-            origin_region_id: item.origin_region_id ?? null,
-            origin_municipality: item.origin_municipality ?? null,
-            origin_country: item.origin_country ?? null,
-            origin_foreign_city: item.origin_foreign_city ?? null,
-          })),
+          pdfItems: createGraduatePdfItems(exportItems),
         });
         await logGraduatesPdfExport(ids?.length ? { ...exportParams, ids } : exportParams);
         return;
       }
-      const request = {
-        params: { ...exportParams },
-        ids,
-        lang: activeLang,
-      } satisfies RecentGraduateRequest;
+      const request = createGraduateExportRequest(exportParams, ids, activeLang) satisfies RecentGraduateRequest;
       const blob = await exportGraduatesFile(exportParams, format, i18n.resolvedLanguage || i18n.language);
-      const fileName = `graduates-${timestamp}.${format}`;
       downloadBlob(blob, fileName);
       await rememberDownload({ blob, format, fileName, ids, request });
     } catch (error: any) {

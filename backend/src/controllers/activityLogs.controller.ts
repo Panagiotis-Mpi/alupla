@@ -1,5 +1,4 @@
 import type { NextFunction, Request, Response } from "express";
-import { Op } from "sequelize";
 import XLSX from "xlsx";
 import { ActivityLog } from "../models/ActivityLog";
 import { User } from "../models/User";
@@ -10,61 +9,31 @@ import {
   MAX_PAGE,
   actionLabels,
   MAX_PAGE_SIZE,
-  EXPORT_LIMIT,
   applySheetLayout,
   buildDelimitedText,
-  buildLogFilters,
   buildUtf16CsvBuffer,
   clamp,
   getFileType,
   getLanguage,
-  getLocalizedAction,
-  getLocalizedDetails,
   getLogPage,
   getOperation,
   getRoleFilter,
   localValue,
   matchesRole,
-  parseDetails,
-  nonEmptyString,
   toInteger,
 } from "./activityLogs.helpers";
+import {
+  buildActivityLogExportRows,
+  buildActivityLogWhere,
+  findActivityLogsForExport,
+} from "./activityLogs.shared";
 
 export async function listActivityLogs(req: Request, res: Response, next: NextFunction) {
   try {
     const page = clamp(toInteger(req.query.page, DEFAULT_PAGE), 1, MAX_PAGE);
     const pageSize = clamp(toInteger(req.query.pageSize, DEFAULT_PAGE_SIZE), 1, MAX_PAGE_SIZE);
     const offset = (page - 1) * pageSize;
-
-    const actor = nonEmptyString(req.query.actor);
-    const role = getRoleFilter(req);
-    const where = buildLogFilters(req);
-
-    if (actor) {
-      where[Op.and] = [
-        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-        {
-          [Op.or]: [
-            { "$user.first_name$": { [Op.like]: `%${actor}%` } },
-            { "$user.last_name$": { [Op.like]: `%${actor}%` } },
-            { "$user.email$": { [Op.like]: `%${actor}%` } },
-            { [Op.and]: [{ "$user.first_name$": { [Op.like]: `%${actor.split(/\s+/)[0] ?? actor}%` } }, { "$user.last_name$": { [Op.like]: `%${actor.split(/\s+/).slice(1).join(" ") || actor}%` } }] }
-          ]
-        }
-      ];
-    }
-
-    if (role === "visitor") {
-      where[Op.and] = [
-        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-        { user_id: null }
-      ];
-    } else if (role !== "all") {
-      where[Op.and] = [
-        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-        { "$user.role$": role }
-      ];
-    }
+    const where = buildActivityLogWhere(req);
 
     const { rows, count } = await ActivityLog.findAndCountAll({
       where,
@@ -121,97 +90,10 @@ export async function getActivityLogFileSummary(req: Request, res: Response, nex
 }
 
 
-
-function getActorLabel(lang: "gr" | "en", row: any) {
-  const fn = String(row?.user?.first_name ?? "").trim();
-  const ln = String(row?.user?.last_name ?? "").trim();
-  const full = `${fn} ${ln}`.trim();
-  if (full) return full;
-
-  const details = parseDetails(row?.details);
-  if (details && typeof details === "object") {
-    const actorName = String((details as any).actor_name ?? "").trim();
-    if (actorName) return actorName;
-    const actorEmail = String((details as any).actor_email ?? "").trim();
-    if (actorEmail) return actorEmail;
-  }
-
-  return lang === "en" ? "Visitor" : "Επισκέπτης";
-}
-
-function formatDateTime(lang: "gr" | "en", value: unknown) {
-  const date = new Date(String(value ?? ""));
-  if (Number.isNaN(date.getTime())) return String(value ?? "");
-  const locale = lang === "en" ? "en-GB" : "el-GR";
-  const baseOptions = { timeZone: "Europe/Athens" } as const;
-  const time = new Intl.DateTimeFormat(locale, {
-    ...baseOptions,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-  }).format(date);
-  const day = new Intl.DateTimeFormat(locale, {
-    ...baseOptions,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).format(date);
-  return `${time}, ${day}`;
-}
-
-async function findLogsForExport(req: Request) {
-  const actor = nonEmptyString(req.query.actor);
-  const role = getRoleFilter(req);
-  const where = buildLogFilters(req);
-
-  if (actor) {
-    where[Op.and] = [
-      ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-      {
-        [Op.or]: [
-          { "$user.first_name$": { [Op.like]: `%${actor}%` } },
-          { "$user.last_name$": { [Op.like]: `%${actor}%` } },
-          { "$user.email$": { [Op.like]: `%${actor}%` } },
-          { [Op.and]: [{ "$user.first_name$": { [Op.like]: `%${actor.split(/\s+/)[0] ?? actor}%` } }, { "$user.last_name$": { [Op.like]: `%${actor.split(/\s+/).slice(1).join(" ") || actor}%` } }] }
-        ]
-      }
-    ];
-  }
-
-  if (role === "visitor") {
-    where[Op.and] = [
-      ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-      { user_id: null }
-    ];
-  } else if (role !== "all") {
-    where[Op.and] = [
-      ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-      { "$user.role$": role }
-    ];
-  }
-
-  return ActivityLog.findAll({
-    where,
-    order: [["created_at", "DESC"]],
-    limit: EXPORT_LIMIT,
-    include: [{ model: User, as: "user", attributes: ["id", "email", "first_name", "last_name", "role"], required: false }]
-  });
-}
-
-function getExportRows(lang: "gr" | "en", rows: any[]) {
-  return rows.map((row) => ({
-    [lang === "en" ? "#" : "#"]: row.id,
-    [lang === "en" ? "Time, Date" : "Ώρα, Ημερομηνία"]: formatDateTime(lang, row.created_at),
-    [lang === "en" ? "User" : "Χρήστης"]: getActorLabel(lang, row),
-    [lang === "en" ? "Action" : "Ενέργεια"]: getLocalizedAction(lang, row.action, row),
-    [lang === "en" ? "Details" : "Λεπτομέρειες"]: getLocalizedDetails(lang, row)
-  }));
-}
-
 export async function exportActivityLogsCsv(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = getLanguage(req);
-    const rows = await findLogsForExport(req);
+    const rows = await findActivityLogsForExport(req);
 
     await logAction({
       user_id: req.user?.id ?? null,
@@ -221,7 +103,7 @@ export async function exportActivityLogsCsv(req: Request, res: Response, next: N
       details: { format: "csv", count: rows.length }
     });
 
-    const exportRows = getExportRows(lang, rows as any[]);
+    const exportRows = buildActivityLogExportRows(lang, rows as any[]);
     const csv = buildDelimitedText(exportRows, "	");
     const buffer = buildUtf16CsvBuffer(csv);
     res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
@@ -235,7 +117,7 @@ export async function exportActivityLogsCsv(req: Request, res: Response, next: N
 export async function exportActivityLogsXlsx(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = getLanguage(req);
-    const rows = await findLogsForExport(req);
+    const rows = await findActivityLogsForExport(req);
 
     await logAction({
       user_id: req.user?.id ?? null,
@@ -246,7 +128,7 @@ export async function exportActivityLogsXlsx(req: Request, res: Response, next: 
     });
 
     const workbook = XLSX.utils.book_new();
-    const exportRows = getExportRows(lang, rows as any[]);
+    const exportRows = buildActivityLogExportRows(lang, rows as any[]);
     const worksheet = XLSX.utils.json_to_sheet(exportRows);
     applySheetLayout(worksheet, exportRows);
     XLSX.utils.book_append_sheet(workbook, worksheet, lang === "en" ? "Logs" : "Καταγραφές");

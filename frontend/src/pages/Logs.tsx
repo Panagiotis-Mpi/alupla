@@ -2,11 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import {
   listActivityLogs,
-  activityLogsExportUrl,
-  getActivityLogFileSummary,
-  listUsers,
   type ActivityLog,
-  type User,
 } from "../lib/api";
 import {
   PAGE_SIZE,
@@ -23,6 +19,7 @@ import {
   type FileSummaryRole,
   type LogFilters,
 } from "./logs/shared";
+import { getLogActorLabel, loadLogFileSummary, loadLogUserOptions, openLogExport } from "./logs/viewModel";
 
 export default function Logs() {
   const { t, i18n } = useTranslation("logs");
@@ -54,13 +51,6 @@ export default function Logs() {
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
-  function actorLabel(l: any): string {
-    const fn = (l?.user?.first_name ?? "").trim();
-    const ln = (l?.user?.last_name ?? "").trim();
-    const full = `${fn} ${ln}`.trim();
-    if (full) return full;
-    return t("summary.roles.visitor");
-  }
 
   const { fileTypeLabel, formatDateTime, formatLogDetails, pageLabel, toLocalizedAction } = logsText;
 
@@ -87,18 +77,9 @@ export default function Logs() {
 
     async function loadUsers() {
       try {
-        const data = await listUsers();
+        const options = await loadLogUserOptions(activeLang, t);
         if (cancelled) return;
-        const users = Array.isArray(data?.items) ? data.items : [];
-        const mapped = users
-          .map((user: User) => ({
-            value: String(user.id),
-            label: `${String(user.first_name ?? "").trim()} ${String(user.last_name ?? "").trim()}`.trim() || String(user.email ?? "").trim(),
-          }))
-          .filter((user: { value: string; label: string }) => user.label)
-          .sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label, activeLang === "gr" ? "el" : "en"));
-
-        setUserOptions([{ value: "visitor", label: t("summary.roles.visitor") }, ...mapped]);
+        setUserOptions(options);
       } catch {
         if (!cancelled) setUserOptions([{ value: "visitor", label: t("summary.roles.visitor") }]);
       }
@@ -113,8 +94,8 @@ export default function Logs() {
 
   async function loadFileSummary(role: FileSummaryRole) {
     try {
-      const data = await getActivityLogFileSummary({ role });
-      setFileSummary(data.items ?? []);
+      const items = await loadLogFileSummary(role);
+      setFileSummary(items);
     } catch (e: any) {
       setErr((current) => current ?? e?.message ?? t("error"));
     }
@@ -163,21 +144,11 @@ export default function Logs() {
   }, []);
 
   function onExport(format: "csv" | "xlsx") {
-    const url = activityLogsExportUrl(
-      format,
-      {
-        action: actionForApi || undefined,
-        user_id: actorIdForApi,
-        role: roleForApi || undefined,
-      },
-      activeLang
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${format}`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    openLogExport(format, {
+      action: actionForApi || undefined,
+      user_id: actorIdForApi,
+      role: roleForApi || undefined,
+    }, activeLang);
     setExportMenuOpen(false);
   }
 
