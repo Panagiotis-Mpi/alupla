@@ -51,9 +51,12 @@ export function clearToken() {
   }
 }
 
+type JsonRecord = Record<string, unknown>;
 type ApiError = { message?: string } | string | null;
+export type QueryValue = string | number | boolean | null | undefined | Array<string | number | boolean>;
+export type QueryParams = Record<string, QueryValue>;
 
-export async function parseJsonSafe(res: Response): Promise<any> {
+export async function parseJsonSafe<T = JsonRecord>(res: Response): Promise<T | null> {
   const contentType = res.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) return null;
   try {
@@ -68,14 +71,14 @@ function looksLikeJson(value: string) {
   return (text.startsWith("{") && text.endsWith("}")) || (text.startsWith("[") && text.endsWith("]"));
 }
 
-export function appendQuery(params: URLSearchParams, values: Record<string, any> = {}) {
+export function appendQuery(params: URLSearchParams, values: QueryParams = {}) {
   for (const [key, value] of Object.entries(values)) {
     if (value === undefined || value === null || value === "") continue;
     params.set(key, Array.isArray(value) ? value.join(",") : String(value));
   }
 }
 
-export function toQueryString(params: Record<string, any> = {}) {
+export function toQueryString(params: QueryParams = {}) {
   const query = new URLSearchParams();
   appendQuery(query, params);
   const value = query.toString();
@@ -120,7 +123,7 @@ function normalizeRequestInit(init: RequestInit) {
   return { headers, init: nextInit };
 }
 
-export async function fetchBlob(path: string, params: Record<string, any> = {}, lang?: string) {
+export async function fetchBlob(path: string, params: QueryParams = {}, lang?: string) {
   const query = new URLSearchParams();
   appendQuery(query, params);
   if (lang) query.set("lang", lang);

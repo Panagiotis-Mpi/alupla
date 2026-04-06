@@ -255,8 +255,17 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
   };
 }
 
+type PublicMapRow = {
+  region_id: number | null;
+  region_name: string;
+  region_type: string | null;
+  count: number;
+  male: number;
+  female: number;
+};
+
 export async function loadPublicMapRows(context: PublicWhereContext) {
-  return queryRows<any>(
+  return queryRows<PublicMapRow>(
     `SELECT
         g.origin_region_id as region_id,
         COALESCE(r.name, 'Unknown') as region_name,

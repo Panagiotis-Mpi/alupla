@@ -1,5 +1,5 @@
 export { API_URL, clearToken, getToken, setToken, toQueryString } from "./apiCore";
-import { API_URL, api, appendQuery, clearToken, fetchBlob, getToken, parseJsonSafe, setToken, toQueryString } from "./apiCore";
+import { API_URL, api, appendQuery, clearToken, fetchBlob, getToken, parseJsonSafe, setToken, toQueryString, type QueryParams } from "./apiCore";
 
 export type UserRole = "super_admin" | "secretariat";
 export type User = {
@@ -74,7 +74,7 @@ export type ActivityLog = {
   action: string;
   entity_type: string | null;
   entity_id: number | null;
-  details: any;
+  details: Record<string, unknown> | null;
   created_at: string;
   user_email?: string | null;
 };
@@ -130,6 +130,25 @@ export type RegionCityMapItem = {
 };
 
 
+
+type ApiMessage = { message?: string };
+type ApiErrorShape = { error?: ApiMessage; message?: string };
+type ApiOk = { ok: true };
+type AuthResponse = ApiOk & { token: string; user: User };
+type UserResponse = ApiOk & { user: User };
+type ListResponse<T> = ApiOk & { items: T[]; total?: number; page?: number; pageSize?: number };
+type ItemResponse<T> = ApiOk & { item: T };
+type GraduatePayload = Partial<Omit<Graduate, "id">> & Record<string, unknown>;
+type RegionListResponse = ApiOk & { items: Region[] };
+type ActivityLogListResponse = ApiOk & { items: ActivityLog[]; total?: number; page?: number; pageSize?: number };
+type ActivityLogFileSummaryResponse = ApiOk & { items: Array<{ name: string; count: number }>; total?: number };
+type PublicStatsResponse = ApiOk & Record<string, unknown>;
+
+function readApiErrorMessage(value: unknown, fallback: string) {
+  const payload = value as ApiErrorShape | null;
+  return String(payload?.error?.message || payload?.message || fallback).trim() || fallback;
+}
+
 export type MapCityDetailResponse = {
   ok: true;
   city_id: number;
@@ -152,7 +171,7 @@ export type MapCityDetailResponse = {
 
 
 
-export async function login(email: string, password: string): Promise<{ ok: true; token: string; user: any } | any> {
+export async function login(email: string, password: string): Promise<AuthResponse> {
   return api("/auth/login", {
     method: "POST",
     body: { email, password },
@@ -160,21 +179,21 @@ export async function login(email: string, password: string): Promise<{ ok: true
 }
 
 
-export async function register(first_name: string, last_name: string, email: string, password: string): Promise<any> {
+export async function register(first_name: string, last_name: string, email: string, password: string): Promise<AuthResponse> {
   return api("/auth/register", { method: "POST", body: { first_name, last_name, email, password } });
 }
 
 
-export async function requestPasswordReset(email: string): Promise<any> {
+export async function requestPasswordReset(email: string): Promise<ApiOk & { reset_token?: string; reset_expires?: string }> {
   return api("/auth/forgot", { method: "POST", body: { email } });
 }
 
-export async function resetPassword(token: string, new_password: string): Promise<any> {
+export async function resetPassword(token: string, new_password: string): Promise<ApiOk> {
   return api("/auth/reset", { method: "POST", body: { token, new_password } });
 }
 
 
-export async function me(): Promise<any> {
+export async function me(): Promise<UserResponse> {
   return api("/auth/me", { method: "GET" });
 }
 
@@ -183,14 +202,14 @@ export async function updateProfile(payload: {
   first_name: string;
   last_name: string;
   email: string;
-}): Promise<any> {
+ }): Promise<UserResponse> {
   return api("/auth/me", { method: "PUT", body: payload });
 }
 
 export async function changePassword(
   currentPasswordOrPayload: string | { currentPassword: string; newPassword: string },
   maybeNewPassword?: string
-): Promise<any> {
+): Promise<ApiOk> {
   const payload =
     typeof currentPasswordOrPayload === "string"
       ? { currentPassword: currentPasswordOrPayload, newPassword: maybeNewPassword || "" }
@@ -206,7 +225,7 @@ export async function changePassword(
 }
 
 
-export async function listUsers(): Promise<{ ok: true; items: User[] } | any> {
+export async function listUsers(): Promise<ListResponse<User>> {
   return api("/users", { method: "GET" });
 }
 
@@ -216,26 +235,26 @@ export async function createUser(payload: {
   email: string;
   role: UserRole;
   password: string;
-}): Promise<any> {
+ }): Promise<ItemResponse<User>> {
   return api("/users", { method: "POST", body: payload });
 }
 
 export async function updateUser(
   id: number,
   patch: Partial<Pick<User, "first_name" | "last_name" | "email" | "role" | "is_active">>
-): Promise<any> {
+): Promise<ItemResponse<User>> {
   return api(`/users/${id}`, { method: "PUT", body: patch });
 }
 
-export async function deactivateUser(id: number): Promise<any> {
+export async function deactivateUser(id: number): Promise<ApiOk> {
   return api(`/users/${id}`, { method: "DELETE" });
 }
 
-export async function pingPresence(): Promise<any> {
+export async function pingPresence(): Promise<ApiOk> {
   return api("/presence/ping", { method: "POST" });
 }
 
-export async function listStudyPrograms(): Promise<{ ok: true; items: StudyProgram[] } | any> {
+export async function listStudyPrograms(): Promise<ListResponse<StudyProgram>> {
   if (!getToken()) return api("/public/study-programs", { method: "GET" });
   try {
     return await api("/study-programs", { method: "GET" });
@@ -252,22 +271,22 @@ export async function createStudyProgram(payload: {
   name_el: string;
   name_en?: string | null;
   is_active?: boolean;
-}): Promise<any> {
+}): Promise<ItemResponse<StudyProgram>> {
   return api("/study-programs", { method: "POST", body: payload });
 }
 
 export async function updateStudyProgram(
   id: number,
   payload: Partial<{ code: string; name_el: string; name_en?: string | null; is_active?: boolean }>
-): Promise<any> {
+ ): Promise<ApiOk & { item?: StudyProgram }> {
   return api(`/study-programs/${id}`, { method: "PUT", body: payload });
 }
 
-export async function deleteStudyProgram(id: number): Promise<any> {
+export async function deleteStudyProgram(id: number): Promise<ApiOk> {
   return api(`/study-programs/${id}`, { method: "DELETE" });
 }
 
-export async function listProgramDirections(studyProgramId?: number | null): Promise<{ ok: true; items: ProgramDirection[] } | any> {
+export async function listProgramDirections(studyProgramId?: number | null): Promise<ListResponse<ProgramDirection>> {
   const qs = studyProgramId ? `?study_program_id=${encodeURIComponent(String(studyProgramId))}` : "";
   return api(`/program-directions${qs}`, { method: "GET" });
 }
@@ -279,23 +298,23 @@ export async function createProgramDirection(payload: {
   name_el: string;
   name_en?: string | null;
   is_active?: boolean;
-}): Promise<any> {
+}): Promise<ItemResponse<ProgramDirection>> {
   return api("/program-directions", { method: "POST", body: payload });
 }
 
 export async function updateProgramDirection(
   id: number,
   payload: Partial<{ study_program_id: number; code: string; name_el: string; name_en?: string | null; is_active?: boolean }>
-): Promise<any> {
+ ): Promise<ApiOk & { item?: ProgramDirection }> {
   return api(`/program-directions/${id}`, { method: "PUT", body: payload });
 }
 
-export async function deleteProgramDirection(id: number): Promise<any> {
+export async function deleteProgramDirection(id: number): Promise<ApiOk> {
   return api(`/program-directions/${id}`, { method: "DELETE" });
 }
 
 
-export async function importStudyProgramsFile(file: File): Promise<any> {
+export async function importStudyProgramsFile(file: File): Promise<ApiOk & Record<string, unknown>> {
   const token = getToken();
   const fd = new FormData();
   fd.append("file", file);
@@ -308,7 +327,7 @@ export async function importStudyProgramsFile(file: File): Promise<any> {
   });
   if (!res.ok) {
     const j = await parseJsonSafe(res);
-    const msg = (j as any)?.error?.message || (j as any)?.message || res.statusText;
+    const msg = readApiErrorMessage(j, res.statusText);
     throw new Error(msg);
   }
   return await res.json();
@@ -318,7 +337,7 @@ export async function downloadStudyProgramsTemplateXlsx(lang?: string): Promise<
   return fetchBlob("/study-programs/import-template", {}, lang);
 }
 
-export async function importProgramDirectionsFile(file: File): Promise<any> {
+export async function importProgramDirectionsFile(file: File): Promise<ApiOk & Record<string, unknown>> {
   const token = getToken();
   const fd = new FormData();
   fd.append("file", file);
@@ -331,7 +350,7 @@ export async function importProgramDirectionsFile(file: File): Promise<any> {
   });
   if (!res.ok) {
     const j = await parseJsonSafe(res);
-    const msg = (j as any)?.error?.message || (j as any)?.message || res.statusText;
+    const msg = readApiErrorMessage(j, res.statusText);
     throw new Error(msg);
   }
   return await res.json();
@@ -341,28 +360,28 @@ export async function downloadProgramDirectionsTemplateXlsx(lang?: string): Prom
   return fetchBlob("/program-directions/import-template", {}, lang);
 }
 
-export async function listGraduates(params: Record<string, any> = {}): Promise<any> {
+export async function listGraduates(params: QueryParams = {}): Promise<ListResponse<Graduate>> {
   return api(`/graduates${toQueryString(params)}`, { method: "GET" });
 }
 
-export async function getGraduate(id: number | string): Promise<any> {
+export async function getGraduate(id: number | string): Promise<ApiOk & { item: Graduate }> {
   return api(`/graduates/${id}`, { method: "GET" });
 }
 
-export async function createGraduate(payload: any): Promise<any> {
+export async function createGraduate(payload: GraduatePayload): Promise<ApiOk & { item?: Graduate }> {
   return api(`/graduates`, { method: "POST", body: payload });
 }
 
-export async function updateGraduate(id: number | string, payload: any): Promise<any> {
+export async function updateGraduate(id: number | string, payload: GraduatePayload): Promise<ApiOk & { item?: Graduate }> {
   return api(`/graduates/${id}`, { method: "PUT", body: payload });
 }
 
-export async function deleteGraduate(id: number | string): Promise<any> {
+export async function deleteGraduate(id: number | string): Promise<ApiOk> {
   return api(`/graduates/${id}`, { method: "DELETE" });
 }
 
-export async function listRegions(parentIdOrParams: any = {}): Promise<any> {
-  const params: Record<string, any> =
+export async function listRegions(parentIdOrParams: number | null | QueryParams = {}): Promise<RegionListResponse> {
+  const params: QueryParams =
     typeof parentIdOrParams === "number" || parentIdOrParams === null
       ? { parent_id: parentIdOrParams }
       : parentIdOrParams || {};
@@ -370,33 +389,33 @@ export async function listRegions(parentIdOrParams: any = {}): Promise<any> {
   return api(`/regions${toQueryString(params)}`, { method: "GET" });
 }
 
-export async function listActivityLogs(params: Record<string, any> = {}): Promise<any> {
+export async function listActivityLogs(params: QueryParams = {}): Promise<ActivityLogListResponse> {
   return api(`/activity-logs${toQueryString(params)}`, { method: "GET" });
 }
 
 
-export async function getActivityLogFileSummary(params: Record<string, any> = {}): Promise<any> {
+export async function getActivityLogFileSummary(params: QueryParams = {}): Promise<ActivityLogFileSummaryResponse> {
   return api(`/activity-logs/file-summary${toQueryString(params)}`, { method: "GET" });
 }
 
 
-export async function getGraduatesMap(params: Record<string, any> = {}): Promise<{ ok: true; items: GraduatesMapItem[]; total: number } | any> {
+export async function getGraduatesMap(params: QueryParams = {}): Promise<{ ok: true; items: GraduatesMapItem[]; total: number }> {
   return api(`/map/graduates${toQueryString(params)}`, { method: "GET" });
 }
 
-export async function getMapCities(params: Record<string, any> = {}): Promise<{ ok: true; items: MapCityPoint[] } | any> {
+export async function getMapCities(params: QueryParams = {}): Promise<{ ok: true; items: MapCityPoint[] }> {
   return api(`/map/cities${toQueryString(params)}`, { method: "GET" });
 }
 
-export async function getRegionCitiesMap(params: Record<string, any> = {}): Promise<{ ok: true; items: RegionCityMapItem[] } | any> {
+export async function getRegionCitiesMap(params: QueryParams = {}): Promise<{ ok: true; items: RegionCityMapItem[] }> {
   return api(`/map/region-cities${toQueryString(params)}`, { method: "GET" });
 }
 
-export async function getMapCityDetail(params: Record<string, any> = {}): Promise<MapCityDetailResponse | any> {
+export async function getMapCityDetail(params: QueryParams = {}): Promise<MapCityDetailResponse> {
   return api(`/map/city-detail${toQueryString(params)}`, { method: "GET" });
 }
 
-export function activityLogsExportUrl(format: "csv" | "xlsx", params: Record<string, any> = {}, lang?: string): string {
+export function activityLogsExportUrl(format: "csv" | "xlsx", params: QueryParams = {}, lang?: string): string {
   const q = new URLSearchParams();
   appendQuery(q, params);
 
@@ -413,7 +432,7 @@ export function activityLogsExportUrl(format: "csv" | "xlsx", params: Record<str
 
 
 
-export async function exportGraduatesFile(params: Record<string, any>, format: "xlsx" | "csv" | "pdf", lang?: string): Promise<Blob> {
+export async function exportGraduatesFile(params: QueryParams, format: "xlsx" | "csv" | "pdf", lang?: string): Promise<Blob> {
   return fetchBlob("/graduates/export", { ...params, format }, lang);
 }
 
@@ -421,11 +440,11 @@ export async function downloadGraduatesImportTemplate(format: "xlsx" | "csv", la
   return fetchBlob("/graduates/import-template", { format }, lang);
 }
 
-export async function logGraduatesPdfExport(params: Record<string, any>): Promise<any> {
+export async function logGraduatesPdfExport(params: QueryParams): Promise<ApiOk & { count?: number }> {
   return api("/graduates/export-pdf-log", { method: "POST", body: params });
 }
 
-export async function importGraduatesFile(file: File, lang?: string): Promise<any> {
+export async function importGraduatesFile(file: File, lang?: string): Promise<ApiOk & Record<string, unknown>> {
   const token = getToken();
   const fd = new FormData();
   fd.append("file", file);
@@ -440,14 +459,14 @@ export async function importGraduatesFile(file: File, lang?: string): Promise<an
       },
       body: fd
     });
-  } catch (error: any) {
-    const message = String(error?.message || "").trim() || "Request failed";
+  } catch (error) {
+    const message = error instanceof Error ? error.message.trim() : "";
     throw new Error(message);
   }
 
   if (!res.ok) {
     const j = await parseJsonSafe(res);
-    const msg = String((j as any)?.error?.message || (j as any)?.message || res.statusText || "").trim() || `Import request failed (${res.status})`;
+    const msg = readApiErrorMessage(j, `Import request failed (${res.status})`);
     throw new Error(msg);
   }
 
@@ -463,11 +482,11 @@ export async function getPublicStats(params: {
   study_program_id?: string;
   gender?: string;
   age_group?: string;
-} = {}): Promise<any> {
+} = { }): Promise<UserResponse> {
   return api(`/public/stats${toQueryString(params)}`, { method: "GET" });
 }
 
-export async function logPublicExport(action: "map_export" | "statistics_export", format: string): Promise<any> {
+export async function logPublicExport(action: "map_export" | "statistics_export", format: string): Promise<ApiOk> {
   return api("/public/activity-export", {
     method: "POST",
     body: { action, format },

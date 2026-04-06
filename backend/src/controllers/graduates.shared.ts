@@ -1,3 +1,4 @@
+import { Graduate } from "../models/Graduate";
 import { ProgramDirection } from "../models/ProgramDirection";
 import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
@@ -17,13 +18,29 @@ import {
   type ExportLang,
 } from "./graduates.helpers";
 
+type ProgramLookup = Pick<StudyProgram, "id" | "code" | "name_el" | "name_en">;
+type DirectionLookup = Pick<ProgramDirection, "id" | "study_program_id" | "code" | "name_el" | "name_en">;
+type RegionLookup = Pick<Region, "id" | "name" | "normalized_name" | "external_ref_id" | "type">;
+type GraduateExportSource = Pick<Graduate, "ad_code" | "student_number" | "last_name" | "first_name" | "father_name" | "gender" | "entry_year" | "birth_date" | "degree_grade" | "graduation_date" | "oath_date" | "study_program_id" | "program_direction_id" | "origin_country" | "origin_foreign_city" | "origin_country_region_id" | "origin_periphery_region_id" | "origin_region_id" | "origin_municipality">;
+type ManagedOriginTarget = Pick<Graduate, "origin_country" | "origin_foreign_city" | "origin_country_region_id" | "origin_periphery_region_id" | "origin_region_id" | "origin_city_region_id" | "origin_municipality">;
+
 export type ReferenceMaps = {
-  programsById: Map<number, any>;
-  directionsById: Map<number, any>;
-  regionsById: Map<number, any>;
+  programsById: Map<number, ProgramLookup>;
+  directionsById: Map<number, DirectionLookup>;
+  regionsById: Map<number, RegionLookup>;
 };
 
-export function buildExportRows(rows: any[], lang: ExportLang, programsById: Map<number, any>, directionsById: Map<number, any>, regionsById: Map<number, any>) {
+function isInvalidNullableNumber(value: number | null) {
+  return value !== null && Number.isNaN(value);
+}
+
+export function buildExportRows(
+  rows: GraduateExportSource[],
+  lang: ExportLang,
+  programsById: Map<number, ProgramLookup>,
+  directionsById: Map<number, DirectionLookup>,
+  regionsById: Map<number, RegionLookup>,
+) {
   const labels = getColumnLabels(lang);
 
   return rows.map((row) => {
@@ -67,9 +84,9 @@ export async function getReferenceMaps(): Promise<ReferenceMaps> {
   ]);
 
   return {
-    programsById: new Map(programs.map((item: any) => [Number(item.id), item])),
-    directionsById: new Map(directions.map((item: any) => [Number(item.id), item])),
-    regionsById: new Map(regions.map((item: any) => [Number(item.id), item])),
+    programsById: new Map(programs.map((item) => [Number(item.id), item as ProgramLookup])),
+    directionsById: new Map(directions.map((item) => [Number(item.id), item as DirectionLookup])),
+    regionsById: new Map(regions.map((item) => [Number(item.id), item as RegionLookup])),
   };
 }
 
@@ -83,7 +100,7 @@ function normalizeLookupValue(value: unknown) {
     .trim();
 }
 
-export function resolveStudyProgramId(value: unknown, programsById: Map<number, any>) {
+export function resolveStudyProgramId(value: unknown, programsById: Map<number, ProgramLookup>) {
   const raw = String(value ?? "").trim();
   if (!raw) return null;
 
@@ -111,7 +128,7 @@ export function resolveStudyProgramId(value: unknown, programsById: Map<number, 
   return null;
 }
 
-export function resolveRegionId(value: unknown, regionsById: Map<number, any>) {
+export function resolveRegionId(value: unknown, regionsById: Map<number, RegionLookup>) {
   const raw = String(value ?? "").trim();
   if (!raw) return null;
 
@@ -127,7 +144,7 @@ export function resolveRegionId(value: unknown, regionsById: Map<number, any>) {
   return null;
 }
 
-export function resolveProgramDirectionId(value: unknown, directionsById: Map<number, any>, studyProgramId: number | null) {
+export function resolveProgramDirectionId(value: unknown, directionsById: Map<number, DirectionLookup>, studyProgramId: number | null) {
   const raw = String(value ?? "").trim();
   if (!raw) return null;
 
@@ -163,7 +180,7 @@ export function ensureManagedOrigin(
   originCountryRegionId: number | null | undefined,
   originRegionId: number | null | undefined,
   originMunicipality: string | null | undefined,
-  regionsById?: Map<number, any>,
+  regionsById?: Map<number, RegionLookup>,
 ) {
   if (!hasOriginValue(originCountryRegionId, originRegionId, originMunicipality)) return null;
   if (!normalizedOrigin.origin_country_region_id) return "origin_country_region_id is required";
@@ -177,11 +194,11 @@ export function ensureManagedOrigin(
   return null;
 }
 
-export async function buildCreateOriginPayload(body: Record<string, unknown>, regionsById: Map<number, any>) {
+export async function buildCreateOriginPayload(body: Record<string, unknown>, regionsById: Map<number, RegionLookup>) {
   const defaultGreeceId = getGreeceRegionId(regionsById);
   const originCountryRegionId = toNullableNumber(body.origin_country_region_id) ?? defaultGreeceId;
   if (originCountryRegionId === null) return { error: "origin_country_region_id is required" };
-  if (Number.isNaN(originCountryRegionId as any)) return { error: "origin_country_region_id must be a number" };
+  if (isInvalidNullableNumber(originCountryRegionId)) return { error: "origin_country_region_id must be a number" };
 
   const selectedCountryName = String(regionsById.get(Number(originCountryRegionId))?.name ?? "").trim();
   const originCountryName = trimNullableText(body.origin_country) ?? trimNullableText(selectedCountryName);
@@ -207,7 +224,7 @@ export async function buildCreateOriginPayload(body: Record<string, unknown>, re
   }
 
   const originPeripheryRegionId = toNullableNumber(body.origin_periphery_region_id ?? body.origin_region_id);
-  if (Number.isNaN(originPeripheryRegionId as any)) return { error: "origin_periphery_region_id must be a number" };
+  if (isInvalidNullableNumber(originPeripheryRegionId)) return { error: "origin_periphery_region_id must be a number" };
 
   const originMunicipality = String(body.origin_municipality ?? "").trim();
   if (!originMunicipality) return { error: "origin_municipality is required" };
@@ -236,21 +253,21 @@ export async function buildCreateOriginPayload(body: Record<string, unknown>, re
   };
 }
 
-export async function applyOriginPatch(item: any, body: Record<string, unknown>, regionsById: Map<number, any>) {
+export async function applyOriginPatch(item: ManagedOriginTarget, body: Record<string, unknown>, regionsById: Map<number, RegionLookup>) {
   const defaultGreeceId = getGreeceRegionId(regionsById);
   let originRegionTouched = false;
   let foreignOriginTouched = false;
 
   if (body.origin_country_region_id !== undefined) {
     const value = toNullableNumber(body.origin_country_region_id);
-    if (Number.isNaN(value as any)) return "origin_country_region_id must be a number";
+    if (isInvalidNullableNumber(value)) return "origin_country_region_id must be a number";
     item.origin_country_region_id = value;
     originRegionTouched = true;
   }
 
   if (body.origin_periphery_region_id !== undefined || body.origin_region_id !== undefined) {
     const value = toNullableNumber(body.origin_periphery_region_id ?? body.origin_region_id);
-    if (Number.isNaN(value as any)) return "origin_periphery_region_id must be a number";
+    if (isInvalidNullableNumber(value)) return "origin_periphery_region_id must be a number";
     item.origin_periphery_region_id = value;
     item.origin_region_id = value;
     originRegionTouched = true;
@@ -258,7 +275,7 @@ export async function applyOriginPatch(item: any, body: Record<string, unknown>,
 
   if (body.origin_city_region_id !== undefined) {
     const value = toNullableNumber(body.origin_city_region_id);
-    if (Number.isNaN(value as any)) return "origin_city_region_id must be a number";
+    if (isInvalidNullableNumber(value)) return "origin_city_region_id must be a number";
     item.origin_city_region_id = value;
     originRegionTouched = true;
   }

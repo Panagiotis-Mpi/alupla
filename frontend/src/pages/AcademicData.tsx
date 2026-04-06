@@ -76,8 +76,8 @@ export default function AcademicData() {
       setDirections(nextDirections);
       setSelectedProgramId((current) => current && nextPrograms.some((item) => Number(item.id) === Number(current)) ? current : nextPrograms[0] ? String(nextPrograms[0].id) : "");
       setDirectionForm((current) => current.study_program_id ? current : { ...current, study_program_id: nextPrograms[0] ? String(nextPrograms[0].id) : "" });
-    } catch (e: any) {
-      setError(e?.message ?? t("error"));
+    } catch (error) {
+      setError(getErrorText(error, t("error")));
     } finally {
       inFlight.current = false;
     }
@@ -147,8 +147,8 @@ export default function AcademicData() {
       }
       resetProgramForm();
       await load();
-    } catch (e: any) {
-      alert(e?.message ?? t("error"));
+    } catch (error) {
+      alert(getErrorText(error, t("error")));
     }
   };
 
@@ -163,8 +163,8 @@ export default function AcademicData() {
       setDirectionForm((current) => ({ ...emptyDirectionForm, study_program_id: current.study_program_id || selectedProgramId }));
       setEditingDirectionId(null);
       await load();
-    } catch (e: any) {
-      alert(e?.message ?? t("error"));
+    } catch (error) {
+      alert(getErrorText(error, t("error")));
     }
   };
 
@@ -188,8 +188,8 @@ export default function AcademicData() {
         await importProgramDirectionsFile(file);
       }
       await load();
-    } catch (e: any) {
-      alert(e?.message ?? t("error"));
+    } catch (error) {
+      alert(getErrorText(error, t("error")));
     }
   };
 
@@ -198,8 +198,8 @@ export default function AcademicData() {
       const blob = target === "programs" ? await downloadStudyProgramsTemplateXlsx(lang) : await downloadProgramDirectionsTemplateXlsx(lang);
       downloadBlob(blob, target === "programs" ? "study-programs-template.xlsx" : "program-directions-template.xlsx");
       setOpenMenu(null);
-    } catch (e: any) {
-      alert(e?.message ?? t("error"));
+    } catch (error) {
+      alert(getErrorText(error, t("error")));
     }
   };
 
@@ -225,8 +225,8 @@ export default function AcademicData() {
       await deleteStudyProgram(item.id);
       if (editingProgramId === item.id) resetProgramForm();
       await load();
-    } catch (e: any) {
-      alert(e?.message ?? t("error"));
+    } catch (error) {
+      alert(getErrorText(error, t("error")));
     }
   };
 
@@ -237,8 +237,8 @@ export default function AcademicData() {
       await deleteProgramDirection(item.id);
       if (editingDirectionId === item.id) resetDirectionForm(selectedProgramId || "");
       await load();
-    } catch (e: any) {
-      alert(e?.message ?? t("error"));
+    } catch (error) {
+      alert(getErrorText(error, t("error")));
     }
   };
 

@@ -1,9 +1,14 @@
 import type { Request } from "express";
+import type { Graduate } from "../models/Graduate";
 import { Op } from "sequelize";
 import { buildGraduateWhere } from "../utils/buildGraduateWhere";
 import { Region } from "../models/Region";
 
 export type AgeGroup = "23-26" | "27-30" | "31+";
+
+type RegionNode = Pick<Region, "id" | "name" | "type" | "parent_id" | "latitude" | "longitude">;
+type MapGraduateSource = Pick<Graduate, "origin_country" | "origin_foreign_city" | "origin_country_region_id">;
+type GraduateWhere = ReturnType<typeof buildGraduateWhere> & { [Op.and]?: unknown[] };
 
 export async function loadRegions() {
   const regions = await Region.findAll({
@@ -11,9 +16,9 @@ export async function loadRegions() {
     order: [["name", "ASC"]],
   });
 
-  const byId = new Map<number, any>();
-  for (const region of regions as any[]) {
-    byId.set(Number(region.id), region);
+  const byId = new Map<number, RegionNode>();
+  for (const region of regions) {
+    byId.set(Number(region.id), region as RegionNode);
   }
 
   return {
@@ -52,7 +57,7 @@ export function isGreeceOriginValue(value: unknown) {
   return normalized === normalizeKey("Ελλάδα") || normalized === normalizeKey("Greece");
 }
 
-export function isGreekMapGraduate(graduate: any) {
+export function isGreekMapGraduate(graduate: MapGraduateSource) {
   const explicitCountry = String(graduate?.origin_country ?? "").trim();
   if (explicitCountry) return isGreeceOriginValue(explicitCountry);
   if (String(graduate?.origin_foreign_city ?? "").trim()) return false;
@@ -84,9 +89,10 @@ function ageGroupToRange(value: AgeGroup): [number, number | null] {
 export function buildMapWhere(req: Request) {
   const graduationYear = toInt(req.query.graduation_year);
   const ageGroup = (req.query.age_group as string | undefined) as AgeGroup | undefined;
-  const where: any = buildGraduateWhere(req.query as Record<string, unknown>);
+  const where = buildGraduateWhere(req.query as Record<string, unknown>) as GraduateWhere;
   const currentYear = new Date().getFullYear();
-  const andParts = Array.isArray(where[Op.and]) ? [...where[Op.and]] : [];
+  const rawAnd = where[Op.and];
+  const andParts: unknown[] = Array.isArray(rawAnd) ? [...(rawAnd as unknown[])] : [];
 
   if (graduationYear) {
     andParts.push({ graduation_date: { [Op.between]: [`${graduationYear}-01-01`, `${graduationYear}-12-31`] } });
