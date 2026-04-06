@@ -513,8 +513,10 @@ function resolveRegionId(value: unknown, regionsById: Map<number, any>) {
 
   const normalized = normalizeLookupValue(raw);
   for (const [id, item] of regionsById.entries()) {
-    const candidates = [item?.name];
-    if (candidates.some((entry) => normalizeLookupValue(entry) === normalized)) return id;
+    const candidates = [item?.name, item?.normalized_name, item?.external_ref_id]
+      .filter(Boolean)
+      .map(normalizeLookupValue);
+    if (candidates.includes(normalized)) return id;
   }
 
   return null;
@@ -778,6 +780,8 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
     let updated = 0;
     let skipped = 0;
 
+    const defaultGreeceId = Array.from(regionsById.values()).find((item: any) => normalizeRegionText(item?.name) === normalizeRegionText("Ελλάδα"))?.id ?? null;
+
     for (let r = 1; r < rows.length; r++) {
       const arr = rows[r];
       if (arr.every((v) => String(v ?? "").trim() === "")) continue;
@@ -801,11 +805,11 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const study_program_id = resolveStudyProgramId(study_program_source, programsById);
       const program_direction_source = get("program_direction");
       const program_direction_id = resolveProgramDirectionId(program_direction_source, directionsById, study_program_id);
-      const defaultGreeceId = Array.from(regionsById.values()).find((item: any) => normalizeRegionText(item?.name) === normalizeRegionText("Ελλάδα"))?.id ?? null;
       const origin_country_source = get("origin_country");
-      const origin_country_region_id = resolveRegionId(origin_country_source, regionsById) ?? null;
-      const origin_country_name = trimNullableText(origin_country_source) ?? (origin_country_region_id ? String(regionsById.get(origin_country_region_id)?.name ?? "").trim() : null);
+      const resolvedOriginCountryRegionId = resolveRegionId(origin_country_source, regionsById) ?? null;
+      const origin_country_name = trimNullableText(origin_country_source) ?? (resolvedOriginCountryRegionId ? String(regionsById.get(resolvedOriginCountryRegionId)?.name ?? "").trim() : null);
       const is_abroad = !!(origin_country_name && !isGreeceCountryValue(origin_country_name));
+      const origin_country_region_id = is_abroad ? null : (resolvedOriginCountryRegionId ?? defaultGreeceId);
       const origin_region_source = get("origin_region");
       const origin_periphery_region_id = is_abroad ? null : resolveRegionId(origin_region_source, regionsById);
       const origin_municipality = String(get("origin_municipality")).trim() || null;
