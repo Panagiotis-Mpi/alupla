@@ -252,8 +252,8 @@ hr{border:none;border-top:1px solid #eef2f7;margin:12px 0}
   z-index:1250;
 }
 .accessibility-trigger{
-  width:56px;
-  height:56px;
+  width:60px;
+  height:60px;
   border:none;
   background:#2f3136;
   color:#fff;
@@ -264,8 +264,20 @@ hr{border:none;border-top:1px solid #eef2f7;margin:12px 0}
   justify-content:center;
   cursor:pointer;
   font:inherit;
-  font-size:1.25rem;
-  font-weight:800;
+  padding:0;
+}
+.accessibility-trigger-icon{
+  width:34px;
+  height:34px;
+  display:block;
+}
+.accessibility-trigger-ring{
+  fill:none;
+  stroke:currentColor;
+  stroke-width:5;
+}
+.accessibility-trigger-person{
+  fill:currentColor;
 }
 .accessibility-trigger:focus-visible,
 .accessibility-icon-btn:focus-visible,
@@ -276,7 +288,7 @@ hr{border:none;border-top:1px solid #eef2f7;margin:12px 0}
 .accessibility-panel{
   position:absolute;
   right:0;
-  bottom:70px;
+  bottom:74px;
   width:min(460px,calc(100vw - 32px));
   max-height:min(82vh,760px);
   overflow:auto;

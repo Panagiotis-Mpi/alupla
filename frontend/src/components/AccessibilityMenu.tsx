@@ -170,7 +170,27 @@ export default function AccessibilityMenu() {
         aria-label={t("accessibility.open", { defaultValue: "Μενού προσβασιμότητας" })}
         onClick={() => setOpen((value) => !value)}
       >
-        <span>{t("accessibility.shortLabel", { defaultValue: "A" })}</span>
+        <svg
+          className="accessibility-trigger-icon"
+          viewBox="0 0 64 64"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <circle className="accessibility-trigger-ring" cx="32" cy="32" r="27" />
+          <circle className="accessibility-trigger-person" cx="32" cy="18" r="4.5" />
+          <path
+            className="accessibility-trigger-person"
+            d="M18.5 24.5c0-1.9 1.55-3.45 3.45-3.45H42.05c1.9 0 3.45 1.55 3.45 3.45s-1.55 3.45-3.45 3.45H35.9V44.6c0 2.15-1.75 3.9-3.9 3.9s-3.9-1.75-3.9-3.9V27.95h-6.15c-1.9 0-3.45-1.55-3.45-3.45Z"
+          />
+          <path
+            className="accessibility-trigger-person"
+            d="M26.1 44.2 23.1 55.1c-.4 1.5-1.76 2.48-3.24 2.48-.28 0-.56-.03-.84-.1a3.36 3.36 0 0 1-2.38-4.09l3.53-12.72c.4-1.44 1.71-2.43 3.2-2.43h1.05c1.05 0 2 .49 2.61 1.28.6.8.8 1.82.52 2.8Z"
+          />
+          <path
+            className="accessibility-trigger-person"
+            d="m37.9 44.2 3 10.9c.4 1.5 1.76 2.48 3.24 2.48.28 0 .56-.03.84-.1a3.36 3.36 0 0 0 2.38-4.09l-3.53-12.72c-.4-1.44-1.71-2.43-3.2-2.43h-1.05c-1.05 0-2 .49-2.61 1.28-.6.8-.8 1.82-.52 2.8Z"
+          />
+        </svg>
       </button>
 
       {open ? (
