@@ -267,17 +267,26 @@ hr{border:none;border-top:1px solid #eef2f7;margin:12px 0}
   padding:0;
 }
 .accessibility-trigger-icon{
-  width:34px;
-  height:34px;
+  width:48px;
+  height:48px;
   display:block;
 }
-.accessibility-trigger-ring{
+.accessibility-trigger-ring,
+.accessibility-trigger-line,
+.accessibility-trigger-head{
   fill:none;
   stroke:currentColor;
-  stroke-width:5;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
-.accessibility-trigger-person{
-  fill:currentColor;
+.accessibility-trigger-ring{
+  stroke-width:4;
+}
+.accessibility-trigger-head{
+  stroke-width:4;
+}
+.accessibility-trigger-line{
+  stroke-width:4.5;
 }
 .accessibility-trigger:focus-visible,
 .accessibility-icon-btn:focus-visible,
