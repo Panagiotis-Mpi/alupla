@@ -267,26 +267,29 @@ hr{border:none;border-top:1px solid #eef2f7;margin:12px 0}
   padding:0;
 }
 .accessibility-trigger-icon{
-  width:48px;
-  height:48px;
+  width:56px;
+  height:56px;
   display:block;
 }
-.accessibility-trigger-ring,
-.accessibility-trigger-line,
-.accessibility-trigger-head{
-  fill:none;
-  stroke:currentColor;
-  stroke-linecap:round;
-  stroke-linejoin:round;
+.accessibility-trigger-disc-outer{
+  fill:#fff;
+  stroke:#0f172a;
+  stroke-width:3.5;
 }
-.accessibility-trigger-ring{
-  stroke-width:4;
+.accessibility-trigger-disc-inner{
+  fill:#0f172a;
+  stroke:#fff;
+  stroke-width:2.5;
 }
 .accessibility-trigger-head{
-  stroke-width:4;
+  fill:#fff;
 }
 .accessibility-trigger-line{
+  fill:none;
+  stroke:#fff;
   stroke-width:4.5;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 .accessibility-trigger:focus-visible,
 .accessibility-icon-btn:focus-visible,
