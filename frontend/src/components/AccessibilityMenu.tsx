@@ -176,13 +176,13 @@ export default function AccessibilityMenu() {
           aria-hidden="true"
           focusable="false"
         >
-          <circle className="accessibility-trigger-disc-outer" cx="32" cy="32" r="29" />
-          <circle className="accessibility-trigger-disc-inner" cx="32" cy="32" r="24.5" />
-          <circle className="accessibility-trigger-head" cx="32" cy="16.75" r="4.25" />
-          <path className="accessibility-trigger-line" d="M17.5 25.5h29" />
-          <path className="accessibility-trigger-line" d="M32 24.5v22" />
-          <path className="accessibility-trigger-line" d="M32 31.5l-10 16.5" />
-          <path className="accessibility-trigger-line" d="M32 31.5l10 16.5" />
+          <circle className="accessibility-trigger-disc-outer" cx="32" cy="32" r="31" />
+          <circle className="accessibility-trigger-disc-inner" cx="32" cy="32" r="27.25" />
+          <circle className="accessibility-trigger-head" cx="32" cy="18" r="4.8" />
+          <path className="accessibility-trigger-line" d="M18 24.5h28" />
+          <path className="accessibility-trigger-line" d="M32 24.5v20.5" />
+          <path className="accessibility-trigger-line" d="M32 30.5L22.75 46.5" />
+          <path className="accessibility-trigger-line" d="M32 30.5L41.25 46.5" />
         </svg>
       </button>
 
