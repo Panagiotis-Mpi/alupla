@@ -795,13 +795,9 @@ export default function GraduatesMapPage() {
         .alupla-city-label-dot { position: absolute; left: 50%; bottom: 3px; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 999px; background: #1e293b; box-shadow: 0 0 0 2px rgba(255,255,255,.92); pointer-events: auto; }
         .leaflet-tooltip.alupla-region-tooltip { background: rgba(248,250,252,.98); color: #0f172a; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 10px 12px; }
         .leaflet-tooltip.alupla-region-tooltip:before { border-top-color: var(--border); }
-        .alupla-map .leaflet-control-zoom { box-shadow: 0 10px 24px rgba(15,23,42,.12); }
-        .alupla-map .leaflet-control-zoom a:last-child { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-        .alupla-map .alupla-map-reset-control { margin-top: 0; margin-left: 10px; }
-        .alupla-map .alupla-map-reset-button { width: 30px; height: 30px; display: block; border: 0; border-top: 0; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; background: #fff; color: #0f172a; cursor: pointer; padding: 0; text-align: center; font: 600 18px/30px inherit; box-sizing: content-box; }
-        .alupla-map .alupla-map-reset-button:hover { background: #f4f4f4; }
-        .alupla-map .alupla-map-reset-button:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
-        .alupla-map .alupla-map-reset-button span { display: block; line-height: 30px; font-size: 17px; transform: translateY(-1px); }
+        .alupla-map .leaflet-control-zoom .alupla-map-reset-button { display: block; text-align: center; text-decoration: none; }
+        .alupla-map .leaflet-control-zoom .alupla-map-reset-button:hover { text-decoration: none; }
+        .alupla-map .leaflet-control-zoom .alupla-map-reset-button span { font-size: 18px; line-height: 1; font-weight: 800; }
         .alupla-region-tip-title { font-weight: 700; margin-bottom: 4px; }
         .alupla-region-tip-sub { color: #64748b; font-size: 12px; }
         .map-top-menu-card { padding: 20px 16px 16px; display: grid; gap: 14px; }

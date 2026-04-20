@@ -96,33 +96,32 @@ export function MapResetControl(props: {
   const map = useMap();
 
   useEffect(() => {
-    const control = L.control({ position: "topleft" });
+    const container = map.getContainer();
+    const zoomControl = container.querySelector(".leaflet-control-zoom");
+    if (!(zoomControl instanceof HTMLElement)) return;
 
-    control.onAdd = () => {
-      const container = L.DomUtil.create("div", "leaflet-control alupla-map-reset-control");
-      const button = L.DomUtil.create("button", "alupla-map-reset-button", container);
-      button.type = "button";
-      button.title = props.title;
-      button.setAttribute("aria-label", props.title);
-      button.innerHTML = `<span aria-hidden="true">${props.label}</span>`;
+    const button = L.DomUtil.create("a", "alupla-map-reset-button leaflet-control-zoom-reset", zoomControl);
+    button.href = "#";
+    button.title = props.title;
+    button.setAttribute("role", "button");
+    button.setAttribute("aria-label", props.title);
+    button.innerHTML = `<span>${props.label}</span>`;
 
-      L.DomEvent.disableClickPropagation(container);
-      L.DomEvent.disableScrollPropagation(container);
-      L.DomEvent.on(button, "click", (event) => {
-        L.DomEvent.stop(event);
-        map.fitBounds(props.bounds, {
-          padding: props.padding,
-          maxZoom: props.maxZoom,
-        });
+    const onClick = (event: Event) => {
+      L.DomEvent.stop(event);
+      map.fitBounds(props.bounds, {
+        padding: props.padding,
+        maxZoom: props.maxZoom,
       });
-
-      return container;
     };
 
-    control.addTo(map);
+    L.DomEvent.disableClickPropagation(button);
+    L.DomEvent.disableScrollPropagation(button);
+    L.DomEvent.on(button, "click", onClick);
 
     return () => {
-      control.remove();
+      L.DomEvent.off(button, "click", onClick);
+      button.remove();
     };
   }, [map, props.bounds, props.label, props.maxZoom, props.padding, props.title]);
 
