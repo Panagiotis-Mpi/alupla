@@ -186,6 +186,7 @@ export default function GraduatesMapPage() {
       map.fitBounds(activeBounds, {
         padding: fitPadding,
         maxZoom: activeFitMaxZoom,
+        animate: false,
       });
       setMapZoom(map.getZoom());
       setMapBounds(map.getBounds());
@@ -226,7 +227,7 @@ export default function GraduatesMapPage() {
     setCityDetailLoading(true);
     getMapCityDetail({
       ...(selectedCityPoint.city_id ? { city_id: selectedCityPoint.city_id } : {}),
-      ...(selectedCityPoint.city_name ? { city_name: selectedCityPoint.city_name } : {}),
+      ...(mapScope === "greece" && selectedCityPoint.city_name ? { city_name: selectedCityPoint.city_name } : {}),
       ...(selectedCityPoint.country_region_id ? { country_region_id: selectedCityPoint.country_region_id } : {}),
       mode: mapMetric,
       ...params,
@@ -244,7 +245,7 @@ export default function GraduatesMapPage() {
     return () => {
       active = false;
     };
-  }, [selectedCityPoint?.city_id, selectedCityPoint?.city_name, selectedCityPoint?.country_region_id, mapMetric, params]);
+  }, [selectedCityPoint?.city_id, selectedCityPoint?.city_name, selectedCityPoint?.country_region_id, mapMetric, mapScope, params]);
 
   useEffect(() => {
     let active = true;
@@ -501,6 +502,32 @@ export default function GraduatesMapPage() {
     [items],
   );
   const visibleCities = useVisibleCities(cityPoints, mapBounds, mapZoom, mapScope);
+  const abroadCountryMarkers = useMemo(
+    () =>
+      items
+        .filter((item) => Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)))
+        .map((item) => ({
+          city_id: 0,
+          city_name: item.periphery_name,
+          periphery_id: item.periphery_id,
+          periphery_name: item.periphery_name,
+          country_region_id: item.periphery_id,
+          country_name: item.periphery_name,
+          latitude: Number(item.latitude),
+          longitude: Number(item.longitude),
+          count: Number(item.count) || 0,
+          male_count: Number(item.male_count ?? 0) || 0,
+          female_count: Number(item.female_count ?? 0) || 0,
+          male_pct: Number(item.male_pct ?? 0) || 0,
+          female_pct: Number(item.female_pct ?? 0) || 0,
+          avg_age: item.avg_age ?? null,
+          avg_grade: item.avg_grade ?? null,
+          avg_graduation_years: item.avg_graduation_years ?? null,
+          dominant_gender: item.dominant_gender ?? null,
+        })),
+    [items],
+  );
+  const renderedMarkers = mapScope === "abroad" ? abroadCountryMarkers : visibleCities;
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const weightedAvgAge = useMemo(() => {
@@ -964,6 +991,7 @@ export default function GraduatesMapPage() {
                   map.fitBounds(activeBounds, {
                     padding: fitPadding,
                     maxZoom: activeFitMaxZoom,
+                    animate: false,
                   });
                 setMapZoom(map.getZoom());
                 setMapBounds(map.getBounds());
@@ -1024,20 +1052,22 @@ export default function GraduatesMapPage() {
                   }}
                 />
               ) : null}
-              {visibleCities.map((city) => {
+              {renderedMarkers.map((city) => {
                 const latitude = mapCityLatitude(city);
                 const longitude = mapCityLongitude(city);
                 if (latitude === null || longitude === null) return null;
-                const activeCity = (selectedCityPoint?.city_id || 0) === (city.city_id || 0) && normalizeKey(selectedCityPoint?.city_name || "") === normalizeKey(city.city_name || "");
+                const activeCity =
+                  normalizeKey(selectedCityPoint?.city_name || "") === normalizeKey(city.city_name || "") &&
+                  Number(selectedCityPoint?.country_region_id || selectedCityPoint?.periphery_id || 0) === Number(city.country_region_id || city.periphery_id || 0);
                 return (
                   <Marker
                     key={mapCityKey(city)}
                     position={[latitude, longitude]}
-                    icon={cityLabelIcon(mapCityLabel(city))}
+                    icon={cityLabelIcon(mapScope === "abroad" ? city.periphery_name : mapCityLabel(city))}
                     eventHandlers={{
                       click: () => {
                         setSelectedCityPoint(city);
-                        if (mapScope === "greece" && city.periphery_id) {
+                        if (city.periphery_id) {
                           const hit = items.find(
                             (item) => item.periphery_id === city.periphery_id,
                           );

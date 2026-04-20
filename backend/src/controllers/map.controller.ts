@@ -410,6 +410,9 @@ export async function getMapCityDetail(req: Request, res: Response) {
   let cityLabel = cityNameQuery;
 
   if (scope === "abroad") {
+    const hasCityFilter = Boolean(cityId || cityNameQuery);
+    const country = countryRegionId ? findRegion(countryRegionId) : null;
+    if (!hasCityFilter && country) cityLabel = String((country as any).name || cityNameQuery || "");
     for (const graduate of grads as any[]) {
       if (!isAbroadMapGraduate(graduate)) continue;
       const resolvedLocation = await resolveMapLocation({
@@ -419,10 +422,17 @@ export async function getMapCityDetail(req: Request, res: Response) {
         origin_city_region_id: Number(graduate.origin_city_region_id) || null,
         origin_municipality: graduate.origin_foreign_city || graduate.origin_municipality || null,
       });
-      const sameCity = cityId ? Number(resolvedLocation?.cityId || 0) === cityId : normalizeKey(String(resolvedLocation?.cityName || "")) === normalizeKey(cityNameQuery);
       const sameCountry = countryRegionId ? Number(resolvedLocation?.countryId || graduate.origin_country_region_id || 0) === countryRegionId : true;
-      if (!sameCity || !sameCountry) continue;
-      cityLabel = String(resolvedLocation?.cityName || cityNameQuery || "");
+      if (!sameCountry) continue;
+      if (hasCityFilter) {
+        const sameCity = cityId
+          ? Number(resolvedLocation?.cityId || 0) === cityId
+          : normalizeKey(String(resolvedLocation?.cityName || "")) === normalizeKey(cityNameQuery);
+        if (!sameCity) continue;
+        cityLabel = String(resolvedLocation?.cityName || cityNameQuery || "");
+      } else if (!cityLabel) {
+        cityLabel = String(resolvedLocation?.countryName || graduate.origin_country || cityNameQuery || "");
+      }
       matching.push(graduate);
     }
   } else {
