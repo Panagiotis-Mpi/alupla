@@ -7,9 +7,12 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { GeoJSON, MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { GeoJSON, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
+import { type StyleSpecification } from "maplibre-gl";
 import "leaflet/dist/leaflet.css";
+import "maplibre-gl/dist/maplibre-gl.css";
+import "@maplibre/maplibre-gl-leaflet";
 import * as XLSX from "xlsx";
 import {
   Chart as ChartJS,
@@ -101,7 +104,6 @@ const mapTileAttribution =
 
 export default function GraduatesMapPage() {
   const { t, i18n } = useTranslation(["map", "common"]);
-  const mapTileUrl = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
   const mt = useCallback(
     (key: string, options?: Record<string, unknown>) =>
       t(key, { ns: "map", ...(options || {}) }),
@@ -953,10 +955,7 @@ export default function GraduatesMapPage() {
               }}
               scrollWheelZoom
             >
-              <TileLayer
-                attribution={mapTileAttribution}
-                url={mapTileUrl}
-              />
+              <MapLocalizedBackground language={i18n.resolvedLanguage === "el" ? "el" : "en"} />
               <MapViewportWatcher
                 onZoomChange={setMapZoom}
                 onBoundsChange={setMapBounds}
