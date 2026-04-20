@@ -2,6 +2,7 @@ import React from "react";
 
 type MetricOption = { label: string; legend: string };
 type MapMetric = "count" | "dominant_gender";
+type MapScope = "greece" | "abroad";
 type ExportFormat = "xlsx" | "csv" | "png";
 type ExportCategoryKey = MapMetric;
 
@@ -15,11 +16,11 @@ export function MapTopControls(props: {
   loading: boolean;
   total: number;
   mapMetric: MapMetric;
-  mapScope: "greece" | "abroad";
+  mapScope: MapScope;
   metricOptions: Record<MapMetric, MetricOption>;
   showExportMenu: boolean;
   onMetricChange: (metric: MapMetric) => void;
-  onScopeChange: (scope: "greece" | "abroad") => void;
+  onScopeChange: (scope: MapScope) => void;
   onToggleExportMenu: () => void;
   onExportPick: (format: ExportFormat) => void;
 }) {
@@ -30,9 +31,9 @@ export function MapTopControls(props: {
         <span className="badge">{props.loading ? props.ct("loading", { defaultValue: "Φόρτωση..." }) : `${props.total} ${props.mt("totalInline", { defaultValue: "σύνολο" })}`}</span>
       </div>
       <div className="map-scope-group">
-        {(["greece", "abroad"] as Array<"greece" | "abroad">).map((scope) => (
-          <button key={scope} type="button" className={`btn map-program-button ${props.mapScope === scope ? "active primary" : ""}`} onClick={() => props.onScopeChange(scope)}>
-            {scope === "greece" ? props.mt("scope.greece", { defaultValue: "Ελλάδα" }) : props.mt("scope.abroad", { defaultValue: "Εξωτερικό" })}
+        {(["greece", "abroad"] as MapScope[]).map((option) => (
+          <button key={option} type="button" className={`btn map-metric-button ${props.mapScope === option ? "active primary" : ""}`} onClick={() => props.onScopeChange(option)}>
+            {option === "greece" ? props.mt("scope.greece", { defaultValue: "Ελλάδα" }) : props.mt("scope.abroad", { defaultValue: "Εξωτερικό" })}
           </button>
         ))}
       </div>

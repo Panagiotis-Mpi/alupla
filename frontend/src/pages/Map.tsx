@@ -161,7 +161,7 @@ export default function GraduatesMapPage() {
     useMapData(params, selected?.periphery_id ?? null);
 
   const geojson = useMemo(() => tryParseGeoJson(greeceRegionsRaw), []);
-  const worldBounds = useMemo(() => L.latLngBounds(L.latLng(-55, -170), L.latLng(75, 190)), []);
+  const worldBounds = useMemo(() => L.latLngBounds(L.latLng(-60, -180), L.latLng(85, 180)), []);
   const geojsonBounds = useMemo(() => {
     if (!geojson) return null;
     try {
@@ -174,9 +174,9 @@ export default function GraduatesMapPage() {
   }, [geojson]);
 
   const activeBounds = mapScope === "abroad" ? worldBounds : geojsonBounds;
-  const activeFitMaxZoom = mapScope === "abroad" ? (isCompactViewport ? 3.2 : 3.6) : fitMaxZoom;
-  const activeInitialZoom = mapScope === "abroad" ? (isCompactViewport ? 2.1 : 2.4) : initialZoom;
-  const activeMinZoom = mapScope === "abroad" ? 2 : minMapZoom;
+  const activeFitMaxZoom = mapScope === "abroad" ? (isCompactViewport ? 1.9 : 2.15) : fitMaxZoom;
+  const activeInitialZoom = mapScope === "abroad" ? 2 : initialZoom;
+  const activeMinZoom = mapScope === "abroad" ? 1.5 : minMapZoom;
 
   useLayoutEffect(() => {
     if (!activeBounds || !mapRef.current) return;
@@ -502,31 +502,54 @@ export default function GraduatesMapPage() {
     [items],
   );
   const visibleCities = useVisibleCities(cityPoints, mapBounds, mapZoom, mapScope);
-  const abroadCountryMarkers = useMemo(
-    () =>
-      items
-        .filter((item) => Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)))
-        .map((item) => ({
-          city_id: 0,
-          city_name: item.periphery_name,
-          periphery_id: item.periphery_id,
-          periphery_name: item.periphery_name,
-          country_region_id: item.periphery_id,
-          country_name: item.periphery_name,
-          latitude: Number(item.latitude),
-          longitude: Number(item.longitude),
-          count: Number(item.count) || 0,
-          male_count: Number(item.male_count ?? 0) || 0,
-          female_count: Number(item.female_count ?? 0) || 0,
-          male_pct: Number(item.male_pct ?? 0) || 0,
-          female_pct: Number(item.female_pct ?? 0) || 0,
-          avg_age: item.avg_age ?? null,
-          avg_grade: item.avg_grade ?? null,
-          avg_graduation_years: item.avg_graduation_years ?? null,
-          dominant_gender: item.dominant_gender ?? null,
-        })),
-    [items],
-  );
+  const abroadCountryMarkers = useMemo(() => {
+    const grouped = new Map<string, any>();
+
+    for (const city of cityPoints) {
+      const latitude = mapCityLatitude(city as any);
+      const longitude = mapCityLongitude(city as any);
+      const countryId = Number((city as any).country_region_id || (city as any).periphery_id || 0);
+      const countryName = String((city as any).country_name || (city as any).periphery_name || "").trim();
+      if (!countryName || latitude === null || longitude === null) continue;
+      const key = `${countryId || 0}::${normalizeKey(countryName)}`;
+      const current = grouped.get(key) || {
+        city_id: 0,
+        city_name: countryName,
+        periphery_id: countryId || Number((city as any).periphery_id || 0) || null,
+        periphery_name: countryName,
+        country_region_id: countryId || null,
+        country_name: countryName,
+        latitude_sum: 0,
+        longitude_sum: 0,
+        weight: 0,
+        count: 0,
+      };
+      const weight = Math.max(1, Number((city as any).count) || 0);
+      current.latitude_sum += latitude * weight;
+      current.longitude_sum += longitude * weight;
+      current.weight += weight;
+      current.count += weight;
+      grouped.set(key, current);
+    }
+
+    return Array.from(grouped.values())
+      .map((item) => ({
+        city_id: 0,
+        city_name: item.country_name,
+        periphery_id: item.periphery_id,
+        periphery_name: item.country_name,
+        country_region_id: item.country_region_id,
+        country_name: item.country_name,
+        latitude: item.weight ? item.latitude_sum / item.weight : null,
+        longitude: item.weight ? item.longitude_sum / item.weight : null,
+        count: item.count,
+      }))
+      .filter((item) => Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)))
+      .sort((left, right) => {
+        if ((right.count || 0) !== (left.count || 0)) return (right.count || 0) - (left.count || 0);
+        return String(left.country_name || "").localeCompare(String(right.country_name || ""), "el");
+      });
+  }, [cityPoints]);
   const renderedMarkers = mapScope === "abroad" ? abroadCountryMarkers : visibleCities;
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
@@ -981,10 +1004,14 @@ export default function GraduatesMapPage() {
         <div className="map-map-wrap">
           <div className="alupla-map map-canvas" ref={mapCanvasRef}>
             <MapContainer
-              center={mapScope === "abroad" ? [20, 10] : [38.6, 24.0]}
+              key={`map-${mapScope}`}
+              center={mapScope === "abroad" ? [20, 0] : [38.6, 24.0]}
               zoom={activeInitialZoom as any}
               minZoom={activeMinZoom as any}
               zoomSnap={0.25}
+              maxBounds={mapScope === "abroad" ? worldBounds.pad(0.05) : undefined}
+              maxBoundsViscosity={mapScope === "abroad" ? 1 : undefined}
+              worldCopyJump={mapScope === "abroad"}
               whenCreated={(map) => {
                 mapRef.current = map;
                 if (activeBounds)
@@ -1056,9 +1083,9 @@ export default function GraduatesMapPage() {
                 const latitude = mapCityLatitude(city);
                 const longitude = mapCityLongitude(city);
                 if (latitude === null || longitude === null) return null;
-                const activeCity =
-                  normalizeKey(selectedCityPoint?.city_name || "") === normalizeKey(city.city_name || "") &&
-                  Number(selectedCityPoint?.country_region_id || selectedCityPoint?.periphery_id || 0) === Number(city.country_region_id || city.periphery_id || 0);
+                const activeCity = mapScope === "abroad"
+                  ? Number(selectedCityPoint?.country_region_id || selectedCityPoint?.periphery_id || 0) === Number(city.country_region_id || city.periphery_id || 0)
+                  : normalizeKey(selectedCityPoint?.city_name || "") === normalizeKey(city.city_name || "") && Number(selectedCityPoint?.country_region_id || selectedCityPoint?.periphery_id || 0) === Number(city.country_region_id || city.periphery_id || 0);
                 return (
                   <Marker
                     key={mapCityKey(city)}

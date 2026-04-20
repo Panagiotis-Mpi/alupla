@@ -67,7 +67,8 @@ export function isGreekMapGraduate(graduate: MapGraduateSource) {
 export function isAbroadMapGraduate(graduate: MapGraduateSource) {
   const explicitCountry = String(graduate?.origin_country ?? "").trim();
   if (explicitCountry) return !isGreeceOriginValue(explicitCountry);
-  return !!String(graduate?.origin_foreign_city ?? "").trim();
+  if (String(graduate?.origin_foreign_city ?? "").trim()) return true;
+  return false;
 }
 
 function parseDateValue(value: unknown): Date | null {

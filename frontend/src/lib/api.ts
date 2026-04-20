@@ -179,9 +179,6 @@ export type MapCityDetailResponse = {
   female_count?: number;
   male_pct?: number;
   female_pct?: number;
-  avg_age?: number | null;
-  avg_grade?: number | null;
-  avg_graduation_years?: number | null;
   programs?: Array<{
     program_id: number;
     program_label: string;
