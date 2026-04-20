@@ -97,12 +97,11 @@ type ExportCategoryKey = MapMetric;
 const fillColors = ["#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb", "#1d4ed8"];
 
 const mapTileAttribution =
-  "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://wikimediafoundation.org/\">Wikimedia</a>";
+  "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/attributions\">CARTO</a>";
 
 export default function GraduatesMapPage() {
   const { t, i18n } = useTranslation(["map", "common"]);
-  const mapTileLanguage = i18n.language.toLowerCase().startsWith("el") ? "el" : "en";
-  const mapTileUrl = `https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png?lang=${mapTileLanguage}`;
+  const mapTileUrl = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
   const mt = useCallback(
     (key: string, options?: Record<string, unknown>) =>
       t(key, { ns: "map", ...(options || {}) }),
@@ -955,7 +954,6 @@ export default function GraduatesMapPage() {
               scrollWheelZoom
             >
               <TileLayer
-                key={mapTileLanguage}
                 attribution={mapTileAttribution}
                 url={mapTileUrl}
               />
