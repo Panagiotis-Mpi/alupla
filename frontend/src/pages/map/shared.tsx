@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import L from "leaflet";
-import { useMapEvents } from "react-leaflet";
+import { useMap, useMapEvents } from "react-leaflet";
 
 export function Field(props: { label: string; children: React.ReactNode; span?: number }) {
   return (
@@ -81,6 +81,50 @@ export function MapViewportWatcher({
   useEffect(() => {
     emitViewport(map);
   }, [map, onZoomChange, onBoundsChange]);
+
+  return null;
+}
+
+
+export function MapResetControl(props: {
+  title: string;
+  label: string;
+  bounds: L.LatLngBounds;
+  padding: [number, number];
+  maxZoom: number;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    const control = L.control({ position: "topleft" });
+
+    control.onAdd = () => {
+      const container = L.DomUtil.create("div", "leaflet-bar leaflet-control alupla-map-reset-control");
+      const button = L.DomUtil.create("button", "alupla-map-reset-button", container);
+      button.type = "button";
+      button.title = props.title;
+      button.setAttribute("aria-label", props.title);
+      button.innerHTML = `<span>${props.label}</span>`;
+
+      L.DomEvent.disableClickPropagation(container);
+      L.DomEvent.disableScrollPropagation(container);
+      L.DomEvent.on(button, "click", (event) => {
+        L.DomEvent.stop(event);
+        map.fitBounds(props.bounds, {
+          padding: props.padding,
+          maxZoom: props.maxZoom,
+        });
+      });
+
+      return container;
+    };
+
+    control.addTo(map);
+
+    return () => {
+      control.remove();
+    };
+  }, [map, props.bounds, props.label, props.maxZoom, props.padding, props.title]);
 
   return null;
 }
