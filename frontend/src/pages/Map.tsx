@@ -91,6 +91,7 @@ ChartJS.register(
 );
 
 type MapMetric = "count" | "dominant_gender";
+type MapScope = "greece" | "abroad";
 type ExportFormat = "xlsx" | "csv" | "png";
 type ExportCategoryKey = MapMetric;
 
@@ -118,6 +119,7 @@ export default function GraduatesMapPage() {
   const geoJsonLayerRef = useRef<L.GeoJSON | null>(null);
 
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
+  const [mapScope, setMapScope] = useState<MapScope>("greece");
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [selectedExportFormat, setSelectedExportFormat] =
     useState<ExportFormat | null>(null);
@@ -148,16 +150,18 @@ export default function GraduatesMapPage() {
     () =>
       createMapParams({
         ...EMPTY_FILTERS,
+        scope: mapScope,
         ...(selectedGraduationYear
           ? { graduation_year: selectedGraduationYear }
           : {}),
       }),
-    [selectedGraduationYear],
+    [mapScope, selectedGraduationYear],
   );
   const { loading, items, cityPoints, cityStatsLoading, selectedCityStats } =
     useMapData(params, selected?.periphery_id ?? null);
 
   const geojson = useMemo(() => tryParseGeoJson(greeceRegionsRaw), []);
+  const worldBounds = useMemo(() => L.latLngBounds(L.latLng(-55, -170), L.latLng(75, 190)), []);
   const geojsonBounds = useMemo(() => {
     if (!geojson) return null;
     try {
@@ -169,14 +173,19 @@ export default function GraduatesMapPage() {
     }
   }, [geojson]);
 
+  const activeBounds = mapScope === "abroad" ? worldBounds : geojsonBounds;
+  const activeFitMaxZoom = mapScope === "abroad" ? (isCompactViewport ? 3.2 : 3.6) : fitMaxZoom;
+  const activeInitialZoom = mapScope === "abroad" ? (isCompactViewport ? 2.1 : 2.4) : initialZoom;
+  const activeMinZoom = mapScope === "abroad" ? 2 : minMapZoom;
+
   useLayoutEffect(() => {
-    if (!geojsonBounds || !mapRef.current) return;
+    if (!activeBounds || !mapRef.current) return;
     const map = mapRef.current;
     const sync = () => {
       map.invalidateSize();
-      map.fitBounds(geojsonBounds, {
+      map.fitBounds(activeBounds, {
         padding: fitPadding,
-        maxZoom: fitMaxZoom,
+        maxZoom: activeFitMaxZoom,
       });
       setMapZoom(map.getZoom());
       setMapBounds(map.getBounds());
@@ -187,8 +196,14 @@ export default function GraduatesMapPage() {
       window.cancelAnimationFrame(frame);
       window.clearTimeout(timer);
     };
-  }, [fitMaxZoom, fitPadding, geojsonBounds]);
+  }, [activeBounds, activeFitMaxZoom, fitPadding]);
 
+
+  useEffect(() => {
+    setSelected(null);
+    setSelectedCityPoint(null);
+    setCityDetail(null);
+  }, [mapScope]);
 
   useEffect(() => {
     if (!selected) return;
@@ -210,7 +225,9 @@ export default function GraduatesMapPage() {
     let active = true;
     setCityDetailLoading(true);
     getMapCityDetail({
-      city_id: selectedCityPoint.city_id,
+      ...(selectedCityPoint.city_id ? { city_id: selectedCityPoint.city_id } : {}),
+      ...(selectedCityPoint.city_name ? { city_name: selectedCityPoint.city_name } : {}),
+      ...(selectedCityPoint.country_region_id ? { country_region_id: selectedCityPoint.country_region_id } : {}),
       mode: mapMetric,
       ...params,
     })
@@ -227,7 +244,7 @@ export default function GraduatesMapPage() {
     return () => {
       active = false;
     };
-  }, [selectedCityPoint?.city_id, mapMetric, params]);
+  }, [selectedCityPoint?.city_id, selectedCityPoint?.city_name, selectedCityPoint?.country_region_id, mapMetric, params]);
 
   useEffect(() => {
     let active = true;
@@ -483,7 +500,7 @@ export default function GraduatesMapPage() {
     () => items.reduce((sum, item) => sum + (Number(item.count) || 0), 0),
     [items],
   );
-  const visibleCities = useVisibleCities(cityPoints, mapBounds, mapZoom);
+  const visibleCities = useVisibleCities(cityPoints, mapBounds, mapZoom, mapScope);
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const weightedAvgAge = useMemo(() => {
@@ -516,14 +533,14 @@ export default function GraduatesMapPage() {
   }
 
   function currentFilenameBase() {
-    const parts = ["alupla_map", slugPart(mapMetric)];
+    const parts = ["alupla_map", slugPart(mapScope), slugPart(mapMetric)];
     if (selectedGraduationYear) parts.push(slugPart(selectedGraduationYear));
     if (selected?.periphery_name) parts.push(slugPart(selected.periphery_name));
     return parts.join("_");
   }
 
   function metricFilenameBase(metric: MapMetric) {
-    const parts = ["alupla_map", slugPart(metric)];
+    const parts = ["alupla_map", slugPart(mapScope), slugPart(metric)];
     if (selectedGraduationYear) parts.push(slugPart(selectedGraduationYear));
     return parts.join("_");
   }
@@ -558,6 +575,7 @@ export default function GraduatesMapPage() {
   async function loadExportCategoryData(metric: MapMetric) {
     const nextParams = createMapParams({
       ...EMPTY_FILTERS,
+      scope: mapScope,
       ...(selectedGraduationYear ? { graduation_year: selectedGraduationYear } : {}),
     });
     const [mapResponse, citiesResponse] = await Promise.all([
@@ -807,7 +825,9 @@ export default function GraduatesMapPage() {
         .map-top-menu-card { padding: 20px 16px 16px; display: grid; gap: 14px; }
         .map-top-menu-title { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .map-top-menu-title h2 { margin: 0; }
-        .map-metric-group { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; }
+        .map-scope-group, .map-metric-group { display: grid; gap: 10px; width: 100%; }
+        .map-scope-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .map-metric-group { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; }
         .map-metric-button.active, .map-program-button.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
         .map-program-button { gap: 8px; }
@@ -866,9 +886,11 @@ export default function GraduatesMapPage() {
         loading={loading}
         total={total}
         mapMetric={mapMetric}
+        mapScope={mapScope}
         metricOptions={metricOptions}
         showExportMenu={showExportMenu}
         onMetricChange={setMapMetric}
+        onScopeChange={setMapScope}
         onToggleExportMenu={() => setShowExportMenu((prev) => !prev)}
         onExportPick={openExportSelection}
       />
@@ -882,9 +904,9 @@ export default function GraduatesMapPage() {
         </div>
         <div className="card map-summary-card">
           <div className="map-summary-label">
-            {mt("summary.topPeriphery", {
-              defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους",
-            })}
+            {mapScope === "abroad"
+              ? mt("summary.topCountry", { defaultValue: "Χώρα με τους περισσότερους αποφοίτους" })
+              : mt("summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" })}
           </div>
           <div className="map-summary-value">
             {topPeriphery?.periphery_name || "-"}
@@ -932,16 +954,16 @@ export default function GraduatesMapPage() {
         <div className="map-map-wrap">
           <div className="alupla-map map-canvas" ref={mapCanvasRef}>
             <MapContainer
-              center={[38.6, 24.0]}
-              zoom={initialZoom as any}
-              minZoom={minMapZoom as any}
+              center={mapScope === "abroad" ? [20, 10] : [38.6, 24.0]}
+              zoom={activeInitialZoom as any}
+              minZoom={activeMinZoom as any}
               zoomSnap={0.25}
               whenCreated={(map) => {
                 mapRef.current = map;
-                if (geojsonBounds)
-                  map.fitBounds(geojsonBounds, {
+                if (activeBounds)
+                  map.fitBounds(activeBounds, {
                     padding: fitPadding,
-                    maxZoom: fitMaxZoom,
+                    maxZoom: activeFitMaxZoom,
                   });
                 setMapZoom(map.getZoom());
                 setMapBounds(map.getBounds());
@@ -961,16 +983,16 @@ export default function GraduatesMapPage() {
                 onZoomChange={setMapZoom}
                 onBoundsChange={setMapBounds}
               />
-              {geojsonBounds ? (
+              {activeBounds ? (
                 <MapResetControl
                   title={mt("mapReset", { defaultValue: "Επαναφορά αρχικής προβολής" })}
                   label="↺"
-                  bounds={geojsonBounds}
+                  bounds={activeBounds}
                   padding={fitPadding}
-                  maxZoom={fitMaxZoom}
+                  maxZoom={activeFitMaxZoom}
                 />
               ) : null}
-              {geojson ? (
+              {mapScope === "greece" && geojson ? (
                 <GeoJSON
                   key={geoRenderKey}
                   ref={(layer) => {
@@ -1006,7 +1028,7 @@ export default function GraduatesMapPage() {
                 const latitude = mapCityLatitude(city);
                 const longitude = mapCityLongitude(city);
                 if (latitude === null || longitude === null) return null;
-                const activeCity = selectedCityPoint?.city_id === city.city_id;
+                const activeCity = (selectedCityPoint?.city_id || 0) === (city.city_id || 0) && normalizeKey(selectedCityPoint?.city_name || "") === normalizeKey(city.city_name || "");
                 return (
                   <Marker
                     key={mapCityKey(city)}
@@ -1015,7 +1037,7 @@ export default function GraduatesMapPage() {
                     eventHandlers={{
                       click: () => {
                         setSelectedCityPoint(city);
-                        if (city.periphery_id) {
+                        if (mapScope === "greece" && city.periphery_id) {
                           const hit = items.find(
                             (item) => item.periphery_id === city.periphery_id,
                           );
@@ -1087,54 +1109,86 @@ export default function GraduatesMapPage() {
         </div>
       </div>
 
-      {selected ? (
+      {mapScope === "greece" ? (
+        selected ? (
+          <div className="card map-combined-details-card">
+            <div style={{ fontWeight: 800, fontSize: 18 }}>
+              {mt("infoTitle", { defaultValue: "Πληροφορίες" })}
+            </div>
+            <InfoBox
+              title={selected.periphery_name}
+              totalText={mt("totalGraduatesLine", {
+                total: selected.count,
+                defaultValue: "Σύνολο αποφοίτων: {{total}}",
+              })}
+              groups={detailGroups(selected)}
+            />
+            <div style={{ fontWeight: 700 }}>
+              {mt("citiesTitle", { defaultValue: "Πόλεις" })} ({selectedCityStats.length})
+            </div>
+            {cityStatsLoading ? (
+              <div className="muted">
+                {ct("loading", { defaultValue: "Φόρτωση..." })}
+              </div>
+            ) : selectedCityStats.length ? (
+              <div className="map-city-cards-inline">
+                {selectedCityStats.map((city) => (
+                  <InfoBox
+                    key={city.city}
+                    title={city.city}
+                    totalText={mt("totalGraduatesLine", {
+                      total: city.count,
+                      defaultValue: "Σύνολο αποφοίτων: {{total}}",
+                    })}
+                    groups={detailGroups(city)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="muted">
+                {mt("noCities", {
+                  defaultValue:
+                    "Δεν υπάρχουν διαθέσιμες πόλεις για την τρέχουσα περιφέρεια.",
+                })}
+              </div>
+            )}
+          </div>
+        ) : items.length ? (
+          <div className="card map-combined-details-card">
+            <div className="muted">
+              {mt("detailsHint", {
+                defaultValue: "Κάνε κλικ σε μία περιφέρεια για λεπτομέρειες.",
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="card map-combined-details-card">
+            <div className="muted">
+              {mt("noResults", {
+                defaultValue: "Δεν βρέθηκαν απόφοιτοι με τα συγκεκριμένα φίλτρα.",
+              })}
+            </div>
+          </div>
+        )
+      ) : selectedCityPoint ? (
         <div className="card map-combined-details-card">
           <div style={{ fontWeight: 800, fontSize: 18 }}>
             {mt("infoTitle", { defaultValue: "Πληροφορίες" })}
           </div>
           <InfoBox
-            title={selected.periphery_name}
+            title={selectedCityPoint.city_name}
             totalText={mt("totalGraduatesLine", {
-              total: selected.count,
+              total: Number(cityDetail?.total ?? selectedCityPoint.count ?? 0),
               defaultValue: "Σύνολο αποφοίτων: {{total}}",
             })}
-            groups={detailGroups(selected)}
+            groups={detailGroups(cityDetail || selectedCityPoint)}
           />
-          <div style={{ fontWeight: 700 }}>
-            {mt("citiesTitle", { defaultValue: "Πόλεις" })} ({selectedCityStats.length})
-          </div>
-          {cityStatsLoading ? (
-            <div className="muted">
-              {ct("loading", { defaultValue: "Φόρτωση..." })}
-            </div>
-          ) : selectedCityStats.length ? (
-            <div className="map-city-cards-inline">
-              {selectedCityStats.map((city) => (
-                <InfoBox
-                  key={city.city}
-                  title={city.city}
-                  totalText={mt("totalGraduatesLine", {
-                    total: city.count,
-                    defaultValue: "Σύνολο αποφοίτων: {{total}}",
-                  })}
-                  groups={detailGroups(city)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="muted">
-              {mt("noCities", {
-                defaultValue:
-                  "Δεν υπάρχουν διαθέσιμες πόλεις για την τρέχουσα περιφέρεια.",
-              })}
-            </div>
-          )}
         </div>
-      ) : items.length ? (
+      ) : cityPoints.length ? (
         <div className="card map-combined-details-card">
           <div className="muted">
-            {mt("detailsHint", {
-              defaultValue: "Κάνε κλικ σε μία περιφέρεια για λεπτομέρειες.",
+            {mt("detailsHintAbroad", {
+              defaultValue: "Κάνε κλικ σε έναν marker για λεπτομέρειες πόλης του εξωτερικού.",
             })}
           </div>
         </div>

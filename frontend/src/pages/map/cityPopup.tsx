@@ -87,6 +87,12 @@ export function MapCityPopupContent(props: {
     <div className="map-city-popup-card">
       <div className="map-city-popup-title">{props.cityDetail.city_name}</div>
       <div className="map-city-popup-sub">{props.mt("totalGraduatesLine", { total: props.cityDetail.total, defaultValue: "Σύνολο αποφοίτων: {{total}}" })}</div>
+      <div className="map-city-popup-grid">
+        <div><div className="map-city-popup-label">{props.mt("malePct", { defaultValue: "% Άνδρες" })}</div><div className="map-city-popup-value">{detailValue(props.cityDetail.male_pct, "%")}</div></div>
+        <div><div className="map-city-popup-label">{props.mt("femalePct", { defaultValue: "% Γυναίκες" })}</div><div className="map-city-popup-value">{detailValue(props.cityDetail.female_pct, "%")}</div></div>
+        <div><div className="map-city-popup-label">{props.mt("avgAge", { defaultValue: "Μέση ηλικία" })}</div><div className="map-city-popup-value">{detailValue(props.cityDetail.avg_age)}</div></div>
+        <div><div className="map-city-popup-label">{props.mt("avgGrade", { defaultValue: "Μέσος βαθμός" })}</div><div className="map-city-popup-value">{detailValue(props.cityDetail.avg_grade)}</div></div>
+      </div>
       <div className="map-city-popup-chart map-city-popup-line"><Line data={lineData as any} options={lineOptions as any} /></div>
     </div>
   );

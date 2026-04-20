@@ -105,7 +105,8 @@
     "topPeriphery": "Region with the most graduates",
     "topCity": "City with the most graduates",
     "avgAge": "Average graduation age",
-    "fromCurrentFilters": "Calculated from the current filters"
+    "fromCurrentFilters": "Calculated from the current filters",
+    "topCountry": "Country with the most graduates"
   },
   "detailGroups": {
     "basics": "Basics",
@@ -154,5 +155,10 @@
     "allYears": "All years",
     "noYears": "No graduation years were found."
   },
-  "mapReset": "Reset initial view"
+  "mapReset": "Reset initial view",
+  "scope": {
+    "greece": "Greece",
+    "abroad": "Abroad"
+  },
+  "detailsHintAbroad": "Click a marker to see details for a city abroad."
 }

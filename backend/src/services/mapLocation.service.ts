@@ -21,6 +21,8 @@ type ResolvedMapLocation = {
   cityName: string | null;
   peripheryId: number | null;
   peripheryName: string | null;
+  countryId: number | null;
+  countryName: string | null;
   latitude: number | null;
   longitude: number | null;
 };
@@ -53,6 +55,7 @@ const geocodeCache = new Map<string, Promise<ResolvedMapLocation | null>>();
 let regionLookupPromise: Promise<{
   byId: Map<number, RegionLite>;
   cityByNormalized: Map<string, RegionLite[]>;
+  foreignCityByNormalized: Map<string, RegionLite[]>;
   peripheryByNormalized: Map<string, RegionLite>;
 }> | null = null;
 let boundaryPromise: Promise<BoundaryFeature[]> | null = null;
@@ -83,6 +86,19 @@ function getPeripheryFromRegionId(regionId: number | null | undefined, byId: Map
   return null;
 }
 
+
+function getCountryFromRegionId(regionId: number | null | undefined, byId: Map<number, RegionLite>) {
+  if (!regionId) return null;
+  let current = byId.get(Number(regionId)) ?? null;
+  let steps = 0;
+  while (current && steps < MAX_PARENT_STEPS) {
+    steps += 1;
+    if (current.type === "COUNTRY") return current;
+    current = current.parent_id ? byId.get(Number(current.parent_id)) ?? null : null;
+  }
+  return null;
+}
+
 async function loadRegionLookups() {
   if (!regionLookupPromise) {
     regionLookupPromise = Region.findAll({
@@ -90,6 +106,7 @@ async function loadRegionLookups() {
     }).then((rows) => {
       const byId = new Map<number, RegionLite>();
       const cityByNormalized = new Map<string, RegionLite[]>();
+      const foreignCityByNormalized = new Map<string, RegionLite[]>();
       const peripheryByNormalized = new Map<string, RegionLite>();
 
       for (const row of rows as any[]) {
@@ -109,12 +126,17 @@ async function loadRegionLookups() {
           current.push(item);
           cityByNormalized.set(item.normalized_name, current);
         }
+        if (item.type === "FOREIGN_CITY" && item.normalized_name) {
+          const current = foreignCityByNormalized.get(item.normalized_name) || [];
+          current.push(item);
+          foreignCityByNormalized.set(item.normalized_name, current);
+        }
         if (item.type === "PERIPHERY" && item.normalized_name && !peripheryByNormalized.has(item.normalized_name)) {
           peripheryByNormalized.set(item.normalized_name, item);
         }
       }
 
-      return { byId, cityByNormalized, peripheryByNormalized };
+      return { byId, cityByNormalized, foreignCityByNormalized, peripheryByNormalized };
     });
   }
   return regionLookupPromise;
@@ -223,21 +245,32 @@ function cityNameFromAddress(rawName: string, address: Record<string, string> | 
   return candidate || cleanRegionText(rawName) || null;
 }
 
-async function geocodeCity(rawCityName: string, preferredPeripheryId: number | null) {
+type GeocodedLocation = {
+  lat: number;
+  lng: number;
+  cityName: string | null;
+  peripheryId: number | null;
+  peripheryName: string | null;
+  countryName: string | null;
+  externalRefId: string | null;
+};
+
+async function geocodePlace(rawCityName: string, options?: { preferredPeripheryId?: number | null; countryName?: string | null; countryCode?: string | null }) {
   const query = cleanRegionText(rawCityName);
   if (!query) return null;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 6000);
+  const timeout = setTimeout(() => controller.abort(), 7000);
 
   try {
     const url = new URL("https://nominatim.openstreetmap.org/search");
     url.searchParams.set("format", "jsonv2");
-    url.searchParams.set("countrycodes", "gr");
     url.searchParams.set("addressdetails", "1");
-    url.searchParams.set("limit", "5");
+    url.searchParams.set("limit", "6");
     url.searchParams.set("accept-language", "el,en");
-    url.searchParams.set("q", `${query}, Greece`);
+    if (options?.countryCode) url.searchParams.set("countrycodes", String(options.countryCode).toLowerCase());
+    const countryPart = cleanRegionText(options?.countryName);
+    url.searchParams.set("q", countryPart ? `${query}, ${countryPart}` : query);
 
     const response = await fetch(url.toString(), {
       method: "GET",
@@ -253,33 +286,31 @@ async function geocodeCity(rawCityName: string, preferredPeripheryId: number | n
     if (!Array.isArray(items) || !items.length) return null;
 
     const lookups = await loadRegionLookups();
-    const preferredPeriphery = preferredPeripheryId ? lookups.byId.get(preferredPeripheryId) ?? null : null;
-
-    const ranked = [] as Array<{ item: NominatimItem; lat: number; lng: number; score: number; peripheryId: number | null; peripheryName: string | null; cityName: string | null; externalRefId: string | null }>;
+    const ranked = [] as Array<GeocodedLocation & { score: number }>;
 
     for (const item of items) {
       const lat = Number(item.lat);
       const lng = Number(item.lon);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-      const boundaryPeriphery = await findPeripheryByCoords(lat, lng);
-      const addressPeriphery = peripheryFromAddress(item.address, lookups.peripheryByNormalized);
-      const periphery = boundaryPeriphery || addressPeriphery || preferredPeriphery;
-      const peripheryId = periphery ? Number(periphery.id) : null;
+      const boundaryPeriphery = options?.countryCode === "gr" ? await findPeripheryByCoords(lat, lng) : null;
+      const addressPeriphery = options?.countryCode === "gr" ? peripheryFromAddress(item.address, lookups.peripheryByNormalized) : null;
+      const periphery = boundaryPeriphery || addressPeriphery || (options?.preferredPeripheryId ? lookups.byId.get(Number(options.preferredPeripheryId)) ?? null : null);
       const cityName = cityNameFromAddress(query, item.address);
+      const countryName = cleanRegionText(item.address?.country) || countryPart || null;
       let score = 0;
-      if (preferredPeripheryId && peripheryId === preferredPeripheryId) score += 100;
+      if (options?.preferredPeripheryId && periphery && Number(periphery.id) === Number(options.preferredPeripheryId)) score += 100;
       if (boundaryPeriphery) score += 40;
       if (addressPeriphery) score += 20;
+      if (countryPart && normalizeRegionText(countryName) === normalizeRegionText(countryPart)) score += 18;
       if (normalizeRegionText(cityName) === normalizeRegionText(query)) score += 15;
-      if (String(item.display_name || "").toLowerCase().includes("greece")) score += 5;
       ranked.push({
-        item,
         lat,
         lng,
         score,
-        peripheryId,
-        peripheryName: periphery ? periphery.name : null,
         cityName,
+        peripheryId: periphery ? Number(periphery.id) : null,
+        peripheryName: periphery ? periphery.name : null,
+        countryName,
         externalRefId: item.osm_type && item.osm_id ? `nominatim:${item.osm_type}:${item.osm_id}` : null,
       });
     }
@@ -291,6 +322,10 @@ async function geocodeCity(rawCityName: string, preferredPeripheryId: number | n
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function geocodeCity(rawCityName: string, preferredPeripheryId: number | null) {
+  return geocodePlace(rawCityName, { preferredPeripheryId, countryName: "Greece", countryCode: "gr" });
 }
 
 async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId: number | null) {
@@ -307,6 +342,8 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
       cityName: existing.name,
       peripheryId: periphery ? periphery.id : null,
       peripheryName: periphery ? periphery.name : null,
+      countryId: periphery ? (getCountryFromRegionId(periphery.id, lookups.byId)?.id ?? null) : null,
+      countryName: periphery ? (getCountryFromRegionId(periphery.id, lookups.byId)?.name ?? null) : null,
       latitude: existing.latitude,
       longitude: existing.longitude,
     } as ResolvedMapLocation;
@@ -321,6 +358,8 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
       cityName: existing.name,
       peripheryId: periphery ? periphery.id : null,
       peripheryName: periphery ? periphery.name : null,
+      countryId: periphery ? (getCountryFromRegionId(periphery.id, lookups.byId)?.id ?? null) : null,
+      countryName: periphery ? (getCountryFromRegionId(periphery.id, lookups.byId)?.name ?? null) : null,
       latitude: existing.latitude,
       longitude: existing.longitude,
     };
@@ -370,9 +409,66 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
     cityName: city ? String((city as any).name) : geocoded.cityName,
     peripheryId: periphery ? periphery.id : geocoded.peripheryId,
     peripheryName: periphery ? periphery.name : geocoded.peripheryName,
+    countryId: periphery ? (getCountryFromRegionId(periphery.id, lookups.byId)?.id ?? null) : null,
+    countryName: periphery ? (getCountryFromRegionId(periphery.id, lookups.byId)?.name ?? null) : (geocoded.countryName ?? null),
     latitude: geocoded.lat,
     longitude: geocoded.lng,
   };
+}
+
+async function persistForeignCityFromGeocode(rawCityName: string, country: RegionLite | null, existing: RegionLite | null) {
+  const cityResolved = resolveNormalizedCityName(rawCityName);
+  if (!cityResolved.normalized) return null;
+
+  const geocoded = await geocodePlace(rawCityName, { countryName: country?.name ?? null });
+  if (!geocoded) {
+    return {
+      cityId: existing?.id ?? null,
+      cityName: existing?.name ?? cityResolved.cleaned,
+      peripheryId: null,
+      peripheryName: null,
+      countryId: country?.id ?? null,
+      countryName: country?.name ?? null,
+      latitude: existing?.latitude ?? null,
+      longitude: existing?.longitude ?? null,
+    } as ResolvedMapLocation;
+  }
+
+  let city = existing;
+  if (!city && country && cityResolved.cleaned) {
+    city = await Region.create({
+      name: cityResolved.cleaned,
+      normalized_name: cityResolved.normalized,
+      external_ref_id: geocoded.externalRefId,
+      type: "FOREIGN_CITY",
+      parent_id: country.id,
+      latitude: geocoded.lat,
+      longitude: geocoded.lng,
+    } as any) as any;
+    clearLocationCaches();
+  } else if (city) {
+    const updatePayload: Record<string, unknown> = {};
+    if (city.latitude === null || city.longitude === null) {
+      updatePayload.latitude = geocoded.lat;
+      updatePayload.longitude = geocoded.lng;
+    }
+    if (!city.external_ref_id && geocoded.externalRefId) updatePayload.external_ref_id = geocoded.externalRefId;
+    if (Object.keys(updatePayload).length) {
+      await Region.update(updatePayload, { where: { id: city.id } });
+      clearLocationCaches();
+    }
+  }
+
+  return {
+    cityId: city ? Number((city as any).id) : null,
+    cityName: city ? String((city as any).name) : geocoded.cityName || cityResolved.cleaned,
+    peripheryId: null,
+    peripheryName: null,
+    countryId: country?.id ?? null,
+    countryName: country?.name || geocoded.countryName || null,
+    latitude: geocoded.lat,
+    longitude: geocoded.lng,
+  } as ResolvedMapLocation;
 }
 
 export async function resolveMapLocation(input: GraduateOriginInput): Promise<ResolvedMapLocation | null> {
@@ -388,6 +484,8 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
       cityName: explicitCity.name,
       peripheryId: null,
       peripheryName: null,
+      countryId: getCountryFromRegionId(explicitCity.id, lookups.byId)?.id ?? null,
+      countryName: getCountryFromRegionId(explicitCity.id, lookups.byId)?.name ?? null,
       latitude: explicitCity.latitude,
       longitude: explicitCity.longitude,
     };
@@ -400,6 +498,8 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
         cityName: explicitCity.name,
         peripheryId: periphery ? periphery.id : null,
         peripheryName: periphery ? periphery.name : null,
+        countryId: getCountryFromRegionId(explicitCity.id, lookups.byId)?.id ?? null,
+        countryName: getCountryFromRegionId(explicitCity.id, lookups.byId)?.name ?? null,
         latitude: explicitCity.latitude,
         longitude: explicitCity.longitude,
       };
@@ -410,13 +510,34 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
   const country = countryId ? lookups.byId.get(countryId) ?? null : null;
   const region = explicitRegionId ? lookups.byId.get(explicitRegionId) ?? null : null;
   if (country && country.type === "COUNTRY" && normalizeRegionText(country.name) !== normalizeRegionText("Ελλάδα")) {
+    const foreignExisting = explicitCity?.type === "FOREIGN_CITY"
+      ? explicitCity
+      : (rawCityName ? (lookups.foreignCityByNormalized.get(normalizeRegionText(rawCityName)) || []).find((item) => Number(item.parent_id || 0) === Number(country.id)) || null : null);
+    if (foreignExisting && foreignExisting.latitude !== null && foreignExisting.longitude !== null) {
+      return {
+        cityId: foreignExisting.id,
+        cityName: foreignExisting.name,
+        peripheryId: null,
+        peripheryName: null,
+        countryId: country.id,
+        countryName: country.name,
+        latitude: foreignExisting.latitude,
+        longitude: foreignExisting.longitude,
+      };
+    }
+    if (rawCityName) {
+      const dynamic = await persistForeignCityFromGeocode(rawCityName, country, foreignExisting);
+      if (dynamic) return dynamic;
+    }
     return {
-      cityId: explicitCity?.id ?? null,
-      cityName: explicitCity?.name ?? rawCityName,
+      cityId: foreignExisting?.id ?? explicitCity?.id ?? null,
+      cityName: foreignExisting?.name ?? explicitCity?.name ?? rawCityName,
       peripheryId: null,
       peripheryName: null,
-      latitude: explicitCity?.latitude ?? null,
-      longitude: explicitCity?.longitude ?? null,
+      countryId: country.id,
+      countryName: country.name,
+      latitude: foreignExisting?.latitude ?? explicitCity?.latitude ?? country.latitude ?? null,
+      longitude: foreignExisting?.longitude ?? explicitCity?.longitude ?? country.longitude ?? null,
     };
   }
   const periphery = explicitCity ? getPeripheryFromRegionId(explicitCity.id, lookups.byId) : region?.type === "PERIPHERY" ? region : getPeripheryFromRegionId(explicitRegionId, lookups.byId);
@@ -428,6 +549,8 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
       cityName: explicitCity?.name ?? null,
       peripheryId: periphery ? periphery.id : null,
       peripheryName: periphery ? periphery.name : null,
+      countryId: getCountryFromRegionId(explicitCity?.id ?? periphery?.id ?? null, lookups.byId)?.id ?? null,
+      countryName: getCountryFromRegionId(explicitCity?.id ?? periphery?.id ?? null, lookups.byId)?.name ?? null,
       latitude: explicitCity?.latitude ?? null,
       longitude: explicitCity?.longitude ?? null,
     };
@@ -440,6 +563,8 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
       cityName: explicitCity?.name ?? rawCityName,
       peripheryId: periphery ? periphery.id : null,
       peripheryName: periphery ? periphery.name : null,
+      countryId: getCountryFromRegionId(explicitCity?.id ?? periphery?.id ?? null, lookups.byId)?.id ?? null,
+      countryName: getCountryFromRegionId(explicitCity?.id ?? periphery?.id ?? null, lookups.byId)?.name ?? null,
       latitude: explicitCity?.latitude ?? null,
       longitude: explicitCity?.longitude ?? null,
     };
@@ -453,6 +578,8 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
       cityName: existing.name,
       peripheryId: existingPeriphery ? existingPeriphery.id : null,
       peripheryName: existingPeriphery ? existingPeriphery.name : null,
+      countryId: getCountryFromRegionId(existing.id, lookups.byId)?.id ?? null,
+      countryName: getCountryFromRegionId(existing.id, lookups.byId)?.name ?? null,
       latitude: existing.latitude,
       longitude: existing.longitude,
     };
@@ -473,6 +600,8 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
     cityName: existing?.name || explicitCity?.name || rawCityName,
     peripheryId: periphery ? periphery.id : null,
     peripheryName: periphery ? periphery.name : null,
+    countryId: getCountryFromRegionId(existing?.id ?? explicitCity?.id ?? periphery?.id ?? null, lookups.byId)?.id ?? null,
+    countryName: getCountryFromRegionId(existing?.id ?? explicitCity?.id ?? periphery?.id ?? null, lookups.byId)?.name ?? null,
     latitude: existing?.latitude ?? explicitCity?.latitude ?? null,
     longitude: existing?.longitude ?? explicitCity?.longitude ?? null,
   };

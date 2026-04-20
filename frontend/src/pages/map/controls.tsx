@@ -15,9 +15,11 @@ export function MapTopControls(props: {
   loading: boolean;
   total: number;
   mapMetric: MapMetric;
+  mapScope: "greece" | "abroad";
   metricOptions: Record<MapMetric, MetricOption>;
   showExportMenu: boolean;
   onMetricChange: (metric: MapMetric) => void;
+  onScopeChange: (scope: "greece" | "abroad") => void;
   onToggleExportMenu: () => void;
   onExportPick: (format: ExportFormat) => void;
 }) {
@@ -26,6 +28,13 @@ export function MapTopControls(props: {
       <div className="map-top-menu-title">
         <h2>{props.mt("title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
         <span className="badge">{props.loading ? props.ct("loading", { defaultValue: "Φόρτωση..." }) : `${props.total} ${props.mt("totalInline", { defaultValue: "σύνολο" })}`}</span>
+      </div>
+      <div className="map-scope-group">
+        {(["greece", "abroad"] as Array<"greece" | "abroad">).map((scope) => (
+          <button key={scope} type="button" className={`btn map-program-button ${props.mapScope === scope ? "active primary" : ""}`} onClick={() => props.onScopeChange(scope)}>
+            {scope === "greece" ? props.mt("scope.greece", { defaultValue: "Ελλάδα" }) : props.mt("scope.abroad", { defaultValue: "Εξωτερικό" })}
+          </button>
+        ))}
       </div>
       <div className="map-metric-group">
         {(["count", "dominant_gender"] as MapMetric[]).map((option) => (

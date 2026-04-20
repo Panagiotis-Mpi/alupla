@@ -108,9 +108,19 @@ export type MapCityPoint = {
   city_name: string;
   periphery_id: number | null;
   periphery_name: string;
+  country_region_id?: number | null;
+  country_name?: string | null;
   latitude: number;
   longitude: number;
   count: number;
+  male_count?: number;
+  female_count?: number;
+  male_pct?: number;
+  female_pct?: number;
+  avg_age?: number | null;
+  avg_grade?: number | null;
+  avg_graduation_years?: number | null;
+  dominant_gender?: "M" | "F" | "balanced" | null;
 };
 
 export type RegionCityMapItem = {
@@ -169,6 +179,9 @@ export type MapCityDetailResponse = {
   female_count?: number;
   male_pct?: number;
   female_pct?: number;
+  avg_age?: number | null;
+  avg_grade?: number | null;
+  avg_graduation_years?: number | null;
   programs?: Array<{
     program_id: number;
     program_label: string;

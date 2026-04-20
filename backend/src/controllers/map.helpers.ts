@@ -64,6 +64,12 @@ export function isGreekMapGraduate(graduate: MapGraduateSource) {
   return !!graduate?.origin_country_region_id;
 }
 
+export function isAbroadMapGraduate(graduate: MapGraduateSource) {
+  const explicitCountry = String(graduate?.origin_country ?? "").trim();
+  if (explicitCountry) return !isGreeceOriginValue(explicitCountry);
+  return !!String(graduate?.origin_foreign_city ?? "").trim();
+}
+
 function parseDateValue(value: unknown): Date | null {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(String(value));

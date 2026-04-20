@@ -43,12 +43,14 @@ export function mapCityLongitude(city: MapCityPoint): number | null {
 }
 
 export function mapCityLabel(city: MapCityPoint): string {
+  const country = String(city.country_name || "").trim();
+  if (country && normalizeKey(country) !== normalizeKey(city.city_name)) return `${city.city_name}, ${country}`;
   return city.city_name;
 }
 
 export function mapCityKey(city: MapCityPoint): string {
   if (Number(city.city_id) > 0) return `db-${city.city_id}`;
-  return `name-${normalizeKey(city.city_name)}-${normalizeKey(city.periphery_name)}`;
+  return `name-${normalizeKey(city.city_name)}-${normalizeKey(city.country_name || city.periphery_name)}`;
 }
 
 export function tryParseGeoJson(raw: string): any | null {

@@ -16,6 +16,7 @@ export function useMapData(params: Record<string, string>, selectedPeripheryId?:
   const [cityPoints, setCityPoints] = useState<MapCityPoint[]>([]);
   const [cityStatsLoading, setCityStatsLoading] = useState(false);
   const [selectedCityStats, setSelectedCityStats] = useState<RegionCityMapItem[]>([]);
+  const scope = params.scope === "abroad" ? "abroad" : "greece";
 
   const fetchMap = async (nextParams?: Record<string, string>) => {
     setLoading(true);
@@ -36,7 +37,7 @@ export function useMapData(params: Record<string, string>, selectedPeripheryId?:
   }, [params]);
 
   useEffect(() => {
-    if (!selectedPeripheryId) {
+    if (scope !== "greece" || !selectedPeripheryId) {
       setSelectedCityStats([]);
       return;
     }
@@ -60,7 +61,7 @@ export function useMapData(params: Record<string, string>, selectedPeripheryId?:
     return () => {
       active = false;
     };
-  }, [params, selectedPeripheryId]);
+  }, [params, scope, selectedPeripheryId]);
 
   return {
     loading,
@@ -73,8 +74,22 @@ export function useMapData(params: Record<string, string>, selectedPeripheryId?:
   };
 }
 
-export function useVisibleCities(cityPoints: MapCityPoint[], mapBounds: L.LatLngBounds | null, mapZoom: number) {
+export function useVisibleCities(cityPoints: MapCityPoint[], mapBounds: L.LatLngBounds | null, mapZoom: number, scope: "greece" | "abroad") {
   return useMemo(() => {
+    if (scope === "abroad") {
+      const sorted = [...cityPoints].sort((left, right) => {
+        if (right.count !== left.count) return right.count - left.count;
+        return left.city_name.localeCompare(right.city_name, "el");
+      });
+      if (!mapBounds) return sorted;
+      const insideBounds = sorted.filter((city) => {
+        const latitude = mapCityLatitude(city);
+        const longitude = mapCityLongitude(city);
+        return latitude !== null && longitude !== null && mapBounds.contains(L.latLng(latitude, longitude));
+      });
+      return insideBounds.length ? insideBounds : sorted;
+    }
+
     const grouped = new Map<string, MapCityPoint[]>();
 
     for (const city of cityPoints) {
@@ -113,5 +128,5 @@ export function useVisibleCities(cityPoints: MapCityPoint[], mapBounds: L.LatLng
     });
 
     return next;
-  }, [cityPoints, mapBounds, mapZoom]);
+  }, [cityPoints, mapBounds, mapZoom, scope]);
 }
