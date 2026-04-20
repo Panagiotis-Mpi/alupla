@@ -116,6 +116,8 @@ export default function GraduatesMapPage() {
   const mapRef = useRef<L.Map | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
   const geoJsonLayerRef = useRef<L.GeoJSON | null>(null);
+  const tileLanguage = i18n.language === "gr" ? "el" : "en";
+  const mapTileUrl = `https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png?lang=${tileLanguage}`;
 
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
   const [showExportMenu, setShowExportMenu] = useState(false);
