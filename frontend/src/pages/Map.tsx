@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { GeoJSON, MapContainer, Marker, Popup } from "react-leaflet";
+import { GeoJSON, MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import * as XLSX from "xlsx";
@@ -95,6 +95,10 @@ type ExportFormat = "xlsx" | "csv" | "png";
 type ExportCategoryKey = MapMetric;
 
 const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
+
+const mapTileUrl = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+const mapTileAttribution =
+  "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/attributions\">CARTO</a>";
 
 export default function GraduatesMapPage() {
   const { t, i18n } = useTranslation(["map", "common"]);
@@ -949,6 +953,10 @@ export default function GraduatesMapPage() {
               }}
               scrollWheelZoom
             >
+              <TileLayer
+                attribution={mapTileAttribution}
+                url={mapTileUrl}
+              />
               <MapViewportWatcher
                 onZoomChange={setMapZoom}
                 onBoundsChange={setMapBounds}
