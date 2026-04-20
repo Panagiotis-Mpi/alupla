@@ -99,12 +99,12 @@ export function MapResetControl(props: {
     const control = L.control({ position: "topleft" });
 
     control.onAdd = () => {
-      const container = L.DomUtil.create("div", "leaflet-bar leaflet-control alupla-map-reset-control");
+      const container = L.DomUtil.create("div", "leaflet-control alupla-map-reset-control");
       const button = L.DomUtil.create("button", "alupla-map-reset-button", container);
       button.type = "button";
       button.title = props.title;
       button.setAttribute("aria-label", props.title);
-      button.innerHTML = `<span>${props.label}</span>`;
+      button.innerHTML = `<span aria-hidden="true">${props.label}</span>`;
 
       L.DomEvent.disableClickPropagation(container);
       L.DomEvent.disableScrollPropagation(container);
