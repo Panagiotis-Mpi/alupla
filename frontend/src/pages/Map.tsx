@@ -7,12 +7,9 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { GeoJSON, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import { GeoJSON, MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
-import { type StyleSpecification } from "maplibre-gl";
 import "leaflet/dist/leaflet.css";
-import "maplibre-gl/dist/maplibre-gl.css";
-import "@maplibre/maplibre-gl-leaflet";
 import * as XLSX from "xlsx";
 import {
   Chart as ChartJS,
@@ -100,10 +97,12 @@ type ExportCategoryKey = MapMetric;
 const fillColors = ["#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb", "#1d4ed8"];
 
 const mapTileAttribution =
-  "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/attributions\">CARTO</a>";
+  "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://wikimediafoundation.org/\">Wikimedia</a>";
 
 export default function GraduatesMapPage() {
   const { t, i18n } = useTranslation(["map", "common"]);
+  const mapTileLanguage = i18n.language.toLowerCase().startsWith("el") ? "el" : "en";
+  const mapTileUrl = `https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png?lang=${mapTileLanguage}`;
   const mt = useCallback(
     (key: string, options?: Record<string, unknown>) =>
       t(key, { ns: "map", ...(options || {}) }),
@@ -955,7 +954,11 @@ export default function GraduatesMapPage() {
               }}
               scrollWheelZoom
             >
-              <MapLocalizedBackground language={i18n.resolvedLanguage === "el" ? "el" : "en"} />
+              <TileLayer
+                key={mapTileLanguage}
+                attribution={mapTileAttribution}
+                url={mapTileUrl}
+              />
               <MapViewportWatcher
                 onZoomChange={setMapZoom}
                 onBoundsChange={setMapBounds}
