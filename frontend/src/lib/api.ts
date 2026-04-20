@@ -149,6 +149,14 @@ function readApiErrorMessage(value: unknown, fallback: string) {
   return String(payload?.error?.message || payload?.message || fallback).trim() || fallback;
 }
 
+
+export type MapYearRangeResponse = {
+  ok: true;
+  years: number[];
+  min_year: number | null;
+  max_year: number | null;
+};
+
 export type MapCityDetailResponse = {
   ok: true;
   city_id: number;
@@ -401,6 +409,10 @@ export async function getActivityLogFileSummary(params: QueryParams = {}): Promi
 
 export async function getGraduatesMap(params: QueryParams = {}): Promise<{ ok: true; items: GraduatesMapItem[]; total: number }> {
   return api(`/map/graduates${toQueryString(params)}`, { method: "GET" });
+}
+
+export async function getMapYearRange(): Promise<MapYearRangeResponse> {
+  return api(`/map/years`, { method: "GET" });
 }
 
 export async function getMapCities(params: QueryParams = {}): Promise<{ ok: true; items: MapCityPoint[] }> {

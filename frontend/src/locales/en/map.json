@@ -147,5 +147,11 @@
     "noDirections": "No direction data is available for this city.",
     "programTotal": "{{program}}: {{count}}",
     "programPlaceholder": "Select a study program"
+  },
+  "timeline": {
+    "title": "Display year",
+    "subtitle": "Drag the slider to quickly change the year shown on the map.",
+    "allYears": "All years",
+    "noYears": "No graduation years were found."
   }
 }

@@ -7,8 +7,6 @@ type ExportCategoryKey = MapMetric;
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
-type YearOption = { id: string; label: string };
-
 type ExportCategoryOption = { id: ExportCategoryKey; label: string };
 
 export function MapTopControls(props: {
@@ -18,15 +16,9 @@ export function MapTopControls(props: {
   total: number;
   mapMetric: MapMetric;
   metricOptions: Record<MapMetric, MetricOption>;
-  showYearMenu: boolean;
   showExportMenu: boolean;
-  yearOptions: YearOption[];
-  selectedYearId: string;
-  selectedYearLabel: string;
   onMetricChange: (metric: MapMetric) => void;
-  onToggleYearMenu: () => void;
   onToggleExportMenu: () => void;
-  onYearSelect: (yearId: string) => void;
   onExportPick: (format: ExportFormat) => void;
 }) {
   return (
@@ -41,35 +33,6 @@ export function MapTopControls(props: {
             {props.metricOptions[option].label}
           </button>
         ))}
-        <div style={{ position: "relative" }}>
-          <button
-            type="button"
-            className={`btn map-program-button ${props.selectedYearId ? "active primary" : ""}`}
-            style={{ width: "100%" }}
-            onClick={props.onToggleYearMenu}
-            aria-haspopup="menu"
-            aria-expanded={props.showYearMenu}
-            aria-label={props.mt("filters.graduationYear", { defaultValue: "Χρονιά αποφοίτησης" })}
-          >
-            <span>{props.selectedYearLabel}</span>
-            <span aria-hidden="true">▾</span>
-          </button>
-          {props.showYearMenu ? (
-            <div className="map-menu">
-              {props.yearOptions.map((year) => (
-                <button
-                  key={year.id}
-                  className={`map-menu-item ${props.selectedYearId === year.id ? "active" : ""}`}
-                  type="button"
-                  onClick={() => props.onYearSelect(year.id)}
-                >
-                  <span>{year.label}</span>
-                  <span>{props.selectedYearId === year.id ? "✓" : ""}</span>
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
         <div style={{ position: "relative" }}>
           <button className="btn map-action-button" type="button" style={{ width: "100%" }} onClick={props.onToggleExportMenu}>
             {props.ct("export", { defaultValue: "Εξαγωγή" })}
@@ -98,6 +61,72 @@ export function MapTopControls(props: {
           ) : null}
         </div>
       </div>
+    </div>
+  );
+}
+
+export function MapYearTimeline(props: {
+  mt: Translate;
+  years: number[];
+  selectedYear: string;
+  isAllYears: boolean;
+  loading: boolean;
+  onSelectAllYears: () => void;
+  onSliderChange: (year: string) => void;
+}) {
+  const minIndex = 0;
+  const maxIndex = Math.max(props.years.length - 1, 0);
+  const selectedIndex = props.isAllYears
+    ? maxIndex
+    : Math.max(props.years.findIndex((year) => String(year) === props.selectedYear), 0);
+  const selectedLabel = props.isAllYears
+    ? props.mt("timeline.allYears", { defaultValue: "Όλες οι χρονιές" })
+    : props.selectedYear || "-";
+
+  return (
+    <div className="card map-timeline-card">
+      <div className="map-timeline-header">
+        <div>
+          <div className="map-timeline-title">{props.mt("timeline.title", { defaultValue: "Φίλτρο χρονιάς" })}</div>
+          <div className="map-timeline-subtitle">{props.mt("timeline.subtitle", { defaultValue: "Σύρε τη μπάρα για να αλλάξεις γρήγορα χρονιά στον χάρτη." })}</div>
+        </div>
+        <div className="map-timeline-actions">
+          <button
+            type="button"
+            className={`btn map-timeline-all-button ${props.isAllYears ? "active primary" : ""}`}
+            onClick={props.onSelectAllYears}
+          >
+            {props.mt("timeline.allYears", { defaultValue: "Όλες οι χρονιές" })}
+          </button>
+          <div className="map-timeline-current">{selectedLabel}</div>
+        </div>
+      </div>
+
+      {props.years.length ? (
+        <div className="map-timeline-slider-wrap">
+          <input
+            type="range"
+            min={minIndex}
+            max={maxIndex}
+            step={1}
+            value={selectedIndex}
+            className="map-timeline-slider"
+            disabled={props.loading || props.years.length < 2}
+            onChange={(event) => {
+              const nextIndex = Number(event.target.value);
+              const nextYear = props.years[nextIndex];
+              if (nextYear) props.onSliderChange(String(nextYear));
+            }}
+            aria-label={props.mt("filters.graduationYear", { defaultValue: "Χρονιά αποφοίτησης" })}
+          />
+          <div className="map-timeline-scale">
+            <span>{props.years[0]}</span>
+            <span>{props.years[props.years.length - 1]}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="muted">{props.loading ? props.mt("loading", { defaultValue: "Φόρτωση..." }) : props.mt("timeline.noYears", { defaultValue: "Δεν βρέθηκαν χρονιές αποφοίτησης." })}</div>
+      )}
     </div>
   );
 }

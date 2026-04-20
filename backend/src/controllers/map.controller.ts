@@ -3,6 +3,7 @@ import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
 import { ProgramDirection } from "../models/ProgramDirection";
+import { Op } from "sequelize";
 import { resolveMapLocation } from "../services/mapLocation.service";
 import { buildMapWhere, calculateAgeAtDate, collapseCountsByLabel, isDirectionAllowed, isGreekMapGraduate, loadRegions, matchesSelectedStudyProgram, normalizeKey, pickDirectionDisplay, pickTopName, toInt } from "./map.helpers";
 
@@ -155,6 +156,29 @@ export async function getGraduatesMap(req: Request, res: Response) {
 
   const total = items.reduce((s, it) => s + (Number(it.count) || 0), 0);
   return res.json({ ok: true, items, total });
+}
+
+export async function getMapYearRange(req: Request, res: Response) {
+  const rows = await Graduate.findAll({
+    attributes: ["graduation_date"],
+    where: { graduation_date: { [Op.ne]: null } } as any,
+    raw: true,
+  });
+
+  const years = Array.from(
+    new Set(
+      rows
+        .map((row: any) => Number(String(row.graduation_date ?? "").slice(0, 4)))
+        .filter((year) => Number.isFinite(year) && year > 1900),
+    ),
+  ).sort((left, right) => left - right);
+
+  return res.json({
+    ok: true,
+    years,
+    min_year: years[0] ?? null,
+    max_year: years.length ? years[years.length - 1] : null,
+  });
 }
 
 export async function getMapCities(req: Request, res: Response) {

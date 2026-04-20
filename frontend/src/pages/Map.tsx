@@ -26,6 +26,7 @@ import {
   getGraduatesMap,
   getMapCities,
   getMapCityDetail,
+  getMapYearRange,
   logPublicExport,
   type GraduatesMapItem,
   type MapCityDetailResponse,
@@ -52,7 +53,7 @@ import {
   tryParseGeoJson,
 } from "./map/utils";
 import { MapViewportWatcher } from "./map/shared";
-import { MapTopControls, MapExportSelectionModal } from "./map/controls";
+import { MapTopControls, MapYearTimeline, MapExportSelectionModal } from "./map/controls";
 import { MapCityPopupContent } from "./map/cityPopup";
 import {
   InfoBox,
@@ -114,7 +115,6 @@ export default function GraduatesMapPage() {
 
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const [showYearMenu, setShowYearMenu] = useState(false);
   const [selectedExportFormat, setSelectedExportFormat] =
     useState<ExportFormat | null>(null);
   const [selectedExportCategories, setSelectedExportCategories] = useState<
@@ -129,10 +129,9 @@ export default function GraduatesMapPage() {
   const [cityDetail, setCityDetail] = useState<MapCityDetailResponse | null>(
     null,
   );
-  const currentYear = new Date().getFullYear();
-  const earliestYear = 2010;
-  const [selectedGraduationYear, setSelectedGraduationYear] =
-    useState<string>("");
+  const [selectedGraduationYear, setSelectedGraduationYear] = useState<string>("");
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [yearRangeLoading, setYearRangeLoading] = useState(false);
   const isCompactViewport = useCompactMapViewport();
   const fitPadding = isCompactViewport
     ? ([18, 18] as [number, number])
@@ -209,6 +208,7 @@ export default function GraduatesMapPage() {
     getMapCityDetail({
       city_id: selectedCityPoint.city_id,
       mode: mapMetric,
+      ...params,
     })
       .then((response) => {
         if (!active) return;
@@ -225,26 +225,36 @@ export default function GraduatesMapPage() {
     };
   }, [selectedCityPoint?.city_id, mapMetric, params]);
 
-  const yearOptions = useMemo(
-    () => [
-      {
-        id: "",
-        label: mt("filters.allYears", { defaultValue: "Όλες οι χρονιές" }),
-      },
-      ...Array.from({ length: currentYear - earliestYear + 1 }, (_, index) => {
-        const year = String(currentYear - index);
-        return { id: year, label: year };
-      }),
-    ],
-    [currentYear, earliestYear, mt],
-  );
+  useEffect(() => {
+    let active = true;
+    setYearRangeLoading(true);
+    getMapYearRange()
+      .then((response) => {
+        if (!active) return;
+        const nextYears = Array.isArray(response?.years)
+          ? response.years.filter((year) => Number.isFinite(year) && year > 1900)
+          : [];
+        setAvailableYears(nextYears);
+        if (!selectedGraduationYear && nextYears.length) return;
+        if (selectedGraduationYear && !nextYears.includes(Number(selectedGraduationYear))) {
+          setSelectedGraduationYear("");
+        }
+      })
+      .catch(() => {
+        if (active) setAvailableYears([]);
+      })
+      .finally(() => {
+        if (active) setYearRangeLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  const selectedYearLabel = useMemo(
-    () =>
-      yearOptions.find((option) => option.id === selectedGraduationYear)
-        ?.label || mt("filters.allYears", { defaultValue: "Όλες οι χρονιές" }),
-    [mt, selectedGraduationYear, yearOptions],
-  );
+  const isAllYearsSelected = !selectedGraduationYear;
+  const selectedYearLabel = isAllYearsSelected
+    ? mt("timeline.allYears", { defaultValue: "Όλες οι χρονιές" })
+    : selectedGraduationYear;
 
   const exportCategoryOptions = useMemo(
     () => [
@@ -623,7 +633,7 @@ export default function GraduatesMapPage() {
                 workbookSheetName(title, usedNames),
               );
             }
-            csvRows.push(...buildCsvRows(title, rows, mt));
+            csvRows.push(...buildCsvRows(title, rows, mt, selectedYearLabel));
             continue;
           }
           if (category === "dominant_gender") {
@@ -645,7 +655,7 @@ export default function GraduatesMapPage() {
                 workbookSheetName(title, usedNames),
               );
             }
-            csvRows.push(...buildCsvRows(title, rows, mt));
+            csvRows.push(...buildCsvRows(title, rows, mt, selectedYearLabel));
             continue;
           }
         }
@@ -790,7 +800,7 @@ export default function GraduatesMapPage() {
         .map-top-menu-card { padding: 20px 16px 16px; display: grid; gap: 14px; }
         .map-top-menu-title { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .map-top-menu-title h2 { margin: 0; }
-        .map-metric-group { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; }
+        .map-metric-group { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; }
         .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; }
         .map-metric-button.active, .map-program-button.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
         .map-program-button { gap: 8px; }
@@ -798,6 +808,17 @@ export default function GraduatesMapPage() {
         .map-menu-item { width: 100%; border: 0; background: transparent; text-align: left; padding: 10px 12px; border-radius: 10px; cursor: pointer; font: inherit; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
         .map-menu-item:hover { background: #f8fafc; }
         .map-menu-item.active { background: #eff6ff; color: #1d4ed8; font-weight: 700; }
+        .map-timeline-card { margin: 12px auto 0; max-width: 1080px; padding: 16px 18px; display: grid; gap: 14px; }
+        .map-timeline-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .map-timeline-title { font-size: 18px; font-weight: 800; color: #0f172a; }
+        .map-timeline-subtitle { color: #64748b; font-size: 13px; margin-top: 4px; }
+        .map-timeline-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .map-timeline-current { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--border); background: rgba(248,250,252,.9); display: inline-flex; align-items: center; font-weight: 700; color: #0f172a; }
+        .map-timeline-all-button { min-height: 44px; }
+        .map-timeline-slider-wrap { display: grid; gap: 10px; }
+        .map-timeline-slider { width: 100%; accent-color: var(--primary); cursor: pointer; }
+        .map-timeline-slider:disabled { cursor: default; opacity: .65; }
+        .map-timeline-scale { display: flex; justify-content: space-between; gap: 12px; color: #64748b; font-size: 13px; font-weight: 700; }
         .map-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 12px 0 0; }
         .map-summary-card { min-height: 124px; padding: 18px; display: grid; align-content: space-between; gap: 8px; }
         .map-summary-label { color: #475569; font-size: 17px; line-height: 1.32; }
@@ -829,7 +850,7 @@ export default function GraduatesMapPage() {
         .map-city-popup-program-title { font-size: 13px; font-weight: 800; color: #0f172a; }
         .map-city-popup-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #334155; font-size: 13px; }
         @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @media (max-width: 640px) { .map-metric-group, .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } }
+        @media (max-width: 640px) { .map-metric-group, .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } .map-timeline-actions { width: 100%; } .map-timeline-current, .map-timeline-all-button { width: 100%; justify-content: center; } }
       `}</style>
 
       <MapTopControls
@@ -839,18 +860,9 @@ export default function GraduatesMapPage() {
         total={total}
         mapMetric={mapMetric}
         metricOptions={metricOptions}
-        showYearMenu={showYearMenu}
         showExportMenu={showExportMenu}
-        yearOptions={yearOptions}
-        selectedYearId={selectedGraduationYear}
-        selectedYearLabel={selectedYearLabel}
         onMetricChange={setMapMetric}
-        onToggleYearMenu={() => setShowYearMenu((prev) => !prev)}
         onToggleExportMenu={() => setShowExportMenu((prev) => !prev)}
-        onYearSelect={(yearId) => {
-          setSelectedGraduationYear(yearId);
-          setShowYearMenu(false);
-        }}
         onExportPick={openExportSelection}
       />
 
@@ -898,6 +910,16 @@ export default function GraduatesMapPage() {
           </div>
         </div>
       </div>
+
+      <MapYearTimeline
+        mt={mt}
+        years={availableYears}
+        selectedYear={selectedGraduationYear}
+        isAllYears={isAllYearsSelected}
+        loading={yearRangeLoading}
+        onSelectAllYears={() => setSelectedGraduationYear("")}
+        onSliderChange={(year) => setSelectedGraduationYear(year)}
+      />
 
       <div className="card alupla-map-card map-main-card">
         <div className="map-map-wrap">
@@ -1046,59 +1068,48 @@ export default function GraduatesMapPage() {
       </div>
 
       {selected ? (
-        <>
-          <div className="card map-combined-details-card">
-            <div style={{ fontWeight: 800, fontSize: 18 }}>
-              {mt("infoTitle", { defaultValue: "Πληροφορίες" })}
+        <div className="card map-combined-details-card">
+          <div style={{ fontWeight: 800, fontSize: 18 }}>
+            {mt("infoTitle", { defaultValue: "Πληροφορίες" })}
+          </div>
+          <InfoBox
+            title={selected.periphery_name}
+            totalText={mt("totalGraduatesLine", {
+              total: selected.count,
+              defaultValue: "Σύνολο αποφοίτων: {{total}}",
+            })}
+            groups={detailGroups(selected)}
+          />
+          <div style={{ fontWeight: 700 }}>
+            {mt("citiesTitle", { defaultValue: "Πόλεις" })} ({selectedCityStats.length})
+          </div>
+          {cityStatsLoading ? (
+            <div className="muted">
+              {ct("loading", { defaultValue: "Φόρτωση..." })}
             </div>
-            {shouldShowDirectionData ? (
-              <>
+          ) : selectedCityStats.length ? (
+            <div className="map-city-cards-inline">
+              {selectedCityStats.map((city) => (
                 <InfoBox
-                  title={selected.periphery_name}
+                  key={city.city}
+                  title={city.city}
                   totalText={mt("totalGraduatesLine", {
-                    total: selected.count,
+                    total: city.count,
                     defaultValue: "Σύνολο αποφοίτων: {{total}}",
                   })}
-                  groups={detailGroups(selected)}
+                  groups={detailGroups(city)}
                 />
-                <div style={{ fontWeight: 700 }}>
-                  {mt("citiesTitle", { defaultValue: "Πόλεις" })} (
-                  {selectedCityStats.length})
-                </div>
-                {cityStatsLoading ? (
-                  <div className="muted">
-                    {ct("loading", { defaultValue: "Φόρτωση..." })}
-                  </div>
-                ) : selectedCityStats.length ? (
-                  <div className="map-city-cards-inline">
-                    {selectedCityStats.map((city) => (
-                      <InfoBox
-                        key={city.city}
-                        title={city.city}
-                        totalText={mt("totalGraduatesLine", {
-                          total: city.count,
-                          defaultValue: "Σύνολο αποφοίτων: {{total}}",
-                        })}
-                        groups={detailGroups(city)}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="muted">
-                    {mt("noCities", {
-                      defaultValue:
-                        "Δεν υπάρχουν διαθέσιμες πόλεις για την τρέχουσα περιφέρεια.",
-                    })}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="muted">
-                {ct("loading", { defaultValue: "Φόρτωση..." })}
-              </div>
-            )}
-          </div>
-        </>
+              ))}
+            </div>
+          ) : (
+            <div className="muted">
+              {mt("noCities", {
+                defaultValue:
+                  "Δεν υπάρχουν διαθέσιμες πόλεις για την τρέχουσα περιφέρεια.",
+              })}
+            </div>
+          )}
+        </div>
       ) : items.length ? (
         <div className="card map-combined-details-card">
           <div className="muted">
