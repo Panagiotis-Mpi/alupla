@@ -94,7 +94,7 @@ export function fillColorForCount(count: number, maxCount: number, fillColors: s
 }
 
 export function fillOpacityForCount(count: number) {
-  return count <= 0 ? 0.18 : 0.75;
+  return count <= 0 ? 0.22 : 0.9;
 }
 
 export function legendBuckets(maxCount: number) {

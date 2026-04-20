@@ -94,7 +94,7 @@ type MapMetric = "count" | "dominant_gender";
 type ExportFormat = "xlsx" | "csv" | "png";
 type ExportCategoryKey = MapMetric;
 
-const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb"];
+const fillColors = ["#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb", "#1d4ed8"];
 
 const mapTileUrl = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 const mapTileAttribution =
@@ -367,7 +367,7 @@ export default function GraduatesMapPage() {
         key: entry.label,
         label: entry.label,
         color: entry.color,
-        opacity: 0.82,
+        opacity: 0.9,
       }));
   }, [categoricalLegendEntries, mapMetric, maxMetricValue]);
 
@@ -412,21 +412,21 @@ export default function GraduatesMapPage() {
           color: "#334155",
           weight: 1,
           fillColor: genderColors.empty,
-          fillOpacity: 0.18,
+          fillOpacity: 0.22,
         };
       if (match.dominant_gender === "M")
         return {
           color: "#334155",
           weight: 1,
           fillColor: genderColors.male,
-          fillOpacity: 0.82,
+          fillOpacity: 0.9,
         };
       if (match.dominant_gender === "F")
         return {
           color: "#334155",
           weight: 1,
           fillColor: genderColors.female,
-          fillOpacity: 0.82,
+          fillOpacity: 0.9,
         };
       return {
         color: "#334155",

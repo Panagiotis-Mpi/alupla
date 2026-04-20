@@ -4,7 +4,7 @@ import type React from "react";
 import { normalizeKey } from "./utils";
 
 const directionPalette = ["#2563eb", "#dc2626", "#16a34a", "#f59e0b", "#7c3aed", "#0891b2", "#e11d48", "#65a30d", "#ea580c", "#4f46e5", "#db2777", "#0f766e", "#b91c1c", "#0284c7", "#a16207", "#9333ea", "#15803d", "#c2410c", "#1d4ed8", "#be123c"];
-const genderColors = { male: "#3b82f6", female: "#c084fc", balanced: "#cbd5e1", empty: "#e5e7eb" };
+const genderColors = { male: "#2563eb", female: "#9333ea", balanced: "#64748b", empty: "#dbe2ea" };
 
 export { directionPalette, genderColors };
 
