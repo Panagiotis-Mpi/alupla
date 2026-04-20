@@ -1,13 +1,13 @@
 import React from "react";
 
 type MetricOption = { label: string; legend: string };
-type MapMetric = "count" | "dominant_gender" | "dominant_direction";
+type MapMetric = "count" | "dominant_gender";
 type ExportFormat = "xlsx" | "csv" | "png";
 type ExportCategoryKey = MapMetric;
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
-type StudyProgramOption = { id: string; label: string };
+type YearOption = { id: string; label: string };
 
 type ExportCategoryOption = { id: ExportCategoryKey; label: string };
 
@@ -18,14 +18,15 @@ export function MapTopControls(props: {
   total: number;
   mapMetric: MapMetric;
   metricOptions: Record<MapMetric, MetricOption>;
-  showProgramMenu: boolean;
+  showYearMenu: boolean;
   showExportMenu: boolean;
-  studyProgramOptions: StudyProgramOption[];
-  selectedStudyProgramId: string;
+  yearOptions: YearOption[];
+  selectedYearId: string;
+  selectedYearLabel: string;
   onMetricChange: (metric: MapMetric) => void;
-  onToggleProgramMenu: () => void;
+  onToggleYearMenu: () => void;
   onToggleExportMenu: () => void;
-  onProgramSelect: (programId: string) => void;
+  onYearSelect: (yearId: string) => void;
   onExportPick: (format: ExportFormat) => void;
 }) {
   return (
@@ -43,27 +44,27 @@ export function MapTopControls(props: {
         <div style={{ position: "relative" }}>
           <button
             type="button"
-            className={`btn map-program-button ${props.mapMetric === "dominant_direction" ? "active primary" : ""}`}
+            className={`btn map-program-button ${props.selectedYearId ? "active primary" : ""}`}
             style={{ width: "100%" }}
-            onClick={props.onToggleProgramMenu}
+            onClick={props.onToggleYearMenu}
             aria-haspopup="menu"
-            aria-expanded={props.showProgramMenu}
-            aria-label={props.mt("filters.studyProgram", { defaultValue: "Πρόγραμμα Σπουδών" })}
+            aria-expanded={props.showYearMenu}
+            aria-label={props.mt("filters.graduationYear", { defaultValue: "Χρονιά αποφοίτησης" })}
           >
-            <span>{props.metricOptions.dominant_direction.label}</span>
+            <span>{props.selectedYearLabel}</span>
             <span aria-hidden="true">▾</span>
           </button>
-          {props.showProgramMenu ? (
+          {props.showYearMenu ? (
             <div className="map-menu">
-              {props.studyProgramOptions.map((program) => (
+              {props.yearOptions.map((year) => (
                 <button
-                  key={program.id}
-                  className={`map-menu-item ${props.selectedStudyProgramId === program.id ? "active" : ""}`}
+                  key={year.id}
+                  className={`map-menu-item ${props.selectedYearId === year.id ? "active" : ""}`}
                   type="button"
-                  onClick={() => props.onProgramSelect(program.id)}
+                  onClick={() => props.onYearSelect(year.id)}
                 >
-                  <span>{program.label}</span>
-                  <span>{props.selectedStudyProgramId === program.id ? "✓" : ""}</span>
+                  <span>{year.label}</span>
+                  <span>{props.selectedYearId === year.id ? "✓" : ""}</span>
                 </button>
               ))}
             </div>
@@ -107,17 +108,13 @@ export function MapExportSelectionModal(props: {
   selectedExportFormat: ExportFormat;
   exportCategoryOptions: ExportCategoryOption[];
   selectedExportCategories: ExportCategoryKey[];
-  selectedExportStudyProgramIds: string[];
-  studyProgramOptions: StudyProgramOption[];
   exportingSelection: boolean;
   onClose: () => void;
   onToggleAllCategories: () => void;
   onToggleCategory: (category: ExportCategoryKey) => void;
-  onToggleStudyProgram: (programId: string) => void;
   onConfirm: () => void;
 }) {
-  const needsProgram = props.selectedExportCategories.includes("dominant_direction") && !props.selectedExportStudyProgramIds.length;
-  const canSubmit = props.selectedExportCategories.length > 0 && !props.exportingSelection && !needsProgram;
+  const canSubmit = props.selectedExportCategories.length > 0 && !props.exportingSelection;
 
   return (
     <div
@@ -170,18 +167,6 @@ export function MapExportSelectionModal(props: {
                   <input type="checkbox" checked={isSelected} onChange={() => props.onToggleCategory(category.id)} />
                   <span>{category.label}</span>
                 </label>
-                {category.id === "dominant_direction" ? (
-                  <div style={{ display: "grid", gap: 8, paddingLeft: 28 }}>
-                    <div style={{ display: "grid", gap: 6 }}>
-                      {props.studyProgramOptions.map((program) => (
-                        <label key={program.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <input type="checkbox" checked={props.selectedExportStudyProgramIds.includes(program.id)} onChange={() => props.onToggleStudyProgram(program.id)} />
-                          <span>{program.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
               </div>
             );
           })}

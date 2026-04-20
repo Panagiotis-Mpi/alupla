@@ -4,7 +4,7 @@ import { colorWithAlpha, detailValue, directionColor, genderColors } from "./vie
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
-type MapMetric = "count" | "dominant_gender" | "dominant_direction";
+type MapMetric = "count" | "dominant_gender";
 
 type DirectionColorMap = Map<string, string>;
 
@@ -16,7 +16,6 @@ export function MapCityPopupContent(props: {
   mapMetric: MapMetric;
   cityDetailLoading: boolean;
   cityDetail: any;
-  selectedStudyProgramId: string;
   directionColorMap: DirectionColorMap;
 }) {
   if (props.cityDetailLoading) return <div className="muted">{props.ct("loading", { defaultValue: "Φόρτωση..." })}</div>;
@@ -50,35 +49,6 @@ export function MapCityPopupContent(props: {
           <div><div className="map-city-popup-label">{props.mt("maleCount", { defaultValue: "Άνδρες" })}</div><div className="map-city-popup-value">{detailValue(props.cityDetail.male_pct, "%")}</div></div>
           <div><div className="map-city-popup-label">{props.mt("femaleCount", { defaultValue: "Γυναίκες" })}</div><div className="map-city-popup-value">{detailValue(props.cityDetail.female_pct, "%")}</div></div>
         </div>
-      </div>
-    );
-  }
-
-  if (props.mapMetric === "dominant_direction") {
-    const programs = Array.isArray(props.cityDetail.programs) ? props.cityDetail.programs : [];
-    const activeProgram = programs.find((program) => String(program.program_id) === props.selectedStudyProgramId) || programs[0] || null;
-
-    return (
-      <div className="map-city-popup-card">
-        <div className="map-city-popup-title">{props.cityDetail.city_name}</div>
-        {activeProgram ? (
-          <>
-            <div className="map-city-popup-program-heading">
-              <span>{activeProgram.program_label}</span>
-              <strong>{activeProgram.total}</strong>
-            </div>
-            <div className="map-city-popup-list">
-              <div className="map-city-popup-program-list">
-                {activeProgram.directions.map((direction: any) => (
-                  <div className="map-city-popup-row" key={direction.id}>
-                    <span>{direction.label}</span>
-                    <strong>{direction.count}</strong>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        ) : <div className="muted">{props.mt("cityPopup.noDirections", { defaultValue: "Δεν υπάρχουν διαθέσιμες κατευθύνσεις για την πόλη." })}</div>}
       </div>
     );
   }

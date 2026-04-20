@@ -12,7 +12,6 @@ export function buildBaseExportRows(items: GraduatesMapItem[], mt: TranslateFn) 
     [mt("export.countDetailed", { defaultValue: "Πλήθος αποφοίτων περιφέρειας" })]: excelCellValue(item.count),
     [mt("maleCount", { defaultValue: "Άνδρες" })]: excelCellValue(item.male_count ?? 0),
     [mt("femaleCount", { defaultValue: "Γυναίκες" })]: excelCellValue(item.female_count ?? 0),
-    [mt("dominantDirection", { defaultValue: "Κυρίαρχη κατεύθυνση" })]: excelCellValue(item.dominant_recent_direction ?? ""),
   }));
 }
 
@@ -90,32 +89,6 @@ export function buildGenderSheetRows(exportItems: GraduatesMapItem[], exportCiti
   return rows;
 }
 
-export function buildDirectionSheetRows(exportItems: GraduatesMapItem[], exportCities: any[], mt: TranslateFn) {
-  const cityMap = groupCitiesByPeriphery(exportCities);
-  const rows: Record<string, any>[] = [];
-
-  exportItems.forEach((item) => {
-    rows.push({
-      [mt("export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(item.periphery_name),
-      [mt("legendLabels.dominantDirection", { defaultValue: "Κυρίαρχη κατεύθυνση" })]: excelCellValue(item.dominant_recent_direction ?? ""),
-      [mt("directionCount", { defaultValue: "Απόφοιτοι κατεύθυνσης" })]: excelCellValue(item.dominant_recent_direction_count ?? 0),
-      [mt("citiesTitle", { defaultValue: "Πόλεις" })]: "",
-      [mt("export.cityCount", { defaultValue: "Πλήθος αποφοίτων πόλης" })]: "",
-    });
-
-    sortedPeripheryCities(cityMap, item.periphery_id).forEach((city) => {
-      rows.push({
-        [mt("export.periphery", { defaultValue: "Περιφέρεια" })]: excelCellValue(item.periphery_name),
-        [mt("legendLabels.dominantDirection", { defaultValue: "Κυρίαρχη κατεύθυνση" })]: "",
-        [mt("directionCount", { defaultValue: "Απόφοιτοι κατεύθυνσης" })]: "",
-        [mt("citiesTitle", { defaultValue: "Πόλεις" })]: excelCellValue(city.city_name),
-        [mt("export.cityCount", { defaultValue: "Πλήθος αποφοίτων πόλης" })]: excelCellValue(city.count),
-      });
-    });
-  });
-
-  return rows;
-}
 
 export function workbookSheetName(name: string, used: Set<string>) {
   let next = String(name || "Sheet").replace(/[\/?*\[\]:]/g, " ").trim() || "Sheet";
@@ -142,10 +115,10 @@ function escapeCsv(value: unknown) {
   return text;
 }
 
-export function buildCsvRows(categoryLabel: string, rows: Record<string, any>[], mt: TranslateFn, programLabel = "") {
+export function buildCsvRows(categoryLabel: string, rows: Record<string, any>[], mt: TranslateFn, yearLabel = "") {
   return rows.map((row) => ({
     [mt("export.categoryColumn", { defaultValue: "Κατηγορία" })]: categoryLabel,
-    [mt("filters.studyProgram", { defaultValue: "Πρόγραμμα σπουδών" })]: programLabel,
+    [mt("filters.graduationYear", { defaultValue: "Χρονιά αποφοίτησης" })]: yearLabel,
     ...row,
   }));
 }
@@ -279,18 +252,3 @@ export function toggleAllExportCategorySelection(current: string[], allCategorie
   return current.length === allCategories.length ? [] : [...allCategories];
 }
 
-export function syncDirectionSelection(currentPrograms: string[], allPrograms: string[]) {
-  if (!allPrograms.length) return [];
-  const hasAll = allPrograms.every((programId) => currentPrograms.includes(programId));
-  return hasAll ? currentPrograms : [...allPrograms];
-}
-
-export function toggleStudyProgramSelection(currentCategories: string[], currentPrograms: string[], programId: string) {
-  const nextPrograms = currentPrograms.includes(programId)
-    ? currentPrograms.filter((item) => item !== programId)
-    : [...currentPrograms, programId];
-  const nextCategories = nextPrograms.length
-    ? currentCategories.includes("dominant_direction") ? currentCategories : [...currentCategories, "dominant_direction"]
-    : currentCategories.filter((item) => item !== "dominant_direction");
-  return { nextCategories, nextPrograms };
-}
