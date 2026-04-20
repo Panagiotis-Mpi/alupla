@@ -133,6 +133,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
     for (const graduate of grads as any[]) {
       if (!isAbroadMapGraduate(graduate)) continue;
       const resolvedLocation = await resolveMapLocation({
+        origin_country: graduate.origin_country || null,
         origin_country_region_id: Number(graduate.origin_country_region_id) || null,
         origin_periphery_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
         origin_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
@@ -174,6 +175,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
   for (const graduate of grads as any[]) {
     if (!isGreekMapGraduate(graduate)) continue;
     const resolvedLocation = await resolveMapLocation({
+      origin_country: graduate.origin_country || null,
       origin_country_region_id: Number(graduate.origin_country_region_id) || null,
       origin_periphery_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
       origin_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
@@ -238,6 +240,7 @@ export async function getMapCities(req: Request, res: Response) {
     if (scope === "greece" && !isGreekMapGraduate(graduate)) continue;
 
     const resolvedLocation = await resolveMapLocation({
+      origin_country: graduate.origin_country || null,
       origin_country_region_id: Number(graduate.origin_country_region_id) || null,
       origin_periphery_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
       origin_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
@@ -329,6 +332,7 @@ export async function getRegionCities(req: Request, res: Response) {
   for (const graduate of grads as any[]) {
     if (!isGreekMapGraduate(graduate)) continue;
     const resolvedLocation = await resolveMapLocation({
+      origin_country: graduate.origin_country || null,
       origin_country_region_id: Number(graduate.origin_country_region_id) || null,
       origin_periphery_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
       origin_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
@@ -416,6 +420,7 @@ export async function getMapCityDetail(req: Request, res: Response) {
     for (const graduate of grads as any[]) {
       if (!isAbroadMapGraduate(graduate)) continue;
       const resolvedLocation = await resolveMapLocation({
+        origin_country: graduate.origin_country || null,
         origin_country_region_id: Number(graduate.origin_country_region_id) || null,
         origin_periphery_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
         origin_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
@@ -444,6 +449,7 @@ export async function getMapCityDetail(req: Request, res: Response) {
     for (const graduate of grads as any[]) {
       if (!isGreekMapGraduate(graduate)) continue;
       const resolvedLocation = await resolveMapLocation({
+        origin_country: graduate.origin_country || null,
         origin_country_region_id: Number(graduate.origin_country_region_id) || null,
         origin_periphery_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
         origin_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,

@@ -14,8 +14,6 @@ type RegionLite = {
   external_ref_id: string | null;
 };
 
-type GeoPoint = { latitude: number; longitude: number };
-
 type ResolvedMapLocation = {
   cityId: number | null;
   cityName: string | null;
@@ -28,6 +26,7 @@ type ResolvedMapLocation = {
 };
 
 type GraduateOriginInput = {
+  origin_country?: string | null;
   origin_country_region_id?: number | null;
   origin_periphery_region_id?: number | null;
   origin_region_id?: number | null;
@@ -50,19 +49,79 @@ type BoundaryFeature = {
   polygons: number[][][];
 };
 
-const MAX_PARENT_STEPS = 25;
-const geocodeCache = new Map<string, Promise<ResolvedMapLocation | null>>();
-let regionLookupPromise: Promise<{
+type CountryResolution = {
+  id: number | null;
+  name: string | null;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+type RegionLookups = {
   byId: Map<number, RegionLite>;
   cityByNormalized: Map<string, RegionLite[]>;
-  foreignCityByNormalized: Map<string, RegionLite[]>;
   peripheryByNormalized: Map<string, RegionLite>;
-}> | null = null;
+  countryByNormalized: Map<string, RegionLite>;
+};
+
+const MAX_PARENT_STEPS = 25;
+const geocodeCache = new Map<string, Promise<ResolvedMapLocation | null>>();
+const countryCache = new Map<string, Promise<CountryResolution | null>>();
+let regionLookupPromise: Promise<RegionLookups> | null = null;
 let boundaryPromise: Promise<BoundaryFeature[]> | null = null;
+
+const COUNTRY_QUERY_ALIASES: Record<string, string> = {
+  [normalizeRegionText("ΗΠΑ")]: "United States",
+  [normalizeRegionText("Ηνωμένες Πολιτείες")]: "United States",
+  [normalizeRegionText("Ηνωμένες Πολιτείες Αμερικής")]: "United States",
+  [normalizeRegionText("Αμερική")]: "United States",
+  [normalizeRegionText("USA")]: "United States",
+  [normalizeRegionText("US")]: "United States",
+  [normalizeRegionText("U.S.A")]: "United States",
+  [normalizeRegionText("U.S.")]: "United States",
+  [normalizeRegionText("Αγγλία")]: "United Kingdom",
+  [normalizeRegionText("Μεγάλη Βρετανία")]: "United Kingdom",
+  [normalizeRegionText("Μεγαλη Βρετανια")]: "United Kingdom",
+  [normalizeRegionText("Ηνωμένο Βασίλειο")]: "United Kingdom",
+  [normalizeRegionText("Ηνωμενο Βασιλειο")]: "United Kingdom",
+  [normalizeRegionText("UK")]: "United Kingdom",
+  [normalizeRegionText("U.K.")]: "United Kingdom",
+  [normalizeRegionText("Εμιράτα")]: "United Arab Emirates",
+  [normalizeRegionText("ΗΑΕ")]: "United Arab Emirates",
+  [normalizeRegionText("UAE")]: "United Arab Emirates",
+  [normalizeRegionText("Τσεχία")]: "Czechia",
+  [normalizeRegionText("Τσεχικη Δημοκρατια")]: "Czechia",
+  [normalizeRegionText("Σκόπια")]: "North Macedonia",
+  [normalizeRegionText("Βόρεια Μακεδονία")]: "North Macedonia",
+  [normalizeRegionText("Βορεια Μακεδονια")]: "North Macedonia",
+  [normalizeRegionText("Ολλανδία")]: "Netherlands",
+  [normalizeRegionText("Ολλανδια")]: "Netherlands",
+  [normalizeRegionText("Κάτω Χώρες")]: "Netherlands",
+  [normalizeRegionText("Κατω Χωρες")]: "Netherlands",
+};
 
 function toNumber(value: unknown) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function withCountryFields(base: Omit<ResolvedMapLocation, "countryId" | "countryName">, country: CountryResolution | null) {
+  return {
+    ...base,
+    countryId: country?.id ?? null,
+    countryName: country?.name ?? null,
+  } satisfies ResolvedMapLocation;
+}
+
+function normalizeCountryQuery(value: unknown) {
+  const cleaned = cleanRegionText(value);
+  const normalized = normalizeRegionText(cleaned);
+  if (!normalized) return { cleaned: null, normalized: null, query: null };
+  const query = COUNTRY_QUERY_ALIASES[normalized] || cleaned;
+  return {
+    cleaned,
+    normalized,
+    query,
+  };
 }
 
 function pickScopedCity(candidates: RegionLite[], preferredPeripheryId: number | null, byId: Map<number, RegionLite>) {
@@ -86,19 +145,6 @@ function getPeripheryFromRegionId(regionId: number | null | undefined, byId: Map
   return null;
 }
 
-
-function getCountryFromRegionId(regionId: number | null | undefined, byId: Map<number, RegionLite>) {
-  if (!regionId) return null;
-  let current = byId.get(Number(regionId)) ?? null;
-  let steps = 0;
-  while (current && steps < MAX_PARENT_STEPS) {
-    steps += 1;
-    if (current.type === "COUNTRY") return current;
-    current = current.parent_id ? byId.get(Number(current.parent_id)) ?? null : null;
-  }
-  return null;
-}
-
 async function loadRegionLookups() {
   if (!regionLookupPromise) {
     regionLookupPromise = Region.findAll({
@@ -106,8 +152,8 @@ async function loadRegionLookups() {
     }).then((rows) => {
       const byId = new Map<number, RegionLite>();
       const cityByNormalized = new Map<string, RegionLite[]>();
-      const foreignCityByNormalized = new Map<string, RegionLite[]>();
       const peripheryByNormalized = new Map<string, RegionLite>();
+      const countryByNormalized = new Map<string, RegionLite>();
 
       for (const row of rows as any[]) {
         const item: RegionLite = {
@@ -126,17 +172,15 @@ async function loadRegionLookups() {
           current.push(item);
           cityByNormalized.set(item.normalized_name, current);
         }
-        if (item.type === "FOREIGN_CITY" && item.normalized_name) {
-          const current = foreignCityByNormalized.get(item.normalized_name) || [];
-          current.push(item);
-          foreignCityByNormalized.set(item.normalized_name, current);
-        }
         if (item.type === "PERIPHERY" && item.normalized_name && !peripheryByNormalized.has(item.normalized_name)) {
           peripheryByNormalized.set(item.normalized_name, item);
         }
+        if (item.type === "COUNTRY" && item.normalized_name && !countryByNormalized.has(item.normalized_name)) {
+          countryByNormalized.set(item.normalized_name, item);
+        }
       }
 
-      return { byId, cityByNormalized, foreignCityByNormalized, peripheryByNormalized };
+      return { byId, cityByNormalized, peripheryByNormalized, countryByNormalized };
     });
   }
   return regionLookupPromise;
@@ -223,7 +267,6 @@ function peripheryFromAddress(address: Record<string, string> | undefined, perip
   return null;
 }
 
-
 function resolveNormalizedCityName(...values: Array<unknown>) {
   for (const value of values) {
     const cleaned = cleanRegionText(value);
@@ -240,42 +283,31 @@ function cityNameFromAddress(rawName: string, address: Record<string, string> | 
     address?.village ||
     address?.municipality ||
     address?.suburb ||
-    rawName
+    rawName,
   );
   return candidate || cleanRegionText(rawName) || null;
 }
 
-type GeocodedLocation = {
-  lat: number;
-  lng: number;
-  cityName: string | null;
-  peripheryId: number | null;
-  peripheryName: string | null;
-  countryName: string | null;
-  externalRefId: string | null;
-};
-
-async function geocodePlace(rawCityName: string, options?: { preferredPeripheryId?: number | null; countryName?: string | null; countryCode?: string | null }) {
+async function geocodeCity(rawCityName: string, preferredPeripheryId: number | null) {
   const query = cleanRegionText(rawCityName);
   if (!query) return null;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 7000);
+  const timeout = setTimeout(() => controller.abort(), 6000);
 
   try {
     const url = new URL("https://nominatim.openstreetmap.org/search");
     url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("countrycodes", "gr");
     url.searchParams.set("addressdetails", "1");
-    url.searchParams.set("limit", "6");
+    url.searchParams.set("limit", "5");
     url.searchParams.set("accept-language", "el,en");
-    if (options?.countryCode) url.searchParams.set("countrycodes", String(options.countryCode).toLowerCase());
-    const countryPart = cleanRegionText(options?.countryName);
-    url.searchParams.set("q", countryPart ? `${query}, ${countryPart}` : query);
+    url.searchParams.set("q", `${query}, Greece`);
 
     const response = await fetch(url.toString(), {
       method: "GET",
       headers: {
-        "Accept": "application/json",
+        Accept: "application/json",
         "User-Agent": "alupla-map/1.0",
       },
       signal: controller.signal,
@@ -286,31 +318,33 @@ async function geocodePlace(rawCityName: string, options?: { preferredPeripheryI
     if (!Array.isArray(items) || !items.length) return null;
 
     const lookups = await loadRegionLookups();
-    const ranked = [] as Array<GeocodedLocation & { score: number }>;
+    const preferredPeriphery = preferredPeripheryId ? lookups.byId.get(preferredPeripheryId) ?? null : null;
+
+    const ranked: Array<{ item: NominatimItem; lat: number; lng: number; score: number; peripheryId: number | null; peripheryName: string | null; cityName: string | null; externalRefId: string | null }> = [];
 
     for (const item of items) {
       const lat = Number(item.lat);
       const lng = Number(item.lon);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-      const boundaryPeriphery = options?.countryCode === "gr" ? await findPeripheryByCoords(lat, lng) : null;
-      const addressPeriphery = options?.countryCode === "gr" ? peripheryFromAddress(item.address, lookups.peripheryByNormalized) : null;
-      const periphery = boundaryPeriphery || addressPeriphery || (options?.preferredPeripheryId ? lookups.byId.get(Number(options.preferredPeripheryId)) ?? null : null);
+      const boundaryPeriphery = await findPeripheryByCoords(lat, lng);
+      const addressPeriphery = peripheryFromAddress(item.address, lookups.peripheryByNormalized);
+      const periphery = boundaryPeriphery || addressPeriphery || preferredPeriphery;
+      const peripheryId = periphery ? Number(periphery.id) : null;
       const cityName = cityNameFromAddress(query, item.address);
-      const countryName = cleanRegionText(item.address?.country) || countryPart || null;
       let score = 0;
-      if (options?.preferredPeripheryId && periphery && Number(periphery.id) === Number(options.preferredPeripheryId)) score += 100;
+      if (preferredPeripheryId && peripheryId === preferredPeripheryId) score += 100;
       if (boundaryPeriphery) score += 40;
       if (addressPeriphery) score += 20;
-      if (countryPart && normalizeRegionText(countryName) === normalizeRegionText(countryPart)) score += 18;
       if (normalizeRegionText(cityName) === normalizeRegionText(query)) score += 15;
+      if (String(item.display_name || "").toLowerCase().includes("greece")) score += 5;
       ranked.push({
+        item,
         lat,
         lng,
         score,
-        cityName,
-        peripheryId: periphery ? Number(periphery.id) : null,
+        peripheryId,
         peripheryName: periphery ? periphery.name : null,
-        countryName,
+        cityName,
         externalRefId: item.osm_type && item.osm_id ? `nominatim:${item.osm_type}:${item.osm_id}` : null,
       });
     }
@@ -324,8 +358,164 @@ async function geocodePlace(rawCityName: string, options?: { preferredPeripheryI
   }
 }
 
-async function geocodeCity(rawCityName: string, preferredPeripheryId: number | null) {
-  return geocodePlace(rawCityName, { preferredPeripheryId, countryName: "Greece", countryCode: "gr" });
+async function geocodeCountry(rawCountryName: string) {
+  const countryInput = normalizeCountryQuery(rawCountryName);
+  if (!countryInput.query) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6000);
+
+  try {
+    const url = new URL("https://nominatim.openstreetmap.org/search");
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("addressdetails", "1");
+    url.searchParams.set("limit", "5");
+    url.searchParams.set("accept-language", "el,en");
+    url.searchParams.set("featuretype", "country");
+    url.searchParams.set("q", countryInput.query);
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "alupla-map/1.0",
+      },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) return null;
+    const items = await response.json() as NominatimItem[];
+    if (!Array.isArray(items) || !items.length) return null;
+
+    const normalizedRaw = countryInput.normalized;
+    const normalizedQuery = normalizeRegionText(countryInput.query);
+    const ranked: Array<{ name: string; latitude: number; longitude: number; score: number; externalRefId: string | null }> = [];
+
+    for (const item of items) {
+      const latitude = Number(item.lat);
+      const longitude = Number(item.lon);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) continue;
+      const countryName = cleanRegionText(item.address?.country || item.display_name?.split(",")[0] || countryInput.query);
+      const normalizedCountry = normalizeRegionText(countryName);
+      let score = 0;
+      if (normalizedCountry === normalizedRaw) score += 120;
+      if (normalizedCountry === normalizedQuery) score += 110;
+      if (normalizeRegionText(String(item.display_name || "")).includes(normalizedQuery || "")) score += 25;
+      if (item.address?.country_code) score += 15;
+      ranked.push({
+        name: countryName,
+        latitude,
+        longitude,
+        score,
+        externalRefId: item.osm_type && item.osm_id ? `nominatim:${item.osm_type}:${item.osm_id}` : null,
+      });
+    }
+
+    ranked.sort((left, right) => right.score - left.score);
+    return ranked[0] || null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function resolveCountry(rawCountryName: string | null | undefined, explicitCountryId: number | null) {
+  const lookups = await loadRegionLookups();
+  const explicitCountry = explicitCountryId ? lookups.byId.get(explicitCountryId) ?? null : null;
+  const countryInput = normalizeCountryQuery(rawCountryName);
+
+  if (explicitCountry && explicitCountry.type === "COUNTRY" && explicitCountry.latitude !== null && explicitCountry.longitude !== null) {
+    return {
+      id: explicitCountry.id,
+      name: explicitCountry.name,
+      latitude: explicitCountry.latitude,
+      longitude: explicitCountry.longitude,
+    } satisfies CountryResolution;
+  }
+
+  const directMatch = countryInput.normalized ? lookups.countryByNormalized.get(countryInput.normalized) ?? null : null;
+  if (directMatch && directMatch.latitude !== null && directMatch.longitude !== null) {
+    return {
+      id: directMatch.id,
+      name: directMatch.name,
+      latitude: directMatch.latitude,
+      longitude: directMatch.longitude,
+    } satisfies CountryResolution;
+  }
+
+  const queryMatch = countryInput.query ? lookups.countryByNormalized.get(normalizeRegionText(countryInput.query)) ?? null : null;
+  if (queryMatch && queryMatch.latitude !== null && queryMatch.longitude !== null) {
+    return {
+      id: queryMatch.id,
+      name: queryMatch.name,
+      latitude: queryMatch.latitude,
+      longitude: queryMatch.longitude,
+    } satisfies CountryResolution;
+  }
+
+  const cacheKey = `${countryInput.normalized || ""}::${explicitCountryId || 0}`;
+  let pending = countryCache.get(cacheKey);
+  if (!pending) {
+    pending = (async () => {
+      const geocoded = countryInput.query ? await geocodeCountry(countryInput.query) : null;
+      if (!geocoded) {
+        const fallback = directMatch || queryMatch || explicitCountry;
+        if (!fallback || fallback.type !== "COUNTRY") return null;
+        return {
+          id: fallback.id,
+          name: fallback.name,
+          latitude: fallback.latitude,
+          longitude: fallback.longitude,
+        } satisfies CountryResolution;
+      }
+
+      const currentLookups = await loadRegionLookups();
+      const existing = explicitCountry && explicitCountry.type === "COUNTRY"
+        ? explicitCountry
+        : (directMatch || queryMatch || (countryInput.normalized ? currentLookups.countryByNormalized.get(countryInput.normalized) ?? null : null));
+
+      if (existing && existing.type === "COUNTRY") {
+        const payload: Record<string, unknown> = {};
+        if (existing.latitude === null || existing.longitude === null) {
+          payload.latitude = geocoded.latitude;
+          payload.longitude = geocoded.longitude;
+        }
+        if (!String(existing.normalized_name || "").trim() && countryInput.normalized) payload.normalized_name = countryInput.normalized;
+        if (!existing.external_ref_id && geocoded.externalRefId) payload.external_ref_id = geocoded.externalRefId;
+        if (Object.keys(payload).length) {
+          await Region.update(payload, { where: { id: existing.id } });
+          clearLocationCaches();
+        }
+        return {
+          id: existing.id,
+          name: existing.name || geocoded.name,
+          latitude: geocoded.latitude,
+          longitude: geocoded.longitude,
+        } satisfies CountryResolution;
+      }
+
+      const created = await Region.create({
+        name: countryInput.cleaned || geocoded.name,
+        normalized_name: countryInput.normalized || normalizeRegionText(countryInput.cleaned || geocoded.name),
+        external_ref_id: geocoded.externalRefId,
+        type: "COUNTRY",
+        parent_id: null,
+        latitude: geocoded.latitude,
+        longitude: geocoded.longitude,
+      } as any) as any;
+      clearLocationCaches();
+      return {
+        id: Number(created.id),
+        name: String(created.name),
+        latitude: geocoded.latitude,
+        longitude: geocoded.longitude,
+      } satisfies CountryResolution;
+    })();
+    countryCache.set(cacheKey, pending);
+  }
+
+  return pending;
 }
 
 async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId: number | null) {
@@ -342,11 +532,11 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
       cityName: existing.name,
       peripheryId: periphery ? periphery.id : null,
       peripheryName: periphery ? periphery.name : null,
-      countryId: periphery ? (getCountryFromRegionId(periphery.id, lookups.byId)?.id ?? null) : null,
-      countryName: periphery ? (getCountryFromRegionId(periphery.id, lookups.byId)?.name ?? null) : null,
+      countryId: null,
+      countryName: null,
       latitude: existing.latitude,
       longitude: existing.longitude,
-    } as ResolvedMapLocation;
+    } satisfies ResolvedMapLocation;
   }
 
   const geocoded = await geocodeCity(rawCityName, preferredPeripheryId);
@@ -358,11 +548,11 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
       cityName: existing.name,
       peripheryId: periphery ? periphery.id : null,
       peripheryName: periphery ? periphery.name : null,
-      countryId: periphery ? (getCountryFromRegionId(periphery.id, lookups.byId)?.id ?? null) : null,
-      countryName: periphery ? (getCountryFromRegionId(periphery.id, lookups.byId)?.name ?? null) : null,
+      countryId: null,
+      countryName: null,
       latitude: existing.latitude,
       longitude: existing.longitude,
-    };
+    } satisfies ResolvedMapLocation;
   }
 
   let city = existing;
@@ -409,180 +599,114 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
     cityName: city ? String((city as any).name) : geocoded.cityName,
     peripheryId: periphery ? periphery.id : geocoded.peripheryId,
     peripheryName: periphery ? periphery.name : geocoded.peripheryName,
-    countryId: periphery ? (getCountryFromRegionId(periphery.id, lookups.byId)?.id ?? null) : null,
-    countryName: periphery ? (getCountryFromRegionId(periphery.id, lookups.byId)?.name ?? null) : (geocoded.countryName ?? null),
+    countryId: null,
+    countryName: null,
     latitude: geocoded.lat,
     longitude: geocoded.lng,
-  };
-}
-
-async function persistForeignCityFromGeocode(rawCityName: string, country: RegionLite | null, existing: RegionLite | null) {
-  const cityResolved = resolveNormalizedCityName(rawCityName);
-  if (!cityResolved.normalized) return null;
-
-  const geocoded = await geocodePlace(rawCityName, { countryName: country?.name ?? null });
-  if (!geocoded) {
-    return {
-      cityId: existing?.id ?? null,
-      cityName: existing?.name ?? cityResolved.cleaned,
-      peripheryId: null,
-      peripheryName: null,
-      countryId: country?.id ?? null,
-      countryName: country?.name ?? null,
-      latitude: existing?.latitude ?? null,
-      longitude: existing?.longitude ?? null,
-    } as ResolvedMapLocation;
-  }
-
-  let city = existing;
-  if (!city && country && cityResolved.cleaned) {
-    city = await Region.create({
-      name: cityResolved.cleaned,
-      normalized_name: cityResolved.normalized,
-      external_ref_id: geocoded.externalRefId,
-      type: "FOREIGN_CITY",
-      parent_id: country.id,
-      latitude: geocoded.lat,
-      longitude: geocoded.lng,
-    } as any) as any;
-    clearLocationCaches();
-  } else if (city) {
-    const updatePayload: Record<string, unknown> = {};
-    if (city.latitude === null || city.longitude === null) {
-      updatePayload.latitude = geocoded.lat;
-      updatePayload.longitude = geocoded.lng;
-    }
-    if (!city.external_ref_id && geocoded.externalRefId) updatePayload.external_ref_id = geocoded.externalRefId;
-    if (Object.keys(updatePayload).length) {
-      await Region.update(updatePayload, { where: { id: city.id } });
-      clearLocationCaches();
-    }
-  }
-
-  return {
-    cityId: city ? Number((city as any).id) : null,
-    cityName: city ? String((city as any).name) : geocoded.cityName || cityResolved.cleaned,
-    peripheryId: null,
-    peripheryName: null,
-    countryId: country?.id ?? null,
-    countryName: country?.name || geocoded.countryName || null,
-    latitude: geocoded.lat,
-    longitude: geocoded.lng,
-  } as ResolvedMapLocation;
+  } satisfies ResolvedMapLocation;
 }
 
 export async function resolveMapLocation(input: GraduateOriginInput): Promise<ResolvedMapLocation | null> {
   const lookups = await loadRegionLookups();
   const explicitCityId = input.origin_city_region_id ? Number(input.origin_city_region_id) : null;
   const explicitRegionId = input.origin_region_id ? Number(input.origin_region_id) : null;
+  const explicitCountryId = input.origin_country_region_id ? Number(input.origin_country_region_id) : null;
   const rawCityName = cleanRegionText(input.origin_municipality);
+  const rawCountryName = cleanRegionText(input.origin_country);
 
   const explicitCity = explicitCityId ? lookups.byId.get(explicitCityId) ?? null : null;
+  const explicitCountry = explicitCountryId ? lookups.byId.get(explicitCountryId) ?? null : null;
+
   if (explicitCity && explicitCity.type === "FOREIGN_CITY") {
-    return {
+    const country = await resolveCountry(rawCountryName || explicitCountry?.name, explicitCountryId);
+    return withCountryFields({
       cityId: explicitCity.id,
       cityName: explicitCity.name,
       peripheryId: null,
       peripheryName: null,
-      countryId: getCountryFromRegionId(explicitCity.id, lookups.byId)?.id ?? null,
-      countryName: getCountryFromRegionId(explicitCity.id, lookups.byId)?.name ?? null,
-      latitude: explicitCity.latitude,
-      longitude: explicitCity.longitude,
-    };
+      latitude: explicitCity.latitude ?? country?.latitude ?? null,
+      longitude: explicitCity.longitude ?? country?.longitude ?? null,
+    }, country);
   }
+
+  if (explicitCountry && explicitCountry.type === "COUNTRY" && normalizeRegionText(explicitCountry.name) !== normalizeRegionText("Ελλάδα")) {
+    const country = await resolveCountry(rawCountryName || explicitCountry.name, explicitCountryId);
+    return withCountryFields({
+      cityId: explicitCity?.id ?? null,
+      cityName: explicitCity?.name ?? rawCityName ?? rawCountryName ?? explicitCountry.name,
+      peripheryId: null,
+      peripheryName: null,
+      latitude: explicitCity?.latitude ?? country?.latitude ?? null,
+      longitude: explicitCity?.longitude ?? country?.longitude ?? null,
+    }, country);
+  }
+
+  if (!explicitCountryId && rawCountryName && normalizeRegionText(rawCountryName) !== normalizeRegionText("Ελλάδα")) {
+    const country = await resolveCountry(rawCountryName, null);
+    if (country) {
+      return withCountryFields({
+        cityId: explicitCity?.id ?? null,
+        cityName: explicitCity?.name ?? rawCityName ?? rawCountryName,
+        peripheryId: null,
+        peripheryName: null,
+        latitude: explicitCity?.latitude ?? country.latitude,
+        longitude: explicitCity?.longitude ?? country.longitude,
+      }, country);
+    }
+  }
+
   if (explicitCity && explicitCity.type === "CITY") {
     const periphery = getPeripheryFromRegionId(explicitCity.id, lookups.byId);
     if ((explicitCity.latitude !== null && explicitCity.longitude !== null) || !rawCityName) {
-      return {
+      return withCountryFields({
         cityId: explicitCity.id,
         cityName: explicitCity.name,
         peripheryId: periphery ? periphery.id : null,
         peripheryName: periphery ? periphery.name : null,
-        countryId: getCountryFromRegionId(explicitCity.id, lookups.byId)?.id ?? null,
-        countryName: getCountryFromRegionId(explicitCity.id, lookups.byId)?.name ?? null,
         latitude: explicitCity.latitude,
         longitude: explicitCity.longitude,
-      };
+      }, null);
     }
   }
 
-  const countryId = input.origin_country_region_id ? Number(input.origin_country_region_id) : null;
-  const country = countryId ? lookups.byId.get(countryId) ?? null : null;
   const region = explicitRegionId ? lookups.byId.get(explicitRegionId) ?? null : null;
-  if (country && country.type === "COUNTRY" && normalizeRegionText(country.name) !== normalizeRegionText("Ελλάδα")) {
-    const foreignExisting = explicitCity?.type === "FOREIGN_CITY"
-      ? explicitCity
-      : (rawCityName ? (lookups.foreignCityByNormalized.get(normalizeRegionText(rawCityName)) || []).find((item) => Number(item.parent_id || 0) === Number(country.id)) || null : null);
-    if (foreignExisting && foreignExisting.latitude !== null && foreignExisting.longitude !== null) {
-      return {
-        cityId: foreignExisting.id,
-        cityName: foreignExisting.name,
-        peripheryId: null,
-        peripheryName: null,
-        countryId: country.id,
-        countryName: country.name,
-        latitude: foreignExisting.latitude,
-        longitude: foreignExisting.longitude,
-      };
-    }
-    if (rawCityName) {
-      const dynamic = await persistForeignCityFromGeocode(rawCityName, country, foreignExisting);
-      if (dynamic) return dynamic;
-    }
-    return {
-      cityId: foreignExisting?.id ?? explicitCity?.id ?? null,
-      cityName: foreignExisting?.name ?? explicitCity?.name ?? rawCityName,
-      peripheryId: null,
-      peripheryName: null,
-      countryId: country.id,
-      countryName: country.name,
-      latitude: foreignExisting?.latitude ?? explicitCity?.latitude ?? country.latitude ?? null,
-      longitude: foreignExisting?.longitude ?? explicitCity?.longitude ?? country.longitude ?? null,
-    };
-  }
   const periphery = explicitCity ? getPeripheryFromRegionId(explicitCity.id, lookups.byId) : region?.type === "PERIPHERY" ? region : getPeripheryFromRegionId(explicitRegionId, lookups.byId);
   const preferredPeripheryId = periphery ? periphery.id : null;
 
   if (!rawCityName) {
-    return {
+    return withCountryFields({
       cityId: explicitCity?.id ?? null,
       cityName: explicitCity?.name ?? null,
       peripheryId: periphery ? periphery.id : null,
       peripheryName: periphery ? periphery.name : null,
-      countryId: getCountryFromRegionId(explicitCity?.id ?? periphery?.id ?? null, lookups.byId)?.id ?? null,
-      countryName: getCountryFromRegionId(explicitCity?.id ?? periphery?.id ?? null, lookups.byId)?.name ?? null,
       latitude: explicitCity?.latitude ?? null,
       longitude: explicitCity?.longitude ?? null,
-    };
+    }, null);
   }
 
   const normalized = normalizeRegionText(rawCityName);
   if (!normalized) {
-    return {
+    return withCountryFields({
       cityId: explicitCity?.id ?? null,
       cityName: explicitCity?.name ?? rawCityName,
       peripheryId: periphery ? periphery.id : null,
       peripheryName: periphery ? periphery.name : null,
-      countryId: getCountryFromRegionId(explicitCity?.id ?? periphery?.id ?? null, lookups.byId)?.id ?? null,
-      countryName: getCountryFromRegionId(explicitCity?.id ?? periphery?.id ?? null, lookups.byId)?.name ?? null,
       latitude: explicitCity?.latitude ?? null,
       longitude: explicitCity?.longitude ?? null,
-    };
+    }, null);
   }
 
   const existing = pickScopedCity(lookups.cityByNormalized.get(normalized) || [], preferredPeripheryId, lookups.byId);
   if (existing && existing.latitude !== null && existing.longitude !== null) {
     const existingPeriphery = getPeripheryFromRegionId(existing.id, lookups.byId);
-    return {
+    return withCountryFields({
       cityId: existing.id,
       cityName: existing.name,
       peripheryId: existingPeriphery ? existingPeriphery.id : null,
       peripheryName: existingPeriphery ? existingPeriphery.name : null,
-      countryId: getCountryFromRegionId(existing.id, lookups.byId)?.id ?? null,
-      countryName: getCountryFromRegionId(existing.id, lookups.byId)?.name ?? null,
       latitude: existing.latitude,
       longitude: existing.longitude,
-    };
+    }, null);
   }
 
   const cacheKey = `${normalized}::${preferredPeripheryId || "none"}`;
@@ -595,14 +719,12 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
   const dynamic = await pending;
   if (dynamic) return dynamic;
 
-  return {
+  return withCountryFields({
     cityId: existing?.id ?? explicitCity?.id ?? null,
     cityName: existing?.name || explicitCity?.name || rawCityName,
     peripheryId: periphery ? periphery.id : null,
     peripheryName: periphery ? periphery.name : null,
-    countryId: getCountryFromRegionId(existing?.id ?? explicitCity?.id ?? periphery?.id ?? null, lookups.byId)?.id ?? null,
-    countryName: getCountryFromRegionId(existing?.id ?? explicitCity?.id ?? periphery?.id ?? null, lookups.byId)?.name ?? null,
     latitude: existing?.latitude ?? explicitCity?.latitude ?? null,
     longitude: existing?.longitude ?? explicitCity?.longitude ?? null,
-  };
+  }, null);
 }
