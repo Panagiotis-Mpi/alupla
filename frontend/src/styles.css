@@ -430,13 +430,14 @@ html.accessibility-high-contrast{
   --bg:#ffffff;
   --surface:#ffffff;
   --text:#000000;
-  --muted:#111827;
+  --muted:#111111;
   --border:#000000;
   --shadow:none;
   --primary:#000000;
   --primaryHover:#000000;
-  --danger:#7f1d1d;
+  --danger:#000000;
   color-scheme:light !important;
+  background:#ffffff !important;
 }
 html.accessibility-high-contrast,
 html.accessibility-high-contrast body{
@@ -446,12 +447,48 @@ html.accessibility-high-contrast body{
 html.accessibility-high-contrast body,
 html.accessibility-high-contrast .app-shell,
 html.accessibility-high-contrast .app-content,
-html.accessibility-high-contrast .container{
+html.accessibility-high-contrast .container,
+html.accessibility-high-contrast .page-stable-shell,
+html.accessibility-high-contrast .map-panel-stack{
   background:#ffffff !important;
   color:#000000 !important;
 }
+html.accessibility-high-contrast .nav,
+html.accessibility-high-contrast .mobile-drawer,
+html.accessibility-high-contrast .public-home-shell,
+html.accessibility-high-contrast .public-home-card,
+html.accessibility-high-contrast .app-footer{
+  background:#ffffff !important;
+  color:#000000 !important;
+  border-color:#000000 !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+}
+html.accessibility-high-contrast .drawer-backdrop{
+  background:rgba(0,0,0,.22) !important;
+}
+html.accessibility-high-contrast *{
+  text-shadow:none !important;
+}
 html.accessibility-high-contrast a{
   color:#0037ff !important;
+}
+html.accessibility-high-contrast .brand,
+html.accessibility-high-contrast .nav a,
+html.accessibility-high-contrast .nav strong,
+html.accessibility-high-contrast .page-title-row h2,
+html.accessibility-high-contrast .page-title-row h3,
+html.accessibility-high-contrast .public-home-title,
+html.accessibility-high-contrast .public-home-text,
+html.accessibility-high-contrast .auth-panel-title,
+html.accessibility-high-contrast .auth-panel-text,
+html.accessibility-high-contrast .auth-note,
+html.accessibility-high-contrast .auth-links-row,
+html.accessibility-high-contrast .auth-code,
+html.accessibility-high-contrast .muted,
+html.accessibility-high-contrast .label,
+html.accessibility-high-contrast .badge{
+  color:#000000 !important;
 }
 html.accessibility-high-contrast .app-shell :is(div,section,article,aside,header,footer,main,nav,form,fieldset,legend,table,thead,tbody,tfoot,tr,th,td,caption,ul,ol,li,dl,dt,dd,p,span,label,strong,small,h1,h2,h3,h4,h5,h6){
   color:#000000;
@@ -459,24 +496,15 @@ html.accessibility-high-contrast .app-shell :is(div,section,article,aside,header
 }
 html.accessibility-high-contrast .card,
 html.accessibility-high-contrast .input,
-html.accessibility-high-contrast .nav,
-html.accessibility-high-contrast .mobile-drawer,
-html.accessibility-high-contrast .public-home-card,
-html.accessibility-high-contrast .public-home-shell,
-html.accessibility-high-contrast .accessibility-trigger,
-html.accessibility-high-contrast .accessibility-panel,
-html.accessibility-high-contrast .accessibility-icon-btn,
-html.accessibility-high-contrast .accessibility-toggle-btn,
-html.accessibility-high-contrast .app-footer,
 html.accessibility-high-contrast .table-wrap,
+html.accessibility-high-contrast .table,
+html.accessibility-high-contrast .mobile-table-card,
 html.accessibility-high-contrast .modal-card,
 html.accessibility-high-contrast .drawer-panel,
 html.accessibility-high-contrast .auth-subcard,
 html.accessibility-high-contrast .auth-subcard-muted,
 html.accessibility-high-contrast .auth-subcard-white,
 html.accessibility-high-contrast .page-header-card,
-html.accessibility-high-contrast .mobile-table-card,
-html.accessibility-high-contrast .table,
 html.accessibility-high-contrast .badge,
 html.accessibility-high-contrast .chip,
 html.accessibility-high-contrast .pill,
@@ -484,7 +512,6 @@ html.accessibility-high-contrast .leaflet-control,
 html.accessibility-high-contrast .leaflet-bar a,
 html.accessibility-high-contrast .leaflet-popup-content-wrapper,
 html.accessibility-high-contrast .leaflet-popup-tip,
-html.accessibility-high-contrast .recharts-tooltip-wrapper,
 html.accessibility-high-contrast select,
 html.accessibility-high-contrast textarea,
 html.accessibility-high-contrast input{
@@ -501,23 +528,24 @@ html.accessibility-high-contrast .app-shell [style*="box-shadow"]{
   border-color:#000000 !important;
   box-shadow:none !important;
 }
+html.accessibility-high-contrast .table,
+html.accessibility-high-contrast table{
+  border:2px solid #000000 !important;
+}
 html.accessibility-high-contrast .table th,
 html.accessibility-high-contrast .table td,
-html.accessibility-high-contrast table,
-html.accessibility-high-contrast tr,
-html.accessibility-high-contrast td,
-html.accessibility-high-contrast th{
+html.accessibility-high-contrast table th,
+html.accessibility-high-contrast table td{
   background:#ffffff !important;
   border-color:#000000 !important;
   color:#000000 !important;
 }
 html.accessibility-high-contrast .table th{
-  opacity:1 !important;
-  background:#f3f4f6 !important;
-  font-weight:800;
+  background:#e5e5e5 !important;
+  font-weight:800 !important;
 }
 html.accessibility-high-contrast .table tr:hover td{
-  background:#e5e7eb !important;
+  background:#f1f1f1 !important;
 }
 html.accessibility-high-contrast .btn,
 html.accessibility-high-contrast button,
@@ -535,45 +563,41 @@ html.accessibility-high-contrast button.primary,
 html.accessibility-high-contrast .btn[aria-pressed="true"],
 html.accessibility-high-contrast button[aria-pressed="true"],
 html.accessibility-high-contrast .btn.active,
-html.accessibility-high-contrast button.active{
+html.accessibility-high-contrast button.active,
+html.accessibility-high-contrast .btn:hover,
+html.accessibility-high-contrast button:hover{
   background:#000000 !important;
-  color:#ffffff !important;
-}
-html.accessibility-high-contrast .btn.danger,
-html.accessibility-high-contrast button.danger{
-  background:#7f1d1d !important;
   color:#ffffff !important;
   border-color:#000000 !important;
 }
-html.accessibility-high-contrast .badge,
-html.accessibility-high-contrast .chip,
-html.accessibility-high-contrast .pill{
+html.accessibility-high-contrast .btn.danger,
+html.accessibility-high-contrast button.danger{
+  background:#000000 !important;
+  color:#ffffff !important;
+  border-color:#000000 !important;
+}
+html.accessibility-high-contrast :is(button,.btn,input,select,textarea):disabled{
+  background:#e5e5e5 !important;
+  color:#555555 !important;
+  border-color:#555555 !important;
+  opacity:1 !important;
+}
+html.accessibility-high-contrast ::placeholder{
+  color:#222222 !important;
+  opacity:1 !important;
+}
+html.accessibility-high-contrast option{
   background:#ffffff !important;
   color:#000000 !important;
-  border:2px solid #000000 !important;
 }
-html.accessibility-high-contrast .muted,
-html.accessibility-high-contrast .label,
-html.accessibility-high-contrast ::placeholder{
-  color:#1f2937 !important;
-  opacity:1 !important;
+html.accessibility-high-contrast input[type="checkbox"],
+html.accessibility-high-contrast input[type="radio"]{
+  accent-color:#000000;
 }
 html.accessibility-high-contrast :is(input,select,textarea,button,.btn,a,[role="button"],summary):focus-visible{
   outline:3px solid #0037ff !important;
   outline-offset:2px !important;
 }
-html.accessibility-high-contrast .accessibility-trigger,
-html.accessibility-high-contrast .accessibility-icon-btn,
-html.accessibility-high-contrast .accessibility-toggle-btn{
-  background:#ffffff !important;
-  color:#000000 !important;
-}
-html.accessibility-high-contrast .accessibility-toggle-btn.is-active,
-html.accessibility-high-contrast .accessibility-icon-btn.is-active{
-  background:#000000 !important;
-  color:#ffffff !important;
-}
-
 html.accessibility-high-contrast .lang-switcher .btn[aria-pressed="true"]{
   background:#000000 !important;
   color:#ffffff !important;
@@ -583,40 +607,81 @@ html.accessibility-high-contrast .lang-switcher .btn[aria-pressed="true"]{
 html.accessibility-high-contrast .lang-switcher .btn[aria-pressed="true"] *{
   color:#ffffff !important;
 }
-html.accessibility-high-contrast .accessibility-panel .accessibility-panel-header strong,
-html.accessibility-high-contrast .accessibility-panel .accessibility-section-title,
-html.accessibility-high-contrast .accessibility-panel .accessibility-font-status,
-html.accessibility-high-contrast .accessibility-panel .accessibility-panel-actions .btn,
-html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn,
-html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn *,
-html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn,
-html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn *{
-  color:inherit !important;
-}
-html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn,
-html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn{
+html.accessibility-high-contrast .accessibility-trigger,
+html.accessibility-high-contrast .accessibility-panel,
+html.accessibility-high-contrast .accessibility-icon-btn,
+html.accessibility-high-contrast .accessibility-toggle-btn{
   background:#ffffff !important;
   color:#000000 !important;
-  border-color:#000000 !important;
+  border:2px solid #000000 !important;
+  box-shadow:none !important;
 }
-html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn:disabled,
-html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn:disabled{
-  background:#f3f4f6 !important;
-  color:#6b7280 !important;
-  border-color:#6b7280 !important;
-  opacity:1 !important;
-}
-html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn.is-active,
-html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn.is-active,
+html.accessibility-high-contrast .accessibility-toggle-btn.is-active,
+html.accessibility-high-contrast .accessibility-icon-btn.is-active,
 html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn[aria-pressed="true"]{
   background:#000000 !important;
   color:#ffffff !important;
   border-color:#000000 !important;
 }
-html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn.is-active *,
 html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn.is-active *,
+html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn.is-active *,
 html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn[aria-pressed="true"] *{
   color:#ffffff !important;
+}
+html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn:disabled,
+html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn:disabled{
+  background:#e5e5e5 !important;
+  color:#555555 !important;
+  border-color:#555555 !important;
+}
+html.accessibility-high-contrast .accessibility-trigger-disc-outer{
+  fill:#ffffff !important;
+  stroke:#000000 !important;
+}
+html.accessibility-high-contrast .accessibility-trigger-disc-inner{
+  fill:#000000 !important;
+  stroke:#ffffff !important;
+}
+html.accessibility-high-contrast .accessibility-trigger-head{
+  fill:#ffffff !important;
+}
+html.accessibility-high-contrast .accessibility-trigger-line{
+  stroke:#ffffff !important;
+}
+html.accessibility-high-contrast .leaflet-container,
+html.accessibility-high-contrast .leaflet-control,
+html.accessibility-high-contrast .leaflet-popup-content-wrapper,
+html.accessibility-high-contrast .leaflet-popup-tip{
+  background:#ffffff !important;
+  color:#000000 !important;
+  border-color:#000000 !important;
+}
+html.accessibility-high-contrast .leaflet-container{
+  border:2px solid #000000 !important;
+}
+html.accessibility-high-contrast .leaflet-bar a{
+  color:#000000 !important;
+}
+html.accessibility-high-contrast .leaflet-bar a:hover{
+  background:#000000 !important;
+  color:#ffffff !important;
+}
+html.accessibility-high-contrast .leaflet-tile{
+  filter:grayscale(100%) contrast(145%) brightness(112%);
+}
+html.accessibility-high-contrast img,
+html.accessibility-high-contrast video,
+html.accessibility-high-contrast canvas{
+  filter:grayscale(100%) contrast(140%);
+}
+html.accessibility-high-contrast canvas{
+  background:#ffffff !important;
+  border:2px solid #000000 !important;
+  border-radius:12px;
+}
+html.accessibility-high-contrast [role="img"] canvas{
+  border:none !important;
+  border-radius:0 !important;
 }
 html.accessibility-high-contrast .recharts-text,
 html.accessibility-high-contrast .recharts-label,
@@ -636,27 +701,30 @@ html.accessibility-high-contrast .recharts-polar-grid-angle line,
 html.accessibility-high-contrast .recharts-polar-grid-concentric polygon,
 html.accessibility-high-contrast .recharts-polar-grid-concentric circle{
   stroke:#000000 !important;
-  opacity:.45;
+  opacity:.5;
 }
-html.accessibility-high-contrast .leaflet-container,
-html.accessibility-high-contrast .leaflet-control,
-html.accessibility-high-contrast .leaflet-popup-content-wrapper,
-html.accessibility-high-contrast .leaflet-popup-tip{
-  background:#ffffff !important;
-  color:#000000 !important;
-  border-color:#000000 !important;
-}
-html.accessibility-high-contrast .leaflet-container{
-  border:2px solid #000000 !important;
-}
-html.accessibility-high-contrast .leaflet-tile{
-  filter:grayscale(100%) contrast(120%) brightness(108%);
-}
-html.accessibility-high-contrast img,
-html.accessibility-high-contrast video,
-html.accessibility-high-contrast canvas,
-html.accessibility-high-contrast svg{
-  filter:grayscale(100%) contrast(118%);
+@media (forced-colors: active){
+  html.accessibility-high-contrast,
+  html.accessibility-high-contrast body,
+  html.accessibility-high-contrast .app-shell,
+  html.accessibility-high-contrast .app-content,
+  html.accessibility-high-contrast .container,
+  html.accessibility-high-contrast .card,
+  html.accessibility-high-contrast .nav,
+  html.accessibility-high-contrast .btn,
+  html.accessibility-high-contrast .input,
+  html.accessibility-high-contrast .table,
+  html.accessibility-high-contrast .leaflet-container,
+  html.accessibility-high-contrast .accessibility-panel,
+  html.accessibility-high-contrast .accessibility-trigger{
+    forced-color-adjust:auto;
+  }
+  html.accessibility-high-contrast .leaflet-tile,
+  html.accessibility-high-contrast img,
+  html.accessibility-high-contrast video,
+  html.accessibility-high-contrast canvas{
+    filter:none !important;
+  }
 }
 html.accessibility-underline-links :is(a, button, .btn, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], summary, .brand){
   text-decoration-line:underline;
