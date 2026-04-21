@@ -204,7 +204,7 @@ function bubbleLabelIcon(
   showLabel: boolean,
   mt: (key: string, options?: Record<string, unknown>) => string,
 ) {
-  const radius = Math.max(8, Number(city?.markerRadius || 8));
+  const radius = Math.max(10, Number(city?.markerRadius || 10));
   const size = radius * 2;
   const label = escapeHtml(String(city?.city_name || ""));
   const count = Math.max(0, Number(city?.count || 0));
@@ -310,6 +310,9 @@ export default function GraduatesMapPage() {
   const [selectedGraduationYear, setSelectedGraduationYear] = useState<string>("");
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [yearRangeLoading, setYearRangeLoading] = useState(false);
+  const [initialPageReady, setInitialPageReady] = useState(false);
+  const [scopeTransitionLoading, setScopeTransitionLoading] = useState(false);
+  const [metricTransitionLoading, setMetricTransitionLoading] = useState(false);
   const isCompactViewport = useCompactMapViewport();
   const fitPadding = isCompactViewport
     ? ([18, 18] as [number, number])
@@ -343,7 +346,7 @@ export default function GraduatesMapPage() {
 
   const greekCityMarkers = useMemo(() => {
     const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
-    const radii = [8, 10, 12, 14, 16, 19, 22];
+    const radii = [10, 12, 15, 18, 21, 25, 29];
     const grouped = new Map<string, any>();
     const collapseMetro = shouldCollapseMetroAtZoom(mapZoom);
 
@@ -543,11 +546,31 @@ export default function GraduatesMapPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (initialPageReady || loading || yearRangeLoading) return;
+    const frame = window.requestAnimationFrame(() => setInitialPageReady(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, [initialPageReady, loading, yearRangeLoading]);
+
+  useEffect(() => {
+    if (!scopeTransitionLoading || loading) return;
+    const frame = window.requestAnimationFrame(() => setScopeTransitionLoading(false));
+    return () => window.cancelAnimationFrame(frame);
+  }, [loading, scopeTransitionLoading]);
+
+  useEffect(() => {
+    if (!metricTransitionLoading) return;
+    const timer = window.setTimeout(() => setMetricTransitionLoading(false), 220);
+    return () => window.clearTimeout(timer);
+  }, [mapMetric, metricTransitionLoading]);
+
   const isAllYearsSelected = !selectedGraduationYear;
   const selectedYearLabel = isAllYearsSelected
     ? mt("timeline.allYears", { defaultValue: "Όλες οι χρονιές" })
     : selectedGraduationYear;
-  const pageLoading = loading || yearRangeLoading || cityStatsLoading;
+  const pageLoading = !initialPageReady || scopeTransitionLoading;
+  const inlineMapLoading = (!pageLoading && loading) || metricTransitionLoading;
+  const inlineTimelineLoading = (!pageLoading && (loading || yearRangeLoading)) || metricTransitionLoading;
 
   const exportCategoryOptions = useMemo(
     () => [
@@ -611,7 +634,7 @@ export default function GraduatesMapPage() {
 
   const abroadCountryMarkers = useMemo(() => {
     const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
-    const radii = [8, 10, 12, 14, 16, 19, 22];
+    const radii = [10, 12, 15, 18, 21, 25, 29];
     const grouped = new Map<string, any>();
 
     for (const city of cityPoints) {
@@ -708,7 +731,7 @@ export default function GraduatesMapPage() {
       .sort((left, right) => left - right);
     if (!counts.length) return [] as Array<any>;
     const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
-    const sizes = [8, 10, 12, 14, 16, 19, 22];
+    const sizes = [10, 12, 15, 18, 21, 25, 29];
     const breaks = Array.from({ length: palette.length }, (_, index) => {
       const percentile = (index + 1) / palette.length;
       const position = Math.min(counts.length - 1, Math.max(0, Math.ceil(percentile * counts.length) - 1));
@@ -1121,6 +1144,10 @@ export default function GraduatesMapPage() {
         .map-summary-sub { color: #64748b; font-size: 13px; line-height: 1.35; }
         .map-main-card { margin: 12px auto 0; max-width: 1080px; }
         .map-map-wrap { position: relative; padding: 8px 8px 12px; }
+        .map-loading-overlay { position: absolute; inset: 8px 8px 12px; border-radius: 18px; background: rgba(255,255,255,.78); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 450; pointer-events: none; }
+        .map-loading-overlay-card { min-width: 180px; min-height: 88px; padding: 16px 20px; border-radius: 18px; border: 1px solid rgba(148,163,184,.28); background: rgba(255,255,255,.96); box-shadow: 0 18px 40px rgba(15,23,42,.14); display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; text-align: center; }
+        .map-loading-overlay-timeline { inset: 0; border-radius: 16px; }
+        .map-timeline-shell { position: relative; }
         .map-main-card .map-canvas { height: clamp(760px, 80vh, 940px); min-height: 760px; }
         .map-trend-card, .map-combined-details-card { margin-top: 12px; padding: 16px; display: grid; gap: 12px; }
         .map-trend-canvas { height: 260px; min-height: 260px; width: 100%; }
@@ -1157,8 +1184,17 @@ export default function GraduatesMapPage() {
         mapScope={mapScope}
         metricOptions={metricOptions}
         showExportMenu={showExportMenu}
-        onMetricChange={setMapMetric}
-        onScopeChange={setMapScope}
+        onMetricChange={(metric) => {
+          if (metric === mapMetric) return;
+          setMetricTransitionLoading(true);
+          setMapMetric(metric);
+        }}
+        onScopeChange={(scope) => {
+          if (scope === mapScope) return;
+          setShowExportMenu(false);
+          setScopeTransitionLoading(true);
+          setMapScope(scope);
+        }}
         onToggleExportMenu={() => setShowExportMenu((prev) => !prev)}
         onExportPick={openExportSelection}
       />
@@ -1208,15 +1244,22 @@ export default function GraduatesMapPage() {
         </div>
       </div>
 
-      <MapYearTimeline
-        mt={mt}
-        years={availableYears}
-        selectedYear={selectedGraduationYear}
-        isAllYears={isAllYearsSelected}
-        loading={yearRangeLoading}
-        onSelectAllYears={() => setSelectedGraduationYear("")}
-        onSliderChange={(year) => setSelectedGraduationYear(year)}
-      />
+      <div className="map-timeline-shell">
+        <MapYearTimeline
+          mt={mt}
+          years={availableYears}
+          selectedYear={selectedGraduationYear}
+          isAllYears={isAllYearsSelected}
+          loading={yearRangeLoading || inlineTimelineLoading}
+          onSelectAllYears={() => setSelectedGraduationYear("")}
+          onSliderChange={(year) => setSelectedGraduationYear(year)}
+        />
+        {inlineTimelineLoading ? (
+          <div className="map-loading-overlay map-loading-overlay-timeline">
+            <div className="map-loading-overlay-card">{ct("loading", { defaultValue: "Φόρτωση..." })}</div>
+          </div>
+        ) : null}
+      </div>
 
       <div className="card alupla-map-card map-main-card">
         <div className="map-map-wrap">
@@ -1251,6 +1294,7 @@ export default function GraduatesMapPage() {
               <TileLayer
                 attribution={mapTileAttribution}
                 url={mapTileUrl}
+                crossOrigin="anonymous"
               />
               <MapViewportWatcher
                 onZoomChange={setMapZoom}
@@ -1320,6 +1364,12 @@ export default function GraduatesMapPage() {
             </MapContainer>
           </div>
 
+          {inlineMapLoading ? (
+            <div className="map-loading-overlay">
+              <div className="map-loading-overlay-card">{ct("loading", { defaultValue: "Φόρτωση..." })}</div>
+            </div>
+          ) : null}
+
           <div
             style={{
               position: "absolute",
@@ -1353,8 +1403,8 @@ export default function GraduatesMapPage() {
                 >
                   <span
                     style={{
-                      width: mapScope === "greece" ? Math.max(8, Number((entry as any).radius || 8)) : 18,
-                      height: mapScope === "greece" ? Math.max(8, Number((entry as any).radius || 8)) : 12,
+                      width: Math.max(10, Number((entry as any).radius || (mapScope === "greece" ? 10 : 16))),
+                      height: Math.max(10, Number((entry as any).radius || (mapScope === "greece" ? 10 : 16))),
                       borderRadius: 999,
                       background: entry.color,
                       opacity: entry.opacity,

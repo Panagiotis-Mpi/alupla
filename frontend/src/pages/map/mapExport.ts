@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
 import { downloadBlob } from "../../lib/download";
-import { prepareSnapshotClone } from "../../lib/domSnapshot";
+import { prepareSnapshotClone, waitForRenderableImages } from "../../lib/domSnapshot";
 
 export function excelCellValue(v: any) {
   return v === null || v === undefined || v === "" ? "" : v;
@@ -20,7 +20,8 @@ function utf16Blob(text: string) {
 
 export async function exportElementAsPng(element: HTMLElement, filename: string) {
   const rect = element.getBoundingClientRect();
-  const clone = prepareSnapshotClone(element);
+  await waitForRenderableImages(element);
+  const clone = await prepareSnapshotClone(element);
   clone.style.margin = "0";
   clone.style.width = `${Math.ceil(rect.width)}px`;
   clone.style.height = `${Math.ceil(rect.height)}px`;

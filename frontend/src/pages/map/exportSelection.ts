@@ -3,6 +3,7 @@ import type L from "leaflet";
 import type { RefObject } from "react";
 import type { GraduatesMapItem } from "../../lib/api";
 import { excelCellValue } from "./mapExport";
+import { prepareSnapshotClone, waitForRenderableImages } from "../../lib/domSnapshot";
 
 export type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -153,31 +154,8 @@ export async function renderMapSnapshot(element: HTMLElement) {
   const rect = element.getBoundingClientRect();
   const width = Math.ceil(rect.width);
   const height = Math.ceil(rect.height);
-  const clone = element.cloneNode(true) as HTMLElement;
-  const sourceNodes = [element, ...Array.from(element.querySelectorAll<HTMLElement>("*"))];
-  const cloneNodes = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>("*"))];
-
-  sourceNodes.forEach((sourceNode, index) => {
-    const cloneNode = cloneNodes[index];
-    if (!cloneNode) return;
-    const computed = window.getComputedStyle(sourceNode);
-    cloneNode.setAttribute("style", Array.from(computed).map((name) => `${name}:${computed.getPropertyValue(name)};`).join(""));
-  });
-
-  Array.from(element.querySelectorAll("canvas")).forEach((sourceCanvas, index) => {
-    const cloneCanvas = clone.querySelectorAll("canvas")[index];
-    if (!cloneCanvas) return;
-    const image = document.createElement("img");
-    try {
-      image.src = (sourceCanvas as HTMLCanvasElement).toDataURL("image/png");
-    } catch {
-      return;
-    }
-    image.style.width = `${cloneCanvas.clientWidth || (sourceCanvas as HTMLCanvasElement).clientWidth}px`;
-    image.style.height = `${cloneCanvas.clientHeight || (sourceCanvas as HTMLCanvasElement).clientHeight}px`;
-    cloneCanvas.replaceWith(image);
-  });
-
+  await waitForRenderableImages(element);
+  const clone = await prepareSnapshotClone(element);
   clone.style.margin = "0";
   clone.style.width = `${width}px`;
   clone.style.height = `${height}px`;
