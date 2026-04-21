@@ -568,9 +568,9 @@ export default function GraduatesMapPage() {
   const selectedYearLabel = isAllYearsSelected
     ? mt("timeline.allYears", { defaultValue: "Όλες οι χρονιές" })
     : selectedGraduationYear;
-  const pageLoading = !initialPageReady || scopeTransitionLoading;
-  const inlineMapLoading = (!pageLoading && loading) || metricTransitionLoading;
-  const inlineTimelineLoading = (!pageLoading && (loading || yearRangeLoading)) || metricTransitionLoading;
+  const pageLoading = !initialPageReady;
+  const inlineMapLoading = (!pageLoading && loading) || metricTransitionLoading || scopeTransitionLoading;
+  const summaryLoading = !pageLoading && scopeTransitionLoading;
 
   const exportCategoryOptions = useMemo(
     () => [
@@ -1086,7 +1086,7 @@ export default function GraduatesMapPage() {
   }
 
   if (pageLoading) {
-    return <div className="card">{ct("loading", { defaultValue: "Φόρτωση..." })}</div>;
+    return <div className="card">{mt("loadingLabel", { defaultValue: "φορτώση" })}</div>;
   }
 
   return (
@@ -1146,8 +1146,8 @@ export default function GraduatesMapPage() {
         .map-map-wrap { position: relative; padding: 8px 8px 12px; }
         .map-loading-overlay { position: absolute; inset: 8px 8px 12px; border-radius: 18px; background: rgba(255,255,255,.78); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 450; pointer-events: none; }
         .map-loading-overlay-card { min-width: 180px; min-height: 88px; padding: 16px 20px; border-radius: 18px; border: 1px solid rgba(148,163,184,.28); background: rgba(255,255,255,.96); box-shadow: 0 18px 40px rgba(15,23,42,.14); display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; text-align: center; }
-        .map-loading-overlay-timeline { inset: 0; border-radius: 16px; }
-        .map-timeline-shell { position: relative; }
+        .map-summary-shell, .map-timeline-shell { position: relative; }
+        .map-summary-overlay { inset: 0; border-radius: 18px; }
         .map-main-card .map-canvas { height: clamp(760px, 80vh, 940px); min-height: 760px; }
         .map-trend-card, .map-combined-details-card { margin-top: 12px; padding: 16px; display: grid; gap: 12px; }
         .map-trend-canvas { height: 260px; min-height: 260px; width: 100%; }
@@ -1199,8 +1199,9 @@ export default function GraduatesMapPage() {
         onExportPick={openExportSelection}
       />
 
-      <div className="map-summary-grid">
-        <div className="card map-summary-card">
+      <div className="map-summary-shell">
+        <div className="map-summary-grid">
+          <div className="card map-summary-card">
           <div className="map-summary-label">
             {mt("summary.total", { defaultValue: "Σύνολο αποφοίτων" })}
           </div>
@@ -1242,6 +1243,12 @@ export default function GraduatesMapPage() {
             {weightedAvgAge === null ? "-" : compactNumber(weightedAvgAge)}
           </div>
         </div>
+        </div>
+        {summaryLoading ? (
+          <div className="map-loading-overlay map-summary-overlay">
+            <div className="map-loading-overlay-card">{mt("loadingLabel", { defaultValue: "φορτώση" })}</div>
+          </div>
+        ) : null}
       </div>
 
       <div className="map-timeline-shell">
@@ -1250,15 +1257,10 @@ export default function GraduatesMapPage() {
           years={availableYears}
           selectedYear={selectedGraduationYear}
           isAllYears={isAllYearsSelected}
-          loading={yearRangeLoading || inlineTimelineLoading}
+          loading={yearRangeLoading}
           onSelectAllYears={() => setSelectedGraduationYear("")}
           onSliderChange={(year) => setSelectedGraduationYear(year)}
         />
-        {inlineTimelineLoading ? (
-          <div className="map-loading-overlay map-loading-overlay-timeline">
-            <div className="map-loading-overlay-card">{ct("loading", { defaultValue: "Φόρτωση..." })}</div>
-          </div>
-        ) : null}
       </div>
 
       <div className="card alupla-map-card map-main-card">
@@ -1366,7 +1368,7 @@ export default function GraduatesMapPage() {
 
           {inlineMapLoading ? (
             <div className="map-loading-overlay">
-              <div className="map-loading-overlay-card">{ct("loading", { defaultValue: "Φόρτωση..." })}</div>
+              <div className="map-loading-overlay-card">{mt("loadingLabel", { defaultValue: "φορτώση" })}</div>
             </div>
           ) : null}
 
@@ -1438,7 +1440,7 @@ export default function GraduatesMapPage() {
             </div>
             {cityStatsLoading ? (
               <div className="muted">
-                {ct("loading", { defaultValue: "Φόρτωση..." })}
+                {mt("loadingLabel", { defaultValue: "φορτώση" })}
               </div>
             ) : selectedCityStats.length ? (
               <div className="map-city-cards-inline">
