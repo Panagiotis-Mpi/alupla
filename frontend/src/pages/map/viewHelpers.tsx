@@ -1,12 +1,7 @@
 import { useEffect, useState } from "react";
 import type React from "react";
 
-import { normalizeKey } from "./utils";
-
-const directionPalette = ["#2563eb", "#dc2626", "#16a34a", "#f59e0b", "#7c3aed", "#0891b2", "#e11d48", "#65a30d", "#ea580c", "#4f46e5", "#db2777", "#0f766e", "#b91c1c", "#0284c7", "#a16207", "#9333ea", "#15803d", "#c2410c", "#1d4ed8", "#be123c"];
-const genderColors = { male: "#1d4ed8", female: "#c026d3", balanced: "#475569", empty: "#dbe2ea" };
-
-export { directionPalette, genderColors };
+export const genderColors = { male: "#1d4ed8", female: "#c026d3", balanced: "#475569", empty: "#dbe2ea" };
 
 export function useCompactMapViewport() {
   const [isCompact, setIsCompact] = useState(() => typeof window !== "undefined" ? window.innerWidth <= 820 : false);
@@ -34,54 +29,6 @@ export function detailValue(value: number | string | null | undefined, suffix = 
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return `${value}${suffix}`;
   return `${compactNumber(numeric)}${suffix}`;
-}
-
-function hashLabel(value: string) {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-  return hash;
-}
-
-export function buildDirectionColorMap(labels: string[]) {
-  const unique = Array.from(new Set(labels.map((label) => String(label || "").trim()).filter(Boolean)));
-  unique.sort((left, right) => left.localeCompare(right, "el"));
-  return new Map<string, string>(unique.map((label, index) => [label, directionPalette[index % directionPalette.length]]));
-}
-
-export function directionColor(label: string, colorMap?: Map<string, string>) {
-  if (!label) return genderColors.empty;
-  if (colorMap?.has(label)) return colorMap.get(label) || genderColors.empty;
-  return directionPalette[hashLabel(label) % directionPalette.length];
-}
-
-export function isPlaceholderLegendLabel(value: string) {
-  const normalized = normalizeKey(String(value || ""))
-    .replace(/[–—−‑‒﹘﹣]/g, "-")
-    .replace(/\s+/g, "")
-    .trim();
-  return /^\d+-\d+$/.test(normalized) && normalized.split("-")[0] === normalized.split("-")[1];
-}
-
-export function colorWithAlpha(color: string, alpha: number) {
-  if (color.startsWith("#") && (color.length === 7 || color.length === 4)) {
-    const hex = color.length === 4
-      ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
-      : color;
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r},${g},${b},${alpha})`;
-  }
-  return color;
-}
-
-export function programSortScore(label: string) {
-  const value = String(label || "");
-  const years = Array.from(value.matchAll(/(19|20)\d{2}/g)).map((match) => Number(match[0]));
-  const current = /σημερα|σήμερα|today|present|current/i.test(value) ? 1 : 0;
-  const maxYear = years.length ? Math.max(...years) : 0;
-  const minYear = years.length ? Math.min(...years) : 0;
-  return current * 1000000 + maxYear * 1000 + minYear;
 }
 
 export function slugPart(value: string) {

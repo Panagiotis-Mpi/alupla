@@ -143,12 +143,6 @@
     "dominantDirection": "Dominant direction",
     "directionCount": "Direction graduates"
   },
-  "cityPopup": {
-    "noData": "No city data is available.",
-    "noDirections": "No direction data is available for this city.",
-    "programTotal": "{{program}}: {{count}}",
-    "programPlaceholder": "Select a study program"
-  },
   "timeline": {
     "title": "Display year",
     "subtitle": "Drag the slider to quickly change the year shown on the map.",

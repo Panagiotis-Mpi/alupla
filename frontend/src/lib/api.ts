@@ -123,21 +123,6 @@ export type MapCityPoint = {
   dominant_gender?: "M" | "F" | "balanced" | null;
 };
 
-export type RegionCityMapItem = {
-  city: string;
-  count: number;
-  male_count?: number;
-  female_count?: number;
-  male_pct: number;
-  female_pct: number;
-  avg_age: number | null;
-  avg_grade: number | null;
-  avg_graduation_years: number | null;
-  dominant_gender?: "M" | "F" | "balanced" | null;
-  dominant_recent_direction?: string | null;
-  dominant_recent_direction_count?: number;
-  recent_directions?: Array<{ id: number; label: string; count: number; pct: number }>;
-};
 
 
 
@@ -429,9 +414,6 @@ export async function getMapCities(params: QueryParams = {}): Promise<{ ok: true
   return api(`/map/cities${toQueryString(params)}`, { method: "GET" });
 }
 
-export async function getRegionCitiesMap(params: QueryParams = {}): Promise<{ ok: true; items: RegionCityMapItem[] }> {
-  return api(`/map/region-cities${toQueryString(params)}`, { method: "GET" });
-}
 
 export async function getMapCityDetail(params: QueryParams = {}): Promise<MapCityDetailResponse> {
   return api(`/map/city-detail${toQueryString(params)}`, { method: "GET" });

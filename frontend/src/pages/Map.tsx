@@ -11,19 +11,6 @@ import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Filler,
-  Tooltip as ChartTooltip,
-  Legend,
-  ArcElement,
-} from "chart.js";
-import {
-  getGraduatesMap,
-  getMapCities,
   getMapCityDetail,
   getMapYearRange,
   logPublicExport,
@@ -34,9 +21,6 @@ import { useMapData } from "./map/hooks";
 import { EMPTY_FILTERS } from "./map/types";
 import {
   createMapParams,
-  fillColorForCount,
-  fillOpacityForCount,
-  legendBuckets,
   mapCityKey,
   mapCityLatitude,
   mapCityLongitude,
@@ -49,7 +33,6 @@ import {
   compactNumber,
   detailValue,
   genderColors,
-  isPlaceholderLegendLabel,
   slugPart,
   useCompactMapViewport,
 } from "./map/viewHelpers";
@@ -58,17 +41,6 @@ import {
   renderMapSnapshot,
   waitForMapFrame,
 } from "./map/exportSelection";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Filler,
-  ChartTooltip,
-  Legend,
-  ArcElement,
-);
 
 type MapMetric = "count" | "dominant_gender";
 type MapScope = "greece" | "abroad";
@@ -315,7 +287,7 @@ export default function GraduatesMapPage() {
     [mapScope, selectedGraduationYear],
   );
   const { loading, items, cityPoints } =
-    useMapData(params, selected?.periphery_id ?? null);
+    useMapData(params);
 
   const worldBounds = useMemo(() => L.latLngBounds(L.latLng(-60, -180), L.latLng(85, 180)), []);
   const greeceBounds = useMemo(() => L.latLngBounds(L.latLng(34.4, 19.8), L.latLng(41.9, 29.9)), []);
@@ -1082,17 +1054,6 @@ export default function GraduatesMapPage() {
         .map-info-group-title, .map-info-metric-value { color: #0f172a; font-weight: 800; }
         .map-city-cards-inline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
         .map-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-        .map-city-popup-card { display: grid; gap: 10px; min-width: 280px; max-width: 340px; }
-        .map-city-popup-title { font-size: 16px; font-weight: 800; color: #0f172a; }
-        .map-city-popup-sub, .map-city-popup-label { color: #64748b; font-size: 12px; }
-        .map-city-popup-chart { height: 190px; min-height: 190px; }
-        .map-city-popup-line { height: 180px; min-height: 180px; }
-        .map-city-popup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-        .map-city-popup-value { font-size: 16px; font-weight: 800; color: #0f172a; }
-        .map-city-popup-list, .map-city-popup-program-list { display: grid; gap: 8px; }
-        .map-city-popup-program-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 14px; color: #0f172a; font-weight: 700; }
-        .map-city-popup-program-title { font-size: 13px; font-weight: 800; color: #0f172a; }
-        .map-city-popup-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #334155; font-size: 13px; }
         @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .map-city-cards-inline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (max-width: 780px) { .map-top-controls-row { grid-template-columns: 1fr; } }
         @media (max-width: 640px) { .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } .map-timeline-actions { width: 100%; } .map-timeline-current, .map-timeline-all-button { width: 100%; justify-content: center; } }
