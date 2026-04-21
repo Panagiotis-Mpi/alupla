@@ -793,8 +793,8 @@ export default function GraduatesMapPage() {
 
 
   const comparisonHintText = mapScope === "abroad"
-    ? mt("detailsHintAbroad", { defaultValue: "Μπορείς να επιλέξεις έως έξι χώρες για σύγκριση." })
-    : mt("detailsHint", { defaultValue: "Μπορείς να επιλέξεις έως έξι πόλεις για σύγκριση." });
+    ? mt("detailsHintAbroad", { defaultValue: "Μπορείτε να επιλέξετε έως 6 χώρες για να τις συγκρίνετε." })
+    : mt("detailsHint", { defaultValue: "Μπορείτε να επιλέξετε έως έξι πόλεις για να τις συγκρίνετε." });
 
   async function waitForExportTarget(targetScope: MapScope, targetMetric: MapMetric) {
     const startedAt = Date.now();
