@@ -40,7 +40,7 @@ import {
   toNullableNumber,
   trimNullableText,
 } from "./graduates.helpers";
-import { applyOriginPatch, buildCreateOriginPayload, buildExportRows, ensureManagedOrigin, getReferenceMaps, getTemplateHeaders, resolveProgramDirectionId, resolveRegionId, resolveStudyProgramId } from "./graduates.shared";
+import { applyOriginPatch, buildCreateOriginPayload, buildExportRows, buildResolvedOriginSnapshot, ensureManagedOrigin, getReferenceMaps, getTemplateHeaders, resolveProgramDirectionId, resolveRegionId, resolveStudyProgramId } from "./graduates.shared";
 import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
 
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
@@ -465,7 +465,10 @@ export async function getGraduate(req: Request, res: Response, next: NextFunctio
     const item = await Graduate.findByPk(id);
     if (!item) return notFound(res);
 
-    res.json({ ok: true, item });
+    const { regionsById } = await getReferenceMaps();
+    const resolvedItem = buildResolvedOriginSnapshot(item.toJSON() as any, regionsById);
+
+    res.json({ ok: true, item: resolvedItem });
   } catch (err) {
     next(err);
   }

@@ -629,6 +629,25 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
     }, country);
   }
 
+  const rawCountryIsForeign = !!rawCountryName && normalizeRegionText(rawCountryName) !== normalizeRegionText("Ελλάδα");
+
+  if (rawCountryIsForeign) {
+    const preferredCountryId = explicitCountry && explicitCountry.type === "COUNTRY" && normalizeRegionText(explicitCountry.name) !== normalizeRegionText("Ελλάδα")
+      ? explicitCountryId
+      : null;
+    const country = await resolveCountry(rawCountryName, preferredCountryId);
+    if (country) {
+      return withCountryFields({
+        cityId: explicitCity?.id ?? null,
+        cityName: explicitCity?.name ?? rawCityName ?? rawCountryName,
+        peripheryId: null,
+        peripheryName: null,
+        latitude: explicitCity?.latitude ?? country.latitude,
+        longitude: explicitCity?.longitude ?? country.longitude,
+      }, country);
+    }
+  }
+
   if (explicitCountry && explicitCountry.type === "COUNTRY" && normalizeRegionText(explicitCountry.name) !== normalizeRegionText("Ελλάδα")) {
     const country = await resolveCountry(rawCountryName || explicitCountry.name, explicitCountryId);
     return withCountryFields({
@@ -641,19 +660,6 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
     }, country);
   }
 
-  if (!explicitCountryId && rawCountryName && normalizeRegionText(rawCountryName) !== normalizeRegionText("Ελλάδα")) {
-    const country = await resolveCountry(rawCountryName, null);
-    if (country) {
-      return withCountryFields({
-        cityId: explicitCity?.id ?? null,
-        cityName: explicitCity?.name ?? rawCityName ?? rawCountryName,
-        peripheryId: null,
-        peripheryName: null,
-        latitude: explicitCity?.latitude ?? country.latitude,
-        longitude: explicitCity?.longitude ?? country.longitude,
-      }, country);
-    }
-  }
 
   if (explicitCity && explicitCity.type === "CITY") {
     const periphery = getPeripheryFromRegionId(explicitCity.id, lookups.byId);

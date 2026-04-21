@@ -57,6 +57,36 @@ function getGreeceCountry(countries: Region[]) {
   return countries.find((item) => String(item.name || "").trim().toLowerCase() === "ελλάδα") ?? null;
 }
 
+function normalizeLookupText(value: unknown) {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\./g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getResolvedCountryId(form: Partial<Graduate>, countries: Region[], greeceCountry: Region | null) {
+  const explicitCountry = String(form.origin_country ?? "").trim();
+  const selectedId = Number(form.origin_country_region_id ?? 0);
+  const selectedCountry = selectedId ? countries.find((item) => Number(item.id) === selectedId) ?? null : null;
+  const matchedCountry = explicitCountry
+    ? countries.find((item) => normalizeLookupText(item.name) === normalizeLookupText(explicitCountry)) ?? null
+    : null;
+  const selectedIsGreece = normalizeLookupText(selectedCountry?.name) === normalizeLookupText(greeceCountry?.name);
+  const matchedIsGreece = normalizeLookupText(matchedCountry?.name) === normalizeLookupText(greeceCountry?.name);
+
+  if (matchedCountry) {
+    if (!selectedCountry) return Number(matchedCountry.id);
+    if (selectedIsGreece !== matchedIsGreece) return Number(matchedCountry.id);
+    if (!selectedIsGreece && Number(selectedCountry.id) !== Number(matchedCountry.id)) return Number(matchedCountry.id);
+  }
+
+  if (selectedCountry) return Number(selectedCountry.id);
+  return greeceCountry ? Number(greeceCountry.id) : null;
+}
+
 export default function GraduateForm(props: { mode: Mode }) {
   const { t, i18n } = useTranslation("graduateForm");
   const nav = useNavigate();
@@ -75,7 +105,7 @@ export default function GraduateForm(props: { mode: Mode }) {
 
   const gradId = useMemo(() => (isEdit ? Number(id) : null), [id, isEdit]);
   const greeceCountry = useMemo(() => getGreeceCountry(countries), [countries]);
-  const selectedCountryId = Number(form.origin_country_region_id ?? greeceCountry?.id ?? null);
+  const selectedCountryId = getResolvedCountryId(form, countries, greeceCountry);
   const greeceSelected = Number.isFinite(selectedCountryId) && selectedCountryId === Number(greeceCountry?.id ?? null);
 
   useEffect(() => {
@@ -109,7 +139,7 @@ export default function GraduateForm(props: { mode: Mode }) {
         graduation_date: g.item.graduation_date ?? "",
         oath_date: g.item.oath_date ?? "",
         origin_foreign_city: g.item.origin_foreign_city ?? null,
-        origin_country_region_id: g.item.origin_country_region_id ?? null,
+        origin_country_region_id: getResolvedCountryId(g.item, countriesResponse.items || [], (countriesResponse.items || []).find((item: Region) => String(item.name || "").trim().toLowerCase() === "ελλάδα") ?? null),
         origin_periphery_region_id: g.item.origin_periphery_region_id ?? g.item.origin_region_id ?? null,
         origin_region_id: g.item.origin_periphery_region_id ?? g.item.origin_region_id ?? null,
         origin_city_region_id: g.item.origin_city_region_id ?? null,

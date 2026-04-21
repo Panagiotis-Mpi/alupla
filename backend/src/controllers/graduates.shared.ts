@@ -171,6 +171,63 @@ export function resolveProgramDirectionId(value: unknown, directionsById: Map<nu
   return null;
 }
 
+function resolveCountryRegionByName(value: unknown, regionsById: Map<number, RegionLookup>) {
+  const regionId = resolveRegionId(value, regionsById);
+  if (!regionId) return null;
+  const region = regionsById.get(Number(regionId));
+  if (!region || String(region.type) !== "COUNTRY") return null;
+  return Number(region.id);
+}
+
+export function reconcileOriginCountryRegionId(
+  originCountry: unknown,
+  originCountryRegionId: number | null | undefined,
+  regionsById: Map<number, RegionLookup>,
+) {
+  const defaultGreeceId = getGreeceRegionId(regionsById);
+  const selectedCountryId = toNullableNumber(originCountryRegionId);
+  const selectedCountry = selectedCountryId != null ? regionsById.get(Number(selectedCountryId)) ?? null : null;
+  const explicitCountryName = trimNullableText(originCountry);
+  const matchedCountryId = resolveCountryRegionByName(explicitCountryName, regionsById);
+  const matchedCountry = matchedCountryId != null ? regionsById.get(Number(matchedCountryId)) ?? null : null;
+  const selectedIsCountry = !!selectedCountry && String(selectedCountry.type) === "COUNTRY";
+  const selectedIsGreece = selectedIsCountry && isGreeceCountryValue(selectedCountry?.name);
+  const matchedIsGreece = !!matchedCountry && isGreeceCountryValue(matchedCountry?.name);
+
+  if (explicitCountryName) {
+    if (matchedCountryId != null) {
+      if (!selectedIsCountry) return matchedCountryId;
+      if (selectedIsGreece !== matchedIsGreece) return matchedCountryId;
+      if (!selectedIsGreece && normalizeRegionText(selectedCountry?.name) !== normalizeRegionText(matchedCountry?.name)) return matchedCountryId;
+    }
+
+    if (isGreeceCountryValue(explicitCountryName) && defaultGreeceId != null) {
+      return defaultGreeceId;
+    }
+  }
+
+  if (selectedIsCountry) return Number(selectedCountry!.id);
+  return defaultGreeceId ?? null;
+}
+
+export function buildResolvedOriginSnapshot<T extends ManagedOriginTarget>(item: T, regionsById: Map<number, RegionLookup>) {
+  const nextCountryRegionId = reconcileOriginCountryRegionId(item.origin_country, item.origin_country_region_id ?? null, regionsById);
+  const nextCountry = nextCountryRegionId != null ? regionsById.get(Number(nextCountryRegionId)) ?? null : null;
+  const nextCountryName = trimNullableText(item.origin_country) ?? trimNullableText(nextCountry?.name);
+  const isAbroad = !!(nextCountryName && !isGreeceCountryValue(nextCountryName));
+
+  return {
+    ...item,
+    origin_country: isAbroad ? nextCountryName : "Ελλάδα",
+    origin_country_region_id: nextCountryRegionId,
+    origin_foreign_city: isAbroad ? trimNullableText(item.origin_foreign_city) : null,
+    origin_periphery_region_id: isAbroad ? null : item.origin_periphery_region_id ?? null,
+    origin_region_id: isAbroad ? null : item.origin_region_id ?? null,
+    origin_city_region_id: isAbroad ? null : item.origin_city_region_id ?? null,
+    origin_municipality: isAbroad ? null : item.origin_municipality ?? null,
+  } as T;
+}
+
 function hasOriginValue(originCountryRegionId: number | null | undefined, originRegionId: number | null | undefined, originMunicipality: string | null | undefined) {
   return originCountryRegionId != null || originRegionId != null || String(originMunicipality ?? "").trim().length > 0;
 }
@@ -196,9 +253,12 @@ export function ensureManagedOrigin(
 
 export async function buildCreateOriginPayload(body: Record<string, unknown>, regionsById: Map<number, RegionLookup>) {
   const defaultGreeceId = getGreeceRegionId(regionsById);
-  const originCountryRegionId = toNullableNumber(body.origin_country_region_id) ?? defaultGreeceId;
+  const requestedCountryRegionId = toNullableNumber(body.origin_country_region_id) ?? defaultGreeceId;
+  if (requestedCountryRegionId === null) return { error: "origin_country_region_id is required" };
+  if (isInvalidNullableNumber(requestedCountryRegionId)) return { error: "origin_country_region_id must be a number" };
+
+  const originCountryRegionId = reconcileOriginCountryRegionId(body.origin_country, requestedCountryRegionId, regionsById);
   if (originCountryRegionId === null) return { error: "origin_country_region_id is required" };
-  if (isInvalidNullableNumber(originCountryRegionId)) return { error: "origin_country_region_id must be a number" };
 
   const selectedCountryName = String(regionsById.get(Number(originCountryRegionId))?.name ?? "").trim();
   const originCountryName = trimNullableText(body.origin_country) ?? trimNullableText(selectedCountryName);
@@ -294,6 +354,8 @@ export async function applyOriginPatch(item: ManagedOriginTarget, body: Record<s
     item.origin_municipality = body.origin_municipality === "" ? null : String(body.origin_municipality ?? "").trim();
     originRegionTouched = true;
   }
+
+  item.origin_country_region_id = reconcileOriginCountryRegionId(item.origin_country, item.origin_country_region_id ?? null, regionsById);
 
   const selectedCountryName = String(regionsById.get(Number(item.origin_country_region_id))?.name ?? "").trim();
   const currentCountryName = trimNullableText(item.origin_country) ?? trimNullableText(selectedCountryName);
