@@ -39,7 +39,6 @@ import {
 import { useMapData } from "./map/hooks";
 import { EMPTY_FILTERS } from "./map/types";
 import {
-  cityLabelIcon,
   createMapParams,
   fillColorForCount,
   fillOpacityForCount,
@@ -110,6 +109,7 @@ function bubbleLabelIcon(
   city: any,
   mapMetric: MapMetric,
   active: boolean,
+  showLabel: boolean,
   mt: (key: string, options?: Record<string, unknown>) => string,
 ) {
   const radius = Math.max(8, Number(city?.markerRadius || 8));
@@ -125,8 +125,8 @@ function bubbleLabelIcon(
   const bubbleStroke = String(city?.markerStroke || "#1d4ed8");
   const bubbleOpacity = Math.max(0.45, Number(city?.markerOpacity || 0.85));
   const fontSize = size >= 34 ? 12 : size >= 28 ? 11 : 10;
-  const labelWidth = Math.max(size + 10, Math.min(170, Math.max(64, label.length * 7)));
-  const labelHeight = 18;
+  const labelWidth = showLabel ? Math.max(size + 10, Math.min(170, Math.max(64, label.length * 7))) : size + 10;
+  const labelHeight = showLabel ? 18 : 0;
   const wrapperHeight = labelHeight + size + 6;
   const wrapperWidth = Math.max(labelWidth, size + 10);
   const activeRing = active ? '0 0 0 3px rgba(15,23,42,.14)' : 'none';
@@ -134,19 +134,47 @@ function bubbleLabelIcon(
     mapMetric === "count"
       ? `<div class="alupla-city-bubble alupla-city-bubble-count" style="width:${size}px;height:${size}px;border:2px solid ${bubbleStroke};background:${bubbleFill};opacity:${bubbleOpacity};box-shadow:${activeRing};"><span class="alupla-city-bubble-number" style="font-size:${fontSize}px;">${count}</span></div>`
       : `<div class="alupla-city-bubble alupla-city-bubble-gender" style="width:${size}px;height:${size}px;border:2px solid rgba(51,65,85,.72);background:conic-gradient(${genderColors.male} 0 ${malePct}%, ${genderColors.female} ${malePct}% 100%);box-shadow:${activeRing};"><span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span></div>`;
-  const summary =
-    mapMetric === "dominant_gender"
-      ? `<div class="alupla-city-bubble-sub">${mt("maleCount", { defaultValue: "Άνδρες" })}: ${maleCount} · ${mt("femaleCount", { defaultValue: "Γυναίκες" })}: ${femaleCount}</div>`
-      : "";
+  const summary = "";
   return L.divIcon({
     className: "alupla-city-bubble-icon",
-    html: `<div class="alupla-city-bubble-wrap" style="width:${wrapperWidth}px;height:${wrapperHeight}px;"><div class="alupla-city-bubble-label" style="width:${labelWidth}px;">${label}</div>${bubbleHtml}${summary}</div>`,
-    iconSize: [wrapperWidth, wrapperHeight + (mapMetric === "dominant_gender" ? 14 : 0)],
+    html: `<div class="alupla-city-bubble-wrap" style="width:${wrapperWidth}px;height:${wrapperHeight}px;">${showLabel ? `<div class="alupla-city-bubble-label" style="width:${labelWidth}px;">${label}</div>` : ""}${bubbleHtml}${summary}</div>`,
+    iconSize: [wrapperWidth, wrapperHeight],
     iconAnchor: [wrapperWidth / 2, labelHeight + size / 2],
     popupAnchor: [0, -(size / 2 + 16)],
   });
 }
 
+
+
+function pointLabelIcon(label: string, showLabel: boolean, active: boolean, size = 10) {
+  const safeLabel = escapeHtml(String(label || ""));
+  const width = showLabel ? Math.max(64, Math.min(220, safeLabel.length * 8 + 24)) : size + 8;
+  const height = showLabel ? 38 : size + 8;
+  const ring = active ? 'box-shadow:0 0 0 3px rgba(15,23,42,.14);' : '';
+  return L.divIcon({
+    className: "alupla-city-label-icon",
+    html: showLabel
+      ? `<span class="alupla-city-point"><span class="alupla-city-label-text">${safeLabel}</span><span class="alupla-city-label-dot" style="width:${size}px;height:${size}px;${ring}"></span></span>`
+      : `<span class="alupla-city-point alupla-city-point-compact"><span class="alupla-city-label-dot" style="width:${size}px;height:${size}px;${ring}"></span></span>`,
+    iconSize: [width, height],
+    iconAnchor: [Math.round(width / 2), showLabel ? height - 3 : Math.round(height / 2)],
+    popupAnchor: [0, showLabel ? -height + 10 : -height],
+  });
+}
+
+function visibleLabelLimit(scope: MapScope, zoom: number) {
+  if (scope === "abroad") {
+    if (zoom < 2.4) return 8;
+    if (zoom < 3) return 14;
+    if (zoom < 3.8) return 24;
+    return Number.POSITIVE_INFINITY;
+  }
+  if (zoom < 6.2) return 10;
+  if (zoom < 6.8) return 18;
+  if (zoom < 7.4) return 28;
+  if (zoom < 8) return 40;
+  return Number.POSITIVE_INFINITY;
+}
 
 export default function GraduatesMapPage() {
   const { t } = useTranslation(["map", "common"]);
@@ -512,6 +540,21 @@ export default function GraduatesMapPage() {
   }, [abroadLegendEntries, genderLegendEntries, greekCityMarkers.legend, mapMetric, mapScope]);
 
   const renderedMarkers = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
+  const rankedMarkers = useMemo(() => {
+    const source = renderedMarkers
+      .map((item) => ({ item, count: Math.max(0, Number((item as any).count) || 0), name: String((item as any).city_name || (item as any).periphery_name || "") }))
+      .sort((left, right) => {
+        if (right.count !== left.count) return right.count - left.count;
+        return left.name.localeCompare(right.name, "el");
+      });
+    return new Map(source.map((entry, index) => [mapCityKey(entry.item as any), index]));
+  }, [renderedMarkers]);
+  const labelLimit = useMemo(() => visibleLabelLimit(mapScope, mapZoom), [mapScope, mapZoom]);
+  const shouldShowMarkerLabel = useCallback((city: any) => {
+    const rank = rankedMarkers.get(mapCityKey(city as any));
+    if (rank === undefined) return true;
+    return rank < labelLimit;
+  }, [labelLimit, rankedMarkers]);
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const total = useMemo(
@@ -826,6 +869,7 @@ export default function GraduatesMapPage() {
         .alupla-city-bubble-number { line-height: 1; color: #fff; text-shadow: 0 1px 1px rgba(15,23,42,.35); }
         .alupla-city-bubble-number-gender { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.5); }
         .alupla-city-bubble-sub { margin-top: 4px; color: #475569; font-size: 10px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); }
+        .alupla-city-point-compact { width: 18px; height: 18px; display:flex; align-items:center; justify-content:center; }
         .alupla-map .leaflet-control-zoom .alupla-map-reset-button { display: block; text-align: center; text-decoration: none; }
         .alupla-map .leaflet-control-zoom .alupla-map-reset-button:hover { text-decoration: none; }
         .alupla-map .leaflet-control-zoom .alupla-map-reset-button span { font-size: 18px; line-height: 1; font-weight: 800; }
@@ -1025,7 +1069,7 @@ export default function GraduatesMapPage() {
                     <Marker
                       key={mapCityKey(city)}
                       position={[latitude, longitude]}
-                      icon={bubbleLabelIcon(city, mapMetric, activeCity, mt)}
+                      icon={bubbleLabelIcon(city, mapMetric, activeCity, shouldShowMarkerLabel(city), mt)}
                       eventHandlers={{
                         click: openCity,
                         popupclose: () => setSelectedCityPoint(null),
@@ -1041,7 +1085,7 @@ export default function GraduatesMapPage() {
                   <Marker
                     key={mapCityKey(city)}
                     position={[latitude, longitude]}
-                    icon={cityLabelIcon(city.periphery_name)}
+                    icon={pointLabelIcon(city.periphery_name, shouldShowMarkerLabel(city), activeCity, 10)}
                     eventHandlers={{
                       click: openCity,
                       popupclose: () => setSelectedCityPoint(null),
