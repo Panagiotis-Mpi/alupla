@@ -249,10 +249,6 @@ export default function GraduatesMapPage() {
   }, [mapScope]);
 
   useEffect(() => {
-    if (mapScope === "greece" && mapMetric !== "count") setMapMetric("count");
-  }, [mapMetric, mapScope]);
-
-  useEffect(() => {
     if (!selected) return;
     const nextSelected =
       items.find((item) => item.periphery_id === selected.periphery_id) || null;
@@ -360,6 +356,30 @@ export default function GraduatesMapPage() {
     [mt],
   );
 
+  const genderLegendEntries = useMemo(
+    () => [
+      {
+        key: "male",
+        label: mt("maleDominant", { defaultValue: "Περισσότεροι άντρες" }),
+        color: genderColors.male,
+        opacity: 0.82,
+      },
+      {
+        key: "female",
+        label: mt("femaleDominant", { defaultValue: "Περισσότερες γυναίκες" }),
+        color: genderColors.female,
+        opacity: 0.82,
+      },
+      {
+        key: "balanced",
+        label: mt("balanced", { defaultValue: "Ισορροπημένη κατανομή" }),
+        color: genderColors.balanced,
+        opacity: 0.82,
+      },
+    ],
+    [mt],
+  );
+
   const abroadCountryMarkers = useMemo(() => {
     const grouped = new Map<string, any>();
 
@@ -408,6 +428,39 @@ export default function GraduatesMapPage() {
         return String(left.country_name || "").localeCompare(String(right.country_name || ""), "el");
       });
   }, [cityPoints]);
+  const abroadLegendEntries = useMemo(() => {
+    if (mapMetric === "dominant_gender") return genderLegendEntries;
+    const counts = abroadCountryMarkers
+      .map((item) => Math.max(0, Number(item.count) || 0))
+      .filter((value) => value > 0)
+      .sort((left, right) => left - right);
+    if (!counts.length) return [] as Array<any>;
+    const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
+    const sizes = [8, 8, 10, 10, 12, 12, 14];
+    const breaks = Array.from({ length: palette.length }, (_, index) => {
+      const percentile = (index + 1) / palette.length;
+      const position = Math.min(counts.length - 1, Math.max(0, Math.ceil(percentile * counts.length) - 1));
+      return counts[position];
+    }).reduce((acc: number[], value) => {
+      if (!acc.length || value > acc[acc.length - 1]) acc.push(value);
+      return acc;
+    }, []);
+    return breaks.map((limit, index) => ({
+      key: `abroad-${index}`,
+      label: index === 0 ? `1–${limit}` : `${breaks[index - 1] + 1}–${limit}`,
+      color: palette[Math.min(index, palette.length - 1)],
+      radius: sizes[Math.min(index, sizes.length - 1)],
+      opacity: 0.8,
+    }));
+  }, [abroadCountryMarkers, genderLegendEntries, mapMetric]);
+
+  const renderedLegendEntries = useMemo(() => {
+    if (mapScope === "greece") {
+      return mapMetric === "count" ? greekCityMarkers.legend : genderLegendEntries;
+    }
+    return abroadLegendEntries;
+  }, [abroadLegendEntries, genderLegendEntries, greekCityMarkers.legend, mapMetric, mapScope]);
+
   const renderedMarkers = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
@@ -415,30 +468,6 @@ export default function GraduatesMapPage() {
     () => items.reduce((sum, item) => sum + (Number(item.count ?? 0) || 0), 0),
     [items],
   );
-
-  const renderedLegendEntries = useMemo(() => {
-    if (mapScope === "greece") return greekCityMarkers.legend;
-    const values = abroadCountryMarkers
-      .map((item) => Number(metricOptions[mapMetric].value(item) || 0))
-      .filter((value) => Number.isFinite(value) && value > 0)
-      .sort((left, right) => left - right);
-    if (!values.length) return [] as Array<{ key: string; label: string; color: string; opacity: number; radius?: number }>;
-    const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6"];
-    const breaks = Array.from({ length: palette.length }, (_, index) => {
-      const percentile = (index + 1) / palette.length;
-      const position = Math.min(values.length - 1, Math.max(0, Math.ceil(percentile * values.length) - 1));
-      return values[position];
-    }).reduce((acc: number[], value) => {
-      if (!acc.length || value > acc[acc.length - 1]) acc.push(value);
-      return acc;
-    }, []);
-    return breaks.map((limit, index) => ({
-      key: `legend-${mapMetric}-${index}`,
-      label: index === 0 ? `1–${limit}` : `${breaks[index - 1] + 1}–${limit}`,
-      color: palette[Math.min(index, palette.length - 1)],
-      opacity: 0.82,
-    }));
-  }, [abroadCountryMarkers, greekCityMarkers.legend, mapMetric, mapScope, metricOptions]);
 
   const weightedAvgAge = useMemo(() => {
     let weightedSum = 0;
@@ -940,26 +969,60 @@ export default function GraduatesMapPage() {
                   }
                 };
                 if (mapScope === "greece") {
+                  const maleCount = Number((city as any).male_count ?? 0) || 0;
+                  const femaleCount = Number((city as any).female_count ?? 0) || 0;
+                  const dominantFill = maleCount === femaleCount
+                    ? genderColors.balanced
+                    : maleCount > femaleCount
+                      ? genderColors.male
+                      : genderColors.female;
+                  const dominantStroke = maleCount === femaleCount
+                    ? "#334155"
+                    : maleCount > femaleCount
+                      ? "#1d4ed8"
+                      : "#7e22ce";
+                  const circleFill = mapMetric === "count"
+                    ? String((city as any).markerFill || "#60a5fa")
+                    : dominantFill;
+                  const circleStroke = mapMetric === "count"
+                    ? String((city as any).markerStroke || "#1d4ed8")
+                    : dominantStroke;
+                  const circleOpacity = mapMetric === "count"
+                    ? Number((city as any).markerOpacity || 0.8)
+                    : 0.8;
                   return (
                     <CircleMarker
                       key={mapCityKey(city)}
                       center={[latitude, longitude]}
                       radius={Number((city as any).markerRadius || 8)}
                       pathOptions={{
-                        color: String((city as any).markerStroke || "#1d4ed8"),
-                        weight: 1.5,
-                        fillColor: String((city as any).markerFill || "#60a5fa"),
-                        fillOpacity: Number((city as any).markerOpacity || 0.8),
+                        color: circleStroke,
+                        weight: mapMetric === "count" ? 1.5 : 1.8,
+                        fillColor: circleFill,
+                        fillOpacity: circleOpacity,
                       }}
                       eventHandlers={{
                         click: openCity,
                         popupclose: () => setSelectedCityPoint(null),
                       }}
                     >
-                      <LeafletTooltip direction="top" offset={[0, -2]} opacity={0.95}>
-                        <div className="alupla-region-tip-title">{city.city_name}</div>
-                        <div className="alupla-region-tip-sub">{mt("export.count", { defaultValue: "Απόφοιτοι" })}: {city.count}</div>
-                      </LeafletTooltip>
+                      {mapMetric === "count" ? (
+                        <LeafletTooltip
+                          permanent
+                          direction="top"
+                          offset={[0, -4]}
+                          opacity={1}
+                          className="alupla-region-tooltip"
+                        >
+                          <div className="alupla-region-tip-title">{city.city_name}</div>
+                        </LeafletTooltip>
+                      ) : null}
+                      {mapMetric !== "count" ? (
+                        <LeafletTooltip direction="top" offset={[0, -2]} opacity={0.95}>
+                          <div className="alupla-region-tip-title">{city.city_name}</div>
+                          <div className="alupla-region-tip-sub">{mt("export.count", { defaultValue: "Απόφοιτοι" })}: {city.count}</div>
+                        </LeafletTooltip>
+                      ) : null}
                       <Popup minWidth={300} maxWidth={360} autoPan closeButton>
                         {activeCity ? renderCityPopupContent() : <div style={{ minWidth: 280 }} />}
                       </Popup>
