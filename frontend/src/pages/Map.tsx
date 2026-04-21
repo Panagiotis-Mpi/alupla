@@ -256,7 +256,7 @@ function visibleLabelLimit(scope: MapScope, zoom: number) {
 }
 
 export default function GraduatesMapPage() {
-  const { t, i18n } = useTranslation(["map", "common"]);
+  const { t } = useTranslation(["map", "common"]);
   const mt = useCallback(
     (key: string, options?: Record<string, unknown>) =>
       t(key, { ns: "map", ...(options || {}) }),
@@ -268,7 +268,6 @@ export default function GraduatesMapPage() {
     [t],
   );
 
-  const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
 
   const mapRef = useRef<L.Map | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
@@ -631,7 +630,7 @@ export default function GraduatesMapPage() {
       const latitude = mapCityLatitude(city as any);
       const longitude = mapCityLongitude(city as any);
       const rawCountryName = String((city as any).country_name || (city as any).periphery_name || "").trim();
-      const localizedName = localizedCountryName(rawCountryName, activeLang);
+      const localizedName = localizedCountryName(rawCountryName, "gr");
       const countryId = Number((city as any).country_region_id || (city as any).periphery_id || 0);
       if (!localizedName || latitude === null || longitude === null) continue;
       const key = countryId > 0 ? `country:${countryId}` : `country:${localizedCountryKey(rawCountryName)}`;
@@ -710,9 +709,9 @@ export default function GraduatesMapPage() {
       })
       .sort((left, right) => {
         if ((right.count || 0) !== (left.count || 0)) return (right.count || 0) - (left.count || 0);
-        return String(left.country_name || "").localeCompare(String(right.country_name || ""), activeLang === "en" ? "en" : "el");
+        return String(left.country_name || "").localeCompare(String(right.country_name || ""), "el");
       });
-  }, [activeLang, cityPoints]);
+  }, [cityPoints]);
   const abroadLegendEntries = useMemo(() => {
     if (mapMetric === "dominant_gender") return genderLegendEntries;
     const counts = abroadCountryMarkers
