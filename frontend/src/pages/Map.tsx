@@ -411,6 +411,11 @@ export default function GraduatesMapPage() {
   const renderedMarkers = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
+  const total = useMemo(
+    () => items.reduce((sum, item) => sum + (Number(item.count ?? 0) || 0), 0),
+    [items],
+  );
+
   const weightedAvgAge = useMemo(() => {
     let weightedSum = 0;
     let weightedCount = 0;
