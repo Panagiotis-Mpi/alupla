@@ -319,6 +319,11 @@ export default function GraduatesMapPage() {
   const worldBounds = useMemo(() => L.latLngBounds(L.latLng(-60, -180), L.latLng(85, 180)), []);
   const greeceBounds = useMemo(() => L.latLngBounds(L.latLng(34.4, 19.8), L.latLng(41.9, 29.9)), []);
 
+  const resetComparedSelections = useCallback(() => {
+    setSelected(null);
+    setSelectedCityCards([]);
+  }, []);
+
   const activeBounds = mapScope === "abroad" ? worldBounds : greeceBounds;
   const activeFitMaxZoom = mapScope === "abroad" ? (isCompactViewport ? 1.9 : 2.15) : fitMaxZoom;
   const activeInitialZoom = mapScope === "abroad" ? 2 : initialZoom;
@@ -455,9 +460,8 @@ export default function GraduatesMapPage() {
 
 
   useEffect(() => {
-    setSelected(null);
-    setSelectedCityCards([]);
-  }, [mapScope]);
+    resetComparedSelections();
+  }, [mapScope, resetComparedSelections]);
 
   useEffect(() => {
     if (!selected) return;
@@ -824,6 +828,8 @@ export default function GraduatesMapPage() {
 
   async function exportMapSelectionAsPng() {
     const previousMetric = mapMetric;
+    const previousSelected = selected;
+    const previousSelectedCityCards = selectedCityCards;
     const snapshotsByCategory: Array<{
       key: ExportCategoryKey;
       snapshots: Array<{
@@ -834,16 +840,24 @@ export default function GraduatesMapPage() {
       }>;
     }> = [];
 
-    for (const category of selectedExportCategories) {
-      setMapMetric(category);
-      await waitForMapFrame(mapRef);
-      if (!mapCanvasRef.current) continue;
-      const snapshot = await renderMapSnapshot(mapCanvasRef.current);
-      snapshotsByCategory.push({ key: category, snapshots: [snapshot] });
-    }
-
-    setMapMetric(previousMetric);
+    setSelected(null);
+    setSelectedCityCards([]);
     await waitForMapFrame(mapRef);
+
+    try {
+      for (const category of selectedExportCategories) {
+        setMapMetric(category);
+        await waitForMapFrame(mapRef);
+        if (!mapCanvasRef.current) continue;
+        const snapshot = await renderMapSnapshot(mapCanvasRef.current);
+        snapshotsByCategory.push({ key: category, snapshots: [snapshot] });
+      }
+    } finally {
+      setMapMetric(previousMetric);
+      setSelected(previousSelected);
+      setSelectedCityCards(previousSelectedCityCards);
+      await waitForMapFrame(mapRef);
+    }
 
     for (const entry of snapshotsByCategory) {
       const option = exportCategoryOptions.find(
@@ -1037,11 +1051,13 @@ export default function GraduatesMapPage() {
         metricOptions={metricOptions}
         onMetricChange={(metric) => {
           if (metric === mapMetric) return;
+          resetComparedSelections();
           setMetricTransitionLoading(true);
           setMapMetric(metric);
         }}
         onScopeChange={(scope) => {
           if (scope === mapScope) return;
+          resetComparedSelections();
           setScopeTransitionLoading(true);
           setMapScope(scope);
         }}
@@ -1107,8 +1123,14 @@ export default function GraduatesMapPage() {
           selectedYear={selectedGraduationYear}
           isAllYears={isAllYearsSelected}
           loading={yearRangeLoading}
-          onSelectAllYears={() => setSelectedGraduationYear("")}
-          onSliderChange={(year) => setSelectedGraduationYear(year)}
+          onSelectAllYears={() => {
+            resetComparedSelections();
+            setSelectedGraduationYear("");
+          }}
+          onSliderChange={(year) => {
+            resetComparedSelections();
+            setSelectedGraduationYear(year);
+          }}
         />
       </div>
 
