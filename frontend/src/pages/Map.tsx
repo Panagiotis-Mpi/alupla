@@ -286,7 +286,7 @@ export default function GraduatesMapPage() {
 
   const greekCityMarkers = useMemo(() => {
     const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
-    const radii = [6, 8, 10, 12, 14, 17, 20];
+    const radii = [8, 10, 12, 14, 16, 19, 22];
     const grouped = new Map<string, any>();
     const collapseMetro = shouldCollapseMetroAtZoom(mapZoom);
 
