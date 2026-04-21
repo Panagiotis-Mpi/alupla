@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { CircleMarker, MapContainer, Marker, Popup, TileLayer, Tooltip as LeafletTooltip } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import * as XLSX from "xlsx";
@@ -94,9 +94,59 @@ type ExportCategoryKey = MapMetric;
 
 const fillColors = ["#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb", "#1d4ed8"];
 
-const mapTileUrl = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+const mapTileUrl = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
 const mapTileAttribution =
   "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/attributions\">CARTO</a>";
+
+const escapeHtml = (value: string) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+function bubbleLabelIcon(
+  city: any,
+  mapMetric: MapMetric,
+  active: boolean,
+  mt: (key: string, options?: Record<string, unknown>) => string,
+) {
+  const radius = Math.max(8, Number(city?.markerRadius || 8));
+  const size = radius * 2;
+  const label = escapeHtml(String(city?.city_name || ""));
+  const count = Math.max(0, Number(city?.count || 0));
+  const maleCount = Math.max(0, Number(city?.male_count || 0));
+  const femaleCount = Math.max(0, Number(city?.female_count || 0));
+  const total = Math.max(0, maleCount + femaleCount);
+  const malePct = total > 0 ? (maleCount / total) * 100 : 50;
+  const femalePct = 100 - malePct;
+  const bubbleFill = String(city?.markerFill || "#60a5fa");
+  const bubbleStroke = String(city?.markerStroke || "#1d4ed8");
+  const bubbleOpacity = Math.max(0.45, Number(city?.markerOpacity || 0.85));
+  const fontSize = size >= 34 ? 12 : size >= 28 ? 11 : 10;
+  const labelWidth = Math.max(size + 10, Math.min(170, Math.max(64, label.length * 7)));
+  const labelHeight = 18;
+  const wrapperHeight = labelHeight + size + 6;
+  const wrapperWidth = Math.max(labelWidth, size + 10);
+  const activeRing = active ? '0 0 0 3px rgba(15,23,42,.14)' : 'none';
+  const bubbleHtml =
+    mapMetric === "count"
+      ? `<div class="alupla-city-bubble alupla-city-bubble-count" style="width:${size}px;height:${size}px;border:2px solid ${bubbleStroke};background:${bubbleFill};opacity:${bubbleOpacity};box-shadow:${activeRing};"><span class="alupla-city-bubble-number" style="font-size:${fontSize}px;">${count}</span></div>`
+      : `<div class="alupla-city-bubble alupla-city-bubble-gender" style="width:${size}px;height:${size}px;border:2px solid rgba(51,65,85,.72);background:conic-gradient(${genderColors.male} 0 ${malePct}%, ${genderColors.female} ${malePct}% 100%);box-shadow:${activeRing};"><span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span></div>`;
+  const summary =
+    mapMetric === "dominant_gender"
+      ? `<div class="alupla-city-bubble-sub">${mt("maleCount", { defaultValue: "Άνδρες" })}: ${maleCount} · ${mt("femaleCount", { defaultValue: "Γυναίκες" })}: ${femaleCount}</div>`
+      : "";
+  return L.divIcon({
+    className: "alupla-city-bubble-icon",
+    html: `<div class="alupla-city-bubble-wrap" style="width:${wrapperWidth}px;height:${wrapperHeight}px;"><div class="alupla-city-bubble-label" style="width:${labelWidth}px;">${label}</div>${bubbleHtml}${summary}</div>`,
+    iconSize: [wrapperWidth, wrapperHeight + (mapMetric === "dominant_gender" ? 14 : 0)],
+    iconAnchor: [wrapperWidth / 2, labelHeight + size / 2],
+    popupAnchor: [0, -(size / 2 + 16)],
+  });
+}
+
 
 export default function GraduatesMapPage() {
   const { t } = useTranslation(["map", "common"]);
@@ -769,11 +819,13 @@ export default function GraduatesMapPage() {
         .alupla-map .leaflet-container { background: transparent !important; }
         .alupla-map-card { padding: 0; overflow: hidden; position: relative; }
         .alupla-city-label-icon { background: transparent !important; border: 0 !important; }
-        .alupla-city-point { position: relative; display: block; width: 100%; height: 100%; overflow: visible; pointer-events: auto; cursor: pointer; }
-        .alupla-city-label-text { position: absolute; left: 50%; bottom: 13px; transform: translateX(-50%); color: #1e293b; font-size: 12px; font-weight: 600; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); pointer-events: auto; }
-        .alupla-city-label-dot { position: absolute; left: 50%; bottom: 3px; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 999px; background: #1e293b; box-shadow: 0 0 0 2px rgba(255,255,255,.92); pointer-events: auto; }
-        .leaflet-tooltip.alupla-region-tooltip { background: rgba(248,250,252,.98); color: #0f172a; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 10px 12px; }
-        .leaflet-tooltip.alupla-region-tooltip:before { border-top-color: var(--border); }
+        .alupla-city-bubble-icon { background: transparent !important; border: 0 !important; }
+        .alupla-city-bubble-wrap { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; pointer-events: auto; overflow: visible; }
+        .alupla-city-bubble-label { text-align: center; color: #0f172a; font-size: 12px; font-weight: 700; line-height: 1.05; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); background: transparent !important; border: 0 !important; padding: 0; margin: 0 0 4px; }
+        .alupla-city-bubble { position: relative; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #fff; font-weight: 800; }
+        .alupla-city-bubble-number { line-height: 1; color: #fff; text-shadow: 0 1px 1px rgba(15,23,42,.35); }
+        .alupla-city-bubble-number-gender { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.5); }
+        .alupla-city-bubble-sub { margin-top: 4px; color: #475569; font-size: 10px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); }
         .alupla-map .leaflet-control-zoom .alupla-map-reset-button { display: block; text-align: center; text-decoration: none; }
         .alupla-map .leaflet-control-zoom .alupla-map-reset-button:hover { text-decoration: none; }
         .alupla-map .leaflet-control-zoom .alupla-map-reset-button span { font-size: 18px; line-height: 1; font-weight: 800; }
@@ -969,64 +1021,20 @@ export default function GraduatesMapPage() {
                   }
                 };
                 if (mapScope === "greece") {
-                  const maleCount = Number((city as any).male_count ?? 0) || 0;
-                  const femaleCount = Number((city as any).female_count ?? 0) || 0;
-                  const dominantFill = maleCount === femaleCount
-                    ? genderColors.balanced
-                    : maleCount > femaleCount
-                      ? genderColors.male
-                      : genderColors.female;
-                  const dominantStroke = maleCount === femaleCount
-                    ? "#334155"
-                    : maleCount > femaleCount
-                      ? "#1d4ed8"
-                      : "#7e22ce";
-                  const circleFill = mapMetric === "count"
-                    ? String((city as any).markerFill || "#60a5fa")
-                    : dominantFill;
-                  const circleStroke = mapMetric === "count"
-                    ? String((city as any).markerStroke || "#1d4ed8")
-                    : dominantStroke;
-                  const circleOpacity = mapMetric === "count"
-                    ? Number((city as any).markerOpacity || 0.8)
-                    : 0.8;
                   return (
-                    <CircleMarker
+                    <Marker
                       key={mapCityKey(city)}
-                      center={[latitude, longitude]}
-                      radius={Number((city as any).markerRadius || 8)}
-                      pathOptions={{
-                        color: circleStroke,
-                        weight: mapMetric === "count" ? 1.5 : 1.8,
-                        fillColor: circleFill,
-                        fillOpacity: circleOpacity,
-                      }}
+                      position={[latitude, longitude]}
+                      icon={bubbleLabelIcon(city, mapMetric, activeCity, mt)}
                       eventHandlers={{
                         click: openCity,
                         popupclose: () => setSelectedCityPoint(null),
                       }}
                     >
-                      {mapMetric === "count" ? (
-                        <LeafletTooltip
-                          permanent
-                          direction="top"
-                          offset={[0, -4]}
-                          opacity={1}
-                          className="alupla-region-tooltip"
-                        >
-                          <div className="alupla-region-tip-title">{city.city_name}</div>
-                        </LeafletTooltip>
-                      ) : null}
-                      {mapMetric !== "count" ? (
-                        <LeafletTooltip direction="top" offset={[0, -2]} opacity={0.95}>
-                          <div className="alupla-region-tip-title">{city.city_name}</div>
-                          <div className="alupla-region-tip-sub">{mt("export.count", { defaultValue: "Απόφοιτοι" })}: {city.count}</div>
-                        </LeafletTooltip>
-                      ) : null}
                       <Popup minWidth={300} maxWidth={360} autoPan closeButton>
                         {activeCity ? renderCityPopupContent() : <div style={{ minWidth: 280 }} />}
                       </Popup>
-                    </CircleMarker>
+                    </Marker>
                   );
                 }
                 return (
