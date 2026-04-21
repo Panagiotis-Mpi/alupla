@@ -160,5 +160,6 @@
     "greece": "Greece",
     "abroad": "Abroad"
   },
-  "detailsHintAbroad": "Click a marker to see details for a city abroad."
+  "detailsHintAbroad": "Click a marker to see details for a city abroad.",
+  "downloadMap": "Download map"
 }

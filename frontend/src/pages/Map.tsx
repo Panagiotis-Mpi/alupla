@@ -10,7 +10,6 @@ import { useTranslation } from "react-i18next";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import * as XLSX from "xlsx";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -32,9 +31,7 @@ import {
   type MapCityDetailResponse,
 } from "../lib/api";
 import {
-  exportCsvText,
   exportElementAsPng,
-  exportWorkbook,
 } from "./map/mapExport";
 import { useMapData } from "./map/hooks";
 import { EMPTY_FILTERS } from "./map/types";
@@ -61,18 +58,11 @@ import {
   useCompactMapViewport,
 } from "./map/viewHelpers";
 import {
-  applySheetLayout,
-  buildBaseExportRows,
-  buildCountSheetRows,
-  buildCsvRows,
-  buildCsvText,
-  buildGenderSheetRows,
   exportCombinedSnapshots,
   renderMapSnapshot,
   toggleAllExportCategorySelection,
   toggleExportCategorySelection,
   waitForMapFrame,
-  workbookSheetName,
 } from "./map/exportSelection";
 
 ChartJS.register(
@@ -88,7 +78,7 @@ ChartJS.register(
 
 type MapMetric = "count" | "dominant_gender";
 type MapScope = "greece" | "abroad";
-type ExportFormat = "xlsx" | "csv" | "png";
+type ExportFormat = "png";
 type ExportCategoryKey = MapMetric;
 
 const fillColors = ["#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb", "#1d4ed8"];
@@ -292,7 +282,6 @@ export default function GraduatesMapPage() {
 
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
   const [mapScope, setMapScope] = useState<MapScope>("greece");
-  const [showExportMenu, setShowExportMenu] = useState(false);
   const [selectedExportFormat, setSelectedExportFormat] =
     useState<ExportFormat | null>(null);
   const [selectedExportCategories, setSelectedExportCategories] = useState<
@@ -303,6 +292,7 @@ export default function GraduatesMapPage() {
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [selected, setSelected] = useState<GraduatesMapItem | null>(null);
   const [selectedCityPoint, setSelectedCityPoint] = useState<any | null>(null);
+  const [selectedCityCards, setSelectedCityCards] = useState<any[]>([]);
   const [cityDetailLoading, setCityDetailLoading] = useState(false);
   const [cityDetail, setCityDetail] = useState<MapCityDetailResponse | null>(
     null,
@@ -332,7 +322,7 @@ export default function GraduatesMapPage() {
       }),
     [mapScope, selectedGraduationYear],
   );
-  const { loading, items, cityPoints, cityStatsLoading, selectedCityStats } =
+  const { loading, items, cityPoints } =
     useMapData(params, selected?.periphery_id ?? null);
 
   const worldBounds = useMemo(() => L.latLngBounds(L.latLng(-60, -180), L.latLng(85, 180)), []);
@@ -476,6 +466,7 @@ export default function GraduatesMapPage() {
   useEffect(() => {
     setSelected(null);
     setSelectedCityPoint(null);
+    setSelectedCityCards([]);
     setCityDetail(null);
   }, [mapScope]);
 
@@ -808,27 +799,15 @@ export default function GraduatesMapPage() {
   }, [items]);
 
 
-  function exportRows() {
-    return buildBaseExportRows(items, mt);
-  }
-
-  function currentFilenameBase() {
-    const parts = ["alupla_map", slugPart(mapScope), slugPart(mapMetric)];
-    if (selectedGraduationYear) parts.push(slugPart(selectedGraduationYear));
-    if (selected?.periphery_name) parts.push(slugPart(selected.periphery_name));
-    return parts.join("_");
-  }
-
   function metricFilenameBase(metric: MapMetric) {
     const parts = ["alupla_map", slugPart(mapScope), slugPart(metric)];
     if (selectedGraduationYear) parts.push(slugPart(selectedGraduationYear));
     return parts.join("_");
   }
 
-  function openExportSelection(format: ExportFormat) {
+  function openExportSelection(format: ExportFormat = "png") {
     setSelectedExportCategories([]);
     setSelectedExportFormat(format);
-    setShowExportMenu(false);
   }
 
   function closeExportSelection() {
@@ -852,22 +831,12 @@ export default function GraduatesMapPage() {
     );
   }
 
-  async function loadExportCategoryData(metric: MapMetric) {
-    const nextParams = createMapParams({
-      ...EMPTY_FILTERS,
-      scope: mapScope,
-      ...(selectedGraduationYear ? { graduation_year: selectedGraduationYear } : {}),
+  function appendSelectedCityCard(city: any) {
+    setSelectedCityCards((prev) => {
+      const next = prev.filter((entry) => mapCityKey(entry) !== mapCityKey(city));
+      next.push(city);
+      return next.slice(-3);
     });
-    const [mapResponse, citiesResponse] = await Promise.all([
-      getGraduatesMap(nextParams),
-      getMapCities(nextParams),
-    ]);
-    return {
-      items: Array.isArray(mapResponse?.items) ? mapResponse.items : [],
-      cityPoints: Array.isArray(citiesResponse?.items)
-        ? citiesResponse.items
-        : [],
-    };
   }
 
   async function exportMapSelectionAsPng() {
@@ -906,114 +875,17 @@ export default function GraduatesMapPage() {
   }
 
   async function handleExportSelection() {
-    if (!selectedExportFormat || !selectedExportCategories.length) return;
+    if (!selectedExportCategories.length) return;
     setExportingSelection(true);
     try {
-      if (selectedExportFormat === "png") {
-        await exportMapSelectionAsPng();
-      } else {
-        const workbook = XLSX.utils.book_new();
-        const usedNames = new Set<string>();
-        const csvRows: Array<Record<string, any>> = [];
-        for (const category of selectedExportCategories) {
-          if (category === "count") {
-            const response = await loadExportCategoryData("count");
-            const rows = buildCountSheetRows(
-              response.items,
-              response.cityPoints,
-              mt,
-            );
-            const title = mt("metricOptions.count", {
-              defaultValue: "Πλήθος αποφοίτων",
-            });
-            if (selectedExportFormat === "xlsx") {
-              const sheet = XLSX.utils.json_to_sheet(rows);
-              applySheetLayout(sheet, rows);
-              XLSX.utils.book_append_sheet(
-                workbook,
-                sheet,
-                workbookSheetName(title, usedNames),
-              );
-            }
-            csvRows.push(...buildCsvRows(title, rows, mt, selectedYearLabel));
-            continue;
-          }
-          if (category === "dominant_gender") {
-            const response = await loadExportCategoryData("dominant_gender");
-            const rows = buildGenderSheetRows(
-              response.items,
-              response.cityPoints,
-              mt,
-            );
-            const title = mt("metricOptions.dominantGender", {
-              defaultValue: "Φύλο",
-            });
-            if (selectedExportFormat === "xlsx") {
-              const sheet = XLSX.utils.json_to_sheet(rows);
-              applySheetLayout(sheet, rows);
-              XLSX.utils.book_append_sheet(
-                workbook,
-                sheet,
-                workbookSheetName(title, usedNames),
-              );
-            }
-            csvRows.push(...buildCsvRows(title, rows, mt, selectedYearLabel));
-            continue;
-          }
-        }
-        if (selectedExportFormat === "xlsx")
-          exportWorkbook("alupla_map_export.xlsx", workbook);
-        if (selectedExportFormat === "csv")
-          exportCsvText("alupla_map_export.csv", buildCsvText(csvRows));
-      }
+      await exportMapSelectionAsPng();
       try {
-        await logPublicExport("map_export", selectedExportFormat);
+        await logPublicExport("map_export", "png");
       } catch {}
       setSelectedExportFormat(null);
     } finally {
       setExportingSelection(false);
     }
-  }
-
-  async function onExportExcel() {
-    const workbook = XLSX.utils.book_new();
-    const sheet = XLSX.utils.json_to_sheet(exportRows());
-    XLSX.utils.book_append_sheet(workbook, sheet, "Map");
-    exportWorkbook(`${currentFilenameBase()}.xlsx`, workbook);
-    try {
-      await logPublicExport("map_export", "xlsx");
-    } catch {}
-  }
-
-  async function onExportCsv() {
-    const rows = exportRows();
-    const headers = Object.keys(rows[0] || {});
-    const esc = (value: any) => {
-      const text = String(value ?? "");
-      if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
-      return text;
-    };
-    const lines = [
-      headers.map(esc).join(","),
-      ...rows.map((row) =>
-        headers.map((header) => esc((row as any)[header])).join(","),
-      ),
-    ];
-    exportCsvText(`${currentFilenameBase()}.csv`, lines.join("\r\n"));
-    try {
-      await logPublicExport("map_export", "csv");
-    } catch {}
-  }
-
-  async function onExportPng() {
-    if (!mapCanvasRef.current) return;
-    await exportElementAsPng(
-      mapCanvasRef.current,
-      `${currentFilenameBase()}.png`,
-    );
-    try {
-      await logPublicExport("map_export", "png");
-    } catch {}
   }
 
   function detailGroups(item: any) {
@@ -1121,6 +993,8 @@ export default function GraduatesMapPage() {
         .map-top-control-slot { position: relative; min-width: 0; }
         .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; }
         .map-metric-button.active, .map-program-button.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+        .map-scope-button { background: #fff; border-color: var(--border); color: #0f172a; font-weight: 700; }
+        .map-scope-button:hover { background: #f8fafc; }
         .map-program-button { gap: 8px; }
         .map-dropdown-button { justify-content: space-between; padding-inline: 14px; }
         .map-dropdown-caret { font-size: 13px; transition: transform .18s ease; }
@@ -1148,10 +1022,10 @@ export default function GraduatesMapPage() {
         .map-summary-sub { color: #64748b; font-size: 13px; line-height: 1.35; }
         .map-main-card { margin: 12px auto 0; max-width: 1080px; }
         .map-map-wrap { position: relative; padding: 8px 8px 12px; }
-        .map-loading-overlay { position: absolute; inset: 8px 8px 12px; border-radius: 18px; background: rgba(255,255,255,.78); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 450; pointer-events: none; }
+        .map-loading-overlay { position: absolute; inset: 8px 8px 12px; border-radius: 18px; background: rgba(255,255,255,.08); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 450; pointer-events: none; }
         .map-loading-overlay-card { min-width: 180px; min-height: 88px; padding: 16px 20px; border-radius: 18px; border: 0; background: transparent; box-shadow: none; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; text-align: center; }
-        .map-summary-shell, .map-timeline-shell { position: relative; }
-        .map-summary-overlay { inset: 0; border-radius: 18px; }
+        .map-summary-shell, .map-timeline-shell, .map-details-shell { position: relative; }
+        .map-summary-overlay, .map-details-overlay { inset: 0; border-radius: 18px; }
         .map-main-card .map-canvas { height: clamp(760px, 80vh, 940px); min-height: 760px; }
         .map-trend-card, .map-combined-details-card { margin-top: 12px; padding: 16px; display: grid; gap: 12px; }
         .map-trend-canvas { height: 260px; min-height: 260px; width: 100%; }
@@ -1162,7 +1036,7 @@ export default function GraduatesMapPage() {
         .map-info-total-line, .map-info-metric-label { color: #64748b; font-size: 13px; }
         .map-info-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
         .map-info-group-title, .map-info-metric-value { color: #0f172a; font-weight: 800; }
-        .map-city-cards-inline { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+        .map-city-cards-inline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
         .map-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
         .map-city-popup-card { display: grid; gap: 10px; min-width: 280px; max-width: 340px; }
         .map-city-popup-title { font-size: 16px; font-weight: 800; color: #0f172a; }
@@ -1175,7 +1049,7 @@ export default function GraduatesMapPage() {
         .map-city-popup-program-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 14px; color: #0f172a; font-weight: 700; }
         .map-city-popup-program-title { font-size: 13px; font-weight: 800; color: #0f172a; }
         .map-city-popup-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #334155; font-size: 13px; }
-        @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .map-city-cards-inline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (max-width: 780px) { .map-top-controls-row { grid-template-columns: 1fr; } }
         @media (max-width: 640px) { .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } .map-timeline-actions { width: 100%; } .map-timeline-current, .map-timeline-all-button { width: 100%; justify-content: center; } }
       `}</style>
@@ -1188,7 +1062,6 @@ export default function GraduatesMapPage() {
         mapMetric={mapMetric}
         mapScope={mapScope}
         metricOptions={metricOptions}
-        showExportMenu={showExportMenu}
         onMetricChange={(metric) => {
           if (metric === mapMetric) return;
           setMetricTransitionLoading(true);
@@ -1196,12 +1069,10 @@ export default function GraduatesMapPage() {
         }}
         onScopeChange={(scope) => {
           if (scope === mapScope) return;
-          setShowExportMenu(false);
           setScopeTransitionLoading(true);
           setMapScope(scope);
         }}
-        onToggleExportMenu={() => setShowExportMenu((prev) => !prev)}
-        onExportPick={openExportSelection}
+        onExportClick={() => openExportSelection("png")}
       />
 
       <div className="map-summary-shell">
@@ -1330,6 +1201,7 @@ export default function GraduatesMapPage() {
                   : normalizeKey(selectedCityPoint?.city_name || "") === normalizeKey(city.city_name || "") && Number(selectedCityPoint?.country_region_id || selectedCityPoint?.periphery_id || 0) === Number(city.country_region_id || city.periphery_id || 0);
                 const openCity = () => {
                   setSelectedCityPoint(city);
+                  appendSelectedCityCard(city);
                   if (city.periphery_id) {
                     const hit = items.find((item) => item.periphery_id === city.periphery_id);
                     if (hit) setSelected(hit);
@@ -1426,56 +1298,36 @@ export default function GraduatesMapPage() {
         </div>
       </div>
 
-      {mapScope === "greece" ? (
-        selected ? (
+      <div className="map-details-shell">
+        {selectedCityCards.length ? (
           <div className="card map-combined-details-card">
             <div style={{ fontWeight: 800, fontSize: 18 }}>
               {mt("infoTitle", { defaultValue: "Πληροφορίες" })}
             </div>
-            <InfoBox
-              title={selected.periphery_name}
-              totalText={mt("totalGraduatesLine", {
-                total: selected.count,
-                defaultValue: "Σύνολο αποφοίτων: {{total}}",
-              })}
-              groups={detailGroups(selected)}
-            />
-            <div style={{ fontWeight: 700 }}>
-              {mt("citiesTitle", { defaultValue: "Πόλεις" })} ({selectedCityStats.length})
+            <div className="map-city-cards-inline">
+              {selectedCityCards.map((city) => (
+                <InfoBox
+                  key={mapCityKey(city)}
+                  title={city.city_name}
+                  totalText={mt("totalGraduatesLine", {
+                    total: Number(city.count ?? 0),
+                    defaultValue: "Σύνολο αποφοίτων: {{total}}",
+                  })}
+                  groups={detailGroups(city)}
+                />
+              ))}
             </div>
-            {cityStatsLoading ? (
-              <div className="muted">
-                {mt("loadingLabel", { defaultValue: "φορτώση" })}
-              </div>
-            ) : selectedCityStats.length ? (
-              <div className="map-city-cards-inline">
-                {selectedCityStats.map((city) => (
-                  <InfoBox
-                    key={city.city}
-                    title={city.city}
-                    totalText={mt("totalGraduatesLine", {
-                      total: city.count,
-                      defaultValue: "Σύνολο αποφοίτων: {{total}}",
-                    })}
-                    groups={detailGroups(city)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="muted">
-                {mt("noCities", {
-                  defaultValue:
-                    "Δεν υπάρχουν διαθέσιμες πόλεις για την τρέχουσα περιφέρεια.",
-                })}
-              </div>
-            )}
           </div>
-        ) : items.length ? (
+        ) : items.length || cityPoints.length ? (
           <div className="card map-combined-details-card">
             <div className="muted">
-              {mt("detailsHint", {
-                defaultValue: "Κάνε κλικ σε έναν marker πόλης για λεπτομέρειες.",
-              })}
+              {mapScope === "abroad"
+                ? mt("detailsHintAbroad", {
+                    defaultValue: "Κάνε κλικ σε έναν marker για λεπτομέρειες πόλης του εξωτερικού.",
+                  })
+                : mt("detailsHint", {
+                    defaultValue: "Κάνε κλικ σε έναν marker πόλης για λεπτομέρειες.",
+                  })}
             </div>
           </div>
         ) : (
@@ -1486,38 +1338,13 @@ export default function GraduatesMapPage() {
               })}
             </div>
           </div>
-        )
-      ) : selectedCityPoint ? (
-        <div className="card map-combined-details-card">
-          <div style={{ fontWeight: 800, fontSize: 18 }}>
-            {mt("infoTitle", { defaultValue: "Πληροφορίες" })}
+        )}
+        {summaryLoading ? (
+          <div className="map-loading-overlay map-details-overlay">
+            <div className="map-loading-overlay-card">{mt("loadingLabel", { defaultValue: "φορτώση" })}</div>
           </div>
-          <InfoBox
-            title={selectedCityPoint.city_name}
-            totalText={mt("totalGraduatesLine", {
-              total: Number(cityDetail?.total ?? selectedCityPoint.count ?? 0),
-              defaultValue: "Σύνολο αποφοίτων: {{total}}",
-            })}
-            groups={detailGroups(cityDetail || selectedCityPoint)}
-          />
-        </div>
-      ) : cityPoints.length ? (
-        <div className="card map-combined-details-card">
-          <div className="muted">
-            {mt("detailsHintAbroad", {
-              defaultValue: "Κάνε κλικ σε έναν marker για λεπτομέρειες πόλης του εξωτερικού.",
-            })}
-          </div>
-        </div>
-      ) : (
-        <div className="card map-combined-details-card">
-          <div className="muted">
-            {mt("noResults", {
-              defaultValue: "Δεν βρέθηκαν απόφοιτοι με τα συγκεκριμένα φίλτρα.",
-            })}
-          </div>
-        </div>
-      )}
+        ) : null}
+      </div>
 
       {selectedExportFormat ? (
         <MapExportSelectionModal

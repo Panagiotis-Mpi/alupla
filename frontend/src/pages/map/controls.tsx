@@ -3,7 +3,6 @@ import React from "react";
 type MetricOption = { label: string; legend: string };
 type MapMetric = "count" | "dominant_gender";
 type MapScope = "greece" | "abroad";
-type ExportFormat = "xlsx" | "csv" | "png";
 type ExportCategoryKey = MapMetric;
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -18,11 +17,9 @@ export function MapTopControls(props: {
   mapMetric: MapMetric;
   mapScope: MapScope;
   metricOptions: Record<MapMetric, MetricOption>;
-  showExportMenu: boolean;
   onMetricChange: (metric: MapMetric) => void;
   onScopeChange: (scope: MapScope) => void;
-  onToggleExportMenu: () => void;
-  onExportPick: (format: ExportFormat) => void;
+  onExportClick: () => void;
 }) {
   const [showScopeMenu, setShowScopeMenu] = React.useState(false);
   const scopeMenuRef = React.useRef<HTMLDivElement | null>(null);
@@ -56,7 +53,7 @@ export function MapTopControls(props: {
         <div className="map-top-control-slot" ref={scopeMenuRef}>
           <button
             type="button"
-            className="btn map-metric-button active primary map-dropdown-button"
+            className="btn map-metric-button map-dropdown-button map-scope-button"
             onClick={() => setShowScopeMenu((prev) => !prev)}
             aria-haspopup="menu"
             aria-expanded={showScopeMenu}
@@ -93,32 +90,10 @@ export function MapTopControls(props: {
             {props.metricOptions[option].label}
           </button>
         ))}
-        <div className="map-top-control-slot" style={{ position: "relative" }}>
-          <button className="btn map-action-button" type="button" style={{ width: "100%" }} onClick={props.onToggleExportMenu}>
-            {props.ct("export", { defaultValue: "Εξαγωγή" })}
+        <div className="map-top-control-slot">
+          <button className="btn map-action-button" type="button" style={{ width: "100%" }} onClick={props.onExportClick}>
+            {props.mt("downloadMap", { defaultValue: "Λήψη χάρτη" })}
           </button>
-          {props.showExportMenu ? (
-            <div
-              style={{
-                position: "absolute",
-                top: "calc(100% + 8px)",
-                right: 0,
-                minWidth: 180,
-                borderRadius: 14,
-                border: "1px solid rgba(148, 163, 184, 0.28)",
-                background: "#fff",
-                boxShadow: "0 18px 40px rgba(15, 23, 42, 0.16)",
-                padding: 8,
-                zIndex: 20,
-                display: "grid",
-                gap: 6,
-              }}
-            >
-              <button className="btn" type="button" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => props.onExportPick("xlsx")}>Excel</button>
-              <button className="btn" type="button" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => props.onExportPick("csv")}>CSV</button>
-              <button className="btn" type="button" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => props.onExportPick("png")}>PNG</button>
-            </div>
-          ) : null}
         </div>
       </div>
     </div>
