@@ -331,6 +331,10 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
+    const originRegionWhere = sqlWhere
+      ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
+      : `WHERE r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
+
     const originRegionDistribution = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number }>(
       `SELECT r.id as id,
               r.name as name_el,
@@ -338,7 +342,7 @@ export async function publicStats(req: Request, res: Response) {
               COUNT(*)::int as count
        FROM graduates g
        LEFT JOIN regions r ON r.id = g.origin_region_id
-       ${sqlWhere}
+       ${originRegionWhere}
        GROUP BY r.id, r.name
        ORDER BY count DESC, r.name ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
