@@ -185,8 +185,8 @@ function bubbleLabelIcon(
 
 function pointLabelIcon(label: string, showLabel: boolean, active: boolean, size = 10) {
   const safeLabel = escapeHtml(String(label || ""));
-  const width = showLabel ? Math.max(64, Math.min(220, safeLabel.length * 8 + 24)) : size + 8;
-  const height = showLabel ? 38 : size + 8;
+  const width = showLabel ? Math.max(72, Math.min(220, safeLabel.length * 8 + 26)) : size + 10;
+  const height = showLabel ? 42 : size + 10;
   const ring = active ? 'box-shadow:0 0 0 3px rgba(15,23,42,.14);' : '';
   return L.divIcon({
     className: "alupla-city-label-icon",
@@ -194,8 +194,8 @@ function pointLabelIcon(label: string, showLabel: boolean, active: boolean, size
       ? `<span class="alupla-city-point"><span class="alupla-city-label-text">${safeLabel}</span><span class="alupla-city-label-dot" style="width:${size}px;height:${size}px;${ring}"></span></span>`
       : `<span class="alupla-city-point alupla-city-point-compact"><span class="alupla-city-label-dot" style="width:${size}px;height:${size}px;${ring}"></span></span>`,
     iconSize: [width, height],
-    iconAnchor: [Math.round(width / 2), showLabel ? height - 3 : Math.round(height / 2)],
-    popupAnchor: [0, showLabel ? -height + 10 : -height],
+    iconAnchor: [Math.round(width / 2), showLabel ? height - 4 : Math.round(height / 2)],
+    popupAnchor: [0, showLabel ? -height + 12 : -height],
   });
 }
 
@@ -490,6 +490,7 @@ export default function GraduatesMapPage() {
   const selectedYearLabel = isAllYearsSelected
     ? mt("timeline.allYears", { defaultValue: "Όλες οι χρονιές" })
     : selectedGraduationYear;
+  const pageLoading = loading || yearRangeLoading || cityStatsLoading;
 
   const exportCategoryOptions = useMemo(
     () => [
@@ -952,6 +953,10 @@ export default function GraduatesMapPage() {
     );
   }
 
+  if (pageLoading) {
+    return <div className="card">{ct("loading", { defaultValue: "Φόρτωση..." })}</div>;
+  }
+
   return (
     <div className="container">
       <style>{`
@@ -961,11 +966,15 @@ export default function GraduatesMapPage() {
         .alupla-city-label-icon { background: transparent !important; border: 0 !important; }
         .alupla-city-bubble-icon { background: transparent !important; border: 0 !important; }
         .alupla-city-bubble-wrap { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; pointer-events: auto; overflow: visible; }
-        .alupla-city-bubble-label { text-align: center; color: #0f172a; font-size: 12px; font-weight: 700; line-height: 1.05; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); background: transparent !important; border: 0 !important; padding: 0; margin: 0 0 4px; }
+        .alupla-city-bubble-label, .alupla-city-label-text { text-align: center; color: #0f172a; font-size: 12px; font-weight: 700; line-height: 1.05; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); background: transparent !important; border: 0 !important; padding: 0; }
+        .alupla-city-bubble-label { margin: 0 0 4px; }
         .alupla-city-bubble { position: relative; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #fff; font-weight: 800; }
         .alupla-city-bubble-number { line-height: 1; color: #fff; text-shadow: 0 1px 1px rgba(15,23,42,.35); }
         .alupla-city-bubble-number-gender { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.5); }
         .alupla-city-bubble-sub { margin-top: 4px; color: #475569; font-size: 10px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); }
+        .alupla-city-point { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; pointer-events: auto; }
+        .alupla-city-label-text { display: block; margin: 0; }
+        .alupla-city-label-dot { display: block; border-radius: 999px; background: #475569; border: 1px solid rgba(255,255,255,.92); box-shadow: 0 1px 2px rgba(15,23,42,.18); }
         .alupla-city-point-compact { width: 18px; height: 18px; display:flex; align-items:center; justify-content:center; }
         .alupla-map .leaflet-control-zoom .alupla-map-reset-button { display: block; text-align: center; text-decoration: none; }
         .alupla-map .leaflet-control-zoom .alupla-map-reset-button:hover { text-decoration: none; }
