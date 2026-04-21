@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { GeoJSON, MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { CircleMarker, MapContainer, Marker, Popup, TileLayer, Tooltip as LeafletTooltip } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import * as XLSX from "xlsx";
@@ -18,7 +18,7 @@ import {
   LineElement,
   PointElement,
   Filler,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Legend,
   ArcElement,
 } from "chart.js";
@@ -31,13 +31,12 @@ import {
   type GraduatesMapItem,
   type MapCityDetailResponse,
 } from "../lib/api";
-import greeceRegionsRaw from "../assets/greece-regions.geojson?raw";
 import {
   exportCsvText,
   exportElementAsPng,
   exportWorkbook,
 } from "./map/mapExport";
-import { useMapData, useVisibleCities } from "./map/hooks";
+import { useMapData } from "./map/hooks";
 import { EMPTY_FILTERS } from "./map/types";
 import {
   cityLabelIcon,
@@ -46,11 +45,9 @@ import {
   fillOpacityForCount,
   legendBuckets,
   mapCityKey,
-  mapCityLabel,
   mapCityLatitude,
   mapCityLongitude,
   normalizeKey,
-  tryParseGeoJson,
 } from "./map/utils";
 import { MapResetControl, MapViewportWatcher } from "./map/shared";
 import { MapTopControls, MapYearTimeline, MapExportSelectionModal } from "./map/controls";
@@ -85,7 +82,7 @@ ChartJS.register(
   LineElement,
   PointElement,
   Filler,
-  Tooltip,
+  ChartTooltip,
   Legend,
   ArcElement,
 );
@@ -102,7 +99,7 @@ const mapTileAttribution =
   "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/attributions\">CARTO</a>";
 
 export default function GraduatesMapPage() {
-  const { t, i18n } = useTranslation(["map", "common"]);
+  const { t } = useTranslation(["map", "common"]);
   const mt = useCallback(
     (key: string, options?: Record<string, unknown>) =>
       t(key, { ns: "map", ...(options || {}) }),
@@ -116,7 +113,6 @@ export default function GraduatesMapPage() {
 
   const mapRef = useRef<L.Map | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
-  const geoJsonLayerRef = useRef<L.GeoJSON | null>(null);
 
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
   const [mapScope, setMapScope] = useState<MapScope>("greece");
@@ -160,23 +156,69 @@ export default function GraduatesMapPage() {
   const { loading, items, cityPoints, cityStatsLoading, selectedCityStats } =
     useMapData(params, selected?.periphery_id ?? null);
 
-  const geojson = useMemo(() => tryParseGeoJson(greeceRegionsRaw), []);
   const worldBounds = useMemo(() => L.latLngBounds(L.latLng(-60, -180), L.latLng(85, 180)), []);
-  const geojsonBounds = useMemo(() => {
-    if (!geojson) return null;
-    try {
-      const layer = L.geoJSON(geojson as any);
-      const bounds = layer.getBounds();
-      return bounds && bounds.isValid() ? bounds : null;
-    } catch {
-      return null;
-    }
-  }, [geojson]);
+  const greeceBounds = useMemo(() => L.latLngBounds(L.latLng(34.4, 19.8), L.latLng(41.9, 29.9)), []);
 
-  const activeBounds = mapScope === "abroad" ? worldBounds : geojsonBounds;
+  const activeBounds = mapScope === "abroad" ? worldBounds : greeceBounds;
   const activeFitMaxZoom = mapScope === "abroad" ? (isCompactViewport ? 1.9 : 2.15) : fitMaxZoom;
   const activeInitialZoom = mapScope === "abroad" ? 2 : initialZoom;
   const activeMinZoom = mapScope === "abroad" ? 1.5 : minMapZoom;
+
+
+  const greekCityMarkers = useMemo(() => {
+    const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
+    const radii = [6, 8, 10, 12, 14, 17, 20];
+    const points = cityPoints
+      .map((city) => ({
+        city,
+        count: Math.max(0, Number(city.count) || 0),
+        latitude: mapCityLatitude(city),
+        longitude: mapCityLongitude(city),
+      }))
+      .filter((item) => item.latitude !== null && item.longitude !== null && item.count > 0);
+
+    const counts = points.map((item) => item.count).sort((left, right) => left - right);
+    if (!counts.length) return { items: [] as Array<any>, legend: [] as Array<any>, maxCount: 0 };
+
+    const breaks = Array.from({ length: palette.length }, (_, index) => {
+      const percentile = (index + 1) / palette.length;
+      const position = Math.min(counts.length - 1, Math.max(0, Math.ceil(percentile * counts.length) - 1));
+      return counts[position];
+    }).reduce((acc: number[], value) => {
+      if (!acc.length || value > acc[acc.length - 1]) acc.push(value);
+      return acc;
+    }, []);
+
+    const bucketForCount = (count: number) => {
+      const hit = breaks.findIndex((value) => count <= value);
+      return hit === -1 ? breaks.length - 1 : hit;
+    };
+
+    const legend = breaks.map((limit, index) => ({
+      key: `city-${index}`,
+      label: index === 0 ? `1–${limit}` : `${breaks[index - 1] + 1}–${limit}`,
+      color: palette[Math.min(index, palette.length - 1)],
+      radius: radii[Math.min(index, radii.length - 1)],
+      opacity: 0.8,
+    }));
+
+    return {
+      items: points.map((item) => {
+        const bucket = bucketForCount(item.count);
+        return {
+          ...item.city,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          markerRadius: radii[Math.min(bucket, radii.length - 1)],
+          markerFill: palette[Math.min(bucket, palette.length - 1)],
+          markerStroke: bucket >= palette.length - 2 ? "#1e3a8a" : "#1d4ed8",
+          markerOpacity: bucket >= palette.length - 2 ? 0.92 : 0.8,
+        };
+      }),
+      legend,
+      maxCount: counts[counts.length - 1],
+    };
+  }, [cityPoints]);
 
   useLayoutEffect(() => {
     if (!activeBounds || !mapRef.current) return;
@@ -205,6 +247,10 @@ export default function GraduatesMapPage() {
     setSelectedCityPoint(null);
     setCityDetail(null);
   }, [mapScope]);
+
+  useEffect(() => {
+    if (mapScope === "greece" && mapMetric !== "count") setMapMetric("count");
+  }, [mapMetric, mapScope]);
 
   useEffect(() => {
     if (!selected) return;
@@ -314,194 +360,6 @@ export default function GraduatesMapPage() {
     [mt],
   );
 
-  const valuesByGreekName = useMemo(() => {
-    const next = new Map<string, number>();
-    const getter = metricOptions[mapMetric].value;
-    items.forEach((item) =>
-      next.set(normalizeKey(item.periphery_name || ""), getter(item)),
-    );
-    return next;
-  }, [items, mapMetric, metricOptions]);
-
-  const maxMetricValue = useMemo(() => {
-    let max = 1;
-    const getter = metricOptions[mapMetric].value;
-    items.forEach((item) => {
-      const value = getter(item);
-      if (Number.isFinite(value) && value > max) max = value;
-    });
-    return max;
-  }, [items, mapMetric, metricOptions]);
-
-  const categoricalLegendEntries = useMemo(() => {
-    if (mapMetric === "dominant_gender") {
-      return [
-        {
-          label: mt("legendLabels.moreMen", {
-            defaultValue: "Περισσότεροι άνδρες",
-          }),
-          color: genderColors.male,
-        },
-        {
-          label: mt("legendLabels.moreWomen", {
-            defaultValue: "Περισσότερες γυναίκες",
-          }),
-          color: genderColors.female,
-        },
-        {
-          label: mt("legendLabels.balance", { defaultValue: "Ισορροπία" }),
-          color: genderColors.balanced,
-        },
-      ].filter((entry) => !isPlaceholderLegendLabel(entry.label));
-    }
-    return [] as Array<{ label: string; color: string }>;
-  }, [items, mapMetric, mt]);
-
-  const visibleLegendEntries = useMemo(() => {
-    if (mapMetric === "count") {
-      const scaleBuckets = legendBuckets(maxMetricValue);
-      const seen = new Set<string>();
-      return Array.from({ length: 5 }).flatMap((_, index) => {
-        const from = Math.round(scaleBuckets[index]);
-        const to = Math.round(scaleBuckets[index + 1]);
-        if (from === 1 && to === 1) return [];
-        const key = `${from}-${to}`;
-        if (seen.has(key)) return [];
-        seen.add(key);
-        const mid = (scaleBuckets[index] + scaleBuckets[index + 1]) / 2;
-        return [
-          {
-            key,
-            label: `${from}–${to}`,
-            color: fillColorForCount(mid, maxMetricValue, fillColors),
-            opacity: fillOpacityForCount(mid),
-          },
-        ];
-      });
-    }
-    return categoricalLegendEntries
-      .filter((entry) => !isPlaceholderLegendLabel(entry.label))
-      .map((entry) => ({
-        key: entry.label,
-        label: entry.label,
-        color: entry.color,
-        opacity: 0.9,
-      }));
-  }, [categoricalLegendEntries, mapMetric, maxMetricValue]);
-
-  const renderedLegendEntries = useMemo(() => {
-    if (mapMetric === "count") return visibleLegendEntries;
-    return visibleLegendEntries.filter(
-      (entry) => !isPlaceholderLegendLabel(entry.label),
-    );
-  }, [mapMetric, visibleLegendEntries]);
-
-  const valuesRef = useRef(valuesByGreekName);
-  const itemsRef = useRef(items);
-  valuesRef.current = valuesByGreekName;
-  itemsRef.current = items;
-
-  function featureName(feature: any) {
-    const properties = feature?.properties || {};
-    return String(
-      properties.name_greek ||
-        properties.name_el ||
-        properties.name ||
-        properties.NAME ||
-        "",
-    );
-  }
-
-  function itemForFeature(feature: any) {
-    return (
-      itemsRef.current.find(
-        (item) =>
-          normalizeKey(item.periphery_name || "") ===
-          normalizeKey(featureName(feature)),
-      ) || null
-    );
-  }
-
-  function styleForFeature(feature: any) {
-    const match = itemForFeature(feature);
-    if (mapMetric === "dominant_gender") {
-      if (!match || !Number(match.count))
-        return {
-          color: "#334155",
-          weight: 1,
-          fillColor: genderColors.empty,
-          fillOpacity: 0.22,
-        };
-      if (match.dominant_gender === "M")
-        return {
-          color: "#334155",
-          weight: 1,
-          fillColor: genderColors.male,
-          fillOpacity: 0.9,
-        };
-      if (match.dominant_gender === "F")
-        return {
-          color: "#334155",
-          weight: 1,
-          fillColor: genderColors.female,
-          fillOpacity: 0.9,
-        };
-      return {
-        color: "#334155",
-        weight: 1,
-        fillColor: genderColors.balanced,
-        fillOpacity: 0.82,
-      };
-    }
-    const value =
-      valuesRef.current.get(normalizeKey(featureName(feature))) ?? 0;
-    return {
-      color: "#334155",
-      weight: 1,
-      fillColor: fillColorForCount(value, maxMetricValue, fillColors),
-      fillOpacity: fillOpacityForCount(value),
-    };
-  }
-
-  function tooltipHtml(feature: any) {
-    const label = featureName(feature);
-    const match = itemForFeature(feature);
-    const total = Number(match?.count ?? 0) || 0;
-    if (mapMetric === "dominant_gender") {
-      const dominant =
-        !match || !total
-          ? mt("legendLabels.noData", { defaultValue: "Χωρίς δεδομένα" })
-          : match.dominant_gender === "M"
-            ? mt("legendLabels.moreMen", {
-                defaultValue: "Περισσότεροι άνδρες",
-              })
-            : match.dominant_gender === "F"
-              ? mt("legendLabels.moreWomen", {
-                  defaultValue: "Περισσότερες γυναίκες",
-                })
-              : mt("legendLabels.balance", { defaultValue: "Ισορροπία" });
-      return `<div class="alupla-region-tip-title">${label}</div><div class="alupla-region-tip-sub">${mt("tooltip.dominantGender", { defaultValue: "Κυρίαρχο φύλο" })}: ${dominant}</div><div class="alupla-region-tip-sub">${mt("malePct", { defaultValue: "% Άνδρες" })}: ${compactNumber(match?.male_pct)}%</div><div class="alupla-region-tip-sub">${mt("femalePct", { defaultValue: "% Γυναίκες" })}: ${compactNumber(match?.female_pct)}%</div><div class="alupla-region-tip-sub">${mt("total", { total, defaultValue: "Σύνολο: {{total}}" })}</div>`;
-    }
-    return `<div class="alupla-region-tip-title">${label}</div><div class="alupla-region-tip-sub">${mt("export.count", { defaultValue: "Απόφοιτοι" })}: ${total}</div>`;
-  }
-
-  useEffect(() => {
-    const layer = geoJsonLayerRef.current;
-    if (!layer) return;
-    layer.eachLayer((entryLayer: any) => {
-      const feature = entryLayer?.feature;
-      if (!feature) return;
-      entryLayer.setStyle(styleForFeature(feature));
-      if (entryLayer.getTooltip())
-        entryLayer.setTooltipContent(tooltipHtml(feature));
-    });
-  }, [items, mapMetric, maxMetricValue, i18n.language]);
-
-  const total = useMemo(
-    () => items.reduce((sum, item) => sum + (Number(item.count) || 0), 0),
-    [items],
-  );
-  const visibleCities = useVisibleCities(cityPoints, mapBounds, mapZoom, mapScope);
   const abroadCountryMarkers = useMemo(() => {
     const grouped = new Map<string, any>();
 
@@ -550,7 +408,7 @@ export default function GraduatesMapPage() {
         return String(left.country_name || "").localeCompare(String(right.country_name || ""), "el");
       });
   }, [cityPoints]);
-  const renderedMarkers = mapScope === "abroad" ? abroadCountryMarkers : visibleCities;
+  const renderedMarkers = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const weightedAvgAge = useMemo(() => {
@@ -568,15 +426,6 @@ export default function GraduatesMapPage() {
       : null;
   }, [items]);
 
-  const buckets = useMemo(
-    () => legendBuckets(maxMetricValue),
-    [maxMetricValue],
-  );
-  const geoRenderKey = useMemo(
-    () =>
-      `${mapMetric}:${items.map((item) => `${item.periphery_id}:${metricOptions[mapMetric].value(item)}`).join("|")}`,
-    [items, mapMetric, metricOptions],
-  );
 
   function exportRows() {
     return buildBaseExportRows(items, mt);
@@ -1047,38 +896,6 @@ export default function GraduatesMapPage() {
                   maxZoom={activeFitMaxZoom}
                 />
               ) : null}
-              {mapScope === "greece" && geojson ? (
-                <GeoJSON
-                  key={geoRenderKey}
-                  ref={(layer) => {
-                    geoJsonLayerRef.current = layer;
-                  }}
-                  data={geojson as any}
-                  style={(feature: any) => styleForFeature(feature) as any}
-                  onEachFeature={(feature: any, layer: any) => {
-                    layer.bindTooltip(tooltipHtml(feature), {
-                      sticky: true,
-                      className: "alupla-region-tooltip",
-                    });
-                    layer.on({
-                      mouseover: () => {
-                        layer.setStyle({ weight: 2 });
-                        layer.bringToFront();
-                        layer.setTooltipContent(tooltipHtml(feature));
-                      },
-                      mouseout: () => layer.setStyle({ weight: 1 }),
-                      click: () => {
-                        const hit = items.find(
-                          (item) =>
-                            normalizeKey(item.periphery_name || "") ===
-                            normalizeKey(featureName(feature)),
-                        );
-                        setSelected(hit || null);
-                      },
-                    });
-                  }}
-                />
-              ) : null}
               {renderedMarkers.map((city) => {
                 const latitude = mapCityLatitude(city);
                 const longitude = mapCityLongitude(city);
@@ -1086,30 +903,52 @@ export default function GraduatesMapPage() {
                 const activeCity = mapScope === "abroad"
                   ? Number(selectedCityPoint?.country_region_id || selectedCityPoint?.periphery_id || 0) === Number(city.country_region_id || city.periphery_id || 0)
                   : normalizeKey(selectedCityPoint?.city_name || "") === normalizeKey(city.city_name || "") && Number(selectedCityPoint?.country_region_id || selectedCityPoint?.periphery_id || 0) === Number(city.country_region_id || city.periphery_id || 0);
+                const openCity = () => {
+                  setSelectedCityPoint(city);
+                  if (city.periphery_id) {
+                    const hit = items.find((item) => item.periphery_id === city.periphery_id);
+                    if (hit) setSelected(hit);
+                  }
+                };
+                if (mapScope === "greece") {
+                  return (
+                    <CircleMarker
+                      key={mapCityKey(city)}
+                      center={[latitude, longitude]}
+                      radius={Number((city as any).markerRadius || 8)}
+                      pathOptions={{
+                        color: String((city as any).markerStroke || "#1d4ed8"),
+                        weight: 1.5,
+                        fillColor: String((city as any).markerFill || "#60a5fa"),
+                        fillOpacity: Number((city as any).markerOpacity || 0.8),
+                      }}
+                      eventHandlers={{
+                        click: openCity,
+                        popupclose: () => setSelectedCityPoint(null),
+                      }}
+                    >
+                      <LeafletTooltip direction="top" offset={[0, -2]} opacity={0.95}>
+                        <div className="alupla-region-tip-title">{city.city_name}</div>
+                        <div className="alupla-region-tip-sub">{mt("export.count", { defaultValue: "Απόφοιτοι" })}: {city.count}</div>
+                      </LeafletTooltip>
+                      <Popup minWidth={300} maxWidth={360} autoPan closeButton>
+                        {activeCity ? renderCityPopupContent() : <div style={{ minWidth: 280 }} />}
+                      </Popup>
+                    </CircleMarker>
+                  );
+                }
                 return (
                   <Marker
                     key={mapCityKey(city)}
                     position={[latitude, longitude]}
-                    icon={cityLabelIcon(mapScope === "abroad" ? city.periphery_name : mapCityLabel(city))}
+                    icon={cityLabelIcon(city.periphery_name)}
                     eventHandlers={{
-                      click: () => {
-                        setSelectedCityPoint(city);
-                        if (city.periphery_id) {
-                          const hit = items.find(
-                            (item) => item.periphery_id === city.periphery_id,
-                          );
-                          if (hit) setSelected(hit);
-                        }
-                      },
+                      click: openCity,
                       popupclose: () => setSelectedCityPoint(null),
                     }}
                   >
                     <Popup minWidth={300} maxWidth={360} autoPan closeButton>
-                      {activeCity ? (
-                        renderCityPopupContent()
-                      ) : (
-                        <div style={{ minWidth: 280 }} />
-                      )}
+                      {activeCity ? renderCityPopupContent() : <div style={{ minWidth: 280 }} />}
                     </Popup>
                   </Marker>
                 );
@@ -1135,7 +974,7 @@ export default function GraduatesMapPage() {
               {mt("legend", { defaultValue: "Υπόμνημα" })}
             </div>
             <div className="muted" style={{ marginBottom: 8 }}>
-              {metricOptions[mapMetric].legend}
+              {mapScope === "greece" ? mt("export.count", { defaultValue: "Απόφοιτοι ανά πόλη" }) : metricOptions[mapMetric].legend}
             </div>
             <div style={{ display: "grid", gap: 6 }}>
               {renderedLegendEntries.map((entry) => (
@@ -1143,15 +982,15 @@ export default function GraduatesMapPage() {
                   key={entry.key}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "18px 1fr",
+                    gridTemplateColumns: "24px 1fr",
                     alignItems: "center",
                     gap: 8,
                   }}
                 >
                   <span
                     style={{
-                      width: 18,
-                      height: 12,
+                      width: mapScope === "greece" ? Math.max(8, Number((entry as any).radius || 8)) : 18,
+                      height: mapScope === "greece" ? Math.max(8, Number((entry as any).radius || 8)) : 12,
                       borderRadius: 999,
                       background: entry.color,
                       opacity: entry.opacity,
@@ -1214,7 +1053,7 @@ export default function GraduatesMapPage() {
           <div className="card map-combined-details-card">
             <div className="muted">
               {mt("detailsHint", {
-                defaultValue: "Κάνε κλικ σε μία περιφέρεια για λεπτομέρειες.",
+                defaultValue: "Κάνε κλικ σε έναν marker πόλης για λεπτομέρειες.",
               })}
             </div>
           </div>
