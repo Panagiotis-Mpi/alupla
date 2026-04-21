@@ -142,6 +142,61 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+const COUNTRY_DISPLAY_NAMES: Array<{ names: string[]; gr: string; en: string }> = [
+  { names: ["Ελλάδα", "Greece"], gr: "Ελλάδα", en: "Greece" },
+  { names: ["ΗΠΑ", "Ηνωμένες Πολιτείες", "Ηνωμένες Πολιτείες Αμερικής", "Αμερική", "United States", "United States of America", "USA", "US", "U.S.A.", "U.S."], gr: "ΗΠΑ", en: "United States" },
+  { names: ["Ολλανδία", "Ολλανδια", "Κάτω Χώρες", "Κατω Χωρες", "Netherlands", "The Netherlands", "Holland"], gr: "Ολλανδία", en: "Netherlands" },
+  { names: ["Ηνωμένο Βασίλειο", "Ηνωμενο Βασιλειο", "Αγγλία", "Μεγάλη Βρετανία", "Μεγαλη Βρετανια", "United Kingdom", "UK", "U.K.", "Great Britain", "England"], gr: "Ηνωμένο Βασίλειο", en: "United Kingdom" },
+  { names: ["Κύπρος", "Cyprus"], gr: "Κύπρος", en: "Cyprus" },
+  { names: ["Ιταλία", "Italy"], gr: "Ιταλία", en: "Italy" },
+  { names: ["Γερμανία", "Γερμανια", "Germany"], gr: "Γερμανία", en: "Germany" },
+  { names: ["Γαλλία", "Γαλλια", "France"], gr: "Γαλλία", en: "France" },
+  { names: ["Ισπανία", "Ισπανια", "Spain"], gr: "Ισπανία", en: "Spain" },
+  { names: ["Πορτογαλία", "Πορτογαλια", "Portugal"], gr: "Πορτογαλία", en: "Portugal" },
+  { names: ["Βέλγιο", "Belgium"], gr: "Βέλγιο", en: "Belgium" },
+  { names: ["Ελβετία", "Ελβετια", "Switzerland"], gr: "Ελβετία", en: "Switzerland" },
+  { names: ["Αυστρία", "Austria"], gr: "Αυστρία", en: "Austria" },
+  { names: ["Σουηδία", "Σουηδια", "Sweden"], gr: "Σουηδία", en: "Sweden" },
+  { names: ["Νορβηγία", "Νορβηγια", "Norway"], gr: "Νορβηγία", en: "Norway" },
+  { names: ["Δανία", "Δανια", "Denmark"], gr: "Δανία", en: "Denmark" },
+  { names: ["Ιρλανδία", "Ιρλανδια", "Ireland"], gr: "Ιρλανδία", en: "Ireland" },
+  { names: ["Πολωνία", "Πολωνια", "Poland"], gr: "Πολωνία", en: "Poland" },
+  { names: ["Τσεχία", "Τσεχικη Δημοκρατια", "Czechia", "Czech Republic"], gr: "Τσεχία", en: "Czechia" },
+  { names: ["Ρουμανία", "Ρουμανια", "Romania"], gr: "Ρουμανία", en: "Romania" },
+  { names: ["Βουλγαρία", "Βουλγαρια", "Bulgaria"], gr: "Βουλγαρία", en: "Bulgaria" },
+  { names: ["Αλβανία", "Αλβανια", "Albania"], gr: "Αλβανία", en: "Albania" },
+  { names: ["Σερβία", "Σερβια", "Serbia"], gr: "Σερβία", en: "Serbia" },
+  { names: ["Βόρεια Μακεδονία", "Βορεια Μακεδονια", "Σκόπια", "North Macedonia"], gr: "Βόρεια Μακεδονία", en: "North Macedonia" },
+  { names: ["Τουρκία", "Τουρκια", "Turkey"], gr: "Τουρκία", en: "Turkey" },
+  { names: ["Ιαπωνία", "Ιαπωνια", "Japan"], gr: "Ιαπωνία", en: "Japan" },
+  { names: ["Κίνα", "Κινα", "China"], gr: "Κίνα", en: "China" },
+  { names: ["Αυστραλία", "Αυστραλια", "Australia"], gr: "Αυστραλία", en: "Australia" },
+  { names: ["Καναδάς", "Καναδας", "Canada"], gr: "Καναδάς", en: "Canada" },
+  { names: ["Ηνωμένα Αραβικά Εμιράτα", "Ηνωμενα Αραβικα Εμιρατα", "Εμιράτα", "ΗΑΕ", "United Arab Emirates", "UAE"], gr: "Ηνωμένα Αραβικά Εμιράτα", en: "United Arab Emirates" },
+];
+
+const countryNameLookup = new Map<string, { gr: string; en: string }>();
+for (const entry of COUNTRY_DISPLAY_NAMES) {
+  for (const name of entry.names) {
+    countryNameLookup.set(normalizeKey(name), { gr: entry.gr, en: entry.en });
+  }
+}
+
+function localizedCountryName(value: unknown, lang: "gr" | "en") {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const match = countryNameLookup.get(normalizeKey(raw));
+  if (match) return lang === "en" ? match.en : match.gr;
+  return raw;
+}
+
+function localizedCountryKey(value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const match = countryNameLookup.get(normalizeKey(raw));
+  return normalizeKey(match?.gr || raw);
+}
+
 function bubbleLabelIcon(
   city: any,
   mapMetric: MapMetric,
@@ -218,7 +273,7 @@ function visibleLabelLimit(scope: MapScope, zoom: number) {
 }
 
 export default function GraduatesMapPage() {
-  const { t } = useTranslation(["map", "common"]);
+  const { t, i18n } = useTranslation(["map", "common"]);
   const mt = useCallback(
     (key: string, options?: Record<string, unknown>) =>
       t(key, { ns: "map", ...(options || {}) }),
@@ -229,6 +284,8 @@ export default function GraduatesMapPage() {
       t(`common.${key}`, { ns: "common", ...(options || {}) }),
     [t],
   );
+
+  const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
 
   const mapRef = useRef<L.Map | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
@@ -553,36 +610,47 @@ export default function GraduatesMapPage() {
   );
 
   const abroadCountryMarkers = useMemo(() => {
+    const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
+    const radii = [8, 10, 12, 14, 16, 19, 22];
     const grouped = new Map<string, any>();
 
     for (const city of cityPoints) {
       const latitude = mapCityLatitude(city as any);
       const longitude = mapCityLongitude(city as any);
+      const rawCountryName = String((city as any).country_name || (city as any).periphery_name || "").trim();
+      const localizedName = localizedCountryName(rawCountryName, activeLang);
       const countryId = Number((city as any).country_region_id || (city as any).periphery_id || 0);
-      const countryName = String((city as any).country_name || (city as any).periphery_name || "").trim();
-      if (!countryName || latitude === null || longitude === null) continue;
-      const key = `${countryId || 0}::${normalizeKey(countryName)}`;
+      if (!localizedName || latitude === null || longitude === null) continue;
+      const key = countryId > 0 ? `country:${countryId}` : `country:${localizedCountryKey(rawCountryName)}`;
       const current = grouped.get(key) || {
         city_id: 0,
-        city_name: countryName,
+        city_name: localizedName,
         periphery_id: countryId || Number((city as any).periphery_id || 0) || null,
-        periphery_name: countryName,
+        periphery_name: localizedName,
         country_region_id: countryId || null,
-        country_name: countryName,
+        country_name: localizedName,
+        raw_country_name: rawCountryName || localizedName,
         latitude_sum: 0,
         longitude_sum: 0,
         weight: 0,
         count: 0,
+        male_count: 0,
+        female_count: 0,
       };
       const weight = Math.max(1, Number((city as any).count) || 0);
+      current.city_name = localizedName;
+      current.periphery_name = localizedName;
+      current.country_name = localizedName;
       current.latitude_sum += latitude * weight;
       current.longitude_sum += longitude * weight;
       current.weight += weight;
       current.count += weight;
+      current.male_count += Math.max(0, Number((city as any).male_count) || 0);
+      current.female_count += Math.max(0, Number((city as any).female_count) || 0);
       grouped.set(key, current);
     }
 
-    return Array.from(grouped.values())
+    const points = Array.from(grouped.values())
       .map((item) => ({
         city_id: 0,
         city_name: item.country_name,
@@ -590,16 +658,48 @@ export default function GraduatesMapPage() {
         periphery_name: item.country_name,
         country_region_id: item.country_region_id,
         country_name: item.country_name,
+        raw_country_name: item.raw_country_name,
         latitude: item.weight ? item.latitude_sum / item.weight : null,
         longitude: item.weight ? item.longitude_sum / item.weight : null,
         count: item.count,
+        male_count: item.male_count,
+        female_count: item.female_count,
       }))
-      .filter((item) => Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)))
+      .filter((item) => Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)));
+
+    const counts = points.map((item) => Math.max(0, Number(item.count) || 0)).filter((value) => value > 0).sort((left, right) => left - right);
+    if (!counts.length) return [] as Array<any>;
+
+    const breaks = Array.from({ length: palette.length }, (_, index) => {
+      const percentile = (index + 1) / palette.length;
+      const position = Math.min(counts.length - 1, Math.max(0, Math.ceil(percentile * counts.length) - 1));
+      return counts[position];
+    }).reduce((acc: number[], value) => {
+      if (!acc.length || value > acc[acc.length - 1]) acc.push(value);
+      return acc;
+    }, []);
+
+    const bucketForCount = (count: number) => {
+      const hit = breaks.findIndex((value) => count <= value);
+      return hit === -1 ? breaks.length - 1 : hit;
+    };
+
+    return points
+      .map((item) => {
+        const bucket = bucketForCount(Math.max(0, Number(item.count) || 0));
+        return {
+          ...item,
+          markerRadius: radii[Math.min(bucket, radii.length - 1)],
+          markerFill: palette[Math.min(bucket, palette.length - 1)],
+          markerStroke: bucket >= palette.length - 2 ? "#1e3a8a" : "#1d4ed8",
+          markerOpacity: bucket >= palette.length - 2 ? 0.92 : 0.8,
+        };
+      })
       .sort((left, right) => {
         if ((right.count || 0) !== (left.count || 0)) return (right.count || 0) - (left.count || 0);
-        return String(left.country_name || "").localeCompare(String(right.country_name || ""), "el");
+        return String(left.country_name || "").localeCompare(String(right.country_name || ""), activeLang === "en" ? "en" : "el");
       });
-  }, [cityPoints]);
+  }, [activeLang, cityPoints]);
   const abroadLegendEntries = useMemo(() => {
     if (mapMetric === "dominant_gender") return genderLegendEntries;
     const counts = abroadCountryMarkers
@@ -608,7 +708,7 @@ export default function GraduatesMapPage() {
       .sort((left, right) => left - right);
     if (!counts.length) return [] as Array<any>;
     const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
-    const sizes = [8, 8, 10, 10, 12, 12, 14];
+    const sizes = [8, 10, 12, 14, 16, 19, 22];
     const breaks = Array.from({ length: palette.length }, (_, index) => {
       const percentile = (index + 1) / palette.length;
       const position = Math.min(counts.length - 1, Math.max(0, Math.ceil(percentile * counts.length) - 1));
@@ -650,9 +750,18 @@ export default function GraduatesMapPage() {
   }, [labelLimit, rankedMarkersBase]);
   const renderedMarkers = useMemo(() => {
     const source = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
-    if (mapScope === "abroad") return source;
-    return source.filter((item) => shouldShowMarkerLabel(item));
-  }, [abroadCountryMarkers, greekCityMarkers.items, mapScope, shouldShowMarkerLabel]);
+    return source.filter((item) => {
+      if (shouldShowMarkerLabel(item)) return true;
+      if (!selectedCityPoint) return false;
+      if (mapScope === "abroad") {
+        const selectedCountryId = Number(selectedCityPoint.country_region_id || selectedCityPoint.periphery_id || 0);
+        const currentCountryId = Number((item as any).country_region_id || (item as any).periphery_id || 0);
+        if (selectedCountryId && currentCountryId) return selectedCountryId === currentCountryId;
+        return localizedCountryKey(selectedCityPoint.country_name || selectedCityPoint.periphery_name || selectedCityPoint.city_name || "") === localizedCountryKey((item as any).country_name || (item as any).periphery_name || (item as any).city_name || "");
+      }
+      return normalizeKey(selectedCityPoint.city_name || "") === normalizeKey((item as any).city_name || "") && Number(selectedCityPoint.country_region_id || selectedCityPoint.periphery_id || 0) === Number((item as any).country_region_id || (item as any).periphery_id || 0);
+    });
+  }, [abroadCountryMarkers, greekCityMarkers.items, mapScope, selectedCityPoint, shouldShowMarkerLabel]);
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const total = useMemo(
@@ -1161,7 +1270,12 @@ export default function GraduatesMapPage() {
                 const longitude = mapCityLongitude(city);
                 if (latitude === null || longitude === null) return null;
                 const activeCity = mapScope === "abroad"
-                  ? Number(selectedCityPoint?.country_region_id || selectedCityPoint?.periphery_id || 0) === Number(city.country_region_id || city.periphery_id || 0)
+                  ? (() => {
+                      const selectedCountryId = Number(selectedCityPoint?.country_region_id || selectedCityPoint?.periphery_id || 0);
+                      const cityCountryId = Number(city.country_region_id || city.periphery_id || 0);
+                      if (selectedCountryId && cityCountryId) return selectedCountryId === cityCountryId;
+                      return localizedCountryKey(selectedCityPoint?.country_name || selectedCityPoint?.periphery_name || selectedCityPoint?.city_name || "") === localizedCountryKey(city.country_name || city.periphery_name || city.city_name || "");
+                    })()
                   : normalizeKey(selectedCityPoint?.city_name || "") === normalizeKey(city.city_name || "") && Number(selectedCityPoint?.country_region_id || selectedCityPoint?.periphery_id || 0) === Number(city.country_region_id || city.periphery_id || 0);
                 const openCity = () => {
                   setSelectedCityPoint(city);
@@ -1191,7 +1305,7 @@ export default function GraduatesMapPage() {
                   <Marker
                     key={mapCityKey(city)}
                     position={[latitude, longitude]}
-                    icon={pointLabelIcon(city.periphery_name, shouldShowMarkerLabel(city), activeCity, 10)}
+                    icon={bubbleLabelIcon(city, mapMetric, activeCity, shouldShowMarkerLabel(city), mt)}
                     eventHandlers={{
                       click: openCity,
                       popupclose: () => setSelectedCityPoint(null),
