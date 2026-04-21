@@ -199,6 +199,10 @@ function pointLabelIcon(label: string, showLabel: boolean, active: boolean, size
   });
 }
 
+function shouldCollapseMetroAtZoom(zoom: number) {
+  return zoom < 10.2;
+}
+
 function visibleLabelLimit(scope: MapScope, zoom: number) {
   if (scope === "abroad") {
     if (zoom < 2.4) return 8;
@@ -284,6 +288,7 @@ export default function GraduatesMapPage() {
     const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
     const radii = [6, 8, 10, 12, 14, 17, 20];
     const grouped = new Map<string, any>();
+    const collapseMetro = shouldCollapseMetroAtZoom(mapZoom);
 
     for (const city of cityPoints) {
       const latitude = mapCityLatitude(city);
@@ -291,7 +296,7 @@ export default function GraduatesMapPage() {
       const count = Math.max(0, Number(city.count) || 0);
       if (latitude === null || longitude === null || count <= 0) continue;
 
-      const metroGroup = metroGroupForPoint(latitude, longitude);
+      const metroGroup = collapseMetro ? metroGroupForPoint(latitude, longitude) : null;
       const key = metroGroup ? `metro:${metroGroup.key}` : `city:${mapCityKey(city as any)}`;
       const current = grouped.get(key) || {
         ...(metroGroup ? {
@@ -384,7 +389,7 @@ export default function GraduatesMapPage() {
       legend,
       maxCount: counts[counts.length - 1],
     };
-  }, [cityPoints]);
+  }, [cityPoints, mapZoom]);
 
   useLayoutEffect(() => {
     if (!activeBounds || !mapRef.current) return;
@@ -627,22 +632,26 @@ export default function GraduatesMapPage() {
     return abroadLegendEntries;
   }, [abroadLegendEntries, genderLegendEntries, greekCityMarkers.legend, mapMetric, mapScope]);
 
-  const renderedMarkers = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
-  const rankedMarkers = useMemo(() => {
-    const source = renderedMarkers
+  const rankedMarkersBase = useMemo(() => {
+    const source = (mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items)
       .map((item) => ({ item, count: Math.max(0, Number((item as any).count) || 0), name: String((item as any).city_name || (item as any).periphery_name || "") }))
       .sort((left, right) => {
         if (right.count !== left.count) return right.count - left.count;
         return left.name.localeCompare(right.name, "el");
       });
     return new Map(source.map((entry, index) => [mapCityKey(entry.item as any), index]));
-  }, [renderedMarkers]);
+  }, [abroadCountryMarkers, greekCityMarkers.items, mapScope]);
   const labelLimit = useMemo(() => visibleLabelLimit(mapScope, mapZoom), [mapScope, mapZoom]);
   const shouldShowMarkerLabel = useCallback((city: any) => {
-    const rank = rankedMarkers.get(mapCityKey(city as any));
+    const rank = rankedMarkersBase.get(mapCityKey(city as any));
     if (rank === undefined) return true;
     return rank < labelLimit;
-  }, [labelLimit, rankedMarkers]);
+  }, [labelLimit, rankedMarkersBase]);
+  const renderedMarkers = useMemo(() => {
+    const source = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
+    if (mapScope === "abroad") return source;
+    return source.filter((item) => shouldShowMarkerLabel(item));
+  }, [abroadCountryMarkers, greekCityMarkers.items, mapScope, shouldShowMarkerLabel]);
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const total = useMemo(
