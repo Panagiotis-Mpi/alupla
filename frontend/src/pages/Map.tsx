@@ -416,6 +416,30 @@ export default function GraduatesMapPage() {
     [items],
   );
 
+  const renderedLegendEntries = useMemo(() => {
+    if (mapScope === "greece") return greekCityMarkers.legend;
+    const values = abroadCountryMarkers
+      .map((item) => Number(metricOptions[mapMetric].value(item) || 0))
+      .filter((value) => Number.isFinite(value) && value > 0)
+      .sort((left, right) => left - right);
+    if (!values.length) return [] as Array<{ key: string; label: string; color: string; opacity: number; radius?: number }>;
+    const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6"];
+    const breaks = Array.from({ length: palette.length }, (_, index) => {
+      const percentile = (index + 1) / palette.length;
+      const position = Math.min(values.length - 1, Math.max(0, Math.ceil(percentile * values.length) - 1));
+      return values[position];
+    }).reduce((acc: number[], value) => {
+      if (!acc.length || value > acc[acc.length - 1]) acc.push(value);
+      return acc;
+    }, []);
+    return breaks.map((limit, index) => ({
+      key: `legend-${mapMetric}-${index}`,
+      label: index === 0 ? `1–${limit}` : `${breaks[index - 1] + 1}–${limit}`,
+      color: palette[Math.min(index, palette.length - 1)],
+      opacity: 0.82,
+    }));
+  }, [abroadCountryMarkers, greekCityMarkers.legend, mapMetric, mapScope, metricOptions]);
+
   const weightedAvgAge = useMemo(() => {
     let weightedSum = 0;
     let weightedCount = 0;
