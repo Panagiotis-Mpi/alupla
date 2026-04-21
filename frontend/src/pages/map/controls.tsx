@@ -24,26 +24,76 @@ export function MapTopControls(props: {
   onToggleExportMenu: () => void;
   onExportPick: (format: ExportFormat) => void;
 }) {
+  const [showScopeMenu, setShowScopeMenu] = React.useState(false);
+  const scopeMenuRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (!scopeMenuRef.current?.contains(event.target as Node)) setShowScopeMenu(false);
+    }
+
+    if (!showScopeMenu) return;
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [showScopeMenu]);
+
+  React.useEffect(() => {
+    setShowScopeMenu(false);
+  }, [props.mapScope]);
+
+  const scopeLabel =
+    props.mapScope === "greece"
+      ? props.mt("scope.greece", { defaultValue: "Ελλάδα" })
+      : props.mt("scope.abroad", { defaultValue: "Εξωτερικό" });
+
   return (
     <div className="card map-top-menu-card">
       <div className="map-top-menu-title">
         <h2>{props.mt("title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
         <span className="badge">{props.loading ? props.ct("loading", { defaultValue: "Φόρτωση..." }) : `${props.total} ${props.mt("totalInline", { defaultValue: "σύνολο" })}`}</span>
       </div>
-      <div className="map-scope-group">
-        {(["greece", "abroad"] as MapScope[]).map((option) => (
-          <button key={option} type="button" className={`btn map-metric-button ${props.mapScope === option ? "active primary" : ""}`} onClick={() => props.onScopeChange(option)}>
-            {option === "greece" ? props.mt("scope.greece", { defaultValue: "Ελλάδα" }) : props.mt("scope.abroad", { defaultValue: "Εξωτερικό" })}
+      <div className="map-top-controls-row">
+        <div className="map-top-control-slot" ref={scopeMenuRef}>
+          <button
+            type="button"
+            className="btn map-metric-button active primary map-dropdown-button"
+            onClick={() => setShowScopeMenu((prev) => !prev)}
+            aria-haspopup="menu"
+            aria-expanded={showScopeMenu}
+          >
+            <span>{scopeLabel}</span>
+            <span className={`map-dropdown-caret ${showScopeMenu ? "open" : ""}`}>▾</span>
           </button>
-        ))}
-      </div>
-      <div className="map-metric-group">
+          {showScopeMenu ? (
+            <div className="map-menu map-scope-menu">
+              {(["greece", "abroad"] as MapScope[])
+                .filter((option) => option !== props.mapScope)
+                .map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className="map-menu-item"
+                    onClick={() => {
+                      setShowScopeMenu(false);
+                      props.onScopeChange(option);
+                    }}
+                  >
+                    <span>
+                      {option === "greece"
+                        ? props.mt("scope.greece", { defaultValue: "Ελλάδα" })
+                        : props.mt("scope.abroad", { defaultValue: "Εξωτερικό" })}
+                    </span>
+                  </button>
+                ))}
+            </div>
+          ) : null}
+        </div>
         {(["count", "dominant_gender"] as MapMetric[]).map((option) => (
           <button key={option} type="button" className={`btn map-metric-button ${props.mapMetric === option ? "active primary" : ""}`} onClick={() => props.onMetricChange(option)}>
             {props.metricOptions[option].label}
           </button>
         ))}
-        <div style={{ position: "relative" }}>
+        <div className="map-top-control-slot" style={{ position: "relative" }}>
           <button className="btn map-action-button" type="button" style={{ width: "100%" }} onClick={props.onToggleExportMenu}>
             {props.ct("export", { defaultValue: "Εξαγωγή" })}
           </button>

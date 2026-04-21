@@ -1102,6 +1102,7 @@ export default function GraduatesMapPage() {
         .alupla-city-bubble-label { margin: 0 0 4px; }
         .alupla-city-bubble { position: relative; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #fff; font-weight: 800; }
         .alupla-city-bubble-number { line-height: 1; color: #fff; text-shadow: 0 1px 1px rgba(15,23,42,.35); }
+        .alupla-city-bubble-count .alupla-city-bubble-number { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.45); }
         .alupla-city-bubble-number-gender { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.5); }
         .alupla-city-bubble-sub { margin-top: 4px; color: #475569; font-size: 10px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); }
         .alupla-city-point { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; pointer-events: auto; }
@@ -1116,13 +1117,16 @@ export default function GraduatesMapPage() {
         .map-top-menu-card { padding: 20px 16px 16px; display: grid; gap: 14px; }
         .map-top-menu-title { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .map-top-menu-title h2 { margin: 0; }
-        .map-scope-group, .map-metric-group { display: grid; gap: 10px; width: 100%; }
-        .map-scope-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .map-metric-group { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .map-top-controls-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; align-items: stretch; }
+        .map-top-control-slot { position: relative; min-width: 0; }
         .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; }
         .map-metric-button.active, .map-program-button.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
         .map-program-button { gap: 8px; }
+        .map-dropdown-button { justify-content: space-between; padding-inline: 14px; }
+        .map-dropdown-caret { font-size: 13px; transition: transform .18s ease; }
+        .map-dropdown-caret.open { transform: rotate(180deg); }
         .map-menu { position: absolute; top: calc(100% + 8px); right: 0; width: 220px; background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 18px 40px rgba(15,23,42,.16); padding: 8px; z-index: 3000; display: grid; gap: 6px; }
+        .map-scope-menu { width: 100%; min-width: 100%; }
         .map-menu-item { width: 100%; border: 0; background: transparent; text-align: left; padding: 10px 12px; border-radius: 10px; cursor: pointer; font: inherit; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
         .map-menu-item:hover { background: #f8fafc; }
         .map-menu-item.active { background: #eff6ff; color: #1d4ed8; font-weight: 700; }
@@ -1145,7 +1149,7 @@ export default function GraduatesMapPage() {
         .map-main-card { margin: 12px auto 0; max-width: 1080px; }
         .map-map-wrap { position: relative; padding: 8px 8px 12px; }
         .map-loading-overlay { position: absolute; inset: 8px 8px 12px; border-radius: 18px; background: rgba(255,255,255,.78); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 450; pointer-events: none; }
-        .map-loading-overlay-card { min-width: 180px; min-height: 88px; padding: 16px 20px; border-radius: 18px; border: 1px solid rgba(148,163,184,.28); background: rgba(255,255,255,.96); box-shadow: 0 18px 40px rgba(15,23,42,.14); display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; text-align: center; }
+        .map-loading-overlay-card { min-width: 180px; min-height: 88px; padding: 16px 20px; border-radius: 18px; border: 0; background: transparent; box-shadow: none; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; text-align: center; }
         .map-summary-shell, .map-timeline-shell { position: relative; }
         .map-summary-overlay { inset: 0; border-radius: 18px; }
         .map-main-card .map-canvas { height: clamp(760px, 80vh, 940px); min-height: 760px; }
@@ -1172,7 +1176,8 @@ export default function GraduatesMapPage() {
         .map-city-popup-program-title { font-size: 13px; font-weight: 800; color: #0f172a; }
         .map-city-popup-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #334155; font-size: 13px; }
         @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @media (max-width: 640px) { .map-metric-group, .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } .map-timeline-actions { width: 100%; } .map-timeline-current, .map-timeline-all-button { width: 100%; justify-content: center; } }
+        @media (max-width: 780px) { .map-top-controls-row { grid-template-columns: 1fr; } }
+        @media (max-width: 640px) { .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } .map-timeline-actions { width: 100%; } .map-timeline-current, .map-timeline-all-button { width: 100%; justify-content: center; } }
       `}</style>
 
       <MapTopControls
