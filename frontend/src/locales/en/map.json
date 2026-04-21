@@ -70,7 +70,7 @@
   "total": "Total: {{total}}",
   "totalInline": "Total",
   "detailsTitle": "Details",
-  "detailsHint": "Click a region for details.",
+  "detailsHint": "You can select up to six cities to compare them.",
   "legendCounts": "Current map metric",
   "exportPng": "Export map as PNG",
   "exportExcel": "Export Excel",
@@ -160,6 +160,6 @@
     "greece": "Greece",
     "abroad": "Abroad"
   },
-  "detailsHintAbroad": "Click a marker to see details for a city abroad.",
+  "detailsHintAbroad": "You can select up to 6 countries to compare them.",
   "downloadMap": "Download map"
 }

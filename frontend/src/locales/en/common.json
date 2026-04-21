@@ -80,7 +80,7 @@
     "exportExcel": "Export Excel",
     "exportCsv": "Export CSV",
     "detailsTitle": "Details",
-    "detailsHint": "Click a region for details.",
+    "detailsHint": "You can select up to six cities to compare them.",
     "totalLabel": "Total",
     "avgAge": "Average age",
     "malePct": "% Male",
