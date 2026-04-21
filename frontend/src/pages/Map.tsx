@@ -555,6 +555,14 @@ export default function GraduatesMapPage() {
     if (rank === undefined) return true;
     return rank < labelLimit;
   }, [labelLimit, rankedMarkers]);
+  const visibleRenderedMarkers = useMemo(() => {
+    if (mapScope !== "greece") return renderedMarkers;
+    return renderedMarkers.filter((city) => {
+      const rank = rankedMarkers.get(mapCityKey(city as any));
+      if (rank === undefined) return true;
+      return rank < labelLimit;
+    });
+  }, [labelLimit, mapScope, rankedMarkers, renderedMarkers]);
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const total = useMemo(
@@ -1050,7 +1058,7 @@ export default function GraduatesMapPage() {
                   maxZoom={activeFitMaxZoom}
                 />
               ) : null}
-              {renderedMarkers.map((city) => {
+              {visibleRenderedMarkers.map((city) => {
                 const latitude = mapCityLatitude(city);
                 const longitude = mapCityLongitude(city);
                 if (latitude === null || longitude === null) return null;
