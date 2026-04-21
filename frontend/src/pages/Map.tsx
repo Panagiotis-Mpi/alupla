@@ -97,6 +97,43 @@ const mapTileUrl = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}
 const mapTileAttribution =
   "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/attributions\">CARTO</a>";
 
+
+const metroGroups = [
+  {
+    key: "athens",
+    label: "Αθήνα",
+    center: { latitude: 37.9838, longitude: 23.7275 },
+    bounds: {
+      minLat: 37.82,
+      maxLat: 38.16,
+      minLng: 23.44,
+      maxLng: 23.98,
+    },
+  },
+  {
+    key: "thessaloniki",
+    label: "Θεσσαλονίκη",
+    center: { latitude: 40.6401, longitude: 22.9444 },
+    bounds: {
+      minLat: 40.50,
+      maxLat: 40.74,
+      minLng: 22.80,
+      maxLng: 23.12,
+    },
+  },
+] as const;
+
+function metroGroupForPoint(latitude: number, longitude: number) {
+  return (
+    metroGroups.find(
+      (group) =>
+        latitude >= group.bounds.minLat &&
+        latitude <= group.bounds.maxLat &&
+        longitude >= group.bounds.minLng &&
+        longitude <= group.bounds.maxLng,
+    ) || null
+  );
+}
 const escapeHtml = (value: string) =>
   String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -246,16 +283,69 @@ export default function GraduatesMapPage() {
   const greekCityMarkers = useMemo(() => {
     const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
     const radii = [6, 8, 10, 12, 14, 17, 20];
-    const points = cityPoints
-      .map((city) => ({
-        city,
-        count: Math.max(0, Number(city.count) || 0),
-        latitude: mapCityLatitude(city),
-        longitude: mapCityLongitude(city),
-      }))
-      .filter((item) => item.latitude !== null && item.longitude !== null && item.count > 0);
+    const grouped = new Map<string, any>();
 
-    const counts = points.map((item) => item.count).sort((left, right) => left - right);
+    for (const city of cityPoints) {
+      const latitude = mapCityLatitude(city);
+      const longitude = mapCityLongitude(city);
+      const count = Math.max(0, Number(city.count) || 0);
+      if (latitude === null || longitude === null || count <= 0) continue;
+
+      const metroGroup = metroGroupForPoint(latitude, longitude);
+      const key = metroGroup ? `metro:${metroGroup.key}` : `city:${mapCityKey(city as any)}`;
+      const current = grouped.get(key) || {
+        ...(metroGroup ? {
+          city_id: 0,
+          city_name: metroGroup.label,
+          latitude: metroGroup.center.latitude,
+          longitude: metroGroup.center.longitude,
+          male_count: 0,
+          female_count: 0,
+          avg_age_weighted_sum: 0,
+          avg_age_weight: 0,
+          avg_grade_weighted_sum: 0,
+          avg_grade_weight: 0,
+          avg_graduation_weighted_sum: 0,
+          avg_graduation_weight: 0,
+        } : {
+          ...city,
+          latitude,
+          longitude,
+        }),
+        count: 0,
+      };
+
+      current.count += count;
+      current.male_count = Math.max(0, Number(current.male_count || 0)) + Math.max(0, Number((city as any).male_count || 0));
+      current.female_count = Math.max(0, Number(current.female_count || 0)) + Math.max(0, Number((city as any).female_count || 0));
+
+      const avgAge = Number((city as any).avg_age);
+      if (Number.isFinite(avgAge)) {
+        current.avg_age_weighted_sum = Number(current.avg_age_weighted_sum || 0) + avgAge * count;
+        current.avg_age_weight = Number(current.avg_age_weight || 0) + count;
+      }
+      const avgGrade = Number((city as any).avg_grade);
+      if (Number.isFinite(avgGrade)) {
+        current.avg_grade_weighted_sum = Number(current.avg_grade_weighted_sum || 0) + avgGrade * count;
+        current.avg_grade_weight = Number(current.avg_grade_weight || 0) + count;
+      }
+      const avgGraduationYears = Number((city as any).avg_graduation_years);
+      if (Number.isFinite(avgGraduationYears)) {
+        current.avg_graduation_weighted_sum = Number(current.avg_graduation_weighted_sum || 0) + avgGraduationYears * count;
+        current.avg_graduation_weight = Number(current.avg_graduation_weight || 0) + count;
+      }
+
+      grouped.set(key, current);
+    }
+
+    const points = Array.from(grouped.values()).map((item) => ({
+      ...item,
+      avg_age: Number(item.avg_age_weight || 0) > 0 ? Number(item.avg_age_weighted_sum || 0) / Number(item.avg_age_weight || 1) : item.avg_age,
+      avg_grade: Number(item.avg_grade_weight || 0) > 0 ? Number(item.avg_grade_weighted_sum || 0) / Number(item.avg_grade_weight || 1) : item.avg_grade,
+      avg_graduation_years: Number(item.avg_graduation_weight || 0) > 0 ? Number(item.avg_graduation_weighted_sum || 0) / Number(item.avg_graduation_weight || 1) : item.avg_graduation_years,
+    }));
+
+    const counts = points.map((item) => Math.max(0, Number(item.count) || 0)).sort((left, right) => left - right);
     if (!counts.length) return { items: [] as Array<any>, legend: [] as Array<any>, maxCount: 0 };
 
     const breaks = Array.from({ length: palette.length }, (_, index) => {
@@ -282,11 +372,9 @@ export default function GraduatesMapPage() {
 
     return {
       items: points.map((item) => {
-        const bucket = bucketForCount(item.count);
+        const bucket = bucketForCount(Math.max(0, Number(item.count) || 0));
         return {
-          ...item.city,
-          latitude: item.latitude,
-          longitude: item.longitude,
+          ...item,
           markerRadius: radii[Math.min(bucket, radii.length - 1)],
           markerFill: palette[Math.min(bucket, palette.length - 1)],
           markerStroke: bucket >= palette.length - 2 ? "#1e3a8a" : "#1d4ed8",
@@ -555,14 +643,6 @@ export default function GraduatesMapPage() {
     if (rank === undefined) return true;
     return rank < labelLimit;
   }, [labelLimit, rankedMarkers]);
-  const visibleRenderedMarkers = useMemo(() => {
-    if (mapScope !== "greece") return renderedMarkers;
-    return renderedMarkers.filter((city) => {
-      const rank = rankedMarkers.get(mapCityKey(city as any));
-      if (rank === undefined) return true;
-      return rank < labelLimit;
-    });
-  }, [labelLimit, mapScope, rankedMarkers, renderedMarkers]);
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const total = useMemo(
@@ -1058,7 +1138,7 @@ export default function GraduatesMapPage() {
                   maxZoom={activeFitMaxZoom}
                 />
               ) : null}
-              {visibleRenderedMarkers.map((city) => {
+              {renderedMarkers.map((city) => {
                 const latitude = mapCityLatitude(city);
                 const longitude = mapCityLongitude(city);
                 if (latitude === null || longitude === null) return null;
