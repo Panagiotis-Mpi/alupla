@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -47,7 +47,6 @@ import {
 } from "./map/utils";
 import { MapResetControl, MapViewportWatcher } from "./map/shared";
 import { MapTopControls, MapYearTimeline, MapExportSelectionModal } from "./map/controls";
-import { MapCityPopupContent } from "./map/cityPopup";
 import {
   InfoBox,
   compactNumber,
@@ -187,6 +186,18 @@ function localizedCountryKey(value: unknown) {
   return normalizeKey(match?.gr || raw);
 }
 
+function sameMapSelection(scope: MapScope, left: any, right: any) {
+  if (!left || !right) return false;
+  if (scope === "abroad") {
+    const leftCountryId = Number(left.country_region_id || left.periphery_id || 0);
+    const rightCountryId = Number(right.country_region_id || right.periphery_id || 0);
+    if (leftCountryId && rightCountryId) return leftCountryId === rightCountryId;
+    return localizedCountryKey(left.country_name || left.periphery_name || left.city_name || "") === localizedCountryKey(right.country_name || right.periphery_name || right.city_name || "");
+  }
+  return normalizeKey(left.city_name || "") === normalizeKey(right.city_name || "") && Number(left.country_region_id || left.periphery_id || 0) === Number(right.country_region_id || right.periphery_id || 0);
+}
+
+
 function bubbleLabelIcon(
   city: any,
   mapMetric: MapMetric,
@@ -194,7 +205,8 @@ function bubbleLabelIcon(
   showLabel: boolean,
   mt: (key: string, options?: Record<string, unknown>) => string,
 ) {
-  const radius = Math.max(10, Number(city?.markerRadius || 10));
+  const baseRadius = Math.max(10, Number(city?.markerRadius || 10));
+  const radius = active ? Math.round(baseRadius * 1.12) : baseRadius;
   const size = radius * 2;
   const label = escapeHtml(String(city?.city_name || ""));
   const count = Math.max(0, Number(city?.count || 0));
@@ -206,7 +218,7 @@ function bubbleLabelIcon(
   const bubbleFill = String(city?.markerFill || "#60a5fa");
   const bubbleStroke = String(city?.markerStroke || "#1d4ed8");
   const bubbleOpacity = Math.max(0.45, Number(city?.markerOpacity || 0.85));
-  const fontSize = size >= 34 ? 12 : size >= 28 ? 11 : 10;
+  const fontSize = active ? (size >= 34 ? 13 : size >= 28 ? 12 : 11) : (size >= 34 ? 12 : size >= 28 ? 11 : 10);
   const labelWidth = showLabel ? Math.max(size + 10, Math.min(170, Math.max(64, label.length * 7))) : size + 10;
   const labelHeight = showLabel ? 18 : 0;
   const wrapperHeight = labelHeight + size + 6;
@@ -219,7 +231,7 @@ function bubbleLabelIcon(
   const summary = "";
   return L.divIcon({
     className: "alupla-city-bubble-icon",
-    html: `<div class="alupla-city-bubble-wrap" style="width:${wrapperWidth}px;height:${wrapperHeight}px;">${showLabel ? `<div class="alupla-city-bubble-label" style="width:${labelWidth}px;">${label}</div>` : ""}${bubbleHtml}${summary}</div>`,
+    html: `<div class="alupla-city-bubble-wrap" style="width:${wrapperWidth}px;height:${wrapperHeight}px;">${showLabel ? `<div class="alupla-city-bubble-label${active ? " active" : ""}" style="width:${labelWidth}px;">${label}</div>` : ""}${bubbleHtml}${summary}</div>`,
     iconSize: [wrapperWidth, wrapperHeight],
     iconAnchor: [wrapperWidth / 2, labelHeight + size / 2],
     popupAnchor: [0, -(size / 2 + 16)],
@@ -227,22 +239,6 @@ function bubbleLabelIcon(
 }
 
 
-
-function pointLabelIcon(label: string, showLabel: boolean, active: boolean, size = 10) {
-  const safeLabel = escapeHtml(String(label || ""));
-  const width = showLabel ? Math.max(72, Math.min(220, safeLabel.length * 8 + 26)) : size + 10;
-  const height = showLabel ? 42 : size + 10;
-  const ring = active ? 'box-shadow:0 0 0 3px rgba(15,23,42,.14);' : '';
-  return L.divIcon({
-    className: "alupla-city-label-icon",
-    html: showLabel
-      ? `<span class="alupla-city-point"><span class="alupla-city-label-text">${safeLabel}</span><span class="alupla-city-label-dot" style="width:${size}px;height:${size}px;${ring}"></span></span>`
-      : `<span class="alupla-city-point alupla-city-point-compact"><span class="alupla-city-label-dot" style="width:${size}px;height:${size}px;${ring}"></span></span>`,
-    iconSize: [width, height],
-    iconAnchor: [Math.round(width / 2), showLabel ? height - 4 : Math.round(height / 2)],
-    popupAnchor: [0, showLabel ? -height + 12 : -height],
-  });
-}
 
 function shouldCollapseMetroAtZoom(zoom: number) {
   return zoom < 10.2;
@@ -291,12 +287,7 @@ export default function GraduatesMapPage() {
   const [mapZoom, setMapZoom] = useState(6.5);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [selected, setSelected] = useState<GraduatesMapItem | null>(null);
-  const [selectedCityPoint, setSelectedCityPoint] = useState<any | null>(null);
   const [selectedCityCards, setSelectedCityCards] = useState<any[]>([]);
-  const [cityDetailLoading, setCityDetailLoading] = useState(false);
-  const [cityDetail, setCityDetail] = useState<MapCityDetailResponse | null>(
-    null,
-  );
   const [selectedGraduationYear, setSelectedGraduationYear] = useState<string>("");
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [yearRangeLoading, setYearRangeLoading] = useState(false);
@@ -465,9 +456,7 @@ export default function GraduatesMapPage() {
 
   useEffect(() => {
     setSelected(null);
-    setSelectedCityPoint(null);
     setSelectedCityCards([]);
-    setCityDetail(null);
   }, [mapScope]);
 
   useEffect(() => {
@@ -482,34 +471,6 @@ export default function GraduatesMapPage() {
     setSelected(nextSelected);
   }, [items, selected]);
 
-  useEffect(() => {
-    if (!selectedCityPoint) {
-      setCityDetail(null);
-      return;
-    }
-    let active = true;
-    setCityDetailLoading(true);
-    getMapCityDetail({
-      ...(selectedCityPoint.city_id ? { city_id: selectedCityPoint.city_id } : {}),
-      ...(mapScope === "greece" && selectedCityPoint.city_name ? { city_name: selectedCityPoint.city_name } : {}),
-      ...(selectedCityPoint.country_region_id ? { country_region_id: selectedCityPoint.country_region_id } : {}),
-      mode: mapMetric,
-      ...params,
-    })
-      .then((response) => {
-        if (!active) return;
-        setCityDetail(response || null);
-      })
-      .catch(() => {
-        if (active) setCityDetail(null);
-      })
-      .finally(() => {
-        if (active) setCityDetailLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [selectedCityPoint?.city_id, selectedCityPoint?.city_name, selectedCityPoint?.country_region_id, mapMetric, mapScope, params]);
 
   useEffect(() => {
     let active = true;
@@ -766,16 +727,10 @@ export default function GraduatesMapPage() {
     const source = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
     return source.filter((item) => {
       if (shouldShowMarkerLabel(item)) return true;
-      if (!selectedCityPoint) return false;
-      if (mapScope === "abroad") {
-        const selectedCountryId = Number(selectedCityPoint.country_region_id || selectedCityPoint.periphery_id || 0);
-        const currentCountryId = Number((item as any).country_region_id || (item as any).periphery_id || 0);
-        if (selectedCountryId && currentCountryId) return selectedCountryId === currentCountryId;
-        return localizedCountryKey(selectedCityPoint.country_name || selectedCityPoint.periphery_name || selectedCityPoint.city_name || "") === localizedCountryKey((item as any).country_name || (item as any).periphery_name || (item as any).city_name || "");
-      }
-      return normalizeKey(selectedCityPoint.city_name || "") === normalizeKey((item as any).city_name || "") && Number(selectedCityPoint.country_region_id || selectedCityPoint.periphery_id || 0) === Number((item as any).country_region_id || (item as any).periphery_id || 0);
+      if (!selectedCityCards.length) return false;
+      return selectedCityCards.some((selectedCard) => sameMapSelection(mapScope, selectedCard, item));
     });
-  }, [abroadCountryMarkers, greekCityMarkers.items, mapScope, selectedCityPoint, shouldShowMarkerLabel]);
+  }, [abroadCountryMarkers, greekCityMarkers.items, mapScope, selectedCityCards, shouldShowMarkerLabel]);
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const total = useMemo(
@@ -831,10 +786,38 @@ export default function GraduatesMapPage() {
     );
   }
 
-  function appendSelectedCityCard(city: any) {
+  async function appendSelectedCityCard(city: any) {
+    const requestParams = {
+      ...(city.city_id ? { city_id: city.city_id } : {}),
+      ...(mapScope === "greece" && city.city_name ? { city_name: city.city_name } : {}),
+      ...(city.country_region_id ? { country_region_id: city.country_region_id } : {}),
+      mode: mapMetric,
+      ...params,
+    };
+
+    let detail: MapCityDetailResponse | null = null;
+    try {
+      detail = await getMapCityDetail(requestParams);
+    } catch {}
+
+    const mergedCity = {
+      ...city,
+      ...(detail || {}),
+      city_name: String(detail?.city_name || city.city_name || ""),
+      count: Number(detail?.total ?? city.count ?? 0),
+      total: Number(detail?.total ?? city.count ?? 0),
+      male_count: detail?.male_count ?? city.male_count ?? 0,
+      female_count: detail?.female_count ?? city.female_count ?? 0,
+      male_pct: detail?.male_pct ?? city.male_pct ?? null,
+      female_pct: detail?.female_pct ?? city.female_pct ?? null,
+      avg_age: detail?.avg_age ?? city.avg_age ?? null,
+      avg_grade: detail?.avg_grade ?? city.avg_grade ?? null,
+      avg_graduation_years: detail?.avg_graduation_years ?? city.avg_graduation_years ?? null,
+    };
+
     setSelectedCityCards((prev) => {
-      const next = prev.filter((entry) => mapCityKey(entry) !== mapCityKey(city));
-      next.push(city);
+      const next = prev.filter((entry) => !sameMapSelection(mapScope, entry, mergedCity));
+      next.push(mergedCity);
       return next.slice(-3);
     });
   }
@@ -944,18 +927,6 @@ export default function GraduatesMapPage() {
     ];
   }
 
-  function renderCityPopupContent() {
-    return (
-      <MapCityPopupContent
-        ct={ct}
-        mt={mt}
-        mapMetric={mapMetric}
-        cityDetailLoading={cityDetailLoading}
-        cityDetail={cityDetail}
-        directionColorMap={new Map()}
-      />
-    );
-  }
 
   if (pageLoading) {
     return <div className="card">{mt("loadingLabel", { defaultValue: "φορτώση" })}</div>;
@@ -972,6 +943,7 @@ export default function GraduatesMapPage() {
         .alupla-city-bubble-wrap { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; pointer-events: auto; overflow: visible; }
         .alupla-city-bubble-label, .alupla-city-label-text { text-align: center; color: #0f172a; font-size: 12px; font-weight: 700; line-height: 1.05; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); background: transparent !important; border: 0 !important; padding: 0; }
         .alupla-city-bubble-label { margin: 0 0 4px; }
+        .alupla-city-bubble-label.active { font-size: 13px; font-weight: 800; }
         .alupla-city-bubble { position: relative; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #fff; font-weight: 800; }
         .alupla-city-bubble-number { line-height: 1; color: #fff; text-shadow: 0 1px 1px rgba(15,23,42,.35); }
         .alupla-city-bubble-count .alupla-city-bubble-number { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.45); }
@@ -1021,6 +993,7 @@ export default function GraduatesMapPage() {
         .map-summary-value { font-size: 28px; font-weight: 800; line-height: 1.1; color: #0f172a; }
         .map-summary-sub { color: #64748b; font-size: 13px; line-height: 1.35; }
         .map-main-card { margin: 12px auto 0; max-width: 1080px; }
+        .map-compare-hint { margin: 12px auto 0; max-width: 1080px; padding: 12px 16px; font-size: 14px; color: #475569; }
         .map-map-wrap { position: relative; padding: 8px 8px 12px; }
         .map-loading-overlay { position: absolute; inset: 8px 8px 12px; border-radius: 18px; background: rgba(255,255,255,.08); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 450; pointer-events: none; }
         .map-loading-overlay-card { min-width: 180px; min-height: 88px; padding: 16px 20px; border-radius: 18px; border: 0; background: transparent; box-shadow: none; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; text-align: center; }
@@ -1139,6 +1112,10 @@ export default function GraduatesMapPage() {
         />
       </div>
 
+      <div className="card map-compare-hint">
+        {mt("compareHint", { defaultValue: "Μπορείς να επιλέξεις έως 3 πόλεις για σύγκριση." })}
+      </div>
+
       <div className="card alupla-map-card map-main-card">
         <div className="map-map-wrap">
           <div className="alupla-map map-canvas" ref={mapCanvasRef}>
@@ -1191,54 +1168,23 @@ export default function GraduatesMapPage() {
                 const latitude = mapCityLatitude(city);
                 const longitude = mapCityLongitude(city);
                 if (latitude === null || longitude === null) return null;
-                const activeCity = mapScope === "abroad"
-                  ? (() => {
-                      const selectedCountryId = Number(selectedCityPoint?.country_region_id || selectedCityPoint?.periphery_id || 0);
-                      const cityCountryId = Number(city.country_region_id || city.periphery_id || 0);
-                      if (selectedCountryId && cityCountryId) return selectedCountryId === cityCountryId;
-                      return localizedCountryKey(selectedCityPoint?.country_name || selectedCityPoint?.periphery_name || selectedCityPoint?.city_name || "") === localizedCountryKey(city.country_name || city.periphery_name || city.city_name || "");
-                    })()
-                  : normalizeKey(selectedCityPoint?.city_name || "") === normalizeKey(city.city_name || "") && Number(selectedCityPoint?.country_region_id || selectedCityPoint?.periphery_id || 0) === Number(city.country_region_id || city.periphery_id || 0);
-                const openCity = () => {
-                  setSelectedCityPoint(city);
-                  appendSelectedCityCard(city);
-                  if (city.periphery_id) {
-                    const hit = items.find((item) => item.periphery_id === city.periphery_id);
-                    if (hit) setSelected(hit);
-                  }
-                };
-                if (mapScope === "greece") {
-                  return (
+                const activeCity = selectedCityCards.some((selectedCard) => sameMapSelection(mapScope, selectedCard, city));
+                return (
                     <Marker
                       key={mapCityKey(city)}
                       position={[latitude, longitude]}
                       icon={bubbleLabelIcon(city, mapMetric, activeCity, shouldShowMarkerLabel(city), mt)}
                       eventHandlers={{
-                        click: openCity,
-                        popupclose: () => setSelectedCityPoint(null),
+                        click: () => {
+                          void appendSelectedCityCard(city);
+                          if (city.periphery_id) {
+                            const hit = items.find((item) => item.periphery_id === city.periphery_id);
+                            if (hit) setSelected(hit);
+                          }
+                        },
                       }}
-                    >
-                      <Popup minWidth={300} maxWidth={360} autoPan closeButton>
-                        {activeCity ? renderCityPopupContent() : <div style={{ minWidth: 280 }} />}
-                      </Popup>
-                    </Marker>
+                    />
                   );
-                }
-                return (
-                  <Marker
-                    key={mapCityKey(city)}
-                    position={[latitude, longitude]}
-                    icon={bubbleLabelIcon(city, mapMetric, activeCity, shouldShowMarkerLabel(city), mt)}
-                    eventHandlers={{
-                      click: openCity,
-                      popupclose: () => setSelectedCityPoint(null),
-                    }}
-                  >
-                    <Popup minWidth={300} maxWidth={360} autoPan closeButton>
-                      {activeCity ? renderCityPopupContent() : <div style={{ minWidth: 280 }} />}
-                    </Popup>
-                  </Marker>
-                );
               })}
             </MapContainer>
           </div>
@@ -1310,7 +1256,7 @@ export default function GraduatesMapPage() {
                   key={mapCityKey(city)}
                   title={city.city_name}
                   totalText={mt("totalGraduatesLine", {
-                    total: Number(city.count ?? 0),
+                    total: Number(city.total ?? city.count ?? 0),
                     defaultValue: "Σύνολο αποφοίτων: {{total}}",
                   })}
                   groups={detailGroups(city)}
@@ -1323,10 +1269,10 @@ export default function GraduatesMapPage() {
             <div className="muted">
               {mapScope === "abroad"
                 ? mt("detailsHintAbroad", {
-                    defaultValue: "Κάνε κλικ σε έναν marker για λεπτομέρειες πόλης του εξωτερικού.",
+                    defaultValue: "Επίλεξε έως 3 χώρες για σύγκριση.",
                   })
                 : mt("detailsHint", {
-                    defaultValue: "Κάνε κλικ σε έναν marker πόλης για λεπτομέρειες.",
+                    defaultValue: "Επίλεξε έως 3 πόλεις για σύγκριση.",
                   })}
             </div>
           </div>
