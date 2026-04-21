@@ -1091,3 +1091,54 @@ html.accessibility-underline-links .btn{text-underline-offset:3px}
   .table-wrap{overflow-x:auto;overflow-y:hidden;max-width:100%;-webkit-overflow-scrolling:touch}
   .table-wrap .table{width:max-content;min-width:100%}
 }
+
+
+html.accessibility-high-contrast .leaflet-container,
+html.accessibility-high-contrast .alupla-map .leaflet-container{
+  background:#0b1220 !important;
+  color:#f8fafc !important;
+  border-color:#f8fafc !important;
+}
+html.accessibility-high-contrast .leaflet-control,
+html.accessibility-high-contrast .leaflet-popup-content-wrapper,
+html.accessibility-high-contrast .leaflet-popup-tip{
+  background:#111827 !important;
+  color:#f8fafc !important;
+  border-color:#f8fafc !important;
+}
+html.accessibility-high-contrast .leaflet-bar a{
+  background:#111827 !important;
+  color:#f8fafc !important;
+  border-color:#f8fafc !important;
+}
+html.accessibility-high-contrast .leaflet-bar a:hover{
+  background:#f8fafc !important;
+  color:#111827 !important;
+}
+html.accessibility-high-contrast .leaflet-pane,
+html.accessibility-high-contrast .leaflet-map-pane,
+html.accessibility-high-contrast .leaflet-tile-pane,
+html.accessibility-high-contrast .leaflet-overlay-pane,
+html.accessibility-high-contrast .leaflet-shadow-pane,
+html.accessibility-high-contrast .leaflet-marker-pane,
+html.accessibility-high-contrast .leaflet-tooltip-pane,
+html.accessibility-high-contrast .leaflet-popup-pane{
+  background:transparent !important;
+}
+html.accessibility-high-contrast .leaflet-tile,
+html.accessibility-high-contrast .leaflet-container img,
+html.accessibility-high-contrast .leaflet-container canvas{
+  filter:none !important;
+}
+html.accessibility-high-contrast .leaflet-container canvas{
+  background:transparent !important;
+  border:none !important;
+  border-radius:0 !important;
+}
+html.accessibility-high-contrast .alupla-city-bubble-label,
+html.accessibility-high-contrast .alupla-city-label-text,
+html.accessibility-high-contrast .alupla-city-bubble-number,
+html.accessibility-high-contrast .alupla-city-bubble-number-gender{
+  color:#f8fafc !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.9) !important;
+}

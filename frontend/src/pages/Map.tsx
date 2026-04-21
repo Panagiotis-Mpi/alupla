@@ -78,7 +78,8 @@ type ExportScopeSelection = { category: ExportCategoryKey; scope: MapScope };
 
 const fillColors = ["#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb", "#1d4ed8"];
 
-const mapTileUrl = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
+const lightMapTileUrl = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
+const darkMapTileUrl = "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png";
 const mapTileAttribution =
   "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/attributions\">CARTO</a>";
 
@@ -271,6 +272,12 @@ export default function GraduatesMapPage() {
 
   const mapRef = useRef<L.Map | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
+  const mapScopeRef = useRef<MapScope>("greece");
+  const mapMetricRef = useRef<MapMetric>("count");
+  const loadingRef = useRef(false);
+  const scopeTransitionLoadingRef = useRef(false);
+  const metricTransitionLoadingRef = useRef(false);
+
 
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
   const [mapScope, setMapScope] = useState<MapScope>("greece");
@@ -288,6 +295,7 @@ export default function GraduatesMapPage() {
   const [initialPageReady, setInitialPageReady] = useState(false);
   const [scopeTransitionLoading, setScopeTransitionLoading] = useState(false);
   const [metricTransitionLoading, setMetricTransitionLoading] = useState(false);
+  const [highContrastEnabled, setHighContrastEnabled] = useState(() => typeof document !== "undefined" && document.documentElement.classList.contains("accessibility-high-contrast"));
   const isCompactViewport = useCompactMapViewport();
   const fitPadding = isCompactViewport
     ? ([18, 18] as [number, number])
@@ -312,6 +320,38 @@ export default function GraduatesMapPage() {
 
   const worldBounds = useMemo(() => L.latLngBounds(L.latLng(-60, -180), L.latLng(85, 180)), []);
   const greeceBounds = useMemo(() => L.latLngBounds(L.latLng(34.4, 19.8), L.latLng(41.9, 29.9)), []);
+
+  useEffect(() => {
+    mapScopeRef.current = mapScope;
+  }, [mapScope]);
+
+  useEffect(() => {
+    mapMetricRef.current = mapMetric;
+  }, [mapMetric]);
+
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
+
+  useEffect(() => {
+    scopeTransitionLoadingRef.current = scopeTransitionLoading;
+  }, [scopeTransitionLoading]);
+
+  useEffect(() => {
+    metricTransitionLoadingRef.current = metricTransitionLoading;
+  }, [metricTransitionLoading]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    const sync = () => setHighContrastEnabled(root.classList.contains("accessibility-high-contrast"));
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const activeMapTileUrl = highContrastEnabled ? darkMapTileUrl : lightMapTileUrl;
 
   const resetComparedSelections = useCallback(() => {
     setSelected(null);
@@ -752,6 +792,28 @@ export default function GraduatesMapPage() {
   }, [items]);
 
 
+  const comparisonHintText = mapScope === "abroad"
+    ? mt("detailsHintAbroad", { defaultValue: "Μπορείς να επιλέξεις έως έξι χώρες για σύγκριση." })
+    : mt("detailsHint", { defaultValue: "Μπορείς να επιλέξεις έως έξι πόλεις για σύγκριση." });
+
+  async function waitForExportTarget(targetScope: MapScope, targetMetric: MapMetric) {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < 12000) {
+      const scopeReady = mapScopeRef.current === targetScope;
+      const metricReady = mapMetricRef.current === targetMetric;
+      const loadingReady = !loadingRef.current && !scopeTransitionLoadingRef.current && !metricTransitionLoadingRef.current;
+      if (scopeReady && metricReady && loadingReady) {
+        await waitForMapFrame(mapRef);
+        await new Promise((resolve) => window.setTimeout(resolve, 220));
+        await waitForMapFrame(mapRef);
+        return;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 120));
+    }
+    await waitForMapFrame(mapRef);
+  }
+
+
   function metricFilenameBase(metric: MapMetric, scope = mapScope) {
     const parts = ["alupla_map", slugPart(scope), slugPart(metric)];
     if (selectedGraduationYear) parts.push(slugPart(selectedGraduationYear));
@@ -844,7 +906,7 @@ export default function GraduatesMapPage() {
       for (const selection of selectedExportSelections) {
         setMapScope(selection.scope);
         setMapMetric(selection.category);
-        await waitForMapFrame(mapRef);
+        await waitForExportTarget(selection.scope, selection.category);
         if (!mapCanvasRef.current) continue;
         const snapshot = await renderMapSnapshot(mapCanvasRef.current);
         const scopeLabel = selection.scope === "greece"
@@ -1002,7 +1064,6 @@ export default function GraduatesMapPage() {
         .map-summary-value { font-size: 28px; font-weight: 800; line-height: 1.1; color: #0f172a; }
         .map-summary-sub { color: #64748b; font-size: 13px; line-height: 1.35; }
         .map-main-card { margin: 12px auto 0; max-width: 1080px; }
-        .map-compare-hint { margin: 12px auto 0; max-width: 1080px; padding: 12px 16px; font-size: 14px; color: #475569; }
         .map-info-box { position: relative; }
         .map-info-box-close { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border: 1px solid rgba(148,163,184,.35); background: #fff; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; cursor: pointer; color: #334155; }
         .map-map-wrap { position: relative; padding: 8px 8px 12px; }
@@ -1131,10 +1192,6 @@ export default function GraduatesMapPage() {
         />
       </div>
 
-      <div className="card map-compare-hint">
-        {mt("compareHint", { defaultValue: "Μπορείς να επιλέξεις έως 6 πόλεις για σύγκριση." })}
-      </div>
-
       <div className="card alupla-map-card map-main-card">
         <div className="map-map-wrap">
           <div className="alupla-map map-canvas" ref={mapCanvasRef}>
@@ -1161,13 +1218,13 @@ export default function GraduatesMapPage() {
               style={{
                 height: "100%",
                 width: "100%",
-                background: "transparent",
+                background: highContrastEnabled ? "#0b1220" : "transparent",
               }}
               scrollWheelZoom
             >
               <TileLayer
                 attribution={mapTileAttribution}
-                url={mapTileUrl}
+                url={activeMapTileUrl}
                 crossOrigin="anonymous"
               />
               <MapViewportWatcher
@@ -1269,6 +1326,9 @@ export default function GraduatesMapPage() {
             <div style={{ fontWeight: 800, fontSize: 18 }}>
               {mt("infoTitle", { defaultValue: "Πληροφορίες" })}
             </div>
+            <div className="muted" style={{ marginTop: 6, marginBottom: 12 }}>
+              {comparisonHintText}
+            </div>
             <div className="map-city-cards-inline">
               {selectedCityCards.map((city) => (
                 <InfoBox
@@ -1288,13 +1348,7 @@ export default function GraduatesMapPage() {
         ) : items.length || cityPoints.length ? (
           <div className="card map-combined-details-card">
             <div className="muted">
-              {mapScope === "abroad"
-                ? mt("detailsHintAbroad", {
-                    defaultValue: "Επίλεξε έως 6 χώρες για σύγκριση.",
-                  })
-                : mt("detailsHint", {
-                    defaultValue: "Επίλεξε έως 6 πόλεις για σύγκριση.",
-                  })}
+              {comparisonHintText}
             </div>
           </div>
         ) : (
