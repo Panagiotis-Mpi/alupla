@@ -93,9 +93,14 @@ export function slugPart(value: string) {
     .replace(/^-+|-+$/g, "") || "map";
 }
 
-export function InfoBox({ title, totalText, groups }: { title: string; totalText: string; groups: Array<{ title: string; rows: Array<{ label: string; value: string }> }> }) {
+export function InfoBox({ title, totalText, groups, onRemove, removeLabel }: { title: string; totalText: string; groups: Array<{ title: string; rows: Array<{ label: string; value: string }> }>; onRemove?: () => void; removeLabel?: string }) {
   return (
     <div className="map-info-box">
+      {onRemove ? (
+        <button type="button" className="map-info-box-close" onClick={onRemove} aria-label={removeLabel || "Κλείσιμο"}>
+          ×
+        </button>
+      ) : null}
       <div className="map-info-box-header">
         <div className="map-info-box-title">{title}</div>
         <div className="map-info-total-line">{totalText}</div>

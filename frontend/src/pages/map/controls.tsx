@@ -4,10 +4,12 @@ type MetricOption = { label: string; legend: string };
 type MapMetric = "count" | "dominant_gender";
 type MapScope = "greece" | "abroad";
 type ExportCategoryKey = MapMetric;
+type ExportScopeOption = MapScope;
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 type ExportCategoryOption = { id: ExportCategoryKey; label: string };
+type ExportScopeSelection = { category: ExportCategoryKey; scope: ExportScopeOption };
 
 export function MapTopControls(props: {
   mt: Translate;
@@ -166,19 +168,23 @@ export function MapYearTimeline(props: {
   );
 }
 
+type ExportFormat = "png";
+
 export function MapExportSelectionModal(props: {
   mt: Translate;
   ct: Translate;
   selectedExportFormat: ExportFormat;
   exportCategoryOptions: ExportCategoryOption[];
-  selectedExportCategories: ExportCategoryKey[];
+  selectedExportSelections: ExportScopeSelection[];
   exportingSelection: boolean;
   onClose: () => void;
-  onToggleAllCategories: () => void;
-  onToggleCategory: (category: ExportCategoryKey) => void;
+  onToggleAllSelections: () => void;
+  onToggleScopeSelection: (category: ExportCategoryKey, scope: ExportScopeOption) => void;
   onConfirm: () => void;
 }) {
-  const canSubmit = props.selectedExportCategories.length > 0 && !props.exportingSelection;
+  const scopeOptions: ExportScopeOption[] = ["greece", "abroad"];
+  const totalSelectionCount = props.exportCategoryOptions.length * scopeOptions.length;
+  const canSubmit = props.selectedExportSelections.length > 0 && !props.exportingSelection;
 
   return (
     <div
@@ -219,21 +225,29 @@ export function MapExportSelectionModal(props: {
 
         <div style={{ display: "grid", gap: 10, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
           <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700 }}>
-            <input type="checkbox" checked={props.selectedExportCategories.length === props.exportCategoryOptions.length && props.exportCategoryOptions.length > 0} onChange={props.onToggleAllCategories} />
+            <input type="checkbox" checked={props.selectedExportSelections.length === totalSelectionCount && totalSelectionCount > 0} onChange={props.onToggleAllSelections} />
             <span>{props.ct("all", { defaultValue: "Όλα" })}</span>
           </label>
 
-          {props.exportCategoryOptions.map((category) => {
-            const isSelected = props.selectedExportCategories.includes(category.id);
-            return (
-              <div key={category.id} style={{ display: "grid", gap: 8, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 10, background: "#f8fafc" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700 }}>
-                  <input type="checkbox" checked={isSelected} onChange={() => props.onToggleCategory(category.id)} />
-                  <span>{category.label}</span>
-                </label>
+          {props.exportCategoryOptions.map((category) => (
+            <div key={category.id} style={{ display: "grid", gap: 10, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 12, background: "#f8fafc" }}>
+              <div style={{ fontWeight: 700 }}>{category.label}</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {scopeOptions.map((scope) => {
+                  const checked = props.selectedExportSelections.some((entry) => entry.category === category.id && entry.scope === scope);
+                  const scopeLabel = scope === "greece"
+                    ? props.mt("scope.greece", { defaultValue: "Ελλάδα" })
+                    : props.mt("scope.abroad", { defaultValue: "Εξωτερικό" });
+                  return (
+                    <label key={`${category.id}-${scope}`} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <input type="checkbox" checked={checked} onChange={() => props.onToggleScopeSelection(category.id, scope)} />
+                      <span>{scopeLabel}</span>
+                    </label>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap", paddingTop: 2 }}>

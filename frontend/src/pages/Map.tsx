@@ -30,9 +30,6 @@ import {
   type GraduatesMapItem,
   type MapCityDetailResponse,
 } from "../lib/api";
-import {
-  exportElementAsPng,
-} from "./map/mapExport";
 import { useMapData } from "./map/hooks";
 import { EMPTY_FILTERS } from "./map/types";
 import {
@@ -59,8 +56,6 @@ import {
 import {
   exportCombinedSnapshots,
   renderMapSnapshot,
-  toggleAllExportCategorySelection,
-  toggleExportCategorySelection,
   waitForMapFrame,
 } from "./map/exportSelection";
 
@@ -79,6 +74,7 @@ type MapMetric = "count" | "dominant_gender";
 type MapScope = "greece" | "abroad";
 type ExportFormat = "png";
 type ExportCategoryKey = MapMetric;
+type ExportScopeSelection = { category: ExportCategoryKey; scope: MapScope };
 
 const fillColors = ["#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb", "#1d4ed8"];
 
@@ -280,9 +276,7 @@ export default function GraduatesMapPage() {
   const [mapScope, setMapScope] = useState<MapScope>("greece");
   const [selectedExportFormat, setSelectedExportFormat] =
     useState<ExportFormat | null>(null);
-  const [selectedExportCategories, setSelectedExportCategories] = useState<
-    ExportCategoryKey[]
-  >([]);
+  const [selectedExportSelections, setSelectedExportSelections] = useState<ExportScopeSelection[]>([]);
   const [exportingSelection, setExportingSelection] = useState(false);
   const [mapZoom, setMapZoom] = useState(6.5);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
@@ -758,14 +752,14 @@ export default function GraduatesMapPage() {
   }, [items]);
 
 
-  function metricFilenameBase(metric: MapMetric) {
-    const parts = ["alupla_map", slugPart(mapScope), slugPart(metric)];
+  function metricFilenameBase(metric: MapMetric, scope = mapScope) {
+    const parts = ["alupla_map", slugPart(scope), slugPart(metric)];
     if (selectedGraduationYear) parts.push(slugPart(selectedGraduationYear));
     return parts.join("_");
   }
 
   function openExportSelection(format: ExportFormat = "png") {
-    setSelectedExportCategories([]);
+    setSelectedExportSelections([]);
     setSelectedExportFormat(format);
   }
 
@@ -774,23 +768,33 @@ export default function GraduatesMapPage() {
     setSelectedExportFormat(null);
   }
 
-  function toggleExportCategory(category: ExportCategoryKey) {
-    setSelectedExportCategories((prev) =>
-      toggleExportCategorySelection(prev, category),
-    );
+  function toggleExportScopeSelection(category: ExportCategoryKey, scope: MapScope) {
+    setSelectedExportSelections((prev) => {
+      const exists = prev.some((entry) => entry.category === category && entry.scope === scope);
+      if (exists) return prev.filter((entry) => !(entry.category === category && entry.scope === scope));
+      return [...prev, { category, scope }];
+    });
   }
 
-  function toggleAllExportCategories() {
-    setSelectedExportCategories(
-      (prev) =>
-        toggleAllExportCategorySelection(
-          prev,
-          exportCategoryOptions.map((item) => item.id),
-        ) as ExportCategoryKey[],
-    );
+  function toggleAllExportSelections() {
+    const allSelections = exportCategoryOptions.flatMap((item) => ([
+      { category: item.id, scope: "greece" as MapScope },
+      { category: item.id, scope: "abroad" as MapScope },
+    ]));
+    setSelectedExportSelections((prev) => prev.length === allSelections.length ? [] : allSelections);
   }
 
-  async function appendSelectedCityCard(city: any) {
+  function removeSelectedCityCard(city: any) {
+    setSelectedCityCards((prev) => prev.filter((entry) => !sameMapSelection(mapScope, entry, city)));
+  }
+
+  async function toggleSelectedCityCard(city: any) {
+    const alreadySelected = selectedCityCards.some((entry) => sameMapSelection(mapScope, entry, city));
+    if (alreadySelected) {
+      removeSelectedCityCard(city);
+      return;
+    }
+
     const requestParams = {
       ...(city.city_id ? { city_id: city.city_id } : {}),
       ...(mapScope === "greece" && city.city_name ? { city_name: city.city_name } : {}),
@@ -822,57 +826,48 @@ export default function GraduatesMapPage() {
     setSelectedCityCards((prev) => {
       const next = prev.filter((entry) => !sameMapSelection(mapScope, entry, mergedCity));
       next.push(mergedCity);
-      return next.slice(-3);
+      return next.slice(-6);
     });
   }
 
   async function exportMapSelectionAsPng() {
     const previousMetric = mapMetric;
+    const previousScope = mapScope;
     const previousSelected = selected;
     const previousSelectedCityCards = selectedCityCards;
-    const snapshotsByCategory: Array<{
-      key: ExportCategoryKey;
-      snapshots: Array<{
-        image: HTMLImageElement;
-        width: number;
-        height: number;
-        caption?: string;
-      }>;
-    }> = [];
 
     setSelected(null);
     setSelectedCityCards([]);
     await waitForMapFrame(mapRef);
 
     try {
-      for (const category of selectedExportCategories) {
-        setMapMetric(category);
+      for (const selection of selectedExportSelections) {
+        setMapScope(selection.scope);
+        setMapMetric(selection.category);
         await waitForMapFrame(mapRef);
         if (!mapCanvasRef.current) continue;
         const snapshot = await renderMapSnapshot(mapCanvasRef.current);
-        snapshotsByCategory.push({ key: category, snapshots: [snapshot] });
+        const scopeLabel = selection.scope === "greece"
+          ? mt("scope.greece", { defaultValue: "Ελλάδα" })
+          : mt("scope.abroad", { defaultValue: "Εξωτερικό" });
+        const option = exportCategoryOptions.find((item) => item.id === selection.category);
+        await exportCombinedSnapshots(
+          `${metricFilenameBase(selection.category, selection.scope)}.png`,
+          `${option?.label || selection.category} · ${scopeLabel}`,
+          [{ ...snapshot, caption: scopeLabel }],
+        );
       }
     } finally {
+      setMapScope(previousScope);
       setMapMetric(previousMetric);
       setSelected(previousSelected);
       setSelectedCityCards(previousSelectedCityCards);
       await waitForMapFrame(mapRef);
     }
-
-    for (const entry of snapshotsByCategory) {
-      const option = exportCategoryOptions.find(
-        (item) => item.id === entry.key,
-      );
-      await exportCombinedSnapshots(
-        `${metricFilenameBase(entry.key)}.png`,
-        option?.label || entry.key,
-        entry.snapshots,
-      );
-    }
   }
 
   async function handleExportSelection() {
-    if (!selectedExportCategories.length) return;
+    if (!selectedExportSelections.length) return;
     setExportingSelection(true);
     try {
       await exportMapSelectionAsPng();
@@ -1008,6 +1003,8 @@ export default function GraduatesMapPage() {
         .map-summary-sub { color: #64748b; font-size: 13px; line-height: 1.35; }
         .map-main-card { margin: 12px auto 0; max-width: 1080px; }
         .map-compare-hint { margin: 12px auto 0; max-width: 1080px; padding: 12px 16px; font-size: 14px; color: #475569; }
+        .map-info-box { position: relative; }
+        .map-info-box-close { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border: 1px solid rgba(148,163,184,.35); background: #fff; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; cursor: pointer; color: #334155; }
         .map-map-wrap { position: relative; padding: 8px 8px 12px; }
         .map-loading-overlay { position: absolute; inset: 8px 8px 12px; border-radius: 18px; background: rgba(255,255,255,.08); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 450; pointer-events: none; }
         .map-loading-overlay-card { min-width: 180px; min-height: 88px; padding: 16px 20px; border-radius: 18px; border: 0; background: transparent; box-shadow: none; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; text-align: center; }
@@ -1135,7 +1132,7 @@ export default function GraduatesMapPage() {
       </div>
 
       <div className="card map-compare-hint">
-        {mt("compareHint", { defaultValue: "Μπορείς να επιλέξεις έως 3 πόλεις για σύγκριση." })}
+        {mt("compareHint", { defaultValue: "Μπορείς να επιλέξεις έως 6 πόλεις για σύγκριση." })}
       </div>
 
       <div className="card alupla-map-card map-main-card">
@@ -1198,7 +1195,7 @@ export default function GraduatesMapPage() {
                       icon={bubbleLabelIcon(city, mapMetric, activeCity, shouldShowMarkerLabel(city), mt)}
                       eventHandlers={{
                         click: () => {
-                          void appendSelectedCityCard(city);
+                          void toggleSelectedCityCard(city);
                           if (city.periphery_id) {
                             const hit = items.find((item) => item.periphery_id === city.periphery_id);
                             if (hit) setSelected(hit);
@@ -1282,6 +1279,8 @@ export default function GraduatesMapPage() {
                     defaultValue: "Σύνολο αποφοίτων: {{total}}",
                   })}
                   groups={detailGroups(city)}
+                  onRemove={() => removeSelectedCityCard(city)}
+                  removeLabel={mt("removeSelection", { defaultValue: "Αφαίρεση επιλογής" })}
                 />
               ))}
             </div>
@@ -1291,10 +1290,10 @@ export default function GraduatesMapPage() {
             <div className="muted">
               {mapScope === "abroad"
                 ? mt("detailsHintAbroad", {
-                    defaultValue: "Επίλεξε έως 3 χώρες για σύγκριση.",
+                    defaultValue: "Επίλεξε έως 6 χώρες για σύγκριση.",
                   })
                 : mt("detailsHint", {
-                    defaultValue: "Επίλεξε έως 3 πόλεις για σύγκριση.",
+                    defaultValue: "Επίλεξε έως 6 πόλεις για σύγκριση.",
                   })}
             </div>
           </div>
@@ -1320,11 +1319,11 @@ export default function GraduatesMapPage() {
           ct={ct}
           selectedExportFormat={selectedExportFormat}
           exportCategoryOptions={exportCategoryOptions}
-          selectedExportCategories={selectedExportCategories}
+          selectedExportSelections={selectedExportSelections}
           exportingSelection={exportingSelection}
           onClose={closeExportSelection}
-          onToggleAllCategories={toggleAllExportCategories}
-          onToggleCategory={toggleExportCategory}
+          onToggleAllSelections={toggleAllExportSelections}
+          onToggleScopeSelection={toggleExportScopeSelection}
           onConfirm={() => void handleExportSelection()}
         />
       ) : null}
