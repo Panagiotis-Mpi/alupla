@@ -3,8 +3,9 @@ import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
 import { ProgramDirection } from "../models/ProgramDirection";
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import { resolveMapLocation } from "../services/mapLocation.service";
+import { sequelize } from "../config/sequelize";
 import { buildMapWhere, calculateAgeAtDate, collapseCountsByLabel, isAbroadMapGraduate, isDirectionAllowed, isGreekMapGraduate, loadRegions, matchesSelectedStudyProgram, normalizeKey, pickDirectionDisplay, pickTopName, toInt } from "./map.helpers";
 
 function mapScopeFromRequest(req: Request) {
@@ -202,15 +203,25 @@ export async function getGraduatesMap(req: Request, res: Response) {
 }
 
 export async function getMapYearRange(req: Request, res: Response) {
-  const rows = await Graduate.findAll({
-    attributes: ["graduation_date"],
-    where: { graduation_date: { [Op.ne]: null } } as any,
-    raw: true,
-  });
+  try {
+    const rows = await sequelize.query<{ year: number | null }>(
+      `SELECT DISTINCT EXTRACT(YEAR FROM graduation_date)::int AS year
+       FROM graduates
+       WHERE graduation_date IS NOT NULL
+       ORDER BY year ASC`,
+      { type: QueryTypes.SELECT }
+    );
 
-  const years = Array.from(new Set(rows.map((row: any) => Number(String(row.graduation_date ?? "").slice(0, 4))).filter((year) => Number.isFinite(year) && year > 1900))).sort((left, right) => left - right);
+    const years = rows
+      .map((row) => Number(row.year))
+      .filter((year) => Number.isFinite(year) && year > 1900)
+      .sort((left, right) => left - right);
 
-  return res.json({ ok: true, years, min_year: years[0] ?? null, max_year: years.length ? years[years.length - 1] : null });
+    return res.json({ ok: true, years, min_year: years[0] ?? null, max_year: years.length ? years[years.length - 1] : null });
+  } catch (error) {
+    console.error("[map] failed to load year range:", (error as Error)?.message ?? error);
+    return res.status(500).json({ ok: false, message: "Failed to load map years" });
+  }
 }
 
 export async function getMapCities(req: Request, res: Response) {
