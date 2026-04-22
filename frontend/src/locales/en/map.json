@@ -73,8 +73,6 @@
   "detailsHint": "You can select up to six cities to compare them.",
   "legendCounts": "Current map metric",
   "exportPng": "Export map as PNG",
-  "exportExcel": "Export Excel",
-  "exportCsv": "Export CSV",
   "totalLabel": "Total",
   "avgAge": "Average graduation age",
   "malePct": "% Male",
@@ -84,7 +82,6 @@
   "maleCount": "Men",
   "femaleCount": "Women",
   "dominantDirection": "Study program",
-  "directionCount": "Direction graduates",
   "cities": "Cities",
   "metricLabel": "Map view",
   "noResults": "No graduates were found for the current filters.",
@@ -112,14 +109,12 @@
     "basics": "Basics",
     "demographics": "Demographics",
     "academics": "Academic data",
-    "geography": "Geography",
-    "directions": "Directions"
+    "geography": "Geography"
   },
   "trend": {
     "title": "Graduates by year",
     "series": "Graduates",
     "genderTitle": "Gender trend by year",
-    "directionTitle": "Direction trend by year",
     "empty": "No timeline data is available for the current selection.",
     "selectRegion": "Select a region"
   },
@@ -132,16 +127,13 @@
   },
   "legendLabels": {
     "dominantGender": "Dominant gender",
-    "dominantDirection": "Dominant direction",
     "moreMen": "More men",
     "moreWomen": "More women",
     "balance": "Balanced",
     "noData": "No data"
   },
   "tooltip": {
-    "dominantGender": "Dominant gender",
-    "dominantDirection": "Dominant direction",
-    "directionCount": "Direction graduates"
+    "dominantGender": "Dominant gender"
   },
   "timeline": {
     "title": "Display year",

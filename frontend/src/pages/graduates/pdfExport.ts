@@ -64,8 +64,8 @@ function formatDateValue(value: unknown) {
 function getLabels(lang: ExportLang) {
   if (lang === "en") {
     return {
-      ad_code: "A.D.",
-      student_number: "Student No.",
+      ad_code: "Diploma Number",
+      student_number: "Student Number",
       last_name: "Last name",
       first_name: "First name",
       father_name: "Father name",
@@ -83,8 +83,8 @@ function getLabels(lang: ExportLang) {
   }
 
   return {
-    ad_code: "Α.Δ.",
-    student_number: "Α.Μ.",
+    ad_code: "Αριθμός Διπλώματος",
+    student_number: "Αριθμός Μητρώου",
     last_name: "Επώνυμο",
     first_name: "Όνομα",
     father_name: "Πατρώνυμο",
@@ -92,8 +92,8 @@ function getLabels(lang: ExportLang) {
     entry_year: "Έτος εισαγωγής",
     birth_date: "Ημερομηνία γέννησης",
     degree_grade: "Βαθμός πτυχίου",
-    graduation_date: "Ημ. αποφοίτησης",
-    oath_date: "Ημ. ορκωμοσίας",
+    graduation_date: "Ημερομηνία αποφοίτησης",
+    oath_date: "Ημερομηνία ορκωμοσίας",
     study_program: "Πρόγραμμα σπουδών",
     origin_country: "Χώρα",
     origin_region: "Περιφέρεια",

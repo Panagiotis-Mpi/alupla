@@ -52,8 +52,8 @@
   "graduates": {
     "filters": {
       "toggle": "Φίλτρα",
-      "adCode": "Α.Δ.",
-      "studentNumber": "Α.Μ.",
+      "adCode": "Αριθμός Διπλώματος",
+      "studentNumber": "Αριθμός Μητρώου",
       "lastName": "Επώνυμο",
       "firstName": "Όνομα",
       "fatherName": "Πατρώνυμο",
@@ -63,7 +63,6 @@
       "degreeGrade": "Βαθμός πτυχίου",
       "graduationDate": "Ημερομηνία αποφοίτησης",
       "oathDate": "Ημερομηνία ορκωμοσίας",
-      "direction": "Κατεύθυνση",
       "region": "Περιφέρεια",
       "city": "Πόλη",
       "from": "Από",
@@ -77,8 +76,6 @@
     "legend": "Υπόμνημα",
     "legendCounts": "Αριθμός αποφοίτων",
     "exportPng": "Εξαγωγή PNG",
-    "exportExcel": "Εξαγωγή Excel",
-    "exportCsv": "Εξαγωγή CSV",
     "detailsTitle": "Λεπτομέρειες",
     "detailsHint": "Μπορείτε να επιλέξετε έως έξι πόλεις για να τις συγκρίνετε.",
     "totalLabel": "Σύνολο",

@@ -77,6 +77,9 @@ export function buildLogFilters(req: Request) {
     ];
   }
 
+  appendWhere(where, Op.and, { action: { [Op.notIn]: ["create_program_direction", "update_program_direction", "delete_program_direction", "import_program_directions"] } });
+  appendWhere(where, Op.and, { entity_type: { [Op.ne]: "program_direction" } });
+
   return where;
 }
 
@@ -143,7 +146,7 @@ export function getLogPage(row: LogLike): LogPage | null {
   const entityType = String(row?.entity_type ?? "").trim();
 
   if (action === "import_graduates" || action === "export_graduates" || entityType === "graduate") return "graduates";
-  if (["import_study_programs", "import_program_directions", "import_region_peripheries", "import_region_cities"].includes(action) || ["study_program", "program_direction", "region", "regions"].includes(entityType)) return "academicData";
+  if (["import_study_programs", "import_region_peripheries", "import_region_cities"].includes(action) || ["study_program", "region", "regions"].includes(entityType)) return "academicData";
   if (action === "statistics_export" || entityType === "statistics") return "statistics";
   if (action === "map_export" || entityType === "map") return "map";
   if (entityType === "logs") return "logs";
@@ -174,7 +177,7 @@ export function getFileType(row: LogLike): LogFileType | null {
 
   const byFilename = getFormatFromFilename(detailFile);
   if (byFilename) return byFilename;
-  if (["import_graduates", "import_study_programs", "import_program_directions", "import_region_peripheries", "import_region_cities"].includes(action)) return "excel";
+  if (["import_graduates", "import_study_programs", "import_region_peripheries", "import_region_cities"].includes(action)) return "excel";
   if (action === "export_xlsx") return "excel";
   if (action === "export_csv") return "csv";
   if (action === "export_pdf") return "pdf";

@@ -1,8 +1,7 @@
-import { DataTypes } from "sequelize";
+import { DataTypes, QueryTypes } from "sequelize";
 import { sequelize } from "../config/sequelize";
 import { User } from "./User";
 import { StudyProgram } from "./StudyProgram";
-import { ProgramDirection } from "./ProgramDirection";
 import { Graduate } from "./Graduate";
 import { ActivityLog } from "./ActivityLog";
 import { Region } from "./Region";
@@ -15,14 +14,8 @@ import { normalizeRegionText } from "../utils/regionText";
 import { normalizeOriginLocation } from "../utils/resolvePeripheryRegionId";
 
 function setupAssociations() {
-  StudyProgram.hasMany(ProgramDirection, { foreignKey: "study_program_id" });
-  ProgramDirection.belongsTo(StudyProgram, { foreignKey: "study_program_id" });
-
   StudyProgram.hasMany(Graduate, { foreignKey: "study_program_id" });
   Graduate.belongsTo(StudyProgram, { foreignKey: "study_program_id" });
-
-  ProgramDirection.hasMany(Graduate, { foreignKey: "program_direction_id" });
-  Graduate.belongsTo(ProgramDirection, { foreignKey: "program_direction_id" });
 
   Region.hasMany(Region, { as: "children", foreignKey: "parent_id" });
   Region.belongsTo(Region, { as: "parent", foreignKey: "parent_id" });

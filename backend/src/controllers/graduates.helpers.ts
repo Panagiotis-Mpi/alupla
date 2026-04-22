@@ -54,8 +54,8 @@ export function applyTemplateSheetLayout(ws: XLSX.WorkSheet, headerRows: string[
 
 export function getColumnLabels(lang: ExportLang) {
   return lang === "en"
-    ? { ad_code: "A.D.", student_number: "Student No.", last_name: "Last name", first_name: "First name", father_name: "Father name", gender: "Gender", entry_year: "Entry year", birth_date: "Birth date", degree_grade: "Degree grade", graduation_date: "Graduation date", oath_date: "Oath date", study_program: "Study program", origin_country: "Country", origin_region: "Region", origin_municipality: "City" } as const
-    : { ad_code: "Α.Δ.", student_number: "Α.Μ.", last_name: "Επώνυμο", first_name: "Όνομα", father_name: "Πατρώνυμο", gender: "Φύλο", entry_year: "Έτος εισαγωγής", birth_date: "Ημερομηνία γέννησης", degree_grade: "Βαθμός πτυχίου", graduation_date: "Ημ. αποφοίτησης", oath_date: "Ημ. ορκωμοσίας", study_program: "Πρόγραμμα σπουδών", origin_country: "Χώρα", origin_region: "Περιφέρεια", origin_municipality: "Πόλη" } as const;
+    ? { ad_code: "Diploma Number", student_number: "Student Number", last_name: "Last name", first_name: "First name", father_name: "Father name", gender: "Gender", entry_year: "Entry year", birth_date: "Birth date", degree_grade: "Degree grade", graduation_date: "Graduation date", oath_date: "Oath date", study_program: "Study program", origin_country: "Country", origin_region: "Region", origin_municipality: "City" } as const
+    : { ad_code: "Αριθμός Διπλώματος", student_number: "Αριθμός Μητρώου", last_name: "Επώνυμο", first_name: "Όνομα", father_name: "Πατρώνυμο", gender: "Φύλο", entry_year: "Έτος εισαγωγής", birth_date: "Ημερομηνία γέννησης", degree_grade: "Βαθμός πτυχίου", graduation_date: "Ημερομηνία αποφοίτησης", oath_date: "Ημερομηνία ορκωμοσίας", study_program: "Πρόγραμμα σπουδών", origin_country: "Χώρα", origin_region: "Περιφέρεια", origin_municipality: "Πόλη" } as const;
 }
 
 export const GRADUATES_COLUMN_KEYS = [
@@ -93,8 +93,8 @@ export function getMatchedTemplateHeaderKeys(headers: string[]) {
 }
 
 export const IMPORT_HEADER_ALIASES = {
-  student_number: ["student_number","am","a_m","a.m","αμ","α.μ","student no.","student no","α.μ.","Α.Μ."],
-  ad_code: ["ad_code","aa","a_a","a.a","αα","α.α","a.d.","a.d","α.δ.","α.δ","A.D.","Α.Δ."],
+  student_number: ["student_number","student number","student_number_(required)","am","a_m","a.m","αμ","α.μ","student no.","student no","α.μ.","Α.Μ.","αριθμός μητρώου"],
+  ad_code: ["ad_code","diploma number","diploma_number","diploma_number_(required)","αριθμός διπλώματος","aa","a_a","a.a","αα","α.α","a.d.","a.d","α.δ.","α.δ","A.D.","Α.Δ."],
   last_name: ["last_name","επωνυμο","επώνυμο","surname","last name"],
   first_name: ["first_name","ονομα","όνομα","name","first name"],
   father_name: ["father_name","πατρωνυμο","πατρώνυμο","father","father name"],

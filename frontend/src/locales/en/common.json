@@ -52,8 +52,8 @@
   "graduates": {
     "filters": {
       "toggle": "Filters",
-      "adCode": "A.D.",
-      "studentNumber": "Student No.",
+      "adCode": "Diploma Number",
+      "studentNumber": "Student Number",
       "lastName": "Last name",
       "firstName": "First name",
       "fatherName": "Father name",
@@ -63,7 +63,6 @@
       "degreeGrade": "Degree grade",
       "graduationDate": "Graduation date",
       "oathDate": "Oath date",
-      "direction": "Direction",
       "region": "Region",
       "city": "City",
       "from": "From",
@@ -77,8 +76,6 @@
     "legend": "Legend",
     "legendCounts": "Graduate count",
     "exportPng": "Export PNG",
-    "exportExcel": "Export Excel",
-    "exportCsv": "Export CSV",
     "detailsTitle": "Details",
     "detailsHint": "You can select up to six cities to compare them.",
     "totalLabel": "Total",

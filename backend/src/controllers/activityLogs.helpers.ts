@@ -39,10 +39,6 @@ export const actionLabels = {
     update_study_program: "Ενημέρωση προγράμματος σπουδών",
     delete_study_program: "Διαγραφή προγράμματος σπουδών",
     import_study_programs: "Εισαγωγή προγραμμάτων σπουδών",
-    create_program_direction: "Δημιουργία κατεύθυνσης",
-    update_program_direction: "Ενημέρωση κατεύθυνσης",
-    delete_program_direction: "Διαγραφή κατεύθυνσης",
-    import_program_directions: "Εισαγωγή κατευθύνσεων",
     create_region_periphery: "Δημιουργία περιφέρειας",
     update_region_periphery: "Ενημέρωση περιφέρειας",
     delete_region_periphery: "Διαγραφή περιφέρειας",
@@ -82,10 +78,6 @@ export const actionLabels = {
     update_study_program: "Study program update",
     delete_study_program: "Study program deletion",
     import_study_programs: "Study program import",
-    create_program_direction: "Direction creation",
-    update_program_direction: "Direction update",
-    delete_program_direction: "Direction deletion",
-    import_program_directions: "Direction import",
     create_region_periphery: "Periphery creation",
     update_region_periphery: "Periphery update",
     delete_region_periphery: "Periphery deletion",
@@ -192,6 +184,13 @@ export function buildLogFilters(req: Request) {
   if (keyword) {
     where[Op.or] = [{ action: { [Op.like]: `%${keyword}%` } }, { entity_type: { [Op.like]: `%${keyword}%` } }];
   }
+
+  where[Op.and] = [
+    ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
+    { action: { [Op.notIn]: ["create_program_direction", "update_program_direction", "delete_program_direction", "import_program_directions"] } },
+    { entity_type: { [Op.ne]: "program_direction" } }
+  ];
+
   return where;
 }
 
@@ -230,7 +229,7 @@ export function getLogPage(row: any) {
   const entityType = String(row?.entity_type ?? "").trim();
 
   if (action === "import_graduates" || action === "export_graduates" || entityType === "graduate") return "graduates";
-  if (["import_study_programs", "import_program_directions", "import_region_peripheries", "import_region_cities"].includes(action) || ["study_program", "program_direction", "region", "regions"].includes(entityType)) return "academicData";
+  if (["import_study_programs", "import_region_peripheries", "import_region_cities"].includes(action) || ["study_program", "region", "regions"].includes(entityType)) return "academicData";
   if (action === "statistics_export" || entityType === "statistics") return "statistics";
   if (action === "map_export" || entityType === "map") return "map";
   if (entityType === "logs") return "logs";
@@ -268,7 +267,7 @@ export function getFileType(row: any) {
 
   const byFile = getFormatFromFilename(detailFile);
   if (byFile) return byFile;
-  if (["import_graduates", "import_study_programs", "import_program_directions", "import_region_peripheries", "import_region_cities"].includes(action)) return "excel";
+  if (["import_graduates", "import_study_programs", "import_region_peripheries", "import_region_cities"].includes(action)) return "excel";
   if (action === "export_xlsx") return "excel";
   if (action === "export_csv") return "csv";
   if (action === "export_pdf") return "pdf";
@@ -282,8 +281,8 @@ export function getLanguage(req: Request) {
 
 export function localDetailLabel(lang: "gr" | "en", key: string) {
   const labels = lang === "en"
-    ? { file: "File", format: "Type", count: "Rows", total_rows: "Total rows", inserted: "New", updated: "Updated", skipped: "Skipped", deleted: "Deleted", exported: "Exported", page: "Page", years: "Years", role: "Role", status: "Status", study_program: "Study program", direction: "Direction", reason: "Reason" }
-    : { file: "Αρχείο", format: "Τύπος", count: "Γραμμές", total_rows: "Σύνολο γραμμών", inserted: "Νέες", updated: "Ενημερωμένες", skipped: "Παραλείφθηκαν", deleted: "Διαγράφηκαν", exported: "Εξήχθησαν", page: "Σελίδα", years: "Έτη", role: "Ρόλος", status: "Κατάσταση", study_program: "Πρόγραμμα σπουδών", direction: "Κατεύθυνση", reason: "Λόγος" };
+    ? { file: "File", format: "Type", count: "Rows", total_rows: "Total rows", inserted: "New", updated: "Updated", skipped: "Skipped", deleted: "Deleted", exported: "Exported", page: "Page", years: "Years", role: "Role", status: "Status", study_program: "Study program", reason: "Reason" }
+    : { file: "Αρχείο", format: "Τύπος", count: "Γραμμές", total_rows: "Σύνολο γραμμών", inserted: "Νέες", updated: "Ενημερωμένες", skipped: "Παραλείφθηκαν", deleted: "Διαγράφηκαν", exported: "Εξήχθησαν", page: "Σελίδα", years: "Έτη", role: "Ρόλος", status: "Κατάσταση", study_program: "Πρόγραμμα σπουδών", reason: "Λόγος" };
   return labels[key as keyof typeof labels] ?? key;
 }
 
@@ -377,7 +376,6 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
     "status",
     "study_program",
     "study_program_id",
-    "direction",
     "reason",
     "changed",
     "errors",

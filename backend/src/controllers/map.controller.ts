@@ -1,37 +1,26 @@
 import type { Request, Response } from "express";
 import { Graduate } from "../models/Graduate";
+import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
-import { ProgramDirection } from "../models/ProgramDirection";
-import { QueryTypes } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import { resolveMapLocation } from "../services/mapLocation.service";
 import { sequelize } from "../config/sequelize";
-import { buildMapWhere, calculateAgeAtDate, collapseCountsByLabel, isAbroadMapGraduate, isDirectionAllowed, isGreekMapGraduate, loadRegions, matchesSelectedStudyProgram, normalizeKey, pickDirectionDisplay, pickTopName, toInt } from "./map.helpers";
+import { buildMapWhere, calculateAgeAtDate, isAbroadMapGraduate, isGreekMapGraduate, loadRegions, normalizeKey, pickTopName, toInt } from "./map.helpers";
 
 function mapScopeFromRequest(req: Request) {
   return String(req.query.scope || "greece").trim().toLowerCase() === "abroad" ? "abroad" : "greece";
 }
 
 async function loadProgramMetadata() {
-  const [studyPrograms, programDirections] = await Promise.all([
-    StudyProgram.findAll({ attributes: ["id", "code", "name_el", "name_en"] }),
-    ProgramDirection.findAll({ attributes: ["id", "study_program_id", "code", "name_el", "name_en"] }),
-  ]);
+  const studyPrograms = await StudyProgram.findAll({ attributes: ["id", "code", "name_el", "name_en"] });
 
   const studyProgramLabels = new Map<number, string>();
-  const programDirectionLabels = new Map<number, string>();
-  const directionProgramIds = new Map<number, number>();
 
   for (const item of studyPrograms as any[]) {
     studyProgramLabels.set(Number(item.id), String(item.name_el || item.name_en || item.code || ""));
   }
 
-  for (const item of programDirections as any[]) {
-    const id = Number(item.id);
-    programDirectionLabels.set(id, String(item.name_el || item.name_en || item.code || ""));
-    directionProgramIds.set(id, Number(item.study_program_id) || 0);
-  }
-
-  return { studyProgramLabels, programDirectionLabels, directionProgramIds };
+  return { studyProgramLabels };
 }
 
 function createMetricsBucket(seed: Record<string, unknown>) {
@@ -47,14 +36,12 @@ function createMetricsBucket(seed: Record<string, unknown>) {
     graduationDurationSum: 0,
     graduationDurationCount: 0,
     programCounts: new Map<number, number>(),
-    directionCounts: new Map<number, number>(),
   };
 }
 
-function applyGraduateMetrics(bucket: any, graduate: any, selectedStudyProgramId: number | null, directionProgramIds: Map<number, number>) {
+function applyGraduateMetrics(bucket: any, graduate: any, selectedStudyProgramId: number | null) {
   const studyProgramId = Number(graduate.study_program_id) || 0;
-  const programDirectionId = Number(graduate.program_direction_id) || 0;
-  if (!matchesSelectedStudyProgram(studyProgramId, programDirectionId, selectedStudyProgramId, directionProgramIds)) return false;
+  if (selectedStudyProgramId && studyProgramId !== selectedStudyProgramId) return false;
 
   bucket.count += 1;
   if (graduate.gender === "M") bucket.male += 1;
@@ -62,10 +49,6 @@ function applyGraduateMetrics(bucket: any, graduate: any, selectedStudyProgramId
 
   if (studyProgramId > 0) {
     bucket.programCounts.set(studyProgramId, (bucket.programCounts.get(studyProgramId) || 0) + 1);
-  }
-
-  if (isDirectionAllowed(programDirectionId, studyProgramId, selectedStudyProgramId, directionProgramIds)) {
-    bucket.directionCounts.set(programDirectionId, (bucket.directionCounts.get(programDirectionId) || 0) + 1);
   }
 
   const graduationAge = calculateAgeAtDate(graduate.birth_date, graduate.graduation_date);
@@ -90,9 +73,7 @@ function applyGraduateMetrics(bucket: any, graduate: any, selectedStudyProgramId
   return true;
 }
 
-function bucketToMapItem(bucket: any, labels: { studyProgramLabels: Map<number, string>; programDirectionLabels: Map<number, string> }, nameKeys: { idKey: string; nameKey: string; latitudeKey?: string; longitudeKey?: string }) {
-  const directionTotal = collapseCountsByLabel(bucket.directionCounts, labels.programDirectionLabels).reduce((sum, entry) => sum + entry.count, 0);
-  const directionDisplay = pickDirectionDisplay(bucket.directionCounts, labels.programDirectionLabels, directionTotal || bucket.count);
+function bucketToMapItem(bucket: any, labels: { studyProgramLabels: Map<number, string> }, nameKeys: { idKey: string; nameKey: string; latitudeKey?: string; longitudeKey?: string }) {
   return {
     [nameKeys.idKey]: bucket[nameKeys.idKey],
     [nameKeys.nameKey]: bucket[nameKeys.nameKey],
@@ -108,10 +89,6 @@ function bucketToMapItem(bucket: any, labels: { studyProgramLabels: Map<number, 
     avg_graduation_years: bucket.graduationDurationCount ? Math.round((bucket.graduationDurationSum / bucket.graduationDurationCount) * 10) / 10 : null,
     dominant_gender: !bucket.count ? null : bucket.male > bucket.female ? "M" : bucket.female > bucket.male ? "F" : "balanced",
     dominant_study_program: pickTopName(bucket.programCounts, labels.studyProgramLabels),
-    dominant_direction: pickTopName(bucket.directionCounts, labels.programDirectionLabels),
-    dominant_recent_direction: directionDisplay.label,
-    dominant_recent_direction_count: directionDisplay.count,
-    recent_directions: directionDisplay.entries,
   };
 }
 
@@ -124,7 +101,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
 
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_country", "origin_foreign_city", "origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id", "program_direction_id"],
+    attributes: ["origin_country", "origin_foreign_city", "origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id"],
   });
 
   if (scope === "abroad") {
@@ -149,7 +126,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
         latitude: resolvedLocation?.latitude ?? (country as any).latitude ?? null,
         longitude: resolvedLocation?.longitude ?? (country as any).longitude ?? null,
       });
-      if (!applyGraduateMetrics(bucket, graduate, selectedStudyProgramId, labels.directionProgramIds)) continue;
+      if (!applyGraduateMetrics(bucket, graduate, selectedStudyProgramId)) continue;
       groups.set(countryId, bucket);
     }
 
@@ -190,7 +167,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
       latitude: (periphery as any).latitude ?? null,
       longitude: (periphery as any).longitude ?? null,
     });
-    if (!applyGraduateMetrics(bucket, graduate, selectedStudyProgramId, labels.directionProgramIds)) continue;
+    if (!applyGraduateMetrics(bucket, graduate, selectedStudyProgramId)) continue;
     groups.set(Number(periphery.id), bucket);
   }
 
@@ -201,7 +178,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
   return res.json({ ok: true, items, total: items.reduce((sum, item) => sum + (Number(item.count) || 0), 0) });
 }
 
-export async function getMapYearRange(_req: Request, res: Response) {
+export async function getMapYearRange(req: Request, res: Response) {
   try {
     const rows = await sequelize.query<{ year: number | null }>(
       `SELECT DISTINCT EXTRACT(YEAR FROM graduation_date)::int AS year
@@ -228,24 +205,16 @@ export async function getMapCities(req: Request, res: Response) {
   const { where } = buildMapWhere(req);
   const selectedStudyProgramId = toInt(req.query.study_program_id);
   const { findRegion } = await loadRegions();
-  const directions = selectedStudyProgramId ? await ProgramDirection.findAll({ attributes: ["id", "study_program_id"] }) : [];
-  const directionProgramIds = new Map<number, number>();
-
-  for (const item of directions as any[]) {
-    directionProgramIds.set(Number(item.id), Number(item.study_program_id) || 0);
-  }
-
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_country", "origin_foreign_city", "origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id", "program_direction_id"],
+    attributes: ["origin_country", "origin_foreign_city", "origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id"],
   });
 
   const groups = new Map<string, any>();
 
   for (const graduate of grads as any[]) {
     const studyProgramId = Number(graduate.study_program_id) || 0;
-    const programDirectionId = Number(graduate.program_direction_id) || 0;
-    if (!matchesSelectedStudyProgram(studyProgramId, programDirectionId, selectedStudyProgramId, directionProgramIds)) continue;
+    if (selectedStudyProgramId && studyProgramId !== selectedStudyProgramId) continue;
     if (scope === "abroad" && !isAbroadMapGraduate(graduate)) continue;
     if (scope === "greece" && !isGreekMapGraduate(graduate)) continue;
 
@@ -278,7 +247,7 @@ export async function getMapCities(req: Request, res: Response) {
       longitude: resolvedLocation.longitude,
     });
 
-    applyGraduateMetrics(bucket, graduate, selectedStudyProgramId, directionProgramIds);
+    applyGraduateMetrics(bucket, graduate, selectedStudyProgramId);
     groups.set(key, bucket);
   }
 
@@ -322,28 +291,10 @@ export async function getMapCityDetail(req: Request, res: Response) {
   const { where, currentYear } = buildMapWhere(req);
   const { findRegion } = await loadRegions();
 
-  const [studyPrograms, programDirections] = await Promise.all([
-    StudyProgram.findAll({ attributes: ["id", "code", "name_el", "name_en"] }),
-    ProgramDirection.findAll({ attributes: ["id", "study_program_id", "code", "name_el", "name_en"] }),
-  ]);
-
-  const studyProgramLabels = new Map<number, string>();
-  const directionLabels = new Map<number, string>();
-  const directionProgramIds = new Map<number, number>();
-
-  for (const item of studyPrograms as any[]) {
-    studyProgramLabels.set(Number(item.id), String(item.name_el || item.name_en || item.code || ""));
-  }
-
-  for (const item of programDirections as any[]) {
-    const id = Number(item.id);
-    directionLabels.set(id, String(item.name_el || item.name_en || item.code || ""));
-    directionProgramIds.set(id, Number(item.study_program_id) || 0);
-  }
 
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_country", "origin_foreign_city", "origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id", "program_direction_id"],
+    attributes: ["origin_country", "origin_foreign_city", "origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id"],
   });
 
   const matching: any[] = [];
@@ -398,7 +349,7 @@ export async function getMapCityDetail(req: Request, res: Response) {
 
   const metricBucket = createMetricsBucket({});
   for (const graduate of matching) {
-    applyGraduateMetrics(metricBucket, graduate, selectedStudyProgramId, directionProgramIds);
+    applyGraduateMetrics(metricBucket, graduate, selectedStudyProgramId);
   }
 
   if (mode === "dominant_gender") {
@@ -419,33 +370,6 @@ export async function getMapCityDetail(req: Request, res: Response) {
       male_pct: totalGender ? Math.round((male / totalGender) * 1000) / 10 : 0,
       female_pct: totalGender ? Math.round((female / totalGender) * 1000) / 10 : 0,
     });
-  }
-
-  if (mode === "dominant_direction") {
-    const byProgram = new Map<number, Map<number, number>>();
-
-    for (const graduate of matching) {
-      const directionId = Number(graduate.program_direction_id) || 0;
-      const studyProgramId = Number(graduate.study_program_id) || 0;
-      if (!isDirectionAllowed(directionId, studyProgramId, selectedStudyProgramId, directionProgramIds)) continue;
-      const programId = directionProgramIds.get(directionId) || studyProgramId || 0;
-      if (!programId) continue;
-      const programMap = byProgram.get(programId) || new Map<number, number>();
-      programMap.set(directionId, (programMap.get(directionId) || 0) + 1);
-      byProgram.set(programId, programMap);
-    }
-
-    const programs = Array.from(byProgram.entries())
-      .map(([programId, counts]) => ({
-        program_id: programId,
-        program_label: studyProgramLabels.get(programId) || String(programId),
-        total: collapseCountsByLabel(counts, directionLabels).reduce((sum, item) => sum + item.count, 0),
-        directions: collapseCountsByLabel(counts, directionLabels).map((entry) => ({ id: entry.id, label: entry.label, count: entry.count })),
-      }))
-      .filter((item) => item.directions.length > 0)
-      .sort((left, right) => right.total !== left.total ? right.total - left.total : left.program_label.localeCompare(right.program_label, "el"));
-
-    return res.json({ ok: true, city_id: cityId || 0, city_name: cityLabel, mode, total: matching.length, programs });
   }
 
   const startYear = 2010;

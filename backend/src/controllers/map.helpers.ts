@@ -117,12 +117,14 @@ export function buildMapWhere(req: Request) {
 }
 
 export function pickTopName(counts: Map<number, number>, labels: Map<number, string>) {
+  let topId = 0;
   let topCount = 0;
   let topLabel = "";
 
   for (const [id, count] of counts.entries()) {
     const label = labels.get(id) || String(id);
     if (count > topCount || (count === topCount && label.localeCompare(topLabel, "el") < 0)) {
+      topId = id;
       topCount = count;
       topLabel = label;
     }
@@ -156,45 +158,3 @@ export function collapseCountsByLabel(counts: Map<number, number>, labels: Map<n
   });
 }
 
-function expandEntries(counts: Map<number, number>, labels: Map<number, string>, total: number) {
-  return collapseCountsByLabel(counts, labels).map((entry) => ({
-    id: entry.id,
-    label: entry.label,
-    count: entry.count,
-    pct: total > 0 ? Math.round((entry.count / total) * 1000) / 10 : 0,
-  }));
-}
-
-export function pickDirectionDisplay(counts: Map<number, number>, labels: Map<number, string>, total: number) {
-  const entries = expandEntries(counts, labels, total);
-  const top = entries[0] || null;
-  return {
-    label: top?.label || null,
-    count: top?.count || 0,
-    entries,
-  };
-}
-
-export function matchesSelectedStudyProgram(
-  graduateStudyProgramId: number,
-  directionId: number,
-  selectedStudyProgramId: number | null,
-  directionProgramIds: Map<number, number>,
-) {
-  if (!selectedStudyProgramId) return true;
-  if (graduateStudyProgramId === selectedStudyProgramId) return true;
-  const directionProgramId = directionId ? (directionProgramIds.get(directionId) || 0) : 0;
-  return directionProgramId === selectedStudyProgramId;
-}
-
-export function isDirectionAllowed(
-  directionId: number,
-  studyProgramId: number,
-  selectedStudyProgramId: number | null,
-  directionProgramIds: Map<number, number>,
-) {
-  if (!directionId) return false;
-  if (!selectedStudyProgramId) return true;
-  if (studyProgramId === selectedStudyProgramId) return true;
-  return (directionProgramIds.get(directionId) || 0) === selectedStudyProgramId;
-}
