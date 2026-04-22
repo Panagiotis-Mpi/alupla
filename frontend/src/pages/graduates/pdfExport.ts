@@ -19,7 +19,7 @@ const TABLE_HEADER_FONT = '600 10px "Segoe UI", Arial, sans-serif';
 const TABLE_FONT = '10px "Segoe UI", Arial, sans-serif';
 const TABLE_HEADER_LINE_HEIGHT = 14;
 const TABLE_LINE_HEIGHT = 13;
-const COLUMN_WIDTHS = [40, 52, 76, 72, 78, 54, 48, 54, 58, 64, 64, 122, 112, 96, 88, 104];
+const COLUMN_WIDTHS = [44, 58, 86, 82, 86, 58, 54, 62, 64, 72, 72, 146, 110, 102, 118];
 
 function formatGenderValue(value: unknown) {
   const normalized = String(value ?? "").trim().toLowerCase();
@@ -76,7 +76,6 @@ function getLabels(lang: ExportLang) {
       graduation_date: "Graduation date",
       oath_date: "Oath date",
       study_program: "Study program",
-      direction: "Direction",
       origin_country: "Country",
       origin_region: "Region",
       origin_municipality: "City"
@@ -96,7 +95,6 @@ function getLabels(lang: ExportLang) {
     graduation_date: "Ημ. αποφοίτησης",
     oath_date: "Ημ. ορκωμοσίας",
     study_program: "Πρόγραμμα σπουδών",
-    direction: "Κατεύθυνση",
     origin_country: "Χώρα",
     origin_region: "Περιφέρεια",
     origin_municipality: "Πόλη"
@@ -107,15 +105,13 @@ function buildRows(args: {
   items: Graduate[];
   lang: ExportLang;
   programNameById: Map<number, string>;
-  directionNameById: Map<number, string>;
   regionNameById: Map<number, string>;
 }) {
-  const { items, lang, programNameById, directionNameById, regionNameById } = args;
+  const { items, lang, programNameById, regionNameById } = args;
   const labels = getLabels(lang);
 
   return items.map((item) => {
     const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
-    const directionName = directionNameById.get(Number(item.program_direction_id)) ?? "";
     const explicitCountry = String((item as any).origin_country ?? "").trim();
     const countryName = formatCountryValue(explicitCountry || String(regionNameById.get(Number(item.origin_country_region_id)) ?? ""));
     const normalizedCountry = countryName.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
@@ -136,7 +132,6 @@ function buildRows(args: {
       [labels.graduation_date]: formatDateValue(item.graduation_date),
       [labels.oath_date]: formatDateValue(item.oath_date),
       [labels.study_program]: studyProgramName,
-      [labels.direction]: directionName,
       [labels.origin_country]: countryName,
       [labels.origin_region]: regionName,
       [labels.origin_municipality]: municipalityName
@@ -422,16 +417,15 @@ export async function exportGraduatesPdf(args: {
   items: Graduate[];
   lang: ExportLang;
   programNameById: Map<number, string>;
-  directionNameById: Map<number, string>;
   regionNameById: Map<number, string>;
 }) {
-  const { items, lang, programNameById, directionNameById, regionNameById } = args;
+  const { items, lang, programNameById, regionNameById } = args;
   const title = lang === "en" ? "Graduates" : "Απόφοιτοι";
   const meta = lang === "en"
     ? `Export date: ${new Date().toLocaleString("en-GB")} • Records: ${items.length}`
     : `Ημερομηνία εξαγωγής: ${new Date().toLocaleString("el-GR")} • Εγγραφές: ${items.length}`;
 
-  const rows = buildRows({ items, lang, programNameById, directionNameById, regionNameById });
+  const rows = buildRows({ items, lang, programNameById, regionNameById });
   const headers = Object.values(getLabels(lang));
   const pages = splitRowsIntoPages(rows, headers);
   const images = pages.map((pageRows, index) => dataUrlToUint8Array(drawPage({ pageRows, pageIndex: index, pageCount: pages.length, title, meta, headers }).toDataURL("image/jpeg", 0.92)));

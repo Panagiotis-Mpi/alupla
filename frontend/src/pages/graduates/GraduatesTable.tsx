@@ -19,12 +19,11 @@ export function GraduatesTable(props: {
   getSortIndicator: (key: SortKey) => string;
   renderGender: (value: unknown) => string;
   programNameById: Map<number, string>;
-  directionNameById: Map<number, string>;
   regionNameById: Map<number, string>;
   t: (key: string, options?: Record<string, unknown>) => string;
   onDelete: (graduate: Graduate) => Promise<void>;
 }) {
-  const { visibleItems, selectedIds, allVisibleSelected, selectAllRef, tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, headerButtonStyle, wideCardStyle, toggleAllVisible, toggleSelected, toggleSort, getSortIndicator, renderGender, programNameById, directionNameById, regionNameById, t, onDelete } = props;
+  const { visibleItems, selectedIds, allVisibleSelected, selectAllRef, tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, headerButtonStyle, wideCardStyle, toggleAllVisible, toggleSelected, toggleSort, getSortIndicator, renderGender, programNameById, regionNameById, t, onDelete } = props;
 
   return (
     <div className="card" style={{ ...wideCardStyle, position: "relative" }}>
@@ -57,7 +56,6 @@ export function GraduatesTable(props: {
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("graduation_date")}>{t("table.graduationDate")}{getSortIndicator("graduation_date")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("oath_date")}>{t("table.oathDate")}{getSortIndicator("oath_date")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("study_program")}>{t("table.studyProgram")}{getSortIndicator("study_program")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("direction")}>{t("table.direction")}{getSortIndicator("direction")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_country")}>{t("table.country")}{getSortIndicator("origin_country")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_region")}>{t("table.region")}{getSortIndicator("origin_region")}</button></th>
               <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_municipality")}>{t("table.originMunicipality")}{getSortIndicator("origin_municipality")}</button></th>
@@ -84,7 +82,6 @@ export function GraduatesTable(props: {
                   <td>{formatValue(graduate.graduation_date, "date")}</td>
                   <td>{formatValue(graduate.oath_date, "date")}</td>
                   <td>{programNameById.get(Number(graduate.study_program_id)) ?? ""}</td>
-                  <td>{directionNameById.get(Number(graduate.program_direction_id)) ?? ""}</td>
                   <td>{formatValue(getGraduateOriginCountryDisplay(graduate, regionNameById, t))}</td>
                   <td>{formatValue(getGraduateOriginRegionDisplay(graduate, regionNameById))}</td>
                   <td>{formatValue(getGraduateOriginMunicipalityDisplay(graduate))}</td>

@@ -54,8 +54,8 @@ export function applyTemplateSheetLayout(ws: XLSX.WorkSheet, headerRows: string[
 
 export function getColumnLabels(lang: ExportLang) {
   return lang === "en"
-    ? { ad_code: "A.D.", student_number: "Student No.", last_name: "Last name", first_name: "First name", father_name: "Father name", gender: "Gender", entry_year: "Entry year", birth_date: "Birth date", degree_grade: "Degree grade", graduation_date: "Graduation date", oath_date: "Oath date", study_program: "Study program", direction: "Direction", origin_country: "Country", origin_region: "Region", origin_municipality: "City" } as const
-    : { ad_code: "Α.Δ.", student_number: "Α.Μ.", last_name: "Επώνυμο", first_name: "Όνομα", father_name: "Πατρώνυμο", gender: "Φύλο", entry_year: "Έτος εισαγωγής", birth_date: "Ημερομηνία γέννησης", degree_grade: "Βαθμός πτυχίου", graduation_date: "Ημ. αποφοίτησης", oath_date: "Ημ. ορκωμοσίας", study_program: "Πρόγραμμα σπουδών", direction: "Κατεύθυνση", origin_country: "Χώρα", origin_region: "Περιφέρεια", origin_municipality: "Πόλη" } as const;
+    ? { ad_code: "A.D.", student_number: "Student No.", last_name: "Last name", first_name: "First name", father_name: "Father name", gender: "Gender", entry_year: "Entry year", birth_date: "Birth date", degree_grade: "Degree grade", graduation_date: "Graduation date", oath_date: "Oath date", study_program: "Study program", origin_country: "Country", origin_region: "Region", origin_municipality: "City" } as const
+    : { ad_code: "Α.Δ.", student_number: "Α.Μ.", last_name: "Επώνυμο", first_name: "Όνομα", father_name: "Πατρώνυμο", gender: "Φύλο", entry_year: "Έτος εισαγωγής", birth_date: "Ημερομηνία γέννησης", degree_grade: "Βαθμός πτυχίου", graduation_date: "Ημ. αποφοίτησης", oath_date: "Ημ. ορκωμοσίας", study_program: "Πρόγραμμα σπουδών", origin_country: "Χώρα", origin_region: "Περιφέρεια", origin_municipality: "Πόλη" } as const;
 }
 
 export const GRADUATES_COLUMN_KEYS = [
@@ -71,7 +71,6 @@ export const GRADUATES_COLUMN_KEYS = [
   "graduation_date",
   "oath_date",
   "study_program",
-  "direction",
   "origin_country",
   "origin_region",
   "origin_municipality",
@@ -108,8 +107,6 @@ export const IMPORT_HEADER_ALIASES = {
   birth_date: ["birth_date","ημερομηνια_γεννησης","ημερομηνία_γέννησης","ημ_γεννησης","ημ._γέννησης","birthdate","dob","birth date","ημερομηνία γέννησης","ημερομηνια γεννησης"],
   study_program: ["study_program","study_program_id","study_prog","program_id","προγραμμα","πρόγραμμα","program","πρόγραμμα σπουδών","study program"],
   study_program_id: ["study_program_id","study_prog","program_id","προγραμμα","πρόγραμμα","program"],
-  program_direction: ["program_direction","program_direction_id","program_dir","direction_id","κατευθυνση","κατεύθυνση","direction"],
-  program_direction_id: ["program_direction_id","program_dir","direction_id","κατευθυνση","κατεύθυνση","direction"],
   origin_country: ["origin_country","origin_country_region_id","country","χώρα","χωρα"],
   origin_country_region_id: ["origin_country_region_id","origin_country","country_id","country","χώρα","χωρα"],
   origin_region: ["origin_region","origin_periphery_region_id","origin_region_id","origin_regio","region_id","περιοχη","περιοχή","περιφέρεια","region","periphery"],
@@ -117,7 +114,7 @@ export const IMPORT_HEADER_ALIASES = {
   origin_municipality: ["origin_municipality","πόλη","municipality","city","foreign_city","city of origin"],
 } as const;
 
-const GRADUATE_SORT_FIELDS = new Set(["id", "last_name", "first_name", "entry_year", "graduation_date", "oath_date", "degree_grade", "birth_date", "study_program_id", "program_direction_id", "origin_region_id", "gender", "student_number", "ad_code"]);
+const GRADUATE_SORT_FIELDS = new Set(["id", "last_name", "first_name", "entry_year", "graduation_date", "oath_date", "degree_grade", "birth_date", "study_program_id", "origin_region_id", "gender", "student_number", "ad_code"]);
 
 export function toSortDirection(value: unknown): "ASC" | "DESC" {
   return String(value ?? "asc").trim().toLowerCase() === "desc" ? "DESC" : "ASC";

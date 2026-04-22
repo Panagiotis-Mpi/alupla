@@ -22,7 +22,6 @@ export type RecentGraduatePdfItem = Pick<
   | "graduation_date"
   | "oath_date"
   | "study_program_id"
-  | "program_direction_id"
   | "origin_region_id"
   | "origin_municipality"
   | "origin_foreign_city"
@@ -78,7 +77,6 @@ export function normalizeRecentGraduateDownload(item: any): RecentGraduateDownlo
           graduation_date: String(entry.graduation_date ?? ""),
           oath_date: String(entry.oath_date ?? ""),
           study_program_id: Number(entry.study_program_id) || 0,
-          program_direction_id: entry.program_direction_id == null || entry.program_direction_id === "" ? null : Number(entry.program_direction_id),
           origin_region_id: entry.origin_region_id == null || entry.origin_region_id === "" ? null : Number(entry.origin_region_id),
           origin_municipality: entry.origin_municipality == null ? null : String(entry.origin_municipality),
           origin_foreign_city: entry.origin_foreign_city == null ? null : String(entry.origin_foreign_city),

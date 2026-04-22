@@ -4,12 +4,10 @@ import { useTranslation } from "react-i18next";
 import {
   createGraduate,
   getGraduate,
-  listProgramDirections,
   listRegions,
   listStudyPrograms,
   updateGraduate,
   type Graduate,
-  type ProgramDirection,
   type Region,
   type StudyProgram
 } from "../lib/api";
@@ -39,7 +37,6 @@ const empty: Partial<Graduate> = {
   student_number: "",
   gender: "" as any,
   study_program_id: 1,
-  program_direction_id: null,
   entry_year: "" as any,
   degree_grade: "" as any,
   birth_date: "",
@@ -93,7 +90,6 @@ export default function GraduateForm(props: { mode: Mode }) {
   const { id } = useParams();
 
   const [programs, setPrograms] = useState<StudyProgram[]>([]);
-  const [directions, setDirections] = useState<ProgramDirection[]>([]);
   const [countries, setCountries] = useState<Region[]>([]);
   const [peripheries, setPeripheries] = useState<Region[]>([]);
   const [cities, setCities] = useState<Region[]>([]);
@@ -144,26 +140,11 @@ export default function GraduateForm(props: { mode: Mode }) {
         origin_region_id: g.item.origin_periphery_region_id ?? g.item.origin_region_id ?? null,
         origin_city_region_id: g.item.origin_city_region_id ?? null,
         origin_municipality: g.item.origin_municipality ?? null,
-        program_direction_id: g.item.program_direction_id ?? null,
       });
 
-      const dirs = await listProgramDirections(g.item.study_program_id);
-      setDirections(dirs.items);
     })();
   }, [gradId, isEdit]);
 
-  useEffect(() => {
-    const spid = Number(form.study_program_id);
-    if (!Number.isFinite(spid)) return;
-    (async () => {
-      const dirs = await listProgramDirections(spid);
-      setDirections(dirs.items);
-      if (form.program_direction_id) {
-        const ok = dirs.items.some((d) => d.id === form.program_direction_id);
-        if (!ok) setForm((f) => ({ ...f, program_direction_id: null }));
-      }
-    })();
-  }, [form.study_program_id]);
 
   useEffect(() => {
     if (!greeceSelected) {
@@ -244,7 +225,6 @@ export default function GraduateForm(props: { mode: Mode }) {
       ["graduation_date", form.graduation_date, t("labels.graduationDate")],
       ["oath_date", form.oath_date, t("labels.oathDate")],
       ["study_program_id", form.study_program_id, t("labels.studyProgram")],
-      ["program_direction_id", form.program_direction_id, t("labels.direction")],
       ["origin_country_region_id", form.origin_country_region_id, t("labels.country")],
     ];
     if (greeceSelected) {
@@ -380,13 +360,6 @@ export default function GraduateForm(props: { mode: Mode }) {
               <label style={labelStyle}>{t("labels.studyProgram")}</label>
               <select className="input" value={String(form.study_program_id ?? "")} onChange={(e) => setForm((f) => ({ ...f, study_program_id: Number(e.target.value) }))}>
                 {programs.map((p) => <option key={p.id} value={p.id}>{activeLang === "en" ? p.name_en || p.name_el : p.name_el || p.name_en}</option>)}
-              </select>
-            </div>
-            <div style={fieldStyle(t("labels.direction"))}>
-              <label style={labelStyle}>{t("labels.direction")}</label>
-              <select className="input" value={form.program_direction_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, program_direction_id: e.target.value ? Number(e.target.value) : null }))}>
-                <option value="">{t("labels.choice")}</option>
-                {directions.map((d) => <option key={d.id} value={d.id}>{activeLang === "en" ? d.name_en || d.name_el : d.name_el || d.name_en}</option>)}
               </select>
             </div>
             <div style={fieldStyle(t("labels.country"))}>

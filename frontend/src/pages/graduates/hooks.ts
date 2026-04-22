@@ -2,7 +2,6 @@ import { useEffect, type RefObject } from "react";
 import { downloadBlob } from "../../lib/download";
 import {
   listGraduates,
-  listProgramDirections,
   listRegions,
   listStudyPrograms,
   type Graduate,
@@ -16,22 +15,11 @@ export async function loadGraduatesScreen(params: Record<string, unknown>) {
     listGraduates(params),
   ]);
 
-  const directionsResults = await Promise.all(
-    (studyProgramsResponse.items ?? []).map(async (program: any) => {
-      try {
-        return await listProgramDirections(Number(program?.id));
-      } catch {
-        return { items: [] as any[] };
-      }
-    })
-  );
-
   return {
     programs: (studyProgramsResponse.items ?? []) as StudyProgram[],
     regions: regionsResponse.items ?? [],
     items: (graduatesResponse.items ?? []) as Graduate[],
     total: Number(graduatesResponse.total ?? 0),
-    directions: directionsResults.flatMap((result: any) => result?.items ?? []),
   };
 }
 

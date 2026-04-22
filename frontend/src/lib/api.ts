@@ -56,7 +56,6 @@ export type Graduate = {
   birth_date: string;
   gender: "M" | "F";
   study_program_id: number;
-  program_direction_id?: number | null;
   origin_country?: string | null;
   origin_foreign_city?: string | null;
   origin_country_region_id?: number | null;

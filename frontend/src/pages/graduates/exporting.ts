@@ -21,7 +21,6 @@ export function createGraduatePdfItems(items: Graduate[]): RecentGraduatePdfItem
     graduation_date: item.graduation_date,
     oath_date: item.oath_date,
     study_program_id: item.study_program_id,
-    program_direction_id: item.program_direction_id ?? null,
     origin_region_id: item.origin_region_id ?? null,
     origin_municipality: item.origin_municipality ?? null,
     origin_country: item.origin_country ?? null,

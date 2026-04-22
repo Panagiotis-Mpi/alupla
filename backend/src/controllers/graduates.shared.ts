@@ -1,5 +1,4 @@
 import { Graduate } from "../models/Graduate";
-import { ProgramDirection } from "../models/ProgramDirection";
 import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
 import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
@@ -19,14 +18,12 @@ import {
 } from "./graduates.helpers";
 
 type ProgramLookup = Pick<StudyProgram, "id" | "code" | "name_el" | "name_en">;
-type DirectionLookup = Pick<ProgramDirection, "id" | "study_program_id" | "code" | "name_el" | "name_en">;
 type RegionLookup = Pick<Region, "id" | "name" | "normalized_name" | "external_ref_id" | "type">;
-type GraduateExportSource = Pick<Graduate, "ad_code" | "student_number" | "last_name" | "first_name" | "father_name" | "gender" | "entry_year" | "birth_date" | "degree_grade" | "graduation_date" | "oath_date" | "study_program_id" | "program_direction_id" | "origin_country" | "origin_foreign_city" | "origin_country_region_id" | "origin_periphery_region_id" | "origin_region_id" | "origin_municipality">;
+type GraduateExportSource = Pick<Graduate, "ad_code" | "student_number" | "last_name" | "first_name" | "father_name" | "gender" | "entry_year" | "birth_date" | "degree_grade" | "graduation_date" | "oath_date" | "study_program_id" | "origin_country" | "origin_foreign_city" | "origin_country_region_id" | "origin_periphery_region_id" | "origin_region_id" | "origin_municipality">;
 type ManagedOriginTarget = Pick<Graduate, "origin_country" | "origin_foreign_city" | "origin_country_region_id" | "origin_periphery_region_id" | "origin_region_id" | "origin_city_region_id" | "origin_municipality">;
 
 export type ReferenceMaps = {
   programsById: Map<number, ProgramLookup>;
-  directionsById: Map<number, DirectionLookup>;
   regionsById: Map<number, RegionLookup>;
 };
 
@@ -38,14 +35,12 @@ export function buildExportRows(
   rows: GraduateExportSource[],
   lang: ExportLang,
   programsById: Map<number, ProgramLookup>,
-  directionsById: Map<number, DirectionLookup>,
   regionsById: Map<number, RegionLookup>,
 ) {
   const labels = getColumnLabels(lang);
 
   return rows.map((row) => {
     const studyProgram = programsById.get(Number(row.study_program_id));
-    const direction = directionsById.get(Number(row.program_direction_id));
     const region = regionsById.get(Number(row.origin_periphery_region_id ?? row.origin_region_id));
     const country = regionsById.get(Number(row.origin_country_region_id));
     const rawCountryName = String(row.origin_country ?? country?.name ?? "");
@@ -64,7 +59,6 @@ export function buildExportRows(
       [labels.graduation_date]: formatDateDisplay(row.graduation_date),
       [labels.oath_date]: formatDateDisplay(row.oath_date),
       [labels.study_program]: studyProgram ? String(studyProgram.name_el ?? studyProgram.name_en ?? studyProgram.code ?? studyProgram.id) : "",
-      [labels.direction]: direction ? String(direction.name_el ?? direction.name_en ?? direction.code ?? direction.id) : "",
       [labels.origin_country]: formatCountryValue(rawCountryName || String(country?.name ?? "")),
       [labels.origin_region]: isGreece ? (region ? String(region.name ?? "") : "") : "",
       [labels.origin_municipality]: isGreece ? (row.origin_municipality ?? "") : String(row.origin_foreign_city ?? row.origin_municipality ?? ""),
@@ -77,15 +71,13 @@ export function getTemplateHeaders(lang: ExportLang) {
 }
 
 export async function getReferenceMaps(): Promise<ReferenceMaps> {
-  const [programs, directions, regions] = await Promise.all([
+  const [programs, regions] = await Promise.all([
     StudyProgram.findAll({ order: [["id", "ASC"]] }),
-    ProgramDirection.findAll({ order: [["id", "ASC"]] }),
     Region.findAll({ order: [["id", "ASC"]] }),
   ]);
 
   return {
     programsById: new Map(programs.map((item) => [Number(item.id), item as ProgramLookup])),
-    directionsById: new Map(directions.map((item) => [Number(item.id), item as DirectionLookup])),
     regionsById: new Map(regions.map((item) => [Number(item.id), item as RegionLookup])),
   };
 }
@@ -138,33 +130,6 @@ export function resolveRegionId(value: unknown, regionsById: Map<number, RegionL
   const normalized = normalizeLookupValue(raw);
   for (const [id, item] of regionsById.entries()) {
     const candidates = [item?.name, item?.normalized_name, item?.external_ref_id].filter(Boolean).map(normalizeLookupValue);
-    if (candidates.includes(normalized)) return id;
-  }
-
-  return null;
-}
-
-export function resolveProgramDirectionId(value: unknown, directionsById: Map<number, DirectionLookup>, studyProgramId: number | null) {
-  const raw = String(value ?? "").trim();
-  if (!raw) return null;
-
-  const directId = Number(raw);
-  if (Number.isFinite(directId) && directionsById.has(directId)) {
-    const item = directionsById.get(directId);
-    if (!studyProgramId || Number(item?.study_program_id) === studyProgramId) return directId;
-  }
-
-  const prefixId = raw.match(/^\s*(\d+)\s*(?:\(|-|$)/);
-  if (prefixId) {
-    const id = Number(prefixId[1]);
-    const item = directionsById.get(id);
-    if (item && (!studyProgramId || Number(item.study_program_id) === studyProgramId)) return id;
-  }
-
-  const normalized = normalizeLookupValue(raw);
-  for (const [id, item] of directionsById.entries()) {
-    if (studyProgramId && Number(item.study_program_id) !== studyProgramId) continue;
-    const candidates = [item.code, item.name_el, item.name_en].filter(Boolean).map(normalizeLookupValue);
     if (candidates.includes(normalized)) return id;
   }
 

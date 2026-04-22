@@ -56,7 +56,6 @@ export default function Graduates() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [showImportDetails, setShowImportDetails] = useState(false);
   const [programs, setPrograms] = useState<StudyProgram[]>([]);
-  const [directions, setDirections] = useState<Array<Record<string, unknown>>>([]);
   const [regions, setRegions] = useState<Array<Record<string, unknown>>>([]);
   const [items, setItems] = useState<Graduate[]>([]);
   const [total, setTotal] = useState(0);
@@ -85,16 +84,8 @@ export default function Graduates() {
   const activeLang: "gr" | "en" = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
   const params = useMemo(() => buildGraduatesParams(filters), [filters]);
   const programNameById = useMemo(() => createNameMap(programs as Array<Record<string, unknown>>, activeLang), [programs, activeLang]);
-  const directionNameById = useMemo(() => createNameMap(directions, activeLang), [directions, activeLang]);
   const programDisplayNameById = useMemo(() => createNameMap(programs as Array<Record<string, unknown>>, "gr"), [programs]);
-  const directionDisplayNameById = useMemo(() => createNameMap(directions, "gr"), [directions]);
   const regionNameById = useMemo(() => createRegionMap(regions), [regions]);
-  const availableDirections = useMemo(() => {
-    if (!filters.study_program_id) {
-      return directions;
-    }
-    return directions.filter((item) => Number(item?.study_program_id) === Number(filters.study_program_id));
-  }, [directions, filters.study_program_id]);
   const renderGender = (value: unknown) => renderGenderValue(value);
 
   const visibleItems = useMemo(() => filterAndSortGraduates({
@@ -102,10 +93,9 @@ export default function Graduates() {
     sortState,
     searchTerm,
     programNameById: programDisplayNameById,
-    directionNameById: directionDisplayNameById,
     regionNameById,
     renderGender,
-  }), [items, sortState, searchTerm, programDisplayNameById, directionDisplayNameById, regionNameById]);
+  }), [items, sortState, searchTerm, programDisplayNameById, regionNameById]);
 
   const visibleIds = useMemo(() => visibleItems.map((graduate) => Number(graduate.id)).filter((id) => Number.isFinite(id)), [visibleItems]);
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
@@ -125,7 +115,6 @@ export default function Graduates() {
       setRegions(response.regions);
       setItems(response.items);
       setTotal(response.total);
-      setDirections(response.directions);
       setSelectedIds((current) => current.filter((id) => response.items.some((graduate) => Number(graduate.id) === id)));
     } finally {
       setLoading(false);
@@ -137,13 +126,7 @@ export default function Graduates() {
   }, []);
 
 
-  useEffect(() => {
-    if (filters.program_direction_id && !availableDirections.some((item) => Number(item.id) === Number(filters.program_direction_id))) {
-      setFilters((current) => ({ ...current, program_direction_id: "" }));
-    }
-  }, [availableDirections, filters.program_direction_id]);
-
-  useSyncedScrollbar(tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, [items, sortState, programs, directions, regions]);
+  useSyncedScrollbar(tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, [items, sortState, programs, regions]);
 
   useMenuDismiss([importMenuRef, exportMenuRef, templateMenuRef, recentDownloadsRef], () => {
     setImportMenuOpen(false);
@@ -226,8 +209,7 @@ export default function Graduates() {
           items: item.pdfItems as Graduate[],
           lang: activeLang,
           programNameById: programDisplayNameById,
-          directionNameById: directionDisplayNameById,
-          regionNameById,
+                regionNameById,
         });
         recentGraduateSessionDownloads.set(item.signature, { blob, fileName: item.fileName });
         downloadBlob(blob, item.fileName);
@@ -306,8 +288,7 @@ export default function Graduates() {
           items: exportItems,
           lang: activeLang,
           programNameById: programDisplayNameById,
-          directionNameById: directionDisplayNameById,
-          regionNameById,
+                regionNameById,
         });
         const fileName = `graduates-${timestamp}.pdf`;
         downloadBlob(blob, fileName);
@@ -330,7 +311,6 @@ export default function Graduates() {
             graduation_date: item.graduation_date,
             oath_date: item.oath_date,
             study_program_id: item.study_program_id,
-            program_direction_id: item.program_direction_id ?? null,
             origin_region_id: item.origin_region_id ?? null,
             origin_municipality: item.origin_municipality ?? null,
             origin_country: item.origin_country ?? null,
@@ -680,11 +660,8 @@ export default function Graduates() {
               t={(key) => t(key)}
               filters={filters}
               programs={programs}
-              directions={directions}
               regions={regions}
               programNameById={programNameById}
-              directionNameById={directionNameById}
-              availableDirections={availableDirections}
               setFilters={setFilters}
               onSearch={() => void load()}
               onReset={() => {
@@ -713,7 +690,6 @@ export default function Graduates() {
         getSortIndicator={getSortIndicator}
         renderGender={renderGender}
         programNameById={programDisplayNameById}
-        directionNameById={directionDisplayNameById}
         regionNameById={regionNameById}
         t={t}
         onDelete={onDeleteGraduate}

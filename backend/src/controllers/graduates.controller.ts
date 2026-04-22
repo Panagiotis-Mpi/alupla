@@ -1,6 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
 import { Graduate } from "../models/Graduate";
-import { ProgramDirection } from "../models/ProgramDirection";
 import { StudyProgram } from "../models/StudyProgram";
 import { Region } from "../models/Region";
 import { buildGraduateWhere } from "../utils/buildGraduateWhere";
@@ -40,7 +39,7 @@ import {
   toNullableNumber,
   trimNullableText,
 } from "./graduates.helpers";
-import { applyOriginPatch, buildCreateOriginPayload, buildExportRows, buildResolvedOriginSnapshot, ensureManagedOrigin, getReferenceMaps, getTemplateHeaders, resolveProgramDirectionId, resolveRegionId, resolveStudyProgramId } from "./graduates.shared";
+import { applyOriginPatch, buildCreateOriginPayload, buildExportRows, buildResolvedOriginSnapshot, ensureManagedOrigin, getReferenceMaps, getTemplateHeaders, resolveRegionId, resolveStudyProgramId } from "./graduates.shared";
 import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
 
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
@@ -102,8 +101,8 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
     }
 
     const rows = await Graduate.findAll({ where, order, limit: ids.length ? undefined : limit });
-    const { programsById, directionsById, regionsById } = await getReferenceMaps();
-    const data = buildExportRows(rows as any[], lang, programsById, directionsById, regionsById);
+    const { programsById, regionsById } = await getReferenceMaps();
+    const data = buildExportRows(rows as any[], lang, programsById, regionsById);
 
     await logAction({
       user_id: req.user?.id ?? null,
@@ -198,7 +197,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
     if (!file?.buffer) return res.status(400).json({ error: { message: "Missing file" } });
 
     const wb = XLSX.read(file.buffer, { type: "buffer", cellDates: true });
-    const { programsById, directionsById, regionsById } = await getReferenceMaps();
+    const { programsById, regionsById } = await getReferenceMaps();
     const sheetName = wb.SheetNames[0];
     if (!sheetName) return res.status(400).json({ error: { message: "Empty workbook" } });
     const ws = wb.Sheets[sheetName];
@@ -230,7 +229,6 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       graduation_date: matchedHeaderKeys.graduation_date,
       oath_date: matchedHeaderKeys.oath_date,
       study_program: matchedHeaderKeys.study_program,
-      program_direction: matchedHeaderKeys.direction,
       origin_country: matchedHeaderKeys.origin_country,
       origin_region: matchedHeaderKeys.origin_region,
       origin_municipality: matchedHeaderKeys.origin_municipality,
@@ -274,8 +272,6 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const birth_date = toDateOnly(get("birth_date" as any));
       const study_program_source = get("study_program");
       const study_program_id = resolveStudyProgramId(study_program_source, programsById);
-      const program_direction_source = get("program_direction");
-      const program_direction_id = resolveProgramDirectionId(program_direction_source, directionsById, study_program_id);
       const origin_country_source = get("origin_country");
       const resolvedOriginCountryRegionId = resolveRegionId(origin_country_source, regionsById) ?? null;
       const origin_country_name = trimNullableText(origin_country_source) ?? (resolvedOriginCountryRegionId ? String(regionsById.get(resolvedOriginCountryRegionId)?.name ?? "").trim() : null);
@@ -366,7 +362,6 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
           degree_grade,
           birth_date,
           study_program_id,
-          program_direction_id: program_direction_id ?? null,
           origin_country: is_abroad ? origin_country_name : "Ελλάδα",
           origin_foreign_city: is_abroad ? origin_foreign_city : null,
           origin_country_region_id: is_abroad ? origin_country_region_id : normalizedOrigin?.origin_country_region_id ?? null,
@@ -524,15 +519,6 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     const program = await StudyProgram.findByPk(study_program_id);
     if (!program) return bad(res, "study_program_id not found");
 
-    const program_direction_id = toNullableNumber(body.program_direction_id);
-    if (program_direction_id === null) return bad(res, "program_direction_id is required");
-    if (Number.isNaN(program_direction_id as any)) return bad(res, "program_direction_id must be a number");
-    const dir = await ProgramDirection.findByPk(program_direction_id);
-    if (!dir) return bad(res, "program_direction_id not found");
-    if ((dir as any).study_program_id !== study_program_id) {
-      return bad(res, "program_direction_id does not belong to study_program_id");
-    }
-
     const { regionsById } = await getReferenceMaps();
     const originResult = await buildCreateOriginPayload(body, regionsById);
     if (originResult.error) return bad(res, originResult.error);
@@ -551,7 +537,6 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
       birth_date,
       gender,
       study_program_id,
-      program_direction_id,
       ...originPayload
     } as any);
 
@@ -596,21 +581,6 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       (item as any).gender = g;
     }
 
-    if (body.program_direction_id !== undefined) {
-      const program_direction_id = toNullableNumber(body.program_direction_id);
-      if (Number.isNaN(program_direction_id as any)) return bad(res, "program_direction_id must be a number");
-
-      if (program_direction_id !== null) {
-        const dir = await ProgramDirection.findByPk(program_direction_id);
-        if (!dir) return bad(res, "program_direction_id not found");
-        if ((dir as any).study_program_id !== nextStudyProgramId) {
-          return bad(res, "program_direction_id does not belong to study_program_id");
-        }
-      }
-
-      (item as any).program_direction_id = program_direction_id;
-    }
-
     const { regionsById } = await getReferenceMaps();
 
     const setIf = (key: string, fn?: (v: any) => any) => {
@@ -632,6 +602,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     if (originError) return bad(res, originError);
 
     if (body.study_program_id !== undefined) (item as any).study_program_id = nextStudyProgramId;
+    (item as any).program_direction_id = null;
     if (!String((item as any).ad_code ?? "").trim()) return bad(res, "ad_code cannot be empty");
     if (!String((item as any).last_name ?? "").trim()) return bad(res, "last_name cannot be empty");
     if (!String((item as any).first_name ?? "").trim()) return bad(res, "first_name cannot be empty");

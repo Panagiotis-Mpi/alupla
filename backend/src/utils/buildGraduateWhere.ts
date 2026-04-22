@@ -59,11 +59,6 @@ function setEnumAndForeignKeyFilters(where: GraduateWhere, query: Query) {
     where.study_program_id = studyProgramId;
   }
 
-  const programDirectionId = readNumber(query.program_direction_id);
-  if (programDirectionId !== undefined) {
-    where.program_direction_id = programDirectionId;
-  }
-
   const originRegionId = readNumber(query.origin_region_id);
   if (originRegionId !== undefined) {
     where.origin_region_id = originRegionId;

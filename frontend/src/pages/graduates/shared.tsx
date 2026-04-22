@@ -15,7 +15,6 @@ export type SortKey =
   | "graduation_date"
   | "oath_date"
   | "study_program"
-  | "direction"
   | "origin_country"
   | "origin_region"
   | "origin_municipality";
@@ -38,7 +37,6 @@ export type GraduatesFiltersState = {
   oath_date_from: string;
   oath_date_to: string;
   study_program_id: string;
-  program_direction_id: string;
   origin_region_id: string;
   origin_municipality_like: string;
   origin_country_like: string;
@@ -63,7 +61,6 @@ export const EMPTY_GRADUATES_FILTERS: GraduatesFiltersState = {
   oath_date_from: "",
   oath_date_to: "",
   study_program_id: "",
-  program_direction_id: "",
   origin_region_id: "",
   origin_municipality_like: "",
   origin_country_like: "",
@@ -229,19 +226,15 @@ export function getGraduateSortValue(args: {
   graduate: Graduate;
   key: SortKey;
   programNameById: Map<number, string>;
-  directionNameById: Map<number, string>;
   regionNameById: Map<number, string>;
   renderGender: (value: unknown) => string;
 }) {
-  const { graduate, key, programNameById, directionNameById, regionNameById, renderGender } = args;
+  const { graduate, key, programNameById, regionNameById, renderGender } = args;
   if (key === "birth_date") {
     return graduate.birth_date ?? "";
   }
   if (key === "study_program") {
     return programNameById.get(Number(graduate.study_program_id)) ?? "";
-  }
-  if (key === "direction") {
-    return directionNameById.get(Number(graduate.program_direction_id)) ?? "";
   }
   if (key === "origin_country") {
     return getGraduateOriginCountryDisplay(graduate, regionNameById);
@@ -260,17 +253,16 @@ export function filterAndSortGraduates(args: {
   sortState: { key: SortKey; dir: SortDir };
   searchTerm: string;
   programNameById: Map<number, string>;
-  directionNameById: Map<number, string>;
   regionNameById: Map<number, string>;
   renderGender: (value: unknown) => string;
 }) {
-  const { items, sortState, searchTerm, programNameById, directionNameById, regionNameById, renderGender } = args;
+  const { items, sortState, searchTerm, programNameById, regionNameById, renderGender } = args;
   const query = normalizeValue(searchTerm).trim();
   const list = [...items];
 
   list.sort((a, b) => {
-    const aValue = getGraduateSortValue({ graduate: a, key: sortState.key, programNameById, directionNameById, regionNameById, renderGender });
-    const bValue = getGraduateSortValue({ graduate: b, key: sortState.key, programNameById, directionNameById, regionNameById, renderGender });
+    const aValue = getGraduateSortValue({ graduate: a, key: sortState.key, programNameById, regionNameById, renderGender });
+    const bValue = getGraduateSortValue({ graduate: b, key: sortState.key, programNameById, regionNameById, renderGender });
     const directionFactor = sortState.dir === "asc" ? 1 : -1;
     const isDateKey = sortState.key === "birth_date" || sortState.key === "graduation_date" || sortState.key === "oath_date";
     const isNumericKey = sortState.key === "entry_year" || sortState.key === "degree_grade";
@@ -311,7 +303,6 @@ export function filterAndSortGraduates(args: {
       graduate.graduation_date,
       graduate.oath_date,
       programNameById.get(Number(graduate.study_program_id)) ?? "",
-      directionNameById.get(Number(graduate.program_direction_id)) ?? "",
       getGraduateOriginCountryDisplay(graduate, regionNameById),
       getGraduateOriginRegionDisplay(graduate, regionNameById),
       getGraduateOriginMunicipalityDisplay(graduate),
@@ -326,16 +317,13 @@ export function GraduatesFilters(props: {
   t: (key: string) => string;
   filters: GraduatesFiltersState;
   programs: StudyProgram[];
-  directions: any[];
   regions: any[];
   programNameById: Map<number, string>;
-  directionNameById: Map<number, string>;
-  availableDirections: any[];
   setFilters: React.Dispatch<React.SetStateAction<GraduatesFiltersState>>;
   onSearch: () => void;
   onReset: () => void;
 }) {
-  const { t, filters, programs, regions, programNameById, directionNameById, availableDirections, setFilters, onSearch, onReset } = props;
+  const { t, filters, programs, regions, programNameById, setFilters, onSearch, onReset } = props;
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14, alignItems: "stretch" }}>
@@ -413,16 +401,6 @@ export function GraduatesFilters(props: {
           {programs.map((program) => (
             <option key={program.id} value={program.id}>
               {programNameById.get(Number(program.id))}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label={t("table.direction")}>
-        <select className="input" value={filters.program_direction_id} onChange={(e) => setFilters((current) => ({ ...current, program_direction_id: e.target.value }))}>
-          <option value="">{t("filters.all")}</option>
-          {availableDirections.map((direction) => (
-            <option key={Number(direction.id)} value={Number(direction.id)}>
-              {directionNameById.get(Number(direction.id))}
             </option>
           ))}
         </select>
