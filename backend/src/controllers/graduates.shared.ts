@@ -84,11 +84,14 @@ export async function getReferenceMaps(): Promise<ReferenceMaps> {
 
 function normalizeLookupValue(value: unknown) {
   return String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
     .trim()
     .toLowerCase()
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .replace(/\./g, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
