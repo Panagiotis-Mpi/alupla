@@ -117,14 +117,12 @@ export function buildMapWhere(req: Request) {
 }
 
 export function pickTopName(counts: Map<number, number>, labels: Map<number, string>) {
-  let topId = 0;
   let topCount = 0;
   let topLabel = "";
 
   for (const [id, count] of counts.entries()) {
     const label = labels.get(id) || String(id);
     if (count > topCount || (count === topCount && label.localeCompare(topLabel, "el") < 0)) {
-      topId = id;
       topCount = count;
       topLabel = label;
     }

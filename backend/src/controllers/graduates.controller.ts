@@ -1,7 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { Graduate } from "../models/Graduate";
 import { StudyProgram } from "../models/StudyProgram";
-import { Region } from "../models/Region";
 import { buildGraduateWhere } from "../utils/buildGraduateWhere";
 import { clamp, toInt as toIntParam } from "../utils/pagination";
 import { logAction } from "../services/log.service";
@@ -11,8 +10,6 @@ import { Op, Transaction } from "sequelize";
 import { sequelize } from "../config/sequelize";
 import {
   DATE_ONLY_RE,
-  IMPORT_HEADER_ALIASES,
-  type ExportLang,
   type RuleViolationCode,
   applySheetLayout,
   applyTemplateSheetLayout,
@@ -36,7 +33,6 @@ import {
   requireNonEmptyString,
   requireNumberField,
   isGreeceCountryValue,
-  toNullableNumber,
   trimNullableText,
 } from "./graduates.helpers";
 import { applyOriginPatch, buildCreateOriginPayload, buildExportRows, buildResolvedOriginSnapshot, ensureManagedOrigin, getReferenceMaps, getTemplateHeaders, resolveRegionId, resolveStudyProgramId } from "./graduates.shared";
@@ -452,14 +448,6 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
 
     next(err);
   }
-}
-
-function firstIndex(headers: string[], candidates: string[]): number {
-  for (const c of candidates) {
-    const i = headers.indexOf(normHeader(c));
-    if (i >= 0) return i;
-  }
-  return -1;
 }
 
 export async function getGraduate(req: Request, res: Response, next: NextFunction) {

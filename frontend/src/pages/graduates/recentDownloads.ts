@@ -157,8 +157,6 @@ export function buildRecentDownloadFiltersLabel(filters: GraduatesFiltersState, 
   const studyPrograms = Array.isArray(filters.studyProgramIds) ? filters.studyProgramIds.filter(Boolean) : [];
   if (studyPrograms.length) parts.push((lang === "en" ? "Programs" : "Προγράμματα") + `: ${studyPrograms.join(", ")}`);
 
-  const directions = Array.isArray(filters.programDirectionIds) ? filters.programDirectionIds.filter(Boolean) : [];
-  if (directions.length) parts.push((lang === "en" ? "Directions" : "Κατευθύνσεις") + `: ${directions.join(", ")}`);
 
   const genders = Array.isArray(filters.genders) ? filters.genders.filter(Boolean) : [];
   if (genders.length) parts.push((lang === "en" ? "Gender" : "Φύλο") + `: ${genders.join(", ")}`);

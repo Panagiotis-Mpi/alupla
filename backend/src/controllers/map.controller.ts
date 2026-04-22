@@ -1,9 +1,8 @@
 import type { Request, Response } from "express";
 import { Graduate } from "../models/Graduate";
-import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
 import { ProgramDirection } from "../models/ProgramDirection";
-import { Op, QueryTypes } from "sequelize";
+import { QueryTypes } from "sequelize";
 import { resolveMapLocation } from "../services/mapLocation.service";
 import { sequelize } from "../config/sequelize";
 import { buildMapWhere, calculateAgeAtDate, collapseCountsByLabel, isAbroadMapGraduate, isDirectionAllowed, isGreekMapGraduate, loadRegions, matchesSelectedStudyProgram, normalizeKey, pickDirectionDisplay, pickTopName, toInt } from "./map.helpers";
@@ -202,7 +201,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
   return res.json({ ok: true, items, total: items.reduce((sum, item) => sum + (Number(item.count) || 0), 0) });
 }
 
-export async function getMapYearRange(req: Request, res: Response) {
+export async function getMapYearRange(_req: Request, res: Response) {
   try {
     const rows = await sequelize.query<{ year: number | null }>(
       `SELECT DISTINCT EXTRACT(YEAR FROM graduation_date)::int AS year
