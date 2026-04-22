@@ -1145,14 +1145,16 @@ html.accessibility-high-contrast .alupla-city-bubble-number-gender{
 }
 
 html.accessibility-high-contrast .alupla-map .leaflet-container{
-  background:#dfe8f2 !important;
+  background:#d9e2e8 !important;
 }
 html.accessibility-high-contrast .alupla-map .leaflet-map-pane,
-html.accessibility-high-contrast .alupla-map .leaflet-tile-pane{
-  background:#dfe8f2 !important;
+html.accessibility-high-contrast .alupla-map .leaflet-tile-pane,
+html.accessibility-high-contrast .alupla-map .leaflet-layer,
+html.accessibility-high-contrast .alupla-map .leaflet-tile-container{
+  background:transparent !important;
 }
 html.accessibility-high-contrast .alupla-map .leaflet-tile{
-  filter:contrast(145%) brightness(108%) saturate(78%) sepia(10%) !important;
+  filter:none !important;
   opacity:1 !important;
   mix-blend-mode:normal !important;
 }

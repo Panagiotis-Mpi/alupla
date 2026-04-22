@@ -322,7 +322,7 @@ export default function GraduatesMapPage() {
     return () => observer.disconnect();
   }, []);
 
-  const activeMapTileUrl = highContrastEnabled ? highContrastMapTileUrl : lightMapTileUrl;
+  const activeMapTileUrl = lightMapTileUrl;
 
   const resetComparedSelections = useCallback(() => {
     setSelected(null);
