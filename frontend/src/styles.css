@@ -1145,15 +1145,15 @@ html.accessibility-high-contrast .alupla-city-bubble-number-gender{
 }
 
 html.accessibility-high-contrast .alupla-map .leaflet-container{
-  background:#0b1220 !important;
+  background:#dfe8f2 !important;
 }
 html.accessibility-high-contrast .alupla-map .leaflet-map-pane,
 html.accessibility-high-contrast .alupla-map .leaflet-tile-pane{
-  background:#0b1220 !important;
+  background:#dfe8f2 !important;
 }
 html.accessibility-high-contrast .alupla-map .leaflet-tile{
-  filter:grayscale(100%) invert(100%) contrast(160%) brightness(92%) !important;
-  opacity:.98 !important;
+  filter:contrast(145%) brightness(108%) saturate(78%) sepia(10%) !important;
+  opacity:1 !important;
   mix-blend-mode:normal !important;
 }
 html.accessibility-high-contrast .alupla-map .leaflet-container img,
@@ -1164,7 +1164,7 @@ html.accessibility-high-contrast .alupla-map .leaflet-marker-shadow{
 }
 html.accessibility-high-contrast .alupla-map .alupla-city-bubble{
   color:#ffffff !important;
-  border-color:var(--alupla-bubble-border, rgba(248,250,252,.92)) !important;
+  border-color:var(--alupla-bubble-border, rgba(30,41,59,.82)) !important;
   background:var(--alupla-bubble-background, #60a5fa) !important;
   opacity:var(--alupla-bubble-opacity, 1) !important;
   box-shadow:var(--alupla-bubble-shadow, none) !important;
@@ -1172,10 +1172,10 @@ html.accessibility-high-contrast .alupla-map .alupla-city-bubble{
 html.accessibility-high-contrast .alupla-map .alupla-city-bubble-count .alupla-city-bubble-number,
 html.accessibility-high-contrast .alupla-map .alupla-city-bubble-number-gender{
   color:#0f172a !important;
-  text-shadow:0 1px 1px rgba(255,255,255,.75) !important;
+  text-shadow:0 1px 1px rgba(255,255,255,.78) !important;
 }
 html.accessibility-high-contrast .alupla-map .alupla-city-bubble-label,
 html.accessibility-high-contrast .alupla-map .alupla-city-label-text{
-  color:#f8fafc !important;
-  text-shadow:0 1px 2px rgba(0,0,0,.98), 0 0 8px rgba(0,0,0,.92) !important;
+  color:#0f172a !important;
+  text-shadow:0 1px 2px rgba(255,255,255,.98), 0 0 8px rgba(255,255,255,.95) !important;
 }

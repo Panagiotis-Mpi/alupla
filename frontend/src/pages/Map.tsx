@@ -51,7 +51,7 @@ type ExportScopeSelection = { category: ExportCategoryKey; scope: MapScope };
 const fillColors = ["#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb", "#1d4ed8"];
 
 const lightMapTileUrl = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
-const darkMapTileUrl = "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png";
+const highContrastMapTileUrl = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png";
 const mapTileAttribution =
   "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/attributions\">CARTO</a>";
 
@@ -322,7 +322,7 @@ export default function GraduatesMapPage() {
     return () => observer.disconnect();
   }, []);
 
-  const activeMapTileUrl = lightMapTileUrl;
+  const activeMapTileUrl = highContrastEnabled ? highContrastMapTileUrl : lightMapTileUrl;
 
   const resetComparedSelections = useCallback(() => {
     setSelected(null);
