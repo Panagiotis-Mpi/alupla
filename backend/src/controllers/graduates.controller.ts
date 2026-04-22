@@ -281,14 +281,16 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const study_program_source = get("study_program");
       const study_program_id = resolveStudyProgramId(study_program_source, programsById);
       const origin_country_source = get("origin_country");
-      const resolvedOriginCountryRegionId = resolveRegionId(origin_country_source, regionsById) ?? null;
-      const origin_country_name = trimNullableText(origin_country_source) ?? (resolvedOriginCountryRegionId ? String(regionsById.get(resolvedOriginCountryRegionId)?.name ?? "").trim() : null);
+      const matchedOriginCountryRegionId = resolveRegionId(origin_country_source, regionsById) ?? null;
+      const origin_country_name = trimNullableText(origin_country_source) ?? (matchedOriginCountryRegionId ? String(regionsById.get(matchedOriginCountryRegionId)?.name ?? "").trim() : null);
       const is_abroad = !!(origin_country_name && !isGreeceCountryValue(origin_country_name));
-      const origin_country_region_id = is_abroad ? null : (resolvedOriginCountryRegionId ?? defaultGreeceId);
+      const origin_country_region_id = is_abroad ? matchedOriginCountryRegionId : (matchedOriginCountryRegionId ?? defaultGreeceId);
       const origin_region_source = get("origin_region");
+      const raw_origin_municipality = trimNullableText(get("origin_municipality"));
+      const raw_origin_region = trimNullableText(origin_region_source);
       const origin_periphery_region_id = is_abroad ? null : resolveRegionId(origin_region_source, regionsById);
-      const origin_municipality = String(get("origin_municipality")).trim() || null;
-      const origin_foreign_city = is_abroad ? origin_municipality : null;
+      const origin_foreign_city = is_abroad ? (raw_origin_municipality ?? raw_origin_region ?? null) : null;
+      const origin_municipality = is_abroad ? origin_foreign_city : raw_origin_municipality;
 
       const rowProblems: RowError[] = [];
       const reqStr = (val: string, colName: string) => { if (!val) rowProblems.push({ row: rowNum, column: colName, message: "Required" }); };
@@ -306,7 +308,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       if (!study_program_id) rowProblems.push({ row: rowNum, column: "study_program", message: "Invalid value", value: study_program_source });
       if (!origin_country_name) rowProblems.push({ row: rowNum, column: "origin_country", message: "Required", value: origin_country_source });
       if (is_abroad) {
-        if (!origin_foreign_city) rowProblems.push({ row: rowNum, column: "origin_municipality", message: "Required", value: get("origin_municipality") });
+        if (!origin_foreign_city) rowProblems.push({ row: rowNum, column: "origin_municipality", message: "Required", value: get("origin_municipality") || origin_region_source });
       } else {
         if (!origin_country_region_id) rowProblems.push({ row: rowNum, column: "origin_country", message: "Invalid value", value: origin_country_source });
         if (!origin_periphery_region_id && String(origin_region_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_region", message: "Invalid value", value: origin_region_source });
