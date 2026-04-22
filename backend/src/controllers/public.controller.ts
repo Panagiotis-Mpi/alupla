@@ -317,19 +317,6 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
-    const directionDistribution = await sequelize.query<{ id: number | null; study_program_id: number | null; name_el: string | null; name_en: string | null; count: number }>(
-      `SELECT pd.id as id,
-              pd.study_program_id as study_program_id,
-              pd.name_el as name_el,
-              pd.name_en as name_en,
-              COUNT(*)::int as count
-       FROM graduates g
-       LEFT JOIN program_directions pd ON pd.id = g.program_direction_id
-       ${sqlWhere}
-       GROUP BY pd.id, pd.study_program_id, pd.name_el, pd.name_en
-       ORDER BY count DESC, pd.name_el ASC, pd.name_en ASC`,
-      { replacements: repl, type: QueryTypes.SELECT }
-    );
 
     const originRegionWhere = sqlWhere
       ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
@@ -478,11 +465,6 @@ export async function publicStats(req: Request, res: Response) {
       degree_grade_bins: degreeGradeBins,
       study_program_distribution: studyProgramDistribution.filter((r) => r.id !== null),
       gender_by_program: genderByProgram.filter((r) => r.id !== null),
-      direction_distribution: directionDistribution.map((r) => ({
-        ...r,
-        name_el: r.name_el ?? 'Χωρίς κατεύθυνση',
-        name_en: r.name_en ?? 'No direction',
-      })),
       origin_region_distribution: originRegionDistribution.map((r) => ({
         ...r,
         name_el: r.name_el ?? 'Άγνωστη περιοχή',
@@ -493,8 +475,6 @@ export async function publicStats(req: Request, res: Response) {
       abroad_pct: total > 0 ? Math.round((Number(abroadSummaryRow?.[0]?.abroad_count ?? 0) / total) * 1000) / 10 : 0,
       origin_municipality_distribution: originMunicipalityDistribution,
       oath_year_distribution: oathYearDistribution,
-      direction_by_year: [],
-      direction_by_term: [],
       avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear,
       years_to_degree_distribution: yearsToDegreeDistribution,
     });

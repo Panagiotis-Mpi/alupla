@@ -7,7 +7,6 @@ import { initDb } from "./models";
 import { studyProgramsRouter } from "./routes/studyPrograms.routes";
 import { graduatesRouter } from "./routes/graduates.routes";
 import { regionsRouter } from "./routes/regions.routes";
-import { programDirectionsRouter } from "./routes/programDirections.routes";
 import { authRouter } from "./routes/auth.routes";
 import { usersRouter } from "./routes/users.routes";
 import { activityLogsRouter } from "./routes/activityLogs.routes";
@@ -72,7 +71,6 @@ export function createApp() {
   app.use("/public", publicRouter);
 
   app.use("/study-programs", studyProgramsRouter);
-  app.use("/program-directions", programDirectionsRouter);
 
   app.use("/graduates", graduatesRouter);
   app.use("/regions", regionsRouter);

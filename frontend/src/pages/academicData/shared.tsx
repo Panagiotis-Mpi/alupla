@@ -1,5 +1,5 @@
 import type React from "react";
-import type { ProgramDirection, StudyProgram } from "../../lib/api";
+import type { StudyProgram } from "../../lib/api";
 
 export type StudyProgramForm = {
   code: string;
@@ -8,32 +8,13 @@ export type StudyProgramForm = {
   is_active: boolean;
 };
 
-export type DirectionForm = {
-  study_program_id: string;
-  code: string;
-  name_el: string;
-  name_en: string;
-  is_active: boolean;
-};
-
 export type ProgramSortKey = "code" | "name" | "status";
-export type DirectionSortKey = "code" | "name" | "status";
 export type SortState<T extends string> = {
   key: T;
   direction: "asc" | "desc";
 };
-export type AcademicTab = "programs" | "directions";
-export type ImportMenu = "programs" | "directions" | null;
 
 export const emptyProgramForm: StudyProgramForm = {
-  code: "",
-  name_el: "",
-  name_en: "",
-  is_active: true,
-};
-
-export const emptyDirectionForm: DirectionForm = {
-  study_program_id: "",
   code: "",
   name_el: "",
   name_en: "",
@@ -60,10 +41,6 @@ export const sortableHeaderStyle: React.CSSProperties = {
 };
 export const pageMenuCardStyle: React.CSSProperties = { padding: 16 };
 export const pageMenuTitleStyle: React.CSSProperties = { margin: 0 };
-export const pageMenuStatsStyle: React.CSSProperties = {
-  color: "#334155",
-  fontSize: 16,
-};
 export const pageMenuButtonsStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
@@ -78,28 +55,6 @@ export const pageMenuButtonStyle: React.CSSProperties = {
   padding: "0 18px",
   fontSize: 15,
   justifyContent: "center",
-};
-export const menuWrapStyle: React.CSSProperties = {
-  position: "relative",
-  display: "block",
-  minWidth: 0,
-};
-export const popoverStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "calc(100% + 8px)",
-  left: 0,
-  right: 0,
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  background: "var(--surface)",
-  boxShadow: "var(--shadow)",
-  padding: 8,
-  zIndex: 20,
-};
-export const popoverItemStyle: React.CSSProperties = {
-  width: "100%",
-  textAlign: "left",
-  marginBottom: 6,
 };
 
 export function getSortMark(active: boolean, direction: "asc" | "desc") {
@@ -119,27 +74,6 @@ export function sortPrograms(items: StudyProgram[], sort: SortState<ProgramSortK
     } else if (sort.key === "name") {
       a = getProgramName(left) ?? "";
       b = getProgramName(right) ?? "";
-    } else {
-      a = left.is_active ? "1" : "0";
-      b = right.is_active ? "1" : "0";
-    }
-
-    return a.localeCompare(b, lang === "en" ? "en" : "el", { numeric: true, sensitivity: "base" }) * factor;
-  });
-}
-
-export function sortDirections(items: ProgramDirection[], sort: SortState<DirectionSortKey>, lang: "en" | "gr") {
-  const factor = sort.direction === "asc" ? 1 : -1;
-  return [...items].sort((left, right) => {
-    let a = "";
-    let b = "";
-
-    if (sort.key === "code") {
-      a = left.code ?? "";
-      b = right.code ?? "";
-    } else if (sort.key === "name") {
-      a = lang === "en" && left.name_en ? left.name_en : left.name_el;
-      b = lang === "en" && right.name_en ? right.name_en : right.name_el;
     } else {
       a = left.is_active ? "1" : "0";
       b = right.is_active ? "1" : "0";

@@ -5,6 +5,7 @@ import { formatValue, getGraduateOriginCountryDisplay, getGraduateOriginMunicipa
 
 export function GraduatesTable(props: {
   visibleItems: Graduate[];
+  loading: boolean;
   selectedIds: number[];
   allVisibleSelected: boolean;
   selectAllRef: React.RefObject<HTMLInputElement>;
@@ -23,7 +24,7 @@ export function GraduatesTable(props: {
   t: (key: string, options?: Record<string, unknown>) => string;
   onDelete: (graduate: Graduate) => Promise<void>;
 }) {
-  const { visibleItems, selectedIds, allVisibleSelected, selectAllRef, tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, headerButtonStyle, wideCardStyle, toggleAllVisible, toggleSelected, toggleSort, getSortIndicator, renderGender, programNameById, regionNameById, t, onDelete } = props;
+  const { visibleItems, loading, selectedIds, allVisibleSelected, selectAllRef, tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, headerButtonStyle, wideCardStyle, toggleAllVisible, toggleSelected, toggleSort, getSortIndicator, renderGender, programNameById, regionNameById, t, onDelete } = props;
 
   return (
     <div className="card" style={{ ...wideCardStyle, position: "relative" }}>
@@ -101,7 +102,7 @@ export function GraduatesTable(props: {
             {!visibleItems.length ? (
               <tr>
                 <td colSpan={18} className="muted">
-                  {t("table.empty")}
+                  {loading ? t("table.loading", { defaultValue: t("topbar.loading") }) : t("table.empty")}
                 </td>
               </tr>
             ) : null}

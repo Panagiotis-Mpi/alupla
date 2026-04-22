@@ -3,7 +3,6 @@ import {
   BarChartCard,
   ChartCard,
   MetricCard,
-  MultiPieChartRow,
   PieChartCard,
   ScrollableLineChart,
   SectionTitle,
@@ -13,7 +12,6 @@ import {
 
 type ChartSeries = { labels: string[]; values: number[] };
 type PieSeries = { labels: string[]; values: number[] };
-type DirectionPie = { title: string; labels: string[]; values: number[] };
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 type MenuGroup = "demographics" | "academic" | "geography";
@@ -35,7 +33,6 @@ type ChartBlockProps = {
   avgGradeByProgram: ChartSeries;
   yearsToDegree: ChartSeries;
   yearsToDegreeDistribution: ChartSeries;
-  directionPies: DirectionPie[];
   regions: ChartSeries;
   municipalities: ChartSeries;
   countries: ChartSeries;
@@ -162,7 +159,6 @@ export function AcademicCharts(props: ChartBlockProps) {
         <VerticalBarChartCard chartId="avgGradeByProgram" title={props.t("sections.avgGradeByProgram")} labels={props.avgGradeByProgram.labels} values={props.avgGradeByProgram.values} minValue={5} maxValue={10} height={360} minLabelWidth={148} maxLabelWidth={200} forceScrollable xTickFormatter={(label) => wrapAxisLabel(label, 18, 3)} />
         <BarChartCard chartId="timeToDegreeByEntryYear" title={props.t("sections.timeToDegreeByEntryYear")} labels={props.yearsToDegree.labels} values={props.yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
         <BarChartCard chartId="timeToDegreeDistribution" title={props.t("sections.timeToDegreeDistribution")} labels={props.yearsToDegreeDistribution.labels} values={props.yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
-        <MultiPieChartRow chartId="direction" title={props.t("sections.direction")} pies={props.directionPies} />
       </div>
     </div>
   );
@@ -195,7 +191,6 @@ export function ExportChartsSurface(props: ChartBlockProps) {
       <VerticalBarChartCard chartId="avgGradeByProgram" title={props.t("sections.avgGradeByProgram")} labels={props.avgGradeByProgram.labels} values={props.avgGradeByProgram.values} minValue={5} maxValue={10} height={320} />
       <BarChartCard chartId="timeToDegreeByEntryYear" title={props.t("sections.timeToDegreeByEntryYear")} labels={props.yearsToDegree.labels} values={props.yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
       <BarChartCard chartId="timeToDegreeDistribution" title={props.t("sections.timeToDegreeDistribution")} labels={props.yearsToDegreeDistribution.labels} values={props.yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
-      <MultiPieChartRow chartId="direction" title={props.t("sections.direction")} pies={props.directionPies} compact />
       <BarChartCard chartId="originRegion" title={props.t("sections.originRegion")} labels={props.regions.labels} values={props.regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />
       <BarChartCard chartId="originMunicipality" title={props.t("sections.originMunicipality")} labels={props.municipalities.labels} values={props.municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
       <BarChartCard chartId="originCountry" title={props.t("sections.originCountry")} labels={props.countries.labels} values={props.countries.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />

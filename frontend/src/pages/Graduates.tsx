@@ -676,6 +676,7 @@ export default function Graduates() {
 
       <GraduatesTable
         visibleItems={visibleItems}
+        loading={loading}
         selectedIds={selectedIds}
         allVisibleSelected={allVisibleSelected}
         selectAllRef={selectAllRef}

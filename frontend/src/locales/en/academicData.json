@@ -1,5 +1,5 @@
 {
-  "title": "Study Programs & Directions",
+  "title": "Study Programs Management",
   "error": "Error",
   "status": {
     "active": "Active",
@@ -7,13 +7,8 @@
   },
   "menu": {
     "programs": "Study Programs",
-    "directions": "Directions",
     "import": "Import",
-    "template": "Download Template",
-    "importPrograms": "Import study programs",
-    "importDirections": "Import directions",
-    "templatePrograms": "Study programs",
-    "templateDirections": "Direction"
+    "template": "Download Template"
   },
   "actions": {
     "add": "Add",
@@ -40,22 +35,7 @@
       "status": "Status"
     }
   },
-  "directions": {
-    "title": "Directions",
-    "count": "{{count}} entries",
-    "summary": "Directions: {{count}} total",
-    "filterProgram": "Select a study program to display the corresponding directions:",
-    "selectProgram": "Select study program",
-    "labels": {
-      "program": "Study program *",
-      "code": "Code *",
-      "nameEl": "Name in Greek *",
-      "nameEn": "Name in English",
-      "status": "Status"
-    }
-  },
   "confirm": {
-    "deleteProgram": "Delete study program \"{{name}}\"?",
-    "deleteDirection": "Delete direction \"{{name}}\"?"
+    "deleteProgram": "Delete study program \"{{name}}\"?"
   }
 }

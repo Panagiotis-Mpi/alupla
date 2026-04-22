@@ -2,7 +2,6 @@ import type { NextFunction, Request, Response } from "express";
 import XLSX from "xlsx";
 import { Op } from "sequelize";
 import { Graduate } from "../models/Graduate";
-import { ProgramDirection } from "../models/ProgramDirection";
 import { StudyProgram } from "../models/StudyProgram";
 import { logAction } from "../services/log.service";
 import { normHeader } from "../utils/importUtils";
@@ -333,10 +332,6 @@ export async function deleteStudyProgram(req: Request, res: Response, next: Next
       return invalid(res, "Το πρόγραμμα χρησιμοποιείται ήδη σε αποφοίτους");
     }
 
-    const directionsCount = await ProgramDirection.count({ where: { study_program_id: id } });
-    if (directionsCount > 0) {
-      return invalid(res, "Διαγράψτε πρώτα τις κατευθύνσεις του προγράμματος");
-    }
 
     const details = {
       code: item.code,

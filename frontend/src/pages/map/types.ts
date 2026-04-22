@@ -19,7 +19,6 @@ export type FiltersState = {
   oath_date_from: string;
   oath_date_to: string;
   study_program_id: string;
-  program_direction_id: string;
   origin_region_id: string;
   origin_municipality_like: string;
   age_group: AgeGroup;
@@ -44,7 +43,6 @@ export const EMPTY_FILTERS: FiltersState = {
   oath_date_from: "",
   oath_date_to: "",
   study_program_id: "",
-  program_direction_id: "",
   origin_region_id: "",
   origin_municipality_like: "",
   age_group: "",

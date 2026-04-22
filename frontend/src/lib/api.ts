@@ -23,15 +23,6 @@ export type StudyProgram = {
   is_active: 0 | 1 | boolean;
 };
 
-export type ProgramDirection = {
-  id: number;
-  study_program_id: number;
-  code: string;
-  name_el: string;
-  name_en?: string | null;
-  is_active: 0 | 1 | boolean;
-};
-
 export type RegionType = "COUNTRY" | "PERIPHERY" | "CITY" | "FOREIGN_CITY";
 export type Region = {
   id: number;
@@ -95,10 +86,6 @@ export type GraduatesMapItem = {
   avg_graduation_years: number | null;
   dominant_gender?: "M" | "F" | "balanced" | null;
   dominant_study_program?: string | null;
-  dominant_direction?: string | null;
-  dominant_recent_direction?: string | null;
-  dominant_recent_direction_count?: number;
-  recent_directions?: Array<{ id: number; label: string; count: number; pct: number }>;
 };
 
 
@@ -155,7 +142,7 @@ export type MapCityDetailResponse = {
   ok: true;
   city_id: number;
   city_name: string;
-  mode: "count" | "dominant_gender" | "dominant_direction";
+  mode: "count" | "dominant_gender";
   total: number;
   labels?: string[];
   datasets?: Array<{ key: string; label: string; values: Array<number | null> }>;
@@ -163,12 +150,6 @@ export type MapCityDetailResponse = {
   female_count?: number;
   male_pct?: number;
   female_pct?: number;
-  programs?: Array<{
-    program_id: number;
-    program_label: string;
-    total: number;
-    directions: Array<{ id: number; label: string; count: number }>;
-  }>;
 };
 
 
@@ -288,34 +269,6 @@ export async function deleteStudyProgram(id: number): Promise<ApiOk> {
   return api(`/study-programs/${id}`, { method: "DELETE" });
 }
 
-export async function listProgramDirections(studyProgramId?: number | null): Promise<ListResponse<ProgramDirection>> {
-  const qs = studyProgramId ? `?study_program_id=${encodeURIComponent(String(studyProgramId))}` : "";
-  return api(`/program-directions${qs}`, { method: "GET" });
-}
-
-
-export async function createProgramDirection(payload: {
-  study_program_id: number;
-  code: string;
-  name_el: string;
-  name_en?: string | null;
-  is_active?: boolean;
-}): Promise<ItemResponse<ProgramDirection>> {
-  return api("/program-directions", { method: "POST", body: payload });
-}
-
-export async function updateProgramDirection(
-  id: number,
-  payload: Partial<{ study_program_id: number; code: string; name_el: string; name_en?: string | null; is_active?: boolean }>
- ): Promise<ApiOk & { item?: ProgramDirection }> {
-  return api(`/program-directions/${id}`, { method: "PUT", body: payload });
-}
-
-export async function deleteProgramDirection(id: number): Promise<ApiOk> {
-  return api(`/program-directions/${id}`, { method: "DELETE" });
-}
-
-
 export async function importStudyProgramsFile(file: File): Promise<ApiOk & Record<string, unknown>> {
   const token = getToken();
   const fd = new FormData();
@@ -337,29 +290,6 @@ export async function importStudyProgramsFile(file: File): Promise<ApiOk & Recor
 
 export async function downloadStudyProgramsTemplateXlsx(lang?: string): Promise<Blob> {
   return fetchBlob("/study-programs/import-template", {}, lang);
-}
-
-export async function importProgramDirectionsFile(file: File): Promise<ApiOk & Record<string, unknown>> {
-  const token = getToken();
-  const fd = new FormData();
-  fd.append("file", file);
-  const res = await fetch(`${API_URL}/program-directions/import`, {
-    method: "POST",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: fd
-  });
-  if (!res.ok) {
-    const j = await parseJsonSafe(res);
-    const msg = readApiErrorMessage(j, res.statusText);
-    throw new Error(msg);
-  }
-  return await res.json();
-}
-
-export async function downloadProgramDirectionsTemplateXlsx(lang?: string): Promise<Blob> {
-  return fetchBlob("/program-directions/import-template", {}, lang);
 }
 
 export async function listGraduates(params: QueryParams = {}): Promise<ListResponse<Graduate>> {

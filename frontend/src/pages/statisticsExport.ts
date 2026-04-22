@@ -12,7 +12,6 @@ export type StatisticsChartId =
   | "avgGradeByProgram"
   | "gradeDistribution"
   | "genderByProgram"
-  | "direction"
   | "originRegion"
   | "originMunicipality"
   | "originCountry"
@@ -49,7 +48,6 @@ type BuildArgs = {
   earliestYear: string | number;
   busiestYear: string | number;
   busiestCity: string | number;
-  selectedDirectionProgramId: string;
   selectedChartIds?: StatisticsChartId[];
 };
 
@@ -97,7 +95,7 @@ function exportUtf16Csv(filename: string, textValue: string) {
 
 
 function buildSheets(args: BuildArgs) {
-  const { data, activeLang, selectedDirectionProgramId } = args;
+  const { data, activeLang } = args;
   const sheets = new Map<StatisticsChartId, SheetBlock>();
 
   sheets.set("byYear", {
@@ -174,23 +172,6 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  const directionRows = (Array.isArray(data?.direction_distribution) ? data.direction_distribution : []) as NamedCountRow[];
-  const visibleDirectionRows = selectedDirectionProgramId === "all"
-    ? directionRows
-    : directionRows.filter((row) => String(row.study_program_id ?? "") === selectedDirectionProgramId);
-
-  sheets.set("direction", {
-    chartId: "direction",
-    name: activeLang === "en" ? "Graduate Count by Direction" : "Πλήθος αποφοίτων ανά κατεύθυνση",
-    rows: visibleDirectionRows.map((row) => ({
-      [activeLang === "en" ? "Direction Name" : "Ονομασία κατεύθυνσης"]: text(
-        activeLang === "en"
-          ? row.name_en ?? row.name_el ?? row.name ?? ""
-          : row.name_el ?? row.name_en ?? row.name ?? ""
-      ),
-      [activeLang === "en" ? "Graduate Count" : "Πλήθος αποφοίτων"]: num(row.count),
-    })),
-  });
 
   sheets.set("originRegion", {
     chartId: "originRegion",
@@ -314,7 +295,7 @@ export function exportStatisticsCsvFile(args: BuildArgs) {
     {
       key: "academic",
       name: args.activeLang === "en" ? "Academic Data" : "Ακαδημαϊκά στοιχεία",
-      chartIds: ["byYear", "studyProgram", "gradeByYear", "gradeDistribution", "avgGradeByProgram", "timeToDegreeByEntryYear", "timeToDegreeDistribution", "direction"],
+      chartIds: ["byYear", "studyProgram", "gradeByYear", "gradeDistribution", "avgGradeByProgram", "timeToDegreeByEntryYear", "timeToDegreeDistribution"],
     },
     {
       key: "geography",

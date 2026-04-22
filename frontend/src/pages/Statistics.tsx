@@ -61,7 +61,6 @@ export default function Statistics() {
   const [err, setErr] = React.useState<string | null>(null);
   const [data, setData] = React.useState<any | null>(null);
   const [activeGroup, setActiveGroup] = React.useState<"demographics" | "academic" | "geography">("demographics");
-  const [selectedDirectionProgramId] = React.useState<string>("all");
   const [selectedGenderProgramId, setSelectedGenderProgramId] = React.useState<string>("all");
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedExportFormat, setSelectedExportFormat] = React.useState<"xlsx" | "csv" | "png" | null>(null);
@@ -93,7 +92,6 @@ export default function Statistics() {
           { id: "avgGradeByProgram" as StatisticsChartId, label: t("sections.avgGradeByProgram") },
           { id: "timeToDegreeByEntryYear" as StatisticsChartId, label: t("sections.timeToDegreeByEntryYear") },
           { id: "timeToDegreeDistribution" as StatisticsChartId, label: t("sections.timeToDegreeDistribution") },
-          { id: "direction" as StatisticsChartId, label: t("sections.direction") },
         ],
       },
       {
@@ -261,7 +259,6 @@ export default function Statistics() {
   const avgGradeByProgram = seriesFromRows(data?.avg_grade_by_program, { labelKey: "name", valueKey: "avg" });
   const gradeBins = seriesFromRows(data?.degree_grade_bins);
   const studyPrograms = seriesFromRows(data?.study_program_distribution, { labelKey: "name" });
-  const directionRows = React.useMemo(() => (Array.isArray(data?.direction_distribution) ? (data.direction_distribution as NamedCountRow[]) : []), [data]);
   const regions = seriesFromRows(data?.origin_region_distribution, { labelKey: "name" });
   const municipalities = seriesFromRows(data?.origin_municipality_distribution, { labelKey: "name" });
   const countries = seriesFromRows(data?.origin_country_distribution, { labelKey: "name" });
@@ -321,7 +318,7 @@ export default function Statistics() {
   const busiestCity = busiestCityIndex >= 0 ? municipalities.labels[busiestCityIndex] : "-";
   const abroadCount = Number(data?.abroad_count ?? 0);
 
-  const directionProgramOptions = React.useMemo(() => {
+  const studyProgramOptions = React.useMemo(() => {
     const rows = Array.isArray(data?.study_program_distribution) ? (data.study_program_distribution as NamedCountRow[]) : [];
     return rows
       .filter((row) => row.id !== null && row.id !== undefined)
@@ -331,33 +328,16 @@ export default function Statistics() {
       }));
   }, [activeLang, data]);
 
-  const directionPies = React.useMemo(() => {
-    const labelByProgramId = new Map(directionProgramOptions.map((option) => [option.value, option.label]));
-    const grouped = new Map<string, { title: string; labels: string[]; values: number[] }>();
-
-    directionRows.forEach((row) => {
-      const programId = String(row.study_program_id ?? "");
-      if (!programId) return;
-      const title = labelByProgramId.get(programId) ?? String(programId);
-      const current = grouped.get(programId) ?? { title, labels: [], values: [] };
-      const label = String(activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name ?? "-");
-      current.labels.push(label);
-      current.values.push(Number(row.count ?? 0));
-      grouped.set(programId, current);
-    });
-
-    return Array.from(grouped.values()).filter((pie) => pie.labels.length);
-  }, [activeLang, directionProgramOptions, directionRows]);
   React.useEffect(() => {
-    if (!directionProgramOptions.length) return;
+    if (!studyProgramOptions.length) return;
     if (selectedGenderProgramId === "all") {
-      setSelectedGenderProgramId(directionProgramOptions[0]?.value ?? "all");
+      setSelectedGenderProgramId(studyProgramOptions[0]?.value ?? "all");
       return;
     }
-    if (!directionProgramOptions.some((option) => option.value === selectedGenderProgramId)) {
-      setSelectedGenderProgramId(directionProgramOptions[0]?.value ?? "all");
+    if (!studyProgramOptions.some((option) => option.value === selectedGenderProgramId)) {
+      setSelectedGenderProgramId(studyProgramOptions[0]?.value ?? "all");
     }
-  }, [directionProgramOptions, selectedGenderProgramId]);
+  }, [studyProgramOptions, selectedGenderProgramId]);
 
   const topButtonStyle: React.CSSProperties = {
     minHeight: 48,
@@ -385,9 +365,9 @@ export default function Statistics() {
     outline: "none",
   };
 
-  const genderProgramSelect = directionProgramOptions.length ? (
+  const genderProgramSelect = studyProgramOptions.length ? (
     <select value={selectedGenderProgramId} onChange={(e) => setSelectedGenderProgramId(e.target.value)} style={selectStyle}>
-      {directionProgramOptions.map((option) => (
+      {studyProgramOptions.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}
         </option>
@@ -458,9 +438,8 @@ export default function Statistics() {
     longestStudyYears,
     busiestYear,
     busiestCity,
-    selectedDirectionProgramId,
     selectedChartIds,
-  }), [activeLang, avgAge, avgGrade, busiestCity, busiestYear, data, longestStudyYears, selectedChartIds, selectedDirectionProgramId, t, total]);
+  }), [activeLang, avgAge, avgGrade, busiestCity, busiestYear, data, longestStudyYears, selectedChartIds, t, total]);
 
   async function exportSelectedChartsAsPng() {
     if (!selectedChartIds.length) return;
@@ -624,7 +603,6 @@ export default function Statistics() {
             avgGradeByProgram={avgGradeByProgram}
             yearsToDegree={yearsToDegree}
             yearsToDegreeDistribution={yearsToDegreeDistribution}
-            directionPies={directionPies}
             regions={regions}
             municipalities={municipalities}
             countries={countries}
@@ -651,7 +629,6 @@ export default function Statistics() {
             avgGradeByProgram={avgGradeByProgram}
             yearsToDegree={yearsToDegree}
             yearsToDegreeDistribution={yearsToDegreeDistribution}
-            directionPies={directionPies}
             regions={regions}
             municipalities={municipalities}
             countries={countries}
@@ -678,7 +655,6 @@ export default function Statistics() {
             avgGradeByProgram={avgGradeByProgram}
             yearsToDegree={yearsToDegree}
             yearsToDegreeDistribution={yearsToDegreeDistribution}
-            directionPies={directionPies}
             regions={regions}
             municipalities={municipalities}
             countries={countries}
@@ -737,7 +713,6 @@ export default function Statistics() {
           avgGradeByProgram={avgGradeByProgram}
           yearsToDegree={yearsToDegree}
           yearsToDegreeDistribution={yearsToDegreeDistribution}
-          directionPies={directionPies}
           regions={regions}
           municipalities={municipalities}
           countries={countries}
