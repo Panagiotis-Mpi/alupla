@@ -19,7 +19,7 @@ import {
 
 type ProgramLookup = Pick<StudyProgram, "id" | "code" | "name_el" | "name_en">;
 type RegionLookup = Pick<Region, "id" | "name" | "normalized_name" | "external_ref_id" | "type">;
-type GraduateExportSource = Pick<Graduate, "ad_code" | "student_number" | "last_name" | "first_name" | "father_name" | "gender" | "entry_year" | "birth_date" | "degree_grade" | "graduation_date" | "oath_date" | "study_program_id" | "origin_country" | "origin_foreign_city" | "origin_country_region_id" | "origin_periphery_region_id" | "origin_region_id" | "origin_municipality">;
+type GraduateExportSource = Pick<Graduate, "ad_code" | "student_number" | "last_name" | "first_name" | "father_name" | "gender" | "entry_year" | "birth_date" | "degree_grade" | "graduation_date" | "oath_date" | "study_program_id" | "origin_country" | "origin_foreign_city" | "origin_country_region_id" | "origin_periphery_region_id" | "origin_region_id" | "origin_city_region_id" | "origin_municipality">;
 type ManagedOriginTarget = Pick<Graduate, "origin_country" | "origin_foreign_city" | "origin_country_region_id" | "origin_periphery_region_id" | "origin_region_id" | "origin_city_region_id" | "origin_municipality">;
 
 export type ReferenceMaps = {
@@ -43,8 +43,12 @@ export function buildExportRows(
     const studyProgram = programsById.get(Number(row.study_program_id));
     const region = regionsById.get(Number(row.origin_periphery_region_id ?? row.origin_region_id));
     const country = regionsById.get(Number(row.origin_country_region_id));
+    const city = regionsById.get(Number(row.origin_city_region_id));
     const rawCountryName = String(row.origin_country ?? country?.name ?? "");
     const isGreece = isGreeceCountryValue(rawCountryName) || (country ? isGreeceCountryValue(country.name) : false);
+    const municipalityName = isGreece
+      ? String(row.origin_municipality ?? city?.name ?? "")
+      : String(row.origin_foreign_city ?? row.origin_municipality ?? city?.name ?? "");
 
     return {
       [labels.ad_code]: row.ad_code ?? "",
@@ -61,7 +65,7 @@ export function buildExportRows(
       [labels.study_program]: studyProgram ? String(studyProgram.name_el ?? studyProgram.name_en ?? studyProgram.code ?? studyProgram.id) : "",
       [labels.origin_country]: formatCountryValue(rawCountryName || String(country?.name ?? "")),
       [labels.origin_region]: isGreece ? (region ? String(region.name ?? "") : "") : "",
-      [labels.origin_municipality]: isGreece ? (row.origin_municipality ?? "") : String(row.origin_foreign_city ?? row.origin_municipality ?? ""),
+      [labels.origin_municipality]: municipalityName,
     };
   });
 }

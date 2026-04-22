@@ -85,7 +85,7 @@ export function GraduatesTable(props: {
                   <td>{programNameById.get(Number(graduate.study_program_id)) ?? ""}</td>
                   <td>{formatValue(getGraduateOriginCountryDisplay(graduate, regionNameById, t))}</td>
                   <td>{formatValue(getGraduateOriginRegionDisplay(graduate, regionNameById))}</td>
-                  <td>{formatValue(getGraduateOriginMunicipalityDisplay(graduate))}</td>
+                  <td>{formatValue(getGraduateOriginMunicipalityDisplay(graduate, regionNameById))}</td>
                   <td>
                     <div className="row-actions">
                       <Link className="btn" to={`/graduates/${graduate.id}`} style={{ textDecoration: "none" }}>

@@ -207,12 +207,19 @@ export function getGraduateOriginCountryDisplay(graduate: Graduate, regionNameBy
   return isGreeceDisplayValue(countryName) ? "Ελλάδα" : countryName;
 }
 
-export function getGraduateOriginMunicipalityDisplay(graduate: Graduate) {
+export function getGraduateOriginMunicipalityDisplay(graduate: Graduate, regionNameById?: Map<number, string>) {
   const foreignCity = String(graduate.origin_foreign_city ?? "").trim();
   if (foreignCity) {
     return foreignCity;
   }
-  return graduate.origin_municipality ?? "";
+  const municipality = String(graduate.origin_municipality ?? "").trim();
+  if (municipality) {
+    return municipality;
+  }
+  if (regionNameById && graduate.origin_city_region_id != null) {
+    return regionNameById.get(Number(graduate.origin_city_region_id)) ?? "";
+  }
+  return "";
 }
 
 export function renderGenderValue(value: unknown) {
@@ -305,7 +312,7 @@ export function filterAndSortGraduates(args: {
       programNameById.get(Number(graduate.study_program_id)) ?? "",
       getGraduateOriginCountryDisplay(graduate, regionNameById),
       getGraduateOriginRegionDisplay(graduate, regionNameById),
-      getGraduateOriginMunicipalityDisplay(graduate),
+      getGraduateOriginMunicipalityDisplay(graduate, regionNameById),
       graduate.origin_country,
       graduate.origin_foreign_city,
     ];
