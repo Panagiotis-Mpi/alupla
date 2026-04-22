@@ -73,3 +73,101 @@ export function toDateOnly(v: any): string | null {
 
   return null;
 }
+
+
+export function decodeTextBuffer(buffer: Buffer): string {
+  if (!buffer.length) return "";
+
+  if (buffer.length >= 2) {
+    const b0 = buffer[0];
+    const b1 = buffer[1];
+    if (b0 === 0xff && b1 === 0xfe) return buffer.slice(2).toString("utf16le");
+    if (b0 === 0xfe && b1 === 0xff) {
+      const swapped = Buffer.allocUnsafe(buffer.length - 2);
+      for (let i = 2; i < buffer.length; i += 2) {
+        const target = i - 2;
+        swapped[target] = buffer[i + 1] ?? 0;
+        swapped[target + 1] = buffer[i] ?? 0;
+      }
+      return swapped.toString("utf16le");
+    }
+  }
+
+  if (buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
+    return buffer.slice(3).toString("utf8");
+  }
+
+  let zeroEven = 0;
+  let zeroOdd = 0;
+  const sampleSize = Math.min(buffer.length, 4096);
+  for (let i = 0; i < sampleSize; i += 1) {
+    if (buffer[i] !== 0) continue;
+    if (i % 2 === 0) zeroEven += 1;
+    else zeroOdd += 1;
+  }
+
+  if (zeroOdd > sampleSize * 0.1 || zeroEven > sampleSize * 0.1) {
+    return buffer.toString("utf16le");
+  }
+
+  return buffer.toString("utf8");
+}
+
+export function parseDelimitedTextRows(text: string): string[][] {
+  const input = String(text ?? "").replace(/^\ufeff/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  if (!input.trim()) return [];
+
+  const firstLine = input.split("\n", 1)[0] ?? "";
+  const delimiter = firstLine.includes("\t") ? "\t" : firstLine.includes(";") ? ";" : ",";
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let inQuotes = false;
+
+  const pushCell = () => {
+    row.push(cell);
+    cell = "";
+  };
+
+  const pushRow = () => {
+    pushCell();
+    rows.push(row);
+    row = [];
+  };
+
+  for (let i = 0; i < input.length; i += 1) {
+    const char = input[i];
+
+    if (char === '"') {
+      const next = input[i + 1];
+      if (inQuotes && next === '"') {
+        cell += '"';
+        i += 1;
+        continue;
+      }
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (!inQuotes && char === delimiter) {
+      pushCell();
+      continue;
+    }
+
+    if (!inQuotes && char === "\n") {
+      pushRow();
+      continue;
+    }
+
+    cell += char;
+  }
+
+  if (cell.length > 0 || row.length > 0 || input.endsWith(delimiter) || input.endsWith("\n")) {
+    pushRow();
+  }
+
+  return rows.filter((current, index, all) => {
+    if (index < all.length - 1) return true;
+    return current.some((value) => String(value ?? "").trim() !== "");
+  });
+}

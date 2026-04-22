@@ -6,7 +6,7 @@ import { buildGraduateWhere } from "../utils/buildGraduateWhere";
 import { clamp, toInt as toIntParam } from "../utils/pagination";
 import { logAction } from "../services/log.service";
 import * as XLSX from "xlsx";
-import { normHeader, toDateOnly, toInt, toNumber } from "../utils/importUtils";
+import { decodeTextBuffer, normHeader, parseDelimitedTextRows, toDateOnly, toInt, toNumber } from "../utils/importUtils";
 import { Op, Transaction } from "sequelize";
 import { sequelize } from "../config/sequelize";
 import {
@@ -196,12 +196,20 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
     const file = (req as any).file as { buffer: Buffer; originalname: string; mimetype: string } | undefined;
     if (!file?.buffer) return res.status(400).json({ error: { message: "Missing file" } });
 
-    const wb = XLSX.read(file.buffer, { type: "buffer", cellDates: true });
+    const sourceName = String(file.originalname ?? "").trim();
+    const isDelimitedImport = /\.(csv|tsv|txt)$/i.test(sourceName) || /(csv|tsv|tab-separated-values|text\/csv|text\/plain)/i.test(String(file.mimetype ?? ""));
+    const workbook = isDelimitedImport ? null : XLSX.read(file.buffer, { type: "buffer", cellDates: true, raw: false });
+    const sheetName = isDelimitedImport ? sourceName || "delimited-import" : String(workbook?.SheetNames?.[0] ?? "");
+    const rows: any[][] = isDelimitedImport
+      ? parseDelimitedTextRows(decodeTextBuffer(file.buffer))
+      : (() => {
+          if (!sheetName) return [];
+          const ws = workbook?.Sheets?.[sheetName];
+          if (!ws) return [];
+          return XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false }) as any[][];
+        })();
     const { programsById, regionsById } = await getReferenceMaps();
-    const sheetName = wb.SheetNames[0];
-    if (!sheetName) return res.status(400).json({ error: { message: "Empty workbook" } });
-    const ws = wb.Sheets[sheetName];
-    const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" }) as any[][];
+    if (rows.length === 0) return res.status(400).json({ error: { message: "Empty workbook" } });
     if (rows.length < 2) return res.status(400).json({ error: { message: "No data rows" } });
 
     const headerRow = rows[0];
