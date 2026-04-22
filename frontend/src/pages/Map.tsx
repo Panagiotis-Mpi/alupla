@@ -213,6 +213,42 @@ function shouldCollapseMetroAtZoom(zoom: number) {
   return zoom < 10.2;
 }
 
+
+function markerDeclutterDistance(scope: MapScope, zoom: number) {
+  if (scope === "abroad") {
+    if (zoom < 2.2) return 88;
+    if (zoom < 2.8) return 76;
+    if (zoom < 3.5) return 62;
+    if (zoom < 4.2) return 50;
+    return 38;
+  }
+  if (zoom < 6.1) return 82;
+  if (zoom < 6.8) return 68;
+  if (zoom < 7.4) return 56;
+  if (zoom < 8.1) return 44;
+  return 34;
+}
+
+function projectMarkerToViewport(
+  latitude: number,
+  longitude: number,
+  bounds: L.LatLngBounds,
+  width: number,
+  height: number,
+) {
+  const north = bounds.getNorth();
+  const south = bounds.getSouth();
+  const east = bounds.getEast();
+  const west = bounds.getWest();
+  const lngSpan = east - west;
+  const latSpan = north - south;
+  if (!Number.isFinite(lngSpan) || !Number.isFinite(latSpan) || lngSpan <= 0 || latSpan <= 0) return null;
+  const x = ((longitude - west) / lngSpan) * width;
+  const y = ((north - latitude) / latSpan) * height;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  return { x, y };
+}
+
 function visibleLabelLimit(scope: MapScope, zoom: number) {
   if (scope === "abroad") {
     if (zoom < 2.4) return 8;
@@ -727,19 +763,72 @@ export default function GraduatesMapPage() {
     return new Map(source.map((entry, index) => [mapCityKey(entry.item as any), index]));
   }, [abroadCountryMarkers, greekCityMarkers.items, mapScope]);
   const labelLimit = useMemo(() => visibleLabelLimit(mapScope, mapZoom), [mapScope, mapZoom]);
-  const shouldShowMarkerLabel = useCallback((city: any) => {
-    const rank = rankedMarkersBase.get(mapCityKey(city as any));
-    if (rank === undefined) return true;
-    return rank < labelLimit;
-  }, [labelLimit, rankedMarkersBase]);
+  const declutteredMarkerMap = useMemo(() => {
+    const source = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
+    const selectedKeys = new Set(
+      selectedCityCards.map((item) => {
+        const hit = source.find((candidate) => sameMapSelection(mapScope, item, candidate));
+        return hit ? mapCityKey(hit as any) : mapCityKey(item as any);
+      }),
+    );
+    if (!source.length || !mapBounds || !mapCanvasRef.current) {
+      return new Map(
+        source.map((item) => {
+          const key = mapCityKey(item as any);
+          const rank = rankedMarkersBase.get(key);
+          return [key, { visible: true, showLabel: rank === undefined ? true : rank < labelLimit }];
+        }),
+      );
+    }
+
+    const width = Math.max(1, mapCanvasRef.current.clientWidth || 0);
+    const height = Math.max(1, mapCanvasRef.current.clientHeight || 0);
+    const minDistance = markerDeclutterDistance(mapScope, mapZoom);
+    const sorted = [...source].sort((left, right) => {
+      const leftSelected = selectedKeys.has(mapCityKey(left as any));
+      const rightSelected = selectedKeys.has(mapCityKey(right as any));
+      if (leftSelected !== rightSelected) return leftSelected ? -1 : 1;
+      const leftCount = Math.max(0, Number((left as any).count) || 0);
+      const rightCount = Math.max(0, Number((right as any).count) || 0);
+      if (rightCount !== leftCount) return rightCount - leftCount;
+      return String((left as any).city_name || "").localeCompare(String((right as any).city_name || ""), "el");
+    });
+
+    const placed: Array<{ x: number; y: number; key: string }> = [];
+    const result = new Map<string, { visible: boolean; showLabel: boolean }>();
+
+    for (const item of sorted) {
+      const key = mapCityKey(item as any);
+      const latitude = mapCityLatitude(item as any);
+      const longitude = mapCityLongitude(item as any);
+      const rank = rankedMarkersBase.get(key);
+      const defaultLabel = rank === undefined ? true : rank < labelLimit;
+      if (latitude === null || longitude === null) {
+        result.set(key, { visible: false, showLabel: false });
+        continue;
+      }
+      const projected = projectMarkerToViewport(latitude, longitude, mapBounds, width, height);
+      if (!projected) {
+        result.set(key, { visible: true, showLabel: defaultLabel });
+        continue;
+      }
+      const selected = selectedKeys.has(key);
+      const collision = placed.some((entry) => {
+        const dx = entry.x - projected.x;
+        const dy = entry.y - projected.y;
+        return Math.hypot(dx, dy) < minDistance;
+      });
+      const visible = selected || !collision;
+      result.set(key, { visible, showLabel: visible && defaultLabel });
+      if (visible) placed.push({ x: projected.x, y: projected.y, key });
+    }
+    return result;
+  }, [abroadCountryMarkers, greekCityMarkers.items, labelLimit, mapBounds, mapScope, mapZoom, rankedMarkersBase, selectedCityCards]);
+  const shouldShowMarkerLabel = useCallback((city: any) => declutteredMarkerMap.get(mapCityKey(city as any))?.showLabel ?? true, [declutteredMarkerMap]);
   const renderedMarkers = useMemo(() => {
     const source = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
-    return source.filter((item) => {
-      if (shouldShowMarkerLabel(item)) return true;
-      if (!selectedCityCards.length) return false;
-      return selectedCityCards.some((selectedCard) => sameMapSelection(mapScope, selectedCard, item));
-    });
-  }, [abroadCountryMarkers, greekCityMarkers.items, mapScope, selectedCityCards, shouldShowMarkerLabel]);
+    return source.filter((item) => declutteredMarkerMap.get(mapCityKey(item as any))?.visible ?? true);
+  }, [abroadCountryMarkers, declutteredMarkerMap, greekCityMarkers.items, mapScope]);
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const total = useMemo(
