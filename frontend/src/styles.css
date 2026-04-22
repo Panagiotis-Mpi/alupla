@@ -658,6 +658,7 @@ html.accessibility-high-contrast .leaflet-popup-tip{
 }
 html.accessibility-high-contrast .leaflet-container{
   border:2px solid #000000 !important;
+  background:#dbe4ea !important;
 }
 html.accessibility-high-contrast .leaflet-bar a{
   color:#000000 !important;
@@ -667,9 +668,9 @@ html.accessibility-high-contrast .leaflet-bar a:hover{
   color:#ffffff !important;
 }
 html.accessibility-high-contrast .leaflet-tile{
-  filter:grayscale(100%) contrast(145%) brightness(112%);
+  filter:grayscale(100%) contrast(135%) brightness(88%);
 }
-html.accessibility-high-contrast img,
+html.accessibility-high-contrast img:not(.leaflet-tile),
 html.accessibility-high-contrast video,
 html.accessibility-high-contrast canvas{
   filter:grayscale(100%) contrast(140%);
@@ -1095,25 +1096,25 @@ html.accessibility-underline-links .btn{text-underline-offset:3px}
 
 html.accessibility-high-contrast .leaflet-container,
 html.accessibility-high-contrast .alupla-map .leaflet-container{
-  background:#0b1220 !important;
-  color:#f8fafc !important;
-  border-color:#f8fafc !important;
+  background:#dbe4ea !important;
+  color:#0f172a !important;
+  border-color:#000000 !important;
 }
 html.accessibility-high-contrast .leaflet-control,
 html.accessibility-high-contrast .leaflet-popup-content-wrapper,
 html.accessibility-high-contrast .leaflet-popup-tip{
-  background:#111827 !important;
-  color:#f8fafc !important;
-  border-color:#f8fafc !important;
+  background:#ffffff !important;
+  color:#000000 !important;
+  border-color:#000000 !important;
 }
 html.accessibility-high-contrast .leaflet-bar a{
-  background:#111827 !important;
-  color:#f8fafc !important;
-  border-color:#f8fafc !important;
+  background:#ffffff !important;
+  color:#000000 !important;
+  border-color:#000000 !important;
 }
 html.accessibility-high-contrast .leaflet-bar a:hover{
-  background:#f8fafc !important;
-  color:#111827 !important;
+  background:#000000 !important;
+  color:#ffffff !important;
 }
 html.accessibility-high-contrast .leaflet-pane,
 html.accessibility-high-contrast .leaflet-map-pane,
@@ -1144,7 +1145,7 @@ html.accessibility-high-contrast .alupla-city-bubble-number-gender{
 }
 
 html.accessibility-high-contrast .alupla-map .leaflet-tile{
-  filter:contrast(120%) brightness(78%) saturate(80%) !important;
+  filter:grayscale(100%) contrast(135%) brightness(88%) !important;
 }
 html.accessibility-high-contrast .alupla-map .leaflet-container img,
 html.accessibility-high-contrast .alupla-map .leaflet-container canvas,

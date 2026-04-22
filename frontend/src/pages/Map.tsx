@@ -322,7 +322,7 @@ export default function GraduatesMapPage() {
     return () => observer.disconnect();
   }, []);
 
-  const activeMapTileUrl = highContrastEnabled ? darkMapTileUrl : lightMapTileUrl;
+  const activeMapTileUrl = lightMapTileUrl;
 
   const resetComparedSelections = useCallback(() => {
     setSelected(null);
@@ -1178,7 +1178,7 @@ export default function GraduatesMapPage() {
               style={{
                 height: "100%",
                 width: "100%",
-                background: highContrastEnabled ? "#0b1220" : "transparent",
+                background: "transparent",
               }}
               scrollWheelZoom
             >
