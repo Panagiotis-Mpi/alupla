@@ -195,8 +195,8 @@ function bubbleLabelIcon(
   const activeRing = active ? '0 0 0 3px rgba(15,23,42,.14)' : 'none';
   const bubbleHtml =
     mapMetric === "count"
-      ? `<div class="alupla-city-bubble alupla-city-bubble-count" style="width:${size}px;height:${size}px;border:2px solid ${bubbleStroke};background:${bubbleFill};opacity:${bubbleOpacity};box-shadow:${activeRing};"><span class="alupla-city-bubble-number" style="font-size:${fontSize}px;">${count}</span></div>`
-      : `<div class="alupla-city-bubble alupla-city-bubble-gender" style="width:${size}px;height:${size}px;border:2px solid rgba(51,65,85,.72);background:conic-gradient(${genderColors.male} 0 ${malePct}%, ${genderColors.female} ${malePct}% 100%);box-shadow:${activeRing};"><span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span></div>`;
+      ? `<div class="alupla-city-bubble alupla-city-bubble-count" style="width:${size}px;height:${size}px;--alupla-bubble-border:${bubbleStroke};--alupla-bubble-background:${bubbleFill};--alupla-bubble-opacity:${bubbleOpacity};--alupla-bubble-shadow:${activeRing};"><span class="alupla-city-bubble-number" style="font-size:${fontSize}px;">${count}</span></div>`
+      : `<div class="alupla-city-bubble alupla-city-bubble-gender" style="width:${size}px;height:${size}px;--alupla-bubble-border:rgba(51,65,85,.72);--alupla-bubble-background:conic-gradient(${genderColors.male} 0 ${malePct}%, ${genderColors.female} ${malePct}% 100%);--alupla-bubble-opacity:1;--alupla-bubble-shadow:${activeRing};"><span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span></div>`;
   const summary = "";
   return L.divIcon({
     className: "alupla-city-bubble-icon",
@@ -986,7 +986,7 @@ export default function GraduatesMapPage() {
         .alupla-city-bubble-label, .alupla-city-label-text { text-align: center; color: #0f172a; font-size: 12px; font-weight: 700; line-height: 1.05; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); background: transparent !important; border: 0 !important; padding: 0; }
         .alupla-city-bubble-label { margin: 0 0 4px; }
         .alupla-city-bubble-label.active { font-size: 13px; font-weight: 800; }
-        .alupla-city-bubble { position: relative; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #fff; font-weight: 800; }
+        .alupla-city-bubble { position: relative; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #fff; font-weight: 800; border: 2px solid var(--alupla-bubble-border, rgba(51,65,85,.72)); background: var(--alupla-bubble-background, #60a5fa); opacity: var(--alupla-bubble-opacity, 1); box-shadow: var(--alupla-bubble-shadow, none); }
         .alupla-city-bubble-number { line-height: 1; color: #fff; text-shadow: 0 1px 1px rgba(15,23,42,.35); }
         .alupla-city-bubble-count .alupla-city-bubble-number { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.45); }
         .alupla-city-bubble-number-gender { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.5); }

@@ -52,6 +52,11 @@ export function MapTopControls(props: {
         <span className="badge">{props.loading ? props.ct("loading", { defaultValue: "Φόρτωση..." }) : `${props.total} ${props.mt("totalInline", { defaultValue: "σύνολο" })}`}</span>
       </div>
       <div className="map-top-controls-row">
+        {(["count", "dominant_gender"] as MapMetric[]).map((option) => (
+          <button key={option} type="button" className={`btn map-metric-button ${props.mapMetric === option ? "active primary" : ""}`} onClick={() => props.onMetricChange(option)}>
+            {props.metricOptions[option].label}
+          </button>
+        ))}
         <div className="map-top-control-slot" ref={scopeMenuRef}>
           <button
             type="button"
@@ -87,11 +92,6 @@ export function MapTopControls(props: {
             </div>
           ) : null}
         </div>
-        {(["count", "dominant_gender"] as MapMetric[]).map((option) => (
-          <button key={option} type="button" className={`btn map-metric-button ${props.mapMetric === option ? "active primary" : ""}`} onClick={() => props.onMetricChange(option)}>
-            {props.metricOptions[option].label}
-          </button>
-        ))}
         <div className="map-top-control-slot">
           <button className="btn map-action-button" type="button" style={{ width: "100%" }} onClick={props.onExportClick}>
             {props.mt("downloadMap", { defaultValue: "Λήψη χάρτη" })}
