@@ -217,7 +217,13 @@ export function getGraduateOriginMunicipalityDisplay(graduate: Graduate, regionN
     return municipality;
   }
   if (regionNameById && graduate.origin_city_region_id != null) {
-    return regionNameById.get(Number(graduate.origin_city_region_id)) ?? "";
+    const cityName = regionNameById.get(Number(graduate.origin_city_region_id)) ?? "";
+    if (cityName) {
+      return cityName;
+    }
+  }
+  if (regionNameById && graduate.origin_region_id != null) {
+    return regionNameById.get(Number(graduate.origin_region_id)) ?? "";
   }
   return "";
 }

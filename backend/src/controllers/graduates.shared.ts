@@ -31,6 +31,24 @@ function isInvalidNullableNumber(value: number | null) {
   return value !== null && Number.isNaN(value);
 }
 
+function getRegionNameById(regionsById: Map<number, RegionLookup>, value: unknown) {
+  if (value == null || value === "") return "";
+  return String(regionsById.get(Number(value))?.name ?? "").trim();
+}
+
+function getMunicipalityExportName(row: GraduateExportSource, regionsById: Map<number, RegionLookup>, isGreece: boolean) {
+  const explicitMunicipality = String(row.origin_municipality ?? "").trim();
+  const foreignCity = String(row.origin_foreign_city ?? "").trim();
+  const cityName = getRegionNameById(regionsById, row.origin_city_region_id);
+  const legacyRegionName = getRegionNameById(regionsById, row.origin_region_id);
+
+  if (isGreece) {
+    return explicitMunicipality || cityName || legacyRegionName || foreignCity;
+  }
+
+  return foreignCity || explicitMunicipality || cityName || legacyRegionName;
+}
+
 export function buildExportRows(
   rows: GraduateExportSource[],
   lang: ExportLang,
@@ -43,12 +61,9 @@ export function buildExportRows(
     const studyProgram = programsById.get(Number(row.study_program_id));
     const region = regionsById.get(Number(row.origin_periphery_region_id ?? row.origin_region_id));
     const country = regionsById.get(Number(row.origin_country_region_id));
-    const city = regionsById.get(Number(row.origin_city_region_id));
     const rawCountryName = String(row.origin_country ?? country?.name ?? "");
     const isGreece = isGreeceCountryValue(rawCountryName) || (country ? isGreeceCountryValue(country.name) : false);
-    const municipalityName = isGreece
-      ? String(row.origin_municipality ?? city?.name ?? "")
-      : String(row.origin_foreign_city ?? row.origin_municipality ?? city?.name ?? "");
+    const municipalityName = getMunicipalityExportName(row, regionsById, isGreece);
 
     return {
       [labels.ad_code]: row.ad_code ?? "",

@@ -119,7 +119,8 @@ function buildRows(args: {
     const regionName = isGreece ? regionNameById.get(Number(item.origin_region_id)) ?? "" : "";
     const municipalityName = String(item.origin_foreign_city ?? "").trim()
       || String(item.origin_municipality ?? "").trim()
-      || String(regionNameById.get(Number(item.origin_city_region_id)) ?? "");
+      || String(regionNameById.get(Number(item.origin_city_region_id)) ?? "")
+      || String(regionNameById.get(Number(item.origin_region_id)) ?? "");
 
     return {
       [labels.ad_code]: item.ad_code ?? "",
