@@ -1211,37 +1211,41 @@ html.accessibility-high-contrast .alupla-map .alupla-city-label-text{
   gap:8px;
 }
 .chart-data-summary-row{
-  display:grid;
-  grid-template-columns:auto 1fr auto;
-  align-items:start;
-  gap:10px;
-  padding:8px 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
   border:1px solid rgba(148,163,184,.28);
   border-radius:12px;
   background:#f8fafc;
 }
-.chart-data-summary-index{
-  min-width:1.9rem;
-  height:1.9rem;
-  border-radius:999px;
-  border:1px solid rgba(15,23,42,.18);
-  background:#fff;
-  color:#0f172a;
+.chart-data-summary-label-wrap{
   display:inline-flex;
   align-items:center;
-  justify-content:center;
-  font-size:12px;
-  font-weight:800;
+  gap:10px;
+  min-width:0;
 }
 .chart-data-summary-label{
   font-weight:700;
   line-height:1.35;
   color:#0f172a;
 }
+.chart-data-summary-meta{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  white-space:nowrap;
+}
 .chart-data-summary-value{
   font-weight:800;
   white-space:nowrap;
   color:#0f172a;
+}
+.chart-data-summary-percent{
+  font-size:12px;
+  font-weight:700;
+  color:#64748b;
 }
 .chart-data-summary-empty{
   color:#475569;
@@ -1294,8 +1298,7 @@ html.accessibility-high-contrast .map-timeline-current,
 html.accessibility-high-contrast .map-loading-overlay-card,
 html.accessibility-high-contrast .map-menu,
 html.accessibility-high-contrast .map-menu-item,
-html.accessibility-high-contrast .chart-data-summary-row,
-html.accessibility-high-contrast .chart-data-summary-index{
+html.accessibility-high-contrast .chart-data-summary-row{
   background:#ffffff !important;
   color:#000000 !important;
   border-color:#000000 !important;
@@ -1303,12 +1306,10 @@ html.accessibility-high-contrast .chart-data-summary-index{
 }
 html.accessibility-high-contrast .chart-data-summary-label,
 html.accessibility-high-contrast .chart-data-summary-value,
+html.accessibility-high-contrast .chart-data-summary-percent,
 html.accessibility-high-contrast .chart-data-summary-empty,
 html.accessibility-high-contrast .map-legend-swatch{
   color:#000000 !important;
-}
-html.accessibility-high-contrast .chart-data-summary-index{
-  font-weight:900 !important;
 }
 html.accessibility-high-contrast .map-legend-swatch::after,
 html.accessibility-high-contrast .alupla-city-bubble-glyph{

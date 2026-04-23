@@ -15,6 +15,7 @@ import {
   ArcElement,
 } from "chart.js";
 import { fileSlug, renderElementSnapshot } from "./statistics/snapshot";
+import { waitForRenderableImages } from "../lib/domSnapshot";
 import { buildLineDataset } from "./statistics/ui";
 import {
   AcademicCharts,
@@ -444,10 +445,18 @@ export default function Statistics() {
   async function exportSelectedChartsAsPng() {
     if (!selectedChartIds.length) return;
 
-    const root = exportSurfaceRef.current;
-    if (!root) return;
+    const exportRoot = exportSurfaceRef.current;
+    const visibleRoot = pageRef.current;
+    if (!exportRoot && !visibleRoot) return;
 
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 180));
+
+    const findChartCard = (chartId: StatisticsChartId) => {
+      const selector = `[data-export-chart-id="${chartId}"]`;
+      return exportRoot?.querySelector<HTMLElement>(selector) ?? visibleRoot?.querySelector<HTMLElement>(selector) ?? null;
+    };
 
     const selectedSet = new Set(selectedChartIds);
     const groupsForExport = chartGroups
@@ -467,9 +476,14 @@ export default function Statistics() {
         const snapshots = [] as Array<{ image: HTMLImageElement; width: number; height: number }>;
 
         for (const chart of charts) {
-          const card = root.querySelector<HTMLElement>(`[data-export-chart-id="${chart.id}"]`);
+          const card = findChartCard(chart.id);
           if (!card) continue;
-          snapshots.push(await renderElementSnapshot(card));
+          await waitForRenderableImages(card);
+          try {
+            snapshots.push(await renderElementSnapshot(card));
+          } catch {
+            continue;
+          }
         }
 
         if (!snapshots.length) continue;
@@ -512,7 +526,8 @@ export default function Statistics() {
         document.body.appendChild(a);
         a.click();
         a.remove();
-        URL.revokeObjectURL(url);
+        window.setTimeout(() => URL.revokeObjectURL(url), 1200);
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 90));
       }
     }
   }
@@ -520,21 +535,23 @@ export default function Statistics() {
   async function handleExportAction() {
     if (!selectedChartIds.length || !selectedExportFormat) return;
 
-    if (selectedExportFormat === "xlsx") {
-      exportStatisticsWorkbookFile(exportArgs);
-    } else if (selectedExportFormat === "csv") {
-      exportStatisticsCsvFile(exportArgs);
-    } else {
-      await exportSelectedChartsAsPng();
-    }
-
-    const exportType = selectedExportFormat;
-    setSelectedExportFormat(null);
-    setExportOpen(false);
-
     try {
-      await logPublicExport("statistics_export", exportType);
-    } catch {}
+      if (selectedExportFormat === "xlsx") {
+        exportStatisticsWorkbookFile(exportArgs);
+      } else if (selectedExportFormat === "csv") {
+        exportStatisticsCsvFile(exportArgs);
+      } else {
+        await exportSelectedChartsAsPng();
+      }
+    } finally {
+      const exportType = selectedExportFormat;
+      setSelectedExportFormat(null);
+      setExportOpen(false);
+
+      try {
+        await logPublicExport("statistics_export", exportType);
+      } catch {}
+    }
   }
 
 
@@ -691,8 +708,8 @@ export default function Statistics() {
           width: 1200,
           padding: 24,
           pointerEvents: "none",
-          opacity: 0,
-          zIndex: -1,
+          opacity: 1,
+          zIndex: 0,
           background: "#ffffff",
         }}
       >

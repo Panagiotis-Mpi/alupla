@@ -3,7 +3,8 @@ import { Bar, Line, Pie } from "react-chartjs-2";
 
 const cardInnerStyle = { minWidth: 0 };
 const compactTopbarStyle = { marginBottom: 12 };
-const metricValueStyle = { fontSize: 28, fontWeight: 800, marginTop: 4, lineHeight: 1.1 };
+const metricValueStyle = { fontSize: 28, fontWeight: 800, marginTop: 4, lineHeight: 1.1, color: "#0f172a" };
+const metricLabelStyle = { color: "#475569", fontSize: 17, lineHeight: 1.32 };
 const metricCardStyle: React.CSSProperties = { minWidth: 0, minHeight: 124, padding: 18, display: "grid", alignContent: "space-between", gap: 8 };
 const sectionHeaderStyle: React.CSSProperties = { display: "grid", gap: 4, marginTop: 2 };
 const sectionTitleStyle: React.CSSProperties = { margin: 0, fontSize: 24, fontWeight: 800 };
@@ -291,18 +292,108 @@ function useChartAriaLabel(title: string, labels: string[], values: number[]) {
   }, [labels, title, values]);
 }
 
-function ChartDataSummary(props: { labels: string[]; values: number[] }) {
+type ChartLegendItem = { label: string; color: string; borderColor?: string; pointStyle?: "circle" | "square" | "diamond"; dashed?: boolean; value?: number | string; accent?: string };
+
+function markerStyle(item: ChartLegendItem): React.CSSProperties {
+  const shape = item.pointStyle === "diamond" ? "rotate(45deg)" : undefined;
+  const radius = item.pointStyle === "square" ? 4 : 999;
+  return {
+    width: 12,
+    height: 12,
+    display: "inline-block",
+    borderRadius: radius,
+    border: `2px solid ${item.borderColor ?? item.color}`,
+    background: item.color,
+    transform: shape,
+    boxSizing: "border-box",
+    position: "relative",
+    overflow: "hidden",
+  };
+}
+
+export function ChartLegendInset(props: { items: ChartLegendItem[] }) {
+  if (!props.items.length) return null;
+
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: "absolute",
+        top: 12,
+        right: 12,
+        display: "flex",
+        flexWrap: "wrap",
+        justifyContent: "flex-end",
+        gap: 8,
+        maxWidth: "min(100%, 420px)",
+        zIndex: 2,
+        pointerEvents: "none",
+      }}
+    >
+      {props.items.map((item) => (
+        <span
+          key={`${item.label}-${item.value ?? ""}`}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            borderRadius: 999,
+            border: "1px solid rgba(148, 163, 184, 0.28)",
+            background: "rgba(255,255,255,0.94)",
+            color: "#0f172a",
+            padding: "6px 10px",
+            fontSize: 12,
+            fontWeight: 700,
+            lineHeight: 1.2,
+            boxShadow: "0 10px 24px rgba(15,23,42,.08)",
+          }}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={markerStyle(item)}>
+              {item.dashed ? (
+                <span
+                  style={{
+                    position: "absolute",
+                    inset: 2,
+                    borderTop: `2px dashed ${item.borderColor ?? item.color}`,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                  }}
+                />
+              ) : null}
+            </span>
+            <span>{item.label}</span>
+          </span>
+          {item.value !== undefined ? <span style={{ fontWeight: 800 }}>{item.value}</span> : null}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ChartDataSummary(props: { labels: string[]; values: number[]; colors: string[]; borderColors?: string[] }) {
   if (!props.labels.length) return <div className="chart-data-summary-empty">-</div>;
+
+  const total = props.values.reduce((sum, value) => sum + Number(value ?? 0), 0);
 
   return (
     <div className="chart-data-summary" role="list">
-      {props.labels.map((label, index) => (
-        <div className="chart-data-summary-row" role="listitem" key={`${label}-${index}`}>
-          <span className="chart-data-summary-index">{index + 1}</span>
-          <span className="chart-data-summary-label">{label}</span>
-          <span className="chart-data-summary-value">{props.values[index] ?? 0}</span>
-        </div>
-      ))}
+      {props.labels.map((label, index) => {
+        const value = Number(props.values[index] ?? 0);
+        const percent = total > 0 ? `${((value / total) * 100).toFixed(1)}%` : "0%";
+        return (
+          <div className="chart-data-summary-row" role="listitem" key={`${label}-${index}`}>
+            <span className="chart-data-summary-label-wrap">
+              <span style={markerStyle({ label, color: props.colors[index] ?? props.colors[0] ?? "#2563eb", borderColor: props.borderColors?.[index] })} />
+              <span className="chart-data-summary-label">{label}</span>
+            </span>
+            <span className="chart-data-summary-meta">
+              <span className="chart-data-summary-value">{value}</span>
+              <span className="chart-data-summary-percent">{percent}</span>
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -453,7 +544,7 @@ export function SectionTitle(props: { title: string; subtitle?: string }) {
 export function MetricCard(props: { label: string; value: string | number }) {
   return (
     <div className="card" style={metricCardStyle}>
-      <div className="muted" style={{ fontSize: 14, lineHeight: 1.3 }}>{props.label}</div>
+      <div style={metricLabelStyle}>{props.label}</div>
       <div style={metricValueStyle}>{props.value}</div>
     </div>
   );
@@ -497,7 +588,8 @@ export function BarChartCard(props: {
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
-      <div className="chart-figure" role="img" aria-label={ariaLabel}>
+      <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
+        <ChartLegendInset items={[{ label: props.datasetLabel ?? props.title, color: highContrast ? "#111827" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }]} />
         {props.horizontal ? (
           <FixedBarChart height={chartHeight} data={chartData} options={chartOptions} />
         ) : (
@@ -546,18 +638,23 @@ export function PieChartCard(props: {
   control?: React.ReactNode;
 }) {
   const highContrast = useHighContrastEnabled();
+  const chartColors = React.useMemo(() => pieColors(props.labels.length, highContrast), [highContrast, props.labels.length]);
+  const borderColors = React.useMemo(
+    () => Array.from({ length: props.labels.length }, () => (highContrast ? "#000000" : "#ffffff")),
+    [highContrast, props.labels.length],
+  );
   const chartData = React.useMemo(() => ({
     labels: props.labels,
     datasets: [
       {
         data: props.values,
-        backgroundColor: pieColors(props.labels.length, highContrast),
-        borderColor: highContrast ? "#000000" : "#ffffff",
+        backgroundColor: chartColors,
+        borderColor: borderColors,
         borderWidth: highContrast ? 2.5 : 2,
         hoverOffset: 10,
       },
     ],
-  }), [highContrast, props.labels, props.values]);
+  }), [borderColors, chartColors, highContrast, props.labels, props.values]);
   const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
 
   return (
@@ -566,7 +663,7 @@ export function PieChartCard(props: {
         <h3 style={{ margin: 0 }}>{props.title}</h3>
         {props.control}
       </div>
-      <div className="chart-figure" role="img" aria-label={ariaLabel}>
+      <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ display: "grid", gap: 12, position: "relative" }}>
         <ScrollablePieChart
           height={props.height ?? 340}
           labels={props.labels}
@@ -575,30 +672,7 @@ export function PieChartCard(props: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: {
-                position: "bottom",
-                labels: {
-                  boxWidth: 12,
-                  boxHeight: 12,
-                  padding: 14,
-                  usePointStyle: true,
-                  pointStyle: "circle",
-                  font: { size: 12, weight: "600" },
-                  generateLabels: (chart: any) => {
-                    const labels = chart.data.labels ?? [];
-                    const dataset = chart.data.datasets?.[0] ?? { data: [] };
-                    const meta = chart.getDatasetMeta?.(0);
-                    return labels.map((label: string, index: number) => ({
-                      text: `${index + 1}. ${label}`,
-                      fillStyle: Array.isArray(dataset.backgroundColor) ? dataset.backgroundColor[index] : dataset.backgroundColor,
-                      strokeStyle: Array.isArray(dataset.borderColor) ? dataset.borderColor[index] : dataset.borderColor,
-                      lineWidth: dataset.borderWidth,
-                      hidden: meta?.data?.[index]?.hidden ?? false,
-                      index,
-                    }));
-                  },
-                },
-              },
+              legend: { display: false },
               tooltip: {
                 callbacks: {
                   label: (context: any) => {
@@ -613,7 +687,7 @@ export function PieChartCard(props: {
             },
           }, highContrast)}
         />
-        <ChartDataSummary labels={props.labels} values={props.values} />
+        <ChartDataSummary labels={props.labels} values={props.values} colors={chartColors} borderColors={borderColors} />
       </div>
     </div>
   );
@@ -649,14 +723,17 @@ export function ChartCard(props: {
   maxLabelWidth?: number;
   forceScrollable?: boolean;
 }) {
+  const highContrast = useHighContrastEnabled();
   const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
+  const legendItems = React.useMemo(() => [{ label: props.title, color: highContrast ? "#111827" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }], [highContrast, props.title]);
 
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
-      <div className="chart-figure" role="img" aria-label={ariaLabel}>
+      <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
+        <ChartLegendInset items={legendItems} />
         <ScrollableLineChart
           height={props.height ?? 320}
           labels={props.labels}
@@ -695,13 +772,15 @@ export function VerticalBarChartCard(props: {
 }) {
   const highContrast = useHighContrastEnabled();
   const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
+  const legendItems = React.useMemo(() => [{ label: props.title, color: highContrast ? "#111827" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }], [highContrast, props.title]);
 
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
-      <div className="chart-figure" role="img" aria-label={ariaLabel}>
+      <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
+        <ChartLegendInset items={legendItems} />
         <ScrollableBarChart
           height={props.height ?? 320}
           labels={props.labels}

@@ -2,6 +2,7 @@ import React from "react";
 import {
   BarChartCard,
   ChartCard,
+  ChartLegendInset,
   MetricCard,
   PieChartCard,
   ScrollableLineChart,
@@ -106,13 +107,19 @@ function GenderLineCard(props: Pick<ChartBlockProps, "t" | "cardInnerStyle" | "c
       <div className="topbar" style={props.compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.t("sections.gender")}</h3>
       </div>
-      <ScrollableLineChart
-        height={320}
-        labels={props.genderChartData?.labels ?? []}
-        datasetCount={(props.genderChartData?.datasets ?? []).length}
-        data={props.genderChartData}
-        options={props.genderChartOptions}
-      />
+      <div className="chart-figure" role="img" aria-label={props.t("sections.gender")} style={{ position: "relative" }}>
+        <ChartLegendInset items={[
+          { label: props.t("table.male"), color: "#2563eb", borderColor: "#2563eb", pointStyle: "circle" },
+          { label: props.t("table.female"), color: "#db2777", borderColor: "#db2777", pointStyle: "diamond", dashed: true },
+        ]} />
+        <ScrollableLineChart
+          height={320}
+          labels={props.genderChartData?.labels ?? []}
+          datasetCount={(props.genderChartData?.datasets ?? []).length}
+          data={props.genderChartData}
+          options={props.genderChartOptions}
+        />
+      </div>
     </div>
   );
 }
@@ -123,13 +130,16 @@ function GraduationLineCard(props: Pick<ChartBlockProps, "t" | "cardInnerStyle" 
       <div className="topbar" style={props.compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.t("sections.byYear")}</h3>
       </div>
-      <ScrollableLineChart
-        height={320}
-        labels={props.countChartData?.labels ?? []}
-        datasetCount={(props.countChartData?.datasets ?? []).length}
-        data={props.countChartData}
-        options={props.countChartOptions}
-      />
+      <div className="chart-figure" role="img" aria-label={props.t("sections.byYear")} style={{ position: "relative" }}>
+        <ChartLegendInset items={[{ label: props.t("sections.byYear"), color: "#2563eb", borderColor: "#2563eb", pointStyle: "circle" }]} />
+        <ScrollableLineChart
+          height={320}
+          labels={props.countChartData?.labels ?? []}
+          datasetCount={(props.countChartData?.datasets ?? []).length}
+          data={props.countChartData}
+          options={props.countChartOptions}
+        />
+      </div>
     </div>
   );
 }
