@@ -14,7 +14,7 @@ import {
   BarElement,
   ArcElement,
 } from "chart.js";
-import { downloadCanvasAsPng, downloadCombinedSnapshotsAsPng, fileSlug, renderElementSnapshot } from "./statistics/snapshot";
+import { downloadCanvasAsPng, downloadCombinedSnapshotsAsPng, fileSlug, renderSegmentedElementSnapshots } from "./statistics/snapshot";
 import { waitForRenderableImages } from "../lib/domSnapshot";
 import { buildLineDataset } from "./statistics/ui";
 import {
@@ -484,14 +484,26 @@ export default function Statistics() {
         await waitForRenderableImages(card);
 
         try {
-          const snapshot = await renderElementSnapshot(card);
+          const renderedSnapshots = await renderSegmentedElementSnapshots(card);
           const meta = chartMeta.get(chartId);
-          snapshots.push({
-            chartId,
-            image: snapshot.image,
-            width: snapshot.width,
-            height: snapshot.height,
-            caption: group.chartIds.length > 1 ? meta?.chartLabel ?? chartId : undefined,
+          const segmentCount = renderedSnapshots.length;
+
+          renderedSnapshots.forEach((snapshot, snapshotIndex) => {
+            const showCaption = group.chartIds.length > 1 || segmentCount > 1;
+            const baseCaption = meta?.chartLabel ?? chartId;
+            const caption = showCaption
+              ? segmentCount > 1
+                ? `${baseCaption} ${snapshotIndex + 1}/${segmentCount}`
+                : baseCaption
+              : undefined;
+
+            snapshots.push({
+              chartId,
+              image: snapshot.image,
+              width: snapshot.width,
+              height: snapshot.height,
+              caption,
+            });
           });
         } catch {}
       }

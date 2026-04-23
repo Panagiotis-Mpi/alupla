@@ -30,6 +30,58 @@ function expandSnapshotClone(sourceRoot: HTMLElement, cloneRoot: HTMLElement) {
   });
 }
 
+function getNodePairs(sourceRoot: HTMLElement, cloneRoot: HTMLElement) {
+  const sourceNodes = [sourceRoot, ...Array.from(sourceRoot.querySelectorAll<HTMLElement>("*"))];
+  const cloneNodes = [cloneRoot, ...Array.from(cloneRoot.querySelectorAll<HTMLElement>("*"))];
+
+  return sourceNodes
+    .map((sourceNode, index) => {
+      const cloneNode = cloneNodes[index];
+      if (!cloneNode) return null;
+      return { sourceNode, cloneNode };
+    })
+    .filter((entry): entry is { sourceNode: HTMLElement; cloneNode: HTMLElement } => !!entry);
+}
+
+function findPrimaryHorizontalOverflowPair(sourceRoot: HTMLElement, cloneRoot: HTMLElement) {
+  const pairs = getNodePairs(sourceRoot, cloneRoot);
+
+  return pairs
+    .filter(({ sourceNode }) => {
+      if (sourceNode === sourceRoot) return false;
+      if (!(sourceNode.scrollWidth > sourceNode.clientWidth + 24)) return false;
+      const computed = window.getComputedStyle(sourceNode);
+      return computed.overflowX === "auto" || computed.overflowX === "scroll" || computed.overflowX === "hidden";
+    })
+    .sort((left, right) => {
+      const leftOverflow = left.sourceNode.scrollWidth - left.sourceNode.clientWidth;
+      const rightOverflow = right.sourceNode.scrollWidth - right.sourceNode.clientWidth;
+      return rightOverflow - leftOverflow;
+    })[0] ?? null;
+}
+
+async function renderSnapshotClone(clone: HTMLElement, width: number, height: number) {
+  const wrapper = document.createElement("div");
+  wrapper.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+  wrapper.style.width = `${width}px`;
+  wrapper.style.height = `${height}px`;
+  wrapper.style.background = "#ffffff";
+  wrapper.style.overflow = "visible";
+  wrapper.appendChild(clone);
+
+  const serialized = new XMLSerializer().serializeToString(wrapper);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${serialized}</foreignObject></svg>`;
+
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("image_error"));
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  });
+
+  return { image, width, height };
+}
+
 export function fileSlug(value: string) {
   return String(value ?? "")
     .toLowerCase()
@@ -53,25 +105,71 @@ export async function renderElementSnapshot(element: HTMLElement) {
   clone.style.height = `${height}px`;
   clone.style.maxHeight = "none";
 
-  const wrapper = document.createElement("div");
-  wrapper.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-  wrapper.style.width = `${width}px`;
-  wrapper.style.height = `${height}px`;
-  wrapper.style.background = "#ffffff";
-  wrapper.style.overflow = "visible";
-  wrapper.appendChild(clone);
+  return renderSnapshotClone(clone, width, height);
+}
 
-  const serialized = new XMLSerializer().serializeToString(wrapper);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${serialized}</foreignObject></svg>`;
+export async function renderSegmentedElementSnapshots(element: HTMLElement) {
+  await waitForRenderableImages(element);
 
-  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("image_error"));
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  });
+  const baseClone = await prepareSnapshotClone(element);
+  const overflowPair = findPrimaryHorizontalOverflowPair(element, baseClone);
 
-  return { image, width, height };
+  if (!overflowPair) {
+    return [await renderElementSnapshot(element)];
+  }
+
+  const { sourceNode, cloneNode } = overflowPair;
+  const viewportWidth = Math.ceil(Math.max(sourceNode.clientWidth, 640));
+  const fullWidth = Math.ceil(Math.max(sourceNode.scrollWidth, viewportWidth));
+
+  if (!(fullWidth > viewportWidth + 24)) {
+    return [await renderElementSnapshot(element)];
+  }
+
+  const segmentCount = Math.max(2, Math.ceil(fullWidth / viewportWidth));
+  const snapshots: Array<{ image: HTMLImageElement; width: number; height: number; segmentIndex: number; segmentCount: number }> = [];
+
+  for (let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex += 1) {
+    const clone = await prepareSnapshotClone(element);
+    const pair = findPrimaryHorizontalOverflowPair(element, clone);
+    if (!pair) {
+      snapshots.push({ ...(await renderElementSnapshot(element)), segmentIndex: 0, segmentCount: 1 });
+      break;
+    }
+
+    const sliceStart = Math.min(segmentIndex * viewportWidth, Math.max(0, fullWidth - viewportWidth));
+    const width = Math.ceil(Math.max(element.getBoundingClientRect().width, element.clientWidth || 0));
+    const height = Math.ceil(Math.max(element.getBoundingClientRect().height, element.scrollHeight || 0));
+
+    clone.style.margin = "0";
+    clone.style.width = `${width}px`;
+    clone.style.minWidth = `${width}px`;
+    clone.style.maxWidth = "none";
+    clone.style.height = `${height}px`;
+    clone.style.maxHeight = "none";
+
+    const segmentedCloneNode = pair.cloneNode;
+    segmentedCloneNode.style.overflowX = "hidden";
+    segmentedCloneNode.style.overflowY = "visible";
+    segmentedCloneNode.style.width = `${viewportWidth}px`;
+    segmentedCloneNode.style.minWidth = `${viewportWidth}px`;
+    segmentedCloneNode.style.maxWidth = `${viewportWidth}px`;
+    segmentedCloneNode.style.scrollBehavior = "auto";
+
+    const inner = segmentedCloneNode.firstElementChild as HTMLElement | null;
+    if (inner) {
+      inner.style.width = `${fullWidth}px`;
+      inner.style.minWidth = `${fullWidth}px`;
+      inner.style.maxWidth = "none";
+      inner.style.transform = `translateX(-${sliceStart}px)`;
+      inner.style.transformOrigin = "top left";
+      inner.style.willChange = "auto";
+    }
+
+    snapshots.push({ ...(await renderSnapshotClone(clone, width, height)), segmentIndex, segmentCount });
+  }
+
+  return snapshots;
 }
 
 export async function downloadCanvasAsPng(canvas: HTMLCanvasElement, filename: string) {
@@ -85,7 +183,7 @@ export async function downloadCanvasAsPng(canvas: HTMLCanvasElement, filename: s
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   return true;
 }
 
