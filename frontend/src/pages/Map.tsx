@@ -155,6 +155,21 @@ function localizedCountryKey(value: unknown) {
   return normalizeKey(match?.gr || raw);
 }
 
+function genderMarkerSymbol(city: any) {
+  const maleCount = Math.max(0, Number(city?.male_count || 0));
+  const femaleCount = Math.max(0, Number(city?.female_count || 0));
+  if (maleCount > femaleCount) return "♂";
+  if (femaleCount > maleCount) return "♀";
+  return "≈";
+}
+
+function genderLegendPattern(entryKey: string) {
+  if (entryKey === "male") return "map-legend-swatch-pattern-male";
+  if (entryKey === "female") return "map-legend-swatch-pattern-female";
+  if (entryKey === "balanced") return "map-legend-swatch-pattern-balanced";
+  return "";
+}
+
 function sameMapSelection(scope: MapScope, left: any, right: any) {
   if (!left || !right) return false;
   if (scope === "abroad") {
@@ -173,6 +188,7 @@ function bubbleLabelIcon(
   active: boolean,
   showLabel: boolean,
   mt: (key: string, options?: Record<string, unknown>) => string,
+  highContrastEnabled: boolean,
 ) {
   const baseRadius = Math.max(10, Number(city?.markerRadius || 10));
   const radius = active ? Math.round(baseRadius * 1.12) : baseRadius;
@@ -193,10 +209,18 @@ function bubbleLabelIcon(
   const wrapperHeight = labelHeight + size + 6;
   const wrapperWidth = Math.max(labelWidth, size + 10);
   const activeRing = active ? '0 0 0 3px rgba(15,23,42,.14)' : 'none';
+  const genderSymbol = genderMarkerSymbol(city);
+  const genderBubbleBackground = highContrastEnabled
+    ? (malePct > femalePct
+        ? "repeating-linear-gradient(135deg, #ffffff 0 5px, #000000 5px 9px)"
+        : femalePct > malePct
+          ? "repeating-linear-gradient(0deg, #ffffff 0 5px, #000000 5px 9px)"
+          : "radial-gradient(circle at center, #000000 0 22%, #ffffff 24% 100%)")
+    : `conic-gradient(${genderColors.male} 0 ${malePct}%, ${genderColors.female} ${malePct}% 100%)`;
   const bubbleHtml =
     mapMetric === "count"
       ? `<div class="alupla-city-bubble alupla-city-bubble-count" style="width:${size}px;height:${size}px;--alupla-bubble-border:${bubbleStroke};--alupla-bubble-background:${bubbleFill};--alupla-bubble-opacity:${bubbleOpacity};--alupla-bubble-shadow:${activeRing};"><span class="alupla-city-bubble-number" style="font-size:${fontSize}px;">${count}</span></div>`
-      : `<div class="alupla-city-bubble alupla-city-bubble-gender" style="width:${size}px;height:${size}px;--alupla-bubble-border:rgba(51,65,85,.72);--alupla-bubble-background:conic-gradient(${genderColors.male} 0 ${malePct}%, ${genderColors.female} ${malePct}% 100%);--alupla-bubble-opacity:1;--alupla-bubble-shadow:${activeRing};"><span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span></div>`;
+      : `<div class="alupla-city-bubble alupla-city-bubble-gender${highContrastEnabled ? " is-high-contrast" : ""}" style="width:${size}px;height:${size}px;--alupla-bubble-border:rgba(51,65,85,.72);--alupla-bubble-background:${genderBubbleBackground};--alupla-bubble-opacity:1;--alupla-bubble-shadow:${activeRing};"><span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span><span class="alupla-city-bubble-glyph">${genderSymbol}</span></div>`;
   const summary = "";
   return L.divIcon({
     className: "alupla-city-bubble-icon",
@@ -1079,6 +1103,9 @@ export default function GraduatesMapPage() {
         .alupla-city-bubble-number { line-height: 1; color: #fff; text-shadow: 0 1px 1px rgba(15,23,42,.35); }
         .alupla-city-bubble-count .alupla-city-bubble-number { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.45); }
         .alupla-city-bubble-number-gender { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.5); }
+        .alupla-city-bubble-glyph { position: absolute; right: -6px; bottom: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; border: 1px solid rgba(15,23,42,.24); background: rgba(255,255,255,.94); color: #0f172a; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; line-height: 1; }
+        .alupla-city-bubble-gender.is-high-contrast .alupla-city-bubble-number-gender { color: #000; text-shadow: none; }
+        .alupla-city-bubble-gender.is-high-contrast { border-color: #000000; }
         .alupla-city-bubble-sub { margin-top: 4px; color: #475569; font-size: 10px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); }
         .alupla-city-point { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; pointer-events: auto; }
         .alupla-city-label-text { display: block; margin: 0; }
@@ -1298,7 +1325,7 @@ export default function GraduatesMapPage() {
                     <Marker
                       key={mapCityKey(city)}
                       position={[latitude, longitude]}
-                      icon={bubbleLabelIcon(city, mapMetric, activeCity, shouldShowMarkerLabel(city), mt)}
+                      icon={bubbleLabelIcon(city, mapMetric, activeCity, shouldShowMarkerLabel(city), mt, highContrastEnabled)}
                       eventHandlers={{
                         click: () => {
                           void toggleSelectedCityCard(city);
@@ -1352,6 +1379,7 @@ export default function GraduatesMapPage() {
                   }}
                 >
                   <span
+                    className={`map-legend-swatch ${genderLegendPattern(entry.key)}`}
                     style={{
                       width: Math.max(10, Number((entry as any).radius || (mapScope === "greece" ? 10 : 16))),
                       height: Math.max(10, Number((entry as any).radius || (mapScope === "greece" ? 10 : 16))),
@@ -1360,7 +1388,9 @@ export default function GraduatesMapPage() {
                       opacity: entry.opacity,
                       border: "1px solid rgba(51,65,85,.18)",
                     }}
-                  />
+                  >
+                    {entry.key === "male" || entry.key === "female" || entry.key === "balanced" ? <span className="map-legend-swatch-symbol">{entry.key === "male" ? "♂" : entry.key === "female" ? "♀" : "≈"}</span> : null}
+                  </span>
                   <span>{entry.label}</span>
                 </div>
               ))}

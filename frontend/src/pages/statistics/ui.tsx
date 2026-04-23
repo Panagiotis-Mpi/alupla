@@ -11,6 +11,7 @@ const sectionTextStyle: React.CSSProperties = { margin: 0, color: "#64748b", fon
 const solidBlueFill = "rgba(37, 99, 235, 0.72)";
 const chartGridColor = "rgba(148, 163, 184, 0.22)";
 const chartTickColor = "#475569";
+const contrastPiePalette = ["#111827", "#374151", "#6b7280", "#9ca3af", "#d1d5db", "#4b5563", "#1f2937", "#e5e7eb"];
 
 const piePalette = [
   "#2563eb",
@@ -31,16 +32,48 @@ const piePalette = [
   "#a855f7",
 ];
 
-function pieColors(length: number) {
-  return Array.from({ length }, (_, index) => piePalette[index % piePalette.length]);
+function useHighContrastEnabled() {
+  const [enabled, setEnabled] = React.useState(() => typeof document !== "undefined" && document.documentElement.classList.contains("accessibility-high-contrast"));
+
+  React.useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    const sync = () => setEnabled(root.classList.contains("accessibility-high-contrast"));
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  return enabled;
 }
 
-function buildBarDataset(label: string, data: number[], color = "#2563eb", backgroundColor = solidBlueFill) {
+function pieColors(length: number, highContrast = false) {
+  const source = highContrast ? contrastPiePalette : piePalette;
+  return Array.from({ length }, (_, index) => source[index % source.length]);
+}
+
+function buildBarDataset(label: string, data: number[], options?: { highContrast?: boolean }) {
+  if (options?.highContrast) {
+    return {
+      label,
+      data,
+      borderColor: "#000000",
+      backgroundColor: Array.from({ length: data.length }, (_, index) => (index % 2 === 0 ? "#111827" : "#9ca3af")),
+      borderWidth: 2,
+      borderRadius: 8,
+      borderSkipped: false,
+      barPercentage: 0.62,
+      categoryPercentage: 0.72,
+      maxBarThickness: 42,
+    };
+  }
+
   return {
     label,
     data,
-    borderColor: color,
-    backgroundColor,
+    borderColor: "#2563eb",
+    backgroundColor: solidBlueFill,
     borderWidth: 1.5,
     borderRadius: 8,
     borderSkipped: false,
@@ -137,7 +170,144 @@ function buildBarChartOptions(options?: {
   } as any;
 }
 
-export function buildLineDataset(label: string, data: number[], color: string, background: string, fill = true) {
+function applyAccessibleChartOptions(options: any, highContrast: boolean, overrides?: Record<string, any>) {
+  const next = {
+    ...options,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      ...(options?.plugins ?? {}),
+      legend: {
+        ...(options?.plugins?.legend ?? {}),
+        labels: {
+          color: highContrast ? "#000000" : "#334155",
+          ...(options?.plugins?.legend?.labels ?? {}),
+        },
+      },
+      tooltip: {
+        ...(options?.plugins?.tooltip ?? {}),
+        titleColor: "#0f172a",
+        bodyColor: "#0f172a",
+        backgroundColor: highContrast ? "#ffffff" : "rgba(255,255,255,.97)",
+        borderColor: highContrast ? "#000000" : "rgba(148,163,184,.4)",
+        borderWidth: 1,
+      },
+    },
+    scales: options?.scales
+      ? Object.fromEntries(
+          Object.entries(options.scales).map(([axisKey, axisValue]: [string, any]) => [
+            axisKey,
+            {
+              ...axisValue,
+              ticks: {
+                ...(axisValue?.ticks ?? {}),
+                color: highContrast ? "#000000" : axisValue?.ticks?.color ?? chartTickColor,
+              },
+              grid: {
+                ...(axisValue?.grid ?? {}),
+                color: highContrast ? "rgba(0,0,0,.24)" : axisValue?.grid?.color ?? chartGridColor,
+              },
+            },
+          ]),
+        )
+      : undefined,
+    ...overrides,
+  };
+
+  if (overrides?.plugins) {
+    next.plugins = {
+      ...(next.plugins ?? {}),
+      ...overrides.plugins,
+      legend: {
+        ...(next.plugins?.legend ?? {}),
+        ...(overrides.plugins.legend ?? {}),
+        labels: {
+          ...(next.plugins?.legend?.labels ?? {}),
+          ...(overrides.plugins.legend?.labels ?? {}),
+        },
+      },
+      tooltip: {
+        ...(next.plugins?.tooltip ?? {}),
+        ...(overrides.plugins.tooltip ?? {}),
+      },
+    };
+  }
+
+  if (overrides?.scales) {
+    next.scales = {
+      ...(next.scales ?? {}),
+      ...Object.fromEntries(
+        Object.entries(overrides.scales).map(([axisKey, axisValue]: [string, any]) => [
+          axisKey,
+          {
+            ...(next.scales?.[axisKey] ?? {}),
+            ...axisValue,
+            ticks: {
+              ...(next.scales?.[axisKey]?.ticks ?? {}),
+              ...(axisValue?.ticks ?? {}),
+            },
+            grid: {
+              ...(next.scales?.[axisKey]?.grid ?? {}),
+              ...(axisValue?.grid ?? {}),
+            },
+          },
+        ]),
+      ),
+    };
+  }
+
+  return next;
+}
+
+function normalizeLineDatasets(datasets: any[] = [], highContrast: boolean) {
+  return datasets.map((dataset, index) => {
+    if (!highContrast) return dataset;
+    const monochrome = index % 2 === 0 ? "#000000" : "#4b5563";
+    return {
+      ...dataset,
+      borderColor: monochrome,
+      backgroundColor: index % 2 === 0 ? "rgba(0,0,0,.14)" : "rgba(107,114,128,.2)",
+      pointBackgroundColor: "#ffffff",
+      pointBorderColor: monochrome,
+      pointHoverBackgroundColor: "#ffffff",
+      pointHoverBorderColor: monochrome,
+      borderWidth: Math.max(3, Number(dataset.borderWidth ?? 3)),
+      pointRadius: Math.max(4, Number(dataset.pointRadius ?? 3)),
+      pointHoverRadius: Math.max(5, Number(dataset.pointHoverRadius ?? 4)),
+      pointStyle: index % 2 === 0 ? "circle" : "rectRot",
+      borderDash: index % 2 === 0 ? [] : [8, 4],
+      fill: false,
+    };
+  });
+}
+
+function useChartAriaLabel(title: string, labels: string[], values: number[]) {
+  return React.useMemo(() => {
+    const preview = labels
+      .slice(0, 5)
+      .map((label, index) => `${label}: ${values[index] ?? 0}`)
+      .join(", ");
+    return preview ? `${title}. ${preview}` : title;
+  }, [labels, title, values]);
+}
+
+function ChartDataSummary(props: { labels: string[]; values: number[] }) {
+  if (!props.labels.length) return <div className="chart-data-summary-empty">-</div>;
+
+  return (
+    <div className="chart-data-summary" role="list">
+      {props.labels.map((label, index) => (
+        <div className="chart-data-summary-row" role="listitem" key={`${label}-${index}`}>
+          <span className="chart-data-summary-index">{index + 1}</span>
+          <span className="chart-data-summary-label">{label}</span>
+          <span className="chart-data-summary-value">{props.values[index] ?? 0}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function buildLineDataset(label: string, data: number[], color: string, background: string, fill = true, variant: "default" | "male" | "female" = "default") {
   return {
     label,
     data,
@@ -148,6 +318,8 @@ export function buildLineDataset(label: string, data: number[], color: string, b
     pointRadius: 3,
     pointHoverRadius: 4,
     borderWidth: 3,
+    pointStyle: variant === "female" ? "rectRot" : variant === "male" ? "circle" : "circle",
+    borderDash: variant === "female" ? [8, 4] : [],
   };
 }
 
@@ -206,14 +378,23 @@ export function ScrollableLineChart(props: {
   maxLabelWidth?: number;
 }) {
   const isCompact = useCompactStatisticsLayout();
+  const highContrast = useHighContrastEnabled();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 68, props.maxLabelWidth ?? 128);
   const shouldScroll = props.labels.length > 6 || (props.datasetCount ?? 1) > 1;
   const minWidth = shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
+  const normalizedData = React.useMemo(
+    () => ({
+      ...props.data,
+      datasets: normalizeLineDatasets(props.data?.datasets ?? [], highContrast),
+    }),
+    [highContrast, props.data],
+  );
+  const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
 
   return (
     <div style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
       <div style={{ minWidth: shouldScroll ? minWidth : "100%", width: shouldScroll ? "max-content" : "100%", height: props.height ?? 280 }}>
-        <Line data={props.data} options={props.options} />
+        <Line data={normalizedData} options={normalizedOptions} />
       </div>
     </div>
   );
@@ -230,14 +411,16 @@ function ScrollableBarChart(props: {
   forceScrollable?: boolean;
 }) {
   const isCompact = useCompactStatisticsLayout();
+  const highContrast = useHighContrastEnabled();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
   const shouldScroll = !!props.forceScrollable || props.labels.length > 7 || (props.datasetCount ?? 1) > 1;
   const minWidth = shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
+  const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
 
   return (
     <div style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
       <div style={{ minWidth: shouldScroll ? minWidth : "100%", width: shouldScroll ? "max-content" : "100%", height: props.height ?? 280 }}>
-        <Bar data={props.data} options={props.options} />
+        <Bar data={props.data} options={normalizedOptions} />
       </div>
     </div>
   );
@@ -248,9 +431,12 @@ function FixedBarChart(props: {
   options: any;
   height?: number;
 }) {
+  const highContrast = useHighContrastEnabled();
+  const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
+
   return (
     <div style={{ width: "100%", height: props.height ?? 280 }}>
-      <Bar data={props.data} options={props.options} />
+      <Bar data={props.data} options={normalizedOptions} />
     </div>
   );
 }
@@ -286,35 +472,46 @@ export function BarChartCard(props: {
   forceScrollable?: boolean;
   chartId?: string;
 }) {
+  const highContrast = useHighContrastEnabled();
   const chartHeight = props.height ?? (props.horizontal ? Math.max(300, props.labels.length * 54) : 280);
-  const chartData = {
-    labels: props.labels,
-    datasets: [buildBarDataset(props.datasetLabel ?? props.title, props.values)],
-  };
-  const chartOptions = buildBarChartOptions({
-    horizontal: props.horizontal,
-    fullLabelTooltip: props.fullLabelTooltip,
-    labels: props.labels,
-  });
+  const chartData = React.useMemo(
+    () => ({
+      labels: props.labels,
+      datasets: [buildBarDataset(props.datasetLabel ?? props.title, props.values, { highContrast })],
+    }),
+    [highContrast, props.datasetLabel, props.labels, props.title, props.values],
+  );
+  const chartOptions = React.useMemo(
+    () =>
+      buildBarChartOptions({
+        horizontal: props.horizontal,
+        fullLabelTooltip: props.fullLabelTooltip,
+        labels: props.labels,
+      }),
+    [props.fullLabelTooltip, props.horizontal, props.labels],
+  );
+  const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
 
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
-      {props.horizontal ? (
-        <FixedBarChart height={chartHeight} data={chartData} options={chartOptions} />
-      ) : (
-        <ScrollableBarChart
-          height={chartHeight}
-          labels={props.labels}
-          minLabelWidth={props.minLabelWidth}
-          maxLabelWidth={props.maxLabelWidth}
-          data={chartData}
-          options={chartOptions}
-          forceScrollable={props.forceScrollable}
-        />
-      )}
+      <div className="chart-figure" role="img" aria-label={ariaLabel}>
+        {props.horizontal ? (
+          <FixedBarChart height={chartHeight} data={chartData} options={chartOptions} />
+        ) : (
+          <ScrollableBarChart
+            height={chartHeight}
+            labels={props.labels}
+            minLabelWidth={props.minLabelWidth}
+            maxLabelWidth={props.maxLabelWidth}
+            data={chartData}
+            options={chartOptions}
+            forceScrollable={props.forceScrollable}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -326,13 +523,15 @@ function ScrollablePieChart(props: {
   labels: string[];
 }) {
   const isCompact = useCompactStatisticsLayout();
+  const highContrast = useHighContrastEnabled();
   const shouldScroll = props.labels.length > 6;
   const minWidth = shouldScroll ? Math.max(560, props.labels.length * 72) : 0;
+  const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
 
   return (
     <div style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
       <div style={{ minWidth: shouldScroll ? Math.max(minWidth, isCompact ? 560 : 640) : "100%", width: shouldScroll ? "max-content" : "100%", height: props.height ?? 340 }}>
-        <Pie data={props.data} options={props.options} />
+        <Pie data={props.data} options={normalizedOptions} />
       </div>
     </div>
   );
@@ -346,18 +545,20 @@ export function PieChartCard(props: {
   height?: number;
   control?: React.ReactNode;
 }) {
+  const highContrast = useHighContrastEnabled();
   const chartData = React.useMemo(() => ({
     labels: props.labels,
     datasets: [
       {
         data: props.values,
-        backgroundColor: pieColors(props.labels.length),
-        borderColor: "#ffffff",
-        borderWidth: 2,
+        backgroundColor: pieColors(props.labels.length, highContrast),
+        borderColor: highContrast ? "#000000" : "#ffffff",
+        borderWidth: highContrast ? 2.5 : 2,
         hoverOffset: 10,
       },
     ],
-  }), [props.labels, props.values]);
+  }), [highContrast, props.labels, props.values]);
+  const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
 
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
@@ -365,39 +566,55 @@ export function PieChartCard(props: {
         <h3 style={{ margin: 0 }}>{props.title}</h3>
         {props.control}
       </div>
-      <ScrollablePieChart
-        height={props.height ?? 340}
-        labels={props.labels}
-        data={chartData}
-        options={{
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: "bottom",
-              labels: {
-                boxWidth: 12,
-                boxHeight: 12,
-                padding: 14,
-                usePointStyle: true,
-                pointStyle: "circle",
-                font: { size: 12, weight: "600" },
+      <div className="chart-figure" role="img" aria-label={ariaLabel}>
+        <ScrollablePieChart
+          height={props.height ?? 340}
+          labels={props.labels}
+          data={chartData}
+          options={applyAccessibleChartOptions({
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  boxWidth: 12,
+                  boxHeight: 12,
+                  padding: 14,
+                  usePointStyle: true,
+                  pointStyle: "circle",
+                  font: { size: 12, weight: "600" },
+                  generateLabels: (chart: any) => {
+                    const labels = chart.data.labels ?? [];
+                    const dataset = chart.data.datasets?.[0] ?? { data: [] };
+                    const meta = chart.getDatasetMeta?.(0);
+                    return labels.map((label: string, index: number) => ({
+                      text: `${index + 1}. ${label}`,
+                      fillStyle: Array.isArray(dataset.backgroundColor) ? dataset.backgroundColor[index] : dataset.backgroundColor,
+                      strokeStyle: Array.isArray(dataset.borderColor) ? dataset.borderColor[index] : dataset.borderColor,
+                      lineWidth: dataset.borderWidth,
+                      hidden: meta?.data?.[index]?.hidden ?? false,
+                      index,
+                    }));
+                  },
+                },
               },
-            },
-            tooltip: {
-              callbacks: {
-                label: (context: any) => {
-                  const label = String(context.label ?? "");
-                  const value = Number(context.parsed ?? 0);
-                  const total = (context.dataset.data ?? []).reduce((sum: number, current: number) => sum + Number(current ?? 0), 0);
-                  const percent = total > 0 ? ` (${((value / total) * 100).toFixed(1)}%)` : "";
-                  return `${label}: ${value}${percent}`;
+              tooltip: {
+                callbacks: {
+                  label: (context: any) => {
+                    const label = String(context.label ?? "");
+                    const value = Number(context.parsed ?? 0);
+                    const total = (context.dataset.data ?? []).reduce((sum: number, current: number) => sum + Number(current ?? 0), 0);
+                    const percent = total > 0 ? ` (${((value / total) * 100).toFixed(1)}%)` : "";
+                    return `${label}: ${value}${percent}`;
+                  },
                 },
               },
             },
-          },
-        } as any}
-      />
+          }, highContrast)}
+        />
+        <ChartDataSummary labels={props.labels} values={props.values} />
+      </div>
     </div>
   );
 }
@@ -432,28 +649,32 @@ export function ChartCard(props: {
   maxLabelWidth?: number;
   forceScrollable?: boolean;
 }) {
+  const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
+
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
-      <ScrollableLineChart
-        height={props.height ?? 320}
-        labels={props.labels}
-        minLabelWidth={props.minLabelWidth ?? 76}
-        maxLabelWidth={props.maxLabelWidth ?? 96}
-        data={{ labels: props.labels, datasets: [buildLineDataset(props.title, props.values, "#2563eb", "rgba(37, 99, 235, 0.28)")] }}
-        options={{
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { offset: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
-            y: { beginAtZero: true, ticks: { precision: 0 } },
-          },
-          layout: { padding: { left: 0, right: 0 } },
-        }}
-      />
+      <div className="chart-figure" role="img" aria-label={ariaLabel}>
+        <ScrollableLineChart
+          height={props.height ?? 320}
+          labels={props.labels}
+          minLabelWidth={props.minLabelWidth ?? 76}
+          maxLabelWidth={props.maxLabelWidth ?? 96}
+          data={{ labels: props.labels, datasets: [buildLineDataset(props.title, props.values, "#2563eb", "rgba(37, 99, 235, 0.28)")] }}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { offset: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
+              y: { beginAtZero: true, ticks: { precision: 0 } },
+            },
+            layout: { padding: { left: 0, right: 0 } },
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -472,27 +693,32 @@ export function VerticalBarChartCard(props: {
   xTickRotation?: number;
   xTickFormatter?: (label: string) => string | string[];
 }) {
+  const highContrast = useHighContrastEnabled();
+  const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
+
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
-      <ScrollableBarChart
-        height={props.height ?? 320}
-        labels={props.labels}
-        minLabelWidth={props.minLabelWidth ?? 92}
-        maxLabelWidth={props.maxLabelWidth ?? 152}
-        forceScrollable={props.forceScrollable}
-        data={{ labels: props.labels, datasets: [buildBarDataset(props.title, props.values)] }}
-        options={buildBarChartOptions({
-          labels: props.labels,
-          beginAtZero: false,
-          min: props.minValue ?? 0,
-          max: props.maxValue,
-          xTickRotation: props.xTickRotation,
-          xTickFormatter: props.xTickFormatter,
-        })}
-      />
+      <div className="chart-figure" role="img" aria-label={ariaLabel}>
+        <ScrollableBarChart
+          height={props.height ?? 320}
+          labels={props.labels}
+          minLabelWidth={props.minLabelWidth ?? 92}
+          maxLabelWidth={props.maxLabelWidth ?? 152}
+          forceScrollable={props.forceScrollable}
+          data={{ labels: props.labels, datasets: [buildBarDataset(props.title, props.values, { highContrast })] }}
+          options={buildBarChartOptions({
+            labels: props.labels,
+            beginAtZero: false,
+            min: props.minValue ?? 0,
+            max: props.maxValue,
+            xTickRotation: props.xTickRotation,
+            xTickFormatter: props.xTickFormatter,
+          })}
+        />
+      </div>
     </div>
   );
 }

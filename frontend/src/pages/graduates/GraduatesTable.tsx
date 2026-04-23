@@ -67,7 +67,7 @@ export function GraduatesTable(props: {
             {visibleItems.map((graduate) => {
               const id = Number(graduate.id);
               return (
-                <tr key={graduate.id}>
+                <tr key={graduate.id} className={selectedIds.includes(id) ? "is-selected-row" : undefined} aria-selected={selectedIds.includes(id)}>
                   <td>
                     <input type="checkbox" checked={selectedIds.includes(id)} onChange={() => toggleSelected(id)} />
                   </td>
