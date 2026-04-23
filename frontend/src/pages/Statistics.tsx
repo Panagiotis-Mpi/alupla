@@ -491,7 +491,8 @@ export default function Statistics() {
         ctx.drawImage(snapshot.image, padding, padding, snapshot.width, snapshot.height);
 
         const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, "image/png"));
-        if (!blob) continue;
+        const exportBlob = blob ?? await fetch(out.toDataURL("image/png")).then((response) => response.blob());
+        if (!exportBlob) continue;
 
         const meta = chartMeta.get(chartId);
         const baseName = ["alupla", "statistics", meta?.groupLabel ?? "group", meta?.chartLabel ?? chartId, stamp]
@@ -500,9 +501,9 @@ export default function Statistics() {
           .join("_");
         const filename = `${baseName || `alupla_statistics_${chartId}_${stamp}`}.png`;
 
-        downloadBlob(blob, filename);
+        await downloadBlob(exportBlob, filename);
         downloaded.push(filename);
-        await new Promise<void>((resolve) => window.setTimeout(resolve, 140));
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 220));
       } catch {}
     }
 
