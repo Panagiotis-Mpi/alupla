@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { getPublicStats, logPublicExport } from "../lib/api";
-import { exportStatisticsCsvFile, exportStatisticsWorkbookFile, type StatisticsChartId } from "./statisticsExport";
+import { buildStatisticsExportFilename, exportStatisticsCsvFile, exportStatisticsWorkbookFile, type StatisticsChartId } from "./statisticsExport";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -15,6 +15,7 @@ import {
   ArcElement,
 } from "chart.js";
 import { fileSlug, renderElementSnapshot } from "./statistics/snapshot";
+import { downloadBlob } from "../lib/download";
 import { waitForRenderableImages } from "../lib/domSnapshot";
 import { buildLineDataset } from "./statistics/ui";
 import {
@@ -420,7 +421,8 @@ export default function Statistics() {
   }, [selectedExportFormat]);
 
   function openExportSelection(format: "xlsx" | "csv" | "png") {
-    setSelectedChartIds([]);
+    const defaultChartIds = chartGroups.find((group) => group.key === activeGroup)?.charts.map((chart) => chart.id) ?? [];
+    setSelectedChartIds(defaultChartIds);
     setSelectedExportFormat(format);
     setExportOpen(false);
   }
@@ -451,7 +453,7 @@ export default function Statistics() {
 
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-    await new Promise<void>((resolve) => window.setTimeout(resolve, 180));
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 220));
 
     const findChartCard = (chartId: StatisticsChartId) => {
       const selector = `[data-export-chart-id="${chartId}"]`;
@@ -465,6 +467,8 @@ export default function Statistics() {
         charts: group.charts.filter((chart) => selectedSet.has(chart.id)),
       }))
       .filter((group) => group.charts.length > 0);
+
+    const downloaded: string[] = [];
 
     for (const group of groupsForExport) {
       const chunks = group.key === "academic" && group.charts.length > 4
@@ -481,9 +485,7 @@ export default function Statistics() {
           await waitForRenderableImages(card);
           try {
             snapshots.push(await renderElementSnapshot(card));
-          } catch {
-            continue;
-          }
+          } catch {}
         }
 
         if (!snapshots.length) continue;
@@ -518,18 +520,15 @@ export default function Statistics() {
         const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, "image/png"));
         if (!blob) continue;
 
-        const suffix = chunks.length > 1 ? `_${chunkIndex + 1}` : "";
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `alupla_statistics_${fileSlug(group.label)}${suffix}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.setTimeout(() => URL.revokeObjectURL(url), 1200);
-        await new Promise<void>((resolve) => window.setTimeout(resolve, 90));
+        const suffix = chunks.length > 1 ? `_part-${chunkIndex + 1}` : "";
+        const filename = buildStatisticsExportFilename({ ...exportArgs, selectedChartIds: charts.map((chart) => chart.id) }, "png").replace(/\.png$/, `${suffix}.png`);
+        downloadBlob(blob, filename);
+        downloaded.push(filename);
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 120));
       }
     }
+
+    if (!downloaded.length) throw new Error("png_export_failed");
   }
 
   async function handleExportAction() {
@@ -537,9 +536,9 @@ export default function Statistics() {
 
     try {
       if (selectedExportFormat === "xlsx") {
-        exportStatisticsWorkbookFile(exportArgs);
+        exportStatisticsWorkbookFile(exportArgs, buildStatisticsExportFilename(exportArgs, "xlsx"));
       } else if (selectedExportFormat === "csv") {
-        exportStatisticsCsvFile(exportArgs);
+        exportStatisticsCsvFile(exportArgs, buildStatisticsExportFilename(exportArgs, "csv"));
       } else {
         await exportSelectedChartsAsPng();
       }

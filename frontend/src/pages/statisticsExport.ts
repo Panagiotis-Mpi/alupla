@@ -38,7 +38,9 @@ type NamedCountRow = {
 
 type SheetRow = Record<string, string | number>;
 
-type BuildArgs = {
+export type StatisticsExportFormat = "xlsx" | "csv" | "png";
+
+export type BuildArgs = {
   data: any;
   t: TFunction;
   activeLang: "el" | "en";
@@ -270,7 +272,31 @@ function csvLines(block: SheetBlock) {
   return lines;
 }
 
-export function exportStatisticsWorkbookFile(args: BuildArgs) {
+export function buildStatisticsExportFilename(args: BuildArgs, format: StatisticsExportFormat) {
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  const selected = Array.isArray(args.selectedChartIds) ? args.selectedChartIds.filter(Boolean) : [];
+  const chartCount = selected.length;
+  const allSelected = chartCount === 0;
+  const groupChartIds = {
+    demographics: ["gender", "birthYear", "genderByProgram"],
+    academic: ["byYear", "studyProgram", "gradeByYear", "gradeDistribution", "avgGradeByProgram", "timeToDegreeByEntryYear", "timeToDegreeDistribution"],
+    geography: ["originRegion", "originMunicipality", "originCountry", "abroadShare"],
+  } as const;
+
+  const selectedSet = new Set(selected);
+  const matchingGroups = Object.entries(groupChartIds).filter(([, ids]) => ids.some((id) => selectedSet.has(id as StatisticsChartId))).map(([key]) => key);
+  const scope = allSelected
+    ? "all-charts"
+    : matchingGroups.length === 1
+      ? matchingGroups[0]
+      : matchingGroups.length > 1
+        ? "mixed-groups"
+        : "selected-charts";
+  const selection = allSelected ? "full-export" : `${chartCount}-charts`;
+  return `alupla_statistics_${scope}_${selection}_${stamp}.${format}`;
+}
+
+export function exportStatisticsWorkbookFile(args: BuildArgs, filename = buildStatisticsExportFilename(args, "xlsx")) {
   const workbook = XLSX.utils.book_new();
   const usedNames = new Set<string>();
 
@@ -281,10 +307,10 @@ export function exportStatisticsWorkbookFile(args: BuildArgs) {
     XLSX.utils.book_append_sheet(workbook, ws, workbookSheetName(sheet.name, usedNames));
   }
 
-  exportWorkbook("alupla_statistics_export.xlsx", workbook);
+  exportWorkbook(filename, workbook);
 }
 
-export function exportStatisticsCsvFile(args: BuildArgs) {
+export function exportStatisticsCsvFile(args: BuildArgs, filename = buildStatisticsExportFilename(args, "csv")) {
   const blocks = buildSheets(args);
   const groupOrder: Array<{ key: string; name: string; chartIds: StatisticsChartId[] }> = [
     {

@@ -3,8 +3,6 @@ import { Bar, Line, Pie } from "react-chartjs-2";
 
 const cardInnerStyle = { minWidth: 0 };
 const compactTopbarStyle = { marginBottom: 12 };
-const metricValueStyle = { fontSize: 28, fontWeight: 800, marginTop: 4, lineHeight: 1.1, color: "#0f172a" };
-const metricLabelStyle = { color: "#475569", fontSize: 17, lineHeight: 1.32 };
 const metricCardStyle: React.CSSProperties = { minWidth: 0, minHeight: 124, padding: 18, display: "grid", alignContent: "space-between", gap: 8 };
 const sectionHeaderStyle: React.CSSProperties = { display: "grid", gap: 4, marginTop: 2 };
 const sectionTitleStyle: React.CSSProperties = { margin: 0, fontSize: 24, fontWeight: 800 };
@@ -543,9 +541,9 @@ export function SectionTitle(props: { title: string; subtitle?: string }) {
 
 export function MetricCard(props: { label: string; value: string | number }) {
   return (
-    <div className="card" style={metricCardStyle}>
-      <div style={metricLabelStyle}>{props.label}</div>
-      <div style={metricValueStyle}>{props.value}</div>
+    <div className="card statistics-metric-card" style={metricCardStyle}>
+      <div className="statistics-metric-label">{props.label}</div>
+      <div className="statistics-metric-value">{props.value}</div>
     </div>
   );
 }

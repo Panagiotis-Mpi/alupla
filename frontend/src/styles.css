@@ -92,6 +92,38 @@ hr{border:none;border-top:1px solid #eef2f7;margin:12px 0}
 .mobile-drawer-brand{cursor:pointer}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .table-wrap .table{min-width:max-content}
+
+.statistics-metric-card{
+  min-width:0;
+}
+.statistics-metric-label{
+  color:#475569;
+  font-size:17px;
+  line-height:1.32;
+  font-weight:500;
+}
+.statistics-metric-value{
+  font-size:28px;
+  font-weight:800;
+  margin-top:4px;
+  line-height:1.1;
+  color:#0f172a;
+}
+html.accessibility-high-contrast .statistics-metric-card{
+  border-width:2px !important;
+}
+html.accessibility-high-contrast .statistics-metric-label{
+  color:#000000 !important;
+  font-size:17px !important;
+  line-height:1.32 !important;
+  font-weight:500 !important;
+}
+html.accessibility-high-contrast .statistics-metric-value{
+  color:#000000 !important;
+  font-size:28px !important;
+  line-height:1.1 !important;
+  font-weight:800 !important;
+}
 .page-two-col{display:grid;grid-template-columns:1.7fr 0.9fr;gap:12px;align-items:start}
 .map-panel-stack{display:grid;gap:12px}
 .map-canvas{height:calc(100vh - 240px);min-height:640px;width:100%}
