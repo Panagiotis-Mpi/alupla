@@ -421,8 +421,7 @@ export default function Statistics() {
   }, [selectedExportFormat]);
 
   function openExportSelection(format: "xlsx" | "csv" | "png") {
-    const defaultChartIds = chartGroups.find((group) => group.key === activeGroup)?.charts.map((chart) => chart.id) ?? [];
-    setSelectedChartIds(defaultChartIds);
+    setSelectedChartIds([]);
     setSelectedExportFormat(format);
     setExportOpen(false);
   }
@@ -453,79 +452,58 @@ export default function Statistics() {
 
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-    await new Promise<void>((resolve) => window.setTimeout(resolve, 220));
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 260));
+
+    const chartMeta = new Map(
+      chartGroups.flatMap((group) => group.charts.map((chart) => [chart.id, { groupLabel: group.label, chartLabel: chart.label }] as const))
+    );
 
     const findChartCard = (chartId: StatisticsChartId) => {
       const selector = `[data-export-chart-id="${chartId}"]`;
       return exportRoot?.querySelector<HTMLElement>(selector) ?? visibleRoot?.querySelector<HTMLElement>(selector) ?? null;
     };
 
-    const selectedSet = new Set(selectedChartIds);
-    const groupsForExport = chartGroups
-      .map((group) => ({
-        ...group,
-        charts: group.charts.filter((chart) => selectedSet.has(chart.id)),
-      }))
-      .filter((group) => group.charts.length > 0);
-
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     const downloaded: string[] = [];
 
-    for (const group of groupsForExport) {
-      const chunks = group.key === "academic" && group.charts.length > 4
-        ? [group.charts.slice(0, 4), group.charts.slice(4)]
-        : [group.charts];
+    for (const chartId of selectedChartIds) {
+      const card = findChartCard(chartId);
+      if (!card) continue;
 
-      for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
-        const charts = chunks[chunkIndex];
-        const snapshots = [] as Array<{ image: HTMLImageElement; width: number; height: number }>;
+      await waitForRenderableImages(card);
 
-        for (const chart of charts) {
-          const card = findChartCard(chart.id);
-          if (!card) continue;
-          await waitForRenderableImages(card);
-          try {
-            snapshots.push(await renderElementSnapshot(card));
-          } catch {}
-        }
-
-        if (!snapshots.length) continue;
-
-        const padding = 24;
-        const gap = 20;
-        const titleHeight = 52;
-        const canvasWidth = Math.max(...snapshots.map((snapshot) => snapshot.width)) + padding * 2;
-        const canvasHeight = titleHeight + padding + snapshots.reduce((total, snapshot) => total + snapshot.height, 0) + gap * Math.max(0, snapshots.length - 1) + padding;
+      try {
+        const snapshot = await renderElementSnapshot(card);
         const out = document.createElement("canvas");
+        const padding = 18;
+        const width = snapshot.width + padding * 2;
+        const height = snapshot.height + padding * 2;
 
-        out.width = canvasWidth * 2;
-        out.height = canvasHeight * 2;
+        out.width = width * 2;
+        out.height = height * 2;
 
         const ctx = out.getContext("2d");
         if (!ctx) continue;
 
         ctx.scale(2, 2);
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-        ctx.fillStyle = "#0f172a";
-        ctx.font = '700 24px Arial, sans-serif';
-        ctx.fillText(group.label, padding, 34);
-
-        let offsetY = titleHeight;
-        snapshots.forEach((snapshot, snapshotIndex) => {
-          ctx.drawImage(snapshot.image, padding, offsetY, snapshot.width, snapshot.height);
-          offsetY += snapshot.height;
-          if (snapshotIndex < snapshots.length - 1) offsetY += gap;
-        });
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(snapshot.image, padding, padding, snapshot.width, snapshot.height);
 
         const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, "image/png"));
         if (!blob) continue;
 
-        const suffix = chunks.length > 1 ? `_part-${chunkIndex + 1}` : "";
-        const filename = buildStatisticsExportFilename({ ...exportArgs, selectedChartIds: charts.map((chart) => chart.id) }, "png").replace(/\.png$/, `${suffix}.png`);
+        const meta = chartMeta.get(chartId);
+        const baseName = ["alupla", "statistics", meta?.groupLabel ?? "group", meta?.chartLabel ?? chartId, stamp]
+          .map((part) => fileSlug(String(part)))
+          .filter(Boolean)
+          .join("_");
+        const filename = `${baseName || `alupla_statistics_${chartId}_${stamp}`}.png`;
+
         downloadBlob(blob, filename);
         downloaded.push(filename);
-        await new Promise<void>((resolve) => window.setTimeout(resolve, 120));
-      }
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 140));
+      } catch {}
     }
 
     if (!downloaded.length) throw new Error("png_export_failed");
