@@ -14,7 +14,7 @@ import {
   BarElement,
   ArcElement,
 } from "chart.js";
-import { downloadCanvasAsPng, fileSlug, renderElementSnapshot } from "./statistics/snapshot";
+import { downloadCanvasAsPng, downloadCombinedSnapshotsAsPng, fileSlug, renderElementSnapshot } from "./statistics/snapshot";
 import { waitForRenderableImages } from "../lib/domSnapshot";
 import { buildLineDataset } from "./statistics/ui";
 import {
@@ -454,8 +454,16 @@ export default function Statistics() {
     await new Promise<void>((resolve) => window.setTimeout(resolve, 260));
 
     const chartMeta = new Map(
-      chartGroups.flatMap((group) => group.charts.map((chart) => [chart.id, { groupLabel: group.label, chartLabel: chart.label }] as const))
+      chartGroups.flatMap((group) => group.charts.map((chart) => [chart.id, { groupKey: group.key, groupLabel: group.label, chartLabel: chart.label }] as const))
     );
+
+    const orderedGroupSelections = chartGroups
+      .map((group) => ({
+        key: group.key,
+        label: group.label,
+        chartIds: group.charts.map((chart) => chart.id).filter((chartId) => selectedChartIds.includes(chartId)),
+      }))
+      .filter((group) => group.chartIds.length > 0);
 
     const findChartCard = (chartId: StatisticsChartId) => {
       const selector = `[data-export-chart-id="${chartId}"]`;
@@ -464,15 +472,34 @@ export default function Statistics() {
 
     const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     const downloaded: string[] = [];
+    const maxChartsPerPage = 4;
 
-    for (const chartId of selectedChartIds) {
-      const card = findChartCard(chartId);
-      if (!card) continue;
+    for (const group of orderedGroupSelections) {
+      const snapshots: Array<{ chartId: StatisticsChartId; image: HTMLImageElement; width: number; height: number; caption?: string }> = [];
 
-      await waitForRenderableImages(card);
+      for (const chartId of group.chartIds) {
+        const card = findChartCard(chartId);
+        if (!card) continue;
 
-      try {
-        const snapshot = await renderElementSnapshot(card);
+        await waitForRenderableImages(card);
+
+        try {
+          const snapshot = await renderElementSnapshot(card);
+          const meta = chartMeta.get(chartId);
+          snapshots.push({
+            chartId,
+            image: snapshot.image,
+            width: snapshot.width,
+            height: snapshot.height,
+            caption: group.chartIds.length > 1 ? meta?.chartLabel ?? chartId : undefined,
+          });
+        } catch {}
+      }
+
+      if (!snapshots.length) continue;
+
+      if (snapshots.length === 1) {
+        const snapshot = snapshots[0];
         const out = document.createElement("canvas");
         const padding = 18;
         const width = snapshot.width + padding * 2;
@@ -489,19 +516,35 @@ export default function Statistics() {
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(snapshot.image, padding, padding, snapshot.width, snapshot.height);
 
-        const meta = chartMeta.get(chartId);
-        const baseName = ["alupla", "statistics", meta?.groupLabel ?? "group", meta?.chartLabel ?? chartId, stamp]
+        const meta = chartMeta.get(snapshot.chartId);
+        const baseName = ["alupla", "statistics", meta?.groupLabel ?? group.label, meta?.chartLabel ?? snapshot.chartId, stamp]
           .map((part) => fileSlug(String(part)))
           .filter(Boolean)
           .join("_");
-        const filename = `${baseName || `alupla_statistics_${chartId}_${stamp}`}.png`;
-
+        const filename = `${baseName || `alupla_statistics_${snapshot.chartId}_${stamp}`}.png`;
         const didDownload = await downloadCanvasAsPng(out, filename);
         if (!didDownload) continue;
-
         downloaded.push(filename);
         await new Promise<void>((resolve) => window.setTimeout(resolve, 220));
-      } catch {}
+        continue;
+      }
+
+      for (let pageIndex = 0; pageIndex < snapshots.length; pageIndex += maxChartsPerPage) {
+        const pageSnapshots = snapshots.slice(pageIndex, pageIndex + maxChartsPerPage);
+        const pageNumber = Math.floor(pageIndex / maxChartsPerPage) + 1;
+        const totalPages = Math.ceil(snapshots.length / maxChartsPerPage);
+        const title = totalPages > 1 ? `${group.label} ${pageNumber}/${totalPages}` : group.label;
+        const baseName = ["alupla", "statistics", group.label, totalPages > 1 ? `page_${pageNumber}` : null, stamp]
+          .filter(Boolean)
+          .map((part) => fileSlug(String(part)))
+          .filter(Boolean)
+          .join("_");
+        const filename = `${baseName || `alupla_statistics_${group.key}_${pageNumber}_${stamp}`}.png`;
+        const didDownload = await downloadCombinedSnapshotsAsPng(filename, title, pageSnapshots);
+        if (!didDownload) continue;
+        downloaded.push(filename);
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 220));
+      }
     }
 
     if (!downloaded.length) throw new Error("png_export_failed");
