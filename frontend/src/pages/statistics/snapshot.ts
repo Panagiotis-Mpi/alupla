@@ -1,4 +1,4 @@
-import { prepareSnapshotClone } from "../../lib/domSnapshot";
+import { prepareSnapshotClone, waitForRenderableImages } from "../../lib/domSnapshot";
 
 function expandSnapshotClone(sourceRoot: HTMLElement, cloneRoot: HTMLElement) {
   const sourceNodes = [sourceRoot, ...Array.from(sourceRoot.querySelectorAll<HTMLElement>("*"))];
@@ -43,7 +43,8 @@ export async function renderElementSnapshot(element: HTMLElement) {
   const rect = element.getBoundingClientRect();
   const width = Math.ceil(Math.max(rect.width, element.scrollWidth));
   const height = Math.ceil(Math.max(rect.height, element.scrollHeight));
-  const clone = prepareSnapshotClone(element);
+  await waitForRenderableImages(element);
+  const clone = await prepareSnapshotClone(element);
   expandSnapshotClone(element, clone);
   clone.style.margin = "0";
   clone.style.width = `${width}px`;
