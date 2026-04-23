@@ -72,3 +72,19 @@ export async function renderElementSnapshot(element: HTMLElement) {
 
   return { image, width, height };
 }
+
+
+export async function downloadCanvasAsPng(canvas: HTMLCanvasElement, filename: string) {
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+  if (!blob) return false;
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  return true;
+}

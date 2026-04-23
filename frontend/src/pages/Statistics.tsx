@@ -14,8 +14,7 @@ import {
   BarElement,
   ArcElement,
 } from "chart.js";
-import { fileSlug, renderElementSnapshot } from "./statistics/snapshot";
-import { downloadBlob } from "../lib/download";
+import { downloadCanvasAsPng, fileSlug, renderElementSnapshot } from "./statistics/snapshot";
 import { waitForRenderableImages } from "../lib/domSnapshot";
 import { buildLineDataset } from "./statistics/ui";
 import {
@@ -490,10 +489,6 @@ export default function Statistics() {
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(snapshot.image, padding, padding, snapshot.width, snapshot.height);
 
-        const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, "image/png"));
-        const exportBlob = blob ?? await fetch(out.toDataURL("image/png")).then((response) => response.blob());
-        if (!exportBlob) continue;
-
         const meta = chartMeta.get(chartId);
         const baseName = ["alupla", "statistics", meta?.groupLabel ?? "group", meta?.chartLabel ?? chartId, stamp]
           .map((part) => fileSlug(String(part)))
@@ -501,7 +496,9 @@ export default function Statistics() {
           .join("_");
         const filename = `${baseName || `alupla_statistics_${chartId}_${stamp}`}.png`;
 
-        await downloadBlob(exportBlob, filename);
+        const didDownload = await downloadCanvasAsPng(out, filename);
+        if (!didDownload) continue;
+
         downloaded.push(filename);
         await new Promise<void>((resolve) => window.setTimeout(resolve, 220));
       } catch {}
