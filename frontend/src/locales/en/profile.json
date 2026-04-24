@@ -29,7 +29,8 @@
     "new": "New password",
     "submit": "Change",
     "success": "Password changed successfully",
-    "hint": "8+ chars, letter + number + symbol"
+    "hint": "8+ chars, letter + number + symbol",
+    "optional": "Optional"
   },
   "error": "Error"
 }
