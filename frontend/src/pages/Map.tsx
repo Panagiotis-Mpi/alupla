@@ -170,6 +170,62 @@ function genderLegendPattern(entryKey: string) {
   return "";
 }
 
+
+function buildCountMarkerScale(countsInput: number[], palette: string[], radii: number[]) {
+  const counts = Array.from(
+    new Set(
+      countsInput
+        .map((value) => Math.max(0, Math.round(Number(value) || 0)))
+        .filter((value) => value > 0),
+    ),
+  ).sort((left, right) => left - right);
+
+  if (!counts.length) return { breaks: [] as number[], bucketForCount: () => 0 };
+
+  const maxBuckets = Math.min(palette.length, radii.length);
+  const min = counts[0];
+  const max = counts[counts.length - 1];
+  let breaks: number[] = [];
+
+  if (counts.length <= maxBuckets) {
+    breaks = counts;
+  } else if (max / Math.max(1, min) >= 4) {
+    const firstLimit = Math.max(1, min);
+    breaks = [firstLimit];
+    const remaining = maxBuckets - 1;
+    for (let index = 1; index <= remaining; index += 1) {
+      const ratio = index / remaining;
+      const raw = Math.exp(Math.log(firstLimit) + (Math.log(max) - Math.log(firstLimit)) * ratio);
+      const rounded = Math.max(firstLimit + 1, Math.round(raw));
+      const previous = breaks[breaks.length - 1];
+      if (rounded > previous && rounded < max) breaks.push(rounded);
+    }
+    if (breaks[breaks.length - 1] !== max) breaks.push(max);
+  } else {
+    breaks = Array.from({ length: maxBuckets }, (_, index) => {
+      const position = Math.min(counts.length - 1, Math.round((index / (maxBuckets - 1)) * (counts.length - 1)));
+      return counts[position];
+    });
+  }
+
+  breaks = breaks
+    .filter((value, index, list) => value > 0 && (index === 0 || value > list[index - 1]))
+    .slice(0, maxBuckets);
+
+  if (breaks[breaks.length - 1] !== max) {
+    if (breaks.length >= maxBuckets) breaks[breaks.length - 1] = max;
+    else breaks.push(max);
+  }
+
+  const bucketForCount = (count: number) => {
+    const safeCount = Math.max(0, Math.round(Number(count) || 0));
+    const hit = breaks.findIndex((value) => safeCount <= value);
+    return hit === -1 ? breaks.length - 1 : hit;
+  };
+
+  return { breaks, bucketForCount };
+}
+
 function sameMapSelection(scope: MapScope, left: any, right: any) {
   if (!left || !right) return false;
   if (scope === "abroad") {
@@ -271,20 +327,6 @@ function projectMarkerToViewport(
   const y = ((north - latitude) / latSpan) * height;
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
   return { x, y };
-}
-
-function visibleLabelLimit(scope: MapScope, zoom: number) {
-  if (scope === "abroad") {
-    if (zoom < 2.4) return 8;
-    if (zoom < 3) return 14;
-    if (zoom < 3.8) return 24;
-    return Number.POSITIVE_INFINITY;
-  }
-  if (zoom < 6.2) return 10;
-  if (zoom < 6.8) return 18;
-  if (zoom < 7.4) return 28;
-  if (zoom < 8) return 40;
-  return Number.POSITIVE_INFINITY;
 }
 
 export default function GraduatesMapPage() {
@@ -426,7 +468,7 @@ export default function GraduatesMapPage() {
 
   const greekCityMarkers = useMemo(() => {
     const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
-    const radii = [10, 12, 15, 18, 21, 25, 29];
+    const radii = [10, 13, 16, 20, 24, 29, 34];
     const grouped = new Map<string, any>();
     const collapseMetro = shouldCollapseMetroAtZoom(mapZoom);
 
@@ -490,22 +532,11 @@ export default function GraduatesMapPage() {
       avg_graduation_years: Number(item.avg_graduation_weight || 0) > 0 ? Number(item.avg_graduation_weighted_sum || 0) / Number(item.avg_graduation_weight || 1) : item.avg_graduation_years,
     }));
 
-    const counts = points.map((item) => Math.max(0, Number(item.count) || 0)).sort((left, right) => left - right);
+    const counts = points.map((item) => Math.max(0, Number(item.count) || 0));
     if (!counts.length) return { items: [] as Array<any>, legend: [] as Array<any>, maxCount: 0 };
-
-    const breaks = Array.from({ length: palette.length }, (_, index) => {
-      const percentile = (index + 1) / palette.length;
-      const position = Math.min(counts.length - 1, Math.max(0, Math.ceil(percentile * counts.length) - 1));
-      return counts[position];
-    }).reduce((acc: number[], value) => {
-      if (!acc.length || value > acc[acc.length - 1]) acc.push(value);
-      return acc;
-    }, []);
-
-    const bucketForCount = (count: number) => {
-      const hit = breaks.findIndex((value) => count <= value);
-      return hit === -1 ? breaks.length - 1 : hit;
-    };
+    const sortedCounts = counts.filter((value) => value > 0).sort((left, right) => left - right);
+    if (!sortedCounts.length) return { items: [] as Array<any>, legend: [] as Array<any>, maxCount: 0 };
+    const { breaks, bucketForCount } = buildCountMarkerScale(sortedCounts, palette, radii);
 
     const legend = breaks.map((limit, index) => {
       const from = index === 0 ? 1 : breaks[index - 1] + 1;
@@ -534,7 +565,7 @@ export default function GraduatesMapPage() {
         };
       }),
       legend,
-      maxCount: counts[counts.length - 1],
+      maxCount: sortedCounts[sortedCounts.length - 1],
     };
   }, [cityPoints, mapZoom, mt]);
 
@@ -691,7 +722,7 @@ export default function GraduatesMapPage() {
 
   const abroadCountryMarkers = useMemo(() => {
     const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
-    const radii = [10, 12, 15, 18, 21, 25, 29];
+    const radii = [10, 13, 16, 20, 24, 29, 34];
     const grouped = new Map<string, any>();
 
     for (const city of cityPoints) {
@@ -749,20 +780,7 @@ export default function GraduatesMapPage() {
 
     const counts = points.map((item) => Math.max(0, Number(item.count) || 0)).filter((value) => value > 0).sort((left, right) => left - right);
     if (!counts.length) return [] as Array<any>;
-
-    const breaks = Array.from({ length: palette.length }, (_, index) => {
-      const percentile = (index + 1) / palette.length;
-      const position = Math.min(counts.length - 1, Math.max(0, Math.ceil(percentile * counts.length) - 1));
-      return counts[position];
-    }).reduce((acc: number[], value) => {
-      if (!acc.length || value > acc[acc.length - 1]) acc.push(value);
-      return acc;
-    }, []);
-
-    const bucketForCount = (count: number) => {
-      const hit = breaks.findIndex((value) => count <= value);
-      return hit === -1 ? breaks.length - 1 : hit;
-    };
+    const { bucketForCount } = buildCountMarkerScale(counts, palette, radii);
 
     return points
       .map((item) => {
@@ -788,15 +806,8 @@ export default function GraduatesMapPage() {
       .sort((left, right) => left - right);
     if (!counts.length) return [] as Array<any>;
     const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
-    const sizes = [10, 12, 15, 18, 21, 25, 29];
-    const breaks = Array.from({ length: palette.length }, (_, index) => {
-      const percentile = (index + 1) / palette.length;
-      const position = Math.min(counts.length - 1, Math.max(0, Math.ceil(percentile * counts.length) - 1));
-      return counts[position];
-    }).reduce((acc: number[], value) => {
-      if (!acc.length || value > acc[acc.length - 1]) acc.push(value);
-      return acc;
-    }, []);
+    const sizes = [10, 13, 16, 20, 24, 29, 34];
+    const { breaks } = buildCountMarkerScale(counts, palette, sizes);
     return breaks.map((limit, index) => {
       const from = index === 0 ? 1 : breaks[index - 1] + 1;
       return {
@@ -830,16 +841,6 @@ export default function GraduatesMapPage() {
     return mt("legendLabels.countByCity", { defaultValue: "Πλήθος αποφοίτων ανά πόλη στην Ελλάδα" });
   }, [mapMetric, mapScope, mt]);
 
-  const rankedMarkersBase = useMemo(() => {
-    const source = (mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items)
-      .map((item) => ({ item, count: Math.max(0, Number((item as any).count) || 0), name: String((item as any).city_name || (item as any).periphery_name || "") }))
-      .sort((left, right) => {
-        if (right.count !== left.count) return right.count - left.count;
-        return left.name.localeCompare(right.name, "el");
-      });
-    return new Map(source.map((entry, index) => [mapCityKey(entry.item as any), index]));
-  }, [abroadCountryMarkers, greekCityMarkers.items, mapScope]);
-  const labelLimit = useMemo(() => visibleLabelLimit(mapScope, mapZoom), [mapScope, mapZoom]);
   const declutteredMarkerMap = useMemo(() => {
     const source = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
     const selectedKeys = new Set(
@@ -852,8 +853,7 @@ export default function GraduatesMapPage() {
       return new Map(
         source.map((item) => {
           const key = mapCityKey(item as any);
-          const rank = rankedMarkersBase.get(key);
-          return [key, { visible: true, showLabel: rank === undefined ? true : rank < labelLimit }];
+          return [key, { visible: true, showLabel: true }];
         }),
       );
     }
@@ -878,8 +878,7 @@ export default function GraduatesMapPage() {
       const key = mapCityKey(item as any);
       const latitude = mapCityLatitude(item as any);
       const longitude = mapCityLongitude(item as any);
-      const rank = rankedMarkersBase.get(key);
-      const defaultLabel = rank === undefined ? true : rank < labelLimit;
+      const defaultLabel = true;
       if (latitude === null || longitude === null) {
         result.set(key, { visible: false, showLabel: false });
         continue;
@@ -900,7 +899,7 @@ export default function GraduatesMapPage() {
       if (visible) placed.push({ x: projected.x, y: projected.y, key });
     }
     return result;
-  }, [abroadCountryMarkers, greekCityMarkers.items, labelLimit, mapBounds, mapScope, mapZoom, rankedMarkersBase, selectedCityCards]);
+  }, [abroadCountryMarkers, greekCityMarkers.items, mapBounds, mapScope, mapZoom, selectedCityCards]);
   const shouldShowMarkerLabel = useCallback((city: any) => declutteredMarkerMap.get(mapCityKey(city as any))?.showLabel ?? true, [declutteredMarkerMap]);
   const renderedMarkers = useMemo(() => {
     const source = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
