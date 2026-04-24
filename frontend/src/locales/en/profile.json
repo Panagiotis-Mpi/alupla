@@ -1,43 +1,6 @@
 {
   "title": "Profile",
-  "subtitle": "A compact view of account details and secure password change.",
-  "info": {
-    "email": "Email",
-    "name": "Full name",
-    "role": "Role"
-  },
-  "roles": {
-    "super_admin": "Administrator",
-    "secretariat": "Secretariat"
-  },
-  "editProfile": {
-    "button": "Edit profile",
-    "close": "Close editor",
-    "title": "Edit details",
-    "note": "Change only what is needed and save all updates together.",
-    "accountTitle": "Account details",
-    "accountNote": "Basic information",
-    "firstName": "First name",
-    "lastName": "Last name",
-    "email": "Email",
-    "save": "Save",
-    "cancel": "Cancel",
-    "success": "Profile updated successfully"
-  },
-  "changePassword": {
-    "title": "Change password",
-    "current": "Current password",
-    "new": "New password",
-    "submit": "Change",
-    "success": "Password changed successfully",
-    "optional": "Optional password change",
-    "note": "Fill this in only if you want a new password",
-    "rules": [
-      "At least 8 characters",
-      "At least one letter",
-      "At least one number",
-      "At least one symbol"
-    ]
-  },
-  "error": "Error"
+  "edit": "Edit profile",
+  "save": "Save",
+  "cancel": "Cancel"
 }
