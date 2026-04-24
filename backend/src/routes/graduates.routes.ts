@@ -12,12 +12,13 @@ import {
 } from "../controllers/graduates.controller";
 import { allowRoles, authRequired } from "../middleware/auth";
 import { upload } from "../middleware/upload";
+import { routeCache } from "../utils/routeCache";
 
 export const graduatesRouter = Router();
 
 graduatesRouter.use(authRequired, allowRoles(["secretariat", "super_admin"]));
 
-graduatesRouter.get("/", listGraduates);
+graduatesRouter.get("/", routeCache("graduates", 2 * 60 * 1000), listGraduates);
 
 graduatesRouter.post("/", createGraduate);
 

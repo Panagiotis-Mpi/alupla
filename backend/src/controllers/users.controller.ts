@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
 import { badRequest, hashPassword, isStrongPassword, normalizeEmail, normalizeText, notFound, toSafeUser } from "../utils/userAccounts";
+import { clearRouteCaches } from "../utils/routeCache";
 
 type AllowedRole = "super_admin" | "secretariat";
 
@@ -68,6 +69,8 @@ export async function createUser(req: Request, res: Response, next: NextFunction
 
     await logAction({ user_id: req.auth!.id, action: "create_user", entity_type: "user", entity_id: u.id });
 
+    clearRouteCaches(["users"]);
+
     res.status(201).json({ ok: true, item: toSafeUser(u) });
   } catch (e) {
     next(e);
@@ -113,6 +116,8 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
       details: { changed: Object.keys(body) }
     });
 
+    clearRouteCaches(["users"]);
+
     res.json({ ok: true, item: toSafeUser(u) });
   } catch (e) {
     next(e);
@@ -135,6 +140,8 @@ export async function deactivateUser(req: Request, res: Response, next: NextFunc
       details: { target_name: targetName }
     });
     await u.destroy();
+
+    clearRouteCaches(["users"]);
 
     res.json({ ok: true });
   } catch (e) {

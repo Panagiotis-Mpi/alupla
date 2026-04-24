@@ -29,6 +29,10 @@ function setPublicStatsCache(key: string, body: Record<string, unknown>) {
   publicStatsCache.set(key, { expires: Date.now() + PUBLIC_STATS_CACHE_MS, body });
 }
 
+export function clearPublicStatsCache() {
+  publicStatsCache.clear();
+}
+
 export async function publicStudyPrograms(_req: Request, res: Response) {
   const items = await StudyProgram.findAll({
     attributes: ["id", "code", "name_el", "name_en"],

@@ -1,5 +1,6 @@
 import { ActivityLog } from "../models/ActivityLog";
 import { User } from "../models/User";
+import { clearRouteCaches } from "../utils/routeCache";
 
 type LogActionParams = {
   user_id?: number | null;
@@ -41,4 +42,5 @@ export async function logAction(params: LogActionParams) {
   };
 
   await ActivityLog.create(payload);
+  clearRouteCaches(["activity-logs", "activity-log-summary"]);
 }

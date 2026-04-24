@@ -37,6 +37,8 @@ import {
 } from "./graduates.helpers";
 import { applyOriginPatch, buildCreateOriginPayload, buildExportRows, buildResolvedOriginSnapshot, ensureManagedOrigin, getReferenceMaps, getTemplateHeaders, resolveRegionId, resolveStudyProgramId } from "./graduates.shared";
 import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
+import { clearRouteCaches } from "../utils/routeCache";
+import { clearPublicStatsCache } from "./public.controller";
 
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
   try {
@@ -418,6 +420,9 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       });
     } catch {}
 
+    clearRouteCaches(["graduates", "map"]);
+    clearPublicStatsCache();
+
     return res.json({
       ok: true,
       summary: {
@@ -546,6 +551,9 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
       details: { student_number }
     });
 
+    clearRouteCaches(["graduates", "map"]);
+    clearPublicStatsCache();
+
     res.status(201).json({ ok: true, item: created });
   } catch (err) {
     next(err);
@@ -631,6 +639,9 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       details: { changed: Object.keys(body) }
     });
 
+    clearRouteCaches(["graduates", "map"]);
+    clearPublicStatsCache();
+
     res.json({ ok: true, item });
   } catch (err) {
     next(err);
@@ -654,6 +665,9 @@ export async function deleteGraduate(req: Request, res: Response, next: NextFunc
       entity_id: id,
       details: { student_number: String((item as any).student_number ?? "").trim() }
     });
+
+    clearRouteCaches(["graduates", "map"]);
+    clearPublicStatsCache();
 
     res.json({ ok: true });
   } catch (err) {

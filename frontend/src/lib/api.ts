@@ -126,8 +126,14 @@ type ActivityLogFileSummaryResponse = ApiOk & { items: Array<{ name: string; cou
 type PublicStatsResponse = ApiOk & Record<string, unknown>;
 const PUBLIC_STATS_CACHE_MS = 5 * 60 * 1000;
 const MAP_CACHE_MS = 3 * 60 * 1000;
+const PROTECTED_CACHE_MS = 2 * 60 * 1000;
+const USERS_CACHE_MS = 8 * 1000;
+const LOGS_CACHE_MS = 15 * 1000;
+const LOGS_SUMMARY_CACHE_MS = 30 * 1000;
+const REFERENCE_CACHE_MS = 10 * 60 * 1000;
 const publicStatsMemoryCache = new Map<string, { expires: number; value: PublicStatsResponse }>();
 const mapMemoryCache = new Map<string, { expires: number; value: unknown }>();
+const protectedMemoryCache = new Map<string, { expires: number; value: unknown }>();
 
 function readPublicStatsCache(key: string) {
   const now = Date.now();
@@ -202,6 +208,84 @@ async function cachedMapApi<T>(path: string): Promise<T> {
   if (cached) return cached;
   const response = await api<T>(path, { method: "GET" });
   if ((response as any)?.ok) writeMapCache(key, response);
+  return response;
+}
+
+function privateCacheTokenPart() {
+  const token = getToken();
+  return token ? token.slice(0, 24) : "guest";
+}
+
+function readProtectedCache<T>(key: string): T | null {
+  const now = Date.now();
+  const memory = protectedMemoryCache.get(key);
+  if (memory && memory.expires > now) return memory.value as T;
+  if (memory) protectedMemoryCache.delete(key);
+
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { expires?: number; value?: T };
+    if (parsed?.expires && parsed.expires > now && parsed.value) {
+      protectedMemoryCache.set(key, { expires: parsed.expires, value: parsed.value });
+      return parsed.value;
+    }
+    sessionStorage.removeItem(key);
+  } catch {
+    try {
+      sessionStorage.removeItem(key);
+    } catch {
+    }
+  }
+  return null;
+}
+
+function writeProtectedCache<T>(key: string, value: T, ttlMs: number) {
+  const entry = { expires: Date.now() + ttlMs, value };
+  protectedMemoryCache.set(key, entry);
+  try {
+    sessionStorage.setItem(key, JSON.stringify(entry));
+  } catch {
+  }
+}
+
+function clearCachedKeys(prefixes: string[]) {
+  for (const key of Array.from(protectedMemoryCache.keys())) {
+    if (prefixes.some((prefix) => key.startsWith(prefix))) protectedMemoryCache.delete(key);
+  }
+  for (const key of Array.from(publicStatsMemoryCache.keys())) {
+    if (prefixes.some((prefix) => key.startsWith(prefix))) publicStatsMemoryCache.delete(key);
+  }
+  for (const key of Array.from(mapMemoryCache.keys())) {
+    if (prefixes.some((prefix) => key.startsWith(prefix))) mapMemoryCache.delete(key);
+  }
+  try {
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i) || "";
+      if (prefixes.some((prefix) => key.startsWith(prefix))) sessionStorage.removeItem(key);
+    }
+  } catch {
+  }
+}
+
+function clearGraduateRelatedCaches() {
+  clearCachedKeys(["alupla:graduates:", "alupla:public-stats:", "alupla:map:", "alupla:logs:", "alupla:logs-summary:"]);
+}
+
+function clearUserRelatedCaches() {
+  clearCachedKeys(["alupla:users:", "alupla:logs:", "alupla:logs-summary:"]);
+}
+
+function clearActivityLogCaches() {
+  clearCachedKeys(["alupla:logs:", "alupla:logs-summary:"]);
+}
+
+async function cachedPrivateApi<T>(scope: string, path: string, ttlMs: number): Promise<T> {
+  const key = `alupla:${scope}:${privateCacheTokenPart()}:${path}`;
+  const cached = readProtectedCache<T>(key);
+  if (cached) return cached;
+  const response = await api<T>(path, { method: "GET" });
+  if ((response as any)?.ok) writeProtectedCache(key, response, ttlMs);
   return response;
 }
 
@@ -289,7 +373,7 @@ export async function changePassword(
 
 
 export async function listUsers(): Promise<ListResponse<User>> {
-  return api("/users", { method: "GET" });
+  return cachedPrivateApi("users", "/users", USERS_CACHE_MS);
 }
 
 export async function createUser(payload: {
@@ -299,18 +383,24 @@ export async function createUser(payload: {
   role: UserRole;
   password: string;
  }): Promise<ItemResponse<User>> {
-  return api("/users", { method: "POST", body: payload });
+  const response = await api<ItemResponse<User>>("/users", { method: "POST", body: payload });
+  clearUserRelatedCaches();
+  return response;
 }
 
 export async function updateUser(
   id: number,
   patch: Partial<Pick<User, "first_name" | "last_name" | "email" | "role" | "is_active">>
 ): Promise<ItemResponse<User>> {
-  return api(`/users/${id}`, { method: "PUT", body: patch });
+  const response = await api<ItemResponse<User>>(`/users/${id}`, { method: "PUT", body: patch });
+  clearUserRelatedCaches();
+  return response;
 }
 
 export async function deactivateUser(id: number): Promise<ApiOk> {
-  return api(`/users/${id}`, { method: "DELETE" });
+  const response = await api<ApiOk>(`/users/${id}`, { method: "DELETE" });
+  clearUserRelatedCaches();
+  return response;
 }
 
 export async function pingPresence(): Promise<ApiOk> {
@@ -318,9 +408,9 @@ export async function pingPresence(): Promise<ApiOk> {
 }
 
 export async function listStudyPrograms(): Promise<ListResponse<StudyProgram>> {
-  if (!getToken()) return api("/public/study-programs", { method: "GET" });
+  if (!getToken()) return cachedPrivateApi("references", "/public/study-programs", REFERENCE_CACHE_MS);
   try {
-    return await api("/study-programs", { method: "GET" });
+    return await cachedPrivateApi("references", "/study-programs", REFERENCE_CACHE_MS);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (/401|403|unauthorized|forbidden/i.test(message)) return api("/public/study-programs", { method: "GET" });
@@ -335,18 +425,24 @@ export async function createStudyProgram(payload: {
   name_en?: string | null;
   is_active?: boolean;
 }): Promise<ItemResponse<StudyProgram>> {
-  return api("/study-programs", { method: "POST", body: payload });
+  const response = await api<ItemResponse<StudyProgram>>("/study-programs", { method: "POST", body: payload });
+  clearCachedKeys(["alupla:references:", "alupla:graduates:", "alupla:public-stats:", "alupla:map:"]);
+  return response;
 }
 
 export async function updateStudyProgram(
   id: number,
   payload: Partial<{ code: string; name_el: string; name_en?: string | null; is_active?: boolean }>
  ): Promise<ApiOk & { item?: StudyProgram }> {
-  return api(`/study-programs/${id}`, { method: "PUT", body: payload });
+  const response = await api<ApiOk & { item?: StudyProgram }>(`/study-programs/${id}`, { method: "PUT", body: payload });
+  clearCachedKeys(["alupla:references:", "alupla:graduates:", "alupla:public-stats:", "alupla:map:"]);
+  return response;
 }
 
 export async function deleteStudyProgram(id: number): Promise<ApiOk> {
-  return api(`/study-programs/${id}`, { method: "DELETE" });
+  const response = await api<ApiOk>(`/study-programs/${id}`, { method: "DELETE" });
+  clearCachedKeys(["alupla:references:", "alupla:graduates:", "alupla:public-stats:", "alupla:map:"]);
+  return response;
 }
 
 export async function importStudyProgramsFile(file: File): Promise<ApiOk & Record<string, unknown>> {
@@ -365,7 +461,9 @@ export async function importStudyProgramsFile(file: File): Promise<ApiOk & Recor
     const msg = readApiErrorMessage(j, res.statusText);
     throw new Error(msg);
   }
-  return await res.json();
+  const data = await res.json();
+  clearCachedKeys(["alupla:references:", "alupla:graduates:", "alupla:public-stats:", "alupla:map:"]);
+  return data;
 }
 
 export async function downloadStudyProgramsTemplateXlsx(lang?: string): Promise<Blob> {
@@ -373,7 +471,8 @@ export async function downloadStudyProgramsTemplateXlsx(lang?: string): Promise<
 }
 
 export async function listGraduates(params: QueryParams = {}): Promise<ListResponse<Graduate>> {
-  return api(`/graduates${toQueryString(params)}`, { method: "GET" });
+  const path = `/graduates${toQueryString(params)}`;
+  return cachedPrivateApi("graduates", path, PROTECTED_CACHE_MS);
 }
 
 export async function getGraduate(id: number | string): Promise<ApiOk & { item: Graduate }> {
@@ -381,15 +480,21 @@ export async function getGraduate(id: number | string): Promise<ApiOk & { item: 
 }
 
 export async function createGraduate(payload: GraduatePayload): Promise<ApiOk & { item?: Graduate }> {
-  return api(`/graduates`, { method: "POST", body: payload });
+  const response = await api<ApiOk & { item?: Graduate }>(`/graduates`, { method: "POST", body: payload });
+  clearGraduateRelatedCaches();
+  return response;
 }
 
 export async function updateGraduate(id: number | string, payload: GraduatePayload): Promise<ApiOk & { item?: Graduate }> {
-  return api(`/graduates/${id}`, { method: "PUT", body: payload });
+  const response = await api<ApiOk & { item?: Graduate }>(`/graduates/${id}`, { method: "PUT", body: payload });
+  clearGraduateRelatedCaches();
+  return response;
 }
 
 export async function deleteGraduate(id: number | string): Promise<ApiOk> {
-  return api(`/graduates/${id}`, { method: "DELETE" });
+  const response = await api<ApiOk>(`/graduates/${id}`, { method: "DELETE" });
+  clearGraduateRelatedCaches();
+  return response;
 }
 
 export async function listRegions(parentIdOrParams: number | null | QueryParams = {}): Promise<RegionListResponse> {
@@ -398,16 +503,19 @@ export async function listRegions(parentIdOrParams: number | null | QueryParams 
       ? { parent_id: parentIdOrParams }
       : parentIdOrParams || {};
 
-  return api(`/regions${toQueryString(params)}`, { method: "GET" });
+  const path = `/regions${toQueryString(params)}`;
+  return cachedPrivateApi("references", path, REFERENCE_CACHE_MS);
 }
 
 export async function listActivityLogs(params: QueryParams = {}): Promise<ActivityLogListResponse> {
-  return api(`/activity-logs${toQueryString(params)}`, { method: "GET" });
+  const path = `/activity-logs${toQueryString(params)}`;
+  return cachedPrivateApi("logs", path, LOGS_CACHE_MS);
 }
 
 
 export async function getActivityLogFileSummary(params: QueryParams = {}): Promise<ActivityLogFileSummaryResponse> {
-  return api(`/activity-logs/file-summary${toQueryString(params)}`, { method: "GET" });
+  const path = `/activity-logs/file-summary${toQueryString(params)}`;
+  return cachedPrivateApi("logs-summary", path, LOGS_SUMMARY_CACHE_MS);
 }
 
 
@@ -454,7 +562,9 @@ export async function downloadGraduatesImportTemplate(format: "xlsx" | "csv", la
 }
 
 export async function logGraduatesPdfExport(params: QueryParams): Promise<ApiOk & { count?: number }> {
-  return api("/graduates/export-pdf-log", { method: "POST", body: params });
+  const response = await api<ApiOk & { count?: number }>("/graduates/export-pdf-log", { method: "POST", body: params });
+  clearActivityLogCaches();
+  return response;
 }
 
 export async function importGraduatesFile(file: File, lang?: string): Promise<ApiOk & Record<string, unknown>> {
@@ -487,6 +597,7 @@ export async function importGraduatesFile(file: File, lang?: string): Promise<Ap
   if (!data) {
     throw new Error("Invalid server response");
   }
+  clearGraduateRelatedCaches();
   return data;
 }
 
@@ -507,9 +618,11 @@ export async function getPublicStats(params: {
 }
 
 export async function logPublicExport(action: "map_export" | "statistics_export", format: string): Promise<ApiOk> {
-  return api("/public/activity-export", {
+  const response = await api<ApiOk>("/public/activity-export", {
     method: "POST",
     body: { action, format },
   });
+  clearActivityLogCaches();
+  return response;
 }
 
