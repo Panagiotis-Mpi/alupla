@@ -1,21 +1,11 @@
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import { Op } from "sequelize";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
 import { signToken } from "../utils/jwt";
 import { fail, hashPassword, isStrongPassword, isValidEmail, normalizeEmail, normalizeText, toSafeUser } from "../utils/userAccounts";
 
-function createHexToken() {
-  return crypto.randomBytes(32).toString("hex");
-}
-
-const PASSWORD_RESET_HOURS = 1;
-
-function addHours(hours: number) {
-  return new Date(Date.now() + hours * 60 * 60 * 1000);
-}
 
 async function findActiveUserByEmail(email: unknown) {
   const user = await User.findOne({ where: { email } });
@@ -160,61 +150,6 @@ export async function changePassword(req: Request, res: Response) {
   await user.save();
 
   await logAction({ user_id: user.id, action: "change_password", entity_type: "user", entity_id: user.id });
-
-  return res.json({ ok: true });
-}
-
-export async function requestPasswordReset(req: Request, res: Response) {
-  const { email } = req.body ?? {};
-  if (!email) {
-    return fail(res, 400, "Missing email");
-  }
-
-  const user = await findActiveUserByEmail(email);
-  if (!user) {
-    return res.json({ ok: true });
-  }
-
-  const resetToken = createHexToken();
-  const resetExpires = addHours(PASSWORD_RESET_HOURS);
-
-  user.password_reset_token = resetToken;
-  user.password_reset_expires = resetExpires;
-  await user.save();
-
-  await logAction({ user_id: user.id, action: "request_password_reset", entity_type: "user", entity_id: user.id });
-
-  return res.json({ ok: true, reset_token: resetToken, reset_expires: resetExpires });
-}
-
-export async function resetPassword(req: Request, res: Response) {
-  const { token, new_password } = req.body ?? {};
-
-  if (!token || !new_password) {
-    return fail(res, 400, "Missing fields");
-  }
-
-  if (!isStrongPassword(String(new_password))) {
-    return fail(res, 400, "Weak password (min 8, letter+number+symbol)");
-  }
-
-  const user = await User.findOne({
-    where: {
-      password_reset_token: String(token),
-      password_reset_expires: { [Op.gt]: new Date() }
-    }
-  });
-
-  if (!user) {
-    return fail(res, 400, "Invalid/expired token");
-  }
-
-  user.password_hash = await hashPassword(String(new_password));
-  user.password_reset_token = null;
-  user.password_reset_expires = null;
-  await user.save();
-
-  await logAction({ user_id: user.id, action: "reset_password", entity_type: "user", entity_id: user.id });
 
   return res.json({ ok: true });
 }

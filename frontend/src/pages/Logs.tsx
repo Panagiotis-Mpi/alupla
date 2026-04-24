@@ -1,8 +1,9 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { downloadBlob } from "../lib/download";
 import {
   listActivityLogs,
-  activityLogsExportUrl,
+  exportActivityLogsFile,
   getActivityLogFileSummary,
   listUsers,
   type ActivityLog,
@@ -162,23 +163,24 @@ export default function Logs() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  function onExport(format: "csv" | "xlsx") {
-    const url = activityLogsExportUrl(
-      format,
-      {
-        action: actionForApi || undefined,
-        user_id: actorIdForApi,
-        role: roleForApi || undefined,
-      },
-      activeLang
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${format}`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setExportMenuOpen(false);
+  async function onExport(format: "csv" | "xlsx") {
+    setErr(null);
+    try {
+      const blob = await exportActivityLogsFile(
+        format,
+        {
+          action: actionForApi || undefined,
+          user_id: actorIdForApi,
+          role: roleForApi || undefined,
+        },
+        activeLang
+      );
+      await downloadBlob(blob, `logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${format}`);
+    } catch (e: any) {
+      setErr(e?.message ?? t("errorDefault", { ns: "common", defaultValue: "Κάτι πήγε στραβά" }));
+    } finally {
+      setExportMenuOpen(false);
+    }
   }
 
   return (
@@ -216,10 +218,10 @@ export default function Logs() {
                   gap: 6,
                 }}
               >
-                <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => onExport("xlsx")}>
+                <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("xlsx")}>
                   {t("summary.fileTypes.excel")}
                 </button>
-                <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => onExport("csv")}>
+                <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("csv")}>
                   {t("summary.fileTypes.csv")}
                 </button>
               </div>

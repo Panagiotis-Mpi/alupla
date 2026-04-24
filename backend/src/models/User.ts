@@ -15,8 +15,6 @@ export class User extends Model {
   declare admin_approved: boolean;
   declare email_verification_token: string | null;
   declare email_verification_expires: Date | null;
-  declare password_reset_token: string | null;
-  declare password_reset_expires: Date | null;
   declare last_seen_at: Date | null;
 }
 
@@ -33,8 +31,6 @@ User.init(
     admin_approved: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
     email_verification_token: { type: DataTypes.CHAR(64), allowNull: true },
     email_verification_expires: { type: DataTypes.DATE, allowNull: true },
-    password_reset_token: { type: DataTypes.CHAR(64), allowNull: true },
-    password_reset_expires: { type: DataTypes.DATE, allowNull: true },
     last_seen_at: { type: DataTypes.DATE, allowNull: true }
   },
   {

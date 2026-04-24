@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import { activityLogsExportUrl, getActivityLogFileSummary, listUsers, type User } from "../../lib/api";
+import { exportActivityLogsFile, getActivityLogFileSummary, listUsers, type QueryParams, type User } from "../../lib/api";
 import type { FileSummaryItem, FileSummaryRole } from "./shared";
 
 export function getLogActorLabel(t: TFunction, entry: any) {
@@ -28,12 +28,6 @@ export async function loadLogFileSummary(role: FileSummaryRole) {
   return (data.items ?? []) as FileSummaryItem[];
 }
 
-export function openLogExport(format: "csv" | "xlsx", params: Record<string, unknown>, lang: string) {
-  const url = activityLogsExportUrl(format, params, lang);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${format}`;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
+export async function openLogExport(format: "csv" | "xlsx", params: QueryParams, lang: string) {
+  return exportActivityLogsFile(format, params, lang);
 }

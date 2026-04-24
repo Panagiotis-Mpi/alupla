@@ -13,8 +13,6 @@ export const actionLabels = {
     login: "Σύνδεση",
     logout: "Αποσύνδεση",
     register: "Εγγραφή",
-    request_password_reset: "Αίτημα αλλαγής κωδικού",
-    reset_password: "Επαναφορά κωδικού",
     change_password: "Αλλαγή κωδικού",
     update_profile: "Ενημέρωση προφίλ",
     upload: "Μεταφόρτωση αρχείου",
@@ -52,8 +50,6 @@ export const actionLabels = {
     login: "Login",
     logout: "Logout",
     register: "Registration",
-    request_password_reset: "Password reset request",
-    reset_password: "Password reset",
     change_password: "Password change",
     update_profile: "Profile update",
     upload: "File upload",
@@ -332,7 +328,7 @@ export function getLocalizedAction(lang: "gr" | "en", value: unknown, log?: any)
 
 export function getLocalizedDetails(lang: "gr" | "en", log: any) {
   const action = String(log?.action ?? "").trim();
-  if (["login", "logout", "register", "request_password_reset", "reset_password", "change_password"].includes(action)) {
+  if (["login", "logout", "register", "change_password"].includes(action)) {
     return "";
   }
 

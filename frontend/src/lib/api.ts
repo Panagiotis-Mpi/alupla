@@ -1,5 +1,5 @@
-export { API_URL, clearToken, getToken, setToken, toQueryString } from "./apiCore";
-import { API_URL, api, appendQuery, clearToken, fetchBlob, getToken, parseJsonSafe, setToken, toQueryString, type QueryParams } from "./apiCore";
+export { API_URL, clearToken, getToken, setToken, toQueryString, type QueryParams } from "./apiCore";
+import { API_URL, api, clearToken, fetchBlob, getToken, parseJsonSafe, setToken, toQueryString, type QueryParams } from "./apiCore";
 
 export type UserRole = "super_admin" | "secretariat";
 export type User = {
@@ -331,15 +331,6 @@ export async function register(first_name: string, last_name: string, email: str
 }
 
 
-export async function requestPasswordReset(email: string): Promise<ApiOk & { reset_token?: string; reset_expires?: string }> {
-  return api("/auth/forgot", { method: "POST", body: { email } });
-}
-
-export async function resetPassword(token: string, new_password: string): Promise<ApiOk> {
-  return api("/auth/reset", { method: "POST", body: { token, new_password } });
-}
-
-
 export async function me(): Promise<UserResponse> {
   return api("/auth/me", { method: "GET" });
 }
@@ -536,17 +527,8 @@ export async function getMapCityDetail(params: QueryParams = {}): Promise<MapCit
   return cachedMapApi(`/map/city-detail${toQueryString(params)}`);
 }
 
-export function activityLogsExportUrl(format: "csv" | "xlsx", params: QueryParams = {}, lang?: string): string {
-  const q = new URLSearchParams();
-  appendQuery(q, params);
-
-  if (lang) q.set("lang", lang);
-
-  const token = getToken();
-  if (token) q.set("token", token);
-
-  const qs = q.toString();
-  return `${API_URL}/activity-logs/export.${format}${qs ? `?${qs}` : ""}`;
+export async function exportActivityLogsFile(format: "csv" | "xlsx", params: QueryParams = {}, lang?: string): Promise<Blob> {
+  return fetchBlob(`/activity-logs/export.${format}`, params, lang);
 }
 
 

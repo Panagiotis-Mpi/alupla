@@ -1,6 +1,6 @@
 import { useLocation } from "react-router-dom";
 
-const PINNED_PATHS = new Set(["/", "/login", "/register", "/forgot", "/reset"]);
+const PINNED_PATHS = new Set(["/", "/login", "/register"]);
 
 export default function Footer() {
   const { pathname } = useLocation();
