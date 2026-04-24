@@ -40,7 +40,8 @@ const lastRowStyle: React.CSSProperties = {
 
 const valueStyle: React.CSSProperties = {
   fontWeight: 700,
-  overflowWrap: "anywhere",
+  overflowWrap: "break-word",
+  wordBreak: "normal",
 };
 
 const passwordBoxStyle: React.CSSProperties = {

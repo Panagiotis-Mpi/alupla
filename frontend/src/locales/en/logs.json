@@ -54,5 +54,10 @@
       "map": "Map",
       "logs": "Logs"
     }
+  },
+  "errorDefault": "Something went wrong",
+  "aria": {
+    "previous": "Previous page",
+    "next": "Next page"
   }
 }
