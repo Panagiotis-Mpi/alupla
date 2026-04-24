@@ -170,14 +170,21 @@ function genderLegendPattern(entryKey: string, highContrastEnabled = false) {
 function genderSegmentPosition(startPercent: number, sizePercent: number, bubbleSize: number) {
   const middle = startPercent + sizePercent / 2;
   const angle = ((middle / 100) * 360 - 90) * (Math.PI / 180);
-  const sizeFactor = bubbleSize < 34 ? 18 : bubbleSize < 46 ? 22 : bubbleSize < 62 ? 25 : 28;
-  const segmentFactor = sizePercent < 16 ? 16 : sizePercent < 28 ? sizeFactor - 3 : sizeFactor;
+  const sizeFactor = bubbleSize < 34 ? 17 : bubbleSize < 46 ? 20 : bubbleSize < 62 ? 23 : 26;
+  const segmentFactor = sizePercent < 16 ? Math.max(12, sizeFactor - 5) : sizePercent < 28 ? sizeFactor - 3 : sizeFactor;
   return {
     left: 50 + Math.cos(angle) * segmentFactor,
     top: 50 + Math.sin(angle) * segmentFactor,
   };
 }
 
+function buildCountBreaks(max: number, maxBuckets: number) {
+  const safeMax = Math.max(1, Math.round(Number(max) || 1));
+  const base = safeMax > 100 ? [3, 7, 15, 30, 60, 100] : [3, 7, 12, 21, 35, 55];
+  const breaks = base.filter((value) => value < safeMax).slice(0, Math.max(0, maxBuckets - 1));
+  breaks.push(safeMax);
+  return breaks.filter((value, index, list) => index === 0 || value > list[index - 1]);
+}
 
 function buildCountMarkerScale(countsInput: number[], palette: string[], radii: number[]) {
   const counts = Array.from(
@@ -191,39 +198,8 @@ function buildCountMarkerScale(countsInput: number[], palette: string[], radii: 
   if (!counts.length) return { breaks: [] as number[], bucketForCount: () => 0 };
 
   const maxBuckets = Math.min(palette.length, radii.length);
-  const min = counts[0];
   const max = counts[counts.length - 1];
-  let breaks: number[] = [];
-
-  if (counts.length <= maxBuckets) {
-    breaks = counts;
-  } else if (max / Math.max(1, min) >= 4) {
-    const firstLimit = Math.max(1, min);
-    breaks = [firstLimit];
-    const remaining = maxBuckets - 1;
-    for (let index = 1; index <= remaining; index += 1) {
-      const ratio = index / remaining;
-      const raw = Math.exp(Math.log(firstLimit) + (Math.log(max) - Math.log(firstLimit)) * ratio);
-      const rounded = Math.max(firstLimit + 1, Math.round(raw));
-      const previous = breaks[breaks.length - 1];
-      if (rounded > previous && rounded < max) breaks.push(rounded);
-    }
-    if (breaks[breaks.length - 1] !== max) breaks.push(max);
-  } else {
-    breaks = Array.from({ length: maxBuckets }, (_, index) => {
-      const position = Math.min(counts.length - 1, Math.round((index / (maxBuckets - 1)) * (counts.length - 1)));
-      return counts[position];
-    });
-  }
-
-  breaks = breaks
-    .filter((value, index, list) => value > 0 && (index === 0 || value > list[index - 1]))
-    .slice(0, maxBuckets);
-
-  if (breaks[breaks.length - 1] !== max) {
-    if (breaks.length >= maxBuckets) breaks[breaks.length - 1] = max;
-    else breaks.push(max);
-  }
+  const breaks = buildCountBreaks(max, maxBuckets);
 
   const bucketForCount = (count: number) => {
     const safeCount = Math.max(0, Math.round(Number(count) || 0));
@@ -264,17 +240,18 @@ function bubbleLabelIcon(
   const total = Math.max(0, maleCount + femaleCount);
   const malePct = total > 0 ? (maleCount / total) * 100 : 50;
   const femalePct = 100 - malePct;
-  const bubbleFill = String(city?.markerFill || "#60a5fa");
-  const bubbleStroke = String(city?.markerStroke || "#1d4ed8");
-  const bubbleOpacity = Math.max(0.45, Number(city?.markerOpacity || 0.85));
+  const countBubbleFill = highContrastEnabled ? "#d1d5db" : String(city?.markerFill || "#60a5fa");
+  const countBubbleStroke = highContrastEnabled ? "#000000" : String(city?.markerStroke || "#1d4ed8");
+  const countBubbleOpacity = highContrastEnabled ? 1 : Math.max(0.45, Number(city?.markerOpacity || 0.85));
   const fontSize = active ? (size >= 34 ? 13 : size >= 28 ? 12 : 11) : (size >= 34 ? 12 : size >= 28 ? 11 : 10);
   const labelWidth = showLabel ? Math.max(size + 10, Math.min(170, Math.max(64, label.length * 7))) : size + 10;
   const labelHeight = showLabel ? 18 : 0;
   const wrapperHeight = labelHeight + size + 6;
   const wrapperWidth = Math.max(labelWidth, size + 10);
   const activeRing = active ? '0 0 0 3px rgba(15,23,42,.14)' : 'none';
-  const splitStart = Math.max(0, malePct - 0.8);
-  const splitEnd = Math.min(100, malePct + 0.8);
+  const dividerWidth = size >= 52 ? 1.7 : size >= 34 ? 2.2 : 2.8;
+  const splitStart = Math.max(0, malePct - dividerWidth);
+  const splitEnd = Math.min(100, malePct + dividerWidth);
   const isBalancedGender = total > 0 && maleCount === femaleCount;
   const hasBothGenders = maleCount > 0 && femaleCount > 0 && !isBalancedGender;
   const genderBubbleBackground = highContrastEnabled
@@ -292,7 +269,7 @@ function bubbleLabelIcon(
     : `<span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span>`;
   const bubbleHtml =
     mapMetric === "count"
-      ? `<div class="alupla-city-bubble alupla-city-bubble-count" style="width:${size}px;height:${size}px;--alupla-bubble-border:${bubbleStroke};--alupla-bubble-background:${bubbleFill};--alupla-bubble-opacity:${bubbleOpacity};--alupla-bubble-shadow:${activeRing};"><span class="alupla-city-bubble-number" style="font-size:${fontSize}px;">${count}</span></div>`
+      ? `<div class="alupla-city-bubble alupla-city-bubble-count" style="width:${size}px;height:${size}px;--alupla-bubble-border:${countBubbleStroke};--alupla-bubble-background:${countBubbleFill};--alupla-bubble-opacity:${countBubbleOpacity};--alupla-bubble-shadow:${activeRing};"><span class="alupla-city-bubble-number" style="font-size:${fontSize}px;">${count}</span></div>`
       : `<div class="alupla-city-bubble alupla-city-bubble-gender${highContrastEnabled ? " is-high-contrast" : ""}" style="width:${size}px;height:${size}px;--alupla-bubble-border:rgba(51,65,85,.72);--alupla-bubble-background:${genderBubbleBackground};--alupla-bubble-opacity:1;--alupla-bubble-shadow:${activeRing};">${highContrastGenderDetails}</div>`;
   const summary = "";
   return L.divIcon({
@@ -1172,10 +1149,10 @@ export default function GraduatesMapPage() {
         .alupla-city-bubble-number { line-height: 1; color: #fff; text-shadow: 0 1px 1px rgba(15,23,42,.35); }
         .alupla-city-bubble-count .alupla-city-bubble-number { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.45); }
         .alupla-city-bubble-number-gender { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.5); }
-        .alupla-city-gender-segment { position: absolute; transform: translate(-50%, -50%); border-radius: 999px; padding: 0; font-weight: 900; line-height: 1; white-space: nowrap; color: #000; text-shadow: none; }
+        .alupla-city-gender-segment { position: absolute; transform: translate(-50%, -50%); border-radius: 999px; padding: 0; font-weight: 900; line-height: 1; white-space: nowrap; color: #000; text-shadow: 0 0 1px #000, 0 1px 0 #fff; font-family: Arial, Helvetica, sans-serif; }
         .alupla-city-gender-segment-male, .alupla-city-gender-segment-female { color: #000; background: transparent; }
-        .alupla-city-gender-balance-symbol { color: #000; font-weight: 900; line-height: 1; text-shadow: none; }
-        .alupla-city-bubble-gender.is-high-contrast { border-color: #000000; background: var(--alupla-bubble-background, #ffffff); }
+        .alupla-city-gender-balance-symbol { color: #000; font-weight: 900; line-height: 1; text-shadow: 0 0 1px #000, 0 1px 0 #fff; font-family: Arial, Helvetica, sans-serif; }
+        .alupla-city-bubble-gender.is-high-contrast { border-color: #000000; background: var(--alupla-bubble-background, #ffffff); box-shadow: inset 0 0 0 1px #000, var(--alupla-bubble-shadow, none); }
         .alupla-city-bubble-sub { margin-top: 4px; color: #475569; font-size: 10px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); }
         .alupla-city-point { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; pointer-events: auto; }
         .alupla-city-label-text { display: block; margin: 0; }
@@ -1438,7 +1415,7 @@ export default function GraduatesMapPage() {
                       key={entry.key}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: isGenderLegendItem ? "30px 1fr" : "56px 1fr",
+                        gridTemplateColumns: isGenderLegendItem ? "30px 1fr" : `${Math.max(64, swatchSize + 18)}px 1fr`,
                         alignItems: "center",
                         gap: isGenderLegendItem ? 8 : 10,
                       }}
@@ -1449,9 +1426,9 @@ export default function GraduatesMapPage() {
                           width: swatchSize,
                           height: swatchSize,
                           borderRadius: 999,
-                          background: highContrastEnabled && isGenderLegendItem ? "#ffffff" : entry.color,
-                          opacity: entry.opacity,
-                          border: highContrastEnabled && isGenderLegendItem ? "1px solid #000" : "1px solid rgba(51,65,85,.18)",
+                          background: highContrastEnabled ? (isGenderLegendItem ? "#ffffff" : "#d1d5db") : entry.color,
+                          opacity: highContrastEnabled ? 1 : entry.opacity,
+                          border: highContrastEnabled ? "1px solid #000" : "1px solid rgba(51,65,85,.18)",
                           justifySelf: "center",
                           display: "inline-flex",
                           alignItems: "center",
