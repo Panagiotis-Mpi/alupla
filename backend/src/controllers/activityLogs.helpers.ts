@@ -277,8 +277,100 @@ export function getLanguage(req: Request) {
 
 export function localDetailLabel(lang: "gr" | "en", key: string) {
   const labels = lang === "en"
-    ? { file: "File", format: "Type", count: "Rows", total_rows: "Total rows", inserted: "New", updated: "Updated", skipped: "Skipped", deleted: "Deleted", exported: "Exported", page: "Page", years: "Years", role: "Role", status: "Status", study_program: "Study program", reason: "Reason" }
-    : { file: "Αρχείο", format: "Τύπος", count: "Γραμμές", total_rows: "Σύνολο γραμμών", inserted: "Νέες", updated: "Ενημερωμένες", skipped: "Παραλείφθηκαν", deleted: "Διαγράφηκαν", exported: "Εξήχθησαν", page: "Σελίδα", years: "Έτη", role: "Ρόλος", status: "Κατάσταση", study_program: "Πρόγραμμα σπουδών", reason: "Λόγος" };
+    ? {
+        file: "File",
+        format: "Type",
+        count: "Rows",
+        total_rows: "Total rows",
+        inserted: "New",
+        updated: "Updated",
+        skipped: "Skipped",
+        deleted: "Deleted",
+        exported: "Exported",
+        page: "Page",
+        years: "Years",
+        role: "Role",
+        status: "Status",
+        study_program: "Study program",
+        study_program_id: "Study program",
+        reason: "Reason",
+        changed: "Changed fields",
+        errors: "Errors",
+        selected: "Selected",
+        limit: "Limit",
+        missing: "Missing",
+        name: "Name",
+        name_el: "Name (Greek)",
+        parent_id: "Parent region",
+        unresolved_id: "Unresolved item",
+        raw_name: "Original name",
+        ids: "IDs",
+        student_number: "Student number",
+        first_name: "First name",
+        last_name: "Last name",
+        father_name: "Father name",
+        degree_grade: "Degree grade",
+        graduation_date: "Graduation date",
+        oath_date: "Oath date",
+        entry_year: "Entry year",
+        birth_date: "Birth date",
+        gender: "Gender",
+        origin_region_id: "Region",
+        origin_city_region_id: "City",
+        origin_municipality: "Municipality",
+        email: "Email",
+        role_id: "Role",
+        is_active: "Active",
+        approved: "Approved",
+        code: "Code"
+      }
+    : {
+        file: "Αρχείο",
+        format: "Τύπος",
+        count: "Γραμμές",
+        total_rows: "Σύνολο γραμμών",
+        inserted: "Νέες",
+        updated: "Ενημερωμένες",
+        skipped: "Παραλείφθηκαν",
+        deleted: "Διαγράφηκαν",
+        exported: "Εξήχθησαν",
+        page: "Σελίδα",
+        years: "Έτη",
+        role: "Ρόλος",
+        status: "Κατάσταση",
+        study_program: "Πρόγραμμα σπουδών",
+        study_program_id: "Πρόγραμμα σπουδών",
+        reason: "Λόγος",
+        changed: "Αλλαγμένα πεδία",
+        errors: "Σφάλματα",
+        selected: "Επιλεγμένα",
+        limit: "Όριο",
+        missing: "Λείπουν",
+        name: "Όνομα",
+        name_el: "Όνομα (Ελληνικά)",
+        parent_id: "Γονική περιοχή",
+        unresolved_id: "Εκκρεμότητα",
+        raw_name: "Αρχικό όνομα",
+        ids: "IDs",
+        student_number: "Αριθμός μητρώου",
+        first_name: "Όνομα",
+        last_name: "Επώνυμο",
+        father_name: "Πατρώνυμο",
+        degree_grade: "Βαθμός",
+        graduation_date: "Ημερομηνία αποφοίτησης",
+        oath_date: "Ημερομηνία ορκωμοσίας",
+        entry_year: "Έτος εισαγωγής",
+        birth_date: "Ημερομηνία γέννησης",
+        gender: "Φύλο",
+        origin_region_id: "Περιφέρεια",
+        origin_city_region_id: "Πόλη",
+        origin_municipality: "Δήμος",
+        email: "Email",
+        role_id: "Ρόλος",
+        is_active: "Ενεργός",
+        approved: "Εγκεκριμένος",
+        code: "Κωδικός"
+      };
   return labels[key as keyof typeof labels] ?? key;
 }
 
@@ -328,94 +420,115 @@ export function getLocalizedAction(lang: "gr" | "en", value: unknown, log?: any)
 
 export function getLocalizedDetails(lang: "gr" | "en", log: any) {
   const action = String(log?.action ?? "").trim();
-  if (["login", "logout", "register", "change_password"].includes(action)) {
-    return "";
-  }
+  if (["login", "logout", "register", "change_password"].includes(action)) return "";
 
   const details = parseDetails(log?.details);
   if (!details) return "";
-  if (typeof details === "string") return details;
+  if (typeof details === "string") return localValue(lang, details);
 
   if (["διαγραφή χρήστη", "delete_user", "deactivate_user"].includes(action)) {
     return String((details as any).target_name ?? "").trim();
   }
 
-  if ((action === "export_csv" || action === "export_xlsx") && String(log?.entity_type ?? "").trim() === "logs") {
-    const format = upperFileType(String((details as any).format ?? "").trim());
-    const count = (details as any).count ?? (details as any).exported;
+  const studentNumber = String((details as any).student_number ?? "").trim();
+  if (studentNumber) return `${localDetailLabel(lang, "student_number")}: ${studentNumber}`;
+
+  if (action === "import_graduates") {
+    const file = String((details as any).file ?? (details as any).filename ?? "").trim();
     const parts: string[] = [];
-    if (format) parts.push(format);
-    if (count !== null && count !== undefined && count !== "") {
-      parts.push(lang === "en" ? `${count} records` : `${count} εγγραφές`);
+    if (file) parts.push(`${localDetailLabel(lang, "file")}: ${file}`);
+    for (const key of ["total_rows", "inserted", "updated", "skipped", "errors"]) {
+      const value = (details as any)[key];
+      if (value !== null && value !== undefined && value !== "") parts.push(`${localDetailLabel(lang, key)}: ${value}`);
     }
     return parts.join(", ");
   }
 
-  const rawFile = String(details.file ?? details.filename ?? "").trim();
-  const format = String(details.format ?? "").trim();
-  const parts: string[] = [];
+  if (["export_graduates", "export_csv", "export_xlsx", "export_pdf", "statistics_export", "map_export"].includes(action)) {
+    const format = upperFileType(String((details as any).format ?? (details as any).file_type ?? "").trim());
+    const count = (details as any).count ?? (details as any).exported;
+    const selected = (details as any).selected;
+    const page = localValue(lang, String((details as any).page ?? ""));
+    const parts: string[] = [];
+    if (format) parts.push(format);
+    if (count !== null && count !== undefined && count !== "") parts.push(lang === "en" ? `${count} records` : `${count} εγγραφές`);
+    if (selected !== null && selected !== undefined && selected !== "" && Number(selected) > 0) parts.push(lang === "en" ? `${selected} selected` : `${selected} επιλεγμένα`);
+    if (page) parts.push(lang === "en" ? `Page: ${page}` : `Σελίδα: ${page}`);
+    if (parts.length) return parts.join(", ");
+  }
 
-  if (rawFile) parts.push(`${localDetailLabel(lang, "file")}: ${rawFile}`);
-  if (format) parts.push(`${localDetailLabel(lang, "format")}: ${upperFileType(format)}`);
+  const changed = (details as any).changed;
+  if (changed !== null && changed !== undefined && changed !== "") {
+    const items = Array.isArray(changed) ? changed : [changed];
+    const names = items.map((item) => localDetailLabel(lang, String(item ?? "").trim())).filter(Boolean);
+    if (names.length) return lang === "en" ? `Changed fields: ${names.join(", ")}` : `Αλλαγμένα πεδία: ${names.join(", ")}`;
+  }
 
-  const orderedKeys = [
-    "count",
-    "total_rows",
-    "inserted",
-    "updated",
-    "skipped",
-    "deleted",
-    "exported",
-    "page",
-    "years",
-    "role",
-    "status",
-    "study_program",
-    "study_program_id",
-    "reason",
-    "changed",
-    "errors",
-    "selected",
-    "limit",
-    "missing",
-    "name",
-    "name_el",
-    "parent_id",
-    "code",
-    "city",
-    "city_id",
-    "periphery",
-    "periphery_id",
-    "country",
+  if ((details as any).code || (details as any).name || (details as any).name_el) {
+    const code = String((details as any).code ?? "").trim();
+    const name = String((details as any).name ?? (details as any).name_el ?? "").trim();
+    return [code ? `${localDetailLabel(lang, "code")}: ${code}` : "", name ? `${localDetailLabel(lang, "name")}: ${name}` : ""].filter(Boolean).join(", ");
+  }
+
+  const plainPairs: Array<[string, any]> = [
+    ["file", (details as any).file ?? (details as any).filename],
+    ["role", (details as any).role],
+    ["status", (details as any).status],
+    ["page", (details as any).page],
+    ["study_program", (details as any).study_program],
+    ["study_program_id", (details as any).study_program_id],
+    ["reason", (details as any).reason],
+    ["parent_id", (details as any).parent_id],
+    ["unresolved_id", (details as any).unresolved_id],
+    ["raw_name", (details as any).raw_name],
+    ["missing", (details as any).missing]
   ];
 
-  const seen = new Set<string>(["file", "filename", "format"]);
-  for (const key of orderedKeys) {
-    if (!(key in details) || seen.has(key)) continue;
-    seen.add(key);
-    const value = (details as any)[key];
+  const counterPairs: Array<[string, any]> = [
+    ["count", (details as any).count],
+    ["total_rows", (details as any).total_rows],
+    ["inserted", (details as any).inserted],
+    ["updated", (details as any).updated],
+    ["skipped", (details as any).skipped],
+    ["deleted", (details as any).deleted],
+    ["exported", (details as any).exported],
+    ["errors", (details as any).errors],
+    ["selected", (details as any).selected],
+    ["limit", (details as any).limit]
+  ];
+
+  const parts: string[] = [];
+
+  for (const [key, value] of plainPairs) {
     if (value === null || value === undefined || value === "") continue;
-    if (Array.isArray(value)) {
-      const rendered = value.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ");
-      if (rendered) parts.push(`${localDetailLabel(lang, key)}: ${rendered}`);
-      continue;
-    }
-    const rendered = typeof value === "string" ? localValue(lang, value) || value : String(value);
-    parts.push(`${localDetailLabel(lang, key)}: ${rendered}`);
+    const rendered = Array.isArray(value)
+      ? value.map((item) => localValue(lang, String(item))).filter(Boolean).join(", ")
+      : localValue(lang, String(value)) || String(value);
+    if (rendered) parts.push(`${localDetailLabel(lang, key)}: ${rendered}`);
   }
 
-  for (const [key, value] of Object.entries(details)) {
-    if (seen.has(key) || value === null || value === undefined || value === "") continue;
-    if (Array.isArray(value)) {
-      const rendered = value.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ");
-      if (rendered) parts.push(`${localDetailLabel(lang, key)}: ${rendered}`);
-      continue;
-    }
-    const rendered = typeof value === "string" ? localValue(lang, value) || value : String(value);
-    parts.push(`${localDetailLabel(lang, key)}: ${rendered}`);
+  for (const [key, value] of counterPairs) {
+    if (value === null || value === undefined || value === "") continue;
+    parts.push(`${localDetailLabel(lang, key)}: ${value}`);
   }
 
-  return parts.join(", ");
+  const ids = (details as any).ids;
+  if (ids !== null && ids !== undefined && ids !== "") {
+    const rendered = Array.isArray(ids) ? ids.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ") : String(ids);
+    if (rendered) parts.push(`${localDetailLabel(lang, "ids")}: ${rendered}`);
+  }
+
+  if (parts.length) return parts.join(", ");
+
+  return Object.entries(details)
+    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .slice(0, 5)
+    .map(([key, value]) => {
+      if (Array.isArray(value)) return `${localDetailLabel(lang, key)}: ${value.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ")}`;
+      const rendered = typeof value === "string" ? (localValue(lang, value) || value) : String(value);
+      return `${localDetailLabel(lang, key)}: ${rendered}`;
+    })
+    .join(", ");
 }
 
 export function getActorLabel(log: any) {

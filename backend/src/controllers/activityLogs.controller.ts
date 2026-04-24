@@ -23,7 +23,6 @@ import {
   getOperation,
   getRoleFilter,
   matchesRole,
-  parseDetails,
   nonEmptyString,
   toInteger,
 } from "./activityLogs.helpers";
@@ -125,15 +124,6 @@ function getActorLabel(lang: "gr" | "en", row: any) {
   const ln = String(row?.user?.last_name ?? "").trim();
   const full = `${fn} ${ln}`.trim();
   if (full) return full;
-
-  const details = parseDetails(row?.details);
-  if (details && typeof details === "object") {
-    const actorName = String((details as any).actor_name ?? "").trim();
-    if (actorName) return actorName;
-    const actorEmail = String((details as any).actor_email ?? "").trim();
-    if (actorEmail) return actorEmail;
-  }
-
   return lang === "en" ? "Visitor" : "Επισκέπτης";
 }
 
