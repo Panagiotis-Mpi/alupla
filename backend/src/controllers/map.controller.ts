@@ -181,7 +181,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
 export async function getMapYearRange(req: Request, res: Response) {
   try {
     const rows = await sequelize.query<{ year: number | null }>(
-      `SELECT DISTINCT EXTRACT(YEAR FROM graduation_date)::int AS year
+      `SELECT DISTINCT CAST(EXTRACT(YEAR FROM graduation_date) AS INTEGER) AS year
        FROM graduates
        WHERE graduation_date IS NOT NULL
        ORDER BY year ASC`,

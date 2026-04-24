@@ -40,7 +40,7 @@ async function queryRows<T extends Record<string, unknown>>(sql: string, context
 
 export async function loadPublicStatsBundle(context: PublicWhereContext) {
   const birthExpr = context.birthExpr ?? "g.birth_date";
-  const birthYearExpr = context.birthYearExpr ?? "EXTRACT(YEAR FROM g.birth_date)::int";
+  const birthYearExpr = context.birthYearExpr ?? "CAST(EXTRACT(YEAR FROM g.birth_date) AS INTEGER)";
 
   const [
     totalRow,
@@ -68,42 +68,42 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
       context,
     ),
     queryRows<{ year: number; count: number }>(
-      `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
-              COUNT(*)::int as count
+      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+              CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${context.sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date)
        ORDER BY year ASC`,
       context,
     ),
     queryRows<{ year: number; term: string; count: number }>(
-      `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
+      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
               ${termCaseSql} as term,
-              COUNT(*)::int as count
+              CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${context.sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date), ${termCaseSql}
        ORDER BY year ASC, ${termOrderSql} ASC`,
       context,
     ),
     queryRows<{ gender: string; count: number }>(
-      `SELECT g.gender as gender, COUNT(*)::int as count
+      `SELECT g.gender as gender, CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${context.sqlWhere}
        GROUP BY g.gender`,
       context,
     ),
     queryRows<{ year: number; male: number; female: number }>(
-      `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
-              SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END)::int as male,
-              SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END)::int as female
+      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+              CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
+              CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
        FROM graduates g ${context.sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date)
        ORDER BY year ASC`,
       context,
     ),
     queryRows<{ year: number; term: string; male: number; female: number }>(
-      `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
+      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
               ${termCaseSql} as term,
-              SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END)::int as male,
-              SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END)::int as female
+              CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
+              CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
        FROM graduates g ${context.sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date), ${termCaseSql}
        ORDER BY year ASC, ${termOrderSql} ASC`,
@@ -111,7 +111,7 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
     ),
     queryRows<{ year: number; count: number }>(
       `SELECT ${birthYearExpr} as year,
-              COUNT(*)::int as count
+              CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${context.sqlWhere}
        GROUP BY ${birthYearExpr}
        ORDER BY year ASC`,
@@ -124,7 +124,7 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
                 WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 31 THEN '31+'
                 ELSE 'unknown'
               END as label,
-              COUNT(*)::int as count
+              CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${context.sqlWhere}
        GROUP BY CASE
                   WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
@@ -156,8 +156,8 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
       context,
     ),
     queryRows<{ year: number; avg: number }>(
-      `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
-              ROUND(AVG(g.degree_grade)::numeric, 2) as avg
+      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+              ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
        FROM graduates g ${context.sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date)
        ORDER BY year ASC`,
@@ -165,7 +165,7 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
     ),
     queryRows<{ study_program_id: number | null; avg: number }>(
       `SELECT g.study_program_id,
-              ROUND(AVG(g.degree_grade)::numeric, 2) as avg
+              ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
        FROM graduates g ${context.sqlWhere}
        GROUP BY g.study_program_id
        ORDER BY g.study_program_id ASC`,
@@ -180,7 +180,7 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
                 WHEN g.degree_grade >= 8 THEN '8+'
                 ELSE 'unknown'
               END as bucket,
-              COUNT(*)::int as count
+              CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${context.sqlWhere}
        GROUP BY bucket
        ORDER BY CASE bucket
@@ -195,14 +195,14 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
     ),
     queryRows<{ entry_year: number; avg_years: number }>(
       `SELECT g.entry_year,
-              ROUND(AVG(EXTRACT(YEAR FROM age(g.graduation_date, make_date(g.entry_year, 1, 1))))::numeric, 2) as avg_years
+              ROUND(CAST(AVG(EXTRACT(YEAR FROM age(g.graduation_date, make_date(g.entry_year, 1, 1)))) AS NUMERIC), 2) as avg_years
        FROM graduates g ${context.sqlWhere}
        GROUP BY g.entry_year
        ORDER BY g.entry_year ASC`,
       context,
     ),
     queryRows<{ study_program_id: number | null; count: number }>(
-      `SELECT g.study_program_id, COUNT(*)::int as count
+      `SELECT g.study_program_id, CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${context.sqlWhere}
        GROUP BY g.study_program_id
        ORDER BY count DESC, g.study_program_id ASC`,
@@ -210,7 +210,7 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
     ),
     queryRows<{ place: string; count: number }>(
       `SELECT COALESCE(NULLIF(TRIM(g.origin_region), ''), NULLIF(TRIM(g.origin_municipality), ''), NULLIF(TRIM(g.origin_country), ''), 'Unknown') as place,
-              COUNT(*)::int as count
+              CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${context.sqlWhere}
        GROUP BY place
        ORDER BY count DESC, place ASC
@@ -219,7 +219,7 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
     ),
     queryRows<{ place: string; count: number }>(
       `SELECT COALESCE(NULLIF(TRIM(g.origin_municipality), ''), 'Unknown') as place,
-              COUNT(*)::int as count
+              CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${context.sqlWhere}
        GROUP BY place
        ORDER BY count DESC, place ASC
@@ -285,36 +285,36 @@ export async function loadPublicMapRows(context: PublicWhereContext) {
 export async function buildAnonymousStatisticsWorkbook(context: PublicWhereContext, countsMode: "year" | "semester", genderMode: "year" | "semester") {
   const [byYear, byTerm, genderByYear, genderByTerm] = await Promise.all([
     queryRows<{ year: number; count: number }>(
-      `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
-              COUNT(*)::int as count
+      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+              CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${context.sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date)
        ORDER BY year ASC`,
       context,
     ),
     queryRows<{ year: number; term: string; count: number }>(
-      `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
+      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
               ${termCaseSql} as term,
-              COUNT(*)::int as count
+              CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${context.sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date), ${termCaseSql}
        ORDER BY year ASC, ${termOrderSql} ASC`,
       context,
     ),
     queryRows<{ year: number; male: number; female: number }>(
-      `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
-              SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END)::int as male,
-              SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END)::int as female
+      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+              CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
+              CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
        FROM graduates g ${context.sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date)
        ORDER BY year ASC`,
       context,
     ),
     queryRows<{ year: number; term: string; male: number; female: number }>(
-      `SELECT EXTRACT(YEAR FROM g.graduation_date)::int as year,
+      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
               ${termCaseSql} as term,
-              SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END)::int as male,
-              SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END)::int as female
+              CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
+              CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
        FROM graduates g ${context.sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date), ${termCaseSql}
        ORDER BY year ASC, ${termOrderSql} ASC`,

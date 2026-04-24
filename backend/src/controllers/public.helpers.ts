@@ -30,12 +30,12 @@ export async function getGraduatesBirthMode(): Promise<"birth_date" | "birth_yea
 
 export async function getBirthDateExpr() {
   const mode = await getGraduatesBirthMode();
-  return mode === "birth_date" ? "g.birth_date" : "make_date(CAST(g.birth_year AS int), 1, 1)";
+  return mode === "birth_date" ? "g.birth_date" : "CASE WHEN TRIM(CAST(g.birth_year AS TEXT)) ~ '^[0-9]{4}$' THEN make_date(CAST(g.birth_year AS INTEGER), 1, 1) ELSE NULL END";
 }
 
 export async function getBirthYearExpr() {
   const birthExpr = await getBirthDateExpr();
-  return `EXTRACT(YEAR FROM ${birthExpr})::int`;
+  return `CAST(EXTRACT(YEAR FROM ${birthExpr}) AS INTEGER)`;
 }
 
 export function normalizePlaceName(value: unknown) {
