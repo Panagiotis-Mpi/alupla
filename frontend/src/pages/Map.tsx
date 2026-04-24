@@ -1131,7 +1131,7 @@ export default function GraduatesMapPage() {
 
 
   if (pageLoading) {
-    return <div className="card">{mt("loadingLabel", { defaultValue: "φορτώση" })}</div>;
+    return <div className="card">{mt("loadingLabel", { defaultValue: "Φόρτωση" })}</div>;
   }
 
   return (
@@ -1296,7 +1296,7 @@ export default function GraduatesMapPage() {
         </div>
         {summaryLoading ? (
           <div className="map-loading-overlay map-summary-overlay">
-            <div className="map-loading-overlay-card">{mt("loadingLabel", { defaultValue: "φορτώση" })}</div>
+            <div className="map-loading-overlay-card">{mt("loadingLabel", { defaultValue: "Φόρτωση" })}</div>
           </div>
         ) : null}
       </div>
@@ -1397,7 +1397,7 @@ export default function GraduatesMapPage() {
 
           {inlineMapLoading ? (
             <div className="map-loading-overlay">
-              <div className="map-loading-overlay-card">{mt("loadingLabel", { defaultValue: "φορτώση" })}</div>
+              <div className="map-loading-overlay-card">{mt("loadingLabel", { defaultValue: "Φόρτωση" })}</div>
             </div>
           ) : null}
 
@@ -1492,7 +1492,7 @@ export default function GraduatesMapPage() {
         )}
         {summaryLoading ? (
           <div className="map-loading-overlay map-details-overlay">
-            <div className="map-loading-overlay-card">{mt("loadingLabel", { defaultValue: "φορτώση" })}</div>
+            <div className="map-loading-overlay-card">{mt("loadingLabel", { defaultValue: "Φόρτωση" })}</div>
           </div>
         ) : null}
       </div>

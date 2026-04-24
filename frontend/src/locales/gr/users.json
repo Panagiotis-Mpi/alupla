@@ -14,7 +14,7 @@
   },
   "roles": {
     "secretariat": "Γραμματεία",
-    "superAdmin": "Super Admin"
+    "superAdmin": "Διαχειριστής"
   },
   "actions": {
     "create": "Δημιουργία",

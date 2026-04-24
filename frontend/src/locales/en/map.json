@@ -155,5 +155,6 @@
     "abroad": "Abroad"
   },
   "detailsHintAbroad": "You can select up to 6 countries to compare them.",
-  "downloadMap": "Download map"
+  "downloadMap": "Download map",
+  "loadingLabel": "Loading"
 }

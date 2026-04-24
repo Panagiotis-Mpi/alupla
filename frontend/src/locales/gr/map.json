@@ -155,5 +155,6 @@
     "abroad": "Εξωτερικό"
   },
   "detailsHintAbroad": "Μπορείτε να επιλέξετε έως 6 χώρες για να τις συγκρίνετε.",
-  "downloadMap": "Λήψη χάρτη"
+  "downloadMap": "Λήψη χάρτη",
+  "loadingLabel": "Φόρτωση"
 }

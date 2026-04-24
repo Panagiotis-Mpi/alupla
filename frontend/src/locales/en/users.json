@@ -14,7 +14,7 @@
   },
   "roles": {
     "secretariat": "Secretariat",
-    "superAdmin": "Super Admin"
+    "superAdmin": "Administrator"
   },
   "actions": {
     "create": "Create",
