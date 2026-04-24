@@ -125,7 +125,9 @@ type ActivityLogListResponse = ApiOk & { items: ActivityLog[]; total?: number; p
 type ActivityLogFileSummaryResponse = ApiOk & { items: Array<{ name: string; count: number }>; total?: number };
 type PublicStatsResponse = ApiOk & Record<string, unknown>;
 const PUBLIC_STATS_CACHE_MS = 5 * 60 * 1000;
+const MAP_CACHE_MS = 3 * 60 * 1000;
 const publicStatsMemoryCache = new Map<string, { expires: number; value: PublicStatsResponse }>();
+const mapMemoryCache = new Map<string, { expires: number; value: unknown }>();
 
 function readPublicStatsCache(key: string) {
   const now = Date.now();
@@ -158,6 +160,49 @@ function writePublicStatsCache(key: string, value: PublicStatsResponse) {
     sessionStorage.setItem(key, JSON.stringify(entry));
   } catch {
   }
+}
+
+
+function readMapCache<T>(key: string): T | null {
+  const now = Date.now();
+  const memory = mapMemoryCache.get(key);
+  if (memory && memory.expires > now) return memory.value as T;
+  if (memory) mapMemoryCache.delete(key);
+
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { expires?: number; value?: T };
+    if (parsed?.expires && parsed.expires > now && parsed.value) {
+      mapMemoryCache.set(key, { expires: parsed.expires, value: parsed.value });
+      return parsed.value;
+    }
+    sessionStorage.removeItem(key);
+  } catch {
+    try {
+      sessionStorage.removeItem(key);
+    } catch {
+    }
+  }
+  return null;
+}
+
+function writeMapCache<T>(key: string, value: T) {
+  const entry = { expires: Date.now() + MAP_CACHE_MS, value };
+  mapMemoryCache.set(key, entry);
+  try {
+    sessionStorage.setItem(key, JSON.stringify(entry));
+  } catch {
+  }
+}
+
+async function cachedMapApi<T>(path: string): Promise<T> {
+  const key = `alupla:map:${path}`;
+  const cached = readMapCache<T>(key);
+  if (cached) return cached;
+  const response = await api<T>(path, { method: "GET" });
+  if ((response as any)?.ok) writeMapCache(key, response);
+  return response;
 }
 
 function readApiErrorMessage(value: unknown, fallback: string) {
@@ -367,20 +412,20 @@ export async function getActivityLogFileSummary(params: QueryParams = {}): Promi
 
 
 export async function getGraduatesMap(params: QueryParams = {}): Promise<{ ok: true; items: GraduatesMapItem[]; total: number }> {
-  return api(`/map/graduates${toQueryString(params)}`, { method: "GET" });
+  return cachedMapApi(`/map/graduates${toQueryString(params)}`);
 }
 
 export async function getMapYearRange(): Promise<MapYearRangeResponse> {
-  return api(`/map/years`, { method: "GET" });
+  return cachedMapApi(`/map/years`);
 }
 
 export async function getMapCities(params: QueryParams = {}): Promise<{ ok: true; items: MapCityPoint[] }> {
-  return api(`/map/cities${toQueryString(params)}`, { method: "GET" });
+  return cachedMapApi(`/map/cities${toQueryString(params)}`);
 }
 
 
 export async function getMapCityDetail(params: QueryParams = {}): Promise<MapCityDetailResponse> {
-  return api(`/map/city-detail${toQueryString(params)}`, { method: "GET" });
+  return cachedMapApi(`/map/city-detail${toQueryString(params)}`);
 }
 
 export function activityLogsExportUrl(format: "csv" | "xlsx", params: QueryParams = {}, lang?: string): string {
