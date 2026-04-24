@@ -1,6 +1,33 @@
 {
   "title": "Profile",
-  "edit": "Edit profile",
-  "save": "Save",
-  "cancel": "Cancel"
+  "subtitle": "Account details and password change.",
+  "info": {
+    "email": "Email",
+    "name": "Full name",
+    "role": "Role"
+  },
+  "roles": {
+    "super_admin": "Administrator",
+    "secretariat": "Secretariat"
+  },
+  "editProfile": {
+    "button": "Edit profile",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "save": "Save",
+    "cancel": "Cancel",
+    "success": "Profile updated successfully"
+  },
+  "changePassword": {
+    "title": "Change password",
+    "show": "Change password",
+    "hide": "Hide password change",
+    "current": "Current password",
+    "new": "New password",
+    "success": "Password changed successfully",
+    "hint": "Password must include:\n- At least 8 characters\n- At least one letter\n- At least one number\n- At least one symbol",
+    "optional": "Optional"
+  },
+  "error": "Error"
 }
