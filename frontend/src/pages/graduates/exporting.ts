@@ -3,7 +3,7 @@ import type { RecentGraduateDownload, RecentGraduatePdfItem, RecentGraduateReque
 
 export function buildGraduateExportFileName(format: "xlsx" | "csv" | "pdf") {
   const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-  return `graduates-${stamp}.${format}`;
+  return `alupla_graduates_export_${stamp}.${format}`;
 }
 
 export function createGraduatePdfItems(items: Graduate[]): RecentGraduatePdfItem[] {

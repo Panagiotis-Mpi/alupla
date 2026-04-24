@@ -946,7 +946,7 @@ export default function GraduatesMapPage() {
 
 
   function metricFilenameBase(metric: MapMetric, scope = mapScope) {
-    const parts = ["alupla_map", slugPart(scope), slugPart(metric)];
+    const parts = ["alupla_map_export", slugPart(scope), slugPart(metric)];
     if (selectedGraduationYear) parts.push(slugPart(selectedGraduationYear));
     return parts.join("_");
   }

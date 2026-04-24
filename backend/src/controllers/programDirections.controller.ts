@@ -192,7 +192,7 @@ export async function downloadProgramDirectionsTemplate(req: Request, res: Respo
       const csv = headers.map((row) => row.map((cell) => escapeDelimitedCell(cell)).join("\t")).join("\r\n");
       const buffer = encodeUtf16WithBom(csv);
       res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
-      res.setHeader("Content-Disposition", 'attachment; filename="program-directions-template.csv"');
+      res.setHeader("Content-Disposition", 'attachment; filename="alupla_program_directions_import_template.csv"');
       return res.send(buffer);
     }
 
@@ -201,7 +201,7 @@ export async function downloadProgramDirectionsTemplate(req: Request, res: Respo
     XLSX.utils.book_append_sheet(wb, ws, "program_directions_template");
     const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    res.setHeader("Content-Disposition", 'attachment; filename="program-directions-template.xlsx"');
+    res.setHeader("Content-Disposition", 'attachment; filename="alupla_program_directions_import_template.xlsx"');
     return res.send(buffer);
   } catch (error) {
     next(error);

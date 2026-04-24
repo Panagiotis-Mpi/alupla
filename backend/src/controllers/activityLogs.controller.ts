@@ -223,7 +223,7 @@ export async function exportActivityLogsCsv(req: Request, res: Response, next: N
     const csv = buildDelimitedText(exportRows, "	");
     const buffer = buildUtf16CsvBuffer(csv);
     res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
-    res.setHeader("Content-Disposition", "attachment; filename=activity_logs.csv");
+    res.setHeader("Content-Disposition", "attachment; filename=alupla_system_logs_export.csv");
     res.send(buffer);
   } catch (error) {
     next(error);
@@ -251,7 +251,7 @@ export async function exportActivityLogsXlsx(req: Request, res: Response, next: 
     const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    res.setHeader("Content-Disposition", "attachment; filename=activity_logs.xlsx");
+    res.setHeader("Content-Disposition", "attachment; filename=alupla_system_logs_export.xlsx");
     res.send(buffer);
   } catch (error) {
     next(error);

@@ -166,7 +166,7 @@ export default function AcademicData() {
   async function downloadTemplate() {
     try {
       const blob = await downloadStudyProgramsTemplateXlsx(lang);
-      downloadBlob(blob, "study-programs-template.xlsx");
+      downloadBlob(blob, "alupla_study_programs_import_template.xlsx");
     } catch (error) {
       alert(errorText(error));
     }

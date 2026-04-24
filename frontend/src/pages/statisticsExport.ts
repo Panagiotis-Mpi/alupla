@@ -369,5 +369,5 @@ export function exportStatisticsCsvFile(args: BuildArgs, filename = buildStatist
     });
   }
 
-  if (lines.length) exportUtf16Csv("alupla_statistics_export.csv", lines.join("\r\n"));
+  if (lines.length) exportUtf16Csv(buildStatisticsExportFilename(args, "csv"), lines.join("\r\n"));
 }

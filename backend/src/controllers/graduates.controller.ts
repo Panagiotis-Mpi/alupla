@@ -115,7 +115,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
       const csv = buildDelimitedText(data, "\t");
       const buf = buildUtf16CsvBuffer(csv);
       res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
-      res.setHeader("Content-Disposition", `attachment; filename="graduates-${ts}.csv"`);
+      res.setHeader("Content-Disposition", `attachment; filename="alupla_graduates_export_${ts}.csv"`);
       return res.send(buf);
     }
 
@@ -128,7 +128,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
     const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    res.setHeader("Content-Disposition", `attachment; filename="graduates-${ts}.xlsx"`);
+    res.setHeader("Content-Disposition", `attachment; filename="alupla_graduates_export_${ts}.xlsx"`);
     return res.send(buf);
   } catch (err) {
     next(err);
@@ -171,7 +171,7 @@ export async function exportGraduatesImportTemplate(req: Request, res: Response,
       const csv = headers.map((row) => row.map((cell) => csvEscape(cell, "\t")).join("\t")).join("\r\n");
       const buf = buildUtf16CsvBuffer(csv);
       res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
-      res.setHeader("Content-Disposition", 'attachment; filename="graduates-import-template.csv"');
+      res.setHeader("Content-Disposition", 'attachment; filename="alupla_graduates_import_template.csv"');
       return res.send(buf);
     }
 
@@ -182,7 +182,7 @@ export async function exportGraduatesImportTemplate(req: Request, res: Response,
     const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    res.setHeader("Content-Disposition", 'attachment; filename="graduates-import-template.xlsx"');
+    res.setHeader("Content-Disposition", 'attachment; filename="alupla_graduates_import_template.xlsx"');
     return res.send(buf);
   } catch (err) {
     next(err);

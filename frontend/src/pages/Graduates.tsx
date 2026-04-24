@@ -290,7 +290,7 @@ export default function Graduates() {
           programNameById: programDisplayNameById,
                 regionNameById,
         });
-        const fileName = `graduates-${timestamp}.pdf`;
+        const fileName = `alupla_graduates_export_${timestamp}.pdf`;
         downloadBlob(blob, fileName);
         await rememberDownload({
           blob,
@@ -326,7 +326,7 @@ export default function Graduates() {
         lang: activeLang,
       } satisfies RecentGraduateRequest;
       const blob = await exportGraduatesFile(exportParams, format, i18n.resolvedLanguage || i18n.language);
-      const fileName = `graduates-${timestamp}.${format}`;
+      const fileName = `alupla_graduates_export_${timestamp}.${format}`;
       downloadBlob(blob, fileName);
       await rememberDownload({ blob, format, fileName, ids, request });
     } catch (error: any) {
@@ -337,7 +337,7 @@ export default function Graduates() {
   async function onDownloadTemplate(format: "xlsx" | "csv") {
     try {
       const blob = await downloadGraduatesImportTemplate(format, i18n.resolvedLanguage || i18n.language);
-      downloadBlob(blob, `graduates-import-template.${format}`);
+      downloadBlob(blob, `alupla_graduates_import_template.${format}`);
     } catch (error: any) {
       alert(error?.message ?? t("export.failed"));
     }

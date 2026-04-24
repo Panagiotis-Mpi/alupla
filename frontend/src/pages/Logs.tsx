@@ -175,7 +175,7 @@ export default function Logs() {
         },
         activeLang
       );
-      await downloadBlob(blob, `logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${format}`);
+      await downloadBlob(blob, `alupla_system_logs_export_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${format}`);
     } catch (e: any) {
       setErr(e?.message ?? t("errorDefault", { ns: "common", defaultValue: "Κάτι πήγε στραβά" }));
     } finally {
