@@ -43,11 +43,7 @@ export async function register(req: Request, res: Response) {
     email: normalizedEmail,
     password_hash,
     role: "secretariat",
-    is_active: true,
-    email_verified: true,
-    admin_approved: true,
-    email_verification_token: null,
-    email_verification_expires: null
+    is_active: true
   });
 
   const token = signToken({ sub: user.id, role: user.role });

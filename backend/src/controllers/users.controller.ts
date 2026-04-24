@@ -62,9 +62,7 @@ export async function createUser(req: Request, res: Response, next: NextFunction
       email,
       password_hash: await hashPassword(password),
       role,
-      is_active: true,
-      email_verified: true,
-      admin_approved: true
+      is_active: true
     });
 
     await logAction({ user_id: req.auth!.id, action: "create_user", entity_type: "user", entity_id: u.id });

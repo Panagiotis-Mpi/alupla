@@ -11,10 +11,6 @@ export class User extends Model {
   declare password_hash: string;
   declare role: UserRole;
   declare is_active: boolean;
-  declare email_verified: boolean;
-  declare admin_approved: boolean;
-  declare email_verification_token: string | null;
-  declare email_verification_expires: Date | null;
   declare last_seen_at: Date | null;
 }
 
@@ -27,10 +23,6 @@ User.init(
     password_hash: { type: DataTypes.STRING(255), allowNull: false },
     role: { type: DataTypes.ENUM("super_admin", "secretariat"), allowNull: false },
     is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    email_verified: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-    admin_approved: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    email_verification_token: { type: DataTypes.CHAR(64), allowNull: true },
-    email_verification_expires: { type: DataTypes.DATE, allowNull: true },
     last_seen_at: { type: DataTypes.DATE, allowNull: true }
   },
   {
