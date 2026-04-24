@@ -3,14 +3,44 @@ import { useTranslation } from "react-i18next";
 import { changePassword, getToken, me, updateProfile } from "../lib/api";
 import { setSession } from "../lib/auth";
 
-const cardGridStyle: React.CSSProperties = { display: "grid", gap: 20 };
-const sectionStyle: React.CSSProperties = { display: "grid", gap: 16 };
-const passwordSectionStyle: React.CSSProperties = { display: "grid", gap: 12, paddingTop: 4 };
+const summaryGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+  gap: 10,
+};
+
+const summaryItemStyle: React.CSSProperties = {
+  border: "1px solid var(--border)",
+  borderRadius: 14,
+  padding: "12px 14px",
+  background: "#f8fafc",
+  minWidth: 0,
+};
+
+const valueStyle: React.CSSProperties = {
+  fontWeight: 700,
+  overflowWrap: "anywhere",
+};
+
+const formGridStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 14,
+};
+
+const sectionBoxStyle: React.CSSProperties = {
+  border: "1px solid #eef2f7",
+  borderRadius: 14,
+  padding: 12,
+  display: "grid",
+  gap: 12,
+  background: "#fff",
+};
+
 const helperTextStyle: React.CSSProperties = {
   marginTop: 8,
   color: "#52627a",
-  fontSize: 14,
-  lineHeight: 1.4,
+  fontSize: 13,
+  lineHeight: 1.45,
   whiteSpace: "pre-line",
 };
 
@@ -92,109 +122,125 @@ export default function Profile() {
   if (!user) return null;
 
   const roleLabel = t(`roles.${user.role}`, { defaultValue: user.role });
+  const fullName = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
   const toggleEditing = () => setIsEditing((open) => !open);
 
   return (
-    <div className="grid" style={{ gap: 16 }}>
-      <div className="card" style={cardGridStyle}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <h2 style={{ margin: 0 }}>{t("title")}</h2>
+    <div className="page-stable-shell">
+      {err && (
+        <div className="card page-header-card" style={{ borderColor: "#b00020", color: "#b00020" }}>
+          {err}
+        </div>
+      )}
 
-          <button className="btn primary" onClick={toggleEditing}>
-            {t("editProfile.button")}
+      <div className="card page-header-card" style={{ padding: 14 }}>
+        <div className="page-title-row">
+          <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
+            <h2 style={{ margin: 0 }}>{t("title")}</h2>
+            <div className="muted">{t("subtitle")}</div>
+          </div>
+
+          <button className="btn primary" onClick={toggleEditing} style={{ width: "auto" }}>
+            {isEditing ? t("editProfile.close") : t("editProfile.button")}
           </button>
         </div>
 
-        <div>
-          <strong>{t("info.email")}:</strong> {user.email}
-        </div>
-        <div>
-          <strong>{t("info.name")}:</strong> {user.first_name} {user.last_name}
-        </div>
-        <div>
-          <strong>{t("info.role")}:</strong> {roleLabel}
+        <div style={{ ...summaryGridStyle, marginTop: 14 }}>
+          <div style={summaryItemStyle}>
+            <div className="label">{t("info.name")}</div>
+            <div style={valueStyle}>{fullName || "-"}</div>
+          </div>
+          <div style={summaryItemStyle}>
+            <div className="label">{t("info.email")}</div>
+            <div style={valueStyle}>{user.email}</div>
+          </div>
+          <div style={summaryItemStyle}>
+            <div className="label">{t("info.role")}</div>
+            <span className="badge">{roleLabel}</span>
+          </div>
         </div>
       </div>
 
       {isEditing && (
-        <div className="card" style={cardGridStyle}>
-          <div style={sectionStyle}>
-            <h3 style={{ margin: 0 }}>{t("editProfile.title")}</h3>
+        <div className="card page-header-card" style={{ padding: 14 }}>
+          <div style={formGridStyle}>
+            <div className="page-title-row">
+              <h3 style={{ margin: 0 }}>{t("editProfile.title")}</h3>
+              <div className="muted">{t("editProfile.note")}</div>
+            </div>
 
             <div className="grid cols2">
-              <div>
-                <label className="label">{t("editProfile.firstName")}</label>
-                <input
-                  type="text"
-                  className="input"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                />
+              <div style={sectionBoxStyle}>
+                <h3 style={{ margin: 0 }}>{t("editProfile.accountTitle")}</h3>
+
+                <div className="grid cols2">
+                  <div>
+                    <label className="label">{t("editProfile.firstName")}</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label">{t("editProfile.lastName")}</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">{t("editProfile.email")}</label>
+                  <input
+                    type="email"
+                    className="input"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="label">{t("editProfile.lastName")}</label>
-                <input
-                  type="text"
-                  className="input"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                />
+              <div style={sectionBoxStyle}>
+                <h3 style={{ margin: 0 }}>{t("changePassword.title")}</h3>
+
+                <div>
+                  <label className="label">{t("changePassword.current")}</label>
+                  <input
+                    type="password"
+                    className="input"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="label">{t("changePassword.new")}</label>
+                  <input
+                    type="password"
+                    className="input"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <div style={helperTextStyle}>{t("changePassword.hint")}</div>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="label">{t("editProfile.email")}</label>
-              <input
-                type="email"
-                className="input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+            <div className="topbar" style={{ justifyContent: "flex-end" }}>
+              <button className="btn" onClick={() => setIsEditing(false)}>
+                {t("editProfile.cancel")}
+              </button>
+              <button className="btn primary" onClick={onSaveProfile}>
+                {t("editProfile.save")}
+              </button>
             </div>
           </div>
-
-          <div style={passwordSectionStyle}>
-            <h3 style={{ margin: 0 }}>{t("changePassword.title")}</h3>
-
-            <div className="grid cols2">
-              <div>
-                <label className="label">{t("changePassword.current")}</label>
-                <input
-                  type="password"
-                  className="input"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="label">{t("changePassword.new")}</label>
-                <input
-                  type="password"
-                  className="input"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <div style={helperTextStyle}>{t("changePassword.hint")}</div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button className="btn primary" onClick={onSaveProfile}>
-              {t("editProfile.save")}
-            </button>
-            <button className="btn" onClick={() => setIsEditing(false)}>
-              {t("editProfile.cancel")}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {err && (
-        <div className="card" style={{ borderColor: "#b00020", color: "#b00020" }}>
-          {err}
         </div>
       )}
     </div>

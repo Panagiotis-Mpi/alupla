@@ -1,5 +1,6 @@
 {
   "title": "Profile",
+  "subtitle": "Account details and secure password change.",
   "info": {
     "email": "Email",
     "name": "Name",
@@ -11,7 +12,10 @@
   },
   "editProfile": {
     "button": "Edit profile",
+    "close": "Close editor",
     "title": "Edit profile",
+    "note": "All changes are saved together.",
+    "accountTitle": "Account details",
     "firstName": "First name",
     "lastName": "Last name",
     "email": "Email",
