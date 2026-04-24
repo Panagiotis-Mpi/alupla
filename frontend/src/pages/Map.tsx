@@ -163,11 +163,22 @@ function genderMarkerSymbol(city: any) {
   return "≈";
 }
 
-function genderLegendPattern(entryKey: string) {
+function genderLegendPattern(entryKey: string, highContrastEnabled = false) {
+  if (!highContrastEnabled) return "";
   if (entryKey === "male") return "map-legend-swatch-pattern-male";
   if (entryKey === "female") return "map-legend-swatch-pattern-female";
   if (entryKey === "balanced") return "map-legend-swatch-pattern-balanced";
   return "";
+}
+
+function genderSegmentPosition(startPercent: number, sizePercent: number) {
+  const middle = startPercent + sizePercent / 2;
+  const angle = ((middle / 100) * 360 - 90) * (Math.PI / 180);
+  const distance = sizePercent < 18 ? 24 : sizePercent < 30 ? 27 : 30;
+  return {
+    left: 50 + Math.cos(angle) * distance,
+    top: 50 + Math.sin(angle) * distance,
+  };
 }
 
 
@@ -265,18 +276,19 @@ function bubbleLabelIcon(
   const wrapperHeight = labelHeight + size + 6;
   const wrapperWidth = Math.max(labelWidth, size + 10);
   const activeRing = active ? '0 0 0 3px rgba(15,23,42,.14)' : 'none';
-  const genderSymbol = genderMarkerSymbol(city);
   const genderBubbleBackground = highContrastEnabled
-    ? (malePct > femalePct
-        ? "repeating-linear-gradient(135deg, #ffffff 0 5px, #000000 5px 9px)"
-        : femalePct > malePct
-          ? "repeating-linear-gradient(0deg, #ffffff 0 5px, #000000 5px 9px)"
-          : "radial-gradient(circle at center, #000000 0 22%, #ffffff 24% 100%)")
+    ? `conic-gradient(#ffffff 0 ${malePct}%, #000000 ${malePct}% 100%)`
     : `conic-gradient(${genderColors.male} 0 ${malePct}%, ${genderColors.female} ${malePct}% 100%)`;
+  const maleSegmentPosition = genderSegmentPosition(0, malePct);
+  const femaleSegmentPosition = genderSegmentPosition(malePct, femalePct);
+  const genderSegmentFontSize = size >= 58 ? 11 : size >= 46 ? 10 : 9;
+  const highContrastGenderDetails = highContrastEnabled
+    ? `${maleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-male" style="left:${maleSegmentPosition.left}%;top:${maleSegmentPosition.top}%;font-size:${genderSegmentFontSize}px;">♂ ${maleCount}</span>` : ""}${femaleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-female" style="left:${femaleSegmentPosition.left}%;top:${femaleSegmentPosition.top}%;font-size:${genderSegmentFontSize}px;">♀ ${femaleCount}</span>` : ""}`
+    : `<span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span>`;
   const bubbleHtml =
     mapMetric === "count"
       ? `<div class="alupla-city-bubble alupla-city-bubble-count" style="width:${size}px;height:${size}px;--alupla-bubble-border:${bubbleStroke};--alupla-bubble-background:${bubbleFill};--alupla-bubble-opacity:${bubbleOpacity};--alupla-bubble-shadow:${activeRing};"><span class="alupla-city-bubble-number" style="font-size:${fontSize}px;">${count}</span></div>`
-      : `<div class="alupla-city-bubble alupla-city-bubble-gender${highContrastEnabled ? " is-high-contrast" : ""}" style="width:${size}px;height:${size}px;--alupla-bubble-border:rgba(51,65,85,.72);--alupla-bubble-background:${genderBubbleBackground};--alupla-bubble-opacity:1;--alupla-bubble-shadow:${activeRing};"><span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span><span class="alupla-city-bubble-glyph">${genderSymbol}</span></div>`;
+      : `<div class="alupla-city-bubble alupla-city-bubble-gender${highContrastEnabled ? " is-high-contrast" : ""}" style="width:${size}px;height:${size}px;--alupla-bubble-border:rgba(51,65,85,.72);--alupla-bubble-background:${genderBubbleBackground};--alupla-bubble-opacity:1;--alupla-bubble-shadow:${activeRing};">${highContrastGenderDetails}</div>`;
   const summary = "";
   return L.divIcon({
     className: "alupla-city-bubble-icon",
@@ -1155,8 +1167,9 @@ export default function GraduatesMapPage() {
         .alupla-city-bubble-number { line-height: 1; color: #fff; text-shadow: 0 1px 1px rgba(15,23,42,.35); }
         .alupla-city-bubble-count .alupla-city-bubble-number { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.45); }
         .alupla-city-bubble-number-gender { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.5); }
-        .alupla-city-bubble-glyph { position: absolute; right: -6px; bottom: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; border: 1px solid rgba(15,23,42,.24); background: rgba(255,255,255,.94); color: #0f172a; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; line-height: 1; }
-        .alupla-city-bubble-gender.is-high-contrast .alupla-city-bubble-number-gender { color: #000; text-shadow: none; }
+        .alupla-city-gender-segment { position: absolute; transform: translate(-50%, -50%); border-radius: 999px; padding: 1px 3px; font-weight: 900; line-height: 1; white-space: nowrap; }
+        .alupla-city-gender-segment-male { color: #000; background: rgba(255,255,255,.82); }
+        .alupla-city-gender-segment-female { color: #fff; background: rgba(0,0,0,.68); }
         .alupla-city-bubble-gender.is-high-contrast { border-color: #000000; }
         .alupla-city-bubble-sub { margin-top: 4px; color: #475569; font-size: 10px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); }
         .alupla-city-point { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; pointer-events: auto; }
@@ -1206,7 +1219,7 @@ export default function GraduatesMapPage() {
         .map-info-box { position: relative; }
         .map-info-box-close { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border: 1px solid rgba(148,163,184,.35); background: #fff; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; cursor: pointer; color: #334155; }
         .map-map-wrap { position: relative; padding: 8px 8px 12px; overflow: hidden; border-radius: 18px; }
-        .map-custom-legend { position: absolute; left: 20px; bottom: 24px; z-index: 900; background: rgba(255,255,255,.94); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; font-size: 12px; box-shadow: var(--shadow); max-width: 260px; pointer-events: none; transform: translateZ(0); backface-visibility: hidden; }
+        .map-custom-legend { position: absolute; left: 20px; bottom: 24px; z-index: 900; background: rgba(255,255,255,.94); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; font-size: 12px; box-shadow: var(--shadow); max-width: 300px; pointer-events: none; transform: translateZ(0); backface-visibility: hidden; }
         .map-loading-overlay { position: absolute; inset: 8px 8px 12px; border-radius: 18px; background: rgba(255,255,255,.08); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 950; pointer-events: none; }
         .map-loading-overlay-card { min-width: 180px; min-height: 88px; padding: 16px 20px; border-radius: 18px; border: 0; background: transparent; box-shadow: none; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; text-align: center; }
         .map-summary-shell, .map-timeline-shell, .map-details-shell { position: relative; }
@@ -1420,23 +1433,27 @@ export default function GraduatesMapPage() {
                       key={entry.key}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "24px 1fr",
+                        gridTemplateColumns: isGenderLegendItem ? "30px 1fr" : "56px 1fr",
                         alignItems: "center",
-                        gap: 8,
+                        gap: isGenderLegendItem ? 8 : 10,
                       }}
                     >
                       <span
-                        className={`map-legend-swatch ${genderLegendPattern(entry.key)}`}
+                        className={`map-legend-swatch ${genderLegendPattern(entry.key, highContrastEnabled)}`}
                         style={{
                           width: swatchSize,
                           height: swatchSize,
                           borderRadius: 999,
                           background: entry.color,
                           opacity: entry.opacity,
-                          border: "1px solid rgba(51,65,85,.18)",
+                          border: highContrastEnabled && isGenderLegendItem ? "1px solid #000" : "1px solid rgba(51,65,85,.18)",
+                          justifySelf: "center",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                       >
-                        {isGenderLegendItem ? <span className="map-legend-swatch-symbol">{entry.key === "male" ? "♂" : entry.key === "female" ? "♀" : "≈"}</span> : null}
+                        {isGenderLegendItem && highContrastEnabled ? <span className="map-legend-swatch-symbol">{entry.key === "male" ? "♂" : entry.key === "female" ? "♀" : "≈"}</span> : null}
                       </span>
                       <span>{entry.label}</span>
                     </div>
