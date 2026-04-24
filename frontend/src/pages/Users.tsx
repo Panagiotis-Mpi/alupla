@@ -29,15 +29,6 @@ const passwordHintStyle: React.CSSProperties = { whiteSpace: "pre-line" };
 const topSpacingStyle: React.CSSProperties = { marginTop: 12 };
 const errorCardStyle: React.CSSProperties = { borderColor: "#b00020", color: "#b00020" };
 
-function fullNameOf(user: AdminUser) {
-  return `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
-}
-
-function sortValueOf(user: AdminUser, key: SortKey) {
-  if (key === "name") return fullNameOf(user);
-  return user[key];
-}
-
 export default function Users() {
   const { t } = useTranslation("users");
 
@@ -104,8 +95,8 @@ export default function Users() {
   const sortedItems = React.useMemo(() => {
     const nextItems = [...items];
     nextItems.sort((a, b) => {
-      const av = sortValueOf(a, sortState.key);
-      const bv = sortValueOf(b, sortState.key);
+      const av = sortState.key === "name" ? `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim() : a[sortState.key];
+      const bv = sortState.key === "name" ? `${b.first_name ?? ""} ${b.last_name ?? ""}`.trim() : b[sortState.key];
 
       if (av == null && bv == null) return 0;
       if (av == null) return -1;
@@ -194,7 +185,7 @@ export default function Users() {
                 <tr key={user.id}>
                   <td>{user.id}</td>
                   <td>{user.email}</td>
-                  <td>{fullNameOf(user)}</td>
+                  <td>{`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim()}</td>
                   <td>
                     <select
                       className="input"

@@ -19,73 +19,7 @@ import Footer from "./components/Footer";
 import AcademicData from "./pages/AcademicData";
 import AccessibilityMenu from "./components/AccessibilityMenu";
 
-type NavLinkItem = {
-  to: string;
-  label: string;
-};
-
-const AUTH_PATHS = ["/login", "/register"];
 const COMPACT_WIDTH = 820;
-const SUPER_ADMIN_ROLE = "super_admin";
-
-function isCompactViewport() {
-  return typeof window !== "undefined" ? window.innerWidth <= COMPACT_WIDTH : false;
-}
-
-function isAuthPath(pathname: string) {
-  return AUTH_PATHS.some((path) => pathname.startsWith(path));
-}
-
-function buildPublicLinks(t: ReturnType<typeof useTranslation>["t"]): NavLinkItem[] {
-  return [
-    { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) },
-    { to: "/map", label: t("nav.map") },
-  ];
-}
-
-function getAcademicDataLabel(
-  _role: string | undefined,
-  lang: "gr" | "en",
-  t: ReturnType<typeof useTranslation>["t"]
-) {
-  const translated = t("nav.academicPrograms", { defaultValue: "" });
-  if (translated && translated !== "nav.academicPrograms") {
-    return translated;
-  }
-
-  return lang === "en" ? "Academic Programs" : "Ακαδημαϊκά προγράμματα";
-}
-
-function buildNavLinks(
-  user: ReturnType<typeof getUser>,
-  role: string | undefined,
-  academicDataLabel: string,
-  t: ReturnType<typeof useTranslation>["t"]
-): NavLinkItem[] {
-  const statisticsLink = { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) };
-  const mapLink = { to: "/map", label: t("nav.map") };
-
-  if (!user) {
-    return [statisticsLink, mapLink];
-  }
-
-  const mainLinks: NavLinkItem[] = [
-    { to: "/graduates", label: t("nav.graduates") },
-    { to: "/academic-data", label: academicDataLabel },
-    statisticsLink,
-    mapLink,
-  ];
-
-  if (role !== SUPER_ADMIN_ROLE) {
-    return mainLinks;
-  }
-
-  return [
-    ...mainLinks,
-    { to: "/users", label: t("nav.users") },
-    { to: "/logs", label: t("nav.logs") },
-  ];
-}
 
 function TopNav() {
   const { t } = useTranslation();
@@ -94,17 +28,38 @@ function TopNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [isCompact, setIsCompact] = React.useState(isCompactViewport);
+  const [isCompact, setIsCompact] = React.useState(() => (typeof window !== "undefined" ? window.innerWidth <= COMPACT_WIDTH : false));
 
-  const authRoute = React.useMemo(() => isAuthPath(location.pathname), [location.pathname]);
+  const authRoute = React.useMemo(() => ["/login", "/register"].some((path) => location.pathname.startsWith(path)), [location.pathname]);
   const lang: "gr" | "en" = i18n.language?.startsWith("en") ? "en" : "gr";
 
-  const authLinks = React.useMemo(() => buildPublicLinks(t), [t]);
-  const academicDataLabel = React.useMemo(() => getAcademicDataLabel(role, lang, t), [lang, role, t]);
-  const navLinks = React.useMemo(
-    () => buildNavLinks(user, role, academicDataLabel, t),
-    [academicDataLabel, role, t, user]
-  );
+  const visibleLinks = React.useMemo(() => {
+    const statistics = { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) };
+    const map = { to: "/map", label: t("nav.map") };
+
+    if (authRoute || !user) {
+      return [statistics, map];
+    }
+
+    const links = [
+      { to: "/graduates", label: t("nav.graduates") },
+      {
+        to: "/academic-data",
+        label: t("nav.academicPrograms", {
+          defaultValue: lang === "en" ? "Academic Programs" : "Ακαδημαϊκά προγράμματα",
+        }),
+      },
+      statistics,
+      map,
+    ];
+
+    if (role === "super_admin") {
+      links.push({ to: "/users", label: t("nav.users") });
+      links.push({ to: "/logs", label: t("nav.logs") });
+    }
+
+    return links;
+  }, [authRoute, lang, role, t, user]);
 
   const closeMenu = React.useCallback(() => setMenuOpen(false), []);
 
@@ -123,7 +78,7 @@ function TopNav() {
   }, [isCompact, navigate, user]);
 
   const handleResize = React.useCallback(() => {
-    const compact = isCompactViewport();
+    const compact = typeof window !== "undefined" ? window.innerWidth <= COMPACT_WIDTH : false;
     setIsCompact(compact);
     if (!compact) {
       setMenuOpen(false);
@@ -185,7 +140,6 @@ function TopNav() {
     };
   }, [user]);
 
-  const visibleLinks = authRoute ? authLinks : navLinks;
 
   return (
     <div className="nav">
