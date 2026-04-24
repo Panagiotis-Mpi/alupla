@@ -130,7 +130,15 @@
     "moreMen": "Περισσότεροι άνδρες",
     "moreWomen": "Περισσότερες γυναίκες",
     "balance": "Ισορροπία",
-    "noData": "Χωρίς δεδομένα"
+    "noData": "Χωρίς δεδομένα",
+    "maleColor": "Άνδρες",
+    "femaleColor": "Γυναίκες",
+    "genderBalance": "Ίση παρουσία ανδρών και γυναικών",
+    "genderColors": "Χρώμα που αντιστοιχεί στο φύλο",
+    "countByCity": "Πλήθος αποφοίτων ανά πόλη στην Ελλάδα",
+    "countByCountry": "Πλήθος αποφοίτων ανά χώρα",
+    "graduatesUnit": "απόφοιτοι",
+    "countRange": "{{from}}–{{to}} απόφοιτοι"
   },
   "tooltip": {
     "dominantGender": "Κυρίαρχο φύλο"

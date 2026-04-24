@@ -507,13 +507,20 @@ export default function GraduatesMapPage() {
       return hit === -1 ? breaks.length - 1 : hit;
     };
 
-    const legend = breaks.map((limit, index) => ({
-      key: `city-${index}`,
-      label: index === 0 ? `1–${limit}` : `${breaks[index - 1] + 1}–${limit}`,
-      color: palette[Math.min(index, palette.length - 1)],
-      radius: radii[Math.min(index, radii.length - 1)],
-      opacity: 0.8,
-    }));
+    const legend = breaks.map((limit, index) => {
+      const from = index === 0 ? 1 : breaks[index - 1] + 1;
+      return {
+        key: `city-${index}`,
+        label: mt("legendLabels.countRange", {
+          from,
+          to: limit,
+          defaultValue: `${from}–${limit} ${mt("legendLabels.graduatesUnit", { defaultValue: "απόφοιτοι" })}`,
+        }),
+        color: palette[Math.min(index, palette.length - 1)],
+        radius: radii[Math.min(index, radii.length - 1)],
+        opacity: 0.8,
+      };
+    });
 
     return {
       items: points.map((item) => {
@@ -529,7 +536,7 @@ export default function GraduatesMapPage() {
       legend,
       maxCount: counts[counts.length - 1],
     };
-  }, [cityPoints, mapZoom]);
+  }, [cityPoints, mapZoom, mt]);
 
   useLayoutEffect(() => {
     if (!activeBounds || !mapRef.current) return;
@@ -662,19 +669,19 @@ export default function GraduatesMapPage() {
     () => [
       {
         key: "male",
-        label: mt("maleDominant", { defaultValue: "Περισσότεροι άντρες" }),
+        label: mt("legendLabels.maleColor", { defaultValue: "Άνδρες" }),
         color: genderColors.male,
         opacity: 0.82,
       },
       {
         key: "female",
-        label: mt("femaleDominant", { defaultValue: "Περισσότερες γυναίκες" }),
+        label: mt("legendLabels.femaleColor", { defaultValue: "Γυναίκες" }),
         color: genderColors.female,
         opacity: 0.82,
       },
       {
         key: "balanced",
-        label: mt("balanced", { defaultValue: "Ισορροπημένη κατανομή" }),
+        label: mt("legendLabels.genderBalance", { defaultValue: "Ίση παρουσία ανδρών και γυναικών" }),
         color: genderColors.balanced,
         opacity: 0.82,
       },
@@ -790,14 +797,21 @@ export default function GraduatesMapPage() {
       if (!acc.length || value > acc[acc.length - 1]) acc.push(value);
       return acc;
     }, []);
-    return breaks.map((limit, index) => ({
-      key: `abroad-${index}`,
-      label: index === 0 ? `1–${limit}` : `${breaks[index - 1] + 1}–${limit}`,
-      color: palette[Math.min(index, palette.length - 1)],
-      radius: sizes[Math.min(index, sizes.length - 1)],
-      opacity: 0.8,
-    }));
-  }, [abroadCountryMarkers, genderLegendEntries, mapMetric]);
+    return breaks.map((limit, index) => {
+      const from = index === 0 ? 1 : breaks[index - 1] + 1;
+      return {
+        key: `abroad-${index}`,
+        label: mt("legendLabels.countRange", {
+          from,
+          to: limit,
+          defaultValue: `${from}–${limit} ${mt("legendLabels.graduatesUnit", { defaultValue: "απόφοιτοι" })}`,
+        }),
+        color: palette[Math.min(index, palette.length - 1)],
+        radius: sizes[Math.min(index, sizes.length - 1)],
+        opacity: 0.8,
+      };
+    });
+  }, [abroadCountryMarkers, genderLegendEntries, mapMetric, mt]);
 
   const renderedLegendEntries = useMemo(() => {
     if (mapScope === "greece") {
@@ -805,6 +819,16 @@ export default function GraduatesMapPage() {
     }
     return abroadLegendEntries;
   }, [abroadLegendEntries, genderLegendEntries, greekCityMarkers.legend, mapMetric, mapScope]);
+
+  const legendDescription = useMemo(() => {
+    if (mapMetric === "dominant_gender") {
+      return mt("legendLabels.genderColors", { defaultValue: "Χρώμα που αντιστοιχεί στο φύλο" });
+    }
+    if (mapScope === "abroad") {
+      return mt("legendLabels.countByCountry", { defaultValue: "Πλήθος αποφοίτων ανά χώρα" });
+    }
+    return mt("legendLabels.countByCity", { defaultValue: "Πλήθος αποφοίτων ανά πόλη στην Ελλάδα" });
+  }, [mapMetric, mapScope, mt]);
 
   const rankedMarkersBase = useMemo(() => {
     const source = (mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items)
@@ -1386,35 +1410,39 @@ export default function GraduatesMapPage() {
                 {mt("legend", { defaultValue: "Υπόμνημα" })}
               </div>
               <div className="muted" style={{ marginBottom: 8 }}>
-                {mapScope === "greece" ? mt("export.count", { defaultValue: "Απόφοιτοι ανά πόλη" }) : metricOptions[mapMetric].legend}
+                {legendDescription}
               </div>
               <div style={{ display: "grid", gap: 6 }}>
-                {renderedLegendEntries.map((entry) => (
-                  <div
-                    key={entry.key}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "24px 1fr",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <span
-                      className={`map-legend-swatch ${genderLegendPattern(entry.key)}`}
+                {renderedLegendEntries.map((entry) => {
+                  const isGenderLegendItem = entry.key === "male" || entry.key === "female" || entry.key === "balanced";
+                  const swatchSize = Math.max(12, Number((entry as any).radius || (isGenderLegendItem ? 16 : mapScope === "greece" ? 10 : 16)));
+                  return (
+                    <div
+                      key={entry.key}
                       style={{
-                        width: Math.max(10, Number((entry as any).radius || (mapScope === "greece" ? 10 : 16))),
-                        height: Math.max(10, Number((entry as any).radius || (mapScope === "greece" ? 10 : 16))),
-                        borderRadius: 999,
-                        background: entry.color,
-                        opacity: entry.opacity,
-                        border: "1px solid rgba(51,65,85,.18)",
+                        display: "grid",
+                        gridTemplateColumns: "24px 1fr",
+                        alignItems: "center",
+                        gap: 8,
                       }}
                     >
-                      {entry.key === "male" || entry.key === "female" || entry.key === "balanced" ? <span className="map-legend-swatch-symbol">{entry.key === "male" ? "♂" : entry.key === "female" ? "♀" : "≈"}</span> : null}
-                    </span>
-                    <span>{entry.label}</span>
-                  </div>
-                ))}
+                      <span
+                        className={`map-legend-swatch ${genderLegendPattern(entry.key)}`}
+                        style={{
+                          width: swatchSize,
+                          height: swatchSize,
+                          borderRadius: 999,
+                          background: entry.color,
+                          opacity: entry.opacity,
+                          border: "1px solid rgba(51,65,85,.18)",
+                        }}
+                      >
+                        {isGenderLegendItem ? <span className="map-legend-swatch-symbol">{entry.key === "male" ? "♂" : entry.key === "female" ? "♀" : "≈"}</span> : null}
+                      </span>
+                      <span>{entry.label}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : null}

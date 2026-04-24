@@ -130,7 +130,15 @@
     "moreMen": "More men",
     "moreWomen": "More women",
     "balance": "Balanced",
-    "noData": "No data"
+    "noData": "No data",
+    "maleColor": "Men",
+    "femaleColor": "Women",
+    "genderBalance": "Equal presence of men and women",
+    "genderColors": "Color representing each gender",
+    "countByCity": "Graduate count by city in Greece",
+    "countByCountry": "Graduate count by country",
+    "graduatesUnit": "graduates",
+    "countRange": "{{from}}–{{to}} graduates"
   },
   "tooltip": {
     "dominantGender": "Dominant gender"
