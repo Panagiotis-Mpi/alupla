@@ -124,6 +124,41 @@ type RegionListResponse = ApiOk & { items: Region[] };
 type ActivityLogListResponse = ApiOk & { items: ActivityLog[]; total?: number; page?: number; pageSize?: number };
 type ActivityLogFileSummaryResponse = ApiOk & { items: Array<{ name: string; count: number }>; total?: number };
 type PublicStatsResponse = ApiOk & Record<string, unknown>;
+const PUBLIC_STATS_CACHE_MS = 5 * 60 * 1000;
+const publicStatsMemoryCache = new Map<string, { expires: number; value: PublicStatsResponse }>();
+
+function readPublicStatsCache(key: string) {
+  const now = Date.now();
+  const memory = publicStatsMemoryCache.get(key);
+  if (memory && memory.expires > now) return memory.value;
+  if (memory) publicStatsMemoryCache.delete(key);
+
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { expires?: number; value?: PublicStatsResponse };
+    if (parsed?.expires && parsed.expires > now && parsed.value?.ok) {
+      publicStatsMemoryCache.set(key, { expires: parsed.expires, value: parsed.value });
+      return parsed.value;
+    }
+    sessionStorage.removeItem(key);
+  } catch {
+    try {
+      sessionStorage.removeItem(key);
+    } catch {
+    }
+  }
+  return null;
+}
+
+function writePublicStatsCache(key: string, value: PublicStatsResponse) {
+  const entry = { expires: Date.now() + PUBLIC_STATS_CACHE_MS, value };
+  publicStatsMemoryCache.set(key, entry);
+  try {
+    sessionStorage.setItem(key, JSON.stringify(entry));
+  } catch {
+  }
+}
 
 function readApiErrorMessage(value: unknown, fallback: string) {
   const payload = value as ApiErrorShape | null;
@@ -415,8 +450,15 @@ export async function getPublicStats(params: {
   study_program_id?: string;
   gender?: string;
   age_group?: string;
-} = { }): Promise<UserResponse> {
-  return api(`/public/stats${toQueryString(params)}`, { method: "GET" });
+} = { }): Promise<PublicStatsResponse> {
+  const path = `/public/stats${toQueryString(params)}`;
+  const cacheKey = `alupla:public-stats:${path}`;
+  const cached = readPublicStatsCache(cacheKey);
+  if (cached) return cached;
+
+  const response = await api(path, { method: "GET" }) as PublicStatsResponse;
+  if (response?.ok) writePublicStatsCache(cacheKey, response);
+  return response;
 }
 
 export async function logPublicExport(action: "map_export" | "statistics_export", format: string): Promise<ApiOk> {

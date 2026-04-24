@@ -11,6 +11,24 @@ import {
 } from "./public.helpers";
 import { buildAnonymousStatisticsWorkbook, loadPublicMapRows } from "./public.stats";
 
+type PublicStatsCacheEntry = { expires: number; body: Record<string, unknown> };
+const publicStatsCache = new Map<string, PublicStatsCacheEntry>();
+const PUBLIC_STATS_CACHE_MS = 5 * 60 * 1000;
+
+function getPublicStatsCache(key: string) {
+  const item = publicStatsCache.get(key);
+  if (!item) return null;
+  if (item.expires <= Date.now()) {
+    publicStatsCache.delete(key);
+    return null;
+  }
+  return item.body;
+}
+
+function setPublicStatsCache(key: string, body: Record<string, unknown>) {
+  publicStatsCache.set(key, { expires: Date.now() + PUBLIC_STATS_CACHE_MS, body });
+}
+
 export async function publicStudyPrograms(_req: Request, res: Response) {
   const items = await StudyProgram.findAll({
     attributes: ["id", "code", "name_el", "name_en"],
@@ -21,6 +39,13 @@ export async function publicStudyPrograms(_req: Request, res: Response) {
 
 export async function publicStats(req: Request, res: Response) {
   try {
+    const cacheKey = req.originalUrl || req.url;
+    const cached = getPublicStatsCache(cacheKey);
+    if (cached) {
+      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
+      return res.json(cached);
+    }
+
     const { sqlWhere, repl, birthExpr } = await buildWhere(req);
     const birthYearExpr = await getBirthYearExpr();
 
@@ -446,7 +471,7 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
-    res.json({
+    const body = {
       ok: true,
       total,
       avg_age: avgRow?.[0]?.avg_age ?? null,
@@ -477,7 +502,11 @@ export async function publicStats(req: Request, res: Response) {
       oath_year_distribution: oathYearDistribution,
       avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear,
       years_to_degree_distribution: yearsToDegreeDistribution,
-    });
+    };
+
+    setPublicStatsCache(cacheKey, body);
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
+    return res.json(body);
   } catch (err) {
     console.error('[public/stats] failed', err);
     return res.status(500).json({ message: 'Stats query failed' });
