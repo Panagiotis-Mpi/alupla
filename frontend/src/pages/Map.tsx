@@ -164,20 +164,17 @@ function genderMarkerSymbol(city: any) {
 }
 
 function genderLegendPattern(entryKey: string, highContrastEnabled = false) {
-  if (!highContrastEnabled) return "";
-  if (entryKey === "male") return "map-legend-swatch-pattern-male";
-  if (entryKey === "female") return "map-legend-swatch-pattern-female";
-  if (entryKey === "balanced") return "map-legend-swatch-pattern-balanced";
   return "";
 }
 
-function genderSegmentPosition(startPercent: number, sizePercent: number) {
+function genderSegmentPosition(startPercent: number, sizePercent: number, bubbleSize: number) {
   const middle = startPercent + sizePercent / 2;
   const angle = ((middle / 100) * 360 - 90) * (Math.PI / 180);
-  const distance = sizePercent < 18 ? 24 : sizePercent < 30 ? 27 : 30;
+  const sizeFactor = bubbleSize < 34 ? 18 : bubbleSize < 46 ? 22 : bubbleSize < 62 ? 25 : 28;
+  const segmentFactor = sizePercent < 16 ? 16 : sizePercent < 28 ? sizeFactor - 3 : sizeFactor;
   return {
-    left: 50 + Math.cos(angle) * distance,
-    top: 50 + Math.sin(angle) * distance,
+    left: 50 + Math.cos(angle) * segmentFactor,
+    top: 50 + Math.sin(angle) * segmentFactor,
   };
 }
 
@@ -276,14 +273,22 @@ function bubbleLabelIcon(
   const wrapperHeight = labelHeight + size + 6;
   const wrapperWidth = Math.max(labelWidth, size + 10);
   const activeRing = active ? '0 0 0 3px rgba(15,23,42,.14)' : 'none';
+  const splitStart = Math.max(0, malePct - 0.8);
+  const splitEnd = Math.min(100, malePct + 0.8);
+  const isBalancedGender = total > 0 && maleCount === femaleCount;
+  const hasBothGenders = maleCount > 0 && femaleCount > 0 && !isBalancedGender;
   const genderBubbleBackground = highContrastEnabled
-    ? `conic-gradient(#ffffff 0 ${malePct}%, #000000 ${malePct}% 100%)`
+    ? hasBothGenders
+      ? `conic-gradient(#ffffff 0 ${splitStart}%, #000000 ${splitStart}% ${splitEnd}%, #ffffff ${splitEnd}% 100%)`
+      : "#ffffff"
     : `conic-gradient(${genderColors.male} 0 ${malePct}%, ${genderColors.female} ${malePct}% 100%)`;
-  const maleSegmentPosition = genderSegmentPosition(0, malePct);
-  const femaleSegmentPosition = genderSegmentPosition(malePct, femalePct);
-  const genderSegmentFontSize = size >= 58 ? 11 : size >= 46 ? 10 : 9;
+  const maleSegmentPosition = hasBothGenders ? genderSegmentPosition(0, malePct, size) : { left: 50, top: 50 };
+  const femaleSegmentPosition = hasBothGenders ? genderSegmentPosition(malePct, femalePct, size) : { left: 50, top: 50 };
+  const genderSegmentFontSize = size >= 58 ? 16 : size >= 46 ? 14 : size >= 34 ? 12 : 10;
   const highContrastGenderDetails = highContrastEnabled
-    ? `${maleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-male" style="left:${maleSegmentPosition.left}%;top:${maleSegmentPosition.top}%;font-size:${genderSegmentFontSize}px;">♂ ${maleCount}</span>` : ""}${femaleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-female" style="left:${femaleSegmentPosition.left}%;top:${femaleSegmentPosition.top}%;font-size:${genderSegmentFontSize}px;">♀ ${femaleCount}</span>` : ""}`
+    ? isBalancedGender
+      ? `<span class="alupla-city-gender-balance-symbol" style="font-size:${Math.max(13, genderSegmentFontSize + 1)}px;">≈</span>`
+      : `${maleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-male" style="left:${maleSegmentPosition.left}%;top:${maleSegmentPosition.top}%;font-size:${genderSegmentFontSize}px;">♂</span>` : ""}${femaleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-female" style="left:${femaleSegmentPosition.left}%;top:${femaleSegmentPosition.top}%;font-size:${genderSegmentFontSize}px;">♀</span>` : ""}`
     : `<span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span>`;
   const bubbleHtml =
     mapMetric === "count"
@@ -1167,10 +1172,10 @@ export default function GraduatesMapPage() {
         .alupla-city-bubble-number { line-height: 1; color: #fff; text-shadow: 0 1px 1px rgba(15,23,42,.35); }
         .alupla-city-bubble-count .alupla-city-bubble-number { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.45); }
         .alupla-city-bubble-number-gender { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.5); }
-        .alupla-city-gender-segment { position: absolute; transform: translate(-50%, -50%); border-radius: 999px; padding: 1px 3px; font-weight: 900; line-height: 1; white-space: nowrap; }
-        .alupla-city-gender-segment-male { color: #000; background: rgba(255,255,255,.82); }
-        .alupla-city-gender-segment-female { color: #fff; background: rgba(0,0,0,.68); }
-        .alupla-city-bubble-gender.is-high-contrast { border-color: #000000; }
+        .alupla-city-gender-segment { position: absolute; transform: translate(-50%, -50%); border-radius: 999px; padding: 0; font-weight: 900; line-height: 1; white-space: nowrap; color: #000; text-shadow: none; }
+        .alupla-city-gender-segment-male, .alupla-city-gender-segment-female { color: #000; background: transparent; }
+        .alupla-city-gender-balance-symbol { color: #000; font-weight: 900; line-height: 1; text-shadow: none; }
+        .alupla-city-bubble-gender.is-high-contrast { border-color: #000000; background: var(--alupla-bubble-background, #ffffff); }
         .alupla-city-bubble-sub { margin-top: 4px; color: #475569; font-size: 10px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); }
         .alupla-city-point { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; pointer-events: auto; }
         .alupla-city-label-text { display: block; margin: 0; }
@@ -1444,7 +1449,7 @@ export default function GraduatesMapPage() {
                           width: swatchSize,
                           height: swatchSize,
                           borderRadius: 999,
-                          background: entry.color,
+                          background: highContrastEnabled && isGenderLegendItem ? "#ffffff" : entry.color,
                           opacity: entry.opacity,
                           border: highContrastEnabled && isGenderLegendItem ? "1px solid #000" : "1px solid rgba(51,65,85,.18)",
                           justifySelf: "center",
