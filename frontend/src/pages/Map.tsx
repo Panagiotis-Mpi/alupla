@@ -249,23 +249,24 @@ function bubbleLabelIcon(
   const wrapperHeight = labelHeight + size + 6;
   const wrapperWidth = Math.max(labelWidth, size + 10);
   const activeRing = active ? '0 0 0 3px rgba(15,23,42,.14)' : 'none';
-  const dividerWidth = size >= 52 ? 1.1 : size >= 34 ? 1.35 : 1.7;
-  const splitStart = Math.max(0, malePct - dividerWidth);
-  const splitEnd = Math.min(100, malePct + dividerWidth);
   const isBalancedGender = total > 0 && maleCount === femaleCount;
   const hasBothGenders = maleCount > 0 && femaleCount > 0 && !isBalancedGender;
   const genderBubbleBackground = highContrastEnabled
-    ? hasBothGenders
-      ? `conic-gradient(#ffffff 0 ${splitStart}%, #000000 ${splitStart}% ${splitEnd}%, #ffffff ${splitEnd}% 100%)`
-      : "#ffffff"
+    ? "#ffffff"
     : `conic-gradient(${genderColors.male} 0 ${malePct}%, ${genderColors.female} ${malePct}% 100%)`;
   const maleSegmentPosition = hasBothGenders ? genderSegmentPosition(0, malePct, size) : { left: 50, top: 50 };
   const femaleSegmentPosition = hasBothGenders ? genderSegmentPosition(malePct, femalePct, size) : { left: 50, top: 50 };
-  const genderSegmentFontSize = size >= 58 ? 20 : size >= 46 ? 18 : size >= 34 ? 15 : 12;
+  const genderSegmentFontSize = size >= 58 ? 22 : size >= 46 ? 19 : size >= 34 ? 16 : 13;
+  const splitAngle = ((malePct / 100) * 360 - 90) * (Math.PI / 180);
+  const splitX = 50 + Math.cos(splitAngle) * 50;
+  const splitY = 50 + Math.sin(splitAngle) * 50;
+  const highContrastGenderLines = hasBothGenders
+    ? `<svg class="alupla-city-gender-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="50" y1="50" x2="50" y2="0"></line><line x1="50" y1="50" x2="${splitX.toFixed(2)}" y2="${splitY.toFixed(2)}"></line></svg>`
+    : "";
   const highContrastGenderDetails = highContrastEnabled
     ? isBalancedGender
-      ? `<span class="alupla-city-gender-balance-symbol" style="font-size:${Math.max(13, genderSegmentFontSize + 1)}px;">≈</span>`
-      : `${maleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-male" style="left:${maleSegmentPosition.left}%;top:${maleSegmentPosition.top}%;font-size:${genderSegmentFontSize}px;">♂</span>` : ""}${femaleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-female" style="left:${femaleSegmentPosition.left}%;top:${femaleSegmentPosition.top}%;font-size:${genderSegmentFontSize}px;">♀</span>` : ""}`
+      ? `<span class="alupla-city-gender-balance-symbol" style="font-size:${Math.max(14, genderSegmentFontSize + 2)}px;">≈</span>`
+      : `${highContrastGenderLines}${maleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-male" style="left:${maleSegmentPosition.left}%;top:${maleSegmentPosition.top}%;font-size:${genderSegmentFontSize}px;">♂</span>` : ""}${femaleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-female" style="left:${femaleSegmentPosition.left}%;top:${femaleSegmentPosition.top}%;font-size:${genderSegmentFontSize}px;">♀</span>` : ""}`
     : `<span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span>`;
   const bubbleHtml =
     mapMetric === "count"
@@ -1149,10 +1150,12 @@ export default function GraduatesMapPage() {
         .alupla-city-bubble-number { line-height: 1; color: #fff; text-shadow: 0 1px 1px rgba(15,23,42,.35); }
         .alupla-city-bubble-count .alupla-city-bubble-number { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.45); }
         .alupla-city-bubble-number-gender { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.5); }
-        .alupla-city-gender-segment { position: absolute; transform: translate(-50%, -50%); border-radius: 999px; padding: 0; font-weight: 950; line-height: 1; white-space: nowrap; color: #000; text-shadow: 0 0 0 #000, 0 0 1px #000, 0 1px 0 #fff; font-family: Arial, Helvetica, sans-serif; }
+        .alupla-city-gender-lines { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 999px; overflow: hidden; pointer-events: none; }
+        .alupla-city-gender-lines line { stroke: #000; stroke-width: 3.2; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+        .alupla-city-gender-segment { position: absolute; transform: translate(-50%, -50%); border-radius: 999px; padding: 0; font-weight: 950; line-height: 1; white-space: nowrap; color: #000; text-shadow: 0 0 0 #000, 0 0 1px #000, 0 1px 0 #fff; font-family: Arial, Helvetica, sans-serif; z-index: 2; }
         .alupla-city-gender-segment-male, .alupla-city-gender-segment-female { color: #000; background: transparent; }
         .alupla-city-gender-balance-symbol { color: #000; font-weight: 950; line-height: 1; text-shadow: 0 0 0 #000, 0 0 1px #000, 0 1px 0 #fff; font-family: Arial, Helvetica, sans-serif; }
-        .alupla-city-bubble-gender.is-high-contrast { border-color: #000000; background: var(--alupla-bubble-background, #ffffff); box-shadow: inset 0 0 0 1px #000, var(--alupla-bubble-shadow, none); }
+        .alupla-city-bubble-gender.is-high-contrast { border-color: #000000; background: var(--alupla-bubble-background, #ffffff); box-shadow: inset 0 0 0 1px #000, var(--alupla-bubble-shadow, none); overflow: hidden; }
         .alupla-city-bubble-sub { margin-top: 4px; color: #475569; font-size: 10px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); }
         .alupla-city-point { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; pointer-events: auto; }
         .alupla-city-label-text { display: block; margin: 0; }
