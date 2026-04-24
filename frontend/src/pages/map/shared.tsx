@@ -5,9 +5,13 @@ import { useMap, useMapEvents } from "react-leaflet";
 export function MapViewportWatcher({
   onZoomChange,
   onBoundsChange,
+  onViewChangeStart,
+  onViewChangeEnd,
 }: {
   onZoomChange: (zoom: number) => void;
   onBoundsChange: (bounds: L.LatLngBounds) => void;
+  onViewChangeStart?: () => void;
+  onViewChangeEnd?: () => void;
 }) {
   const lastZoomRef = useRef<number | null>(null);
   const lastBoundsRef = useRef<L.LatLngBounds | null>(null);
@@ -28,20 +32,30 @@ export function MapViewportWatcher({
   };
 
   const map = useMapEvents({
+    zoomstart() {
+      onViewChangeStart?.();
+    },
+    movestart() {
+      onViewChangeStart?.();
+    },
     zoomend() {
       emitViewport(map);
+      onViewChangeEnd?.();
     },
     moveend() {
       emitViewport(map);
+      onViewChangeEnd?.();
     },
     resize() {
       emitViewport(map);
+      onViewChangeEnd?.();
     },
   });
 
   useEffect(() => {
     emitViewport(map);
-  }, [map, onZoomChange, onBoundsChange]);
+    onViewChangeEnd?.();
+  }, [map, onZoomChange, onBoundsChange, onViewChangeEnd]);
 
   return null;
 }

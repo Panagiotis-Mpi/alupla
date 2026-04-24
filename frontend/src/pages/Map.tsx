@@ -308,6 +308,7 @@ export default function GraduatesMapPage() {
   const loadingRef = useRef(false);
   const scopeTransitionLoadingRef = useRef(false);
   const metricTransitionLoadingRef = useRef(false);
+  const mapViewSettleTimerRef = useRef<number | null>(null);
 
 
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
@@ -318,6 +319,7 @@ export default function GraduatesMapPage() {
   const [exportingSelection, setExportingSelection] = useState(false);
   const [mapZoom, setMapZoom] = useState(6.5);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
+  const [mapViewSettling, setMapViewSettling] = useState(false);
   const [selected, setSelected] = useState<GraduatesMapItem | null>(null);
   const [selectedCityCards, setSelectedCityCards] = useState<any[]>([]);
   const [selectedGraduationYear, setSelectedGraduationYear] = useState<string>("");
@@ -380,6 +382,33 @@ export default function GraduatesMapPage() {
     const observer = new MutationObserver(sync);
     observer.observe(root, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (mapViewSettleTimerRef.current !== null) {
+        window.clearTimeout(mapViewSettleTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  const markMapViewChanging = useCallback(() => {
+    if (mapViewSettleTimerRef.current !== null) {
+      window.clearTimeout(mapViewSettleTimerRef.current);
+      mapViewSettleTimerRef.current = null;
+    }
+    setMapViewSettling(true);
+  }, []);
+
+  const markMapViewReady = useCallback(() => {
+    if (mapViewSettleTimerRef.current !== null) {
+      window.clearTimeout(mapViewSettleTimerRef.current);
+    }
+    mapViewSettleTimerRef.current = window.setTimeout(() => {
+      setMapViewSettling(false);
+      mapViewSettleTimerRef.current = null;
+    }, 180);
   }, []);
 
   const activeMapTileUrl = lightMapTileUrl;
@@ -1153,8 +1182,9 @@ export default function GraduatesMapPage() {
         .map-main-card { margin: 12px auto 0; max-width: 1080px; }
         .map-info-box { position: relative; }
         .map-info-box-close { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border: 1px solid rgba(148,163,184,.35); background: #fff; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; cursor: pointer; color: #334155; }
-        .map-map-wrap { position: relative; padding: 8px 8px 12px; }
-        .map-loading-overlay { position: absolute; inset: 8px 8px 12px; border-radius: 18px; background: rgba(255,255,255,.08); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 450; pointer-events: none; }
+        .map-map-wrap { position: relative; padding: 8px 8px 12px; overflow: hidden; border-radius: 18px; }
+        .map-custom-legend { position: absolute; left: 20px; bottom: 24px; z-index: 900; background: rgba(255,255,255,.94); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; font-size: 12px; box-shadow: var(--shadow); max-width: 260px; pointer-events: none; transform: translateZ(0); backface-visibility: hidden; }
+        .map-loading-overlay { position: absolute; inset: 8px 8px 12px; border-radius: 18px; background: rgba(255,255,255,.08); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 950; pointer-events: none; }
         .map-loading-overlay-card { min-width: 180px; min-height: 88px; padding: 16px 20px; border-radius: 18px; border: 0; background: transparent; box-shadow: none; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; text-align: center; }
         .map-summary-shell, .map-timeline-shell, .map-details-shell { position: relative; }
         .map-summary-overlay, .map-details-overlay { inset: 0; border-radius: 18px; }
@@ -1290,6 +1320,7 @@ export default function GraduatesMapPage() {
                   });
                 setMapZoom(map.getZoom());
                 setMapBounds(map.getBounds());
+                markMapViewReady();
               }}
               style={{
                 height: "100%",
@@ -1306,6 +1337,8 @@ export default function GraduatesMapPage() {
               <MapViewportWatcher
                 onZoomChange={setMapZoom}
                 onBoundsChange={setMapBounds}
+                onViewChangeStart={markMapViewChanging}
+                onViewChangeEnd={markMapViewReady}
               />
               {activeBounds ? (
                 <MapResetControl
@@ -1347,55 +1380,44 @@ export default function GraduatesMapPage() {
             </div>
           ) : null}
 
-          <div
-            style={{
-              position: "absolute",
-              left: 12,
-              bottom: 12,
-              background: "rgba(255,255,255,.94)",
-              border: "1px solid var(--border)",
-              borderRadius: 14,
-              padding: "10px 12px",
-              fontSize: 12,
-              boxShadow: "var(--shadow)",
-              maxWidth: 260,
-            }}
-          >
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>
-              {mt("legend", { defaultValue: "Υπόμνημα" })}
-            </div>
-            <div className="muted" style={{ marginBottom: 8 }}>
-              {mapScope === "greece" ? mt("export.count", { defaultValue: "Απόφοιτοι ανά πόλη" }) : metricOptions[mapMetric].legend}
-            </div>
-            <div style={{ display: "grid", gap: 6 }}>
-              {renderedLegendEntries.map((entry) => (
-                <div
-                  key={entry.key}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "24px 1fr",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <span
-                    className={`map-legend-swatch ${genderLegendPattern(entry.key)}`}
+          {!inlineMapLoading && !mapViewSettling && renderedLegendEntries.length ? (
+            <div className="map-custom-legend">
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                {mt("legend", { defaultValue: "Υπόμνημα" })}
+              </div>
+              <div className="muted" style={{ marginBottom: 8 }}>
+                {mapScope === "greece" ? mt("export.count", { defaultValue: "Απόφοιτοι ανά πόλη" }) : metricOptions[mapMetric].legend}
+              </div>
+              <div style={{ display: "grid", gap: 6 }}>
+                {renderedLegendEntries.map((entry) => (
+                  <div
+                    key={entry.key}
                     style={{
-                      width: Math.max(10, Number((entry as any).radius || (mapScope === "greece" ? 10 : 16))),
-                      height: Math.max(10, Number((entry as any).radius || (mapScope === "greece" ? 10 : 16))),
-                      borderRadius: 999,
-                      background: entry.color,
-                      opacity: entry.opacity,
-                      border: "1px solid rgba(51,65,85,.18)",
+                      display: "grid",
+                      gridTemplateColumns: "24px 1fr",
+                      alignItems: "center",
+                      gap: 8,
                     }}
                   >
-                    {entry.key === "male" || entry.key === "female" || entry.key === "balanced" ? <span className="map-legend-swatch-symbol">{entry.key === "male" ? "♂" : entry.key === "female" ? "♀" : "≈"}</span> : null}
-                  </span>
-                  <span>{entry.label}</span>
-                </div>
-              ))}
+                    <span
+                      className={`map-legend-swatch ${genderLegendPattern(entry.key)}`}
+                      style={{
+                        width: Math.max(10, Number((entry as any).radius || (mapScope === "greece" ? 10 : 16))),
+                        height: Math.max(10, Number((entry as any).radius || (mapScope === "greece" ? 10 : 16))),
+                        borderRadius: 999,
+                        background: entry.color,
+                        opacity: entry.opacity,
+                        border: "1px solid rgba(51,65,85,.18)",
+                      }}
+                    >
+                      {entry.key === "male" || entry.key === "female" || entry.key === "balanced" ? <span className="map-legend-swatch-symbol">{entry.key === "male" ? "♂" : entry.key === "female" ? "♀" : "≈"}</span> : null}
+                    </span>
+                    <span>{entry.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
 
