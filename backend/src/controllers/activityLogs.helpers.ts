@@ -181,11 +181,6 @@ export function buildLogFilters(req: Request) {
     where[Op.or] = [{ action: { [Op.like]: `%${keyword}%` } }, { entity_type: { [Op.like]: `%${keyword}%` } }];
   }
 
-  where[Op.and] = [
-    ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-    { action: { [Op.notIn]: ["create_program_direction", "update_program_direction", "delete_program_direction", "import_program_directions"] } },
-    { entity_type: { [Op.ne]: "program_direction" } }
-  ];
 
   return where;
 }

@@ -608,7 +608,6 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     if (originError) return bad(res, originError);
 
     if (body.study_program_id !== undefined) (item as any).study_program_id = nextStudyProgramId;
-    (item as any).program_direction_id = null;
     if (!String((item as any).ad_code ?? "").trim()) return bad(res, "ad_code cannot be empty");
     if (!String((item as any).last_name ?? "").trim()) return bad(res, "last_name cannot be empty");
     if (!String((item as any).first_name ?? "").trim()) return bad(res, "first_name cannot be empty");

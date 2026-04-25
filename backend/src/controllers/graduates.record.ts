@@ -105,9 +105,6 @@ export function applyGraduateScalarPatch(item: GraduateEditable, body: Record<st
   }
 }
 
-export function readProgramDirectionId(raw: unknown) {
-  return toNullableNumber(raw);
-}
 
 export function validateStoredGraduate(item: GraduateEditable) {
   const requiredTextFields = ["ad_code", "last_name", "first_name", "father_name", "student_number"] as const;

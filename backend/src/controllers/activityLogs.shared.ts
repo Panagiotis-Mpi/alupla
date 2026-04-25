@@ -77,8 +77,6 @@ export function buildLogFilters(req: Request) {
     ];
   }
 
-  appendWhere(where, Op.and, { action: { [Op.notIn]: ["create_program_direction", "update_program_direction", "delete_program_direction", "import_program_directions"] } });
-  appendWhere(where, Op.and, { entity_type: { [Op.ne]: "program_direction" } });
 
   return where;
 }
