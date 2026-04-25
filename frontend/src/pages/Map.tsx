@@ -653,7 +653,7 @@ export default function GraduatesMapPage() {
     : selectedGraduationYear;
   const pageLoading = !initialPageReady;
   const inlineMapLoading = (!pageLoading && loading) || metricTransitionLoading || scopeTransitionLoading;
-  const summaryLoading = !pageLoading && scopeTransitionLoading;
+  const summaryLoading = !pageLoading && (loading || metricTransitionLoading || scopeTransitionLoading);
 
   const exportCategoryOptions = useMemo(
     () => [
@@ -1196,6 +1196,7 @@ export default function GraduatesMapPage() {
         .map-timeline-slider:disabled { cursor: default; opacity: .65; }
         .map-timeline-scale { display: flex; justify-content: space-between; gap: 12px; color: #64748b; font-size: 13px; font-weight: 700; }
         .map-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 12px 0 0; }
+        .map-summary-grid.is-loading { filter: blur(3px); opacity: .72; pointer-events: none; user-select: none; transition: filter .18s ease, opacity .18s ease; }
         .map-summary-card { min-height: 124px; padding: 18px; display: grid; align-content: space-between; gap: 8px; }
         .map-summary-label { color: #475569; font-size: 17px; line-height: 1.32; }
         .map-summary-value { font-size: 28px; font-weight: 800; line-height: 1.1; color: #0f172a; }
@@ -1250,7 +1251,7 @@ export default function GraduatesMapPage() {
       />
 
       <div className="map-summary-shell">
-        <div className="map-summary-grid">
+        <div className={`map-summary-grid${summaryLoading ? " is-loading" : ""}`}>
           <div className="card map-summary-card">
           <div className="map-summary-label">
             {mt("summary.total", { defaultValue: "Σύνολο αποφοίτων" })}
