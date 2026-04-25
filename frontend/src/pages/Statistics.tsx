@@ -744,7 +744,8 @@ export default function Statistics() {
         />
       ) : null}
 
-      <div
+      {selectedExportFormat === "png" ? (
+        <div
         ref={exportSurfaceRef}
         aria-hidden="true"
         style={{
@@ -758,7 +759,7 @@ export default function Statistics() {
           zIndex: 0,
           background: "#ffffff",
         }}
-      >
+        >
         <ExportChartsSurface
           t={t}
           cardInnerStyle={cardInnerStyle}
@@ -782,7 +783,8 @@ export default function Statistics() {
           total={total}
           abroadCount={abroadCount}
         />
-      </div>
+        </div>
+      ) : null}
     </>
   );
 }
