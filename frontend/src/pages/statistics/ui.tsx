@@ -634,9 +634,10 @@ export function PieChartCard(props: {
   chartId?: string;
   height?: number;
   control?: React.ReactNode;
+  colors?: string[];
 }) {
   const highContrast = useHighContrastEnabled();
-  const chartColors = React.useMemo(() => pieColors(props.labels.length, highContrast), [highContrast, props.labels.length]);
+  const chartColors = React.useMemo(() => highContrast ? pieColors(props.labels.length, true) : props.colors?.length ? Array.from({ length: props.labels.length }, (_, index) => props.colors?.[index % props.colors.length] ?? pieColors(props.labels.length, false)[index]) : pieColors(props.labels.length, false), [highContrast, props.colors, props.labels.length]);
   const borderColors = React.useMemo(
     () => Array.from({ length: props.labels.length }, () => (highContrast ? "#000000" : "#ffffff")),
     [highContrast, props.labels.length],

@@ -48,7 +48,7 @@ type ExportFormat = "png";
 type ExportCategoryKey = MapMetric;
 type ExportScopeSelection = { category: ExportCategoryKey; scope: MapScope };
 
-const fillColors = ["#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb", "#1d4ed8"];
+const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6"];
 
 const lightMapTileUrl = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
 const highContrastMapTileUrl = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png";
@@ -241,7 +241,7 @@ function bubbleLabelIcon(
   const malePct = total > 0 ? (maleCount / total) * 100 : 50;
   const femalePct = 100 - malePct;
   const countBubbleFill = highContrastEnabled ? "#ffffff" : String(city?.markerFill || "#60a5fa");
-  const countBubbleStroke = highContrastEnabled ? "#000000" : String(city?.markerStroke || "#1d4ed8");
+  const countBubbleStroke = highContrastEnabled ? "#000000" : String(city?.markerStroke || "#3b82f6");
   const countBubbleOpacity = highContrastEnabled ? 1 : Math.max(0.45, Number(city?.markerOpacity || 0.85));
   const fontSize = active ? (size >= 34 ? 13 : size >= 28 ? 12 : 11) : (size >= 34 ? 12 : size >= 28 ? 11 : 10);
   const labelWidth = showLabel ? Math.max(size + 10, Math.min(170, Math.max(64, label.length * 7))) : size + 10;
@@ -462,7 +462,7 @@ export default function GraduatesMapPage() {
 
 
   const greekCityMarkers = useMemo(() => {
-    const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
+    const palette = ["#eff6ff", "#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#3b82f6"];
     const radii = [10, 13, 16, 20, 24, 29, 34];
     const grouped = new Map<string, any>();
     const collapseMetro = shouldCollapseMetroAtZoom(mapZoom);
@@ -555,7 +555,7 @@ export default function GraduatesMapPage() {
           ...item,
           markerRadius: radii[Math.min(bucket, radii.length - 1)],
           markerFill: palette[Math.min(bucket, palette.length - 1)],
-          markerStroke: bucket >= palette.length - 2 ? "#1e3a8a" : "#1d4ed8",
+          markerStroke: bucket >= palette.length - 2 ? "#2563eb" : "#3b82f6",
           markerOpacity: bucket >= palette.length - 2 ? 0.92 : 0.8,
         };
       }),
@@ -716,7 +716,7 @@ export default function GraduatesMapPage() {
   );
 
   const abroadCountryMarkers = useMemo(() => {
-    const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
+    const palette = ["#eff6ff", "#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#3b82f6"];
     const radii = [10, 13, 16, 20, 24, 29, 34];
     const grouped = new Map<string, any>();
 
@@ -784,7 +784,7 @@ export default function GraduatesMapPage() {
           ...item,
           markerRadius: radii[Math.min(bucket, radii.length - 1)],
           markerFill: palette[Math.min(bucket, palette.length - 1)],
-          markerStroke: bucket >= palette.length - 2 ? "#1e3a8a" : "#1d4ed8",
+          markerStroke: bucket >= palette.length - 2 ? "#2563eb" : "#3b82f6",
           markerOpacity: bucket >= palette.length - 2 ? 0.92 : 0.8,
         };
       })
@@ -800,7 +800,7 @@ export default function GraduatesMapPage() {
       .filter((value) => value > 0)
       .sort((left, right) => left - right);
     if (!counts.length) return [] as Array<any>;
-    const palette = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8"];
+    const palette = ["#eff6ff", "#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#3b82f6"];
     const sizes = [10, 13, 16, 20, 24, 29, 34];
     const { breaks } = buildCountMarkerScale(counts, palette, sizes);
     return breaks.map((limit, index) => {

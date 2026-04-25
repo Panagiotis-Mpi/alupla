@@ -109,7 +109,7 @@ function GenderLineCard(props: Pick<ChartBlockProps, "t" | "cardInnerStyle" | "c
       </div>
       <div className="chart-figure" role="img" aria-label={props.t("sections.gender")} style={{ position: "relative" }}>
         <ChartLegendInset items={[
-          { label: props.t("table.male"), color: "#2563eb", borderColor: "#2563eb", pointStyle: "circle" },
+          { label: props.t("table.male"), color: "#3b82f6", borderColor: "#3b82f6", pointStyle: "circle" },
           { label: props.t("table.female"), color: "#db2777", borderColor: "#db2777", pointStyle: "diamond", dashed: true },
         ]} />
         <ScrollableLineChart
@@ -151,7 +151,7 @@ export function DemographicsCharts(props: ChartBlockProps) {
       <div className="grid cols1" style={{ gap: 14 }}>
         <GenderLineCard {...props} />
         <ChartCard chartId="birthYear" title={props.t("sections.birthYear")} labels={props.birthYears.labels} values={props.birthYears.values} height={320} />
-        <PieChartCard chartId="genderByProgram" title={props.t("sections.genderByProgram")} labels={props.genderByProgramPie.labels} values={props.genderByProgramPie.values} height={360} control={props.genderProgramSelect} />
+        <PieChartCard chartId="genderByProgram" title={props.t("sections.genderByProgram")} labels={props.genderByProgramPie.labels} values={props.genderByProgramPie.values} height={360} control={props.genderProgramSelect} colors={["#3b82f6", "#db2777"]} />
       </div>
     </div>
   );
@@ -193,7 +193,7 @@ export function ExportChartsSurface(props: ChartBlockProps) {
     <div style={{ display: "grid", gap: 14 }}>
       <GenderLineCard {...props} />
       <ChartCard chartId="birthYear" title={props.t("sections.birthYear")} labels={props.birthYears.labels} values={props.birthYears.values} height={320} />
-      <PieChartCard chartId="genderByProgram" title={props.t("sections.genderByProgram")} labels={props.genderByProgramPie.labels} values={props.genderByProgramPie.values} height={360} control={props.genderProgramSelect} />
+      <PieChartCard chartId="genderByProgram" title={props.t("sections.genderByProgram")} labels={props.genderByProgramPie.labels} values={props.genderByProgramPie.values} height={360} control={props.genderProgramSelect} colors={["#3b82f6", "#db2777"]} />
       <GraduationLineCard {...props} />
       <PieChartCard chartId="studyProgram" title={props.t("sections.studyProgram")} labels={props.studyPrograms.labels} values={props.studyPrograms.values} height={360} />
       <BarChartCard chartId="gradeByYear" title={props.t("sections.gradeByYear")} labels={props.avgGradesByYear.labels} values={props.avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} />

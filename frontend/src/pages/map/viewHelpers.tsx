@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type React from "react";
 
-export const genderColors = { male: "#1d4ed8", female: "#c026d3", balanced: "#475569", empty: "#dbe2ea" };
+export const genderColors = { male: "#3b82f6", female: "#db2777", balanced: "#475569", empty: "#dbe2ea" };
 
 export function useCompactMapViewport() {
   const [isCompact, setIsCompact] = useState(() => typeof window !== "undefined" ? window.innerWidth <= 820 : false);
