@@ -1130,10 +1130,6 @@ export default function GraduatesMapPage() {
   }
 
 
-  if (pageLoading) {
-    return <div className="card">{mt("loadingLabel", { defaultValue: "Φόρτωση" })}</div>;
-  }
-
   return (
     <div className="container">
       <style>{`
