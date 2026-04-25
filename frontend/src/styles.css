@@ -1375,3 +1375,27 @@ html.accessibility-high-contrast canvas{
   color: var(--muted);
   font-weight: 700;
 }
+
+@media (max-width: 520px){
+  input,select,textarea{min-width:0}
+  .container{padding-left:10px;padding-right:10px}
+  .nav{gap:6px}
+  .brand{font-size:15px}
+  .badge{width:100%;justify-content:center}
+  .range-field-grid{grid-template-columns:1fr !important}
+  .page-title-row h2,.page-title-row h3{font-size:1.25rem}
+  .statistics-metric-value{font-size:24px}
+  .public-home-actions{gap:10px}
+  .accessibility-menu{right:10px;bottom:10px}
+  .accessibility-trigger{width:52px;height:52px}
+  .accessibility-panel{right:-2px;bottom:64px;width:calc(100vw - 20px);padding:18px;max-height:78vh}
+  .accessibility-font-controls{gap:8px;flex-wrap:wrap}
+  .accessibility-icon-btn{width:58px;height:48px}
+  .accessibility-toggle-btn{min-width:0;width:100%;min-height:56px}
+  .mobile-drawer{width:min(300px,88vw);padding:14px}
+  .app-footer{padding:.75rem 1rem;font-size:.85rem}
+  .map-custom-legend{left:12px !important;right:12px !important;bottom:16px !important;max-width:none !important;font-size:11px !important;padding:10px !important}
+  .map-timeline-card{padding:12px !important}
+  .map-timeline-labels{font-size:12px !important}
+  .map-menu{left:0 !important;right:auto !important;width:min(260px,calc(100vw - 40px)) !important}
+}

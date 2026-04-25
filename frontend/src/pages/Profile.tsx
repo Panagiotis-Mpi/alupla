@@ -26,7 +26,7 @@ const rowsStyle: React.CSSProperties = {
 
 const rowStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "180px 1fr",
+  gridTemplateColumns: "minmax(120px, 180px) minmax(0, 1fr)",
   gap: 14,
   alignItems: "center",
   padding: "14px 16px",
@@ -40,7 +40,7 @@ const lastRowStyle: React.CSSProperties = {
 
 const valueStyle: React.CSSProperties = {
   fontWeight: 700,
-  overflowWrap: "break-word",
+  overflowWrap: "anywhere",
   wordBreak: "normal",
 };
 

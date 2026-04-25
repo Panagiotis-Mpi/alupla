@@ -92,7 +92,7 @@ function RangeField(props: {
 }) {
   return (
     <Field label={props.label} span={props.span}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div className="range-field-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div>
           <label className="label" style={{ fontSize: 12, marginBottom: 6 }}>{props.fromLabel}</label>
           <input className="input" type={props.type ?? "text"} value={props.fromValue} min={props.min} max={props.max} step={props.step} onChange={(e) => props.onFromChange(e.target.value)} />
