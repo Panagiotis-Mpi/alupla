@@ -593,15 +593,14 @@ export default function Statistics() {
   return (
     <>
       <style>{`
-        .statistics-loading-region { position: relative; }
-        .statistics-loading-region .statistics-metric-card > *,
-        .statistics-loading-region [data-stat-chart-card] > * { filter: blur(3px); opacity: .72; pointer-events: none; user-select: none; transition: filter .18s ease, opacity .18s ease; }
-        .statistics-loading-region .statistics-metric-card::after,
-        .statistics-loading-region [data-stat-chart-card]::after { content: var(--statistics-loading-label); position: absolute; inset: 8px; border-radius: 18px; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; background: rgba(255,255,255,.08); backdrop-filter: blur(2px); pointer-events: none; z-index: 5; }
-        .statistics-loading-region .statistics-metric-card,
-        .statistics-loading-region [data-stat-chart-card] { position: relative; }
-        html.accessibility-high-contrast .statistics-loading-region .statistics-metric-card::after,
-        html.accessibility-high-contrast .statistics-loading-region [data-stat-chart-card]::after { background: #fff; color: #000; border: 2px solid #000; }
+        .statistics-summary-loading-region, .statistics-chart-loading-region { position: relative; }
+        .statistics-summary-loading-region > * { filter: blur(3px); opacity: .72; pointer-events: none; user-select: none; transition: filter .18s ease, opacity .18s ease; }
+        .statistics-summary-loading-region::after { content: var(--statistics-loading-label); position: absolute; inset: 0; border-radius: 18px; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; background: rgba(255,255,255,.08); backdrop-filter: blur(2px); pointer-events: none; z-index: 5; }
+        .statistics-chart-loading-region [data-stat-chart-card] > * { filter: blur(3px); opacity: .72; pointer-events: none; user-select: none; transition: filter .18s ease, opacity .18s ease; }
+        .statistics-chart-loading-region [data-stat-chart-card]::after { content: var(--statistics-loading-label); position: absolute; inset: 8px; border-radius: 18px; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; background: rgba(255,255,255,.08); backdrop-filter: blur(2px); pointer-events: none; z-index: 5; }
+        .statistics-chart-loading-region [data-stat-chart-card] { position: relative; }
+        html.accessibility-high-contrast .statistics-summary-loading-region::after,
+        html.accessibility-high-contrast .statistics-chart-loading-region [data-stat-chart-card]::after { background: #fff; color: #000; border: 2px solid #000; }
       `}</style>
       <div className="page-stable-shell statistics-page" ref={pageRef}>
         <div className="card page-header-card" style={{ padding: 14 }}>
@@ -631,7 +630,7 @@ export default function Statistics() {
           </div>
         </div>
 
-        <div className={loading ? "statistics-loading-region" : undefined} style={loading ? loadingLabelStyle : undefined}>
+        <div className={loading ? "statistics-summary-loading-region" : undefined} style={loading ? loadingLabelStyle : undefined}>
           <StatisticsSummaryCards
             t={t}
             total={total}
@@ -647,7 +646,7 @@ export default function Statistics() {
           />
         </div>
 
-        <div className={loading ? "statistics-loading-region" : undefined} style={loading ? loadingLabelStyle : undefined}>
+        <div className={loading ? "statistics-chart-loading-region" : undefined} style={loading ? loadingLabelStyle : undefined}>
           {activeGroup === "demographics" ? (
           <DemographicsCharts
             t={t}
