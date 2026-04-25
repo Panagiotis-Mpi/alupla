@@ -54,9 +54,7 @@ export function createApp() {
   app.use(express.json({ limit: "2mb" }));
   app.use(morgan("dev"));
 
-  initDb()
-    .then(() => console.log("[db] connected"))
-    .catch((e) => console.error("[db] connection failed:", e));
+  initDb().catch((e) => console.error("[db] connection failed:", e));
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true });

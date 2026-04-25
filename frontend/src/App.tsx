@@ -5,19 +5,20 @@ import i18n from "./i18n";
 import Guard from "./components/Guard";
 import { getUser, logout } from "./lib/auth";
 import { pingPresence } from "./lib/api";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Graduates from "./pages/Graduates";
-import GraduateForm from "./pages/GraduateForm";
-import Profile from "./pages/Profile";
-import Users from "./pages/Users";
-import Logs from "./pages/Logs";
-import Map from "./pages/Map";
-import Statistics from "./pages/Statistics";
-import PublicHome from "./pages/PublicHome";
 import Footer from "./components/Footer";
-import AcademicData from "./pages/AcademicData";
 import AccessibilityMenu from "./components/AccessibilityMenu";
+
+const Login = React.lazy(() => import("./pages/Login"));
+const Register = React.lazy(() => import("./pages/Register"));
+const Graduates = React.lazy(() => import("./pages/Graduates"));
+const GraduateForm = React.lazy(() => import("./pages/GraduateForm"));
+const Profile = React.lazy(() => import("./pages/Profile"));
+const Users = React.lazy(() => import("./pages/Users"));
+const Logs = React.lazy(() => import("./pages/Logs"));
+const Map = React.lazy(() => import("./pages/Map"));
+const Statistics = React.lazy(() => import("./pages/Statistics"));
+const PublicHome = React.lazy(() => import("./pages/PublicHome"));
+const AcademicData = React.lazy(() => import("./pages/AcademicData"));
 
 const COMPACT_WIDTH = 820;
 
@@ -256,7 +257,8 @@ export default function App() {
     <div className="app-shell">
       <TopNav />
       <div className="container app-content">
-        <Routes>
+        <React.Suspense fallback={<div className="page-loading">{i18n.language?.startsWith("en") ? "Loading" : "Φόρτωση"}</div>}>
+          <Routes>
           <Route path="/" element={<PublicHome />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -320,7 +322,8 @@ export default function App() {
           />
           <Route path="/regions" element={<Navigate to="/graduates" replace />} />
           <Route path="*" element={<Login />} />
-        </Routes>
+          </Routes>
+        </React.Suspense>
       </div>
       <Footer />
       <AccessibilityMenu />

@@ -1367,3 +1367,11 @@ html.accessibility-high-contrast .chartjs-render-monitor,
 html.accessibility-high-contrast canvas{
   forced-color-adjust:auto;
 }
+
+.page-loading{
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-weight: 700;
+}
