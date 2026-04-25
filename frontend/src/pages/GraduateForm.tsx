@@ -394,14 +394,24 @@ export default function GraduateForm(props: { mode: Mode }) {
                 </div>
                 <div style={fieldStyle(t("labels.originText"))}>
                   <label style={labelStyle}>{t("labels.originText")}</label>
-                  <select className="input" value={form.origin_city_region_id ?? ""} onChange={(e) => {
-                    const cityId = e.target.value ? Number(e.target.value) : null;
-                    const city = cities.find((item) => item.id === cityId);
-                    setForm((f) => ({ ...f, origin_city_region_id: cityId, origin_municipality: city?.name ?? null }));
-                  }} disabled={!Number.isFinite(Number(form.origin_periphery_region_id ?? form.origin_region_id))}>
-                    <option value="">{t("labels.choice")}</option>
-                    {cities.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                  </select>
+                  <input
+                    className="input"
+                    list="graduate-origin-cities"
+                    value={form.origin_municipality ?? ""}
+                    onChange={(e) => {
+                      const cityName = e.target.value;
+                      const matchedCity = cities.find((item) => normalizeLookupText(item.name) === normalizeLookupText(cityName));
+                      setForm((f) => ({
+                        ...f,
+                        origin_city_region_id: matchedCity ? Number(matchedCity.id) : null,
+                        origin_municipality: cityName.trim() ? cityName : null,
+                      }));
+                    }}
+                    disabled={!Number.isFinite(Number(form.origin_periphery_region_id ?? form.origin_region_id))}
+                  />
+                  <datalist id="graduate-origin-cities">
+                    {cities.map((item) => <option key={item.id} value={item.name} />)}
+                  </datalist>
                 </div>
               </>
             ) : (
