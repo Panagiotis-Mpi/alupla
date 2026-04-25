@@ -1,34 +1,44 @@
-node_modules
-dist
-build
-coverage
-.tmp
-.temp
-.cache
-.DS_Store
-Thumbs.db
+# dependencies
+node_modules/
+.pnp
+.pnp.js
 
-.env
-.env.*
-!.env.example
+# builds
+dist/
+build/
+coverage/
 
-backend/.env
-backend/.env.*
-!backend/.env.example
-
-frontend/.env
-frontend/.env.*
-!frontend/.env.example
-
+# logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
 
-.vscode
-.idea
+# env
+.env
+.env.*
+!.env.example
 
-backend/uploads
-backend/tmp
-backend/temp
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# database dumps (local only - do not push)
+*.sql
+*.dump
+*.bak
+dump-neondb-*.sql
+
+database/dumps/
+database/backups/
+backups/
+
+# optional local postgres data
+postgres-data/
+
+# uploads/temp
+tmp/
+temp/
+*.tmp
