@@ -359,7 +359,8 @@ export default function GraduatesMapPage() {
   const [mapViewSettling, setMapViewSettling] = useState(false);
   const [selected, setSelected] = useState<GraduatesMapItem | null>(null);
   const [selectedCityCards, setSelectedCityCards] = useState<any[]>([]);
-  const [selectedGraduationYear, setSelectedGraduationYear] = useState<string>("");
+  const [selectedGraduationYearStart, setSelectedGraduationYearStart] = useState<string>("");
+  const [selectedGraduationYearEnd, setSelectedGraduationYearEnd] = useState<string>("");
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [yearRangeLoading, setYearRangeLoading] = useState(false);
   const [initialPageReady, setInitialPageReady] = useState(false);
@@ -379,11 +380,13 @@ export default function GraduatesMapPage() {
       createMapParams({
         ...EMPTY_FILTERS,
         scope: mapScope,
-        ...(selectedGraduationYear
-          ? { graduation_year: selectedGraduationYear }
+        ...((selectedGraduationYearStart && selectedGraduationYearEnd)
+          ? selectedGraduationYearStart === selectedGraduationYearEnd
+            ? { graduation_year: selectedGraduationYearStart }
+            : { graduation_date_from: selectedGraduationYearStart + "-01-01", graduation_date_to: selectedGraduationYearEnd + "-12-31" }
           : {}),
       }),
-    [mapScope, selectedGraduationYear],
+    [mapScope, selectedGraduationYearStart, selectedGraduationYearEnd],
   );
   const { loading, items, cityPoints } =
     useMapData(params);
@@ -613,9 +616,15 @@ export default function GraduatesMapPage() {
           ? response.years.filter((year) => Number.isFinite(year) && year > 1900)
           : [];
         setAvailableYears(nextYears);
-        if (!selectedGraduationYear && nextYears.length) return;
-        if (selectedGraduationYear && !nextYears.includes(Number(selectedGraduationYear))) {
-          setSelectedGraduationYear("");
+        if ((!selectedGraduationYearStart || !selectedGraduationYearEnd) && nextYears.length) return;
+        if (selectedGraduationYearStart && !nextYears.includes(Number(selectedGraduationYearStart))) {
+          setSelectedGraduationYearStart("");
+          setSelectedGraduationYearEnd("");
+          return;
+        }
+        if (selectedGraduationYearEnd && !nextYears.includes(Number(selectedGraduationYearEnd))) {
+          setSelectedGraduationYearStart("");
+          setSelectedGraduationYearEnd("");
         }
       })
       .catch(() => {
@@ -647,10 +656,6 @@ export default function GraduatesMapPage() {
     return () => window.clearTimeout(timer);
   }, [mapMetric, metricTransitionLoading]);
 
-  const isAllYearsSelected = !selectedGraduationYear;
-  const selectedYearLabel = isAllYearsSelected
-    ? mt("timeline.allYears", { defaultValue: "Όλες οι χρονιές" })
-    : selectedGraduationYear;
   const pageLoading = !initialPageReady;
   const inlineMapLoading = (!pageLoading && loading) || metricTransitionLoading || scopeTransitionLoading;
   const summaryLoading = !pageLoading && (loading || metricTransitionLoading || scopeTransitionLoading);
@@ -947,7 +952,9 @@ export default function GraduatesMapPage() {
 
   function metricFilenameBase(metric: MapMetric, scope = mapScope) {
     const parts = ["alupla_map_export", slugPart(scope), slugPart(metric)];
-    if (selectedGraduationYear) parts.push(slugPart(selectedGraduationYear));
+    if (selectedGraduationYearStart && selectedGraduationYearEnd) {
+      parts.push(slugPart(selectedGraduationYearStart === selectedGraduationYearEnd ? selectedGraduationYearStart : selectedGraduationYearStart + "-" + selectedGraduationYearEnd));
+    }
     return parts.join("_");
   }
 
@@ -1185,12 +1192,22 @@ export default function GraduatesMapPage() {
         .map-timeline-title { font-size: 18px; font-weight: 800; color: #0f172a; }
         .map-timeline-subtitle { color: #64748b; font-size: 13px; margin-top: 4px; }
         .map-timeline-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .map-timeline-current { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--border); background: rgba(248,250,252,.9); display: inline-flex; align-items: center; font-weight: 700; color: #0f172a; }
-        .map-timeline-all-button { min-height: 44px; }
-        .map-timeline-slider-wrap { display: grid; gap: 10px; }
-        .map-timeline-slider { width: 100%; accent-color: var(--primary); cursor: pointer; }
-        .map-timeline-slider:disabled { cursor: default; opacity: .65; }
-        .map-timeline-scale { display: flex; justify-content: space-between; gap: 12px; color: #64748b; font-size: 13px; font-weight: 700; }
+        .map-timeline-current { min-height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--border); background: rgba(248,250,252,.9); display: inline-flex; align-items: center; font-weight: 800; color: #0f172a; }
+        .map-timeline-slider-wrap { display: grid; gap: 16px; padding-top: 4px; }
+        .map-year-ruler { position: relative; height: 46px; margin: 0 10px; }
+        .map-year-ruler-track, .map-year-ruler-fill { position: absolute; left: 0; right: 0; top: 22px; height: 8px; border-radius: 999px; }
+        .map-year-ruler-track { background: repeating-linear-gradient(to right, #cbd5e1 0 1px, transparent 1px calc(100% / 12)), linear-gradient(#dbeafe, #dbeafe); box-shadow: inset 0 0 0 1px rgba(59,130,246,.16); }
+        .map-year-ruler-fill { left: var(--range-left); right: var(--range-right); background: var(--primary); box-shadow: 0 8px 18px rgba(59,130,246,.22); }
+        .map-timeline-slider { position: absolute; left: 0; right: 0; top: 8px; width: 100%; height: 34px; margin: 0; appearance: none; background: transparent; pointer-events: none; }
+        .map-timeline-slider::-webkit-slider-thumb { appearance: none; width: 28px; height: 28px; border-radius: 999px; background: #ffffff; border: 7px solid var(--primary); box-shadow: 0 8px 18px rgba(15,23,42,.18); cursor: grab; pointer-events: auto; }
+        .map-timeline-slider::-moz-range-thumb { width: 16px; height: 16px; border-radius: 999px; background: #ffffff; border: 7px solid var(--primary); box-shadow: 0 8px 18px rgba(15,23,42,.18); cursor: grab; pointer-events: auto; }
+        .map-timeline-slider:disabled::-webkit-slider-thumb, .map-timeline-slider:disabled::-moz-range-thumb { cursor: default; opacity: .65; }
+        .map-timeline-slider-start { z-index: 3; }
+        .map-timeline-slider-end { z-index: 4; }
+        .map-timeline-scale { position: relative; height: 28px; margin: 0 10px; color: #64748b; font-size: 13px; font-weight: 800; }
+        .map-timeline-scale span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+        .map-timeline-scale span:first-child { transform: translateX(0); }
+        .map-timeline-scale span:last-child { transform: translateX(-100%); }
         .map-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 12px 0 0; }
         .map-summary-shell.is-loading .map-summary-grid { filter: blur(3px); opacity: .72; pointer-events: none; user-select: none; transition: filter .18s ease, opacity .18s ease; }
         .map-summary-card { min-height: 124px; padding: 18px; display: grid; align-content: space-between; gap: 8px; }
@@ -1220,7 +1237,7 @@ export default function GraduatesMapPage() {
         .map-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
         @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .map-city-cards-inline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (max-width: 780px) { .map-top-controls-row { grid-template-columns: 1fr; } }
-        @media (max-width: 640px) { .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } .map-timeline-actions { width: 100%; } .map-timeline-current, .map-timeline-all-button { width: 100%; justify-content: center; } }
+        @media (max-width: 640px) { .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } .map-timeline-actions { width: 100%; } .map-timeline-current { width: 100%; justify-content: center; } }
       `}</style>
 
       <MapTopControls
@@ -1302,16 +1319,13 @@ export default function GraduatesMapPage() {
         <MapYearTimeline
           mt={mt}
           years={availableYears}
-          selectedYear={selectedGraduationYear}
-          isAllYears={isAllYearsSelected}
+          selectedStartYear={selectedGraduationYearStart}
+          selectedEndYear={selectedGraduationYearEnd}
           loading={yearRangeLoading}
-          onSelectAllYears={() => {
+          onRangeChange={(startYear, endYear) => {
             resetComparedSelections();
-            setSelectedGraduationYear("");
-          }}
-          onSliderChange={(year) => {
-            resetComparedSelections();
-            setSelectedGraduationYear(year);
+            setSelectedGraduationYearStart(startYear);
+            setSelectedGraduationYearEnd(endYear);
           }}
         />
       </div>

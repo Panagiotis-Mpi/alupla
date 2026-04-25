@@ -105,60 +105,99 @@ export function MapTopControls(props: {
 export function MapYearTimeline(props: {
   mt: Translate;
   years: number[];
-  selectedYear: string;
-  isAllYears: boolean;
+  selectedStartYear: string;
+  selectedEndYear: string;
   loading: boolean;
-  onSelectAllYears: () => void;
-  onSliderChange: (year: string) => void;
+  onRangeChange: (startYear: string, endYear: string) => void;
 }) {
-  const minIndex = 0;
-  const maxIndex = Math.max(props.years.length - 1, 0);
-  const selectedIndex = props.isAllYears
-    ? maxIndex
-    : Math.max(props.years.findIndex((year) => String(year) === props.selectedYear), 0);
-  const selectedLabel = props.isAllYears
+  const sortedYears = Array.from(new Set(props.years)).sort((left, right) => left - right);
+  const minYear = sortedYears[0] || new Date().getFullYear();
+  const maxYear = sortedYears[sortedYears.length - 1] || minYear;
+  const startValue = props.selectedStartYear ? Number(props.selectedStartYear) : minYear;
+  const endValue = props.selectedEndYear ? Number(props.selectedEndYear) : maxYear;
+  const safeStart = Math.min(Math.max(Number.isFinite(startValue) ? startValue : minYear, minYear), maxYear);
+  const safeEnd = Math.min(Math.max(Number.isFinite(endValue) ? endValue : maxYear, minYear), maxYear);
+  const leftYear = Math.min(safeStart, safeEnd);
+  const rightYear = Math.max(safeStart, safeEnd);
+  const yearSpan = Math.max(maxYear - minYear, 1);
+  const leftPercent = ((leftYear - minYear) / yearSpan) * 100;
+  const rightPercent = ((rightYear - minYear) / yearSpan) * 100;
+  const tickStep = yearSpan > 45 ? 10 : 5;
+  const firstTick = Math.ceil(minYear / tickStep) * tickStep;
+  const ticks = [minYear];
+  for (let year = firstTick; year < maxYear; year += tickStep) {
+    if (year > minYear) ticks.push(year);
+  }
+  if (!ticks.includes(maxYear)) ticks.push(maxYear);
+  const isAllYears = leftYear === minYear && rightYear === maxYear;
+  const selectedLabel = isAllYears
     ? props.mt("timeline.allYears", { defaultValue: "Όλες οι χρονιές" })
-    : props.selectedYear || "-";
+    : leftYear === rightYear
+      ? String(leftYear)
+      : `${leftYear} - ${rightYear}`;
+
+  const emitRange = (start: number, end: number) => {
+    const nextStart = Math.min(start, end);
+    const nextEnd = Math.max(start, end);
+    if (nextStart === minYear && nextEnd === maxYear) {
+      props.onRangeChange("", "");
+      return;
+    }
+    props.onRangeChange(String(nextStart), String(nextEnd));
+  };
 
   return (
     <div className="card map-timeline-card">
       <div className="map-timeline-header">
         <div>
           <div className="map-timeline-title">{props.mt("timeline.title", { defaultValue: "Φίλτρο χρονιάς" })}</div>
-          <div className="map-timeline-subtitle">{props.mt("timeline.subtitle", { defaultValue: "Σύρε τη μπάρα για να αλλάξεις γρήγορα χρονιά στον χάρτη." })}</div>
+          <div className="map-timeline-subtitle">{props.mt("timeline.subtitle", { defaultValue: "Σύρε τα δύο άκρα για να επιλέξεις εύρος χρονιών στον χάρτη." })}</div>
         </div>
         <div className="map-timeline-actions">
-          <button
-            type="button"
-            className={`btn map-timeline-all-button ${props.isAllYears ? "active primary" : ""}`}
-            onClick={props.onSelectAllYears}
-          >
-            {props.mt("timeline.allYears", { defaultValue: "Όλες οι χρονιές" })}
-          </button>
           <div className="map-timeline-current">{selectedLabel}</div>
         </div>
       </div>
 
-      {props.years.length ? (
+      {sortedYears.length ? (
         <div className="map-timeline-slider-wrap">
-          <input
-            type="range"
-            min={minIndex}
-            max={maxIndex}
-            step={1}
-            value={selectedIndex}
-            className="map-timeline-slider"
-            disabled={props.loading || props.years.length < 2}
-            onChange={(event) => {
-              const nextIndex = Number(event.target.value);
-              const nextYear = props.years[nextIndex];
-              if (nextYear) props.onSliderChange(String(nextYear));
-            }}
-            aria-label={props.mt("filters.graduationYear", { defaultValue: "Χρονιά αποφοίτησης" })}
-          />
+          <div className="map-year-ruler" style={{ "--range-left": `${leftPercent}%`, "--range-right": `${100 - rightPercent}%` } as React.CSSProperties}>
+            <div className="map-year-ruler-track" />
+            <div className="map-year-ruler-fill" />
+            <input
+              type="range"
+              min={minYear}
+              max={maxYear}
+              step={1}
+              value={leftYear}
+              className="map-timeline-slider map-timeline-slider-start"
+              style={{ zIndex: leftYear === rightYear && leftYear > minYear ? 5 : 3 }}
+              disabled={props.loading || minYear === maxYear}
+              onChange={(event) => {
+                const nextYear = Math.min(Number(event.target.value), rightYear);
+                emitRange(nextYear, rightYear);
+              }}
+              aria-label={props.mt("timeline.startYear", { defaultValue: "Παλαιότερη χρονιά" })}
+            />
+            <input
+              type="range"
+              min={minYear}
+              max={maxYear}
+              step={1}
+              value={rightYear}
+              className="map-timeline-slider map-timeline-slider-end"
+              style={{ zIndex: leftYear === rightYear && leftYear === minYear ? 5 : 4 }}
+              disabled={props.loading || minYear === maxYear}
+              onChange={(event) => {
+                const nextYear = Math.max(Number(event.target.value), leftYear);
+                emitRange(leftYear, nextYear);
+              }}
+              aria-label={props.mt("timeline.endYear", { defaultValue: "Πιο πρόσφατη χρονιά" })}
+            />
+          </div>
           <div className="map-timeline-scale">
-            <span>{props.years[0]}</span>
-            <span>{props.years[props.years.length - 1]}</span>
+            {ticks.map((year) => (
+              <span key={year} style={{ left: `${((year - minYear) / yearSpan) * 100}%` }}>{year}</span>
+            ))}
           </div>
         </div>
       ) : (
@@ -167,7 +206,6 @@ export function MapYearTimeline(props: {
     </div>
   );
 }
-
 type ExportFormat = "png";
 
 export function MapExportSelectionModal(props: {
