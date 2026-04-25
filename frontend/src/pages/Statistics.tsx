@@ -585,11 +585,24 @@ export default function Statistics() {
   }
 
 
-  if (loading && !data) return <div className="card">{t("loading")}</div>;
   if (err && !data) return <div className="card">{err}</div>;
+
+  const loadingLabel = t("loading");
+  const loadingLabelStyle = { "--statistics-loading-label": JSON.stringify(loadingLabel) } as React.CSSProperties;
 
   return (
     <>
+      <style>{`
+        .statistics-loading-region { position: relative; }
+        .statistics-loading-region .statistics-metric-card > *,
+        .statistics-loading-region [data-stat-chart-card] > * { filter: blur(3px); opacity: .72; pointer-events: none; user-select: none; transition: filter .18s ease, opacity .18s ease; }
+        .statistics-loading-region .statistics-metric-card::after,
+        .statistics-loading-region [data-stat-chart-card]::after { content: var(--statistics-loading-label); position: absolute; inset: 8px; border-radius: 18px; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; background: rgba(255,255,255,.08); backdrop-filter: blur(2px); pointer-events: none; z-index: 5; }
+        .statistics-loading-region .statistics-metric-card,
+        .statistics-loading-region [data-stat-chart-card] { position: relative; }
+        html.accessibility-high-contrast .statistics-loading-region .statistics-metric-card::after,
+        html.accessibility-high-contrast .statistics-loading-region [data-stat-chart-card]::after { background: #fff; color: #000; border: 2px solid #000; }
+      `}</style>
       <div className="page-stable-shell statistics-page" ref={pageRef}>
         <div className="card page-header-card" style={{ padding: 14 }}>
           <div style={{ display: "grid", gap: 14 }}>
@@ -618,21 +631,24 @@ export default function Statistics() {
           </div>
         </div>
 
-        <StatisticsSummaryCards
-          t={t}
-          total={total}
-          avgAge={avgAge}
-          avgGrade={avgGrade}
-          longestStudyYears={longestStudyYears}
-          busiestYear={busiestYear}
-          busiestCity={busiestCity}
-          sectionWrapStyle={sectionWrapStyle}
-          metricGridStyle={metricGridStyle}
-          metricTopRowStyle={metricTopRowStyle}
-          metricBottomRowStyle={metricBottomRowStyle}
-        />
+        <div className={loading ? "statistics-loading-region" : undefined} style={loading ? loadingLabelStyle : undefined}>
+          <StatisticsSummaryCards
+            t={t}
+            total={total}
+            avgAge={avgAge}
+            avgGrade={avgGrade}
+            longestStudyYears={longestStudyYears}
+            busiestYear={busiestYear}
+            busiestCity={busiestCity}
+            sectionWrapStyle={sectionWrapStyle}
+            metricGridStyle={metricGridStyle}
+            metricTopRowStyle={metricTopRowStyle}
+            metricBottomRowStyle={metricBottomRowStyle}
+          />
+        </div>
 
-        {activeGroup === "demographics" ? (
+        <div className={loading ? "statistics-loading-region" : undefined} style={loading ? loadingLabelStyle : undefined}>
+          {activeGroup === "demographics" ? (
           <DemographicsCharts
             t={t}
             cardInnerStyle={cardInnerStyle}
@@ -658,7 +674,7 @@ export default function Statistics() {
           />
         ) : null}
 
-        {activeGroup === "academic" ? (
+          {activeGroup === "academic" ? (
           <AcademicCharts
             t={t}
             cardInnerStyle={cardInnerStyle}
@@ -684,7 +700,7 @@ export default function Statistics() {
           />
         ) : null}
 
-        {activeGroup === "geography" ? (
+          {activeGroup === "geography" ? (
           <GeographyCharts
             t={t}
             cardInnerStyle={cardInnerStyle}
@@ -708,7 +724,8 @@ export default function Statistics() {
             total={total}
             abroadCount={abroadCount}
           />
-        ) : null}
+          ) : null}
+        </div>
       </div>
 
       {selectedExportFormat ? (
