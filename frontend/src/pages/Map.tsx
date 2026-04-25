@@ -369,11 +369,11 @@ export default function GraduatesMapPage() {
   const [highContrastEnabled, setHighContrastEnabled] = useState(() => typeof document !== "undefined" && document.documentElement.classList.contains("accessibility-high-contrast"));
   const isCompactViewport = useCompactMapViewport();
   const fitPadding = isCompactViewport
-    ? ([18, 18] as [number, number])
+    ? ([4, 4] as [number, number])
     : ([6, 6] as [number, number]);
-  const fitMaxZoom = isCompactViewport ? 6.25 : 6.75;
-  const initialZoom = isCompactViewport ? 6.2 : 6.75;
-  const minMapZoom = isCompactViewport ? 5.6 : 5.8;
+  const fitMaxZoom = isCompactViewport ? 6.55 : 6.75;
+  const initialZoom = isCompactViewport ? 6.45 : 6.75;
+  const minMapZoom = isCompactViewport ? 5.45 : 5.8;
 
   const params = useMemo(
     () =>
@@ -392,7 +392,12 @@ export default function GraduatesMapPage() {
     useMapData(params);
 
   const worldBounds = useMemo(() => L.latLngBounds(L.latLng(-60, -180), L.latLng(85, 180)), []);
-  const greeceBounds = useMemo(() => L.latLngBounds(L.latLng(34.4, 19.8), L.latLng(41.9, 29.9)), []);
+  const greeceBounds = useMemo(
+    () => isCompactViewport
+      ? L.latLngBounds(L.latLng(34.1, 19.2), L.latLng(41.2, 29.5))
+      : L.latLngBounds(L.latLng(34.4, 19.8), L.latLng(41.9, 29.9)),
+    [isCompactViewport],
+  );
 
   useEffect(() => {
     mapScopeRef.current = mapScope;
@@ -1177,6 +1182,8 @@ export default function GraduatesMapPage() {
         .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; }
         .map-metric-button.active, .map-program-button.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
         .map-scope-button { background: #fff; border-color: var(--border); color: #0f172a; font-weight: 700; }
+        .map-scope-button-label { flex: 1; text-align: center; }
+        .map-scope-button .map-dropdown-caret { margin-left: auto; }
         .map-scope-button:hover { background: #f8fafc; }
         .map-program-button { gap: 8px; }
         .map-dropdown-button { justify-content: space-between; padding-inline: 14px; }
@@ -1238,6 +1245,7 @@ export default function GraduatesMapPage() {
         @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .map-city-cards-inline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (max-width: 780px) { .map-top-controls-row { grid-template-columns: 1fr; } }
         @media (max-width: 640px) { .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } .map-timeline-actions { width: 100%; } .map-timeline-current { width: 100%; justify-content: center; } }
+        @media (max-width: 520px) { .map-timeline-card { gap: 18px; } .map-timeline-scale { margin: 0 18px; font-size: 12px; height: 24px; } .map-year-ruler { margin: 0 18px; } .map-timeline-slider::-webkit-slider-thumb { width: 30px; height: 30px; border-width: 7px; } .map-timeline-slider::-moz-range-thumb { width: 16px; height: 16px; border-width: 7px; } }
       `}</style>
 
       <MapTopControls
@@ -1335,7 +1343,7 @@ export default function GraduatesMapPage() {
           <div className="alupla-map map-canvas" ref={mapCanvasRef}>
             <MapContainer
               key={`map-${mapScope}`}
-              center={mapScope === "abroad" ? [20, 0] : [38.6, 24.0]}
+              center={mapScope === "abroad" ? [20, 0] : isCompactViewport ? [37.9, 23.6] : [38.6, 24.0]}
               zoom={activeInitialZoom as any}
               minZoom={activeMinZoom as any}
               zoomSnap={0.25}

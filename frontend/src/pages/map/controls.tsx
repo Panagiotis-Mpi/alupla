@@ -65,7 +65,7 @@ export function MapTopControls(props: {
             aria-haspopup="menu"
             aria-expanded={showScopeMenu}
           >
-            <span>{scopeLabel}</span>
+            <span className="map-scope-button-label">{scopeLabel}</span>
             <span className={`map-dropdown-caret ${showScopeMenu ? "open" : ""}`}>▾</span>
           </button>
           {showScopeMenu ? (
@@ -110,6 +110,15 @@ export function MapYearTimeline(props: {
   loading: boolean;
   onRangeChange: (startYear: string, endYear: string) => void;
 }) {
+  const [isCompactTimeline, setIsCompactTimeline] = React.useState(() => typeof window !== "undefined" ? window.innerWidth <= 520 : false);
+
+  React.useEffect(() => {
+    const update = () => setIsCompactTimeline(window.innerWidth <= 520);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
   const sortedYears = Array.from(new Set(props.years)).sort((left, right) => left - right);
   const minYear = sortedYears[0] || new Date().getFullYear();
   const maxYear = sortedYears[sortedYears.length - 1] || minYear;
@@ -122,11 +131,12 @@ export function MapYearTimeline(props: {
   const yearSpan = Math.max(maxYear - minYear, 1);
   const leftPercent = ((leftYear - minYear) / yearSpan) * 100;
   const rightPercent = ((rightYear - minYear) / yearSpan) * 100;
-  const tickStep = yearSpan > 45 ? 10 : 5;
+  const tickStep = isCompactTimeline ? 10 : yearSpan > 45 ? 10 : 5;
+  const endpointGap = isCompactTimeline ? Math.max(7, Math.round(yearSpan * 0.12)) : 1;
   const firstTick = Math.ceil(minYear / tickStep) * tickStep;
   const ticks = [minYear];
   for (let year = firstTick; year < maxYear; year += tickStep) {
-    if (year > minYear) ticks.push(year);
+    if (year > minYear + endpointGap && year < maxYear - endpointGap) ticks.push(year);
   }
   if (!ticks.includes(maxYear)) ticks.push(maxYear);
   const isAllYears = leftYear === minYear && rightYear === maxYear;

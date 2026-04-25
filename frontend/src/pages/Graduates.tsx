@@ -542,7 +542,7 @@ export default function Graduates() {
 
             <div style={{ display: "grid", gap: 10, width: "100%" }}>
               <input className="input" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t("topbar.searchPlaceholder")} />
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, width: "100%", alignItems: "stretch" }}>
+              <div className="graduates-actions-grid graduates-actions-grid-main" style={{ gap: 10, width: "100%", alignItems: "stretch" }}>
                 <Link className="btn primary" to="/graduates/new" style={{ ...topButtonStyle, textDecoration: "none", width: "100%", justifyContent: "center" }}>
                   {t("topbar.newGraduate")}
                 </Link>
@@ -606,7 +606,7 @@ export default function Graduates() {
                   ) : null}
                 </div>
                 <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "center", width: "100%" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, width: "100%", alignItems: "stretch" }}>
+                  <div className="graduates-actions-grid" style={{ gap: 10, width: "100%", alignItems: "stretch" }}>
                     <div ref={recentDownloadsRef} style={{ position: "relative" }}>
                       <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => toggleMenu("recent")}>
                         {t("topbar.myFrequentDownloads")}

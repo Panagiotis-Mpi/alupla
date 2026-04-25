@@ -1399,3 +1399,23 @@ html.accessibility-high-contrast canvas{
   .map-timeline-labels{font-size:12px !important}
   .map-menu{left:0 !important;right:auto !important;width:min(260px,calc(100vw - 40px)) !important}
 }
+
+.graduates-actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.graduates-actions-grid-main{grid-template-columns:repeat(4,minmax(0,1fr))}
+
+@media (max-width:640px){
+  body{font-size:15.5px}
+  .btn,.input,select,textarea,input{font-size:15px}
+  .label,.muted{font-size:13px}
+  .table th,.table td{font-size:14px}
+  .badge{font-size:14px}
+  .container{max-width:100%;overflow-x:hidden}
+  .graduates-actions-grid,.graduates-actions-grid-main{grid-template-columns:1fr}
+  .statistics-summary-row{grid-template-columns:1fr !important}
+  .statistics-metric-label{font-size:18px}
+  .statistics-metric-value{font-size:30px}
+  .logs-summary-card,.logs-filters-card{max-width:100%;overflow:hidden}
+  .logs-summary-card .table-wrap,.logs-filters-card .table-wrap{max-width:100%;overflow-x:auto}
+  .logs-summary-table{min-width:0 !important;width:100% !important;table-layout:fixed !important}
+  .logs-summary-table th,.logs-summary-table td{white-space:normal;word-break:break-word;overflow-wrap:anywhere;font-size:12.5px;padding:7px 6px}
+}

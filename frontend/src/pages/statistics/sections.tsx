@@ -84,14 +84,14 @@ export function StatisticsSummaryCards(props: {
   metricBottomRowStyle: React.CSSProperties;
 }) {
   return (
-    <div style={props.sectionWrapStyle}>
-      <div style={props.metricGridStyle}>
-        <div style={props.metricTopRowStyle}>
+    <div className="statistics-summary-section" style={props.sectionWrapStyle}>
+      <div className="statistics-summary-grid" style={props.metricGridStyle}>
+        <div className="statistics-summary-row" style={props.metricTopRowStyle}>
           <MetricCard label={props.t("cards.total")} value={props.total} />
           <MetricCard label={props.t("cards.avgAge")} value={props.avgAge} />
           <MetricCard label={props.t("cards.avgGrade")} value={props.avgGrade} />
         </div>
-        <div style={props.metricBottomRowStyle}>
+        <div className="statistics-summary-row" style={props.metricBottomRowStyle}>
           <MetricCard label={props.t("cards.earliestYear")} value={props.longestStudyYears} />
           <MetricCard label={props.t("cards.topGraduationYear")} value={props.busiestYear} />
           <MetricCard label={props.t("cards.topCity")} value={props.busiestCity} />
