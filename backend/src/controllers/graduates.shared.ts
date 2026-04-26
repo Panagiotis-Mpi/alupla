@@ -49,6 +49,14 @@ function getMunicipalityExportName(row: GraduateExportSource, regionsById: Map<n
   return foreignCity || explicitMunicipality || cityName || legacyRegionName;
 }
 
+function compareDiplomaNumber(a: GraduateExportSource, b: GraduateExportSource) {
+  const left = String(a.ad_code ?? "").trim();
+  const right = String(b.ad_code ?? "").trim();
+  const result = left.localeCompare(right, "el", { numeric: true, sensitivity: "base" });
+  if (result !== 0) return result;
+  return String(a.student_number ?? "").localeCompare(String(b.student_number ?? ""), "el", { numeric: true, sensitivity: "base" });
+}
+
 export function buildExportRows(
   rows: GraduateExportSource[],
   lang: ExportLang,
@@ -57,7 +65,7 @@ export function buildExportRows(
 ) {
   const labels = getColumnLabels(lang);
 
-  return rows.map((row) => {
+  return [...rows].sort(compareDiplomaNumber).map((row) => {
     const studyProgram = programsById.get(Number(row.study_program_id));
     const region = regionsById.get(Number(row.origin_periphery_region_id ?? row.origin_region_id));
     const country = regionsById.get(Number(row.origin_country_region_id));

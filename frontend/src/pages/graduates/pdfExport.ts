@@ -61,6 +61,14 @@ function formatDateValue(value: unknown) {
   return raw;
 }
 
+function compareDiplomaNumber(a: Graduate, b: Graduate) {
+  const left = String(a.ad_code ?? "").trim();
+  const right = String(b.ad_code ?? "").trim();
+  const result = left.localeCompare(right, "el", { numeric: true, sensitivity: "base" });
+  if (result !== 0) return result;
+  return String(a.student_number ?? "").localeCompare(String(b.student_number ?? ""), "el", { numeric: true, sensitivity: "base" });
+}
+
 function getLabels(lang: ExportLang) {
   if (lang === "en") {
     return {
@@ -110,7 +118,7 @@ function buildRows(args: {
   const { items, lang, programNameById, regionNameById } = args;
   const labels = getLabels(lang);
 
-  return items.map((item) => {
+  return [...items].sort(compareDiplomaNumber).map((item) => {
     const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
     const explicitCountry = String((item as any).origin_country ?? "").trim();
     const countryName = formatCountryValue(explicitCountry || String(regionNameById.get(Number(item.origin_country_region_id)) ?? ""));
