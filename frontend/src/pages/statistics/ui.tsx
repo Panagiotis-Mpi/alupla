@@ -79,7 +79,7 @@ function buildBarDataset(label: string, data: number[], options?: { highContrast
     barPercentage: 0.62,
     categoryPercentage: 0.72,
     maxBarThickness: 42,
-  };
+  } as React.CSSProperties;
 }
 
 function buildBarChartOptions(options?: {
@@ -302,11 +302,13 @@ function markerStyle(item: ChartLegendItem): React.CSSProperties {
     borderRadius: radius,
     border: `2px solid ${item.borderColor ?? item.color}`,
     background: item.color,
+    "--chart-marker-color": item.color,
+    "--chart-marker-border": item.borderColor ?? item.color,
     transform: shape,
     boxSizing: "border-box",
     position: "relative",
     overflow: "hidden",
-  };
+  } as React.CSSProperties;
 }
 
 export function ChartLegendInset(props: { items: ChartLegendItem[] }) {
@@ -347,7 +349,7 @@ export function ChartLegendInset(props: { items: ChartLegendItem[] }) {
           }}
         >
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span style={markerStyle(item)}>
+            <span className="chart-marker-swatch" style={markerStyle(item)}>
               {item.dashed ? (
                 <span
                   style={{
@@ -382,7 +384,7 @@ function ChartDataSummary(props: { labels: string[]; values: number[]; colors: s
         return (
           <div className="chart-data-summary-row" role="listitem" key={`${label}-${index}`}>
             <span className="chart-data-summary-label-wrap">
-              <span style={markerStyle({ label, color: props.colors[index] ?? props.colors[0] ?? "#2563eb", borderColor: props.borderColors?.[index] })} />
+              <span className="chart-marker-swatch" style={markerStyle({ label, color: props.colors[index] ?? props.colors[0] ?? "#2563eb", borderColor: props.borderColors?.[index] })} />
               <span className="chart-data-summary-label">{label}</span>
             </span>
             <span className="chart-data-summary-meta">

@@ -116,7 +116,7 @@ function Login() {
                     key={role}
                     type="button"
                     aria-pressed={active}
-                    className={active ? "is-active" : undefined}
+                    className={`auth-role-button ${active ? "is-active" : ""}`}
                     onClick={() => setSelectedRole(role)}
                     style={{
                       height: 44,
