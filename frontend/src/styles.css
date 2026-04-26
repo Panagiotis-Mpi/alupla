@@ -1419,3 +1419,348 @@ html.accessibility-high-contrast canvas{
   .logs-summary-table{min-width:0 !important;width:100% !important;table-layout:fixed !important}
   .logs-summary-table th,.logs-summary-table td{white-space:normal;word-break:break-word;overflow-wrap:anywhere;font-size:12.5px;padding:7px 6px}
 }
+html.accessibility-high-contrast{
+  --bg:#000000;
+  --surface:#000000;
+  --text:#7fffd4;
+  --muted:#b8fff3;
+  --border:#2cf5c8;
+  --shadow:none;
+  --primary:#ffd400;
+  --primaryHover:#ffea70;
+  --danger:#ff6b6b;
+  color-scheme:dark !important;
+  background:#000000 !important;
+}
+html.accessibility-high-contrast,
+html.accessibility-high-contrast body,
+html.accessibility-high-contrast .app-shell,
+html.accessibility-high-contrast .app-content,
+html.accessibility-high-contrast .container,
+html.accessibility-high-contrast .page-stable-shell,
+html.accessibility-high-contrast .map-panel-stack,
+html.accessibility-high-contrast .public-home-shell{
+  background:#000000 !important;
+  color:#7fffd4 !important;
+}
+html.accessibility-high-contrast .nav,
+html.accessibility-high-contrast .mobile-drawer,
+html.accessibility-high-contrast .public-home-card,
+html.accessibility-high-contrast .app-footer,
+html.accessibility-high-contrast .card,
+html.accessibility-high-contrast .page-header-card,
+html.accessibility-high-contrast .auth-subcard,
+html.accessibility-high-contrast .auth-subcard-muted,
+html.accessibility-high-contrast .auth-subcard-white,
+html.accessibility-high-contrast .mobile-table-card,
+html.accessibility-high-contrast .modal-card,
+html.accessibility-high-contrast .drawer-panel,
+html.accessibility-high-contrast .accessibility-panel,
+html.accessibility-high-contrast .map-menu,
+html.accessibility-high-contrast .map-info-box,
+html.accessibility-high-contrast .map-custom-legend,
+html.accessibility-high-contrast .map-timeline-current,
+html.accessibility-high-contrast .map-loading-overlay-card,
+html.accessibility-high-contrast .chart-data-summary-row{
+  background:#000000 !important;
+  color:#7fffd4 !important;
+  border-color:#2cf5c8 !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+}
+html.accessibility-high-contrast .app-shell [style*="background"],
+html.accessibility-high-contrast .app-shell [style*="background-color"],
+html.accessibility-high-contrast .app-shell [style*="box-shadow"]{
+  background:#000000 !important;
+  color:#7fffd4 !important;
+  border-color:#2cf5c8 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast :is(h1,h2,h3,h4,h5,h6,p,span,label,strong,small,div,li,dt,dd,legend,caption,th,td),
+html.accessibility-high-contrast .brand,
+html.accessibility-high-contrast .nav a,
+html.accessibility-high-contrast .nav strong,
+html.accessibility-high-contrast .public-home-title,
+html.accessibility-high-contrast .public-home-text,
+html.accessibility-high-contrast .auth-panel-title,
+html.accessibility-high-contrast .auth-panel-text,
+html.accessibility-high-contrast .auth-note,
+html.accessibility-high-contrast .auth-links-row,
+html.accessibility-high-contrast .auth-code,
+html.accessibility-high-contrast .muted,
+html.accessibility-high-contrast .label,
+html.accessibility-high-contrast .badge,
+html.accessibility-high-contrast .statistics-metric-label,
+html.accessibility-high-contrast .statistics-metric-value{
+  color:#7fffd4 !important;
+  border-color:#2cf5c8 !important;
+}
+html.accessibility-high-contrast .muted,
+html.accessibility-high-contrast .label,
+html.accessibility-high-contrast .statistics-metric-label,
+html.accessibility-high-contrast .auth-panel-text,
+html.accessibility-high-contrast .public-home-text{
+  color:#b8fff3 !important;
+}
+html.accessibility-high-contrast a{
+  color:#7fffd4 !important;
+}
+html.accessibility-high-contrast .input,
+html.accessibility-high-contrast input,
+html.accessibility-high-contrast select,
+html.accessibility-high-contrast textarea,
+html.accessibility-high-contrast option,
+html.accessibility-high-contrast .badge,
+html.accessibility-high-contrast .chip,
+html.accessibility-high-contrast .pill,
+html.accessibility-high-contrast .table-wrap,
+html.accessibility-high-contrast .table,
+html.accessibility-high-contrast table{
+  background:#000000 !important;
+  color:#7fffd4 !important;
+  border-color:#2cf5c8 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast input,
+html.accessibility-high-contrast select,
+html.accessibility-high-contrast textarea,
+html.accessibility-high-contrast .input{
+  border:2px solid #2cf5c8 !important;
+}
+html.accessibility-high-contrast ::placeholder{
+  color:#b8fff3 !important;
+  opacity:1 !important;
+}
+html.accessibility-high-contrast input[type="checkbox"],
+html.accessibility-high-contrast input[type="radio"]{
+  accent-color:#ffd400;
+}
+html.accessibility-high-contrast .table,
+html.accessibility-high-contrast table{
+  border:2px solid #2cf5c8 !important;
+}
+html.accessibility-high-contrast .table th,
+html.accessibility-high-contrast .table td,
+html.accessibility-high-contrast table th,
+html.accessibility-high-contrast table td{
+  background:#000000 !important;
+  color:#7fffd4 !important;
+  border-color:#2cf5c8 !important;
+}
+html.accessibility-high-contrast .table th,
+html.accessibility-high-contrast table th{
+  background:#041815 !important;
+  color:#ffd400 !important;
+  font-weight:800 !important;
+}
+html.accessibility-high-contrast .table tr:hover td,
+html.accessibility-high-contrast .table tbody tr:focus-within td,
+html.accessibility-high-contrast .table tbody tr.is-selected-row td{
+  background:#06231f !important;
+  color:#7fffd4 !important;
+}
+html.accessibility-high-contrast .btn,
+html.accessibility-high-contrast button,
+html.accessibility-high-contrast input[type="button"],
+html.accessibility-high-contrast input[type="submit"],
+html.accessibility-high-contrast input[type="reset"],
+html.accessibility-high-contrast input::file-selector-button,
+html.accessibility-high-contrast .public-home-action{
+  background:#000000 !important;
+  color:#7fffd4 !important;
+  border:2px solid #7fffd4 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .btn.primary,
+html.accessibility-high-contrast button.primary,
+html.accessibility-high-contrast .public-home-action.primary,
+html.accessibility-high-contrast .btn[aria-pressed="true"],
+html.accessibility-high-contrast button[aria-pressed="true"],
+html.accessibility-high-contrast .btn.active,
+html.accessibility-high-contrast button.active,
+html.accessibility-high-contrast .btn:hover,
+html.accessibility-high-contrast button:hover{
+  background:#ffd400 !important;
+  color:#000000 !important;
+  border-color:#ffd400 !important;
+}
+html.accessibility-high-contrast .btn.primary *,
+html.accessibility-high-contrast button.primary *,
+html.accessibility-high-contrast .public-home-action.primary *,
+html.accessibility-high-contrast .btn[aria-pressed="true"] *,
+html.accessibility-high-contrast button[aria-pressed="true"] *,
+html.accessibility-high-contrast .btn.active *,
+html.accessibility-high-contrast button.active *,
+html.accessibility-high-contrast .btn:hover *,
+html.accessibility-high-contrast button:hover *{
+  color:#000000 !important;
+}
+html.accessibility-high-contrast .btn.danger,
+html.accessibility-high-contrast button.danger{
+  background:#ff6b6b !important;
+  color:#000000 !important;
+  border-color:#ff6b6b !important;
+}
+html.accessibility-high-contrast :is(button,.btn,input,select,textarea):disabled{
+  background:#101010 !important;
+  color:#6b8f87 !important;
+  border-color:#315f55 !important;
+  opacity:1 !important;
+}
+html.accessibility-high-contrast :is(input,select,textarea,button,.btn,a,[role="button"],summary):focus-visible{
+  outline:4px solid #ffd400 !important;
+  outline-offset:3px !important;
+}
+html.accessibility-high-contrast .lang-switcher .btn[aria-pressed="true"],
+html.accessibility-high-contrast .accessibility-toggle-btn.is-active,
+html.accessibility-high-contrast .accessibility-icon-btn.is-active,
+html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn[aria-pressed="true"]{
+  background:#ffd400 !important;
+  color:#000000 !important;
+  border-color:#ffd400 !important;
+  box-shadow:0 0 0 2px #7fffd4 !important;
+}
+html.accessibility-high-contrast .lang-switcher .btn[aria-pressed="true"] *,
+html.accessibility-high-contrast .accessibility-toggle-btn.is-active *,
+html.accessibility-high-contrast .accessibility-icon-btn.is-active *,
+html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn[aria-pressed="true"] *{
+  color:#000000 !important;
+}
+html.accessibility-high-contrast .accessibility-trigger-disc-outer{
+  fill:#ffd400 !important;
+  stroke:#7fffd4 !important;
+}
+html.accessibility-high-contrast .accessibility-trigger-disc-inner{
+  fill:#000000 !important;
+  stroke:#000000 !important;
+}
+html.accessibility-high-contrast .accessibility-trigger-head{
+  fill:#7fffd4 !important;
+}
+html.accessibility-high-contrast .accessibility-trigger-line{
+  stroke:#7fffd4 !important;
+}
+html.accessibility-high-contrast .leaflet-container,
+html.accessibility-high-contrast .alupla-map .leaflet-container,
+html.accessibility-high-contrast .leaflet-control,
+html.accessibility-high-contrast .leaflet-popup-content-wrapper,
+html.accessibility-high-contrast .leaflet-popup-tip,
+html.accessibility-high-contrast .leaflet-bar a{
+  background:#000000 !important;
+  color:#7fffd4 !important;
+  border-color:#2cf5c8 !important;
+}
+html.accessibility-high-contrast .leaflet-container,
+html.accessibility-high-contrast .alupla-map .leaflet-container{
+  border:2px solid #2cf5c8 !important;
+}
+html.accessibility-high-contrast .leaflet-bar a:hover{
+  background:#ffd400 !important;
+  color:#000000 !important;
+}
+html.accessibility-high-contrast .leaflet-pane,
+html.accessibility-high-contrast .leaflet-map-pane,
+html.accessibility-high-contrast .leaflet-tile-pane,
+html.accessibility-high-contrast .leaflet-overlay-pane,
+html.accessibility-high-contrast .leaflet-shadow-pane,
+html.accessibility-high-contrast .leaflet-marker-pane,
+html.accessibility-high-contrast .leaflet-tooltip-pane,
+html.accessibility-high-contrast .leaflet-popup-pane{
+  background:transparent !important;
+}
+html.accessibility-high-contrast .leaflet-tile{
+  filter:grayscale(100%) contrast(150%) brightness(55%) sepia(100%) hue-rotate(105deg) saturate(170%) !important;
+  opacity:1 !important;
+  mix-blend-mode:normal !important;
+}
+html.accessibility-high-contrast .leaflet-container canvas,
+html.accessibility-high-contrast .alupla-map .leaflet-container canvas,
+html.accessibility-high-contrast .alupla-map .leaflet-container img,
+html.accessibility-high-contrast .alupla-map .leaflet-marker-icon,
+html.accessibility-high-contrast .alupla-map .leaflet-marker-shadow{
+  background:transparent !important;
+}
+html.accessibility-high-contrast canvas{
+  background:#000000 !important;
+  border:2px solid #2cf5c8 !important;
+  border-radius:12px;
+}
+html.accessibility-high-contrast [role="img"] canvas,
+html.accessibility-high-contrast .leaflet-container canvas,
+html.accessibility-high-contrast .alupla-map .leaflet-container canvas{
+  border:none !important;
+  border-radius:0 !important;
+}
+html.accessibility-high-contrast .recharts-text,
+html.accessibility-high-contrast .recharts-label,
+html.accessibility-high-contrast .recharts-cartesian-axis-tick-value,
+html.accessibility-high-contrast .recharts-legend-item-text,
+html.accessibility-high-contrast .recharts-tooltip-label,
+html.accessibility-high-contrast .recharts-tooltip-item-name,
+html.accessibility-high-contrast .recharts-tooltip-item-value{
+  fill:#7fffd4 !important;
+  color:#7fffd4 !important;
+}
+html.accessibility-high-contrast .recharts-cartesian-axis-line,
+html.accessibility-high-contrast .recharts-cartesian-axis-tick-line,
+html.accessibility-high-contrast .recharts-cartesian-grid line,
+html.accessibility-high-contrast .recharts-reference-line line,
+html.accessibility-high-contrast .recharts-polar-grid-angle line,
+html.accessibility-high-contrast .recharts-polar-grid-concentric polygon,
+html.accessibility-high-contrast .recharts-polar-grid-concentric circle{
+  stroke:#2cf5c8 !important;
+  opacity:.75;
+}
+html.accessibility-high-contrast .recharts-default-tooltip,
+html.accessibility-high-contrast .recharts-tooltip-wrapper{
+  background:#000000 !important;
+  color:#7fffd4 !important;
+  border-color:#2cf5c8 !important;
+}
+html.accessibility-high-contrast .map-menu-item{
+  background:#000000 !important;
+  color:#7fffd4 !important;
+}
+html.accessibility-high-contrast .map-menu-item:hover,
+html.accessibility-high-contrast .map-menu-item.active{
+  background:#ffd400 !important;
+  color:#000000 !important;
+}
+html.accessibility-high-contrast .map-year-ruler-track{
+  background:repeating-linear-gradient(to right,#2cf5c8 0 1px,transparent 1px calc(100% / 12)),linear-gradient(#07352f,#07352f) !important;
+  box-shadow:inset 0 0 0 1px #2cf5c8 !important;
+}
+html.accessibility-high-contrast .map-year-ruler-fill{
+  background:#ffd400 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .map-timeline-slider::-webkit-slider-thumb{
+  background:#000000 !important;
+  border-color:#ffd400 !important;
+  box-shadow:0 0 0 2px #7fffd4 !important;
+}
+html.accessibility-high-contrast .map-timeline-slider::-moz-range-thumb{
+  background:#000000 !important;
+  border-color:#ffd400 !important;
+  box-shadow:0 0 0 2px #7fffd4 !important;
+}
+html.accessibility-high-contrast .map-loading-overlay{
+  background:rgba(0,0,0,.54) !important;
+}
+html.accessibility-high-contrast .alupla-map .alupla-city-bubble,
+html.accessibility-high-contrast .alupla-city-bubble{
+  color:#000000 !important;
+  border-color:#ffd400 !important;
+  background:#ffd400 !important;
+  opacity:1 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .alupla-map .alupla-city-bubble-count .alupla-city-bubble-number,
+html.accessibility-high-contrast .alupla-map .alupla-city-bubble-number-gender,
+html.accessibility-high-contrast .alupla-city-bubble-label,
+html.accessibility-high-contrast .alupla-city-label-text,
+html.accessibility-high-contrast .alupla-city-bubble-number,
+html.accessibility-high-contrast .alupla-city-bubble-number-gender{
+  color:#000000 !important;
+  text-shadow:none !important;
+}
