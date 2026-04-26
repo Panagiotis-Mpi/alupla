@@ -312,7 +312,18 @@ function markerStyle(item: ChartLegendItem): React.CSSProperties {
 }
 
 export function ChartLegendInset(props: { items: ChartLegendItem[] }) {
-  if (!props.items.length) return null;
+  const highContrast = useHighContrastEnabled();
+  const items = React.useMemo(() => {
+    if (!highContrast) return props.items;
+    const palette = ["#ffd400", "#7fffd4", "#ffffff", "#ff8a00", "#66f2d5", "#ff5f5f", "#c4ff00", "#d6b4ff"];
+    return props.items.map((item, index) => ({
+      ...item,
+      color: palette[index % palette.length],
+      borderColor: index === 1 ? palette[index % palette.length] : "#000000",
+    }));
+  }, [highContrast, props.items]);
+
+  if (!items.length) return null;
 
   return (
     <div
@@ -330,7 +341,7 @@ export function ChartLegendInset(props: { items: ChartLegendItem[] }) {
         pointerEvents: "none",
       }}
     >
-      {props.items.map((item) => (
+      {items.map((item) => (
         <span
           key={`${item.label}-${item.value ?? ""}`}
           style={{

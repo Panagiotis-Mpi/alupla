@@ -2236,10 +2236,68 @@ html.accessibility-high-contrast .statistics-chart-loading-region [data-stat-cha
   color:#7fffd4 !important;
   border:2px solid #14f5c8 !important;
 }
-html.accessibility-high-contrast.accessibility-underline-links :is(a,button,.btn,[role="button"],input[type="button"],input[type="submit"],input[type="reset"],summary,.brand){
-  font-size:inherit !important;
-  line-height:inherit !important;
+html.accessibility-high-contrast .map-timeline-slider::-webkit-slider-thumb{
+  background:#ffd400 !important;
+  border-color:#000000 !important;
+  box-shadow:0 0 0 2px #14f5c8 !important;
 }
-html.accessibility-high-contrast.accessibility-underline-links :is(.nav .btn,.nav button,.nav a,.brand,.accessibility-panel button,.accessibility-icon-btn,.accessibility-toggle-btn,.auth-role-button){
-  font-size:inherit !important;
+html.accessibility-high-contrast .map-timeline-slider::-moz-range-thumb{
+  background:#ffd400 !important;
+  border-color:#000000 !important;
+  box-shadow:0 0 0 2px #14f5c8 !important;
+}
+html.accessibility-high-contrast .alupla-city-bubble,
+html.accessibility-high-contrast .alupla-city-bubble-count,
+html.accessibility-high-contrast .alupla-city-bubble-gender,
+html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast{
+  background:#ffd400 !important;
+  border-color:#000000 !important;
+  color:#000000 !important;
+  opacity:1 !important;
+  box-shadow:0 0 0 2px #14f5c8 !important;
+}
+html.accessibility-high-contrast .alupla-city-bubble-number,
+html.accessibility-high-contrast .alupla-city-bubble-count .alupla-city-bubble-number,
+html.accessibility-high-contrast .alupla-city-bubble-number-gender,
+html.accessibility-high-contrast .alupla-city-gender-segment,
+html.accessibility-high-contrast .alupla-city-gender-segment-male,
+html.accessibility-high-contrast .alupla-city-gender-segment-female,
+html.accessibility-high-contrast .alupla-city-gender-balance-symbol{
+  color:#000000 !important;
+  font-weight:1000 !important;
+  -webkit-text-stroke:.35px #000000;
+  text-shadow:none !important;
+}
+html.accessibility-high-contrast .alupla-city-gender-lines line{
+  stroke:#000000 !important;
+  stroke-width:3.4 !important;
+}
+html.accessibility-high-contrast .map-legend-swatch{
+  background:#ffd400 !important;
+  background-image:none !important;
+  color:#000000 !important;
+  border:2px solid #000000 !important;
+  box-shadow:0 0 0 1px #14f5c8 !important;
+}
+html.accessibility-high-contrast .map-legend-swatch::after{
+  border-color:#000000 !important;
+}
+html.accessibility-high-contrast .map-legend-swatch-symbol,
+html.accessibility-high-contrast .map-legend-swatch *{
+  color:#000000 !important;
+  font-weight:1000 !important;
+  -webkit-text-stroke:.25px #000000;
+  text-shadow:none !important;
+}
+html.accessibility-high-contrast .chart-marker-swatch{
+  background:var(--chart-marker-color) !important;
+  border-color:var(--chart-marker-border) !important;
+  box-shadow:0 0 0 1px #14f5c8 !important;
+}
+html.accessibility-high-contrast .chart-marker-swatch > span{
+  border-color:var(--chart-marker-border) !important;
+}
+html.accessibility-high-contrast .chart-data-summary-row .chart-marker-swatch{
+  background:var(--chart-marker-color) !important;
+  border-color:var(--chart-marker-border) !important;
 }
