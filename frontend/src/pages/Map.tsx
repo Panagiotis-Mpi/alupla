@@ -907,9 +907,10 @@ export default function GraduatesMapPage() {
   }, [abroadCountryMarkers, greekCityMarkers.items, mapBounds, mapScope, mapZoom, selectedCityCards]);
   const shouldShowMarkerLabel = useCallback((city: any) => declutteredMarkerMap.get(mapCityKey(city as any))?.showLabel ?? true, [declutteredMarkerMap]);
   const renderedMarkers = useMemo(() => {
+    if (mapScope === "abroad" && (loading || scopeTransitionLoading)) return [];
     const source = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
     return source.filter((item) => declutteredMarkerMap.get(mapCityKey(item as any))?.visible ?? true);
-  }, [abroadCountryMarkers, declutteredMarkerMap, greekCityMarkers.items, mapScope]);
+  }, [abroadCountryMarkers, declutteredMarkerMap, greekCityMarkers.items, loading, mapScope, scopeTransitionLoading]);
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const total = useMemo(
