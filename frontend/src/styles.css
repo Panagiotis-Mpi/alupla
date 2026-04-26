@@ -2301,3 +2301,28 @@ html.accessibility-high-contrast .chart-data-summary-row .chart-marker-swatch{
   background:var(--chart-marker-color) !important;
   border-color:var(--chart-marker-border) !important;
 }
+
+html.accessibility-high-contrast .alupla-map .alupla-city-bubble-count.is-high-contrast,
+html.accessibility-high-contrast .alupla-city-bubble-count.is-high-contrast{
+  background:#ffd400 !important;
+  background-image:none !important;
+  border-color:#000000 !important;
+  color:#000000 !important;
+  opacity:1 !important;
+  box-shadow:0 0 0 2px #14f5c8 !important;
+}
+html.accessibility-high-contrast .alupla-map .alupla-city-bubble-count.is-high-contrast .alupla-city-bubble-number,
+html.accessibility-high-contrast .alupla-city-bubble-count.is-high-contrast .alupla-city-bubble-number{
+  color:#000000 !important;
+  font-weight:1000 !important;
+  -webkit-text-stroke:.25px #000000;
+  text-shadow:none !important;
+}
+html.accessibility-high-contrast .map-legend-swatch-count-high-contrast{
+  background:#ffd400 !important;
+  background-image:none !important;
+  border:2px solid #000000 !important;
+  color:#000000 !important;
+  opacity:1 !important;
+  box-shadow:0 0 0 1px #14f5c8 !important;
+}

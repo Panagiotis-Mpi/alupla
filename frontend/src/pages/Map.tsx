@@ -270,7 +270,7 @@ function bubbleLabelIcon(
     : `<span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span>`;
   const bubbleHtml =
     mapMetric === "count"
-      ? `<div class="alupla-city-bubble alupla-city-bubble-count" style="width:${size}px;height:${size}px;--alupla-bubble-border:${countBubbleStroke};--alupla-bubble-background:${countBubbleFill};--alupla-bubble-opacity:${countBubbleOpacity};--alupla-bubble-shadow:${activeRing};"><span class="alupla-city-bubble-number" style="font-size:${fontSize}px;">${count}</span></div>`
+      ? `<div class="alupla-city-bubble alupla-city-bubble-count${highContrastEnabled ? " is-high-contrast" : ""}" style="width:${size}px;height:${size}px;--alupla-bubble-border:${countBubbleStroke};--alupla-bubble-background:${countBubbleFill};--alupla-bubble-opacity:${countBubbleOpacity};--alupla-bubble-shadow:${activeRing};"><span class="alupla-city-bubble-number" style="font-size:${fontSize}px;">${count}</span></div>`
       : `<div class="alupla-city-bubble alupla-city-bubble-gender${highContrastEnabled ? " is-high-contrast" : ""}" style="width:${size}px;height:${size}px;--alupla-bubble-border:rgba(51,65,85,.72);--alupla-bubble-background:${genderBubbleBackground};--alupla-bubble-opacity:1;--alupla-bubble-shadow:${activeRing};">${highContrastGenderDetails}</div>`;
   const summary = "";
   return L.divIcon({
@@ -1432,6 +1432,7 @@ export default function GraduatesMapPage() {
               <div style={{ display: "grid", gap: 6 }}>
                 {renderedLegendEntries.map((entry) => {
                   const isGenderLegendItem = entry.key === "male" || entry.key === "female" || entry.key === "balanced";
+                  const isCountLegendItem = !isGenderLegendItem;
                   const swatchSize = Math.max(12, Number((entry as any).radius || (isGenderLegendItem ? 16 : mapScope === "greece" ? 10 : 16)));
                   return (
                     <div
@@ -1444,14 +1445,14 @@ export default function GraduatesMapPage() {
                       }}
                     >
                       <span
-                        className={`map-legend-swatch ${genderLegendPattern(entry.key, highContrastEnabled)}`}
+                        className={`map-legend-swatch ${isCountLegendItem && highContrastEnabled ? "map-legend-swatch-count-high-contrast" : genderLegendPattern(entry.key, highContrastEnabled)}`}
                         style={{
                           width: swatchSize,
                           height: swatchSize,
                           borderRadius: 999,
-                          background: highContrastEnabled ? "#ffd400" : entry.color,
-                          opacity: highContrastEnabled ? 1 : entry.opacity,
-                          border: highContrastEnabled ? "2px solid #000" : "1px solid rgba(51,65,85,.18)",
+                          background: isCountLegendItem && highContrastEnabled ? "#ffd400" : highContrastEnabled ? "#ffd400" : entry.color,
+                          opacity: isCountLegendItem && highContrastEnabled ? 1 : highContrastEnabled ? 1 : entry.opacity,
+                          border: isCountLegendItem && highContrastEnabled ? "2px solid #000" : highContrastEnabled ? "2px solid #000" : "1px solid rgba(51,65,85,.18)",
                           justifySelf: "center",
                           display: "inline-flex",
                           alignItems: "center",
