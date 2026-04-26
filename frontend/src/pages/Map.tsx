@@ -51,7 +51,7 @@ type ExportScopeSelection = { category: ExportCategoryKey; scope: MapScope };
 const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6"];
 
 const lightMapTileUrl = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
-const highContrastMapTileUrl = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png";
+const highContrastMapTileUrl = "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png";
 const mapTileAttribution =
   "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/attributions\">CARTO</a>";
 
@@ -240,7 +240,7 @@ function bubbleLabelIcon(
   const total = Math.max(0, maleCount + femaleCount);
   const malePct = total > 0 ? (maleCount / total) * 100 : 50;
   const femalePct = 100 - malePct;
-  const countBubbleFill = highContrastEnabled ? "#ffffff" : String(city?.markerFill || "#60a5fa");
+  const countBubbleFill = highContrastEnabled ? "#ffd400" : String(city?.markerFill || "#60a5fa");
   const countBubbleStroke = highContrastEnabled ? "#000000" : String(city?.markerStroke || "#3b82f6");
   const countBubbleOpacity = highContrastEnabled ? 1 : Math.max(0.45, Number(city?.markerOpacity || 0.85));
   const fontSize = active ? (size >= 34 ? 13 : size >= 28 ? 12 : 11) : (size >= 34 ? 12 : size >= 28 ? 11 : 10);
@@ -252,7 +252,7 @@ function bubbleLabelIcon(
   const isBalancedGender = total > 0 && maleCount === femaleCount;
   const hasBothGenders = maleCount > 0 && femaleCount > 0 && !isBalancedGender;
   const genderBubbleBackground = highContrastEnabled
-    ? "#ffffff"
+    ? "#ffd400"
     : `conic-gradient(${genderColors.male} 0 ${malePct}%, ${genderColors.female} ${malePct}% 100%)`;
   const maleSegmentPosition = hasBothGenders ? genderSegmentPosition(0, malePct, size) : { left: 50, top: 50 };
   const femaleSegmentPosition = hasBothGenders ? genderSegmentPosition(malePct, femalePct, size) : { left: 50, top: 50 };
@@ -456,7 +456,7 @@ export default function GraduatesMapPage() {
     }, 180);
   }, []);
 
-  const activeMapTileUrl = lightMapTileUrl;
+  const activeMapTileUrl = highContrastEnabled ? highContrastMapTileUrl : lightMapTileUrl;
 
   const resetComparedSelections = useCallback(() => {
     setSelected(null);
@@ -1164,7 +1164,7 @@ export default function GraduatesMapPage() {
         .alupla-city-gender-segment { position: absolute; transform: translate(-50%, -50%); border-radius: 999px; padding: 0; font-weight: 950; line-height: 1; white-space: nowrap; color: #000; text-shadow: 0 0 0 #000, 0 0 1px #000, 0 1px 0 #fff; font-family: Arial, Helvetica, sans-serif; z-index: 2; }
         .alupla-city-gender-segment-male, .alupla-city-gender-segment-female { color: #000; background: transparent; }
         .alupla-city-gender-balance-symbol { color: #000; font-weight: 950; line-height: 1; text-shadow: 0 0 0 #000, 0 0 1px #000, 0 1px 0 #fff; font-family: Arial, Helvetica, sans-serif; }
-        .alupla-city-bubble-gender.is-high-contrast { border-color: #000000; background: var(--alupla-bubble-background, #ffffff); box-shadow: inset 0 0 0 1px #000, var(--alupla-bubble-shadow, none); overflow: hidden; }
+        .alupla-city-bubble-gender.is-high-contrast { border-color: #000000; background: var(--alupla-bubble-background, #ffd400); box-shadow: inset 0 0 0 1px #000, var(--alupla-bubble-shadow, none); overflow: hidden; }
         .alupla-city-bubble-sub { margin-top: 4px; color: #475569; font-size: 10px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); }
         .alupla-city-point { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; pointer-events: auto; }
         .alupla-city-label-text { display: block; margin: 0; }

@@ -10,7 +10,7 @@ const sectionTextStyle: React.CSSProperties = { margin: 0, color: "#64748b", fon
 const solidBlueFill = "rgba(37, 99, 235, 0.72)";
 const chartGridColor = "rgba(148, 163, 184, 0.22)";
 const chartTickColor = "#475569";
-const contrastPiePalette = ["#111827", "#374151", "#6b7280", "#9ca3af", "#d1d5db", "#4b5563", "#1f2937", "#e5e7eb"];
+const contrastPiePalette = ["#ffd400", "#7fffd4", "#ffffff", "#ff8a00", "#66f2d5", "#ff5f5f", "#c4ff00", "#d6b4ff"];
 
 const piePalette = [
   "#2563eb",
@@ -58,7 +58,7 @@ function buildBarDataset(label: string, data: number[], options?: { highContrast
       label,
       data,
       borderColor: "#000000",
-      backgroundColor: Array.from({ length: data.length }, (_, index) => (index % 2 === 0 ? "#111827" : "#9ca3af")),
+      backgroundColor: Array.from({ length: data.length }, (_, index) => (index % 2 === 0 ? "#ffd400" : "#7fffd4")),
       borderWidth: 2,
       borderRadius: 8,
       borderSkipped: false,
@@ -179,16 +179,16 @@ function applyAccessibleChartOptions(options: any, highContrast: boolean, overri
       legend: {
         ...(options?.plugins?.legend ?? {}),
         labels: {
-          color: highContrast ? "#000000" : "#334155",
+          color: highContrast ? "#7fffd4" : "#334155",
           ...(options?.plugins?.legend?.labels ?? {}),
         },
       },
       tooltip: {
         ...(options?.plugins?.tooltip ?? {}),
-        titleColor: "#0f172a",
-        bodyColor: "#0f172a",
-        backgroundColor: highContrast ? "#ffffff" : "rgba(255,255,255,.97)",
-        borderColor: highContrast ? "#000000" : "rgba(148,163,184,.4)",
+        titleColor: highContrast ? "#7fffd4" : "#0f172a",
+        bodyColor: highContrast ? "#7fffd4" : "#0f172a",
+        backgroundColor: highContrast ? "#000000" : "rgba(255,255,255,.97)",
+        borderColor: highContrast ? "#14f5c8" : "rgba(148,163,184,.4)",
         borderWidth: 1,
       },
     },
@@ -200,11 +200,11 @@ function applyAccessibleChartOptions(options: any, highContrast: boolean, overri
               ...axisValue,
               ticks: {
                 ...(axisValue?.ticks ?? {}),
-                color: highContrast ? "#000000" : axisValue?.ticks?.color ?? chartTickColor,
+                color: highContrast ? "#7fffd4" : axisValue?.ticks?.color ?? chartTickColor,
               },
               grid: {
                 ...(axisValue?.grid ?? {}),
-                color: highContrast ? "rgba(0,0,0,.24)" : axisValue?.grid?.color ?? chartGridColor,
+                color: highContrast ? "rgba(127,255,212,.28)" : axisValue?.grid?.color ?? chartGridColor,
               },
             },
           ]),
@@ -261,14 +261,14 @@ function applyAccessibleChartOptions(options: any, highContrast: boolean, overri
 function normalizeLineDatasets(datasets: any[] = [], highContrast: boolean) {
   return datasets.map((dataset, index) => {
     if (!highContrast) return dataset;
-    const monochrome = index % 2 === 0 ? "#000000" : "#4b5563";
+    const monochrome = index % 2 === 0 ? "#ffd400" : "#7fffd4";
     return {
       ...dataset,
       borderColor: monochrome,
-      backgroundColor: index % 2 === 0 ? "rgba(0,0,0,.14)" : "rgba(107,114,128,.2)",
-      pointBackgroundColor: "#ffffff",
+      backgroundColor: index % 2 === 0 ? "rgba(255,212,0,.12)" : "rgba(127,255,212,.12)",
+      pointBackgroundColor: "#000000",
       pointBorderColor: monochrome,
-      pointHoverBackgroundColor: "#ffffff",
+      pointHoverBackgroundColor: "#000000",
       pointHoverBorderColor: monochrome,
       borderWidth: Math.max(3, Number(dataset.borderWidth ?? 3)),
       pointRadius: Math.max(4, Number(dataset.pointRadius ?? 3)),
@@ -587,7 +587,7 @@ export function BarChartCard(props: {
         <h3 style={{ margin: 0 }}>{props.title}</h3>
       </div>
       <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
-        <ChartLegendInset items={[{ label: props.datasetLabel ?? props.title, color: highContrast ? "#111827" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }]} />
+        <ChartLegendInset items={[{ label: props.datasetLabel ?? props.title, color: highContrast ? "#ffd400" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }]} />
         {props.horizontal ? (
           <FixedBarChart height={chartHeight} data={chartData} options={chartOptions} />
         ) : (
@@ -724,7 +724,7 @@ export function ChartCard(props: {
 }) {
   const highContrast = useHighContrastEnabled();
   const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
-  const legendItems = React.useMemo(() => [{ label: props.title, color: highContrast ? "#111827" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }], [highContrast, props.title]);
+  const legendItems = React.useMemo(() => [{ label: props.title, color: highContrast ? "#ffd400" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }], [highContrast, props.title]);
 
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
@@ -771,7 +771,7 @@ export function VerticalBarChartCard(props: {
 }) {
   const highContrast = useHighContrastEnabled();
   const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
-  const legendItems = React.useMemo(() => [{ label: props.title, color: highContrast ? "#111827" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }], [highContrast, props.title]);
+  const legendItems = React.useMemo(() => [{ label: props.title, color: highContrast ? "#ffd400" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }], [highContrast, props.title]);
 
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
