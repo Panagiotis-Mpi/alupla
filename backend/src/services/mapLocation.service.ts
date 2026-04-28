@@ -6,6 +6,8 @@ import { cleanRegionText, normalizeRegionText } from "../utils/regionText";
 type RegionLite = {
   id: number;
   name: string;
+  name_el: string | null;
+  name_en: string | null;
   normalized_name: string;
   type: string;
   parent_id: number | null;
@@ -17,10 +19,14 @@ type RegionLite = {
 type ResolvedMapLocation = {
   cityId: number | null;
   cityName: string | null;
+  cityNameEl?: string | null;
+  cityNameEn?: string | null;
   peripheryId: number | null;
   peripheryName: string | null;
   countryId: number | null;
   countryName: string | null;
+  countryNameEl?: string | null;
+  countryNameEn?: string | null;
   latitude: number | null;
   longitude: number | null;
 };
@@ -52,6 +58,8 @@ type BoundaryFeature = {
 type CountryResolution = {
   id: number | null;
   name: string | null;
+  nameEl?: string | null;
+  nameEn?: string | null;
   latitude: number | null;
   longitude: number | null;
 };
@@ -148,7 +156,7 @@ function getPeripheryFromRegionId(regionId: number | null | undefined, byId: Map
 async function loadRegionLookups() {
   if (!regionLookupPromise) {
     regionLookupPromise = Region.findAll({
-      attributes: ["id", "name", "normalized_name", "type", "parent_id", "latitude", "longitude", "external_ref_id"],
+      attributes: ["id", "name", "name_el", "name_en", "normalized_name", "type", "parent_id", "latitude", "longitude", "external_ref_id"],
     }).then((rows) => {
       const byId = new Map<number, RegionLite>();
       const cityByNormalized = new Map<string, RegionLite[]>();
@@ -159,6 +167,8 @@ async function loadRegionLookups() {
         const item: RegionLite = {
           id: Number(row.id),
           name: String(row.name || ""),
+          name_el: row.name_el != null ? String(row.name_el) : null,
+          name_en: row.name_en != null ? String(row.name_en) : null,
           normalized_name: String(row.normalized_name || normalizeRegionText(row.name)),
           type: String(row.type || ""),
           parent_id: row.parent_id != null ? Number(row.parent_id) : null,
@@ -606,6 +616,112 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
   } satisfies ResolvedMapLocation;
 }
 
+
+type LocalizedRegionNames = {
+  nameEl: string | null;
+  nameEn: string | null;
+};
+
+const localizedNameCache = new Map<string, Promise<LocalizedRegionNames>>();
+
+function localizedFromRegion(region: Partial<RegionLite> | null | undefined): LocalizedRegionNames {
+  return {
+    nameEl: region?.name_el || region?.name || null,
+    nameEn: region?.name_en || region?.name || null,
+  };
+}
+
+function firstAddressName(item: NominatimItem | null | undefined) {
+  const address = item?.address || {};
+  return cleanRegionText(
+    address.city ||
+    address.town ||
+    address.village ||
+    address.municipality ||
+    address.state ||
+    address.country ||
+    item?.display_name?.split(",")[0] ||
+    "",
+  );
+}
+
+async function fetchLocalizedNameForRegion(region: RegionLite, lang: "el" | "en") {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    let url: URL | null = null;
+    const ref = String(region.external_ref_id || "");
+    const match = ref.match(/^nominatim:([^:]+):(\d+)$/);
+    if (match) {
+      url = new URL("https://nominatim.openstreetmap.org/lookup");
+      const osmType = match[1] === "node" ? "N" : match[1] === "way" ? "W" : "R";
+      url.searchParams.set("format", "jsonv2");
+      url.searchParams.set("addressdetails", "1");
+      url.searchParams.set("osm_ids", `${osmType}${match[2]}`);
+      url.searchParams.set("accept-language", lang);
+    } else if (region.latitude !== null && region.longitude !== null) {
+      url = new URL("https://nominatim.openstreetmap.org/reverse");
+      url.searchParams.set("format", "jsonv2");
+      url.searchParams.set("addressdetails", "1");
+      url.searchParams.set("lat", String(region.latitude));
+      url.searchParams.set("lon", String(region.longitude));
+      url.searchParams.set("accept-language", lang);
+      if (region.type === "COUNTRY") url.searchParams.set("zoom", "3");
+      else url.searchParams.set("zoom", "10");
+    } else if (region.name) {
+      url = new URL("https://nominatim.openstreetmap.org/search");
+      url.searchParams.set("format", "jsonv2");
+      url.searchParams.set("addressdetails", "1");
+      url.searchParams.set("limit", "1");
+      url.searchParams.set("accept-language", lang);
+      url.searchParams.set("q", region.type === "COUNTRY" ? region.name : `${region.name}, Greece`);
+    }
+    if (!url) return null;
+    const response = await fetch(url.toString(), {
+      headers: { Accept: "application/json", "User-Agent": "alupla-map/1.0" },
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+    const data = await response.json() as NominatimItem | NominatimItem[];
+    const item = Array.isArray(data) ? data[0] : data;
+    return firstAddressName(item) || null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function ensureLocalizedRegionNames(regionId: number | null | undefined) {
+  if (!regionId) return { nameEl: null, nameEn: null };
+  const lookups = await loadRegionLookups();
+  const region = lookups.byId.get(Number(regionId));
+  if (!region) return { nameEl: null, nameEn: null };
+  if (region.name_el && region.name_en) return localizedFromRegion(region);
+  const cacheKey = String(region.id);
+  let pending = localizedNameCache.get(cacheKey);
+  if (!pending) {
+    pending = (async () => {
+      const [nameEl, nameEn] = await Promise.all([
+        region.name_el ? Promise.resolve(region.name_el) : fetchLocalizedNameForRegion(region, "el"),
+        region.name_en ? Promise.resolve(region.name_en) : fetchLocalizedNameForRegion(region, "en"),
+      ]);
+      const payload: Record<string, unknown> = {};
+      if (nameEl && !region.name_el) payload.name_el = nameEl;
+      if (nameEn && !region.name_en) payload.name_en = nameEn;
+      if (Object.keys(payload).length) {
+        await Region.update(payload, { where: { id: region.id } });
+        clearLocationCaches();
+      }
+      return {
+        nameEl: nameEl || region.name_el || region.name || null,
+        nameEn: nameEn || region.name_en || region.name || null,
+      };
+    })();
+    localizedNameCache.set(cacheKey, pending);
+  }
+  return pending;
+}
 export async function resolveMapLocation(input: GraduateOriginInput): Promise<ResolvedMapLocation | null> {
   const lookups = await loadRegionLookups();
   const explicitCityId = input.origin_city_region_id ? Number(input.origin_city_region_id) : null;

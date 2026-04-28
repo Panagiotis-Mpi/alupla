@@ -6,13 +6,13 @@ import { Region } from "../models/Region";
 
 export type AgeGroup = "23-26" | "27-30" | "31+";
 
-type RegionNode = Pick<Region, "id" | "name" | "type" | "parent_id" | "latitude" | "longitude">;
+type RegionNode = Pick<Region, "id" | "name" | "name_el" | "name_en" | "type" | "parent_id" | "latitude" | "longitude">;
 type MapGraduateSource = Pick<Graduate, "origin_country" | "origin_foreign_city" | "origin_country_region_id">;
 type GraduateWhere = ReturnType<typeof buildGraduateWhere> & { [Op.and]?: unknown[] };
 
 export async function loadRegions() {
   const regions = await Region.findAll({
-    attributes: ["id", "name", "type", "parent_id", "latitude", "longitude"],
+    attributes: ["id", "name", "name_el", "name_en", "type", "parent_id", "latitude", "longitude"],
     order: [["name", "ASC"]],
   });
 

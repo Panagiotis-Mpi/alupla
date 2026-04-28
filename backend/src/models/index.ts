@@ -73,6 +73,8 @@ async function ensureSchema() {
   const qi = sequelize.getQueryInterface();
 
   await ensureColumn("regions", "normalized_name", { type: DataTypes.STRING(255), allowNull: false, defaultValue: "" });
+  await ensureColumn("regions", "name_el", { type: DataTypes.STRING(255), allowNull: true });
+  await ensureColumn("regions", "name_en", { type: DataTypes.STRING(255), allowNull: true });
   await ensureColumn("regions", "external_ref_id", { type: DataTypes.STRING(255), allowNull: true });
   await ensureColumn("graduates", "origin_country_region_id", { type: DataTypes.INTEGER, allowNull: true });
   await ensureColumn("graduates", "origin_periphery_region_id", { type: DataTypes.INTEGER, allowNull: true });
@@ -129,7 +131,7 @@ async function seedRegions() {
 }
 
 async function backfillRegions() {
-  const rows = await Region.findAll({ attributes: ["id", "name", "normalized_name", "type", "parent_id"] });
+  const rows = await Region.findAll({ attributes: ["id", "name", "name_el", "name_en", "normalized_name", "type", "parent_id"] });
   const byId = new Map(rows.map((item: any) => [Number(item.id), item]));
   const greece = rows.find((item: any) => String(item.type) === "COUNTRY" && normalizeRegionText(item.name) === normalizeRegionText("Ελλάδα")) as any;
 

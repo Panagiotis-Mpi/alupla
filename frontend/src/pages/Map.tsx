@@ -278,6 +278,23 @@ function localizedCityName(value: unknown, lang: "gr" | "en") {
   return localizedFallbackName(raw, lang);
 }
 
+function localizedRecordName(item: any, field: string, lang: "gr" | "en") {
+  const key = lang === "en" ? field + "_en" : field + "_el";
+  const localized = String(item?.[key] ?? "").trim();
+  if (localized) return localized;
+  return String(item?.[field] ?? "").trim();
+}
+
+function localizedCityRecordName(item: any, lang: "gr" | "en") {
+  const name = localizedRecordName(item, "city_name", lang);
+  return name || localizedCityName(item?.city_name, lang);
+}
+
+function localizedCountryRecordName(item: any, lang: "gr" | "en") {
+  const name = localizedRecordName(item, "country_name", lang) || localizedRecordName(item, "periphery_name", lang);
+  return name || localizedCountryName(item?.country_name || item?.periphery_name, lang);
+}
+
 function genderMarkerSymbol(city: any) {
   const maleCount = Math.max(0, Number(city?.male_count || 0));
   const femaleCount = Math.max(0, Number(city?.female_count || 0));
@@ -641,7 +658,7 @@ export default function GraduatesMapPage() {
         } : {
           ...city,
           raw_city_name: (city as any).city_name,
-          city_name: localizedCityName((city as any).city_name, mapLanguage),
+          city_name: localizedCityRecordName(city, mapLanguage),
           latitude,
           longitude,
         }),
@@ -877,7 +894,7 @@ export default function GraduatesMapPage() {
       const latitude = mapCityLatitude(city as any);
       const longitude = mapCityLongitude(city as any);
       const rawCountryName = String((city as any).country_name || (city as any).periphery_name || "").trim();
-      const localizedName = localizedCountryName(rawCountryName, mapLanguage);
+      const localizedName = localizedCountryRecordName(city, mapLanguage);
       const countryId = Number((city as any).country_region_id || (city as any).periphery_id || 0);
       if (!localizedName || latitude === null || longitude === null) continue;
       const key = countryId > 0 ? `country:${countryId}` : `country:${localizedCountryKey(rawCountryName)}`;
@@ -1056,7 +1073,7 @@ export default function GraduatesMapPage() {
   }, [abroadCountryMarkers, declutteredMarkerMap, greekCityMarkers.items, loading, mapScope, scopeTransitionLoading]);
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
-  const topCityName = topCity ? localizedCityName((topCity as any).city_name, mapLanguage) : "";
+  const topCityName = topCity ? localizedCityRecordName(topCity, mapLanguage) : "";
   const total = useMemo(
     () => items.reduce((sum, item) => sum + (Number(item.count ?? 0) || 0), 0),
     [items],
@@ -1166,12 +1183,13 @@ export default function GraduatesMapPage() {
       detail = await getMapCityDetail(requestParams);
     } catch {}
 
+    const localizedSource = { ...city, ...(detail || {}) };
     const mergedCity = {
       ...city,
       ...(detail || {}),
       city_name: mapScope === "abroad"
-        ? localizedCountryName(detail?.city_name || city.city_name || city.country_name || "", mapLanguage)
-        : localizedCityName(detail?.city_name || city.city_name || "", mapLanguage),
+        ? localizedCountryRecordName(localizedSource, mapLanguage)
+        : localizedCityRecordName(localizedSource, mapLanguage),
       count: Number(detail?.total ?? city.count ?? 0),
       total: Number(detail?.total ?? city.count ?? 0),
       male_count: detail?.male_count ?? city.male_count ?? 0,
@@ -1442,7 +1460,7 @@ export default function GraduatesMapPage() {
               : mt("summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" })}
           </div>
           <div className="map-summary-value">
-            {topPeriphery ? (mapScope === "abroad" ? localizedCountryName((topPeriphery as any).country_name || topPeriphery.periphery_name, mapLanguage) : topPeriphery.periphery_name) : "-"}
+            {topPeriphery ? (mapScope === "abroad" ? localizedCountryRecordName(topPeriphery, mapLanguage) : topPeriphery.periphery_name) : "-"}
           </div>
           <div className="map-summary-sub">
             {topPeriphery
@@ -1639,7 +1657,7 @@ export default function GraduatesMapPage() {
               {selectedCityCards.map((city) => (
                 <InfoBox
                   key={mapCityKey(city)}
-                  title={mapScope === "abroad" ? localizedCountryName(city.city_name || city.country_name, mapLanguage) : localizedCityName(city.city_name, mapLanguage)}
+                  title={mapScope === "abroad" ? localizedCountryRecordName(city, mapLanguage) : localizedCityRecordName(city, mapLanguage)}
                   totalText={mt("totalGraduatesLine", {
                     total: Number(city.total ?? city.count ?? 0),
                     defaultValue: "Σύνολο αποφοίτων: {{total}}",

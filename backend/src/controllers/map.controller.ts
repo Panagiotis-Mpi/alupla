@@ -3,7 +3,7 @@ import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
 import { Op, QueryTypes } from "sequelize";
-import { resolveMapLocation } from "../services/mapLocation.service";
+import { ensureLocalizedRegionNames, resolveMapLocation } from "../services/mapLocation.service";
 import { sequelize } from "../config/sequelize";
 import { buildMapWhere, calculateAgeAtDate, isAbroadMapGraduate, isGreekMapGraduate, loadRegions, normalizeKey, pickTopName, toInt } from "./map.helpers";
 
@@ -74,9 +74,12 @@ function applyGraduateMetrics(bucket: any, graduate: any, selectedStudyProgramId
 }
 
 function bucketToMapItem(bucket: any, labels: { studyProgramLabels: Map<number, string> }, nameKeys: { idKey: string; nameKey: string; latitudeKey?: string; longitudeKey?: string }) {
+  const baseName = String(nameKeys.nameKey || "");
   return {
     [nameKeys.idKey]: bucket[nameKeys.idKey],
     [nameKeys.nameKey]: bucket[nameKeys.nameKey],
+    [`${baseName}_el`]: bucket[`${baseName}_el`] ?? bucket[nameKeys.nameKey],
+    [`${baseName}_en`]: bucket[`${baseName}_en`] ?? bucket[nameKeys.nameKey],
     ...(nameKeys.latitudeKey ? { [nameKeys.latitudeKey]: bucket[nameKeys.latitudeKey] ?? null } : {}),
     ...(nameKeys.longitudeKey ? { [nameKeys.longitudeKey]: bucket[nameKeys.longitudeKey] ?? null } : {}),
     count: bucket.count,
@@ -120,9 +123,12 @@ export async function getGraduatesMap(req: Request, res: Response) {
       const countryId = Number(resolvedLocation?.countryId || graduate.origin_country_region_id || 0);
       const country = countryId ? findRegion(countryId) : null;
       if (!countryId || !country || String((country as any).type) !== "COUNTRY") continue;
+      const countryNames = await ensureLocalizedRegionNames(countryId);
       const bucket = groups.get(countryId) || createMetricsBucket({
         periphery_id: countryId,
         periphery_name: String((country as any).name || resolvedLocation?.countryName || graduate.origin_country || ""),
+        periphery_name_el: countryNames.nameEl || String((country as any).name || resolvedLocation?.countryName || graduate.origin_country || ""),
+        periphery_name_en: countryNames.nameEn || String((country as any).name || resolvedLocation?.countryName || graduate.origin_country || ""),
         latitude: resolvedLocation?.latitude ?? (country as any).latitude ?? null,
         longitude: resolvedLocation?.longitude ?? (country as any).longitude ?? null,
       });
@@ -144,6 +150,8 @@ export async function getGraduatesMap(req: Request, res: Response) {
     groups.set(id, createMetricsBucket({
       periphery_id: id,
       periphery_name: String(region.name),
+      periphery_name_el: String((region as any).name_el || region.name),
+      periphery_name_en: String((region as any).name_en || region.name),
       latitude: region.latitude ?? null,
       longitude: region.longitude ?? null,
     }));
@@ -161,9 +169,12 @@ export async function getGraduatesMap(req: Request, res: Response) {
     });
     const periphery = resolvedLocation?.peripheryId ? findPeriphery(resolvedLocation.peripheryId) : null;
     if (!periphery) continue;
+    const peripheryNames = await ensureLocalizedRegionNames(Number(periphery.id));
     const bucket = groups.get(Number(periphery.id)) || createMetricsBucket({
       periphery_id: Number(periphery.id),
       periphery_name: String(periphery.name),
+      periphery_name_el: peripheryNames.nameEl || String(periphery.name),
+      periphery_name_en: peripheryNames.nameEn || String(periphery.name),
       latitude: (periphery as any).latitude ?? null,
       longitude: (periphery as any).longitude ?? null,
     });
@@ -234,15 +245,24 @@ export async function getMapCities(req: Request, res: Response) {
       ? `${normalizeKey(String(country?.name || resolvedLocation.countryName || graduate.origin_country || ""))}::${normalizeKey(resolvedLocation.cityName)}`
       : `${resolvedLocation.cityId || normalizeKey(resolvedLocation.cityName)}::${resolvedLocation.peripheryId || "none"}`;
 
+    const cityNames = await ensureLocalizedRegionNames(resolvedLocation.cityId);
+    const countryNames = await ensureLocalizedRegionNames(resolvedLocation.countryId || Number(graduate.origin_country_region_id) || null);
+    const peripheryNames = scope === "greece" ? await ensureLocalizedRegionNames(resolvedLocation.peripheryId) : countryNames;
     const bucket = groups.get(key) || createMetricsBucket({
       city_id: resolvedLocation.cityId || 0,
       city_name: resolvedLocation.cityName,
+      city_name_el: cityNames.nameEl || resolvedLocation.cityName,
+      city_name_en: cityNames.nameEn || resolvedLocation.cityName,
       periphery_id: scope === "greece" ? resolvedLocation.peripheryId : (resolvedLocation.countryId || Number(graduate.origin_country_region_id) || null),
       periphery_name: scope === "greece"
         ? (resolvedLocation.peripheryName || "")
         : String(country?.name || resolvedLocation.countryName || graduate.origin_country || ""),
+      periphery_name_el: scope === "greece" ? (peripheryNames.nameEl || resolvedLocation.peripheryName || "") : (countryNames.nameEl || String(country?.name || resolvedLocation.countryName || graduate.origin_country || "")),
+      periphery_name_en: scope === "greece" ? (peripheryNames.nameEn || resolvedLocation.peripheryName || "") : (countryNames.nameEn || String(country?.name || resolvedLocation.countryName || graduate.origin_country || "")),
       country_region_id: resolvedLocation.countryId || Number(graduate.origin_country_region_id) || null,
       country_name: String(country?.name || resolvedLocation.countryName || graduate.origin_country || ""),
+      country_name_el: countryNames.nameEl || String(country?.name || resolvedLocation.countryName || graduate.origin_country || ""),
+      country_name_en: countryNames.nameEn || String(country?.name || resolvedLocation.countryName || graduate.origin_country || ""),
       latitude: resolvedLocation.latitude,
       longitude: resolvedLocation.longitude,
     });
@@ -256,10 +276,16 @@ export async function getMapCities(req: Request, res: Response) {
     .map((item) => ({
       city_id: item.city_id,
       city_name: item.city_name,
+      city_name_el: item.city_name_el || item.city_name,
+      city_name_en: item.city_name_en || item.city_name,
       periphery_id: item.periphery_id,
       periphery_name: item.periphery_name,
+      periphery_name_el: item.periphery_name_el || item.periphery_name,
+      periphery_name_en: item.periphery_name_en || item.periphery_name,
       country_region_id: item.country_region_id,
       country_name: item.country_name,
+      country_name_el: item.country_name_el || item.country_name,
+      country_name_en: item.country_name_en || item.country_name,
       latitude: item.latitude,
       longitude: item.longitude,
       count: item.count,
