@@ -148,12 +148,30 @@ for (const entry of COUNTRY_DISPLAY_NAMES) {
   }
 }
 
+const greekToLatin: Record<string, string> = {
+  Α: "A", Ά: "A", Β: "V", Γ: "G", Δ: "D", Ε: "E", Έ: "E", Ζ: "Z", Η: "I", Ή: "I", Θ: "Th", Ι: "I", Ί: "I", Ϊ: "I", Κ: "K", Λ: "L", Μ: "M", Ν: "N", Ξ: "X", Ο: "O", Ό: "O", Π: "P", Ρ: "R", Σ: "S", Τ: "T", Υ: "Y", Ύ: "Y", Ϋ: "Y", Φ: "F", Χ: "Ch", Ψ: "Ps", Ω: "O", Ώ: "O",
+  α: "a", ά: "a", β: "v", γ: "g", δ: "d", ε: "e", έ: "e", ζ: "z", η: "i", ή: "i", θ: "th", ι: "i", ί: "i", ϊ: "i", ΐ: "i", κ: "k", λ: "l", μ: "m", ν: "n", ξ: "x", ο: "o", ό: "o", π: "p", ρ: "r", σ: "s", ς: "s", τ: "t", υ: "y", ύ: "y", ϋ: "y", ΰ: "y", φ: "f", χ: "ch", ψ: "ps", ω: "o", ώ: "o",
+};
+
+function hasGreek(value: string) {
+  return /[\u0370-\u03ff]/.test(value);
+}
+
+function transliterateGreek(value: string) {
+  return value.replace(/[\u0370-\u03ff]/g, (letter) => greekToLatin[letter] || letter);
+}
+
+function localizedFallbackName(raw: string, lang: "gr" | "en") {
+  if (lang === "en" && hasGreek(raw)) return transliterateGreek(raw);
+  return raw;
+}
+
 function localizedCountryName(value: unknown, lang: "gr" | "en") {
   const raw = String(value ?? "").trim();
   if (!raw) return "";
   const match = countryNameLookup.get(normalizeKey(raw));
   if (match) return lang === "en" ? match.en : match.gr;
-  return raw;
+  return localizedFallbackName(raw, lang);
 }
 
 function localizedCountryKey(value: unknown) {
@@ -191,6 +209,20 @@ const CITY_DISPLAY_NAMES: Array<{ names: string[]; gr: string; en: string }> = [
   { names: ["Κάλυμνος", "Καλυμνος", "Kalymnos"], gr: "Κάλυμνος", en: "Kalymnos" },
   { names: ["Ρόδος", "Ροδος", "Rhodes"], gr: "Ρόδος", en: "Rhodes" },
   { names: ["Λαμία", "Λαμια", "Lamia"], gr: "Λαμία", en: "Lamia" },
+  { names: ["Βόλος", "Βολος", "Volos"], gr: "Βόλος", en: "Volos" },
+  { names: ["Άρτα", "Αρτα", "Arta"], gr: "Άρτα", en: "Arta" },
+  { names: ["Λευκάδα", "Λευκαδα", "Lefkada", "Leucas"], gr: "Λευκάδα", en: "Lefkada" },
+  { names: ["Αγρίνιο", "Αγρινιο", "Agrinio"], gr: "Αγρίνιο", en: "Agrinio" },
+  { names: ["Άμφισσα", "Αμφισσα", "Amfissa"], gr: "Άμφισσα", en: "Amfissa" },
+  { names: ["Αίγιο", "Αιγιο", "Aigio", "Aegio"], gr: "Αίγιο", en: "Aigio" },
+  { names: ["Κόρινθος", "Κορινθος", "Corinth", "Korinthos"], gr: "Κόρινθος", en: "Corinth" },
+  { names: ["Πύργος", "Πυργος", "Pyrgos"], gr: "Πύργος", en: "Pyrgos" },
+  { names: ["Σπάρτη", "Σπαρτη", "Sparta", "Sparti"], gr: "Σπάρτη", en: "Sparta" },
+  { names: ["Ιθάκη", "Ιθακη", "Ithaca", "Ithaki"], gr: "Ιθάκη", en: "Ithaca" },
+  { names: ["Χαλκίδα", "Χαλκιδα", "Chalkida", "Chalcis"], gr: "Χαλκίδα", en: "Chalkida" },
+  { names: ["Λιβαδειά", "Λιβαδεια", "Livadia", "Livadeia"], gr: "Λιβαδειά", en: "Livadia" },
+  { names: ["Μεσολόγγι", "Μεσολογγι", "Messolonghi", "Mesolongi"], gr: "Μεσολόγγι", en: "Messolonghi" },
+  { names: ["Ναύπακτος", "Ναυπακτος", "Nafpaktos"], gr: "Ναύπακτος", en: "Nafpaktos" },
   { names: ["Δημοτική Ενότητα Σάμης", "Δημοτικη Ενοτητα Σαμης", "Sami"], gr: "Δημοτική Ενότητα Σάμης", en: "Sami" },
   { names: ["Παρίσι", "Paris"], gr: "Παρίσι", en: "Paris" },
   { names: ["Ίνσμπρουκ", "Ινσμπρουκ", "Innsbruck"], gr: "Ίνσμπρουκ", en: "Innsbruck" },
@@ -243,7 +275,7 @@ function localizedCityName(value: unknown, lang: "gr" | "en") {
   if (!raw) return "";
   const match = cityNameLookup.get(normalizeKey(raw));
   if (match) return lang === "en" ? match.en : match.gr;
-  return raw;
+  return localizedFallbackName(raw, lang);
 }
 
 function genderMarkerSymbol(city: any) {
