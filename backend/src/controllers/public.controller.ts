@@ -239,35 +239,15 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
-    const avgGradeByProgram = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; avg: number }>(
-      `SELECT sp.id as id,
-              sp.name_el as name_el,
-              sp.name_en as name_en,
-              ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
-       FROM graduates g
-       LEFT JOIN study_programs sp ON sp.id = g.study_program_id
-       ${sqlWhere}
-       GROUP BY sp.id, sp.name_el, sp.name_en
-       ORDER BY avg DESC, sp.name_el ASC, sp.name_en ASC`,
-      { replacements: repl, type: QueryTypes.SELECT }
-    );
-
-    const genderByProgram = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; male: number; female: number }>(
-      `SELECT sp.id as id,
-              sp.name_el as name_el,
-              sp.name_en as name_en,
+    const genderByEntryYear = await sequelize.query<{ entry_year: number; male: number; female: number }>(
+      `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
               CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
               CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-       FROM graduates g
-       LEFT JOIN study_programs sp ON sp.id = g.study_program_id
-       ${sqlWhere}
-       GROUP BY sp.id, sp.name_el, sp.name_en
-       ORDER BY (SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) + SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END)) DESC,
-                sp.name_el ASC,
-                sp.name_en ASC`,
+       FROM graduates g ${sqlWhere}
+       GROUP BY g.entry_year
+       ORDER BY g.entry_year ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
-
     const degreeGradeBins = await sequelize.query<{ label: string; count: number }>(
       `SELECT CASE
                 WHEN g.degree_grade < 5 THEN '<5'
@@ -332,20 +312,6 @@ export async function publicStats(req: Request, res: Response) {
                 END`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
-
-    const studyProgramDistribution = await sequelize.query<{ id: number; name_el: string | null; name_en: string | null; count: number }>(
-      `SELECT sp.id as id,
-              sp.name_el as name_el,
-              sp.name_en as name_en,
-              CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g
-       LEFT JOIN study_programs sp ON sp.id = g.study_program_id
-       ${sqlWhere}
-       GROUP BY sp.id, sp.name_el, sp.name_en
-       ORDER BY count DESC, sp.name_el ASC, sp.name_en ASC`,
-      { replacements: repl, type: QueryTypes.SELECT }
-    );
-
 
     const originRegionWhere = sqlWhere
       ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
@@ -489,11 +455,9 @@ export async function publicStats(req: Request, res: Response) {
       birth_year_distribution: birthYearRows,
       age_groups: ageRows.filter((r) => r.label !== 'unknown'),
       avg_grade_by_year: avgGradeByYear,
-      avg_grade_by_program: avgGradeByProgram.filter((r) => r.id !== null),
       avg_grade_by_term: [],
       degree_grade_bins: degreeGradeBins,
-      study_program_distribution: studyProgramDistribution.filter((r) => r.id !== null),
-      gender_by_program: genderByProgram.filter((r) => r.id !== null),
+      gender_by_entry_year: genderByEntryYear,
       origin_region_distribution: originRegionDistribution.map((r) => ({
         ...r,
         name_el: r.name_el ?? 'Άγνωστη περιοχή',

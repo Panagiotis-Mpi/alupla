@@ -7,8 +7,6 @@ import {
   PieChartCard,
   ScrollableLineChart,
   SectionTitle,
-  VerticalBarChartCard,
-  wrapAxisLabel,
 } from "./ui";
 
 type ChartSeries = { labels: string[]; values: number[] };
@@ -26,11 +24,10 @@ type ChartBlockProps = {
   countChartData: any;
   countChartOptions: any;
   birthYears: ChartSeries;
-  genderByProgramPie: PieSeries;
-  genderProgramSelect: React.ReactNode;
+  genderByEntryYearPie: PieSeries;
+  genderEntryYearSelect: React.ReactNode;
   avgGradesByYear: ChartSeries;
   gradeBins: ChartSeries;
-  avgGradeByProgram: ChartSeries;
   yearsToDegree: ChartSeries;
   yearsToDegreeDistribution: ChartSeries;
   regions: ChartSeries;
@@ -150,7 +147,7 @@ export function DemographicsCharts(props: ChartBlockProps) {
       <div className="grid cols1" style={{ gap: 14 }}>
         <GenderLineCard {...props} />
         <ChartCard chartId="birthYear" title={props.t("sections.birthYear")} labels={props.birthYears.labels} values={props.birthYears.values} height={320} />
-        <PieChartCard chartId="genderByProgram" title={props.t("sections.genderByProgram")} labels={props.genderByProgramPie.labels} values={props.genderByProgramPie.values} height={360} control={props.genderProgramSelect} colors={["#3b82f6", "#db2777"]} />
+        <PieChartCard chartId="genderByEntryYear" title={props.t("sections.genderByEntryYear")} labels={props.genderByEntryYearPie.labels} values={props.genderByEntryYearPie.values} height={360} control={props.genderEntryYearSelect} colors={["#3b82f6", "#db2777"]} />
       </div>
     </div>
   );
@@ -164,7 +161,6 @@ export function AcademicCharts(props: ChartBlockProps) {
         <GraduationLineCard {...props} />
         <BarChartCard chartId="gradeByYear" title={props.t("sections.gradeByYear")} labels={props.avgGradesByYear.labels} values={props.avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
         <BarChartCard chartId="gradeDistribution" title={props.t("sections.gradeDistribution")} labels={props.gradeBins.labels} values={props.gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
-        <VerticalBarChartCard chartId="avgGradeByProgram" title={props.t("sections.avgGradeByProgram")} labels={props.avgGradeByProgram.labels} values={props.avgGradeByProgram.values} minValue={5} maxValue={10} height={360} minLabelWidth={148} maxLabelWidth={200} forceScrollable xTickFormatter={(label) => wrapAxisLabel(label, 18, 3)} />
         <BarChartCard chartId="timeToDegreeByEntryYear" title={props.t("sections.timeToDegreeByEntryYear")} labels={props.yearsToDegree.labels} values={props.yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
         <BarChartCard chartId="timeToDegreeDistribution" title={props.t("sections.timeToDegreeDistribution")} labels={props.yearsToDegreeDistribution.labels} values={props.yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
       </div>
@@ -191,11 +187,10 @@ export function ExportChartsSurface(props: ChartBlockProps) {
     <div style={{ display: "grid", gap: 14 }}>
       <GenderLineCard {...props} />
       <ChartCard chartId="birthYear" title={props.t("sections.birthYear")} labels={props.birthYears.labels} values={props.birthYears.values} height={320} />
-      <PieChartCard chartId="genderByProgram" title={props.t("sections.genderByProgram")} labels={props.genderByProgramPie.labels} values={props.genderByProgramPie.values} height={360} control={props.genderProgramSelect} colors={["#3b82f6", "#db2777"]} />
+      <PieChartCard chartId="genderByEntryYear" title={props.t("sections.genderByEntryYear")} labels={props.genderByEntryYearPie.labels} values={props.genderByEntryYearPie.values} height={360} control={props.genderEntryYearSelect} colors={["#3b82f6", "#db2777"]} />
       <GraduationLineCard {...props} />
       <BarChartCard chartId="gradeByYear" title={props.t("sections.gradeByYear")} labels={props.avgGradesByYear.labels} values={props.avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
       <BarChartCard chartId="gradeDistribution" title={props.t("sections.gradeDistribution")} labels={props.gradeBins.labels} values={props.gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} />
-      <VerticalBarChartCard chartId="avgGradeByProgram" title={props.t("sections.avgGradeByProgram")} labels={props.avgGradeByProgram.labels} values={props.avgGradeByProgram.values} minValue={5} maxValue={10} height={320} />
       <BarChartCard chartId="timeToDegreeByEntryYear" title={props.t("sections.timeToDegreeByEntryYear")} labels={props.yearsToDegree.labels} values={props.yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} />
       <BarChartCard chartId="timeToDegreeDistribution" title={props.t("sections.timeToDegreeDistribution")} labels={props.yearsToDegreeDistribution.labels} values={props.yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} />
       <BarChartCard chartId="originRegion" title={props.t("sections.originRegion")} labels={props.regions.labels} values={props.regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} />

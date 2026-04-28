@@ -30,14 +30,12 @@
     "timeToDegreeByEntryYear": "Average study duration by entry year",
     "gradeDistribution": "Graduation grade distribution",
     "birthYear": "Graduates by birth year",
-    "studyProgram": "Graduates by study program",
     "originRegion": "Graduates by region of origin",
     "originMunicipality": "Graduates by city of origin",
     "originCountry": "Graduates by country of origin",
     "abroadShare": "Greece and abroad graduate distribution",
-    "avgGradeByProgram": "Average graduation grade by study program",
-    "genderByProgram": "Gender distribution by study program",
-    "timeToDegreeDistribution": "Study duration distribution"
+    "timeToDegreeDistribution": "Study duration distribution",
+    "genderByEntryYear": "Gender distribution by entry year"
   },
   "table": {
     "year": "Year",

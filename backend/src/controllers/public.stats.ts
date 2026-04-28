@@ -53,10 +53,8 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
     birthYearRows,
     ageRows,
     avgGradeByYear,
-    avgGradeByProgram,
     gradeDist,
     durationRows,
-    studyProgramRows,
     originRows,
     cityRows,
   ] = await Promise.all([
@@ -163,14 +161,6 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
        ORDER BY year ASC`,
       context,
     ),
-    queryRows<{ study_program_id: number | null; avg: number }>(
-      `SELECT g.study_program_id,
-              ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY g.study_program_id
-       ORDER BY g.study_program_id ASC`,
-      context,
-    ),
     queryRows<{ bucket: string; count: number }>(
       `SELECT CASE
                 WHEN g.degree_grade < 5 THEN '<5'
@@ -199,13 +189,6 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
        FROM graduates g ${context.sqlWhere}
        GROUP BY g.entry_year
        ORDER BY g.entry_year ASC`,
-      context,
-    ),
-    queryRows<{ study_program_id: number | null; count: number }>(
-      `SELECT g.study_program_id, CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY g.study_program_id
-       ORDER BY count DESC, g.study_program_id ASC`,
       context,
     ),
     queryRows<{ place: string; count: number }>(
@@ -246,10 +229,8 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
     birthYearRows,
     ageRows,
     avgGradeByYear,
-    avgGradeByProgram,
     gradeDist,
     durationRows,
-    studyProgramRows,
     originRows,
     cityRows,
   };

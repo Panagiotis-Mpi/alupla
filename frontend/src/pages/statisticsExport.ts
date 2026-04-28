@@ -8,9 +8,8 @@ export type StatisticsChartId =
   | "gender"
   | "birthYear"
   | "gradeByYear"
-  | "avgGradeByProgram"
   | "gradeDistribution"
-  | "genderByProgram"
+  | "genderByEntryYear"
   | "originRegion"
   | "originMunicipality"
   | "originCountry"
@@ -135,15 +134,6 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  sheets.set("avgGradeByProgram", {
-    chartId: "avgGradeByProgram",
-    name: activeLang === "en" ? "Average Graduation Grade by Study Program" : "Μέση βαθμολογία αποφοίτησης ανά πρόγραμμα σπουδών",
-    rows: (data?.avg_grade_by_program ?? []).map((row: NamedCountRow) => ({
-      [activeLang === "en" ? "Study Program" : "Πρόγραμμα σπουδών"]: localizedName(row, activeLang),
-      [activeLang === "en" ? "Average Graduation Grade" : "Μέση βαθμολογία αποφοίτησης"]: num(row.avg),
-    })),
-  });
-
   sheets.set("gradeDistribution", {
     chartId: "gradeDistribution",
     name: activeLang === "en" ? "Graduation Grade Distribution" : "Κατανομή βαθμολογίας αποφοίτησης",
@@ -153,11 +143,11 @@ function buildSheets(args: BuildArgs) {
     })),
   });
 
-  sheets.set("genderByProgram", {
-    chartId: "genderByProgram",
-    name: activeLang === "en" ? "Gender Distribution by Study Program" : "Κατανομή φύλου ανά πρόγραμμα σπουδών",
-    rows: (data?.gender_by_program ?? []).map((row: NamedCountRow) => ({
-      [activeLang === "en" ? "Study Program" : "Πρόγραμμα σπουδών"]: localizedName(row, activeLang),
+  sheets.set("genderByEntryYear", {
+    chartId: "genderByEntryYear",
+    name: activeLang === "en" ? "Gender Distribution by Entry Year" : "Κατανομή φύλου ανά έτος εισαγωγής",
+    rows: (data?.gender_by_entry_year ?? []).map((row: NamedCountRow) => ({
+      [activeLang === "en" ? "Entry Year" : "Έτος εισαγωγής"]: num(row.entry_year),
       [activeLang === "en" ? "Male Graduate Count" : "Πλήθος ανδρών αποφοίτων"]: num(row.male),
       [activeLang === "en" ? "Female Graduate Count" : "Πλήθος γυναικών αποφοίτων"]: num(row.female),
     })),
@@ -267,8 +257,8 @@ export function buildStatisticsExportFilename(args: BuildArgs, format: Statistic
   const chartCount = selected.length;
   const allSelected = chartCount === 0;
   const groupChartIds = {
-    demographics: ["gender", "birthYear", "genderByProgram"],
-    academic: ["byYear", "gradeByYear", "gradeDistribution", "avgGradeByProgram", "timeToDegreeByEntryYear", "timeToDegreeDistribution"],
+    demographics: ["gender", "birthYear", "genderByEntryYear"],
+    academic: ["byYear", "gradeByYear", "gradeDistribution", "timeToDegreeByEntryYear", "timeToDegreeDistribution"],
     geography: ["originRegion", "originMunicipality", "originCountry", "abroadShare"],
   } as const;
 
@@ -305,12 +295,12 @@ export function exportStatisticsCsvFile(args: BuildArgs, filename = buildStatist
     {
       key: "demographics",
       name: args.activeLang === "en" ? "Demographic Data" : "Δημογραφικά στοιχεία",
-      chartIds: ["gender", "birthYear", "genderByProgram"],
+      chartIds: ["gender", "birthYear", "genderByEntryYear"],
     },
     {
       key: "academic",
       name: args.activeLang === "en" ? "Academic Data" : "Ακαδημαϊκά στοιχεία",
-      chartIds: ["byYear", "gradeByYear", "gradeDistribution", "avgGradeByProgram", "timeToDegreeByEntryYear", "timeToDegreeDistribution"],
+      chartIds: ["byYear", "gradeByYear", "gradeDistribution", "timeToDegreeByEntryYear", "timeToDegreeDistribution"],
     },
     {
       key: "geography",

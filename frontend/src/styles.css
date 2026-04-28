@@ -1240,15 +1240,16 @@ html.accessibility-high-contrast .alupla-map .alupla-city-label-text{
 
 
 .chart-data-summary{
-  margin-top:14px;
+  margin:14px auto 0;
   display:grid;
   gap:8px;
+  width:min(100%, 520px);
 }
 .chart-data-summary-row{
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  gap:12px;
+  justify-content:flex-start;
+  gap:18px;
   padding:10px 12px;
   border:1px solid rgba(148,163,184,.28);
   border-radius:12px;
@@ -1268,7 +1269,8 @@ html.accessibility-high-contrast .alupla-map .alupla-city-label-text{
 .chart-data-summary-meta{
   display:inline-flex;
   align-items:center;
-  gap:10px;
+  gap:8px;
+  margin-left:auto;
   white-space:nowrap;
 }
 .chart-data-summary-value{
