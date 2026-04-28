@@ -59,8 +59,6 @@ const mapTileAttribution =
 const metroGroups = [
   {
     key: "athens",
-    label: "Αθήνα",
-    labelEn: "Athens",
     center: { latitude: 37.9838, longitude: 23.7275 },
     bounds: {
       minLat: 37.82,
@@ -71,8 +69,6 @@ const metroGroups = [
   },
   {
     key: "thessaloniki",
-    label: "Θεσσαλονίκη",
-    labelEn: "Thessaloniki",
     center: { latitude: 40.6401, longitude: 22.9444 },
     bounds: {
       minLat: 40.50,
@@ -102,203 +98,27 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-const COUNTRY_DISPLAY_NAMES: Array<{ names: string[]; gr: string; en: string }> = [
-  { names: ["Ελλάδα", "Greece"], gr: "Ελλάδα", en: "Greece" },
-  { names: ["ΗΠΑ", "Ηνωμένες Πολιτείες", "Ηνωμένες Πολιτείες Αμερικής", "Αμερική", "United States", "United States of America", "USA", "US", "U.S.A.", "U.S."], gr: "ΗΠΑ", en: "United States" },
-  { names: ["Ολλανδία", "Ολλανδια", "Κάτω Χώρες", "Κατω Χωρες", "Netherlands", "The Netherlands", "Holland"], gr: "Ολλανδία", en: "Netherlands" },
-  { names: ["Ηνωμένο Βασίλειο", "Ηνωμενο Βασιλειο", "Αγγλία", "Μεγάλη Βρετανία", "Μεγαλη Βρετανια", "United Kingdom", "UK", "U.K.", "Great Britain", "England"], gr: "Ηνωμένο Βασίλειο", en: "United Kingdom" },
-  { names: ["Κύπρος", "Cyprus"], gr: "Κύπρος", en: "Cyprus" },
-  { names: ["Ιταλία", "Italy"], gr: "Ιταλία", en: "Italy" },
-  { names: ["Γερμανία", "Γερμανια", "Germany"], gr: "Γερμανία", en: "Germany" },
-  { names: ["Γαλλία", "Γαλλια", "France"], gr: "Γαλλία", en: "France" },
-  { names: ["Ισπανία", "Ισπανια", "Spain"], gr: "Ισπανία", en: "Spain" },
-  { names: ["Πορτογαλία", "Πορτογαλια", "Portugal"], gr: "Πορτογαλία", en: "Portugal" },
-  { names: ["Βέλγιο", "Belgium"], gr: "Βέλγιο", en: "Belgium" },
-  { names: ["Ελβετία", "Ελβετια", "Switzerland"], gr: "Ελβετία", en: "Switzerland" },
-  { names: ["Αυστρία", "Austria"], gr: "Αυστρία", en: "Austria" },
-  { names: ["Σουηδία", "Σουηδια", "Sweden"], gr: "Σουηδία", en: "Sweden" },
-  { names: ["Νορβηγία", "Νορβηγια", "Norway"], gr: "Νορβηγία", en: "Norway" },
-  { names: ["Δανία", "Δανια", "Denmark"], gr: "Δανία", en: "Denmark" },
-  { names: ["Ιρλανδία", "Ιρλανδια", "Ireland"], gr: "Ιρλανδία", en: "Ireland" },
-  { names: ["Πολωνία", "Πολωνια", "Poland"], gr: "Πολωνία", en: "Poland" },
-  { names: ["Τσεχία", "Τσεχικη Δημοκρατια", "Czechia", "Czech Republic"], gr: "Τσεχία", en: "Czechia" },
-  { names: ["Ρουμανία", "Ρουμανια", "Romania"], gr: "Ρουμανία", en: "Romania" },
-  { names: ["Βουλγαρία", "Βουλγαρια", "Bulgaria"], gr: "Βουλγαρία", en: "Bulgaria" },
-  { names: ["Αλβανία", "Αλβανια", "Albania"], gr: "Αλβανία", en: "Albania" },
-  { names: ["Σερβία", "Σερβια", "Serbia"], gr: "Σερβία", en: "Serbia" },
-  { names: ["Βόρεια Μακεδονία", "Βορεια Μακεδονια", "Σκόπια", "North Macedonia"], gr: "Βόρεια Μακεδονία", en: "North Macedonia" },
-  { names: ["Τουρκία", "Τουρκια", "Turkey"], gr: "Τουρκία", en: "Turkey" },
-  { names: ["Ιαπωνία", "Ιαπωνια", "Japan"], gr: "Ιαπωνία", en: "Japan" },
-  { names: ["Κίνα", "Κινα", "China"], gr: "Κίνα", en: "China" },
-  { names: ["Αυστραλία", "Αυστραλια", "Australia"], gr: "Αυστραλία", en: "Australia" },
-  { names: ["Καναδάς", "Καναδας", "Canada"], gr: "Καναδάς", en: "Canada" },
-  { names: ["Αίγυπτος", "Αιγυπτος", "Egypt"], gr: "Αίγυπτος", en: "Egypt" },
-  { names: ["Βραζιλία", "Βραζιλια", "Brazil"], gr: "Βραζιλία", en: "Brazil" },
-  { names: ["Ινδία", "Ινδια", "India"], gr: "Ινδία", en: "India" },
-  { names: ["Μεξικό", "Μεξικο", "Mexico"], gr: "Μεξικό", en: "Mexico" },
-  { names: ["Νότια Κορέα", "Νοτια Κορεα", "South Korea", "Republic of Korea"], gr: "Νότια Κορέα", en: "South Korea" },
-  { names: ["Ηνωμένα Αραβικά Εμιράτα", "Ηνωμενα Αραβικα Εμιρατα", "Εμιράτα", "ΗΑΕ", "United Arab Emirates", "UAE"], gr: "Ηνωμένα Αραβικά Εμιράτα", en: "United Arab Emirates" },
-];
-
-const countryNameLookup = new Map<string, { gr: string; en: string }>();
-for (const entry of COUNTRY_DISPLAY_NAMES) {
-  for (const name of entry.names) {
-    countryNameLookup.set(normalizeKey(name), { gr: entry.gr, en: entry.en });
-  }
-}
-
-const greekToLatin: Record<string, string> = {
-  Α: "A", Ά: "A", Β: "V", Γ: "G", Δ: "D", Ε: "E", Έ: "E", Ζ: "Z", Η: "I", Ή: "I", Θ: "Th", Ι: "I", Ί: "I", Ϊ: "I", Κ: "K", Λ: "L", Μ: "M", Ν: "N", Ξ: "X", Ο: "O", Ό: "O", Π: "P", Ρ: "R", Σ: "S", Τ: "T", Υ: "Y", Ύ: "Y", Ϋ: "Y", Φ: "F", Χ: "Ch", Ψ: "Ps", Ω: "O", Ώ: "O",
-  α: "a", ά: "a", β: "v", γ: "g", δ: "d", ε: "e", έ: "e", ζ: "z", η: "i", ή: "i", θ: "th", ι: "i", ί: "i", ϊ: "i", ΐ: "i", κ: "k", λ: "l", μ: "m", ν: "n", ξ: "x", ο: "o", ό: "o", π: "p", ρ: "r", σ: "s", ς: "s", τ: "t", υ: "y", ύ: "y", ϋ: "y", ΰ: "y", φ: "f", χ: "ch", ψ: "ps", ω: "o", ώ: "o",
-};
-
-function hasGreek(value: string) {
-  return /[\u0370-\u03ff]/.test(value);
-}
-
-function transliterateGreek(value: string) {
-  return value.replace(/[\u0370-\u03ff]/g, (letter) => greekToLatin[letter] || letter);
-}
-
-function localizedFallbackName(raw: string, lang: "gr" | "en") {
-  if (lang === "en" && hasGreek(raw)) return transliterateGreek(raw);
-  return raw;
-}
-
-function localizedCountryName(value: unknown, lang: "gr" | "en") {
-  const raw = String(value ?? "").trim();
-  if (!raw) return "";
-  const match = countryNameLookup.get(normalizeKey(raw));
-  if (match) return lang === "en" ? match.en : match.gr;
-  return localizedFallbackName(raw, lang);
-}
-
-function localizedCountryKey(value: unknown) {
-  const raw = String(value ?? "").trim();
-  if (!raw) return "";
-  const match = countryNameLookup.get(normalizeKey(raw));
-  return normalizeKey(match?.gr || raw);
-}
-
-const CITY_DISPLAY_NAMES: Array<{ names: string[]; gr: string; en: string }> = [
-  { names: ["Αθήνα", "Athens"], gr: "Αθήνα", en: "Athens" },
-  { names: ["Θεσσαλονίκη", "Θεσσαλονικη", "Thessaloniki"], gr: "Θεσσαλονίκη", en: "Thessaloniki" },
-  { names: ["Πάτρα", "Πατρα", "Patras"], gr: "Πάτρα", en: "Patras" },
-  { names: ["Ηράκλειο", "Ηρακλειο", "Heraklion"], gr: "Ηράκλειο", en: "Heraklion" },
-  { names: ["Λάρισα", "Λαρισα", "Larissa"], gr: "Λάρισα", en: "Larissa" },
-  { names: ["Ιωάννινα", "Ιωαννινα", "Ioannina"], gr: "Ιωάννινα", en: "Ioannina" },
-  { names: ["Κοζάνη", "Κοζανη", "Kozani"], gr: "Κοζάνη", en: "Kozani" },
-  { names: ["Καβάλα", "Καβαλα", "Kavala"], gr: "Καβάλα", en: "Kavala" },
-  { names: ["Αλεξανδρούπολη", "Αλεξανδρουπολη", "Alexandroupoli"], gr: "Αλεξανδρούπολη", en: "Alexandroupoli" },
-  { names: ["Ορεστιάδα", "Ορεστιαδα", "Orestiada"], gr: "Ορεστιάδα", en: "Orestiada" },
-  { names: ["Κέρκυρα", "Κερκυρα", "Corfu"], gr: "Κέρκυρα", en: "Corfu" },
-  { names: ["Πρέβεζα", "Πρεβεζα", "Preveza"], gr: "Πρέβεζα", en: "Preveza" },
-  { names: ["Αργοστόλι", "Αργοστολι", "Argostoli"], gr: "Αργοστόλι", en: "Argostoli" },
-  { names: ["Άργος", "Αργος", "Argos"], gr: "Άργος", en: "Argos" },
-  { names: ["Καλαμάτα", "Καλαματα", "Kalamata"], gr: "Καλαμάτα", en: "Kalamata" },
-  { names: ["Χανιά", "Χανια", "Chania"], gr: "Χανιά", en: "Chania" },
-  { names: ["Σητεία", "Σητεια", "Sitia"], gr: "Σητεία", en: "Sitia" },
-  { names: ["Λήμνος", "Λημνος", "Limnos"], gr: "Λήμνος", en: "Limnos" },
-  { names: ["Μυτιλήνη", "Μυτιληνη", "Mytilene"], gr: "Μυτιλήνη", en: "Mytilene" },
-  { names: ["Χίος", "Χιος", "Chios"], gr: "Χίος", en: "Chios" },
-  { names: ["Ικαρία", "Ικαρια", "Ikaria"], gr: "Ικαρία", en: "Ikaria" },
-  { names: ["Σύρος", "Συρος", "Syros"], gr: "Σύρος", en: "Syros" },
-  { names: ["Θήρα", "Θηρα", "Thira", "Santorini"], gr: "Θήρα", en: "Santorini" },
-  { names: ["Νάξος", "Ναξος", "Naxos"], gr: "Νάξος", en: "Naxos" },
-  { names: ["Κάλυμνος", "Καλυμνος", "Kalymnos"], gr: "Κάλυμνος", en: "Kalymnos" },
-  { names: ["Ρόδος", "Ροδος", "Rhodes"], gr: "Ρόδος", en: "Rhodes" },
-  { names: ["Λαμία", "Λαμια", "Lamia"], gr: "Λαμία", en: "Lamia" },
-  { names: ["Βόλος", "Βολος", "Volos"], gr: "Βόλος", en: "Volos" },
-  { names: ["Άρτα", "Αρτα", "Arta"], gr: "Άρτα", en: "Arta" },
-  { names: ["Λευκάδα", "Λευκαδα", "Lefkada", "Leucas"], gr: "Λευκάδα", en: "Lefkada" },
-  { names: ["Αγρίνιο", "Αγρινιο", "Agrinio"], gr: "Αγρίνιο", en: "Agrinio" },
-  { names: ["Άμφισσα", "Αμφισσα", "Amfissa"], gr: "Άμφισσα", en: "Amfissa" },
-  { names: ["Αίγιο", "Αιγιο", "Aigio", "Aegio"], gr: "Αίγιο", en: "Aigio" },
-  { names: ["Κόρινθος", "Κορινθος", "Corinth", "Korinthos"], gr: "Κόρινθος", en: "Corinth" },
-  { names: ["Πύργος", "Πυργος", "Pyrgos"], gr: "Πύργος", en: "Pyrgos" },
-  { names: ["Σπάρτη", "Σπαρτη", "Sparta", "Sparti"], gr: "Σπάρτη", en: "Sparta" },
-  { names: ["Ιθάκη", "Ιθακη", "Ithaca", "Ithaki"], gr: "Ιθάκη", en: "Ithaca" },
-  { names: ["Χαλκίδα", "Χαλκιδα", "Chalkida", "Chalcis"], gr: "Χαλκίδα", en: "Chalkida" },
-  { names: ["Λιβαδειά", "Λιβαδεια", "Livadia", "Livadeia"], gr: "Λιβαδειά", en: "Livadia" },
-  { names: ["Μεσολόγγι", "Μεσολογγι", "Messolonghi", "Mesolongi"], gr: "Μεσολόγγι", en: "Messolonghi" },
-  { names: ["Ναύπακτος", "Ναυπακτος", "Nafpaktos"], gr: "Ναύπακτος", en: "Nafpaktos" },
-  { names: ["Δημοτική Ενότητα Σάμης", "Δημοτικη Ενοτητα Σαμης", "Sami"], gr: "Δημοτική Ενότητα Σάμης", en: "Sami" },
-  { names: ["Παρίσι", "Paris"], gr: "Παρίσι", en: "Paris" },
-  { names: ["Ίνσμπρουκ", "Ινσμπρουκ", "Innsbruck"], gr: "Ίνσμπρουκ", en: "Innsbruck" },
-  { names: ["Αμβούργο", "Αμβουργο", "Hamburg"], gr: "Αμβούργο", en: "Hamburg" },
-  { names: ["Αϊντχόφεν", "Αιντχοφεν", "Eindhoven"], gr: "Αϊντχόφεν", en: "Eindhoven" },
-  { names: ["Βαλένθια", "Βαλενθια", "Valencia"], gr: "Βαλένθια", en: "Valencia" },
-  { names: ["Βαρκελώνη", "Βαρκελωνη", "Barcelona"], gr: "Βαρκελώνη", en: "Barcelona" },
-  { names: ["Βερολίνο", "Βερολινο", "Berlin"], gr: "Βερολίνο", en: "Berlin" },
-  { names: ["Βιέννη", "Βιεννη", "Vienna"], gr: "Βιέννη", en: "Vienna" },
-  { names: ["Γάνδη", "Γανδη", "Ghent"], gr: "Γάνδη", en: "Ghent" },
-  { names: ["Κάιρο", "Καιρο", "Cairo"], gr: "Κάιρο", en: "Cairo" },
-  { names: ["Κωνσταντινούπολη", "Κωνσταντινουπολη", "Istanbul"], gr: "Κωνσταντινούπολη", en: "Istanbul" },
-  { names: ["Λάρνακα", "Λαρνακα", "Larnaca"], gr: "Λάρνακα", en: "Larnaca" },
-  { names: ["Λίβερπουλ", "Λιβερπουλ", "Liverpool"], gr: "Λίβερπουλ", en: "Liverpool" },
-  { names: ["Λιέγη", "Λιεγη", "Liège", "Liege"], gr: "Λιέγη", en: "Liège" },
-  { names: ["Λιντς", "Leeds"], gr: "Λιντς", en: "Leeds" },
-  { names: ["Λονδίνο", "Λονδινο", "London"], gr: "Λονδίνο", en: "London" },
-  { names: ["Λυών", "Λυων", "Lyon"], gr: "Λυών", en: "Lyon" },
-  { names: ["Μάλαγα", "Μαλαγα", "Málaga", "Malaga"], gr: "Μάλαγα", en: "Málaga" },
-  { names: ["Μάντσεστερ", "Μαντσεστερ", "Manchester"], gr: "Μάντσεστερ", en: "Manchester" },
-  { names: ["Μαδρίτη", "Μαδριτη", "Madrid"], gr: "Μαδρίτη", en: "Madrid" },
-  { names: ["Μασσαλία", "Μασσαλια", "Marseille"], gr: "Μασσαλία", en: "Marseille" },
-  { names: ["Μιλάνο", "Μιλανο", "Milan"], gr: "Μιλάνο", en: "Milan" },
-  { names: ["Μουμπάι", "Μουμπαι", "Mumbai"], gr: "Μουμπάι", en: "Mumbai" },
-  { names: ["Μπολόνια", "Μπολονια", "Bologna"], gr: "Μπολόνια", en: "Bologna" },
-  { names: ["Μόναχο", "Μοναχο", "Munich"], gr: "Μόναχο", en: "Munich" },
-  { names: ["Νάπολη", "Ναπολη", "Naples"], gr: "Νάπολη", en: "Naples" },
-  { names: ["Νέα Υόρκη", "Νεα Υορκη", "New York"], gr: "Νέα Υόρκη", en: "New York" },
-  { names: ["Πόλη του Μεξικού", "Πολη του Μεξικου", "Mexico City"], gr: "Πόλη του Μεξικού", en: "Mexico City" },
-  { names: ["Ρώμη", "Ρωμη", "Rome"], gr: "Ρώμη", en: "Rome" },
-  { names: ["Σάο Πάολο", "Σαο Παολο", "São Paulo", "Sao Paulo"], gr: "Σάο Πάολο", en: "São Paulo" },
-  { names: ["Σίδνεϊ", "Σιδνεϊ", "Sydney"], gr: "Σίδνεϊ", en: "Sydney" },
-  { names: ["Σαγκάη", "Σαγκαη", "Shanghai"], gr: "Σαγκάη", en: "Shanghai" },
-  { names: ["Σεβίλλη", "Σεβιλλη", "Seville", "Sevilla"], gr: "Σεβίλλη", en: "Seville" },
-  { names: ["Σεούλ", "Σεουλ", "Seoul"], gr: "Σεούλ", en: "Seoul" },
-  { names: ["Τορίνο", "Τορινο", "Turin"], gr: "Τορίνο", en: "Turin" },
-  { names: ["Τόκιο", "Τοκιο", "Tokyo"], gr: "Τόκιο", en: "Tokyo" },
-  { names: ["Φρανκφούρτη", "Φρανκφουρτη", "Frankfurt"], gr: "Φρανκφούρτη", en: "Frankfurt" },
-];
-
-const cityNameLookup = new Map<string, { gr: string; en: string }>();
-for (const entry of CITY_DISPLAY_NAMES) {
-  for (const name of entry.names) {
-    cityNameLookup.set(normalizeKey(name), { gr: entry.gr, en: entry.en });
-  }
-}
-
-function localizedCityName(value: unknown, lang: "gr" | "en") {
-  const raw = String(value ?? "").trim();
-  if (!raw) return "";
-  const match = cityNameLookup.get(normalizeKey(raw));
-  if (match) return lang === "en" ? match.en : match.gr;
-  return localizedFallbackName(raw, lang);
-}
-
 function localizedRecordName(item: any, field: string, lang: "gr" | "en") {
   const key = lang === "en" ? field + "_en" : field + "_el";
   const localized = String(item?.[key] ?? "").trim();
-  if (!localized) return "";
-  if (lang === "en" && !hasGreek(localized)) return localized;
-  if (lang === "gr" && (hasGreek(localized) || !/[A-Za-z]/.test(localized))) return localized;
-  return "";
+  if (localized) return localized;
+  return String(item?.[field] ?? "").trim();
 }
 
 function localizedCityRecordName(item: any, lang: "gr" | "en") {
-  const name = localizedRecordName(item, "city_name", lang);
-  return name || localizedCityName(item?.city_name, lang);
+  return localizedRecordName(item, "city_name", lang);
 }
 
 function localizedCountryRecordName(item: any, lang: "gr" | "en") {
-  const name = localizedRecordName(item, "country_name", lang) || localizedRecordName(item, "periphery_name", lang);
-  return name || localizedCountryName(item?.country_name || item?.periphery_name, lang);
+  return localizedRecordName(item, "country_name", lang) || localizedRecordName(item, "periphery_name", lang);
 }
 
 function localizedPeripheryRecordName(item: any, lang: "gr" | "en") {
-  const name = localizedRecordName(item, "periphery_name", lang);
-  return name || localizedFallbackName(String(item?.periphery_name || ""), lang);
+  return localizedRecordName(item, "periphery_name", lang);
+}
+
+function localizedCountryKey(value: unknown) {
+  return normalizeKey(String(value ?? ""));
 }
 
 function genderMarkerSymbol(city: any) {
@@ -652,7 +472,7 @@ export default function GraduatesMapPage() {
       const current = grouped.get(key) || {
         ...(metroGroup ? {
           city_id: 0,
-          city_name: mapLanguage === "en" ? metroGroup.labelEn : metroGroup.label,
+          city_name: localizedCityRecordName(city, mapLanguage),
           latitude: metroGroup.center.latitude,
           longitude: metroGroup.center.longitude,
           male_count: 0,
