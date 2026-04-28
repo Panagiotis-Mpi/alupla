@@ -511,11 +511,12 @@ function ScrollableBarChart(props: {
   minLabelWidth?: number;
   maxLabelWidth?: number;
   forceScrollable?: boolean;
+  scrollThreshold?: number;
 }) {
   const isCompact = useCompactStatisticsLayout();
   const highContrast = useHighContrastEnabled();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
-  const shouldScroll = !!props.forceScrollable || props.labels.length > 7 || (props.datasetCount ?? 1) > 1;
+  const shouldScroll = !!props.forceScrollable || props.labels.length > (props.scrollThreshold ?? 7) || (props.datasetCount ?? 1) > 1;
   const minWidth = shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
   const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
 
@@ -572,6 +573,7 @@ export function BarChartCard(props: {
   horizontal?: boolean;
   fullLabelTooltip?: boolean;
   forceScrollable?: boolean;
+  scrollThreshold?: number;
   chartId?: string;
 }) {
   const highContrast = useHighContrastEnabled();
@@ -612,6 +614,7 @@ export function BarChartCard(props: {
             data={chartData}
             options={chartOptions}
             forceScrollable={props.forceScrollable}
+            scrollThreshold={props.scrollThreshold}
           />
         )}
       </div>
