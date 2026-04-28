@@ -103,7 +103,9 @@
     "topCity": "City with the most graduates",
     "avgAge": "Average graduation age",
     "fromCurrentFilters": "Calculated from the current filters",
-    "topCountry": "Country with the most graduates"
+    "topCountry": "Country with the most graduates",
+    "fromGreece": "From Greece",
+    "fromAbroad": "From abroad"
   },
   "detailGroups": {
     "basics": "Basics",

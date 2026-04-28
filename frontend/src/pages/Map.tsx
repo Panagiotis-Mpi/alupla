@@ -49,6 +49,7 @@ type ExportCategoryKey = MapMetric;
 type ExportScopeSelection = { category: ExportCategoryKey; scope: MapScope };
 
 const fillColors = ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6"];
+const countMarkerPalette = ["#eff6ff", "#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#3b82f6"];
 
 const lightMapTileUrl = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
 const highContrastMapTileUrl = "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png";
@@ -60,6 +61,7 @@ const metroGroups = [
   {
     key: "athens",
     label: "Αθήνα",
+    labelEn: "Athens",
     center: { latitude: 37.9838, longitude: 23.7275 },
     bounds: {
       minLat: 37.82,
@@ -71,6 +73,7 @@ const metroGroups = [
   {
     key: "thessaloniki",
     label: "Θεσσαλονίκη",
+    labelEn: "Thessaloniki",
     center: { latitude: 40.6401, longitude: 22.9444 },
     bounds: {
       minLat: 40.50,
@@ -325,7 +328,7 @@ function projectMarkerToViewport(
 }
 
 export default function GraduatesMapPage() {
-  const { t } = useTranslation(["map", "common"]);
+  const { t, i18n } = useTranslation(["map", "common"]);
   const mt = useCallback(
     (key: string, options?: Record<string, unknown>) =>
       t(key, { ns: "map", ...(options || {}) }),
@@ -390,6 +393,22 @@ export default function GraduatesMapPage() {
   );
   const { loading, items, cityPoints } =
     useMapData(params);
+
+  const counterpartScope = mapScope === "greece" ? "abroad" : "greece";
+  const counterpartParams = useMemo(
+    () =>
+      createMapParams({
+        ...EMPTY_FILTERS,
+        scope: counterpartScope,
+        ...((selectedGraduationYearStart && selectedGraduationYearEnd)
+          ? selectedGraduationYearStart === selectedGraduationYearEnd
+            ? { graduation_year: selectedGraduationYearStart }
+            : { graduation_date_from: selectedGraduationYearStart + "-01-01", graduation_date_to: selectedGraduationYearEnd + "-12-31" }
+          : {}),
+      }),
+    [counterpartScope, selectedGraduationYearStart, selectedGraduationYearEnd],
+  );
+  const { loading: counterpartLoading, items: counterpartItems } = useMapData(counterpartParams);
 
   const worldBounds = useMemo(() => L.latLngBounds(L.latLng(-60, -180), L.latLng(85, 180)), []);
   const greeceBounds = useMemo(
@@ -457,6 +476,8 @@ export default function GraduatesMapPage() {
   }, []);
 
   const activeMapTileUrl = highContrastEnabled ? highContrastMapTileUrl : lightMapTileUrl;
+  const mapLanguage = i18n.resolvedLanguage?.startsWith("en") ? "en" : "gr";
+  const countMarkerRadii = useMemo(() => isCompactViewport ? [8, 10, 12, 15, 18, 21, 24] : [10, 13, 16, 20, 24, 29, 34], [isCompactViewport]);
 
   const resetComparedSelections = useCallback(() => {
     setSelected(null);
@@ -470,8 +491,8 @@ export default function GraduatesMapPage() {
 
 
   const greekCityMarkers = useMemo(() => {
-    const palette = ["#eff6ff", "#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#3b82f6"];
-    const radii = [10, 13, 16, 20, 24, 29, 34];
+    const palette = countMarkerPalette;
+    const radii = countMarkerRadii;
     const grouped = new Map<string, any>();
     const collapseMetro = shouldCollapseMetroAtZoom(mapZoom);
 
@@ -486,7 +507,7 @@ export default function GraduatesMapPage() {
       const current = grouped.get(key) || {
         ...(metroGroup ? {
           city_id: 0,
-          city_name: metroGroup.label,
+          city_name: mapLanguage === "en" ? metroGroup.labelEn : metroGroup.label,
           latitude: metroGroup.center.latitude,
           longitude: metroGroup.center.longitude,
           male_count: 0,
@@ -570,7 +591,7 @@ export default function GraduatesMapPage() {
       legend,
       maxCount: sortedCounts[sortedCounts.length - 1],
     };
-  }, [cityPoints, mapZoom, mt]);
+  }, [cityPoints, countMarkerRadii, mapLanguage, mapZoom, mt]);
 
   useLayoutEffect(() => {
     if (!activeBounds || !mapRef.current) return;
@@ -663,7 +684,7 @@ export default function GraduatesMapPage() {
 
   const pageLoading = !initialPageReady;
   const inlineMapLoading = (!pageLoading && loading) || metricTransitionLoading || scopeTransitionLoading;
-  const summaryLoading = !pageLoading && (loading || metricTransitionLoading || scopeTransitionLoading);
+  const summaryLoading = !pageLoading && (loading || counterpartLoading || metricTransitionLoading || scopeTransitionLoading);
 
   const exportCategoryOptions = useMemo(
     () => [
@@ -726,15 +747,15 @@ export default function GraduatesMapPage() {
   );
 
   const abroadCountryMarkers = useMemo(() => {
-    const palette = ["#eff6ff", "#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#3b82f6"];
-    const radii = [10, 13, 16, 20, 24, 29, 34];
+    const palette = countMarkerPalette;
+    const radii = countMarkerRadii;
     const grouped = new Map<string, any>();
 
     for (const city of cityPoints) {
       const latitude = mapCityLatitude(city as any);
       const longitude = mapCityLongitude(city as any);
       const rawCountryName = String((city as any).country_name || (city as any).periphery_name || "").trim();
-      const localizedName = localizedCountryName(rawCountryName, "gr");
+      const localizedName = localizedCountryName(rawCountryName, mapLanguage);
       const countryId = Number((city as any).country_region_id || (city as any).periphery_id || 0);
       if (!localizedName || latitude === null || longitude === null) continue;
       const key = countryId > 0 ? `country:${countryId}` : `country:${localizedCountryKey(rawCountryName)}`;
@@ -802,7 +823,7 @@ export default function GraduatesMapPage() {
         if ((right.count || 0) !== (left.count || 0)) return (right.count || 0) - (left.count || 0);
         return String(left.country_name || "").localeCompare(String(right.country_name || ""), "el");
       });
-  }, [cityPoints]);
+  }, [cityPoints, countMarkerRadii, mapLanguage]);
   const abroadLegendEntries = useMemo(() => {
     if (mapMetric === "dominant_gender") return genderLegendEntries;
     const counts = abroadCountryMarkers
@@ -810,8 +831,8 @@ export default function GraduatesMapPage() {
       .filter((value) => value > 0)
       .sort((left, right) => left - right);
     if (!counts.length) return [] as Array<any>;
-    const palette = ["#eff6ff", "#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#3b82f6"];
-    const sizes = [10, 13, 16, 20, 24, 29, 34];
+    const palette = countMarkerPalette;
+    const sizes = countMarkerRadii;
     const { breaks } = buildCountMarkerScale(counts, palette, sizes);
     return breaks.map((limit, index) => {
       const from = index === 0 ? 1 : breaks[index - 1] + 1;
@@ -827,7 +848,7 @@ export default function GraduatesMapPage() {
         opacity: 0.8,
       };
     });
-  }, [abroadCountryMarkers, genderLegendEntries, mapMetric, mt]);
+  }, [abroadCountryMarkers, countMarkerRadii, genderLegendEntries, mapMetric, mt]);
 
   const renderedLegendEntries = useMemo(() => {
     if (mapScope === "greece") {
@@ -917,6 +938,14 @@ export default function GraduatesMapPage() {
     () => items.reduce((sum, item) => sum + (Number(item.count ?? 0) || 0), 0),
     [items],
   );
+  const counterpartTotal = useMemo(
+    () => counterpartItems.reduce((sum, item) => sum + (Number(item.count ?? 0) || 0), 0),
+    [counterpartItems],
+  );
+  const overallTotal = total + counterpartTotal;
+  const scopedTotalLabel = mapScope === "greece"
+    ? mt("summary.fromGreece", { defaultValue: "Από Ελλάδα" })
+    : mt("summary.fromAbroad", { defaultValue: "Από εξωτερικό" });
 
   const weightedAvgAge = useMemo(() => {
     let weightedSum = 0;
@@ -1017,7 +1046,9 @@ export default function GraduatesMapPage() {
     const mergedCity = {
       ...city,
       ...(detail || {}),
-      city_name: String(detail?.city_name || city.city_name || ""),
+      city_name: mapScope === "abroad"
+        ? localizedCountryName(detail?.city_name || city.city_name || city.country_name || "", mapLanguage)
+        : String(detail?.city_name || city.city_name || ""),
       count: Number(detail?.total ?? city.count ?? 0),
       total: Number(detail?.total ?? city.count ?? 0),
       male_count: detail?.male_count ?? city.male_count ?? 0,
@@ -1278,7 +1309,8 @@ export default function GraduatesMapPage() {
           <div className="map-summary-label">
             {mt("summary.total", { defaultValue: "Σύνολο αποφοίτων" })}
           </div>
-          <div className="map-summary-value">{total}</div>
+          <div className="map-summary-value">{overallTotal}</div>
+          <div className="map-summary-sub">{scopedTotalLabel}: {total}</div>
         </div>
         <div className="card map-summary-card">
           <div className="map-summary-label">
@@ -1287,7 +1319,7 @@ export default function GraduatesMapPage() {
               : mt("summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" })}
           </div>
           <div className="map-summary-value">
-            {topPeriphery?.periphery_name || "-"}
+            {topPeriphery ? (mapScope === "abroad" ? localizedCountryName((topPeriphery as any).country_name || topPeriphery.periphery_name, mapLanguage) : topPeriphery.periphery_name) : "-"}
           </div>
           <div className="map-summary-sub">
             {topPeriphery
