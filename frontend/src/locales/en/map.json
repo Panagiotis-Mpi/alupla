@@ -104,8 +104,8 @@
     "avgAge": "Average graduation age",
     "fromCurrentFilters": "Calculated from the current filters",
     "topCountry": "Country with the most graduates",
-    "fromGreece": "From Greece",
-    "fromAbroad": "From abroad"
+    "fromGreece": "Graduates from Greece",
+    "fromAbroad": "Graduates from abroad"
   },
   "detailGroups": {
     "basics": "Basics",

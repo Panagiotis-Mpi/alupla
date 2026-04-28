@@ -133,6 +133,11 @@ const COUNTRY_DISPLAY_NAMES: Array<{ names: string[]; gr: string; en: string }> 
   { names: ["Κίνα", "Κινα", "China"], gr: "Κίνα", en: "China" },
   { names: ["Αυστραλία", "Αυστραλια", "Australia"], gr: "Αυστραλία", en: "Australia" },
   { names: ["Καναδάς", "Καναδας", "Canada"], gr: "Καναδάς", en: "Canada" },
+  { names: ["Αίγυπτος", "Αιγυπτος", "Egypt"], gr: "Αίγυπτος", en: "Egypt" },
+  { names: ["Βραζιλία", "Βραζιλια", "Brazil"], gr: "Βραζιλία", en: "Brazil" },
+  { names: ["Ινδία", "Ινδια", "India"], gr: "Ινδία", en: "India" },
+  { names: ["Μεξικό", "Μεξικο", "Mexico"], gr: "Μεξικό", en: "Mexico" },
+  { names: ["Νότια Κορέα", "Νοτια Κορεα", "South Korea", "Republic of Korea"], gr: "Νότια Κορέα", en: "South Korea" },
   { names: ["Ηνωμένα Αραβικά Εμιράτα", "Ηνωμενα Αραβικα Εμιρατα", "Εμιράτα", "ΗΑΕ", "United Arab Emirates", "UAE"], gr: "Ηνωμένα Αραβικά Εμιράτα", en: "United Arab Emirates" },
 ];
 
@@ -156,6 +161,89 @@ function localizedCountryKey(value: unknown) {
   if (!raw) return "";
   const match = countryNameLookup.get(normalizeKey(raw));
   return normalizeKey(match?.gr || raw);
+}
+
+const CITY_DISPLAY_NAMES: Array<{ names: string[]; gr: string; en: string }> = [
+  { names: ["Αθήνα", "Athens"], gr: "Αθήνα", en: "Athens" },
+  { names: ["Θεσσαλονίκη", "Θεσσαλονικη", "Thessaloniki"], gr: "Θεσσαλονίκη", en: "Thessaloniki" },
+  { names: ["Πάτρα", "Πατρα", "Patras"], gr: "Πάτρα", en: "Patras" },
+  { names: ["Ηράκλειο", "Ηρακλειο", "Heraklion"], gr: "Ηράκλειο", en: "Heraklion" },
+  { names: ["Λάρισα", "Λαρισα", "Larissa"], gr: "Λάρισα", en: "Larissa" },
+  { names: ["Ιωάννινα", "Ιωαννινα", "Ioannina"], gr: "Ιωάννινα", en: "Ioannina" },
+  { names: ["Κοζάνη", "Κοζανη", "Kozani"], gr: "Κοζάνη", en: "Kozani" },
+  { names: ["Καβάλα", "Καβαλα", "Kavala"], gr: "Καβάλα", en: "Kavala" },
+  { names: ["Αλεξανδρούπολη", "Αλεξανδρουπολη", "Alexandroupoli"], gr: "Αλεξανδρούπολη", en: "Alexandroupoli" },
+  { names: ["Ορεστιάδα", "Ορεστιαδα", "Orestiada"], gr: "Ορεστιάδα", en: "Orestiada" },
+  { names: ["Κέρκυρα", "Κερκυρα", "Corfu"], gr: "Κέρκυρα", en: "Corfu" },
+  { names: ["Πρέβεζα", "Πρεβεζα", "Preveza"], gr: "Πρέβεζα", en: "Preveza" },
+  { names: ["Αργοστόλι", "Αργοστολι", "Argostoli"], gr: "Αργοστόλι", en: "Argostoli" },
+  { names: ["Άργος", "Αργος", "Argos"], gr: "Άργος", en: "Argos" },
+  { names: ["Καλαμάτα", "Καλαματα", "Kalamata"], gr: "Καλαμάτα", en: "Kalamata" },
+  { names: ["Χανιά", "Χανια", "Chania"], gr: "Χανιά", en: "Chania" },
+  { names: ["Σητεία", "Σητεια", "Sitia"], gr: "Σητεία", en: "Sitia" },
+  { names: ["Λήμνος", "Λημνος", "Limnos"], gr: "Λήμνος", en: "Limnos" },
+  { names: ["Μυτιλήνη", "Μυτιληνη", "Mytilene"], gr: "Μυτιλήνη", en: "Mytilene" },
+  { names: ["Χίος", "Χιος", "Chios"], gr: "Χίος", en: "Chios" },
+  { names: ["Ικαρία", "Ικαρια", "Ikaria"], gr: "Ικαρία", en: "Ikaria" },
+  { names: ["Σύρος", "Συρος", "Syros"], gr: "Σύρος", en: "Syros" },
+  { names: ["Θήρα", "Θηρα", "Thira", "Santorini"], gr: "Θήρα", en: "Santorini" },
+  { names: ["Νάξος", "Ναξος", "Naxos"], gr: "Νάξος", en: "Naxos" },
+  { names: ["Κάλυμνος", "Καλυμνος", "Kalymnos"], gr: "Κάλυμνος", en: "Kalymnos" },
+  { names: ["Ρόδος", "Ροδος", "Rhodes"], gr: "Ρόδος", en: "Rhodes" },
+  { names: ["Λαμία", "Λαμια", "Lamia"], gr: "Λαμία", en: "Lamia" },
+  { names: ["Δημοτική Ενότητα Σάμης", "Δημοτικη Ενοτητα Σαμης", "Sami"], gr: "Δημοτική Ενότητα Σάμης", en: "Sami" },
+  { names: ["Παρίσι", "Paris"], gr: "Παρίσι", en: "Paris" },
+  { names: ["Ίνσμπρουκ", "Ινσμπρουκ", "Innsbruck"], gr: "Ίνσμπρουκ", en: "Innsbruck" },
+  { names: ["Αμβούργο", "Αμβουργο", "Hamburg"], gr: "Αμβούργο", en: "Hamburg" },
+  { names: ["Αϊντχόφεν", "Αιντχοφεν", "Eindhoven"], gr: "Αϊντχόφεν", en: "Eindhoven" },
+  { names: ["Βαλένθια", "Βαλενθια", "Valencia"], gr: "Βαλένθια", en: "Valencia" },
+  { names: ["Βαρκελώνη", "Βαρκελωνη", "Barcelona"], gr: "Βαρκελώνη", en: "Barcelona" },
+  { names: ["Βερολίνο", "Βερολινο", "Berlin"], gr: "Βερολίνο", en: "Berlin" },
+  { names: ["Βιέννη", "Βιεννη", "Vienna"], gr: "Βιέννη", en: "Vienna" },
+  { names: ["Γάνδη", "Γανδη", "Ghent"], gr: "Γάνδη", en: "Ghent" },
+  { names: ["Κάιρο", "Καιρο", "Cairo"], gr: "Κάιρο", en: "Cairo" },
+  { names: ["Κωνσταντινούπολη", "Κωνσταντινουπολη", "Istanbul"], gr: "Κωνσταντινούπολη", en: "Istanbul" },
+  { names: ["Λάρνακα", "Λαρνακα", "Larnaca"], gr: "Λάρνακα", en: "Larnaca" },
+  { names: ["Λίβερπουλ", "Λιβερπουλ", "Liverpool"], gr: "Λίβερπουλ", en: "Liverpool" },
+  { names: ["Λιέγη", "Λιεγη", "Liège", "Liege"], gr: "Λιέγη", en: "Liège" },
+  { names: ["Λιντς", "Leeds"], gr: "Λιντς", en: "Leeds" },
+  { names: ["Λονδίνο", "Λονδινο", "London"], gr: "Λονδίνο", en: "London" },
+  { names: ["Λυών", "Λυων", "Lyon"], gr: "Λυών", en: "Lyon" },
+  { names: ["Μάλαγα", "Μαλαγα", "Málaga", "Malaga"], gr: "Μάλαγα", en: "Málaga" },
+  { names: ["Μάντσεστερ", "Μαντσεστερ", "Manchester"], gr: "Μάντσεστερ", en: "Manchester" },
+  { names: ["Μαδρίτη", "Μαδριτη", "Madrid"], gr: "Μαδρίτη", en: "Madrid" },
+  { names: ["Μασσαλία", "Μασσαλια", "Marseille"], gr: "Μασσαλία", en: "Marseille" },
+  { names: ["Μιλάνο", "Μιλανο", "Milan"], gr: "Μιλάνο", en: "Milan" },
+  { names: ["Μουμπάι", "Μουμπαι", "Mumbai"], gr: "Μουμπάι", en: "Mumbai" },
+  { names: ["Μπολόνια", "Μπολονια", "Bologna"], gr: "Μπολόνια", en: "Bologna" },
+  { names: ["Μόναχο", "Μοναχο", "Munich"], gr: "Μόναχο", en: "Munich" },
+  { names: ["Νάπολη", "Ναπολη", "Naples"], gr: "Νάπολη", en: "Naples" },
+  { names: ["Νέα Υόρκη", "Νεα Υορκη", "New York"], gr: "Νέα Υόρκη", en: "New York" },
+  { names: ["Πόλη του Μεξικού", "Πολη του Μεξικου", "Mexico City"], gr: "Πόλη του Μεξικού", en: "Mexico City" },
+  { names: ["Ρώμη", "Ρωμη", "Rome"], gr: "Ρώμη", en: "Rome" },
+  { names: ["Σάο Πάολο", "Σαο Παολο", "São Paulo", "Sao Paulo"], gr: "Σάο Πάολο", en: "São Paulo" },
+  { names: ["Σίδνεϊ", "Σιδνεϊ", "Sydney"], gr: "Σίδνεϊ", en: "Sydney" },
+  { names: ["Σαγκάη", "Σαγκαη", "Shanghai"], gr: "Σαγκάη", en: "Shanghai" },
+  { names: ["Σεβίλλη", "Σεβιλλη", "Seville", "Sevilla"], gr: "Σεβίλλη", en: "Seville" },
+  { names: ["Σεούλ", "Σεουλ", "Seoul"], gr: "Σεούλ", en: "Seoul" },
+  { names: ["Τορίνο", "Τορινο", "Turin"], gr: "Τορίνο", en: "Turin" },
+  { names: ["Τόκιο", "Τοκιο", "Tokyo"], gr: "Τόκιο", en: "Tokyo" },
+  { names: ["Φρανκφούρτη", "Φρανκφουρτη", "Frankfurt"], gr: "Φρανκφούρτη", en: "Frankfurt" },
+];
+
+const cityNameLookup = new Map<string, { gr: string; en: string }>();
+for (const entry of CITY_DISPLAY_NAMES) {
+  for (const name of entry.names) {
+    cityNameLookup.set(normalizeKey(name), { gr: entry.gr, en: entry.en });
+  }
+}
+
+function localizedCityName(value: unknown, lang: "gr" | "en") {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const match = cityNameLookup.get(normalizeKey(raw));
+  if (match) return lang === "en" ? match.en : match.gr;
+  return raw;
 }
 
 function genderMarkerSymbol(city: any) {
@@ -520,6 +608,8 @@ export default function GraduatesMapPage() {
           avg_graduation_weight: 0,
         } : {
           ...city,
+          raw_city_name: (city as any).city_name,
+          city_name: localizedCityName((city as any).city_name, mapLanguage),
           latitude,
           longitude,
         }),
@@ -612,7 +702,7 @@ export default function GraduatesMapPage() {
       window.cancelAnimationFrame(frame);
       window.clearTimeout(timer);
     };
-  }, [activeBounds, activeFitMaxZoom, fitPadding]);
+  }, [activeBounds, activeFitMaxZoom, fitPadding, highContrastEnabled]);
 
 
   useEffect(() => {
@@ -934,6 +1024,7 @@ export default function GraduatesMapPage() {
   }, [abroadCountryMarkers, declutteredMarkerMap, greekCityMarkers.items, loading, mapScope, scopeTransitionLoading]);
   const topPeriphery = useMemo(() => items[0] || null, [items]);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
+  const topCityName = topCity ? localizedCityName((topCity as any).city_name, mapLanguage) : "";
   const total = useMemo(
     () => items.reduce((sum, item) => sum + (Number(item.count ?? 0) || 0), 0),
     [items],
@@ -1032,7 +1123,7 @@ export default function GraduatesMapPage() {
 
     const requestParams = {
       ...(city.city_id ? { city_id: city.city_id } : {}),
-      ...(mapScope === "greece" && city.city_name ? { city_name: city.city_name } : {}),
+      ...(mapScope === "greece" && (city.raw_city_name || city.city_name) ? { city_name: city.raw_city_name || city.city_name } : {}),
       ...(city.country_region_id ? { country_region_id: city.country_region_id } : {}),
       mode: mapMetric,
       ...params,
@@ -1048,7 +1139,7 @@ export default function GraduatesMapPage() {
       ...(detail || {}),
       city_name: mapScope === "abroad"
         ? localizedCountryName(detail?.city_name || city.city_name || city.country_name || "", mapLanguage)
-        : String(detail?.city_name || city.city_name || ""),
+        : localizedCityName(detail?.city_name || city.city_name || "", mapLanguage),
       count: Number(detail?.total ?? city.count ?? 0),
       total: Number(detail?.total ?? city.count ?? 0),
       male_count: detail?.male_count ?? city.male_count ?? 0,
@@ -1306,11 +1397,11 @@ export default function GraduatesMapPage() {
       <div className={`map-summary-shell${summaryLoading ? " is-loading" : ""}`}>
         <div className="map-summary-grid">
           <div className="card map-summary-card">
-          <div className="map-summary-label">
-            {mt("summary.total", { defaultValue: "Σύνολο αποφοίτων" })}
+          <div className="map-summary-label">{scopedTotalLabel}</div>
+          <div className="map-summary-value">{total}</div>
+          <div className="map-summary-sub">
+            {mt("summary.total", { defaultValue: "Σύνολο αποφοίτων" })}: {overallTotal}
           </div>
-          <div className="map-summary-value">{overallTotal}</div>
-          <div className="map-summary-sub">{scopedTotalLabel}: {total}</div>
         </div>
         <div className="card map-summary-card">
           <div className="map-summary-label">
@@ -1333,7 +1424,7 @@ export default function GraduatesMapPage() {
               defaultValue: "Πόλη με τους περισσότερους αποφοίτους",
             })}
           </div>
-          <div className="map-summary-value">{topCity?.city_name || "-"}</div>
+          <div className="map-summary-value">{topCityName || "-"}</div>
           <div className="map-summary-sub">
             {topCity
               ? `${topCity.count} ${mt("export.count", { defaultValue: "Απόφοιτοι" })}`
@@ -1516,7 +1607,7 @@ export default function GraduatesMapPage() {
               {selectedCityCards.map((city) => (
                 <InfoBox
                   key={mapCityKey(city)}
-                  title={city.city_name}
+                  title={mapScope === "abroad" ? localizedCountryName(city.city_name || city.country_name, mapLanguage) : localizedCityName(city.city_name, mapLanguage)}
                   totalText={mt("totalGraduatesLine", {
                     total: Number(city.total ?? city.count ?? 0),
                     defaultValue: "Σύνολο αποφοίτων: {{total}}",
