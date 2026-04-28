@@ -2363,11 +2363,18 @@ html.accessibility-high-contrast .map-legend-swatch-count-high-contrast{
   max-width:100%;
 }
 .chart-data-summary-row{
+  display:grid;
+  grid-template-columns:minmax(120px, 1fr) minmax(82px, auto);
   gap:12px;
-  justify-content:center;
+  justify-content:start;
+  width:100%;
+}
+.chart-data-summary-label-wrap{
+  justify-content:flex-start;
 }
 .chart-data-summary-meta{
-  margin-left:10px;
+  justify-content:flex-end;
+  margin-left:0;
 }
 html.accessibility-high-contrast .statistics-dual-pie-topbar h4{
   color:#7fffd4 !important;
