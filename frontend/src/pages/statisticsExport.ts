@@ -99,7 +99,7 @@ function buildSheets(args: BuildArgs) {
 
   sheets.set("byYear", {
     chartId: "byYear",
-    name: activeLang === "en" ? "Graduates by Graduation Year" : "Απόφοιτοι ανά έτος αποφοίτησης",
+    name: activeLang === "en" ? "Graduates by Graduation Year" : "Πλήθος αποφοίτων ανά έτος",
     rows: (data?.by_year ?? []).map((row: any) => ({
       [activeLang === "en" ? "Graduation Year" : "Έτος αποφοίτησης"]: num(row.year),
       [activeLang === "en" ? "Graduate Count" : "Πλήθος αποφοίτων"]: num(row.count),
