@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
-import { Op, QueryTypes } from "sequelize";
+import { QueryTypes } from "sequelize";
 import { ensureLocalizedRegionNames, resolveMapLocation } from "../services/mapLocation.service";
 import { sequelize } from "../config/sequelize";
 import { buildMapWhere, calculateAgeAtDate, isAbroadMapGraduate, isGreekMapGraduate, loadRegions, normalizeKey, pickTopName, toInt } from "./map.helpers";

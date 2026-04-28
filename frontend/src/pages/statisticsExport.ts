@@ -20,7 +20,6 @@ export type StatisticsChartId =
 
 type NamedCountRow = {
   id?: number | null;
-  study_program_id?: number | null;
   name?: string | null;
   name_el?: string | null;
   name_en?: string | null;

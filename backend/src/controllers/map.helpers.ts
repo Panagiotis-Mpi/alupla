@@ -117,44 +117,17 @@ export function buildMapWhere(req: Request) {
 }
 
 export function pickTopName(counts: Map<number, number>, labels: Map<number, string>) {
-  let topId = 0;
   let topCount = 0;
   let topLabel = "";
 
   for (const [id, count] of counts.entries()) {
     const label = labels.get(id) || String(id);
     if (count > topCount || (count === topCount && label.localeCompare(topLabel, "el") < 0)) {
-      topId = id;
       topCount = count;
       topLabel = label;
     }
   }
 
   return topCount > 0 ? topLabel : null;
-}
-
-export function collapseCountsByLabel(counts: Map<number, number>, labels: Map<number, string>) {
-  const grouped = new Map<string, { id: number; label: string; count: number }>();
-
-  for (const [id, count] of counts.entries()) {
-    if (!count) continue;
-    const label = labels.get(id) || String(id);
-    const key = normalizeKey(label);
-    const current = grouped.get(key);
-
-    if (current) {
-      current.count += count;
-      if (label.localeCompare(current.label, "el") < 0) current.label = label;
-      if (id < current.id) current.id = id;
-      continue;
-    }
-
-    grouped.set(key, { id, label, count });
-  }
-
-  return Array.from(grouped.values()).sort((left, right) => {
-    if (right.count !== left.count) return right.count - left.count;
-    return left.label.localeCompare(right.label, "el");
-  });
 }
 
