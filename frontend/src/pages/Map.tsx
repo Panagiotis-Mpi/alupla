@@ -987,6 +987,16 @@ export default function GraduatesMapPage() {
     setSelectedExportSelections((prev) => prev.length === allSelections.length ? [] : allSelections);
   }
 
+  function toggleExportCategorySelections(category: ExportCategoryKey) {
+    setSelectedExportSelections((prev) => {
+      const scopes: MapScope[] = ["greece", "abroad"];
+      const allSelected = scopes.every((scope) => prev.some((entry) => entry.category === category && entry.scope === scope));
+      if (allSelected) return prev.filter((entry) => entry.category !== category);
+      const withoutCategory = prev.filter((entry) => entry.category !== category);
+      return [...withoutCategory, ...scopes.map((scope) => ({ category, scope }))];
+    });
+  }
+
   function removeSelectedCityCard(city: any) {
     setSelectedCityCards((prev) => prev.filter((entry) => !sameMapSelection(mapScope, entry, city)));
   }
@@ -1525,6 +1535,7 @@ export default function GraduatesMapPage() {
           onClose={closeExportSelection}
           onToggleAllSelections={toggleAllExportSelections}
           onToggleScopeSelection={toggleExportScopeSelection}
+          onToggleCategorySelections={toggleExportCategorySelections}
           onConfirm={() => void handleExportSelection()}
         />
       ) : null}

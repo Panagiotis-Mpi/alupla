@@ -228,6 +228,7 @@ export function MapExportSelectionModal(props: {
   onClose: () => void;
   onToggleAllSelections: () => void;
   onToggleScopeSelection: (category: ExportCategoryKey, scope: ExportScopeOption) => void;
+  onToggleCategorySelections: (category: ExportCategoryKey) => void;
   onConfirm: () => void;
 }) {
   const scopeOptions: ExportScopeOption[] = ["greece", "abroad"];
@@ -259,11 +260,11 @@ export function MapExportSelectionModal(props: {
         className="card"
         onClick={(event) => event.stopPropagation()}
         style={{
-          width: "min(680px, 100%)",
-          maxHeight: isCompactExportModal ? "min(88dvh, 760px)" : "min(78vh, 760px)",
+          width: isCompactExportModal ? "min(520px, 100%)" : "min(560px, 100%)",
+          maxHeight: isCompactExportModal ? "min(82dvh, 680px)" : "min(68vh, 680px)",
           display: "grid",
           gridTemplateRows: "auto minmax(0, 1fr) auto",
-          gap: isCompactExportModal ? 10 : 12,
+          gap: isCompactExportModal ? 8 : 10,
           padding: isCompactExportModal ? 12 : 14,
           overflow: "hidden",
           background: "#ffffff",
@@ -279,44 +280,52 @@ export function MapExportSelectionModal(props: {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: isCompactExportModal ? 12 : 10, overflowY: "auto", minHeight: 0, paddingRight: isCompactExportModal ? 2 : 4, paddingBottom: 2 }}>
+        <div style={{ display: "grid", gap: isCompactExportModal ? 10 : 10, overflowY: "auto", minHeight: 0, paddingRight: isCompactExportModal ? 2 : 4, paddingBottom: 2 }}>
           <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700, minHeight: isCompactExportModal ? 42 : undefined }}>
             <input type="checkbox" checked={props.selectedExportSelections.length === totalSelectionCount && totalSelectionCount > 0} onChange={props.onToggleAllSelections} />
             <span>{props.ct("all", { defaultValue: "Όλα" })}</span>
           </label>
 
-          {props.exportCategoryOptions.map((category) => (
-            <div key={category.id} style={{ display: "grid", gap: isCompactExportModal ? 12 : 10, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: isCompactExportModal ? 14 : 12, background: "#f8fafc" }}>
-              <div style={{ fontWeight: 700 }}>{category.label}</div>
-              <div style={{ display: "grid", gap: 8 }}>
-                {scopeOptions.map((scope) => {
-                  const checked = props.selectedExportSelections.some((entry) => entry.category === category.id && entry.scope === scope);
-                  const scopeLabel = scope === "greece"
-                    ? props.mt("scope.greece", { defaultValue: "Ελλάδα" })
-                    : props.mt("scope.abroad", { defaultValue: "Εξωτερικό" });
-                  return (
-                    <label key={`${category.id}-${scope}`} style={{ display: "flex", alignItems: "center", gap: 10, minHeight: isCompactExportModal ? 38 : undefined }}>
-                      <input type="checkbox" checked={checked} onChange={() => props.onToggleScopeSelection(category.id, scope)} />
-                      <span>{scopeLabel}</span>
-                    </label>
-                  );
-                })}
+          {props.exportCategoryOptions.map((category) => {
+            const categorySelections = props.selectedExportSelections.filter((entry) => entry.category === category.id);
+            const categoryChecked = categorySelections.length === scopeOptions.length;
+
+            return (
+              <div key={category.id} style={{ display: "grid", gap: isCompactExportModal ? 10 : 8, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: isCompactExportModal ? 12 : 12, background: "#f8fafc" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700, minHeight: isCompactExportModal ? 34 : undefined }}>
+                  <input type="checkbox" checked={categoryChecked} onChange={() => props.onToggleCategorySelections(category.id)} />
+                  <span>{category.label}</span>
+                </label>
+                <div style={{ display: "grid", gap: 6, paddingLeft: 18 }}>
+                  {scopeOptions.map((scope) => {
+                    const checked = props.selectedExportSelections.some((entry) => entry.category === category.id && entry.scope === scope);
+                    const scopeLabel = scope === "greece"
+                      ? props.mt("scope.greece", { defaultValue: "Ελλάδα" })
+                      : props.mt("scope.abroad", { defaultValue: "Εξωτερικό" });
+                    return (
+                      <label key={`${category.id}-${scope}`} style={{ display: "flex", alignItems: "center", gap: 10, minHeight: isCompactExportModal ? 34 : undefined }}>
+                        <input type="checkbox" checked={checked} onChange={() => props.onToggleScopeSelection(category.id, scope)} />
+                        <span>{scopeLabel}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        <div style={{ display: "grid", justifyItems: isCompactExportModal ? "stretch" : "end", gap: 8, paddingTop: 12, borderTop: "1px solid rgba(148, 163, 184, 0.18)" }}>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, paddingTop: 10, borderTop: "1px solid rgba(148, 163, 184, 0.18)", flexWrap: "wrap" }}>
           <button
             type="button"
             className="btn primary"
             disabled={!canSubmit}
-            style={{ minHeight: isCompactExportModal ? 46 : 42, padding: "0 16px", width: isCompactExportModal ? "100%" : 210, opacity: canSubmit ? 1 : 0.55 }}
+            style={{ minHeight: isCompactExportModal ? 46 : 42, padding: "0 16px", width: 210, opacity: canSubmit ? 1 : 0.55 }}
             onClick={props.onConfirm}
           >
             {props.exportingSelection ? props.ct("loading", { defaultValue: "Φόρτωση..." }) : props.mt("export.exportSelected", { defaultValue: "Εξαγωγή επιλεγμένων" })}
           </button>
-          <button type="button" className="btn" style={{ minHeight: isCompactExportModal ? 44 : 40, padding: "0 16px", width: isCompactExportModal ? "100%" : 210 }} onClick={props.onClose}>
+          <button type="button" className="btn" style={{ minHeight: isCompactExportModal ? 44 : 40, padding: "0 16px", width: 210 }} onClick={props.onClose}>
             {props.ct("cancel", { defaultValue: "Ακύρωση" })}
           </button>
         </div>
