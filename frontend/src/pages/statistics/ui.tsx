@@ -494,7 +494,7 @@ export function ScrollableLineChart(props: {
   const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
 
   return (
-    <div style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+    <div data-stat-chart-plot="true" style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
       <div style={{ minWidth: shouldScroll ? minWidth : "100%", width: shouldScroll ? "max-content" : "100%", height: props.height ?? 280 }}>
         <Line data={normalizedData} options={normalizedOptions} />
       </div>
@@ -520,7 +520,7 @@ function ScrollableBarChart(props: {
   const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
 
   return (
-    <div style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+    <div data-stat-chart-plot="true" style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
       <div style={{ minWidth: shouldScroll ? minWidth : "100%", width: shouldScroll ? "max-content" : "100%", height: props.height ?? 280 }}>
         <Bar data={props.data} options={normalizedOptions} />
       </div>
@@ -537,7 +537,7 @@ function FixedBarChart(props: {
   const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
 
   return (
-    <div style={{ width: "100%", height: props.height ?? 280 }}>
+    <div data-stat-chart-plot="true" style={{ width: "100%", height: props.height ?? 280 }}>
       <Bar data={props.data} options={normalizedOptions} />
     </div>
   );
@@ -632,7 +632,7 @@ function ScrollablePieChart(props: {
   const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
 
   return (
-    <div style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+    <div data-stat-chart-plot="true" style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
       <div style={{ minWidth: shouldScroll ? Math.max(minWidth, isCompact ? 560 : 640) : "100%", width: shouldScroll ? "max-content" : "100%", height: props.height ?? 340 }}>
         <Pie data={props.data} options={normalizedOptions} />
       </div>
