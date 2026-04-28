@@ -378,6 +378,13 @@ export async function getMapCityDetail(req: Request, res: Response) {
     applyGraduateMetrics(metricBucket, graduate, selectedStudyProgramId);
   }
 
+  const detailCityNames = cityId ? await ensureLocalizedRegionNames(cityId) : { nameEl: null, nameEn: null };
+  const detailCountryNames = countryRegionId ? await ensureLocalizedRegionNames(countryRegionId) : { nameEl: null, nameEn: null };
+  const detailNameEl = detailCityNames.nameEl || detailCountryNames.nameEl || cityLabel;
+  const detailNameEn = detailCityNames.nameEn || detailCountryNames.nameEn || cityLabel;
+  const detailCountryNameEl = detailCountryNames.nameEl || null;
+  const detailCountryNameEn = detailCountryNames.nameEn || null;
+
   if (mode === "dominant_gender") {
     const male = matching.filter((graduate) => graduate.gender === "M").length;
     const female = matching.filter((graduate) => graduate.gender === "F").length;
@@ -386,6 +393,11 @@ export async function getMapCityDetail(req: Request, res: Response) {
       ok: true,
       city_id: cityId || 0,
       city_name: cityLabel,
+      city_name_el: detailNameEl,
+      city_name_en: detailNameEn,
+      country_name: detailCountryNameEl || detailCountryNameEn || null,
+      country_name_el: detailCountryNameEl,
+      country_name_en: detailCountryNameEn,
       mode,
       total: matching.length,
       avg_age: metricBucket.ageCount ? Math.round((metricBucket.ageSum / metricBucket.ageCount) * 10) / 10 : null,
@@ -415,6 +427,11 @@ export async function getMapCityDetail(req: Request, res: Response) {
     ok: true,
     city_id: cityId || 0,
     city_name: cityLabel,
+    city_name_el: detailNameEl,
+    city_name_en: detailNameEn,
+    country_name: detailCountryNameEl || detailCountryNameEn || null,
+    country_name_el: detailCountryNameEl,
+    country_name_en: detailCountryNameEn,
     mode: "count",
     total: matching.length,
     avg_age: metricBucket.ageCount ? Math.round((metricBucket.ageSum / metricBucket.ageCount) * 10) / 10 : null,

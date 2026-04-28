@@ -47,6 +47,7 @@ type NominatimItem = {
   osm_id?: number;
   display_name?: string;
   address?: Record<string, string>;
+  namedetails?: Record<string, string>;
 };
 
 type BoundaryFeature = {
@@ -110,6 +111,21 @@ const COUNTRY_QUERY_ALIASES: Record<string, string> = {
 function toNumber(value: unknown) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function hasGreekText(value: unknown) {
+  return /[\u0370-\u03ff]/.test(String(value ?? ""));
+}
+
+function hasLatinText(value: unknown) {
+  return /[A-Za-z]/.test(String(value ?? ""));
+}
+
+function isUsableLocalizedName(value: unknown, lang: "el" | "en") {
+  const text = cleanRegionText(value);
+  if (!text) return false;
+  if (lang === "en") return !hasGreekText(text);
+  return hasGreekText(text) || !hasLatinText(text);
 }
 
 function withCountryFields(base: Omit<ResolvedMapLocation, "countryId" | "countryName">, country: CountryResolution | null) {
@@ -310,6 +326,7 @@ async function geocodeCity(rawCityName: string, preferredPeripheryId: number | n
     url.searchParams.set("format", "jsonv2");
     url.searchParams.set("countrycodes", "gr");
     url.searchParams.set("addressdetails", "1");
+    url.searchParams.set("namedetails", "1");
     url.searchParams.set("limit", "5");
     url.searchParams.set("accept-language", "el,en");
     url.searchParams.set("q", `${query}, Greece`);
@@ -379,6 +396,7 @@ async function geocodeCountry(rawCountryName: string) {
     const url = new URL("https://nominatim.openstreetmap.org/search");
     url.searchParams.set("format", "jsonv2");
     url.searchParams.set("addressdetails", "1");
+    url.searchParams.set("namedetails", "1");
     url.searchParams.set("limit", "5");
     url.searchParams.set("accept-language", "el,en");
     url.searchParams.set("featuretype", "country");
@@ -631,9 +649,16 @@ function localizedFromRegion(region: Partial<RegionLite> | null | undefined): Lo
   };
 }
 
-function firstAddressName(item: NominatimItem | null | undefined) {
+function firstAddressName(item: NominatimItem | null | undefined, lang: "el" | "en") {
+  const details = item?.namedetails || {};
   const address = item?.address || {};
+  const detailName = lang === "en"
+    ? details["name:en"] || details["alt_name:en"] || details["official_name:en"]
+    : details["name:el"] || details["alt_name:el"] || details["official_name:el"];
+  const fallbackDetail = details.name || details["name:en"] || details["name:el"];
   return cleanRegionText(
+    detailName ||
+    fallbackDetail ||
     address.city ||
     address.town ||
     address.village ||
@@ -657,12 +682,14 @@ async function fetchLocalizedNameForRegion(region: RegionLite, lang: "el" | "en"
       const osmType = match[1] === "node" ? "N" : match[1] === "way" ? "W" : "R";
       url.searchParams.set("format", "jsonv2");
       url.searchParams.set("addressdetails", "1");
+      url.searchParams.set("namedetails", "1");
       url.searchParams.set("osm_ids", `${osmType}${match[2]}`);
       url.searchParams.set("accept-language", lang);
     } else if (region.latitude !== null && region.longitude !== null) {
       url = new URL("https://nominatim.openstreetmap.org/reverse");
       url.searchParams.set("format", "jsonv2");
       url.searchParams.set("addressdetails", "1");
+      url.searchParams.set("namedetails", "1");
       url.searchParams.set("lat", String(region.latitude));
       url.searchParams.set("lon", String(region.longitude));
       url.searchParams.set("accept-language", lang);
@@ -672,6 +699,7 @@ async function fetchLocalizedNameForRegion(region: RegionLite, lang: "el" | "en"
       url = new URL("https://nominatim.openstreetmap.org/search");
       url.searchParams.set("format", "jsonv2");
       url.searchParams.set("addressdetails", "1");
+      url.searchParams.set("namedetails", "1");
       url.searchParams.set("limit", "1");
       url.searchParams.set("accept-language", lang);
       url.searchParams.set("q", region.type === "COUNTRY" ? region.name : `${region.name}, Greece`);
@@ -684,7 +712,7 @@ async function fetchLocalizedNameForRegion(region: RegionLite, lang: "el" | "en"
     if (!response.ok) return null;
     const data = await response.json() as NominatimItem | NominatimItem[];
     const item = Array.isArray(data) ? data[0] : data;
-    return firstAddressName(item) || null;
+    return firstAddressName(item, lang) || null;
   } catch {
     return null;
   } finally {
@@ -697,24 +725,30 @@ export async function ensureLocalizedRegionNames(regionId: number | null | undef
   const lookups = await loadRegionLookups();
   const region = lookups.byId.get(Number(regionId));
   if (!region) return { nameEl: null, nameEn: null };
-  if (region.name_el && region.name_en) return localizedFromRegion(region);
+
+  const currentEl = isUsableLocalizedName(region.name_el, "el") ? region.name_el : null;
+  const currentEn = isUsableLocalizedName(region.name_en, "en") ? region.name_en : null;
+  if (currentEl && currentEn) return { nameEl: currentEl, nameEn: currentEn };
+
   const cacheKey = String(region.id);
   let pending = localizedNameCache.get(cacheKey);
   if (!pending) {
     pending = (async () => {
-      const [nameEl, nameEn] = await Promise.all([
-        region.name_el ? Promise.resolve(region.name_el) : fetchLocalizedNameForRegion(region, "el"),
-        region.name_en ? Promise.resolve(region.name_en) : fetchLocalizedNameForRegion(region, "en"),
+      const [fetchedEl, fetchedEn] = await Promise.all([
+        currentEl ? Promise.resolve(currentEl) : fetchLocalizedNameForRegion(region, "el"),
+        currentEn ? Promise.resolve(currentEn) : fetchLocalizedNameForRegion(region, "en"),
       ]);
+      const nameEl = isUsableLocalizedName(fetchedEl, "el") ? fetchedEl : currentEl || region.name_el || region.name || null;
+      const nameEn = isUsableLocalizedName(fetchedEn, "en") ? fetchedEn : currentEn || (!hasGreekText(region.name) ? region.name : null);
       const payload: Record<string, unknown> = {};
-      if (nameEl && !region.name_el) payload.name_el = nameEl;
-      if (nameEn && !region.name_en) payload.name_en = nameEn;
+      if (nameEl && nameEl !== region.name_el) payload.name_el = nameEl;
+      if (nameEn && nameEn !== region.name_en) payload.name_en = nameEn;
       if (Object.keys(payload).length) {
         await Region.update(payload, { where: { id: region.id } });
         clearLocationCaches();
       }
       return {
-        nameEl: nameEl || region.name_el || region.name || null,
+        nameEl: nameEl || region.name || null,
         nameEn: nameEn || region.name_en || region.name || null,
       };
     })();

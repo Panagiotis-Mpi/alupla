@@ -314,6 +314,11 @@ export type MapCityDetailResponse = {
   ok: true;
   city_id: number;
   city_name: string;
+  city_name_el?: string | null;
+  city_name_en?: string | null;
+  country_name?: string | null;
+  country_name_el?: string | null;
+  country_name_en?: string | null;
   mode: "count" | "dominant_gender";
   total: number;
   labels?: string[];

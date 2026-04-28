@@ -281,8 +281,10 @@ function localizedCityName(value: unknown, lang: "gr" | "en") {
 function localizedRecordName(item: any, field: string, lang: "gr" | "en") {
   const key = lang === "en" ? field + "_en" : field + "_el";
   const localized = String(item?.[key] ?? "").trim();
-  if (localized) return localized;
-  return String(item?.[field] ?? "").trim();
+  if (!localized) return "";
+  if (lang === "en" && !hasGreek(localized)) return localized;
+  if (lang === "gr" && (hasGreek(localized) || !/[A-Za-z]/.test(localized))) return localized;
+  return "";
 }
 
 function localizedCityRecordName(item: any, lang: "gr" | "en") {
@@ -293,6 +295,11 @@ function localizedCityRecordName(item: any, lang: "gr" | "en") {
 function localizedCountryRecordName(item: any, lang: "gr" | "en") {
   const name = localizedRecordName(item, "country_name", lang) || localizedRecordName(item, "periphery_name", lang);
   return name || localizedCountryName(item?.country_name || item?.periphery_name, lang);
+}
+
+function localizedPeripheryRecordName(item: any, lang: "gr" | "en") {
+  const name = localizedRecordName(item, "periphery_name", lang);
+  return name || localizedFallbackName(String(item?.periphery_name || ""), lang);
 }
 
 function genderMarkerSymbol(city: any) {
@@ -507,6 +514,7 @@ export default function GraduatesMapPage() {
   const [scopeTransitionLoading, setScopeTransitionLoading] = useState(false);
   const [metricTransitionLoading, setMetricTransitionLoading] = useState(false);
   const [highContrastEnabled, setHighContrastEnabled] = useState(() => typeof document !== "undefined" && document.documentElement.classList.contains("accessibility-high-contrast"));
+  const mapLanguage = i18n.resolvedLanguage?.startsWith("en") ? "en" : "gr";
   const isCompactViewport = useCompactMapViewport();
   const fitPadding = isCompactViewport
     ? ([4, 4] as [number, number])
@@ -520,13 +528,14 @@ export default function GraduatesMapPage() {
       createMapParams({
         ...EMPTY_FILTERS,
         scope: mapScope,
+        lang: mapLanguage,
         ...((selectedGraduationYearStart && selectedGraduationYearEnd)
           ? selectedGraduationYearStart === selectedGraduationYearEnd
             ? { graduation_year: selectedGraduationYearStart }
             : { graduation_date_from: selectedGraduationYearStart + "-01-01", graduation_date_to: selectedGraduationYearEnd + "-12-31" }
           : {}),
       }),
-    [mapScope, selectedGraduationYearStart, selectedGraduationYearEnd],
+    [mapScope, mapLanguage, selectedGraduationYearStart, selectedGraduationYearEnd],
   );
   const { loading, items, cityPoints } =
     useMapData(params);
@@ -537,13 +546,14 @@ export default function GraduatesMapPage() {
       createMapParams({
         ...EMPTY_FILTERS,
         scope: counterpartScope,
+        lang: mapLanguage,
         ...((selectedGraduationYearStart && selectedGraduationYearEnd)
           ? selectedGraduationYearStart === selectedGraduationYearEnd
             ? { graduation_year: selectedGraduationYearStart }
             : { graduation_date_from: selectedGraduationYearStart + "-01-01", graduation_date_to: selectedGraduationYearEnd + "-12-31" }
           : {}),
       }),
-    [counterpartScope, selectedGraduationYearStart, selectedGraduationYearEnd],
+    [counterpartScope, mapLanguage, selectedGraduationYearStart, selectedGraduationYearEnd],
   );
   const { loading: counterpartLoading, items: counterpartItems } = useMapData(counterpartParams);
 
@@ -613,7 +623,6 @@ export default function GraduatesMapPage() {
   }, []);
 
   const activeMapTileUrl = highContrastEnabled ? highContrastMapTileUrl : lightMapTileUrl;
-  const mapLanguage = i18n.resolvedLanguage?.startsWith("en") ? "en" : "gr";
   const countMarkerRadii = useMemo(() => isCompactViewport ? [8, 10, 12, 15, 18, 21, 24] : [10, 13, 16, 20, 24, 29, 34], [isCompactViewport]);
 
   const resetComparedSelections = useCallback(() => {
@@ -1460,7 +1469,7 @@ export default function GraduatesMapPage() {
               : mt("summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" })}
           </div>
           <div className="map-summary-value">
-            {topPeriphery ? (mapScope === "abroad" ? localizedCountryRecordName(topPeriphery, mapLanguage) : topPeriphery.periphery_name) : "-"}
+            {topPeriphery ? (mapScope === "abroad" ? localizedCountryRecordName(topPeriphery, mapLanguage) : localizedPeripheryRecordName(topPeriphery, mapLanguage)) : "-"}
           </div>
           <div className="map-summary-sub">
             {topPeriphery
