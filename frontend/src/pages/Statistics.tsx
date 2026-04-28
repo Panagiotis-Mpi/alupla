@@ -243,7 +243,7 @@ export default function Statistics() {
       ({
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: "bottom" as const } },
+        plugins: { legend: { display: false } },
         scales: {
           x: { offset: false, stacked: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
           y: { beginAtZero: true, ticks: yTicks },
