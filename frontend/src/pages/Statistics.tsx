@@ -87,7 +87,6 @@ export default function Statistics() {
         label: t("groups.academic"),
         charts: [
           { id: "byYear" as StatisticsChartId, label: t("sections.byYear") },
-          { id: "studyProgram" as StatisticsChartId, label: t("sections.studyProgram") },
           { id: "gradeByYear" as StatisticsChartId, label: t("sections.gradeByYear") },
           { id: "gradeDistribution" as StatisticsChartId, label: t("sections.gradeDistribution") },
           { id: "avgGradeByProgram" as StatisticsChartId, label: t("sections.avgGradeByProgram") },
@@ -259,7 +258,6 @@ export default function Statistics() {
   const avgGradesByYear = seriesFromRows(data?.avg_grade_by_year, { labelKey: "year", valueKey: "avg" });
   const avgGradeByProgram = seriesFromRows(data?.avg_grade_by_program, { labelKey: "name", valueKey: "avg" });
   const gradeBins = seriesFromRows(data?.degree_grade_bins);
-  const studyPrograms = seriesFromRows(data?.study_program_distribution, { labelKey: "name" });
   const regions = seriesFromRows(data?.origin_region_distribution, { labelKey: "name" });
   const municipalities = seriesFromRows(data?.origin_municipality_distribution, { labelKey: "name" });
   const countries = seriesFromRows(data?.origin_country_distribution, { labelKey: "name" });
@@ -659,7 +657,6 @@ export default function Statistics() {
             birthYears={birthYears}
             genderByProgramPie={genderByProgramPie}
             genderProgramSelect={genderProgramSelect}
-            studyPrograms={studyPrograms}
             avgGradesByYear={avgGradesByYear}
             gradeBins={gradeBins}
             avgGradeByProgram={avgGradeByProgram}
@@ -685,7 +682,6 @@ export default function Statistics() {
             birthYears={birthYears}
             genderByProgramPie={genderByProgramPie}
             genderProgramSelect={genderProgramSelect}
-            studyPrograms={studyPrograms}
             avgGradesByYear={avgGradesByYear}
             gradeBins={gradeBins}
             avgGradeByProgram={avgGradeByProgram}
@@ -711,7 +707,6 @@ export default function Statistics() {
             birthYears={birthYears}
             genderByProgramPie={genderByProgramPie}
             genderProgramSelect={genderProgramSelect}
-            studyPrograms={studyPrograms}
             avgGradesByYear={avgGradesByYear}
             gradeBins={gradeBins}
             avgGradeByProgram={avgGradeByProgram}
@@ -771,7 +766,6 @@ export default function Statistics() {
           birthYears={birthYears}
           genderByProgramPie={genderByProgramPie}
           genderProgramSelect={genderProgramSelect}
-          studyPrograms={studyPrograms}
           avgGradesByYear={avgGradesByYear}
           gradeBins={gradeBins}
           avgGradeByProgram={avgGradeByProgram}
