@@ -42,24 +42,26 @@ function TopNav() {
       return [statistics, map];
     }
 
-    const links = [
-      { to: "/graduates", label: t("nav.graduates") },
-      {
-        to: "/academic-data",
-        label: t("nav.academicPrograms", {
-          defaultValue: lang === "en" ? "Academic Programs" : "Ακαδημαϊκά προγράμματα",
-        }),
-      },
-      statistics,
-      map,
-    ];
+    const graduates = { to: "/graduates", label: t("nav.graduates") };
+    const academicData = {
+      to: "/academic-data",
+      label: t("nav.academicPrograms", {
+        defaultValue: lang === "en" ? "Academic Programs" : "Ακαδημαϊκά προγράμματα",
+      }),
+    };
 
     if (role === "super_admin") {
-      links.push({ to: "/users", label: t("nav.users") });
-      links.push({ to: "/logs", label: t("nav.logs") });
+      return [
+        statistics,
+        map,
+        graduates,
+        academicData,
+        { to: "/users", label: t("nav.users") },
+        { to: "/logs", label: t("nav.logs") },
+      ];
     }
 
-    return links;
+    return [statistics, map, graduates, academicData];
   }, [authRoute, lang, role, t, user]);
 
   const closeMenu = React.useCallback(() => setMenuOpen(false), []);
