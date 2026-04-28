@@ -640,13 +640,11 @@ function ScrollablePieChart(props: {
   );
 }
 
-export function PieChartCard(props: {
+function PieChartFigure(props: {
   title: string;
   labels: string[];
   values: number[];
-  chartId?: string;
   height?: number;
-  control?: React.ReactNode;
   colors?: string[];
 }) {
   const highContrast = useHighContrastEnabled();
@@ -670,36 +668,77 @@ export function PieChartCard(props: {
   const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
 
   return (
+    <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ display: "grid", gap: 12, position: "relative" }}>
+      <ScrollablePieChart
+        height={props.height ?? 340}
+        labels={props.labels}
+        data={chartData}
+        options={applyAccessibleChartOptions({
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (context: any) => {
+                  const label = String(context.label ?? "");
+                  const value = Number(context.parsed ?? 0);
+                  const total = (context.dataset.data ?? []).reduce((sum: number, current: number) => sum + Number(current ?? 0), 0);
+                  const percent = total > 0 ? ` (${((value / total) * 100).toFixed(1)}%)` : "";
+                  return `${label}: ${value}${percent}`;
+                },
+              },
+            },
+          },
+        }, highContrast)}
+      />
+      <ChartDataSummary labels={props.labels} values={props.values} colors={chartColors} borderColors={borderColors} />
+    </div>
+  );
+}
+
+export function PieChartCard(props: {
+  title: string;
+  labels: string[];
+  values: number[];
+  chartId?: string;
+  height?: number;
+  control?: React.ReactNode;
+  colors?: string[];
+}) {
+  return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={{ ...compactTopbarStyle, display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
         {props.control}
       </div>
-      <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ display: "grid", gap: 12, position: "relative" }}>
-        <ScrollablePieChart
-          height={props.height ?? 340}
-          labels={props.labels}
-          data={chartData}
-          options={applyAccessibleChartOptions({
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: (context: any) => {
-                    const label = String(context.label ?? "");
-                    const value = Number(context.parsed ?? 0);
-                    const total = (context.dataset.data ?? []).reduce((sum: number, current: number) => sum + Number(current ?? 0), 0);
-                    const percent = total > 0 ? ` (${((value / total) * 100).toFixed(1)}%)` : "";
-                    return `${label}: ${value}${percent}`;
-                  },
-                },
-              },
-            },
-          }, highContrast)}
-        />
-        <ChartDataSummary labels={props.labels} values={props.values} colors={chartColors} borderColors={borderColors} />
+      <PieChartFigure title={props.title} labels={props.labels} values={props.values} height={props.height} colors={props.colors} />
+    </div>
+  );
+}
+
+export function DualPieChartCard(props: {
+  title: string;
+  chartId?: string;
+  pies: Array<{ key: string; title: string; labels: string[]; values: number[]; control?: React.ReactNode }>;
+  height?: number;
+  colors?: string[];
+}) {
+  return (
+    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
+      <div className="topbar" style={compactTopbarStyle}>
+        <h3 style={{ margin: 0 }}>{props.title}</h3>
+      </div>
+      <div className="statistics-dual-pie-grid">
+        {props.pies.map((pie) => (
+          <div className="statistics-dual-pie-panel" key={pie.key}>
+            <div className="statistics-dual-pie-topbar">
+              <h4>{pie.title}</h4>
+              {pie.control}
+            </div>
+            <PieChartFigure title={`${props.title} ${pie.title}`} labels={pie.labels} values={pie.values} height={props.height ?? 320} colors={props.colors} />
+          </div>
+        ))}
       </div>
     </div>
   );

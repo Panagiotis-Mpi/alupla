@@ -62,7 +62,8 @@ export default function Statistics() {
   const [err, setErr] = React.useState<string | null>(null);
   const [data, setData] = React.useState<any | null>(null);
   const [activeGroup, setActiveGroup] = React.useState<"demographics" | "academic" | "geography">("demographics");
-  const [selectedGenderEntryYear, setSelectedGenderEntryYear] = React.useState<string>("all");
+  const [selectedGenderEntryYearLeft, setSelectedGenderEntryYearLeft] = React.useState<string>("all");
+  const [selectedGenderEntryYearRight, setSelectedGenderEntryYearRight] = React.useState<string>("all");
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedExportFormat, setSelectedExportFormat] = React.useState<"xlsx" | "csv" | "png" | null>(null);
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
@@ -290,16 +291,22 @@ export default function Statistics() {
 
   const genderByEntryYearRows = React.useMemo(() => ((data?.gender_by_entry_year ?? []) as NamedCountRow[]), [data]);
 
-  const selectedGenderEntryYearRow = React.useMemo(() => {
-    if (!genderByEntryYearRows.length) return null;
-    if (selectedGenderEntryYear === "all") return genderByEntryYearRows[0] ?? null;
-    return genderByEntryYearRows.find((row) => String(row.entry_year ?? row.year ?? "") === selectedGenderEntryYear) ?? genderByEntryYearRows[0] ?? null;
-  }, [genderByEntryYearRows, selectedGenderEntryYear]);
+  const genderByEntryYearByValue = React.useMemo(() => {
+    const map = new Map<string, NamedCountRow>();
+    genderByEntryYearRows.forEach((row) => {
+      const value = String(row.entry_year ?? row.year ?? "");
+      if (value) map.set(value, row);
+    });
+    return map;
+  }, [genderByEntryYearRows]);
 
-  const genderByEntryYearPie = React.useMemo(() => ({
-    labels: [t("table.male"), t("table.female")],
-    values: [Number(selectedGenderEntryYearRow?.male ?? 0), Number(selectedGenderEntryYearRow?.female ?? 0)],
-  }), [selectedGenderEntryYearRow, t]);
+  const makeGenderByEntryYearPie = React.useCallback((selectedYear: string) => {
+    const row = genderByEntryYearByValue.get(selectedYear) ?? genderByEntryYearRows[0] ?? null;
+    return {
+      labels: [t("table.male"), t("table.female")],
+      values: [Number(row?.male ?? 0), Number(row?.female ?? 0)],
+    };
+  }, [genderByEntryYearByValue, genderByEntryYearRows, t]);
 
   const maxGraduationYears = yearsToDegreeDistributionRaw.labels.reduce<number | null>((current, label, index) => {
     const numericLabel = Number(label);
@@ -326,14 +333,11 @@ export default function Statistics() {
 
   React.useEffect(() => {
     if (!entryYearOptions.length) return;
-    if (selectedGenderEntryYear === "all") {
-      setSelectedGenderEntryYear(entryYearOptions[0]?.value ?? "all");
-      return;
-    }
-    if (!entryYearOptions.some((option) => option.value === selectedGenderEntryYear)) {
-      setSelectedGenderEntryYear(entryYearOptions[0]?.value ?? "all");
-    }
-  }, [entryYearOptions, selectedGenderEntryYear]);
+    const first = entryYearOptions[0]?.value ?? "all";
+    const second = entryYearOptions[1]?.value ?? first;
+    setSelectedGenderEntryYearLeft((current) => current === "all" || !entryYearOptions.some((option) => option.value === current) ? first : current);
+    setSelectedGenderEntryYearRight((current) => current === "all" || !entryYearOptions.some((option) => option.value === current) ? second : current);
+  }, [entryYearOptions]);
 
   const topButtonStyle: React.CSSProperties = {
     minHeight: 48,
@@ -361,15 +365,30 @@ export default function Statistics() {
     outline: "none",
   };
 
-  const genderEntryYearSelect = entryYearOptions.length ? (
-    <select value={selectedGenderEntryYear} onChange={(e) => setSelectedGenderEntryYear(e.target.value)} style={selectStyle}>
+  const makeGenderEntryYearSelect = React.useCallback((value: string, onChange: (value: string) => void) => entryYearOptions.length ? (
+    <select value={value} onChange={(e) => onChange(e.target.value)} style={selectStyle}>
       {entryYearOptions.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}
         </option>
       ))}
     </select>
-  ) : null;
+  ) : null, [entryYearOptions, selectStyle]);
+
+  const genderByEntryYearPies = React.useMemo(() => [
+    {
+      key: "left",
+      title: selectedGenderEntryYearLeft === "all" ? "-" : selectedGenderEntryYearLeft,
+      ...makeGenderByEntryYearPie(selectedGenderEntryYearLeft),
+      control: makeGenderEntryYearSelect(selectedGenderEntryYearLeft, setSelectedGenderEntryYearLeft),
+    },
+    {
+      key: "right",
+      title: selectedGenderEntryYearRight === "all" ? "-" : selectedGenderEntryYearRight,
+      ...makeGenderByEntryYearPie(selectedGenderEntryYearRight),
+      control: makeGenderEntryYearSelect(selectedGenderEntryYearRight, setSelectedGenderEntryYearRight),
+    },
+  ], [makeGenderByEntryYearPie, makeGenderEntryYearSelect, selectedGenderEntryYearLeft, selectedGenderEntryYearRight]);
 
   const allChartsSelected = allChartIds.length > 0 && selectedChartIds.length === allChartIds.length;
 
@@ -652,8 +671,7 @@ export default function Statistics() {
             countChartData={countChartData}
             countChartOptions={countChartOptions}
             birthYears={birthYears}
-            genderByEntryYearPie={genderByEntryYearPie}
-            genderEntryYearSelect={genderEntryYearSelect}
+            genderByEntryYearPies={genderByEntryYearPies}
             avgGradesByYear={avgGradesByYear}
             gradeBins={gradeBins}
             yearsToDegree={yearsToDegree}
@@ -676,8 +694,7 @@ export default function Statistics() {
             countChartData={countChartData}
             countChartOptions={countChartOptions}
             birthYears={birthYears}
-            genderByEntryYearPie={genderByEntryYearPie}
-            genderEntryYearSelect={genderEntryYearSelect}
+            genderByEntryYearPies={genderByEntryYearPies}
             avgGradesByYear={avgGradesByYear}
             gradeBins={gradeBins}
             yearsToDegree={yearsToDegree}
@@ -700,8 +717,7 @@ export default function Statistics() {
             countChartData={countChartData}
             countChartOptions={countChartOptions}
             birthYears={birthYears}
-            genderByEntryYearPie={genderByEntryYearPie}
-            genderEntryYearSelect={genderEntryYearSelect}
+            genderByEntryYearPies={genderByEntryYearPies}
             avgGradesByYear={avgGradesByYear}
             gradeBins={gradeBins}
             yearsToDegree={yearsToDegree}
@@ -758,8 +774,7 @@ export default function Statistics() {
           countChartData={countChartData}
           countChartOptions={countChartOptions}
           birthYears={birthYears}
-          genderByEntryYearPie={genderByEntryYearPie}
-          genderEntryYearSelect={genderEntryYearSelect}
+          genderByEntryYearPies={genderByEntryYearPies}
           avgGradesByYear={avgGradesByYear}
           gradeBins={gradeBins}
           yearsToDegree={yearsToDegree}
