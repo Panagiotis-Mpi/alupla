@@ -79,19 +79,20 @@ export function StatisticsSummaryCards(props: {
   metricGridStyle: React.CSSProperties;
   metricTopRowStyle: React.CSSProperties;
   metricBottomRowStyle: React.CSSProperties;
+  loading?: boolean;
 }) {
   return (
     <div className="statistics-summary-section" style={props.sectionWrapStyle}>
       <div className="statistics-summary-grid" style={props.metricGridStyle}>
         <div className="statistics-summary-row" style={props.metricTopRowStyle}>
-          <MetricCard label={props.t("cards.total")} value={props.total} />
-          <MetricCard label={props.t("cards.avgAge")} value={props.avgAge} />
-          <MetricCard label={props.t("cards.avgGrade")} value={props.avgGrade} />
+          <MetricCard label={props.t("cards.total")} value={props.total} loading={props.loading} />
+          <MetricCard label={props.t("cards.avgAge")} value={props.avgAge} loading={props.loading} />
+          <MetricCard label={props.t("cards.avgGrade")} value={props.avgGrade} loading={props.loading} />
         </div>
         <div className="statistics-summary-row" style={props.metricBottomRowStyle}>
-          <MetricCard label={props.t("cards.earliestYear")} value={props.longestStudyYears} />
-          <MetricCard label={props.t("cards.topGraduationYear")} value={props.busiestYear} />
-          <MetricCard label={props.t("cards.topCity")} value={props.busiestCity} />
+          <MetricCard label={props.t("cards.earliestYear")} value={props.longestStudyYears} loading={props.loading} />
+          <MetricCard label={props.t("cards.topGraduationYear")} value={props.busiestYear} loading={props.loading} />
+          <MetricCard label={props.t("cards.topCity")} value={props.busiestCity} loading={props.loading} />
         </div>
       </div>
     </div>

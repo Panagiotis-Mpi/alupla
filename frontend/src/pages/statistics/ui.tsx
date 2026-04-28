@@ -552,11 +552,11 @@ export function SectionTitle(props: { title: string; subtitle?: string }) {
   );
 }
 
-export function MetricCard(props: { label: string; value: string | number }) {
+export function MetricCard(props: { label: string; value: string | number; loading?: boolean }) {
   return (
     <div className="card statistics-metric-card" style={metricCardStyle}>
       <div className="statistics-metric-label">{props.label}</div>
-      <div className="statistics-metric-value">{props.value}</div>
+      <div className={`statistics-metric-value${props.loading ? " is-loading" : ""}`}>{props.value}</div>
     </div>
   );
 }

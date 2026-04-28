@@ -1217,7 +1217,7 @@ export default function GraduatesMapPage() {
         .map-timeline-scale span:first-child { transform: translateX(0); }
         .map-timeline-scale span:last-child { transform: translateX(-100%); }
         .map-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 12px 0 0; }
-        .map-summary-shell.is-loading .map-summary-grid { filter: blur(3px); opacity: .72; pointer-events: none; user-select: none; transition: filter .18s ease, opacity .18s ease; }
+        .map-summary-value.is-loading, .map-summary-sub.is-loading { filter: blur(3px); opacity: .72; pointer-events: none; user-select: none; transition: filter .18s ease, opacity .18s ease; }
         .map-summary-card { min-height: 124px; padding: 18px; display: grid; align-content: space-between; gap: 8px; }
         .map-summary-label { color: #475569; font-size: 17px; line-height: 1.32; }
         .map-summary-value { font-size: 28px; font-weight: 800; line-height: 1.1; color: #0f172a; }
@@ -1230,7 +1230,7 @@ export default function GraduatesMapPage() {
         .map-loading-overlay { position: absolute; inset: 8px 8px 12px; border-radius: 18px; background: rgba(255,255,255,.08); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 950; pointer-events: none; }
         .map-loading-overlay-card { min-width: 180px; min-height: 88px; padding: 16px 20px; border-radius: 18px; border: 0; background: transparent; box-shadow: none; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; text-align: center; }
         .map-summary-shell, .map-timeline-shell, .map-details-shell { position: relative; }
-        .map-summary-overlay, .map-details-overlay { inset: 0; border-radius: 18px; }
+        .map-details-overlay { inset: 0; border-radius: 18px; }
         .map-main-card .map-canvas { height: clamp(760px, 80vh, 940px); min-height: 760px; }
         .map-trend-card, .map-combined-details-card { margin-top: 12px; padding: 16px; display: grid; gap: 12px; }
         .map-trend-canvas { height: 260px; min-height: 260px; width: 100%; }
@@ -1272,12 +1272,12 @@ export default function GraduatesMapPage() {
         onExportClick={() => openExportSelection("png")}
       />
 
-      <div className={`map-summary-shell${summaryLoading ? " is-loading" : ""}`}>
+      <div className="map-summary-shell">
         <div className="map-summary-grid">
           <div className="card map-summary-card">
           <div className="map-summary-label">{scopedTotalLabel}</div>
-          <div className="map-summary-value">{total}</div>
-          <div className="map-summary-sub">
+          <div className={`map-summary-value${summaryLoading ? " is-loading" : ""}`}>{total}</div>
+          <div className={`map-summary-sub${summaryLoading ? " is-loading" : ""}`}>
             {mt("summary.total", { defaultValue: "Σύνολο αποφοίτων" })}: {overallTotal}
           </div>
         </div>
@@ -1287,10 +1287,10 @@ export default function GraduatesMapPage() {
               ? mt("summary.topCountry", { defaultValue: "Χώρα με τους περισσότερους αποφοίτους" })
               : mt("summary.topPeriphery", { defaultValue: "Περιφέρεια με τους περισσότερους αποφοίτους" })}
           </div>
-          <div className="map-summary-value">
+          <div className={`map-summary-value${summaryLoading ? " is-loading" : ""}`}>
             {topPeriphery ? (mapScope === "abroad" ? localizedCountryRecordName(topPeriphery, mapLanguage) : localizedPeripheryRecordName(topPeriphery, mapLanguage)) : "-"}
           </div>
-          <div className="map-summary-sub">
+          <div className={`map-summary-sub${summaryLoading ? " is-loading" : ""}`}>
             {topPeriphery
               ? `${topPeriphery.count} ${mt("export.count", { defaultValue: "Απόφοιτοι" })}`
               : "-"}
@@ -1302,8 +1302,8 @@ export default function GraduatesMapPage() {
               defaultValue: "Πόλη με τους περισσότερους αποφοίτους",
             })}
           </div>
-          <div className="map-summary-value">{topCityName || "-"}</div>
-          <div className="map-summary-sub">
+          <div className={`map-summary-value${summaryLoading ? " is-loading" : ""}`}>{topCityName || "-"}</div>
+          <div className={`map-summary-sub${summaryLoading ? " is-loading" : ""}`}>
             {topCity
               ? `${topCity.count} ${mt("export.count", { defaultValue: "Απόφοιτοι" })}`
               : "-"}
@@ -1313,16 +1313,11 @@ export default function GraduatesMapPage() {
           <div className="map-summary-label">
             {mt("summary.avgAge", { defaultValue: "Μέση ηλικία αποφοίτων" })}
           </div>
-          <div className="map-summary-value">
+          <div className={`map-summary-value${summaryLoading ? " is-loading" : ""}`}>
             {weightedAvgAge === null ? "-" : compactNumber(weightedAvgAge)}
           </div>
         </div>
         </div>
-        {summaryLoading ? (
-          <div className="map-loading-overlay map-summary-overlay">
-            <div className="map-loading-overlay-card">{mt("loadingLabel", { defaultValue: "Φόρτωση" })}</div>
-          </div>
-        ) : null}
       </div>
 
       <div className="map-timeline-shell">

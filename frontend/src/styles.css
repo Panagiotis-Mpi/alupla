@@ -104,6 +104,7 @@ hr{border:none;border-top:1px solid #eef2f7;margin:12px 0}
   line-height:1.32;
   font-weight:500;
 }
+.statistics-metric-value.is-loading{filter:blur(3px);opacity:.72;pointer-events:none;user-select:none;transition:filter .18s ease,opacity .18s ease}
 .statistics-metric-value{
   font-size:28px;
   font-weight:800;
@@ -1940,7 +1941,7 @@ html.accessibility-high-contrast img:not(.leaflet-tile),
 html.accessibility-high-contrast video{
   filter:none !important;
 }
-html.accessibility-high-contrast .statistics-summary-loading-region::after,
+
 html.accessibility-high-contrast .statistics-chart-loading-region [data-stat-chart-card]::after{
   background:#000000 !important;
   color:#7fffd4 !important;
@@ -2232,7 +2233,7 @@ html.accessibility-high-contrast .alupla-city-label-text{
   padding:1px 4px;
   text-shadow:none !important;
 }
-html.accessibility-high-contrast .statistics-summary-loading-region::after,
+
 html.accessibility-high-contrast .statistics-chart-loading-region [data-stat-chart-card]::after{
   background:#000000 !important;
   color:#7fffd4 !important;
