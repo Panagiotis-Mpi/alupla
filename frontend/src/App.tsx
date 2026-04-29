@@ -7,6 +7,7 @@ import { getUser, logout } from "./lib/auth";
 import { pingPresence } from "./lib/api";
 import Footer from "./components/Footer";
 import AccessibilityMenu from "./components/AccessibilityMenu";
+import PublicHome from "./pages/PublicHome";
 
 const Login = React.lazy(() => import("./pages/Login"));
 const Register = React.lazy(() => import("./pages/Register"));
@@ -17,7 +18,6 @@ const Users = React.lazy(() => import("./pages/Users"));
 const Logs = React.lazy(() => import("./pages/Logs"));
 const Map = React.lazy(() => import("./pages/Map"));
 const Statistics = React.lazy(() => import("./pages/Statistics"));
-const PublicHome = React.lazy(() => import("./pages/PublicHome"));
 const AcademicData = React.lazy(() => import("./pages/AcademicData"));
 
 const COMPACT_WIDTH = 820;
