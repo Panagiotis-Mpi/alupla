@@ -64,6 +64,7 @@ export default function Statistics() {
   const [selectedGenderEntryYearLeft, setSelectedGenderEntryYearLeft] = React.useState<string>("all");
   const [selectedGenderEntryYearRight, setSelectedGenderEntryYearRight] = React.useState<string>("all");
   const [exportOpen, setExportOpen] = React.useState(false);
+  const [mobileSummaryOpen, setMobileSummaryOpen] = React.useState(false);
   const [selectedExportFormat, setSelectedExportFormat] = React.useState<"xlsx" | "csv" | "png" | null>(null);
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
   const pageRef = React.useRef<HTMLDivElement | null>(null);
@@ -616,7 +617,18 @@ export default function Statistics() {
         <div className="card page-header-card" style={{ padding: 14 }}>
           <div style={{ display: "grid", gap: 14 }}>
             <div style={{ display: "grid", gap: 14 }}>
-              <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
+              <div className="mobile-summary-title-row">
+                <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
+                <button
+                  type="button"
+                  className="btn mobile-summary-toggle"
+                  onClick={() => setMobileSummaryOpen((open) => !open)}
+                >
+                  {mobileSummaryOpen
+                    ? t("summary.hide", { defaultValue: i18n.language?.startsWith("en") ? "Hide summary" : "Απόκρυψη" })
+                    : t("summary.show", { defaultValue: i18n.language?.startsWith("en") ? "Summary" : "Σύνοψη" })}
+                </button>
+              </div>
               <StatisticsGroupMenu
                 t={t}
                 activeGroup={activeGroup}
@@ -640,7 +652,7 @@ export default function Statistics() {
           </div>
         </div>
 
-        <div>
+        <div className={`mobile-summary-panel${mobileSummaryOpen ? " open" : ""}`}>
           <StatisticsSummaryCards
             t={t}
             total={total}

@@ -316,6 +316,7 @@ export default function GraduatesMapPage() {
 
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
   const [mapScope, setMapScope] = useState<MapScope>("greece");
+  const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [selectedExportFormat, setSelectedExportFormat] =
     useState<ExportFormat | null>(null);
   const [selectedExportSelections, setSelectedExportSelections] = useState<ExportScopeSelection[]>([]);
@@ -1188,6 +1189,7 @@ export default function GraduatesMapPage() {
         .map-top-menu-card { padding: 20px 16px 16px; display: grid; gap: 14px; }
         .map-top-menu-title { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .map-top-menu-title h2 { margin: 0; }
+        .map-top-menu-title-spacer { flex: 1; }
         .map-top-controls-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; align-items: stretch; }
         .map-top-control-slot { position: relative; min-width: 0; }
         .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 16px; font-weight: 700; line-height: 1.25; letter-spacing: 0; }
@@ -1254,12 +1256,23 @@ export default function GraduatesMapPage() {
         .map-city-cards-inline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
         .map-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
         @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .map-city-cards-inline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @media (max-width: 780px) { .map-top-controls-row { grid-template-columns: 1fr; } }
+        @media (max-width: 780px) { .map-top-controls-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .map-top-menu-card { padding: 16px; gap: 12px; } .map-top-menu-title { gap: 10px; } .map-metric-button, .map-action-button, .map-program-button { min-height: 46px; font-size: 15px; } }
         @media (max-width: 640px) { .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } .map-timeline-actions { width: 100%; } .map-timeline-current { width: 100%; justify-content: center; } }
         @media (max-width: 520px) { .map-timeline-card { gap: 18px; } .map-timeline-scale { margin: 0 18px; font-size: 12px; height: 24px; } .map-year-ruler { margin: 0 18px; } .map-timeline-slider::-webkit-slider-thumb { width: 30px; height: 30px; border-width: 7px; } .map-timeline-slider::-moz-range-thumb { width: 16px; height: 16px; border-width: 7px; } }
       `}</style>
 
       <MapTopControls
+        summaryToggle={(
+          <button
+            type="button"
+            className="btn mobile-summary-toggle"
+            onClick={() => setMobileSummaryOpen((open) => !open)}
+          >
+            {mobileSummaryOpen
+              ? mt("summary.hide", { defaultValue: mapLanguage === "en" ? "Hide summary" : "Απόκρυψη" })
+              : mt("summary.show", { defaultValue: mapLanguage === "en" ? "Summary" : "Σύνοψη" })}
+          </button>
+        )}
         mt={mt}
         ct={ct}
         loading={loading}
@@ -1282,7 +1295,7 @@ export default function GraduatesMapPage() {
         onExportClick={() => openExportSelection("png")}
       />
 
-      <div className="map-summary-shell">
+      <div className={`map-summary-shell mobile-summary-panel${mobileSummaryOpen ? " open" : ""}`}>
         <div className="map-summary-grid">
           <div className="card map-summary-card">
           <div className="map-summary-label">{scopedTotalLabel}</div>

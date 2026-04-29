@@ -30,6 +30,8 @@ function TopNav() {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [isCompact, setIsCompact] = React.useState(() => (typeof window !== "undefined" ? window.innerWidth <= COMPACT_WIDTH : false));
+  const brandRef = React.useRef<HTMLButtonElement | null>(null);
+  const drawerRef = React.useRef<HTMLElement | null>(null);
 
   const authRoute = React.useMemo(() => ["/login", "/register"].some((path) => location.pathname.startsWith(path)), [location.pathname]);
   const lang: "gr" | "en" = i18n.language?.startsWith("en") ? "en" : "gr";
@@ -99,6 +101,23 @@ function TopNav() {
   }, [closeMenu, location.pathname]);
 
   React.useEffect(() => {
+    if (!isCompact || !menuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (drawerRef.current?.contains(target) || brandRef.current?.contains(target)) {
+        return;
+      }
+      setMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [isCompact, menuOpen]);
+
+  React.useEffect(() => {
     if (!user) {
       return;
     }
@@ -147,6 +166,7 @@ function TopNav() {
   return (
     <div className="nav">
       <button
+        ref={brandRef}
         className={`brand ${isCompact ? "brand-compact" : ""}`}
         type="button"
         onClick={handleBrandClick}
@@ -216,15 +236,7 @@ function TopNav() {
         )}
       </div>
 
-      {isCompact && menuOpen && (
-        <button
-          className="drawer-backdrop"
-          type="button"
-          aria-label={t("aria.closeMenu")}
-          onClick={closeMenu}
-        />
-      )}
-      <aside id="mobile-drawer" className={`mobile-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
+      <aside id="mobile-drawer" ref={drawerRef} className={`mobile-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
         <div className="mobile-drawer-header">
           <button className="brand mobile-drawer-brand" type="button" onClick={closeMenu}>
             ALUPLA

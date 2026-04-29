@@ -19,6 +19,7 @@ export function MapTopControls(props: {
   mapMetric: MapMetric;
   mapScope: MapScope;
   metricOptions: Record<MapMetric, MetricOption>;
+  summaryToggle?: React.ReactNode;
   onMetricChange: (metric: MapMetric) => void;
   onScopeChange: (scope: MapScope) => void;
   onExportClick: () => void;
@@ -50,6 +51,8 @@ export function MapTopControls(props: {
       <div className="map-top-menu-title">
         <h2>{props.mt("title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
         <span className="badge">{props.loading ? props.ct("loading", { defaultValue: "Φόρτωση..." }) : `${props.total} ${props.mt("totalInline", { defaultValue: "σύνολο" })}`}</span>
+        <span className="map-top-menu-title-spacer" />
+        {props.summaryToggle}
       </div>
       <div className="map-top-controls-row">
         {(["count", "dominant_gender"] as MapMetric[]).map((option) => (
