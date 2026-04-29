@@ -206,11 +206,11 @@ export default function AcademicData() {
             width: "100%",
           }}
         >
-          <button className="btn" style={{ width: "100%", minHeight: 48, padding: "0 18px", fontSize: 16, fontWeight: 700, justifyContent: "center", lineHeight: 1.25 }} onClick={() => importFileRef.current?.click()}>
-            {t("menu.import")}
-          </button>
           <button className="btn" style={{ width: "100%", minHeight: 48, padding: "0 18px", fontSize: 16, fontWeight: 700, justifyContent: "center", lineHeight: 1.25 }} onClick={() => void downloadTemplate()}>
             {t("menu.template")}
+          </button>
+          <button className="btn" style={{ width: "100%", minHeight: 48, padding: "0 18px", fontSize: 16, fontWeight: 700, justifyContent: "center", lineHeight: 1.25 }} onClick={() => importFileRef.current?.click()}>
+            {t("menu.import")}
           </button>
           <input ref={importFileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={importPrograms} />
         </div>
