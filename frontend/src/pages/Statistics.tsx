@@ -619,15 +619,6 @@ export default function Statistics() {
             <div style={{ display: "grid", gap: 14 }}>
               <div className="mobile-summary-title-row">
                 <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
-                <button
-                  type="button"
-                  className="btn mobile-summary-toggle"
-                  onClick={() => setMobileSummaryOpen((open) => !open)}
-                >
-                  {mobileSummaryOpen
-                    ? t("summary.hide", { defaultValue: i18n.language?.startsWith("en") ? "Hide summary" : "Απόκρυψη" })
-                    : t("summary.show", { defaultValue: i18n.language?.startsWith("en") ? "Summary" : "Σύνοψη" })}
-                </button>
               </div>
               <StatisticsGroupMenu
                 t={t}
@@ -648,6 +639,17 @@ export default function Statistics() {
                   </div>
                 )}
               />
+              <div className="mobile-submenu-toggle-row">
+                <button
+                  type="button"
+                  className="btn mobile-summary-toggle"
+                  onClick={() => setMobileSummaryOpen((open) => !open)}
+                >
+                  {mobileSummaryOpen
+                    ? t("summary.hide", { defaultValue: i18n.language?.startsWith("en") ? "Hide summary" : "Απόκρυψη" })
+                    : t("summary.show", { defaultValue: i18n.language?.startsWith("en") ? "Brief info" : "Σύντομες πληροφορίες" })}
+                </button>
+              </div>
             </div>
           </div>
         </div>

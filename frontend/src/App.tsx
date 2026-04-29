@@ -253,9 +253,6 @@ function TopNav() {
 
         {!authRoute && user && (
           <div className="mobile-drawer-section">
-            <button className={"btn " + (location.pathname.startsWith("/profile") ? "nav-link-active" : "")} onClick={() => navigate("/profile")}>
-              {`${user.first_name} ${user.last_name}`}
-            </button>
             <button className="btn" onClick={handleLogout}>
               {t("nav.logout")}
             </button>

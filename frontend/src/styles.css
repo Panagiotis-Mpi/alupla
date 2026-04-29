@@ -2436,3 +2436,35 @@ input,select,textarea,button{font:inherit}
 @media (min-width:821px){
   .mobile-summary-panel{display:block}
 }
+
+@media (max-width:820px){
+  .mobile-drawer{top:62px}
+  .mobile-submenu-toggle-row{display:grid;grid-template-columns:1fr;gap:8px;width:100%}
+  .map-mobile-submenu-toggle-row{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:0}
+  .mobile-submenu-toggle-row .mobile-summary-toggle{display:inline-flex;width:100%;border-radius:12px;min-height:40px}
+  .map-top-menu-title{display:flex;align-items:center;gap:10px;flex-wrap:nowrap}
+  .map-top-menu-title h2{min-width:0;flex:1 1 auto}
+  .map-top-menu-title .badge{flex:0 0 auto;white-space:nowrap}
+  .map-timeline-shell.mobile-timeline-panel{display:none}
+  .map-timeline-shell.mobile-timeline-panel.open{display:block}
+  .graduates-top-layout{display:grid !important;grid-template-columns:1fr;gap:12px !important}
+  .graduates-title-line{display:grid !important;grid-template-columns:1fr 1fr;gap:8px !important;width:100%}
+  .graduates-title-line h2{grid-column:1 / -1}
+  .graduates-title-line .badge{width:100%;justify-content:center;min-height:34px}
+  .graduates-actions-grid-main{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+  .graduates-actions-grid-main > a:first-child{grid-column:1 / -1}
+  .graduates-actions-grid-main > div[style*="grid-column"]{grid-column:1 / -1 !important}
+  .graduates-actions-grid-main > div[style*="grid-column"] .graduates-actions-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+  .logs-summary-card .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .logs-summary-table{min-width:560px !important;width:560px !important;table-layout:auto !important}
+  .logs-summary-table th,.logs-summary-table td{white-space:nowrap !important;word-break:normal !important;overflow-wrap:normal !important;font-size:12.5px;padding:8px 10px}
+}
+
+@media (min-width:821px){
+  .mobile-submenu-toggle-row{display:none}
+  .map-timeline-shell.mobile-timeline-panel{display:block}
+}
+
+@media (max-width:420px){
+  .graduates-actions-grid-main,.graduates-actions-grid-main > div[style*="grid-column"] .graduates-actions-grid{grid-template-columns:1fr !important}
+}

@@ -317,6 +317,7 @@ export default function GraduatesMapPage() {
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
   const [mapScope, setMapScope] = useState<MapScope>("greece");
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
+  const [mobileTimelineOpen, setMobileTimelineOpen] = useState(false);
   const [selectedExportFormat, setSelectedExportFormat] =
     useState<ExportFormat | null>(null);
   const [selectedExportSelections, setSelectedExportSelections] = useState<ExportScopeSelection[]>([]);
@@ -1270,7 +1271,18 @@ export default function GraduatesMapPage() {
           >
             {mobileSummaryOpen
               ? mt("summary.hide", { defaultValue: mapLanguage === "en" ? "Hide summary" : "Απόκρυψη" })
-              : mt("summary.show", { defaultValue: mapLanguage === "en" ? "Summary" : "Σύνοψη" })}
+              : mt("summary.show", { defaultValue: mapLanguage === "en" ? "Brief info" : "Σύντομες πληροφορίες" })}
+          </button>
+        )}
+        timelineToggle={(
+          <button
+            type="button"
+            className="btn mobile-summary-toggle"
+            onClick={() => setMobileTimelineOpen((open) => !open)}
+          >
+            {mobileTimelineOpen
+              ? mt("timeline.hide", { defaultValue: mapLanguage === "en" ? "Hide period" : "Απόκρυψη" })
+              : mt("timeline.show", { defaultValue: mapLanguage === "en" ? "Time period" : "Χρονικό διάστημα" })}
           </button>
         )}
         mt={mt}
@@ -1343,7 +1355,7 @@ export default function GraduatesMapPage() {
         </div>
       </div>
 
-      <div className="map-timeline-shell">
+      <div className={`map-timeline-shell mobile-timeline-panel${mobileTimelineOpen ? " open" : ""}`}>
         <MapYearTimeline
           mt={mt}
           years={availableYears}

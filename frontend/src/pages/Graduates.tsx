@@ -533,10 +533,10 @@ export default function Graduates() {
         </div>
       ) : null}
 
-      <div className="card" style={{ padding: 14 }}>
+      <div className="card graduates-top-card" style={{ padding: 14 }}>
         <div style={{ display: "grid", gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div className="graduates-top-layout" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
+            <div className="graduates-title-line" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
               <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
               <span className="badge">{activeLang === "gr" ? `Επιλεγμένοι: ${selectedIds.length}` : `Selected: ${selectedIds.length}`}</span>
