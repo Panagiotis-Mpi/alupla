@@ -171,7 +171,7 @@ function TopNav() {
       <div className="nav-right">
         <div className="lang-switcher">
           <button
-            className="btn"
+            className={"btn " + (lang === "gr" ? "nav-link-active" : "")}
             onClick={() => i18n.changeLanguage("gr")}
             aria-pressed={lang === "gr"}
             title={t("aria.languageGreek")}
@@ -180,7 +180,7 @@ function TopNav() {
           </button>
           <span className="lang-switcher-separator">|</span>
           <button
-            className="btn"
+            className={"btn " + (lang === "en" ? "nav-link-active" : "")}
             onClick={() => i18n.changeLanguage("en")}
             aria-pressed={lang === "en"}
             title={t("aria.languageEnglish")}
@@ -192,7 +192,7 @@ function TopNav() {
         {!authRoute && (
           <div className="nav-actions">
             {user ? (
-              <button className="btn user-profile-btn" onClick={() => navigate("/profile")}>
+              <button className={"btn user-profile-btn " + (location.pathname.startsWith("/profile") ? "nav-link-active" : "")} onClick={() => navigate("/profile")}>
                 {`${user.first_name} ${user.last_name}`}
               </button>
             ) : null}
@@ -241,7 +241,7 @@ function TopNav() {
 
         {!authRoute && user && (
           <div className="mobile-drawer-section">
-            <button className="btn" onClick={() => navigate("/profile")}>
+            <button className={"btn " + (location.pathname.startsWith("/profile") ? "nav-link-active" : "")} onClick={() => navigate("/profile")}>
               {`${user.first_name} ${user.last_name}`}
             </button>
             <button className="btn" onClick={handleLogout}>
