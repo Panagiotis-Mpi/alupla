@@ -1,6 +1,5 @@
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { Op } from "sequelize";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
 import { signToken } from "../utils/jwt";
@@ -83,41 +82,6 @@ export async function login(req: Request, res: Response) {
   await logAction({ user_id: user.id, action: "login", entity_type: "system", entity_id: null });
 
   return res.json({ ok: true, token, user: toSafeUser(user) });
-}
-
-export async function updateProfile(req: Request, res: Response) {
-  const auth = req.auth!;
-  const { first_name, last_name, email } = req.body ?? {};
-
-  if (!first_name || !last_name || !email) {
-    return fail(res, 400, "Missing fields");
-  }
-
-  const user = await User.findByPk(auth.id);
-  if (!user) {
-    return fail(res, 404, "Not found");
-  }
-
-  const normalizedEmail = normalizeEmail(email);
-  const existingUser = await User.findOne({
-    where: {
-      email: normalizedEmail,
-      id: { [Op.ne]: user.id }
-    }
-  });
-
-  if (existingUser) {
-    return fail(res, 409, "Email already exists");
-  }
-
-  user.first_name = normalizeText(first_name);
-  user.last_name = normalizeText(last_name);
-  user.email = normalizedEmail;
-  await user.save();
-
-  await logAction({ user_id: user.id, action: "update_profile", entity_type: "user", entity_id: user.id });
-
-  return res.json({ ok: true, user: toSafeUser(user) });
 }
 
 export async function changePassword(req: Request, res: Response) {

@@ -10,24 +10,15 @@
     "super_admin": "Administrator",
     "secretariat": "Secretariat"
   },
-  "editProfile": {
-    "button": "Edit profile",
-    "firstName": "First name",
-    "lastName": "Last name",
-    "email": "Email",
-    "save": "Save",
-    "cancel": "Cancel",
-    "success": "Profile updated successfully"
-  },
   "changePassword": {
     "title": "Change password",
     "show": "Change password",
-    "hide": "Hide password change",
     "current": "Current password",
     "new": "New password",
+    "save": "Save",
+    "cancel": "Cancel",
     "success": "Password changed successfully",
-    "hint": "Password must include:\n- At least 8 characters\n- At least one letter\n- At least one number\n- At least one symbol",
-    "optional": "Optional"
+    "hint": "Password must include:\n- At least 8 characters\n- At least one letter\n- At least one number\n- At least one symbol"
   },
   "error": "Error"
 }

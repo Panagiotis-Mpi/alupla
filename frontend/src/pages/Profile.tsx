@@ -1,7 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { changePassword, getToken, me, updateProfile } from "../lib/api";
-import { setSession } from "../lib/auth";
+import { changePassword, me } from "../lib/api";
 
 const profileCardStyle: React.CSSProperties = {
   display: "grid",
@@ -65,27 +64,14 @@ export default function Profile() {
 
   const [user, setUser] = React.useState<any>(null);
   const [err, setErr] = React.useState<string | null>(null);
-  const [isEditing, setIsEditing] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
-
-  const [firstName, setFirstName] = React.useState("");
-  const [lastName, setLastName] = React.useState("");
-  const [email, setEmail] = React.useState("");
   const [currentPassword, setCurrentPassword] = React.useState("");
   const [newPassword, setNewPassword] = React.useState("");
-
-  function fillForm(currentUser: any) {
-    setFirstName(currentUser.first_name ?? "");
-    setLastName(currentUser.last_name ?? "");
-    setEmail(currentUser.email ?? "");
-  }
 
   async function load() {
     try {
       const data = await me();
-      const currentUser = data.user ?? data;
-      setUser(currentUser);
-      fillForm(currentUser);
+      setUser(data.user ?? data);
     } catch (e: any) {
       setErr(e?.message ?? t("error"));
     }
@@ -95,59 +81,19 @@ export default function Profile() {
     void load();
   }, []);
 
-  function cancelEdit() {
-    if (user) fillForm(user);
+  function cancelPasswordChange() {
     setCurrentPassword("");
     setNewPassword("");
     setShowPassword(false);
-    setIsEditing(false);
   }
 
-  async function onSaveProfile() {
+  async function onSavePassword() {
     try {
-      if (!user) return;
-
-      const normalizedFirstName = firstName.trim();
-      const normalizedLastName = lastName.trim();
-      const normalizedEmail = email.trim().toLowerCase();
-
-      const profileChanged =
-        normalizedFirstName !== String(user.first_name ?? "").trim() ||
-        normalizedLastName !== String(user.last_name ?? "").trim() ||
-        normalizedEmail !== String(user.email ?? "").trim().toLowerCase();
-
-      const passwordChanged = Boolean(currentPassword.trim() || newPassword.trim());
-
-      if (!profileChanged && !passwordChanged) {
-        setIsEditing(false);
-        setShowPassword(false);
-        return;
-      }
-
-      let nextUser = user;
-
-      if (profileChanged) {
-        const data = await updateProfile({
-          first_name: normalizedFirstName,
-          last_name: normalizedLastName,
-          email: normalizedEmail,
-        });
-        nextUser = data.user ?? data;
-        setUser(nextUser);
-        fillForm(nextUser);
-        const token = getToken();
-        if (token) setSession(token, nextUser);
-      }
-
-      if (passwordChanged) {
-        await changePassword(currentPassword, newPassword);
-        setCurrentPassword("");
-        setNewPassword("");
-      }
-
-      setIsEditing(false);
+      await changePassword(currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
       setShowPassword(false);
-      alert(t("editProfile.success"));
+      alert(t("changePassword.success"));
     } catch (e: any) {
       alert(e?.message ?? t("error"));
     }
@@ -173,17 +119,17 @@ export default function Profile() {
             <div className="muted">{t("subtitle")}</div>
           </div>
 
-          {!isEditing ? (
-            <button className="btn primary" onClick={() => setIsEditing(true)} style={{ width: "auto" }}>
-              {t("editProfile.button")}
+          {!showPassword ? (
+            <button className="btn primary" onClick={() => setShowPassword(true)} style={{ width: "auto" }}>
+              {t("changePassword.show")}
             </button>
           ) : (
             <div style={actionStyle}>
-              <button className="btn" onClick={cancelEdit} style={{ width: "auto" }}>
-                {t("editProfile.cancel")}
+              <button className="btn" onClick={cancelPasswordChange} style={{ width: "auto" }}>
+                {t("changePassword.cancel")}
               </button>
-              <button className="btn primary" onClick={onSaveProfile} style={{ width: "auto" }}>
-                {t("editProfile.save")}
+              <button className="btn primary" onClick={onSavePassword} style={{ width: "auto" }}>
+                {t("changePassword.save")}
               </button>
             </div>
           )}
@@ -192,41 +138,12 @@ export default function Profile() {
         <div style={rowsStyle}>
           <div style={rowStyle}>
             <div className="label">{t("info.name")}</div>
-            {!isEditing ? (
-              <div style={valueStyle}>{fullName}</div>
-            ) : (
-              <div className="grid cols2" style={{ gap: 10 }}>
-                <input
-                  type="text"
-                  className="input"
-                  aria-label={t("editProfile.firstName")}
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                />
-                <input
-                  type="text"
-                  className="input"
-                  aria-label={t("editProfile.lastName")}
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                />
-              </div>
-            )}
+            <div style={valueStyle}>{fullName}</div>
           </div>
 
           <div style={rowStyle}>
             <div className="label">{t("info.email")}</div>
-            {!isEditing ? (
-              <div style={valueStyle}>{user.email}</div>
-            ) : (
-              <input
-                type="email"
-                className="input"
-                aria-label={t("editProfile.email")}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            )}
+            <div style={valueStyle}>{user.email}</div>
           </div>
 
           <div style={lastRowStyle}>
@@ -237,45 +154,34 @@ export default function Profile() {
           </div>
         </div>
 
-        {isEditing && (
-          <div style={{ display: "grid", gap: 10 }}>
-            <button className="btn" onClick={() => setShowPassword((open) => !open)} style={{ width: "fit-content" }}>
-              {showPassword ? t("changePassword.hide") : t("changePassword.show")}
-            </button>
+        {showPassword && (
+          <div style={passwordBoxStyle}>
+            <h3 style={{ margin: 0 }}>{t("changePassword.title")}</h3>
 
-            {showPassword && (
-              <div style={passwordBoxStyle}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                  <h3 style={{ margin: 0 }}>{t("changePassword.title")}</h3>
-                  <span className="muted" style={{ fontSize: 13 }}>{t("changePassword.optional")}</span>
-                </div>
-
-                <div className="grid cols2" style={{ gap: 10 }}>
-                  <div>
-                    <label className="label">{t("changePassword.current")}</label>
-                    <input
-                      type="password"
-                      className="input"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="label">{t("changePassword.new")}</label>
-                    <input
-                      type="password"
-                      className="input"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="muted" style={{ whiteSpace: "pre-line", fontSize: 13 }}>
-                  {t("changePassword.hint")}
-                </div>
+            <div className="grid cols2" style={{ gap: 10 }}>
+              <div>
+                <label className="label">{t("changePassword.current")}</label>
+                <input
+                  type="password"
+                  className="input"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
               </div>
-            )}
+              <div>
+                <label className="label">{t("changePassword.new")}</label>
+                <input
+                  type="password"
+                  className="input"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="muted" style={{ whiteSpace: "pre-line", fontSize: 13 }}>
+              {t("changePassword.hint")}
+            </div>
           </div>
         )}
       </div>

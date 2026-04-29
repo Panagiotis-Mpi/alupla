@@ -349,14 +349,6 @@ export async function me(): Promise<UserResponse> {
 }
 
 
-export async function updateProfile(payload: {
-  first_name: string;
-  last_name: string;
-  email: string;
- }): Promise<UserResponse> {
-  return api("/auth/me", { method: "PUT", body: payload });
-}
-
 export async function changePassword(
   currentPasswordOrPayload: string | { currentPassword: string; newPassword: string },
   maybeNewPassword?: string
