@@ -2509,13 +2509,25 @@ input,select,textarea,button{font:inherit}
   box-shadow:0 10px 30px rgba(59,130,246,.08);
   padding:2.2rem 2.4rem;
 }
-.auth-form-title{
+.auth-form-heading{
+  display:grid;
+  gap:.35rem;
   margin:0 0 1.6rem;
+}
+.auth-form-title{
+  margin:0;
   color:#1e3a8a;
   font-size:2rem;
   line-height:1.15;
   font-weight:800;
   letter-spacing:-.02em;
+}
+.auth-form-subtitle{
+  margin:0;
+  color:#334155;
+  font-size:1rem;
+  line-height:1.35;
+  font-weight:700;
 }
 .auth-form-grid{
   display:grid;
@@ -2590,6 +2602,9 @@ input,select,textarea,button{font:inherit}
   }
   .auth-form-title{
     font-size:1.55rem;
+  }
+  .auth-form-subtitle{
+    font-size:.95rem;
   }
   .auth-form-two-col{
     grid-template-columns:1fr;
