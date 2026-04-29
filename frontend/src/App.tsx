@@ -160,7 +160,7 @@ function TopNav() {
 
       <div className="nav-links desktop-only">
         {visibleLinks.map((link) => (
-          <Link key={link.to} className="btn" to={link.to}>
+          <Link key={link.to} className={"btn " + (location.pathname.startsWith(link.to) ? "nav-link-active" : "")} to={link.to}>
             {link.label}
           </Link>
         ))}
@@ -233,7 +233,7 @@ function TopNav() {
 
         <div className="mobile-drawer-section">
           {visibleLinks.map((link) => (
-            <Link key={link.to} className="btn" to={link.to}>
+            <Link key={link.to} className={"btn " + (location.pathname.startsWith(link.to) ? "nav-link-active" : "")} to={link.to}>
               {link.label}
             </Link>
           ))}
