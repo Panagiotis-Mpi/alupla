@@ -505,7 +505,7 @@ export default function Logs() {
 
       <div className="card logs-table-card page-header-card mobile-table-card">
         <div className="table-wrap">
-          <table className="table" style={{ width: "100%", minWidth: 860, tableLayout: "fixed" }}>
+          <table className="table logs-list-table" style={{ width: "100%", minWidth: 860, tableLayout: "fixed" }}>
             <thead>
               <tr>
                 <th style={{ width: 42 }}>{t("table.id")}</th>

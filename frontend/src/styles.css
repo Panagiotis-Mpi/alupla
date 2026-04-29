@@ -2468,3 +2468,25 @@ input,select,textarea,button{font:inherit}
 @media (max-width:420px){
   .graduates-actions-grid-main,.graduates-actions-grid-main > div[style*="grid-column"] .graduates-actions-grid{grid-template-columns:1fr !important}
 }
+.logs-summary-table th,
+.logs-summary-table td,
+.logs-list-table th,
+.logs-list-table td{
+  font-size:14px;
+  line-height:1.35;
+}
+.logs-summary-table th,
+.logs-list-table th{
+  font-size:14px;
+  font-weight:800;
+  color:#475569;
+}
+@media (max-width:640px){
+  .logs-summary-table th,
+  .logs-summary-table td,
+  .logs-list-table th,
+  .logs-list-table td{
+    font-size:13.5px !important;
+    line-height:1.35;
+  }
+}

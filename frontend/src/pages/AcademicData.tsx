@@ -206,9 +206,6 @@ export default function AcademicData() {
             width: "100%",
           }}
         >
-          <button className="btn primary" style={{ width: "100%", minHeight: 48, padding: "0 18px", fontSize: 16, fontWeight: 700, justifyContent: "center", lineHeight: 1.25 }}>
-            {t("menu.programs")}
-          </button>
           <button className="btn" style={{ width: "100%", minHeight: 48, padding: "0 18px", fontSize: 16, fontWeight: 700, justifyContent: "center", lineHeight: 1.25 }} onClick={() => importFileRef.current?.click()}>
             {t("menu.import")}
           </button>

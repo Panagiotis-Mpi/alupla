@@ -1288,7 +1288,6 @@ export default function GraduatesMapPage() {
         mt={mt}
         ct={ct}
         loading={loading}
-        total={total}
         mapMetric={mapMetric}
         mapScope={mapScope}
         metricOptions={metricOptions}

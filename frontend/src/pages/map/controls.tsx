@@ -15,7 +15,6 @@ export function MapTopControls(props: {
   mt: Translate;
   ct: Translate;
   loading: boolean;
-  total: number;
   mapMetric: MapMetric;
   mapScope: MapScope;
   metricOptions: Record<MapMetric, MetricOption>;
@@ -50,8 +49,7 @@ export function MapTopControls(props: {
   return (
     <div className="card map-top-menu-card">
       <div className="map-top-menu-title">
-        <h2>{props.mt("title", { defaultValue: "Χάρτης αποφοίτων" })}</h2>
-        <span className="badge">{props.loading ? props.ct("loading", { defaultValue: "Φόρτωση..." }) : `${props.total} ${props.mt("totalInline", { defaultValue: "σύνολο" })}`}</span>
+        <h2>{props.mt("title", { defaultValue: "Χάρτης" })}</h2>
         <span className="map-top-menu-title-spacer" />
       </div>
       <div className="map-top-controls-row">
