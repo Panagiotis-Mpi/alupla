@@ -2411,3 +2411,15 @@ input,select,textarea,button{font:inherit}
 .card{padding:var(--space-2);transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease;min-height:100%}
 .input{padding:9px 12px;transition:border-color .16s ease,box-shadow .16s ease,background .16s ease}
 .grid{gap:var(--space-2)}
+
+.nav .btn{min-height:42px;padding:9px 16px;border-radius:12px;font-size:16px;font-weight:700;line-height:1.25;white-space:nowrap;transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,color .16s ease,transform .08s ease}
+.nav .btn:hover{background:#f8fafc;border-color:#cbd5e1;box-shadow:0 6px 16px rgba(15,23,42,.06)}
+.nav-link-active{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;box-shadow:inset 0 0 0 1px rgba(59,130,246,.08)}
+.nav-link-active:hover{background:#dbeafe;border-color:#93c5fd;box-shadow:0 6px 16px rgba(37,99,235,.08)}
+.page-header-actions-grid .btn,.graduates-actions-grid .btn,.map-metric-button,.map-action-button,.map-program-button{font-size:16px;font-weight:700;line-height:1.25;min-height:48px;border-radius:12px}
+.page-header-actions-grid .btn:hover,.graduates-actions-grid .btn:hover,.map-metric-button:hover,.map-action-button:hover,.map-program-button:hover{background:#f8fafc;border-color:#cbd5e1;box-shadow:0 6px 16px rgba(15,23,42,.06)}
+.page-header-actions-grid .btn.primary:hover,.graduates-actions-grid .btn.primary:hover,.map-metric-button.primary:hover,.map-action-button.primary:hover,.map-program-button.primary:hover{background:var(--primaryHover);border-color:var(--primaryHover);color:#fff}
+@media (max-width:640px){
+  .nav .btn{font-size:15px;padding:8px 10px}
+  .page-header-actions-grid .btn,.graduates-actions-grid .btn,.map-metric-button,.map-action-button,.map-program-button{font-size:15px;min-height:46px}
+}

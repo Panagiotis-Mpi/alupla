@@ -1190,9 +1190,9 @@ export default function GraduatesMapPage() {
         .map-top-menu-title h2 { margin: 0; }
         .map-top-controls-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; align-items: stretch; }
         .map-top-control-slot { position: relative; min-width: 0; }
-        .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 18px; font-weight: 800; line-height: 1.2; letter-spacing: 0; }
-        .map-metric-button.active, .map-program-button.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 800; }
-        .map-scope-button { background: #fff; border-color: var(--border); color: #0f172a; font-weight: 800; }
+        .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 16px; font-weight: 700; line-height: 1.25; letter-spacing: 0; }
+        .map-metric-button.active, .map-program-button.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+        .map-scope-button { background: #fff; border-color: var(--border); color: #0f172a; font-weight: 700; }
         .map-scope-button-label { flex: 1; text-align: center; font-size: inherit; font-weight: inherit; line-height: inherit; }
         .map-scope-button .map-dropdown-caret { margin-left: auto; }
         .map-scope-button:hover { background: #f8fafc; }

@@ -206,13 +206,13 @@ export default function AcademicData() {
             width: "100%",
           }}
         >
-          <button className="btn primary" style={{ width: "100%", minHeight: 42, padding: "0 18px", fontSize: 15, justifyContent: "center" }}>
+          <button className="btn primary" style={{ width: "100%", minHeight: 48, padding: "0 18px", fontSize: 16, fontWeight: 700, justifyContent: "center", lineHeight: 1.25 }}>
             {t("menu.programs")}
           </button>
-          <button className="btn" style={{ width: "100%", minHeight: 42, padding: "0 18px", fontSize: 15, justifyContent: "center" }} onClick={() => importFileRef.current?.click()}>
+          <button className="btn" style={{ width: "100%", minHeight: 48, padding: "0 18px", fontSize: 16, fontWeight: 700, justifyContent: "center", lineHeight: 1.25 }} onClick={() => importFileRef.current?.click()}>
             {t("menu.import")}
           </button>
-          <button className="btn" style={{ width: "100%", minHeight: 42, padding: "0 18px", fontSize: 15, justifyContent: "center" }} onClick={() => void downloadTemplate()}>
+          <button className="btn" style={{ width: "100%", minHeight: 48, padding: "0 18px", fontSize: 16, fontWeight: 700, justifyContent: "center", lineHeight: 1.25 }} onClick={() => void downloadTemplate()}>
             {t("menu.template")}
           </button>
           <input ref={importFileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={importPrograms} />

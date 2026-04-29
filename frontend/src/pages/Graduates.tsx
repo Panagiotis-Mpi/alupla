@@ -460,13 +460,15 @@ export default function Graduates() {
 
   const topButtonStyle: React.CSSProperties = {
     minWidth: 136,
-    height: 40,
+    minHeight: 48,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     boxSizing: "border-box",
-    padding: "0 12px",
-    fontSize: 14,
+    padding: "0 18px",
+    fontSize: 16,
+    fontWeight: 700,
+    lineHeight: 1.25,
   };
 
   return (

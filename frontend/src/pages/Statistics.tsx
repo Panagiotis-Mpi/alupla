@@ -346,9 +346,10 @@ export default function Statistics() {
     justifyContent: "center",
     boxSizing: "border-box",
     padding: "0 18px",
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: 700,
     whiteSpace: "normal",
-    lineHeight: 1.3,
+    lineHeight: 1.25,
   };
 
 
