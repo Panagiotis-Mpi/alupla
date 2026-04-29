@@ -2497,29 +2497,29 @@ input,select,textarea,button{font:inherit}
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:var(--space-3) var(--space-2) 4rem;
-  background:var(--bg);
+  padding:1.2rem 1.5rem 4rem;
+  background:linear-gradient(180deg,#eef4ff 0%,#ffffff 65%);
 }
 .auth-form-card{
   width:100%;
   max-width:520px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:2rem 2.25rem;
+  background:#fff;
+  border:1px solid #e5edff;
+  border-radius:18px;
+  box-shadow:0 10px 30px rgba(59,130,246,.08);
+  padding:2.2rem 2.4rem;
 }
 .auth-form-title{
-  margin:0 0 1.25rem;
-  color:var(--text);
-  font-size:1.85rem;
+  margin:0 0 1.6rem;
+  color:#1e3a8a;
+  font-size:2rem;
   line-height:1.15;
   font-weight:800;
   letter-spacing:-.02em;
 }
 .auth-form-grid{
   display:grid;
-  gap:1rem;
+  gap:1.05rem;
 }
 .auth-form-two-col{
   display:grid;
@@ -2533,7 +2533,9 @@ input,select,textarea,button{font:inherit}
   color:#334155;
 }
 .auth-form-input{
-  min-height:46px;
+  min-height:44px;
+  border-color:#dbeafe;
+  background:#fff;
   font-size:1rem;
 }
 .auth-form-message{
@@ -2554,9 +2556,11 @@ input,select,textarea,button{font:inherit}
 }
 .auth-form-submit{
   min-height:46px;
+  background:#2563eb;
+  border-color:#2563eb;
   font-size:1rem;
   font-weight:800;
-  box-shadow:0 10px 22px rgba(37,99,235,.18);
+  box-shadow:0 10px 22px rgba(37,99,235,.22);
 }
 .auth-form-links{
   display:flex;
@@ -2564,11 +2568,11 @@ input,select,textarea,button{font:inherit}
   align-items:center;
   flex-wrap:wrap;
   margin-top:4px;
-  color:var(--muted);
+  color:#64748b;
   font-size:.95rem;
 }
 .auth-form-link{
-  color:#1d4ed8;
+  color:#1e3a8a;
   font-weight:700;
   text-decoration:none;
 }

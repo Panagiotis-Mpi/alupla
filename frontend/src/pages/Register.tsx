@@ -50,7 +50,7 @@ export default function Register() {
   return (
     <div className="auth-page-shell">
       <div className="auth-form-card">
-        <h2 className="auth-form-title">{t("register.title")}</h2>
+        <h2 className="auth-form-title">ALUPLA</h2>
 
         <form onSubmit={onSubmit} className="auth-form-grid">
           <div className="auth-form-two-col">
