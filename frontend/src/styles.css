@@ -2422,6 +2422,18 @@ input,select,textarea,button{font:inherit}
 .nav .btn:hover{background:#f8fafc;border-color:#cbd5e1;box-shadow:0 6px 16px rgba(15,23,42,.06)}
 .nav-link-active{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;box-shadow:inset 0 0 0 1px rgba(59,130,246,.08)}
 .nav-link-active:hover{background:#dbeafe;border-color:#93c5fd;box-shadow:0 6px 16px rgba(37,99,235,.08)}
+html.accessibility-high-contrast .nav .nav-link-active,
+html.accessibility-high-contrast .mobile-drawer .nav-link-active,
+html.accessibility-high-contrast .nav .user-profile-btn.nav-link-active{
+  background:#ffd400 !important;
+  color:#000000 !important;
+  border-color:#ffd400 !important;
+  box-shadow:0 0 0 2px #14f5c8 !important;
+}
+html.accessibility-high-contrast .nav .nav-link-active *,
+html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
+  color:#000000 !important;
+}
 .page-header-actions-grid .btn,.graduates-actions-grid .btn,.map-metric-button,.map-action-button,.map-program-button{font-size:16px;font-weight:700;line-height:1.25;min-height:48px;border-radius:12px}
 .page-header-actions-grid .btn:hover,.graduates-actions-grid .btn:hover,.map-metric-button:hover,.map-action-button:hover,.map-program-button:hover{background:#f8fafc;border-color:#cbd5e1;box-shadow:0 6px 16px rgba(15,23,42,.06)}
 .page-header-actions-grid .btn.primary:hover,.graduates-actions-grid .btn.primary:hover,.map-metric-button.primary:hover,.map-action-button.primary:hover,.map-program-button.primary:hover{background:var(--primaryHover);border-color:var(--primaryHover);color:#fff}
