@@ -335,7 +335,8 @@ export function ChartLegendInset(props: { items: ChartLegendItem[] }) {
         alignItems: "center",
         gap: 8,
         maxWidth: "100%",
-        margin: 0,
+        margin: "0 0 0 auto",
+        flex: "0 0 auto",
       }}
     >
       {items.map((item) => (
@@ -595,7 +596,7 @@ export function BarChartCard(props: {
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
-        <h3 style={{ margin: 0 }}>{props.title}</h3>
+        <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.title}</h3>
         <ChartLegendInset items={[{ label: props.datasetLabel ?? props.title, color: highContrast ? "#ffd400" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }]} />
       </div>
       <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
@@ -780,7 +781,7 @@ export function ChartCard(props: {
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
-        <h3 style={{ margin: 0 }}>{props.title}</h3>
+        <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.title}</h3>
         <ChartLegendInset items={legendItems} />
       </div>
       <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
@@ -827,7 +828,7 @@ export function VerticalBarChartCard(props: {
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
-        <h3 style={{ margin: 0 }}>{props.title}</h3>
+        <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.title}</h3>
         <ChartLegendInset items={legendItems} />
       </div>
       <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>

@@ -52,7 +52,7 @@ const metricBottomRowStyle: React.CSSProperties = { display: "grid", gap: 12, gr
 const sectionMenuStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%" };
 const sectionButtonsStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" };
 const cardInnerStyle = { minWidth: 0 };
-const compactTopbarStyle = { marginBottom: 12 };
+const compactTopbarStyle: React.CSSProperties = { marginBottom: 12, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 };
 
 export default function Statistics() {
   const { t, i18n } = useTranslation("statistics");
