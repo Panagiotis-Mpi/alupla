@@ -451,11 +451,12 @@ export default function Graduates() {
   const headerButtonStyle: React.CSSProperties = {
     all: "unset",
     cursor: "pointer",
-    fontWeight: 700,
+    fontWeight: 800,
     color: "inherit",
     display: "inline-flex",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
+    lineHeight: 1.25,
   };
 
   const topButtonStyle: React.CSSProperties = {

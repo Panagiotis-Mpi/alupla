@@ -21,7 +21,7 @@ const emptyForm: UserFormState = {
   password: ""
 };
 
-const clickableHeaderStyle: React.CSSProperties = { cursor: "pointer" };
+const clickableHeaderStyle: React.CSSProperties = { cursor: "pointer", userSelect: "none" };
 const inlineSelectStyle: React.CSSProperties = { padding: 6, minWidth: 130 };
 const monospaceBadgeStyle: React.CSSProperties = { fontFamily: "monospace" };
 const passwordFieldStyle: React.CSSProperties = { gridColumn: "span 2" };

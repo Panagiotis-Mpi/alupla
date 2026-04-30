@@ -37,12 +37,13 @@ const sortableHeaderStyle: React.CSSProperties = {
   border: 0,
   padding: 0,
   font: "inherit",
-  fontWeight: 600,
+  fontWeight: 800,
   color: "inherit",
   cursor: "pointer",
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
+  lineHeight: 1.25,
 };
 
 export default function AcademicData() {
