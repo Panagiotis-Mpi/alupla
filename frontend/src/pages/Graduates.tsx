@@ -544,7 +544,6 @@ export default function Graduates() {
             </div>
 
             <div style={{ display: "grid", gap: 10, width: "100%" }}>
-              <input className="input" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t("topbar.searchPlaceholder")} />
               <div className="graduates-actions-grid graduates-actions-grid-main" style={{ gap: 10, width: "100%", alignItems: "stretch" }}>
                 <Link className="btn primary" to="/graduates/new" style={{ ...topButtonStyle, textDecoration: "none", width: "100%", justifyContent: "center" }}>
                   {t("topbar.newGraduate")}
@@ -674,6 +673,7 @@ export default function Graduates() {
               }}
             />
           ) : null}
+          <input className="input graduates-search-input" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t("topbar.searchPlaceholder")} />
         </div>
       </div>
 
