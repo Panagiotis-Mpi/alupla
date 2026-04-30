@@ -304,24 +304,19 @@ export function filterAndSortGraduates(args: {
     const values = [
       graduate.ad_code,
       graduate.student_number,
-      (graduate as unknown as Record<string, unknown>).student_nuad_code,
-      (graduate as unknown as Record<string, unknown>).am,
-      (graduate as unknown as Record<string, unknown>).student_id,
       graduate.last_name,
       graduate.first_name,
       graduate.father_name,
       renderGender(graduate.gender),
       graduate.entry_year,
-      graduate.birth_date,
+      formatDateValue(graduate.birth_date),
       graduate.degree_grade,
-      graduate.graduation_date,
-      graduate.oath_date,
+      formatDateValue(graduate.graduation_date),
+      formatDateValue(graduate.oath_date),
       programNameById.get(Number(graduate.study_program_id)) ?? "",
       getGraduateOriginCountryDisplay(graduate, regionNameById),
       getGraduateOriginRegionDisplay(graduate, regionNameById),
       getGraduateOriginMunicipalityDisplay(graduate, regionNameById),
-      graduate.origin_country,
-      graduate.origin_foreign_city,
     ];
     return values.some((value) => normalizeValue(value).includes(query));
   });

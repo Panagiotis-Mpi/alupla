@@ -561,6 +561,21 @@ export default function Graduates() {
                     e.currentTarget.value = "";
                   }}
                 />
+                <div ref={templateMenuRef} style={{ position: "relative" }}>
+                  <button
+                    className="btn"
+                    type="button"
+                    style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }}
+                    onClick={() => toggleMenu("template")}
+                  >
+                    {t("topbar.downloadTemplate")}
+                  </button>
+                  {templateMenuOpen ? (
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, width: "max-content", maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
+                      {templateActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
+                    </div>
+                  ) : null}
+                </div>
                 <div ref={importMenuRef} style={{ position: "relative" }}>
                   <button
                     className="btn"
@@ -574,21 +589,6 @@ export default function Graduates() {
                   {importMenuOpen ? (
                     <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, width: "max-content", maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
                       {importActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
-                    </div>
-                  ) : null}
-                </div>
-                <div ref={templateMenuRef} style={{ position: "relative" }}>
-                  <button
-                    className="btn"
-                    type="button"
-                    style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }}
-                    onClick={() => toggleMenu("template")}
-                  >
-                    {t("topbar.downloadTemplate")}
-                  </button>
-                  {templateMenuOpen ? (
-                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, width: "max-content", maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
-                      {templateActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
                     </div>
                   ) : null}
                 </div>
