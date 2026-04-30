@@ -2,7 +2,7 @@ import React from "react";
 import { Bar, Line, Pie } from "react-chartjs-2";
 
 const cardInnerStyle = { minWidth: 0 };
-const compactTopbarStyle = { marginBottom: 12 };
+const compactTopbarStyle: React.CSSProperties = { marginBottom: 12, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 };
 const metricCardStyle: React.CSSProperties = { minWidth: 0, minHeight: 124, padding: 18, display: "grid", alignContent: "space-between", gap: 8 };
 const sectionHeaderStyle: React.CSSProperties = { display: "grid", gap: 4, marginTop: 2 };
 const sectionTitleStyle: React.CSSProperties = { margin: 0, fontSize: 24, fontWeight: 800 };
@@ -331,11 +331,11 @@ export function ChartLegendInset(props: { items: ChartLegendItem[] }) {
       style={{
         display: "flex",
         flexWrap: "wrap",
-        justifyContent: "flex-start",
+        justifyContent: "flex-end",
         alignItems: "center",
         gap: 8,
         maxWidth: "100%",
-        margin: "0 0 2px",
+        margin: 0,
       }}
     >
       {items.map((item) => (
@@ -596,9 +596,9 @@ export function BarChartCard(props: {
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
+        <ChartLegendInset items={[{ label: props.datasetLabel ?? props.title, color: highContrast ? "#ffd400" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }]} />
       </div>
       <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
-        <ChartLegendInset items={[{ label: props.datasetLabel ?? props.title, color: highContrast ? "#ffd400" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }]} />
         {props.horizontal ? (
           <FixedBarChart height={chartHeight} data={chartData} options={chartOptions} />
         ) : (
@@ -781,9 +781,9 @@ export function ChartCard(props: {
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
+        <ChartLegendInset items={legendItems} />
       </div>
       <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
-        <ChartLegendInset items={legendItems} />
         <ScrollableLineChart
           height={props.height ?? 320}
           labels={props.labels}
@@ -828,9 +828,9 @@ export function VerticalBarChartCard(props: {
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
+        <ChartLegendInset items={legendItems} />
       </div>
       <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
-        <ChartLegendInset items={legendItems} />
         <ScrollableBarChart
           height={props.height ?? 320}
           labels={props.labels}

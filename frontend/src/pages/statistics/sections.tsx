@@ -104,12 +104,12 @@ function GenderLineCard(props: Pick<ChartBlockProps, "t" | "cardInnerStyle" | "c
     <div className="card" style={props.cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="gender">
       <div className="topbar" style={props.compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.t("sections.gender")}</h3>
-      </div>
-      <div className="chart-figure" role="img" aria-label={props.t("sections.gender")} style={{ position: "relative" }}>
         <ChartLegendInset items={[
           { label: props.t("table.male"), color: "#3b82f6", borderColor: "#3b82f6", pointStyle: "circle" },
           { label: props.t("table.female"), color: "#db2777", borderColor: "#db2777", pointStyle: "diamond", dashed: true },
         ]} />
+      </div>
+      <div className="chart-figure" role="img" aria-label={props.t("sections.gender")} style={{ position: "relative" }}>
         <ScrollableLineChart
           height={320}
           labels={props.genderChartData?.labels ?? []}
@@ -127,9 +127,9 @@ function GraduationLineCard(props: Pick<ChartBlockProps, "t" | "cardInnerStyle" 
     <div className="card" style={props.cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="byYear">
       <div className="topbar" style={props.compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.t("sections.byYear")}</h3>
+        <ChartLegendInset items={[{ label: props.t("sections.byYear"), color: "#2563eb", borderColor: "#2563eb", pointStyle: "circle" }]} />
       </div>
       <div className="chart-figure" role="img" aria-label={props.t("sections.byYear")} style={{ position: "relative" }}>
-        <ChartLegendInset items={[{ label: props.t("sections.byYear"), color: "#2563eb", borderColor: "#2563eb", pointStyle: "circle" }]} />
         <ScrollableLineChart
           height={320}
           labels={props.countChartData?.labels ?? []}
