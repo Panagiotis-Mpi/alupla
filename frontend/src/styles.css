@@ -2173,8 +2173,6 @@ html.accessibility-high-contrast table td{
   color:#7fffd4 !important;
   border-color:rgba(20,245,200,.65) !important;
 }
-html.accessibility-high-contrast .table tbody tr:nth-child(even) td,
-html.accessibility-high-contrast table tbody tr:nth-child(even) td{background:#021b17 !important}
 html.accessibility-high-contrast .table tr:hover td,
 html.accessibility-high-contrast table tr:hover td{background:#06382f !important}
 html.accessibility-high-contrast .accessibility-trigger-disc-outer{fill:#000000 !important;stroke:#14f5c8 !important}
@@ -2660,7 +2658,6 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
   color:#334155;
   font-weight:500;
 }
-.table tbody tr:nth-child(even) td{background:#f8fbff}
 .table tr:hover td{background:#eff6ff}
 .table tbody tr:focus-within td,
 .table tbody tr.is-selected-row td{
