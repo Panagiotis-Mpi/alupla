@@ -83,5 +83,9 @@
     "demographics": "Statistics on age, gender and graduate demographic characteristics.",
     "academic": "Statistics on grades, study duration and graduation years.",
     "geography": "Statistics on graduate origin by region and city, along with geographic concentration charts."
+  },
+  "summary": {
+    "show": "Brief info",
+    "hide": "Hide summary"
   }
 }

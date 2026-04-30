@@ -410,6 +410,8 @@ export async function getMapCityDetail(req: Request, res: Response) {
     });
   }
 
+  const lang = String(req.query.lang ?? "").toLowerCase().startsWith("en") ? "en" : "gr";
+
   const startYear = 2010;
   const endYear = Math.max(currentYear, startYear);
   const labels = Array.from({ length: endYear - startYear + 1 }, (_, index) => String(startYear + index));
@@ -442,6 +444,6 @@ export async function getMapCityDetail(req: Request, res: Response) {
     male_pct: metricBucket.count ? Math.round((metricBucket.male / metricBucket.count) * 1000) / 10 : 0,
     female_pct: metricBucket.count ? Math.round((metricBucket.female / metricBucket.count) * 1000) / 10 : 0,
     labels,
-    datasets: [{ key: "count", label: "Απόφοιτοι", values: counts }],
+    datasets: [{ key: "count", label: lang === "en" ? "Graduates" : "Απόφοιτοι", values: counts }],
   });
 }

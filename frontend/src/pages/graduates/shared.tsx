@@ -195,16 +195,17 @@ function isGreeceDisplayValue(value: string) {
   return normalized === normalizeDisplayText("Ελλάδα") || normalized === normalizeDisplayText("Greece");
 }
 
-export function getGraduateOriginCountryDisplay(graduate: Graduate, regionNameById: Map<number, string>) {
+export function getGraduateOriginCountryDisplay(graduate: Graduate, regionNameById: Map<number, string>, t?: (key: string, options?: Record<string, unknown>) => string) {
+  const greeceLabel = t ? t("filters.originTypeGreece") : "Ελλάδα";
   const explicitCountry = String(graduate.origin_country ?? "").trim();
   if (explicitCountry) {
     if (isGreeceDisplayValue(explicitCountry)) {
-      return "Ελλάδα";
+      return greeceLabel;
     }
     return explicitCountry;
   }
   const countryName = regionNameById.get(Number(graduate.origin_country_region_id)) ?? "";
-  return isGreeceDisplayValue(countryName) ? "Ελλάδα" : countryName;
+  return isGreeceDisplayValue(countryName) ? greeceLabel : countryName;
 }
 
 export function getGraduateOriginMunicipalityDisplay(graduate: Graduate, regionNameById?: Map<number, string>) {
@@ -228,10 +229,10 @@ export function getGraduateOriginMunicipalityDisplay(graduate: Graduate, regionN
   return "";
 }
 
-export function renderGenderValue(value: unknown) {
+export function renderGenderValue(value: unknown, activeLang: "gr" | "en" = "gr") {
   const raw = String(value ?? "").trim().toUpperCase();
-  if (raw === "F") return "Γυναίκα";
-  if (raw === "M") return "Άνδρας";
+  if (raw === "F") return activeLang === "en" ? "Female" : "Γυναίκα";
+  if (raw === "M") return activeLang === "en" ? "Male" : "Άνδρας";
   return formatValue(value);
 }
 

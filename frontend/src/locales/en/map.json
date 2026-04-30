@@ -78,7 +78,7 @@
   "malePct": "% Male",
   "femalePct": "% Female",
   "avgGrade": "Average grade",
-  "avgGraduationYears": "Average graduation time",
+  "avgGraduationYears": "Average study duration",
   "maleCount": "Men",
   "femaleCount": "Women",
   "dominantDirection": "Study program",
@@ -105,7 +105,9 @@
     "fromCurrentFilters": "Calculated from the current filters",
     "topCountry": "Country with the most graduates",
     "fromGreece": "Graduates from Greece",
-    "fromAbroad": "Graduates from abroad"
+    "fromAbroad": "Graduates from abroad",
+    "show": "Brief info",
+    "hide": "Hide summary"
   },
   "detailGroups": {
     "basics": "Basics",
@@ -149,7 +151,11 @@
     "title": "Time period",
     "subtitle": "Drag the slider to quickly change the time period shown on the map.",
     "allYears": "All years",
-    "noYears": "No graduation years were found."
+    "noYears": "No graduation years were found.",
+    "show": "Time period",
+    "hide": "Hide period",
+    "startYear": "Earliest year",
+    "endYear": "Latest year"
   },
   "mapReset": "Reset initial view",
   "scope": {
@@ -158,5 +164,6 @@
   },
   "detailsHintAbroad": "You can select up to 6 countries to compare them.",
   "downloadMap": "Download map",
-  "loadingLabel": "Loading"
+  "loadingLabel": "Loading",
+  "removeSelection": "Remove selection"
 }

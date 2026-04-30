@@ -1015,6 +1015,7 @@ export default function GraduatesMapPage() {
       ...(mapScope === "greece" && (city.raw_city_name || city.city_name) ? { city_name: city.raw_city_name || city.city_name } : {}),
       ...(city.country_region_id ? { country_region_id: city.country_region_id } : {}),
       mode: mapMetric,
+      lang: mapLanguage,
       ...params,
     };
 

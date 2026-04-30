@@ -54,8 +54,8 @@ export function applyTemplateSheetLayout(ws: XLSX.WorkSheet, headerRows: string[
 
 export function getColumnLabels(lang: ExportLang) {
   return lang === "en"
-    ? { ad_code: "Diploma Number", student_number: "Student Number", last_name: "Last name", first_name: "First name", father_name: "Father name", gender: "Gender", entry_year: "Entry year", birth_date: "Birth date", degree_grade: "Degree grade", graduation_date: "Graduation date", oath_date: "Oath date", study_program: "Study program", origin_country: "Country", origin_region: "Region", origin_municipality: "City" } as const
-    : { ad_code: "Αριθμός Διπλώματος", student_number: "Αριθμός Μητρώου", last_name: "Επώνυμο", first_name: "Όνομα", father_name: "Πατρώνυμο", gender: "Φύλο", entry_year: "Έτος εισαγωγής", birth_date: "Ημερομηνία γέννησης", degree_grade: "Βαθμός πτυχίου", graduation_date: "Ημερομηνία αποφοίτησης", oath_date: "Ημερομηνία ορκωμοσίας", study_program: "Πρόγραμμα σπουδών", origin_country: "Χώρα", origin_region: "Περιφέρεια", origin_municipality: "Πόλη" } as const;
+    ? { ad_code: "Diploma number", student_number: "Student number", last_name: "Last name", first_name: "First name", father_name: "Father name", gender: "Gender", entry_year: "Entry year", birth_date: "Birth date", degree_grade: "Degree grade", graduation_date: "Diploma award date", oath_date: "Oath date", study_program: "Study program", origin_country: "Country", origin_region: "Region", origin_municipality: "City" } as const
+    : { ad_code: "Αριθμός διπλώματος", student_number: "Αριθμός μητρώου", last_name: "Επώνυμο", first_name: "Όνομα", father_name: "Πατρώνυμο", gender: "Φύλο", entry_year: "Έτος εισαγωγής", birth_date: "Ημερομηνία γέννησης", degree_grade: "Βαθμός πτυχίου", graduation_date: "Ημερομηνία λήψης διπλώματος", oath_date: "Ημερομηνία ορκωμοσίας", study_program: "Πρόγραμμα σπουδών", origin_country: "Χώρα", origin_region: "Περιφέρεια", origin_municipality: "Πόλη" } as const;
 }
 
 export const GRADUATES_COLUMN_KEYS = [
@@ -153,9 +153,9 @@ export function getRuleLang(raw: unknown): RuleLang {
 
 export function getRuleViolationMessage(code: RuleViolationCode, lang: RuleLang) {
   if (lang === "en") {
-    return code === "age_under_minimum" ? "Graduate age must be at least 23 years." : "Graduation time must be at least 5 years from entry year.";
+    return code === "age_under_minimum" ? "Graduate age must be at least 23 years." : "Study duration must be at least 5 years from entry year.";
   }
-  return code === "age_under_minimum" ? "Η ηλικία αποφοίτησης πρέπει να είναι τουλάχιστον 23 έτη." : "Ο χρόνος αποφοίτησης πρέπει να είναι τουλάχιστον 5 έτη από το έτος εισαγωγής.";
+  return code === "age_under_minimum" ? "Η ηλικία αποφοίτησης πρέπει να είναι τουλάχιστον 23 έτη." : "Η διάρκεια σπουδών πρέπει να είναι τουλάχιστον 5 έτη από το έτος εισαγωγής.";
 }
 
 export function parseYear(value: unknown) {
@@ -270,18 +270,18 @@ export function formatDateDisplay(value: unknown) {
   return `${day}/${month}/${year}`;
 }
 
-export function formatGenderValue(value: unknown) {
+export function formatGenderValue(value: unknown, lang: ExportLang = "gr") {
   const normalized = String(value ?? "").trim().toLowerCase();
-  if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) return "Άνδρας";
-  if (["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalized)) return "Γυναίκα";
+  if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) return lang === "en" ? "Male" : "Άνδρας";
+  if (["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalized)) return lang === "en" ? "Female" : "Γυναίκα";
   return String(value ?? "").trim();
 }
 
-export function formatCountryValue(value: unknown) {
+export function formatCountryValue(value: unknown, lang: ExportLang = "gr") {
   const text = String(value ?? "").trim();
   if (!text) return "";
   const normalized = normalizeRegionText(text);
-  if (normalized === normalizeRegionText("Ελλάδα") || normalized === normalizeRegionText("Greece")) return "Ελλάδα";
+  if (normalized === normalizeRegionText("Ελλάδα") || normalized === normalizeRegionText("Greece")) return lang === "en" ? "Greece" : "Ελλάδα";
   return text;
 }
 

@@ -6,11 +6,11 @@
     "profile": "Profile",
     "users": "Users",
     "logs": "Logs",
-    "academicData": "Academic Data",
+    "academicData": "Study program management",
     "logout": "Logout",
     "statistics": "Statistics",
     "login": "Login",
-    "academicPrograms": "Academic Programs"
+    "academicPrograms": "Academic programs"
   },
   "login": {
     "title": "Login",
@@ -24,7 +24,7 @@
     "heroLead": "ALUPLA is a modern platform for visualizing and analyzing graduate data from the Department of Computer Engineering and Informatics of the University of Patras. Its name is derived from the words Alumni Platform (University of Patras).",
     "heroSublead": "Through the platform, you can explore anonymized statistical data and navigate the map, discovering the geographic distribution of graduates and key indicators by area.",
     "map": "Graduate Map",
-    "stats": "Statistics & Charts",
+    "stats": "Statistics and charts",
     "heroLoginHint": "For Secretariat / Administrator access:"
   },
   "common": {
@@ -37,7 +37,8 @@
     "value": "Value",
     "male": "Male",
     "female": "Female",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "cancel": "Cancel"
   },
   "aria": {
     "brandMenu": "ALUPLA menu",
@@ -82,7 +83,7 @@
     "malePct": "% Male",
     "femalePct": "% Female",
     "avgGrade": "Average grade",
-    "avgGraduationYears": "Average time to degree",
+    "avgGraduationYears": "Average study duration",
     "cities": "Cities",
     "filters": {
       "studyProgram": "Study program",

@@ -21,19 +21,19 @@ const TABLE_HEADER_LINE_HEIGHT = 14;
 const TABLE_LINE_HEIGHT = 13;
 const COLUMN_WIDTHS = [44, 58, 86, 82, 86, 58, 54, 62, 64, 72, 72, 146, 110, 102, 118];
 
-function formatGenderValue(value: unknown) {
+function formatGenderValue(value: unknown, lang: ExportLang) {
   const normalized = String(value ?? "").trim().toLowerCase();
-  if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) return "Άνδρας";
-  if (["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalized)) return "Γυναίκα";
+  if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) return lang === "en" ? "Male" : "Άνδρας";
+  if (["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalized)) return lang === "en" ? "Female" : "Γυναίκα";
   return String(value ?? "").trim();
 }
 
-function formatCountryValue(value: unknown) {
+function formatCountryValue(value: unknown, lang: ExportLang) {
   const text = String(value ?? "").trim();
   if (!text) return "";
   const normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
   if (normalized === "ελλαδα" || normalized === "greece") {
-    return "Ελλάδα";
+    return lang === "en" ? "Greece" : "Ελλάδα";
   }
   return text;
 }
@@ -81,7 +81,7 @@ function getLabels(lang: ExportLang) {
       entry_year: "Entry year",
       birth_date: "Birth date",
       degree_grade: "Degree grade",
-      graduation_date: "Graduation date",
+      graduation_date: "Diploma award date",
       oath_date: "Oath date",
       study_program: "Study program",
       origin_country: "Country",
@@ -91,8 +91,8 @@ function getLabels(lang: ExportLang) {
   }
 
   return {
-    ad_code: "Αριθμός Διπλώματος",
-    student_number: "Αριθμός Μητρώου",
+    ad_code: "Αριθμός διπλώματος",
+    student_number: "Αριθμός μητρώου",
     last_name: "Επώνυμο",
     first_name: "Όνομα",
     father_name: "Πατρώνυμο",
@@ -100,7 +100,7 @@ function getLabels(lang: ExportLang) {
     entry_year: "Έτος εισαγωγής",
     birth_date: "Ημερομηνία γέννησης",
     degree_grade: "Βαθμός πτυχίου",
-    graduation_date: "Ημερομηνία αποφοίτησης",
+    graduation_date: "Ημερομηνία λήψης διπλώματος",
     oath_date: "Ημερομηνία ορκωμοσίας",
     study_program: "Πρόγραμμα σπουδών",
     origin_country: "Χώρα",
@@ -121,7 +121,7 @@ function buildRows(args: {
   return [...items].sort(compareDiplomaNumber).map((item) => {
     const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
     const explicitCountry = String((item as any).origin_country ?? "").trim();
-    const countryName = formatCountryValue(explicitCountry || String(regionNameById.get(Number(item.origin_country_region_id)) ?? ""));
+    const countryName = formatCountryValue(explicitCountry || String(regionNameById.get(Number(item.origin_country_region_id)) ?? ""), lang);
     const normalizedCountry = countryName.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
     const isGreece = normalizedCountry === "greece" || normalizedCountry === "ελλαδα";
     const regionName = isGreece ? regionNameById.get(Number(item.origin_region_id)) ?? "" : "";
@@ -136,7 +136,7 @@ function buildRows(args: {
       [labels.last_name]: item.last_name ?? "",
       [labels.first_name]: item.first_name ?? "",
       [labels.father_name]: item.father_name ?? "",
-      [labels.gender]: formatGenderValue(item.gender),
+      [labels.gender]: formatGenderValue(item.gender, lang),
       [labels.entry_year]: item.entry_year == null ? "" : String(item.entry_year),
       [labels.birth_date]: formatDateValue(item.birth_date),
       [labels.degree_grade]: item.degree_grade == null ? "" : String(item.degree_grade),

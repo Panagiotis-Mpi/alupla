@@ -510,8 +510,9 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
   const context = await buildWhere(req);
   const countsMode = req.query.counts_mode === "semester" ? "semester" : "year";
   const genderMode = req.query.gender_mode === "semester" ? "semester" : "year";
+  const lang = String(req.query.lang ?? "").toLowerCase().startsWith("en") ? "en" : "gr";
 
-  const { buffer, rowCount } = await buildAnonymousStatisticsWorkbook(context, countsMode, genderMode);
+  const { buffer, rowCount } = await buildAnonymousStatisticsWorkbook(context, countsMode, genderMode, lang);
 
   await logPublicExportAction(req, "statistics_export", "statistics", {
     format: "xls",
@@ -521,6 +522,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
     age_group: req.query.age_group ?? null,
     counts_mode: countsMode,
     gender_mode: genderMode,
+    lang,
     rows: rowCount,
   });
 

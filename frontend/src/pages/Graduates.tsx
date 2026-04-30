@@ -86,7 +86,7 @@ export default function Graduates() {
   const programNameById = useMemo(() => createNameMap(programs as Array<Record<string, unknown>>, activeLang), [programs, activeLang]);
   const programDisplayNameById = useMemo(() => createNameMap(programs as Array<Record<string, unknown>>, "gr"), [programs]);
   const regionNameById = useMemo(() => createRegionMap(regions), [regions]);
-  const renderGender = (value: unknown) => renderGenderValue(value);
+  const renderGender = (value: unknown) => renderGenderValue(value, activeLang);
 
   const visibleItems = useMemo(() => filterAndSortGraduates({
     items,
@@ -95,7 +95,7 @@ export default function Graduates() {
     programNameById: programDisplayNameById,
     regionNameById,
     renderGender,
-  }), [items, sortState, searchTerm, programDisplayNameById, regionNameById]);
+  }), [items, sortState, searchTerm, programDisplayNameById, regionNameById, activeLang]);
 
   const visibleIds = useMemo(() => visibleItems.map((graduate) => Number(graduate.id)).filter((id) => Number.isFinite(id)), [visibleItems]);
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
@@ -411,7 +411,7 @@ export default function Graduates() {
     { key: "csv", label: t("topbar.templateCsv"), onClick: () => { closeMenus(); void onDownloadTemplate("csv"); } },
   ];
 
-  const exportSelectionMessage = activeLang === "gr" ? "Δεν έχεις επιλέξει απόφοιτους." : "You have not selected graduates.";
+  const exportSelectionMessage = t("topbar.noSelection");
 
   const exportActions = [
     { key: "xlsx", label: t("topbar.exportExcel"), onClick: () => {
@@ -540,7 +540,7 @@ export default function Graduates() {
             <div className="graduates-title-line" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
               <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
-              <span className="badge">{activeLang === "gr" ? `Επιλεγμένοι: ${selectedIds.length}` : `Selected: ${selectedIds.length}`}</span>
+              <span className="badge">{t("topbar.selected", { count: selectedIds.length })}</span>
             </div>
 
             <div style={{ display: "grid", gap: 10, width: "100%" }}>
@@ -647,7 +647,7 @@ export default function Graduates() {
                       ) : null}
                     </div>
                     <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => setShowFilters((current) => !current)}>
-                      {activeLang === "gr" ? "Φίλτρα" : "Filters"}
+                      {t("topbar.filters")}
                     </button>
                     <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => void onDeleteSelected()} disabled={!selectedIds.length}>
                       {t("topbar.delete")}

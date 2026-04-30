@@ -1,6 +1,6 @@
 {
   "title": "Users",
-  "badgeLoading": "loading...",
+  "badgeLoading": "Loading...",
   "badgeCount": "{{count}} users",
   "error": "Error",
   "newUser": "New user",

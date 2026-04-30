@@ -9,6 +9,8 @@ export type PublicWhereContext = {
   birthYearExpr?: string;
 };
 
+type PublicExportLang = "gr" | "en";
+
 const termCaseSql = `CASE
   WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
   WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
@@ -23,7 +25,13 @@ const termOrderSql = `CASE
   ELSE 99
 END`;
 
-export function termLabel(term: string) {
+export function termLabel(term: string, lang: PublicExportLang = "gr") {
+  if (lang === "en") {
+    if (term === "winter") return "Winter";
+    if (term === "spring") return "Spring";
+    if (term === "september") return "September";
+    return term;
+  }
   if (term === "winter") return "Χειμερινό";
   if (term === "spring") return "Εαρινό";
   if (term === "september") return "Σεπτέμβριος";
@@ -263,7 +271,7 @@ export async function loadPublicMapRows(context: PublicWhereContext) {
   );
 }
 
-export async function buildAnonymousStatisticsWorkbook(context: PublicWhereContext, countsMode: "year" | "semester", genderMode: "year" | "semester") {
+export async function buildAnonymousStatisticsWorkbook(context: PublicWhereContext, countsMode: "year" | "semester", genderMode: "year" | "semester", lang: PublicExportLang = "gr") {
   const [byYear, byTerm, genderByYear, genderByTerm] = await Promise.all([
     queryRows<{ year: number; count: number }>(
       `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
@@ -303,33 +311,37 @@ export async function buildAnonymousStatisticsWorkbook(context: PublicWhereConte
     ),
   ]);
 
+  const labels = lang === "en"
+    ? { year: "Year", semester: "Semester", count: "Graduate count", male: "Men", female: "Women", countsSheet: "Graduate count", genderSheet: "Gender ratio" }
+    : { year: "Έτος", semester: "Εξάμηνο", count: "Πλήθος αποφοίτων", male: "Άνδρες", female: "Γυναίκες", countsSheet: "Πλήθος αποφοίτων", genderSheet: "Αναλογία φύλων" };
+
   const countsRows = countsMode === "semester"
     ? byTerm.filter((row) => row.term !== "other").map((row) => ({
-        "Έτος": Number(row.year),
-        "Εξάμηνο": termLabel(String(row.term)),
-        "Πλήθος αποφοίτων": Number(row.count) || 0,
+        [labels.year]: Number(row.year),
+        [labels.semester]: termLabel(String(row.term), lang),
+        [labels.count]: Number(row.count) || 0,
       }))
     : byYear.map((row) => ({
-        "Έτος": Number(row.year),
-        "Πλήθος αποφοίτων": Number(row.count) || 0,
+        [labels.year]: Number(row.year),
+        [labels.count]: Number(row.count) || 0,
       }));
 
   const genderRows = genderMode === "semester"
     ? genderByTerm.filter((row) => row.term !== "other").map((row) => ({
-        "Έτος": Number(row.year),
-        "Εξάμηνο": termLabel(String(row.term)),
-        "Άνδρες": Number(row.male) || 0,
-        "Γυναίκες": Number(row.female) || 0,
+        [labels.year]: Number(row.year),
+        [labels.semester]: termLabel(String(row.term), lang),
+        [labels.male]: Number(row.male) || 0,
+        [labels.female]: Number(row.female) || 0,
       }))
     : genderByYear.map((row) => ({
-        "Έτος": Number(row.year),
-        "Άνδρες": Number(row.male) || 0,
-        "Γυναίκες": Number(row.female) || 0,
+        [labels.year]: Number(row.year),
+        [labels.male]: Number(row.male) || 0,
+        [labels.female]: Number(row.female) || 0,
       }));
 
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(countsRows), "Πλήθος αποφοίτων");
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(genderRows), "Αναλογία φύλων");
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(countsRows), labels.countsSheet);
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(genderRows), labels.genderSheet);
 
   return {
     buffer: XLSX.write(workbook, { type: "buffer", bookType: "xls" }),

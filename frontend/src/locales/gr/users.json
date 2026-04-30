@@ -1,6 +1,6 @@
 {
   "title": "Χρήστες",
-  "badgeLoading": "φόρτωση...",
+  "badgeLoading": "Φόρτωση...",
   "badgeCount": "{{count}} χρήστες",
   "error": "Σφάλμα",
   "newUser": "Νέος χρήστης",
