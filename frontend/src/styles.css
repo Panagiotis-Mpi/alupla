@@ -2457,10 +2457,11 @@ input,select,textarea,button{font:inherit}
   .graduates-title-line{display:grid !important;grid-template-columns:1fr 1fr;gap:8px !important;width:100%}
   .graduates-title-line h2{grid-column:1 / -1}
   .graduates-title-line .badge{width:100%;justify-content:center;min-height:34px}
-  .graduates-actions-grid-main{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
-  .graduates-actions-grid-main > a:first-child{grid-column:1 / -1}
-  .graduates-actions-grid-main > div[style*="grid-column"]{grid-column:1 / -1 !important}
-  .graduates-actions-grid-main > div[style*="grid-column"] .graduates-actions-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+  .graduates-actions-grid-main{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:8px !important}
+  .graduates-actions-grid-main > a:first-child{grid-column:auto}
+  .graduates-actions-grid-main > .graduates-actions-secondary{display:contents !important}
+  .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid{display:contents !important}
+  .graduates-actions-grid-main .btn{width:100% !important;min-height:46px !important;border-radius:12px !important;font-size:15px !important;font-weight:700 !important;line-height:1.25 !important}
   .logs-summary-card .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .logs-summary-table{min-width:560px !important;width:560px !important;table-layout:auto !important}
   .logs-summary-table th,.logs-summary-table td{white-space:nowrap !important;word-break:normal !important;overflow-wrap:normal !important;font-size:12.5px;padding:8px 10px}
@@ -2472,7 +2473,7 @@ input,select,textarea,button{font:inherit}
 }
 
 @media (max-width:420px){
-  .graduates-actions-grid-main,.graduates-actions-grid-main > div[style*="grid-column"] .graduates-actions-grid{grid-template-columns:1fr !important}
+  .graduates-actions-grid-main{grid-template-columns:1fr !important}
 }
 .logs-summary-table th,
 .logs-summary-table td,

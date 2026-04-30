@@ -607,7 +607,7 @@ export default function Graduates() {
                     </div>
                   ) : null}
                 </div>
-                <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "center", width: "100%" }}>
+                <div className="graduates-actions-secondary" style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "center", width: "100%" }}>
                   <div className="graduates-actions-grid" style={{ gap: 10, width: "100%", alignItems: "stretch" }}>
                     <div ref={recentDownloadsRef} style={{ position: "relative" }}>
                       <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => toggleMenu("recent")}>
