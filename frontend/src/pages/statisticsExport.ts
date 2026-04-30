@@ -202,7 +202,7 @@ function buildSheets(args: BuildArgs) {
     name: activeLang === "en" ? "Average Study Duration by Entry Year" : "Μέση διάρκεια σπουδών ανά έτος εισαγωγής",
     rows: (data?.avg_years_to_degree_by_entry_year ?? []).map((row: NamedCountRow) => ({
       [activeLang === "en" ? "Entry Year" : "Έτος εισαγωγής"]: num(row.entry_year),
-      [activeLang === "en" ? "Average Study Duration (Years)" : "Μέσος χρόνος ολοκλήρωσης σπουδών (έτη)"]: num(row.avg_years),
+      [activeLang === "en" ? "Average Study Duration (Years)" : "Μέση διάρκεια σπουδών (έτη)"]: num(row.avg_years),
     })),
   });
 
@@ -211,7 +211,7 @@ function buildSheets(args: BuildArgs) {
     chartId: "timeToDegreeDistribution",
     name: activeLang === "en" ? "Study Duration Distribution" : "Κατανομή διάρκειας σπουδών",
     rows: (data?.years_to_degree_distribution ?? []).map((row: NamedCountRow) => ({
-      [activeLang === "en" ? "Study Duration (Years)" : "Χρόνος ολοκλήρωσης σπουδών (έτη)"]: text(row.label),
+      [activeLang === "en" ? "Study Duration (Years)" : "Διάρκεια σπουδών (έτη)"]: text(row.label),
       [activeLang === "en" ? "Graduate Count" : "Πλήθος αποφοίτων"]: num(row.count),
     })),
   });

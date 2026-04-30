@@ -92,8 +92,14 @@ function buildBarChartOptions(options?: {
   max?: number;
   xTickRotation?: number;
   xTickFormatter?: (label: string) => string | string[];
+  yTickPrecision?: number;
 }) {
   const labels = options?.labels ?? [];
+  const yTickPrecision = options?.yTickPrecision;
+  const yTickCallback = yTickPrecision === undefined ? undefined : (value: string | number) => {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue.toFixed(yTickPrecision) : String(value);
+  };
   if (options?.horizontal) {
     return {
       responsive: true,
@@ -114,7 +120,7 @@ function buildBarChartOptions(options?: {
           beginAtZero: options?.beginAtZero ?? true,
           min: options?.min,
           max: options?.max,
-          ticks: { precision: 0, color: chartTickColor },
+          ticks: { precision: yTickPrecision ?? 0, color: chartTickColor, callback: yTickCallback },
           grid: { color: chartGridColor },
           border: { display: false },
         },
@@ -161,7 +167,7 @@ function buildBarChartOptions(options?: {
         stacked: !!options?.stacked,
         min: options?.min,
         max: options?.max,
-        ticks: { precision: 0, color: chartTickColor },
+        ticks: { precision: yTickPrecision ?? 0, color: chartTickColor, callback: yTickCallback },
         grid: { color: chartGridColor },
         border: { display: false },
       },
@@ -572,6 +578,7 @@ export function BarChartCard(props: {
   forceScrollable?: boolean;
   scrollThreshold?: number;
   chartId?: string;
+  yTickPrecision?: number;
 }) {
   const highContrast = useHighContrastEnabled();
   const chartHeight = props.height ?? (props.horizontal ? Math.max(300, props.labels.length * 54) : 280);
@@ -588,8 +595,9 @@ export function BarChartCard(props: {
         horizontal: props.horizontal,
         fullLabelTooltip: props.fullLabelTooltip,
         labels: props.labels,
+        yTickPrecision: props.yTickPrecision,
       }),
-    [props.fullLabelTooltip, props.horizontal, props.labels],
+    [props.fullLabelTooltip, props.horizontal, props.labels, props.yTickPrecision],
   );
   const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
 

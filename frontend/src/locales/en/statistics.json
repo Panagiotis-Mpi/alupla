@@ -19,7 +19,7 @@
     "earliestYear": "Maximum study duration",
     "latestYear": "Latest graduation year",
     "topGraduationYear": "Year with maximum graduates",
-    "topCity": "City with highest graduate concentration"
+    "topCity": "Most common city of origin"
   },
   "sections": {
     "byYear": "Graduates by graduation year",
@@ -81,7 +81,7 @@
   "groupText": {
     "overview": "Overall graduate snapshot with key indicators and broad trends.",
     "demographics": "Statistics on age, gender and graduate demographic characteristics.",
-    "academic": "Statistics on study programs, grades, completion time and graduation years.",
+    "academic": "Statistics on grades, study duration and graduation years.",
     "geography": "Statistics on graduate origin by region and city, along with geographic concentration charts."
   }
 }
