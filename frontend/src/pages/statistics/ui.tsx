@@ -329,16 +329,13 @@ export function ChartLegendInset(props: { items: ChartLegendItem[] }) {
     <div
       aria-hidden="true"
       style={{
-        position: "absolute",
-        top: 12,
-        right: 12,
         display: "flex",
         flexWrap: "wrap",
-        justifyContent: "flex-end",
+        justifyContent: "flex-start",
+        alignItems: "center",
         gap: 8,
-        maxWidth: "min(100%, 420px)",
-        zIndex: 2,
-        pointerEvents: "none",
+        maxWidth: "100%",
+        margin: "0 0 2px",
       }}
     >
       {items.map((item) => (
@@ -349,17 +346,16 @@ export function ChartLegendInset(props: { items: ChartLegendItem[] }) {
             alignItems: "center",
             gap: 8,
             borderRadius: 999,
-            border: "1px solid rgba(148, 163, 184, 0.28)",
-            background: "rgba(255,255,255,0.94)",
+            border: "1px solid rgba(37, 99, 235, 0.18)",
+            background: "rgba(239, 246, 255, 0.88)",
             color: "#0f172a",
             padding: "6px 10px",
             fontSize: 12,
             fontWeight: 700,
             lineHeight: 1.2,
-            boxShadow: "0 10px 24px rgba(15,23,42,.08)",
           }}
         >
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
             <span className="chart-marker-swatch" style={markerStyle(item)}>
               {item.dashed ? (
                 <span
