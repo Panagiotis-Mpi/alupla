@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 import * as XLSX from "xlsx";
 import { downloadBlob } from "../lib/download";
+import { sanitizeExportCell, sanitizeExportRows } from "../lib/exportSafety";
 import { exportWorkbook } from "./map/mapExport";
 
 export type StatisticsChartId =
@@ -71,7 +72,7 @@ function localizedName(row: NamedCountRow, activeLang: "el" | "en") {
 }
 
 function csvCell(value: unknown) {
-  const v = String(value ?? "");
+  const v = String(sanitizeExportCell(value) ?? "");
   if (/["\n\r\t]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
   return v;
 }
@@ -279,8 +280,9 @@ export function exportStatisticsWorkbookFile(args: BuildArgs, filename = buildSt
   const usedNames = new Set<string>();
 
   for (const sheet of buildSheets(args)) {
-    const ws = XLSX.utils.json_to_sheet(sheet.rows);
-    const headers = Object.keys(sheet.rows[0] ?? {});
+    const safeRows = sanitizeExportRows(sheet.rows);
+    const ws = XLSX.utils.json_to_sheet(safeRows);
+    const headers = Object.keys(safeRows[0] ?? {});
     ws["!cols"] = headers.map((header) => ({ wch: Math.max(18, String(header).length + 4) }));
     XLSX.utils.book_append_sheet(workbook, ws, workbookSheetName(sheet.name, usedNames));
   }

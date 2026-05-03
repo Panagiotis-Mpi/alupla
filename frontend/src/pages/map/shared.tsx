@@ -79,7 +79,9 @@ export function MapResetControl(props: {
     button.title = props.title;
     button.setAttribute("role", "button");
     button.setAttribute("aria-label", props.title);
-    button.innerHTML = `<span>${props.label}</span>`;
+    const span = document.createElement("span");
+    span.textContent = props.label;
+    button.appendChild(span);
 
     const onClick = (event: Event) => {
       L.DomEvent.stop(event);

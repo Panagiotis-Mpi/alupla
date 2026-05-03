@@ -1,6 +1,7 @@
 import { QueryTypes } from "sequelize";
 import XLSX from "xlsx";
 import { sequelize } from "../config/sequelize";
+import { sanitizeExportRows } from "../utils/exportSafety";
 
 export type PublicWhereContext = {
   sqlWhere: string;
@@ -339,12 +340,14 @@ export async function buildAnonymousStatisticsWorkbook(context: PublicWhereConte
         [labels.female]: Number(row.female) || 0,
       }));
 
+  const safeCountsRows = sanitizeExportRows(countsRows);
+  const safeGenderRows = sanitizeExportRows(genderRows);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(countsRows), labels.countsSheet);
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(genderRows), labels.genderSheet);
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(safeCountsRows), labels.countsSheet);
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(safeGenderRows), labels.genderSheet);
 
   return {
     buffer: XLSX.write(workbook, { type: "buffer", bookType: "xls" }),
-    rowCount: countsRows.length + genderRows.length,
+    rowCount: safeCountsRows.length + safeGenderRows.length,
   };
 }

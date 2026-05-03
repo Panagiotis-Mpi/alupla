@@ -4,6 +4,7 @@ import XLSX from "xlsx";
 import { ActivityLog } from "../models/ActivityLog";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
+import { sanitizeExportRows } from "../utils/exportSafety";
 import {
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
@@ -209,7 +210,7 @@ export async function exportActivityLogsCsv(req: Request, res: Response, next: N
       details: { format: "csv", count: rows.length }
     });
 
-    const exportRows = getExportRows(lang, rows as any[]);
+    const exportRows = sanitizeExportRows(getExportRows(lang, rows as any[]));
     const csv = buildDelimitedText(exportRows, "	");
     const buffer = buildUtf16CsvBuffer(csv);
     res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
@@ -234,7 +235,7 @@ export async function exportActivityLogsXlsx(req: Request, res: Response, next: 
     });
 
     const workbook = XLSX.utils.book_new();
-    const exportRows = getExportRows(lang, rows as any[]);
+    const exportRows = sanitizeExportRows(getExportRows(lang, rows as any[]));
     const worksheet = XLSX.utils.json_to_sheet(exportRows);
     applySheetLayout(worksheet, exportRows);
     XLSX.utils.book_append_sheet(workbook, worksheet, lang === "en" ? "Logs" : "Καταγραφές");

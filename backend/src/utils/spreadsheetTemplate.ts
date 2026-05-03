@@ -1,11 +1,12 @@
 import XLSX from "xlsx";
+import { sanitizeExportCell } from "./exportSafety";
 
 export function resolveTemplateFormat(value: unknown) {
   return String(value ?? "xlsx").toLowerCase() === "csv" ? "csv" : "xlsx";
 }
 
 export function escapeDelimitedCell(value: unknown) {
-  const text = String(value ?? "");
+  const text = String(sanitizeExportCell(value) ?? "");
   return `"${text.replace(/"/g, '""')}"`;
 }
 
@@ -15,7 +16,7 @@ export function encodeUtf16WithBom(text: string) {
 
 export function readWorksheetRows(file: Express.Multer.File | undefined) {
   if (!file) return [] as Record<string, unknown>[];
-  const workbook = XLSX.read(file.buffer, { type: "buffer", cellDates: true });
+  const workbook = XLSX.read(file.buffer, { type: "buffer", cellDates: true, cellFormula: false, cellHTML: false, cellNF: false, cellStyles: false, bookVBA: false, WTF: false } as any);
   const firstSheet = workbook.SheetNames[0];
   if (!firstSheet) return [] as Record<string, unknown>[];
   return XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[firstSheet], { defval: "" });

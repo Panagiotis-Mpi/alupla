@@ -1,6 +1,7 @@
 import type { Request } from "express";
 import { Op } from "sequelize";
 import XLSX from "xlsx";
+import { sanitizeExportCell } from "../utils/exportSafety";
 
 export const MAX_PAGE = 1_000_000;
 export const DEFAULT_PAGE = 1;
@@ -112,7 +113,7 @@ export function parseLogDetails(value: unknown) {
 }
 
 export function csvEscape(value: unknown, delimiter = ",") {
-  const text = value === null || value === undefined ? "" : String(value);
+  const text = value === null || value === undefined ? "" : String(sanitizeExportCell(value));
   const shouldQuote = text.includes('"') || text.includes("\n") || text.includes("\r") || text.includes(delimiter);
   return shouldQuote ? '"' + text.replace(/"/g, '""') + '"' : text;
 }

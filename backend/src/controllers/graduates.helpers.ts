@@ -2,6 +2,7 @@ import type { Response } from "express";
 import * as XLSX from "xlsx";
 import { normHeader, toDateOnly } from "../utils/importUtils";
 import { normalizeRegionText } from "../utils/regionText";
+import { sanitizeExportCell } from "../utils/exportSafety";
 
 export const EXPORT_LANGS = new Set(["gr", "en"]);
 export type ExportLang = "gr" | "en";
@@ -225,7 +226,7 @@ export function parseIds(idsRaw: unknown): number[] {
 }
 
 export function csvEscape(value: unknown, delimiter: string) {
-  const text = String(value ?? "");
+  const text = String(sanitizeExportCell(value) ?? "");
   const escaped = text.replace(/"/g, '""');
   if (!escaped || /["\r\n\t;,]/.test(escaped) || escaped.includes(delimiter)) return `"${escaped}"`;
   return escaped;

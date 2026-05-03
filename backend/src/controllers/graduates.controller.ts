@@ -39,6 +39,7 @@ import { applyOriginPatch, buildCreateOriginPayload, buildExportRows, buildResol
 import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
 import { clearRouteCaches } from "../utils/routeCache";
 import { clearPublicStatsCache } from "./public.controller";
+import { sanitizeExportRows } from "../utils/exportSafety";
 
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
   try {
@@ -100,7 +101,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
 
     const rows = await Graduate.findAll({ where, order, limit: ids.length ? undefined : limit });
     const { programsById, regionsById } = await getReferenceMaps();
-    const data = buildExportRows(rows as any[], lang, programsById, regionsById);
+    const data = sanitizeExportRows(buildExportRows(rows as any[], lang, programsById, regionsById));
 
     await logAction({
       user_id: req.user?.id ?? null,
@@ -196,7 +197,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
 
     const sourceName = String(file.originalname ?? "").trim();
     const isDelimitedImport = /\.(csv|tsv|txt)$/i.test(sourceName) || /(csv|tsv|tab-separated-values|text\/csv|text\/plain)/i.test(String(file.mimetype ?? ""));
-    const workbook = isDelimitedImport ? null : XLSX.read(file.buffer, { type: "buffer", cellDates: true, raw: false });
+    const workbook = isDelimitedImport ? null : XLSX.read(file.buffer, { type: "buffer", cellDates: true, raw: false, cellFormula: false, cellHTML: false, cellNF: false, cellStyles: false, bookVBA: false, WTF: false } as any);
     const sheetName = isDelimitedImport ? sourceName || "delimited-import" : String(workbook?.SheetNames?.[0] ?? "");
     const rows: any[][] = isDelimitedImport
       ? parseDelimitedTextRows(decodeTextBuffer(file.buffer))
