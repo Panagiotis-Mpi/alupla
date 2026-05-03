@@ -576,6 +576,7 @@ const graduateLoggedFields = [
   "graduation_date",
   "oath_date",
   "study_program_id",
+  "origin_country",
   "origin_country_region_id",
   "origin_periphery_region_id",
   "origin_city_region_id",
@@ -611,8 +612,12 @@ function graduateLogValue(field: string, value: unknown) {
   return String(value ?? "").trim();
 }
 
-function getChangedGraduateFields(before: Record<string, unknown>, after: Record<string, unknown>) {
-  return graduateLoggedFields.filter((field) => graduateLogValue(field, before[field]) !== graduateLogValue(field, after[field]));
+function getChangedGraduateFields(before: Record<string, unknown>, source: Record<string, unknown>, after: Record<string, unknown>, candidates: string[] = []) {
+  const sourceChanged = graduateLoggedFields.filter((field) => Object.prototype.hasOwnProperty.call(source, field) && graduateLogValue(field, before[field]) !== graduateLogValue(field, source[field]));
+  if (sourceChanged.length) return sourceChanged;
+
+  const allowed = candidates.length ? graduateLoggedFields.filter((field) => candidates.includes(field)) : graduateLoggedFields;
+  return allowed.filter((field) => graduateLogValue(field, before[field]) !== graduateLogValue(field, after[field]));
 }
 
 export async function updateGraduate(req: Request, res: Response, next: NextFunction) {
@@ -683,16 +688,18 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     }, "en")[0];
     if (updateRuleViolation) return bad(res, updateRuleViolation.message);
 
-    await item.save();
+    const rawChanged = item.changed();
+    const changedCandidates = Array.isArray(rawChanged) ? rawChanged.map((field) => String(field)) : [];
+    const changed = getChangedGraduateFields(beforeLogSnapshot, body as Record<string, unknown>, item.get({ plain: true }) as Record<string, unknown>, changedCandidates);
 
-    const changed = getChangedGraduateFields(beforeLogSnapshot, item.get({ plain: true }) as Record<string, unknown>);
+    await item.save();
 
     await logAction({
       user_id: req.user?.id ?? null,
       action: "update_graduate",
       entity_type: "graduate",
       entity_id: id,
-      details: { changed }
+      details: changed.length ? { changed } : null
     });
 
     clearRouteCaches(["graduates", "map"]);

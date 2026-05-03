@@ -235,6 +235,7 @@ export function createLogsLocalizer({ activeLang, t }: LocalizerArgs) {
           entry_year: "Entry year",
           birth_date: "Birth date",
           gender: "Gender",
+          origin_country: "Country",
           origin_country_region_id: "Country",
           origin_periphery_region_id: "Region",
           origin_region_id: "Region",
@@ -286,6 +287,7 @@ export function createLogsLocalizer({ activeLang, t }: LocalizerArgs) {
           entry_year: "Έτος εισαγωγής",
           birth_date: "Ημερομηνία γέννησης",
           gender: "Φύλο",
+          origin_country: "Χώρα",
           origin_country_region_id: "Χώρα",
           origin_periphery_region_id: "Περιφέρεια",
           origin_region_id: "Περιφέρεια",
@@ -402,6 +404,8 @@ export function createLogsLocalizer({ activeLang, t }: LocalizerArgs) {
       const changedText = formatChangedFields(details.changed);
       if (changedText) return changedText;
     }
+
+    if (action === "update_graduate") return "";
 
     if (details.code || details.name || details.name_el) {
       const code = String(details.code ?? "").trim();

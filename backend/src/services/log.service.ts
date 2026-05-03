@@ -10,8 +10,11 @@ type LogActionParams = {
   details?: Record<string, unknown> | null;
 };
 
-async function buildLogDetails(userId: number | null, details: Record<string, unknown> | null | undefined) {
+async function buildLogDetails(userId: number | null, action: string, details: Record<string, unknown> | null | undefined) {
   const nextDetails: Record<string, unknown> = details && typeof details === "object" ? { ...details } : {};
+  const includeActorDetails = action !== "update_graduate";
+
+  if (!includeActorDetails) return Object.keys(nextDetails).length ? nextDetails : null;
 
   if (!userId) {
     if (!nextDetails.actor_role) nextDetails.actor_role = "visitor";
@@ -38,7 +41,7 @@ export async function logAction(params: LogActionParams) {
     action: params.action,
     entity_type: params.entity_type ?? null,
     entity_id: params.entity_id ?? null,
-    details: await buildLogDetails(userId, params.details),
+    details: await buildLogDetails(userId, params.action, params.details),
   };
 
   await ActivityLog.create(payload);

@@ -312,6 +312,7 @@ export function localDetailLabel(lang: "gr" | "en", key: string) {
         entry_year: "Entry year",
         birth_date: "Birth date",
         gender: "Gender",
+        origin_country: "Country",
         origin_country_region_id: "Country",
         origin_periphery_region_id: "Region",
         origin_region_id: "Region",
@@ -363,6 +364,7 @@ export function localDetailLabel(lang: "gr" | "en", key: string) {
         entry_year: "Έτος εισαγωγής",
         birth_date: "Ημερομηνία γέννησης",
         gender: "Φύλο",
+        origin_country: "Χώρα",
         origin_country_region_id: "Χώρα",
         origin_periphery_region_id: "Περιφέρεια",
         origin_region_id: "Περιφέρεια",
@@ -467,6 +469,8 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
     const names = items.map((item) => localDetailLabel(lang, String(item ?? "").trim())).filter(Boolean);
     if (names.length) return lang === "en" ? `Changed fields: ${names.join(", ")}` : `Αλλαγμένα πεδία: ${names.join(", ")}`;
   }
+
+  if (action === "update_graduate") return "";
 
   if ((details as any).code || (details as any).name || (details as any).name_el) {
     const code = String((details as any).code ?? "").trim();
