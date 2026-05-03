@@ -562,6 +562,59 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
 }
 
 
+
+const graduateLoggedFields = [
+  "ad_code",
+  "student_number",
+  "last_name",
+  "first_name",
+  "father_name",
+  "gender",
+  "entry_year",
+  "birth_date",
+  "degree_grade",
+  "graduation_date",
+  "oath_date",
+  "study_program_id",
+  "origin_country_region_id",
+  "origin_periphery_region_id",
+  "origin_city_region_id",
+  "origin_municipality",
+  "origin_foreign_city"
+];
+
+const graduateNumericLogFields = new Set([
+  "entry_year",
+  "degree_grade",
+  "study_program_id",
+  "origin_country_region_id",
+  "origin_periphery_region_id",
+  "origin_city_region_id"
+]);
+
+const graduateDateLogFields = new Set(["birth_date", "graduation_date", "oath_date"]);
+
+function dateOnlyLogValue(value: unknown) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+  return text.slice(0, 10);
+}
+
+function graduateLogValue(field: string, value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  if (graduateDateLogFields.has(field)) return dateOnlyLogValue(value);
+  if (graduateNumericLogFields.has(field)) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : String(value ?? "").trim();
+  }
+  return String(value ?? "").trim();
+}
+
+function getChangedGraduateFields(before: Record<string, unknown>, after: Record<string, unknown>) {
+  return graduateLoggedFields.filter((field) => graduateLogValue(field, before[field]) !== graduateLogValue(field, after[field]));
+}
+
 export async function updateGraduate(req: Request, res: Response, next: NextFunction) {
   try {
     const id = Number(req.params.id);
@@ -570,6 +623,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     const item = await Graduate.findByPk(id);
     if (!item) return notFound(res);
 
+    const beforeLogSnapshot = item.get({ plain: true }) as Record<string, unknown>;
     const body = req.body ?? {};
 
     const nextStudyProgramId =
@@ -631,12 +685,14 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
 
     await item.save();
 
+    const changed = getChangedGraduateFields(beforeLogSnapshot, item.get({ plain: true }) as Record<string, unknown>);
+
     await logAction({
       user_id: req.user?.id ?? null,
       action: "update_graduate",
       entity_type: "graduate",
       entity_id: id,
-      details: { changed: Object.keys(body) }
+      details: { changed }
     });
 
     clearRouteCaches(["graduates", "map"]);
