@@ -612,12 +612,12 @@ function graduateLogValue(field: string, value: unknown) {
   return String(value ?? "").trim();
 }
 
-function getChangedGraduateFields(before: Record<string, unknown>, source: Record<string, unknown>, after: Record<string, unknown>, candidates: string[] = []) {
-  const sourceChanged = graduateLoggedFields.filter((field) => Object.prototype.hasOwnProperty.call(source, field) && graduateLogValue(field, before[field]) !== graduateLogValue(field, source[field]));
-  if (sourceChanged.length) return sourceChanged;
+function getGraduateLogSnapshot(values: Record<string, unknown>) {
+  return Object.fromEntries(graduateLoggedFields.map((field) => [field, graduateLogValue(field, values[field])]));
+}
 
-  const allowed = candidates.length ? graduateLoggedFields.filter((field) => candidates.includes(field)) : graduateLoggedFields;
-  return allowed.filter((field) => graduateLogValue(field, before[field]) !== graduateLogValue(field, after[field]));
+function getChangedGraduateFields(before: Record<string, unknown>, after: Record<string, unknown>) {
+  return graduateLoggedFields.filter((field) => before[field] !== after[field]);
 }
 
 export async function updateGraduate(req: Request, res: Response, next: NextFunction) {
@@ -628,7 +628,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     const item = await Graduate.findByPk(id);
     if (!item) return notFound(res);
 
-    const beforeLogSnapshot = item.get({ plain: true }) as Record<string, unknown>;
+    const beforeLogSnapshot = getGraduateLogSnapshot(item.get({ plain: true }) as Record<string, unknown>);
     const body = req.body ?? {};
 
     const nextStudyProgramId =
@@ -688,11 +688,10 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     }, "en")[0];
     if (updateRuleViolation) return bad(res, updateRuleViolation.message);
 
-    const rawChanged = item.changed();
-    const changedCandidates = Array.isArray(rawChanged) ? rawChanged.map((field) => String(field)) : [];
-    const changed = getChangedGraduateFields(beforeLogSnapshot, body as Record<string, unknown>, item.get({ plain: true }) as Record<string, unknown>, changedCandidates);
-
     await item.save();
+
+    const afterLogSnapshot = getGraduateLogSnapshot(item.get({ plain: true }) as Record<string, unknown>);
+    const changed = getChangedGraduateFields(beforeLogSnapshot, afterLogSnapshot);
 
     await logAction({
       user_id: req.user?.id ?? null,
