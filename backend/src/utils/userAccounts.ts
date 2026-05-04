@@ -53,7 +53,7 @@ export function computeIsOnline(lastSeen: Date | null | undefined) {
 
 // Αφαιρεί ευαίσθητα στοιχεία πριν σταλεί χρήστης στο frontend.
 export function toSafeUser(user: User) {
-  const lastSeenAt = (user as any).last_seen_at;
+  const lastSeenAt = user.last_seen_at;
   return {
     id: user.id,
     first_name: user.first_name,
@@ -61,8 +61,8 @@ export function toSafeUser(user: User) {
     email: user.email,
     role: user.role,
     is_active: user.is_active,
-    created_at: (user as any).created_at,
-    updated_at: (user as any).updated_at,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
     ...(lastSeenAt !== undefined ? { last_seen_at: lastSeenAt, is_online: computeIsOnline(lastSeenAt) } : {}),
   };
 }

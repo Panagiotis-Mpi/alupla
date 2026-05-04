@@ -12,7 +12,7 @@ export async function pingPresence(req: Request, res: Response) {
   const now = new Date();
 
   await User.update(
-    { last_seen_at: now } as any,
+    { last_seen_at: now },
     { where: { id: authUser.id } }
   );
 

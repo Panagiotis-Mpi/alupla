@@ -1,7 +1,7 @@
 // Σελίδα προφίλ χρήστη και αλλαγής κωδικού.
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { changePassword, me } from "../lib/api";
+import { changePassword, me, type User } from "../lib/api";
 
 const profileCardStyle: React.CSSProperties = {
   display: "grid",
@@ -60,10 +60,14 @@ const actionStyle: React.CSSProperties = {
   flexWrap: "wrap",
 };
 
+function errorText(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export default function Profile() {
   const { t } = useTranslation("profile");
 
-  const [user, setUser] = React.useState<any>(null);
+  const [user, setUser] = React.useState<User | null>(null);
   const [err, setErr] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
   const [currentPassword, setCurrentPassword] = React.useState("");
@@ -72,9 +76,9 @@ export default function Profile() {
   async function load() {
     try {
       const data = await me();
-      setUser(data.user ?? data);
-    } catch (e: any) {
-      setErr(e?.message ?? t("error"));
+      setUser(data.user);
+    } catch (error) {
+      setErr(errorText(error, t("error")));
     }
   }
 
@@ -95,8 +99,8 @@ export default function Profile() {
       setNewPassword("");
       setShowPassword(false);
       alert(t("changePassword.success"));
-    } catch (e: any) {
-      alert(e?.message ?? t("error"));
+    } catch (error) {
+      alert(errorText(error, t("error")));
     }
   }
 

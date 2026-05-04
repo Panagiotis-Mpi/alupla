@@ -14,6 +14,8 @@ export class User extends Model {
   declare role: UserRole;
   declare is_active: boolean;
   declare last_seen_at: Date | null;
+  declare created_at: Date;
+  declare updated_at: Date;
 }
 
 // Αντιστοίχιση του model με τον πίνακα users.

@@ -138,6 +138,11 @@ type RegionListResponse = ApiOk & { items: Region[] };
 type ActivityLogListResponse = ApiOk & { items: ActivityLog[]; total?: number; page?: number; pageSize?: number };
 type ActivityLogFileSummaryResponse = ApiOk & { items: Array<{ name: string; count: number }>; total?: number };
 type PublicStatsResponse = ApiOk & Record<string, unknown>;
+
+function isOkResponse(value: unknown): value is ApiOk {
+  return typeof value === "object" && value !== null && (value as { ok?: unknown }).ok === true;
+}
+
 const PUBLIC_STATS_CACHE_MS = 5 * 60 * 1000;
 const MAP_CACHE_MS = 3 * 60 * 1000;
 const PROTECTED_CACHE_MS = 2 * 60 * 1000;
@@ -221,7 +226,7 @@ async function cachedMapApi<T>(path: string): Promise<T> {
   const cached = readMapCache<T>(key);
   if (cached) return cached;
   const response = await api<T>(path, { method: "GET" });
-  if ((response as any)?.ok) writeMapCache(key, response);
+  if (isOkResponse(response)) writeMapCache(key, response);
   return response;
 }
 
@@ -299,7 +304,7 @@ async function cachedPrivateApi<T>(scope: string, path: string, ttlMs: number): 
   const cached = readProtectedCache<T>(key);
   if (cached) return cached;
   const response = await api<T>(path, { method: "GET" });
-  if ((response as any)?.ok) writeProtectedCache(key, response, ttlMs);
+  if (isOkResponse(response)) writeProtectedCache(key, response, ttlMs);
   return response;
 }
 
