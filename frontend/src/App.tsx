@@ -238,12 +238,6 @@ function TopNav() {
       </div>
 
       <aside id="mobile-drawer" ref={drawerRef} className={`mobile-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
-        <div className="mobile-drawer-header">
-          <button className="brand mobile-drawer-brand" type="button" onClick={closeMenu}>
-            ALUPLA
-          </button>
-        </div>
-
         <div className="mobile-drawer-section">
           {visibleLinks.map((link) => (
             <Link key={link.to} className={"btn " + (location.pathname.startsWith(link.to) ? "nav-link-active" : "")} to={link.to}>
