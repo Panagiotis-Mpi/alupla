@@ -18,7 +18,8 @@ import {
 } from "./graduates.helpers";
 
 type ProgramLookup = Pick<StudyProgram, "id" | "code" | "name_el" | "name_en">;
-type RegionLookup = Pick<Region, "id" | "name" | "normalized_name" | "external_ref_id" | "type">;
+type RegionLookup = Pick<Region, "id" | "name" | "name_el" | "name_en" | "normalized_name" | "external_ref_id" | "type">;
+export type LocalizedNamesByRegionId = Map<number, { nameEl: string | null; nameEn: string | null }>;
 type GraduateExportSource = Pick<Graduate, "ad_code" | "student_number" | "last_name" | "first_name" | "father_name" | "gender" | "entry_year" | "birth_date" | "degree_grade" | "graduation_date" | "oath_date" | "study_program_id" | "origin_country" | "origin_foreign_city" | "origin_country_region_id" | "origin_periphery_region_id" | "origin_region_id" | "origin_city_region_id" | "origin_municipality">;
 type ManagedOriginTarget = Pick<Graduate, "origin_country" | "origin_foreign_city" | "origin_country_region_id" | "origin_periphery_region_id" | "origin_region_id" | "origin_city_region_id" | "origin_municipality">;
 
@@ -31,16 +32,32 @@ function isInvalidNullableNumber(value: number | null) {
   return value !== null && Number.isNaN(value);
 }
 
-function getRegionNameById(regionsById: Map<number, RegionLookup>, value: unknown) {
+function getRegionNameById(regionsById: Map<number, RegionLookup>, value: unknown, lang: ExportLang, localizedNamesById?: LocalizedNamesByRegionId) {
   if (value == null || value === "") return "";
-  return String(regionsById.get(Number(value))?.name ?? "").trim();
+  const id = Number(value);
+  const region = regionsById.get(id);
+  if (!region) return "";
+  const localized = localizedNamesById?.get(id);
+  if (lang === "en") return String(localized?.nameEn || region.name_en || region.name || "").trim();
+  return String(localized?.nameEl || region.name_el || region.name || "").trim();
 }
 
-function getMunicipalityExportName(row: GraduateExportSource, regionsById: Map<number, RegionLookup>, isGreece: boolean) {
+function getCountryExportName(row: GraduateExportSource, regionsById: Map<number, RegionLookup>, lang: ExportLang, localizedNamesById?: LocalizedNamesByRegionId) {
+  const countryName = getRegionNameById(regionsById, row.origin_country_region_id, lang, localizedNamesById);
+  if (countryName) return formatCountryValue(countryName, lang);
+  return formatCountryValue(row.origin_country, lang);
+}
+
+function getMunicipalityExportName(row: GraduateExportSource, regionsById: Map<number, RegionLookup>, isGreece: boolean, lang: ExportLang, localizedNamesById?: LocalizedNamesByRegionId) {
   const explicitMunicipality = String(row.origin_municipality ?? "").trim();
   const foreignCity = String(row.origin_foreign_city ?? "").trim();
-  const cityName = getRegionNameById(regionsById, row.origin_city_region_id);
-  const legacyRegionName = getRegionNameById(regionsById, row.origin_region_id);
+  const cityName = getRegionNameById(regionsById, row.origin_city_region_id, lang, localizedNamesById);
+  const legacyRegionName = getRegionNameById(regionsById, row.origin_region_id, lang, localizedNamesById);
+
+  if (lang === "en") {
+    if (cityName) return cityName;
+    return isGreece ? explicitMunicipality || legacyRegionName || foreignCity : foreignCity || explicitMunicipality || legacyRegionName;
+  }
 
   if (isGreece) {
     return explicitMunicipality || cityName || legacyRegionName || foreignCity;
@@ -62,16 +79,18 @@ export function buildExportRows(
   lang: ExportLang,
   programsById: Map<number, ProgramLookup>,
   regionsById: Map<number, RegionLookup>,
+  localizedNamesById?: LocalizedNamesByRegionId,
 ) {
   const labels = getColumnLabels(lang);
 
   return [...rows].sort(compareDiplomaNumber).map((row) => {
     const studyProgram = programsById.get(Number(row.study_program_id));
-    const region = regionsById.get(Number(row.origin_periphery_region_id ?? row.origin_region_id));
+    const regionId = Number(row.origin_periphery_region_id ?? row.origin_region_id);
     const country = regionsById.get(Number(row.origin_country_region_id));
-    const rawCountryName = String(row.origin_country ?? country?.name ?? "");
+    const countryExportName = getCountryExportName(row, regionsById, lang, localizedNamesById);
+    const rawCountryName = String(row.origin_country ?? country?.name ?? countryExportName ?? "");
     const isGreece = isGreeceCountryValue(rawCountryName) || (country ? isGreeceCountryValue(country.name) : false);
-    const municipalityName = getMunicipalityExportName(row, regionsById, isGreece);
+    const municipalityName = getMunicipalityExportName(row, regionsById, isGreece, lang, localizedNamesById);
 
     return {
       [labels.ad_code]: row.ad_code ?? "",
@@ -86,8 +105,8 @@ export function buildExportRows(
       [labels.graduation_date]: formatDateDisplay(row.graduation_date),
       [labels.oath_date]: formatDateDisplay(row.oath_date),
       [labels.study_program]: studyProgram ? String(lang === "en" ? studyProgram.name_en ?? studyProgram.name_el ?? studyProgram.code ?? studyProgram.id : studyProgram.name_el ?? studyProgram.name_en ?? studyProgram.code ?? studyProgram.id) : "",
-      [labels.origin_country]: formatCountryValue(rawCountryName || String(country?.name ?? ""), lang),
-      [labels.origin_region]: isGreece ? (region ? String(region.name ?? "") : "") : "",
+      [labels.origin_country]: countryExportName,
+      [labels.origin_region]: isGreece ? getRegionNameById(regionsById, regionId, lang, localizedNamesById) : "",
       [labels.origin_municipality]: municipalityName,
     };
   });

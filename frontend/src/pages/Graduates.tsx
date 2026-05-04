@@ -85,7 +85,7 @@ export default function Graduates() {
   const params = useMemo(() => buildGraduatesParams(filters), [filters]);
   const programNameById = useMemo(() => createNameMap(programs as Array<Record<string, unknown>>, activeLang), [programs, activeLang]);
   const programDisplayNameById = useMemo(() => createNameMap(programs as Array<Record<string, unknown>>, "gr"), [programs]);
-  const regionNameById = useMemo(() => createRegionMap(regions), [regions]);
+  const regionNameById = useMemo(() => createRegionMap(regions, activeLang), [regions, activeLang]);
   const renderGender = (value: unknown) => renderGenderValue(value, activeLang);
 
   const visibleItems = useMemo(() => filterAndSortGraduates({
@@ -95,6 +95,7 @@ export default function Graduates() {
     programNameById: programDisplayNameById,
     regionNameById,
     renderGender,
+    activeLang,
   }), [items, sortState, searchTerm, programDisplayNameById, regionNameById, activeLang]);
 
   const visibleIds = useMemo(() => visibleItems.map((graduate) => Number(graduate.id)).filter((id) => Number.isFinite(id)), [visibleItems]);
@@ -110,7 +111,7 @@ export default function Graduates() {
   async function load() {
     setLoading(true);
     try {
-      const response = await loadGraduatesScreen(params);
+      const response = await loadGraduatesScreen(params, activeLang);
       setPrograms(response.programs);
       setRegions(response.regions);
       setItems(response.items);
@@ -123,7 +124,7 @@ export default function Graduates() {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [activeLang]);
 
 
   useSyncedScrollbar(tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, [items, sortState, programs, regions]);
@@ -209,7 +210,7 @@ export default function Graduates() {
           items: item.pdfItems as Graduate[],
           lang: activeLang,
           programNameById: programDisplayNameById,
-                regionNameById,
+          regionNameById,
         });
         recentGraduateSessionDownloads.set(item.signature, { blob, fileName: item.fileName });
         downloadBlob(blob, item.fileName);
@@ -288,7 +289,7 @@ export default function Graduates() {
           items: exportItems,
           lang: activeLang,
           programNameById: programDisplayNameById,
-                regionNameById,
+          regionNameById,
         });
         const fileName = `alupla_graduates_export_${timestamp}.pdf`;
         downloadBlob(blob, fileName);
@@ -314,7 +315,12 @@ export default function Graduates() {
             origin_region_id: item.origin_region_id ?? null,
             origin_municipality: item.origin_municipality ?? null,
             origin_country: item.origin_country ?? null,
+            origin_country_region_id: item.origin_country_region_id ?? null,
+            origin_periphery_region_id: item.origin_periphery_region_id ?? null,
             origin_foreign_city: item.origin_foreign_city ?? null,
+            origin_country_name_en: (item as any).origin_country_name_en ?? null,
+            origin_region_name_en: (item as any).origin_region_name_en ?? null,
+            origin_city_name_en: (item as any).origin_city_name_en ?? null,
           })),
         });
         await logGraduatesPdfExport(ids?.length ? { ...exportParams, ids } : exportParams);
@@ -325,7 +331,7 @@ export default function Graduates() {
         ids,
         lang: activeLang,
       } satisfies RecentGraduateRequest;
-      const blob = await exportGraduatesFile(exportParams, format, i18n.resolvedLanguage || i18n.language);
+      const blob = await exportGraduatesFile(exportParams, format, activeLang);
       const fileName = `alupla_graduates_export_${timestamp}.${format}`;
       downloadBlob(blob, fileName);
       await rememberDownload({ blob, format, fileName, ids, request });
@@ -695,6 +701,7 @@ export default function Graduates() {
         renderGender={renderGender}
         programNameById={programDisplayNameById}
         regionNameById={regionNameById}
+        activeLang={activeLang}
         t={t}
         onDelete={onDeleteGraduate}
       />

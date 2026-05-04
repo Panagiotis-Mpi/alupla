@@ -28,6 +28,10 @@ function formatGenderValue(value: unknown, lang: ExportLang) {
   return String(value ?? "").trim();
 }
 
+function localizedText(item: Graduate, key: string) {
+  return String((item as any)[key] ?? "").trim();
+}
+
 function formatCountryValue(value: unknown, lang: ExportLang) {
   const text = String(value ?? "").trim();
   if (!text) return "";
@@ -121,11 +125,15 @@ function buildRows(args: {
   return [...items].sort(compareDiplomaNumber).map((item) => {
     const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
     const explicitCountry = String((item as any).origin_country ?? "").trim();
-    const countryName = formatCountryValue(explicitCountry || String(regionNameById.get(Number(item.origin_country_region_id)) ?? ""), lang);
-    const normalizedCountry = countryName.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+    const countryName = lang === "en" && localizedText(item, "origin_country_name_en")
+      ? formatCountryValue(localizedText(item, "origin_country_name_en"), lang)
+      : formatCountryValue(explicitCountry || String(regionNameById.get(Number(item.origin_country_region_id)) ?? ""), lang);
+    const normalizedCountry = countryName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
     const isGreece = normalizedCountry === "greece" || normalizedCountry === "ελλαδα";
-    const regionName = isGreece ? regionNameById.get(Number(item.origin_region_id)) ?? "" : "";
-    const municipalityName = String(item.origin_foreign_city ?? "").trim()
+    const regionName = isGreece ? (lang === "en" && localizedText(item, "origin_region_name_en") ? localizedText(item, "origin_region_name_en") : regionNameById.get(Number(item.origin_periphery_region_id ?? item.origin_region_id)) ?? "") : "";
+    const municipalityName = lang === "en" && localizedText(item, "origin_city_name_en")
+      ? localizedText(item, "origin_city_name_en")
+      : String(item.origin_foreign_city ?? "").trim()
       || String(item.origin_municipality ?? "").trim()
       || String(regionNameById.get(Number(item.origin_city_region_id)) ?? "")
       || String(regionNameById.get(Number(item.origin_region_id)) ?? "");

@@ -174,20 +174,27 @@ function normalizeDisplayText(value: unknown) {
     .toLowerCase();
 }
 
-export function createRegionMap(items: Array<Record<string, unknown>>) {
+export function createRegionMap(items: Array<Record<string, unknown>>, activeLang: "gr" | "en" = "gr") {
   const map = new Map<number, string>();
   for (const item of items || []) {
-    map.set(Number(item.id), String(item.name ?? ""));
+    const name = activeLang === "en"
+      ? String(item.name_en ?? item.name_el ?? item.name ?? item.id)
+      : String(item.name_el ?? item.name ?? item.name_en ?? item.id);
+    map.set(Number(item.id), name);
   }
   return map;
 }
 
 
-export function getGraduateOriginRegionDisplay(graduate: Graduate, regionNameById: Map<number, string>) {
+export function getGraduateOriginRegionDisplay(graduate: Graduate, regionNameById: Map<number, string>, activeLang: "gr" | "en" = "gr") {
   if (String(graduate.origin_foreign_city ?? "").trim() && String(graduate.origin_country ?? "").trim() && !isGreeceDisplayValue(String(graduate.origin_country ?? ""))) {
     return "";
   }
-  return regionNameById.get(Number(graduate.origin_region_id)) ?? "";
+  if (activeLang === "en") {
+    const localized = String((graduate as any).origin_region_name_en ?? "").trim();
+    if (localized) return localized;
+  }
+  return regionNameById.get(Number(graduate.origin_periphery_region_id ?? graduate.origin_region_id)) ?? "";
 }
 
 function isGreeceDisplayValue(value: string) {
@@ -195,8 +202,12 @@ function isGreeceDisplayValue(value: string) {
   return normalized === normalizeDisplayText("Ελλάδα") || normalized === normalizeDisplayText("Greece");
 }
 
-export function getGraduateOriginCountryDisplay(graduate: Graduate, regionNameById: Map<number, string>, t?: (key: string, options?: Record<string, unknown>) => string) {
-  const greeceLabel = t ? t("filters.originTypeGreece") : "Ελλάδα";
+export function getGraduateOriginCountryDisplay(graduate: Graduate, regionNameById: Map<number, string>, t?: (key: string, options?: Record<string, unknown>) => string, activeLang: "gr" | "en" = "gr") {
+  const greeceLabel = t ? t("filters.originTypeGreece") : activeLang === "en" ? "Greece" : "Ελλάδα";
+  if (activeLang === "en") {
+    const localized = String((graduate as any).origin_country_name_en ?? "").trim();
+    if (localized) return isGreeceDisplayValue(localized) ? greeceLabel : localized;
+  }
   const explicitCountry = String(graduate.origin_country ?? "").trim();
   if (explicitCountry) {
     if (isGreeceDisplayValue(explicitCountry)) {
@@ -208,7 +219,11 @@ export function getGraduateOriginCountryDisplay(graduate: Graduate, regionNameBy
   return isGreeceDisplayValue(countryName) ? greeceLabel : countryName;
 }
 
-export function getGraduateOriginMunicipalityDisplay(graduate: Graduate, regionNameById?: Map<number, string>) {
+export function getGraduateOriginMunicipalityDisplay(graduate: Graduate, regionNameById?: Map<number, string>, activeLang: "gr" | "en" = "gr") {
+  if (activeLang === "en") {
+    const localized = String((graduate as any).origin_city_name_en ?? "").trim();
+    if (localized) return localized;
+  }
   const foreignCity = String(graduate.origin_foreign_city ?? "").trim();
   if (foreignCity) {
     return foreignCity;
@@ -242,8 +257,9 @@ export function getGraduateSortValue(args: {
   programNameById: Map<number, string>;
   regionNameById: Map<number, string>;
   renderGender: (value: unknown) => string;
+  activeLang: "gr" | "en";
 }) {
-  const { graduate, key, programNameById, regionNameById, renderGender } = args;
+  const { graduate, key, programNameById, regionNameById, renderGender, activeLang } = args;
   if (key === "birth_date") {
     return graduate.birth_date ?? "";
   }
@@ -251,10 +267,10 @@ export function getGraduateSortValue(args: {
     return programNameById.get(Number(graduate.study_program_id)) ?? "";
   }
   if (key === "origin_country") {
-    return getGraduateOriginCountryDisplay(graduate, regionNameById);
+    return getGraduateOriginCountryDisplay(graduate, regionNameById, undefined, activeLang);
   }
   if (key === "origin_region") {
-    return getGraduateOriginRegionDisplay(graduate, regionNameById);
+    return getGraduateOriginRegionDisplay(graduate, regionNameById, activeLang);
   }
   if (key === "gender") {
     return renderGender(graduate.gender);
@@ -269,14 +285,15 @@ export function filterAndSortGraduates(args: {
   programNameById: Map<number, string>;
   regionNameById: Map<number, string>;
   renderGender: (value: unknown) => string;
+  activeLang: "gr" | "en";
 }) {
-  const { items, sortState, searchTerm, programNameById, regionNameById, renderGender } = args;
+  const { items, sortState, searchTerm, programNameById, regionNameById, renderGender, activeLang } = args;
   const query = normalizeValue(searchTerm).trim();
   const list = [...items];
 
   list.sort((a, b) => {
-    const aValue = getGraduateSortValue({ graduate: a, key: sortState.key, programNameById, regionNameById, renderGender });
-    const bValue = getGraduateSortValue({ graduate: b, key: sortState.key, programNameById, regionNameById, renderGender });
+    const aValue = getGraduateSortValue({ graduate: a, key: sortState.key, programNameById, regionNameById, renderGender, activeLang });
+    const bValue = getGraduateSortValue({ graduate: b, key: sortState.key, programNameById, regionNameById, renderGender, activeLang });
     const directionFactor = sortState.dir === "asc" ? 1 : -1;
     const isDateKey = sortState.key === "birth_date" || sortState.key === "graduation_date" || sortState.key === "oath_date";
     const isNumericKey = sortState.key === "entry_year" || sortState.key === "degree_grade";
@@ -314,9 +331,9 @@ export function filterAndSortGraduates(args: {
       formatDateValue(graduate.graduation_date),
       formatDateValue(graduate.oath_date),
       programNameById.get(Number(graduate.study_program_id)) ?? "",
-      getGraduateOriginCountryDisplay(graduate, regionNameById),
-      getGraduateOriginRegionDisplay(graduate, regionNameById),
-      getGraduateOriginMunicipalityDisplay(graduate, regionNameById),
+      getGraduateOriginCountryDisplay(graduate, regionNameById, undefined, activeLang),
+      getGraduateOriginRegionDisplay(graduate, regionNameById, activeLang),
+      getGraduateOriginMunicipalityDisplay(graduate, regionNameById, activeLang),
     ];
     return values.some((value) => normalizeValue(value).includes(query));
   });

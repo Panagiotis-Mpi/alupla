@@ -21,11 +21,16 @@ export function createGraduatePdfItems(items: Graduate[]): RecentGraduatePdfItem
     graduation_date: item.graduation_date,
     oath_date: item.oath_date,
     study_program_id: item.study_program_id,
+    origin_country_region_id: item.origin_country_region_id ?? null,
+    origin_periphery_region_id: item.origin_periphery_region_id ?? null,
     origin_region_id: item.origin_region_id ?? null,
     origin_city_region_id: item.origin_city_region_id ?? null,
     origin_municipality: item.origin_municipality ?? null,
     origin_country: item.origin_country ?? null,
     origin_foreign_city: item.origin_foreign_city ?? null,
+    origin_country_name_en: (item as any).origin_country_name_en ?? null,
+    origin_region_name_en: (item as any).origin_region_name_en ?? null,
+    origin_city_name_en: (item as any).origin_city_name_en ?? null,
   }));
 }
 

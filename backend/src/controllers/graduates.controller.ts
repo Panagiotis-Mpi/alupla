@@ -35,11 +35,48 @@ import {
   isGreeceCountryValue,
   trimNullableText,
 } from "./graduates.helpers";
-import { applyOriginPatch, buildCreateOriginPayload, buildExportRows, buildResolvedOriginSnapshot, ensureManagedOrigin, getReferenceMaps, getTemplateHeaders, resolveRegionId, resolveStudyProgramId } from "./graduates.shared";
+import { applyOriginPatch, buildCreateOriginPayload, buildExportRows, buildResolvedOriginSnapshot, ensureManagedOrigin, getReferenceMaps, getTemplateHeaders, resolveRegionId, resolveStudyProgramId, type LocalizedNamesByRegionId } from "./graduates.shared";
 import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
 import { clearRouteCaches } from "../utils/routeCache";
 import { clearPublicStatsCache } from "./public.controller";
 import { sanitizeExportRows } from "../utils/exportSafety";
+import { ensureLocalizedRegionNames } from "../services/mapLocation.service";
+
+function collectGraduateRegionIds(rows: Array<Record<string, any>>) {
+  const ids = new Set<number>();
+  for (const row of rows) {
+    [row.origin_country_region_id, row.origin_periphery_region_id, row.origin_region_id, row.origin_city_region_id].forEach((value) => {
+      const id = Number(value);
+      if (Number.isFinite(id) && id > 0) ids.add(id);
+    });
+  }
+  return Array.from(ids);
+}
+
+async function getLocalizedNamesForGraduates(rows: Array<Record<string, any>>, lang: string) {
+  if (!String(lang || "").toLowerCase().startsWith("en")) return undefined;
+  const plainRows = rows.map((row: any) => row?.get ? row.get({ plain: true }) : row);
+  const entries = await Promise.all(collectGraduateRegionIds(plainRows).map(async (id) => [id, await ensureLocalizedRegionNames(id)] as const));
+  return new Map(entries) as LocalizedNamesByRegionId;
+}
+
+function localizedName(localizedNamesById: LocalizedNamesByRegionId | undefined, id: unknown) {
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId) || numericId <= 0) return "";
+  return String(localizedNamesById?.get(numericId)?.nameEn ?? "").trim();
+}
+
+async function serializeGraduateRows(rows: any[], lang: string) {
+  const plainRows = rows.map((row) => row?.get ? row.get({ plain: true }) : row);
+  const localizedNamesById = await getLocalizedNamesForGraduates(plainRows, lang);
+  if (!localizedNamesById) return plainRows;
+  return plainRows.map((row) => ({
+    ...row,
+    origin_country_name_en: localizedName(localizedNamesById, row.origin_country_region_id),
+    origin_region_name_en: localizedName(localizedNamesById, row.origin_periphery_region_id ?? row.origin_region_id),
+    origin_city_name_en: localizedName(localizedNamesById, row.origin_city_region_id),
+  }));
+}
 
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
   try {
@@ -55,7 +92,7 @@ export async function listGraduates(req: Request, res: Response, next: NextFunct
         page: 1,
         pageSize: total,
         total,
-        items: rows
+        items: await serializeGraduateRows(rows as any[], String(req.query.lang ?? ""))
       });
       return;
     }
@@ -76,7 +113,7 @@ export async function listGraduates(req: Request, res: Response, next: NextFunct
       page,
       pageSize,
       total: count,
-      items: rows
+      items: await serializeGraduateRows(rows as any[], String(req.query.lang ?? ""))
     });
   } catch (err) {
     next(err);
@@ -101,7 +138,8 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
 
     const rows = await Graduate.findAll({ where, order, limit: ids.length ? undefined : limit });
     const { programsById, regionsById } = await getReferenceMaps();
-    const data = sanitizeExportRows(buildExportRows(rows as any[], lang, programsById, regionsById));
+    const localizedNamesById = await getLocalizedNamesForGraduates(rows as any[], lang);
+    const data = sanitizeExportRows(buildExportRows(rows as any[], lang, programsById, regionsById, localizedNamesById));
 
     await logAction({
       user_id: req.user?.id ?? null,

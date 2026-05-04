@@ -9,7 +9,10 @@ export type ExportLang = "gr" | "en";
 export type GraduateFileFormat = "xlsx" | "csv";
 
 export function getExportLang(raw: unknown): ExportLang {
-  return typeof raw === "string" && EXPORT_LANGS.has(raw) ? (raw as ExportLang) : "gr";
+  const value = String(raw ?? "").trim().toLowerCase();
+  if (value.startsWith("en")) return "en";
+  if (value.startsWith("gr") || value.startsWith("el")) return "gr";
+  return "gr";
 }
 
 export function getGraduateFileFormat(raw: unknown): GraduateFileFormat {

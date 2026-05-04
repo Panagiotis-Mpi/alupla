@@ -23,6 +23,11 @@ export type RecentGraduatePdfItem = Pick<
   | "oath_date"
   | "study_program_id"
   | "origin_country"
+  | "origin_country_region_id"
+  | "origin_periphery_region_id"
+  | "origin_country_name_en"
+  | "origin_region_name_en"
+  | "origin_city_name_en"
   | "origin_region_id"
   | "origin_city_region_id"
   | "origin_municipality"
@@ -80,6 +85,11 @@ export function normalizeRecentGraduateDownload(item: any): RecentGraduateDownlo
           oath_date: String(entry.oath_date ?? ""),
           study_program_id: Number(entry.study_program_id) || 0,
           origin_country: entry.origin_country == null ? null : String(entry.origin_country),
+          origin_country_region_id: entry.origin_country_region_id == null || entry.origin_country_region_id === "" ? null : Number(entry.origin_country_region_id),
+          origin_periphery_region_id: entry.origin_periphery_region_id == null || entry.origin_periphery_region_id === "" ? null : Number(entry.origin_periphery_region_id),
+          origin_country_name_en: entry.origin_country_name_en == null ? null : String(entry.origin_country_name_en),
+          origin_region_name_en: entry.origin_region_name_en == null ? null : String(entry.origin_region_name_en),
+          origin_city_name_en: entry.origin_city_name_en == null ? null : String(entry.origin_city_name_en),
           origin_region_id: entry.origin_region_id == null || entry.origin_region_id === "" ? null : Number(entry.origin_region_id),
           origin_city_region_id: entry.origin_city_region_id == null || entry.origin_city_region_id === "" ? null : Number(entry.origin_city_region_id),
           origin_municipality: entry.origin_municipality == null ? null : String(entry.origin_municipality),

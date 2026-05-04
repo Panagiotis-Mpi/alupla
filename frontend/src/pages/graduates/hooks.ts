@@ -8,11 +8,11 @@ import {
   type StudyProgram,
 } from "../../lib/api";
 
-export async function loadGraduatesScreen(params: Record<string, unknown>) {
+export async function loadGraduatesScreen(params: Record<string, unknown>, lang: "gr" | "en") {
   const [studyProgramsResponse, regionsResponse, graduatesResponse] = await Promise.all([
     listStudyPrograms(),
     listRegions({ type: "PERIPHERY" }),
-    listGraduates(params),
+    listGraduates({ ...params, lang }),
   ]);
 
   return {

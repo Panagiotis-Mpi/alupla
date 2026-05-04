@@ -21,10 +21,11 @@ export function GraduatesTable(props: {
   renderGender: (value: unknown) => string;
   programNameById: Map<number, string>;
   regionNameById: Map<number, string>;
+  activeLang: "gr" | "en";
   t: (key: string, options?: Record<string, unknown>) => string;
   onDelete: (graduate: Graduate) => Promise<void>;
 }) {
-  const { visibleItems, loading, selectedIds, allVisibleSelected, selectAllRef, tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, headerButtonStyle, wideCardStyle, toggleAllVisible, toggleSelected, toggleSort, getSortIndicator, renderGender, programNameById, regionNameById, t, onDelete } = props;
+  const { visibleItems, loading, selectedIds, allVisibleSelected, selectAllRef, tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, headerButtonStyle, wideCardStyle, toggleAllVisible, toggleSelected, toggleSort, getSortIndicator, renderGender, programNameById, regionNameById, activeLang, t, onDelete } = props;
 
   return (
     <div className="card" style={{ ...wideCardStyle, position: "relative" }}>
@@ -83,9 +84,9 @@ export function GraduatesTable(props: {
                   <td>{formatValue(graduate.graduation_date, "date")}</td>
                   <td>{formatValue(graduate.oath_date, "date")}</td>
                   <td>{programNameById.get(Number(graduate.study_program_id)) ?? ""}</td>
-                  <td>{formatValue(getGraduateOriginCountryDisplay(graduate, regionNameById, t))}</td>
-                  <td>{formatValue(getGraduateOriginRegionDisplay(graduate, regionNameById))}</td>
-                  <td>{formatValue(getGraduateOriginMunicipalityDisplay(graduate, regionNameById))}</td>
+                  <td>{formatValue(getGraduateOriginCountryDisplay(graduate, regionNameById, t, activeLang))}</td>
+                  <td>{formatValue(getGraduateOriginRegionDisplay(graduate, regionNameById, activeLang))}</td>
+                  <td>{formatValue(getGraduateOriginMunicipalityDisplay(graduate, regionNameById, activeLang))}</td>
                   <td>
                     <div className="row-actions">
                       <Link className="btn" to={`/graduates/${graduate.id}`} style={{ textDecoration: "none" }}>

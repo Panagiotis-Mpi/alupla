@@ -27,6 +27,8 @@ export type RegionType = "COUNTRY" | "PERIPHERY" | "CITY" | "FOREIGN_CITY";
 export type Region = {
   id: number;
   name: string;
+  name_el?: string | null;
+  name_en?: string | null;
   type: RegionType;
   parent_id?: number | null;
   latitude?: number | null;
@@ -54,6 +56,9 @@ export type Graduate = {
   origin_region_id?: number | null;
   origin_city_region_id?: number | null;
   origin_municipality?: string | null;
+  origin_country_name_en?: string | null;
+  origin_region_name_en?: string | null;
+  origin_city_name_en?: string | null;
   created_at?: string;
   updated_at?: string;
 };
