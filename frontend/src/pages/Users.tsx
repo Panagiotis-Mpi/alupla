@@ -121,7 +121,7 @@ export default function Users() {
 
   function getSortArrow(key: SortKey) {
     if (sortState.key !== key) return "";
-    return sortState.dir === "asc" ? " ↑" : " ↓";
+    return sortState.dir === "asc" ? " ▲" : " ▼";
   }
 
   return (

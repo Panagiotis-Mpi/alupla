@@ -247,7 +247,7 @@ export default function Graduates() {
     if (sortState.key !== key) {
       return "";
     }
-    return sortState.dir === "asc" ? " ↑" : " ↓";
+    return sortState.dir === "asc" ? " ▲" : " ▼";
   }
 
   function closeMenus() {

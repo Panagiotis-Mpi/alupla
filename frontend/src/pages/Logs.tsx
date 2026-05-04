@@ -452,9 +452,11 @@ export default function Logs() {
               <span
                 className="badge"
                 style={{
-                  minWidth: 64,
+                  minWidth: 52,
+                  width: 52,
+                  maxWidth: 52,
                   height: 42,
-                  padding: "0 14px",
+                  padding: 0,
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",

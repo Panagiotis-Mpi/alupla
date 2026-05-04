@@ -2729,4 +2729,4 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
 
 .logs-mobile-pagination{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:nowrap;width:100%}
 .logs-mobile-pagination .btn{width:52px!important;min-width:52px!important;flex:0 0 auto!important}
-.logs-mobile-pagination .badge{min-width:64px;flex:0 0 auto}
+.logs-mobile-pagination .badge{width:52px!important;min-width:52px!important;max-width:52px!important;flex:0 0 52px!important;padding:0!important}
