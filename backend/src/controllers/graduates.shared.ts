@@ -1,3 +1,4 @@
+// Κοινές βοηθητικές λειτουργίες για αποφοίτους, exports και καταγωγή.
 import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
@@ -32,6 +33,7 @@ function isInvalidNullableNumber(value: number | null) {
   return value !== null && Number.isNaN(value);
 }
 
+// Βρίσκει το όνομα περιοχής στη σωστή γλώσσα.
 function getRegionNameById(regionsById: Map<number, RegionLookup>, value: unknown, lang: ExportLang, localizedNamesById?: LocalizedNamesByRegionId) {
   if (value == null || value === "") return "";
   const id = Number(value);
@@ -74,6 +76,7 @@ function compareDiplomaNumber(a: GraduateExportSource, b: GraduateExportSource) 
   return String(a.student_number ?? "").localeCompare(String(b.student_number ?? ""), "el", { numeric: true, sensitivity: "base" });
 }
 
+// Μετατρέπει εγγραφές αποφοίτων σε γραμμές για CSV/XLSX export.
 export function buildExportRows(
   rows: GraduateExportSource[],
   lang: ExportLang,
@@ -116,6 +119,7 @@ export function getTemplateHeaders(lang: ExportLang) {
   return [getStrictTemplateHeaderRows(lang)];
 }
 
+// Φορτώνει μία φορά τα βασικά lookup δεδομένα για ids → ονόματα.
 export async function getReferenceMaps(): Promise<ReferenceMaps> {
   const [programs, regions] = await Promise.all([
     StudyProgram.findAll({ order: [["id", "ASC"]] }),
@@ -128,6 +132,7 @@ export async function getReferenceMaps(): Promise<ReferenceMaps> {
   };
 }
 
+// Κανονικοποιεί κείμενο ώστε να ταιριάζουν τιμές με/χωρίς τόνους ή κενά.
 function normalizeLookupValue(value: unknown) {
   return String(value ?? "")
     .replace(/\r\n/g, "\n")
@@ -141,6 +146,7 @@ function normalizeLookupValue(value: unknown) {
     .trim();
 }
 
+// Αντιστοιχίζει τιμή αρχείου ή φόρμας με πρόγραμμα σπουδών.
 export function resolveStudyProgramId(value: unknown, programsById: Map<number, ProgramLookup>) {
   const raw = String(value ?? "").trim();
   if (!raw) return null;
@@ -169,6 +175,7 @@ export function resolveStudyProgramId(value: unknown, programsById: Map<number, 
   return null;
 }
 
+// Αντιστοιχίζει τιμή αρχείου ή φόρμας με περιοχή.
 export function resolveRegionId(value: unknown, regionsById: Map<number, RegionLookup>) {
   const raw = String(value ?? "").trim();
   if (!raw) return null;
@@ -193,6 +200,7 @@ function resolveCountryRegionByName(value: unknown, regionsById: Map<number, Reg
   return Number(region.id);
 }
 
+// Μετατρέπει τη χώρα σε country_region_id, αν λείπει βάζει Ελλάδα.
 export function reconcileOriginCountryRegionId(
   originCountry: unknown,
   originCountryRegionId: number | null | undefined,
@@ -224,6 +232,7 @@ export function reconcileOriginCountryRegionId(
   return defaultGreeceId ?? null;
 }
 
+// Καθαρίζει τα πεδία καταγωγής πριν σταλούν στο frontend.
 export function buildResolvedOriginSnapshot<T extends ManagedOriginTarget>(item: T, regionsById: Map<number, RegionLookup>) {
   const nextCountryRegionId = reconcileOriginCountryRegionId(item.origin_country, item.origin_country_region_id ?? null, regionsById);
   const nextCountry = nextCountryRegionId != null ? regionsById.get(Number(nextCountryRegionId)) ?? null : null;
@@ -246,6 +255,7 @@ function hasOriginValue(originCountryRegionId: number | null | undefined, origin
   return originCountryRegionId != null || originRegionId != null || String(originMunicipality ?? "").trim().length > 0;
 }
 
+// Ελέγχει ότι η καταγωγή έχει τα απαραίτητα πεδία.
 export function ensureManagedOrigin(
   normalizedOrigin: NormalizedOriginResult,
   originCountryRegionId: number | null | undefined,
@@ -265,6 +275,7 @@ export function ensureManagedOrigin(
   return null;
 }
 
+// Φτιάχνει τα πεδία καταγωγής για νέο απόφοιτο.
 export async function buildCreateOriginPayload(body: Record<string, unknown>, regionsById: Map<number, RegionLookup>) {
   const defaultGreeceId = getGreeceRegionId(regionsById);
   const requestedCountryRegionId = toNullableNumber(body.origin_country_region_id) ?? defaultGreeceId;
@@ -327,6 +338,7 @@ export async function buildCreateOriginPayload(body: Record<string, unknown>, re
   };
 }
 
+// Εφαρμόζει αλλαγές καταγωγής σε υπάρχοντα απόφοιτο.
 export async function applyOriginPatch(item: ManagedOriginTarget, body: Record<string, unknown>, regionsById: Map<number, RegionLookup>) {
   const defaultGreeceId = getGreeceRegionId(regionsById);
   let originRegionTouched = false;
