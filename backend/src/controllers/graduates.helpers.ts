@@ -4,6 +4,7 @@ import { normHeader, toDateOnly } from "../utils/importUtils";
 import { normalizeRegionText } from "../utils/regionText";
 import { sanitizeExportCell } from "../utils/exportSafety";
 
+// Κοινά βοηθητικά για exports, imports, validation και μορφοποίηση δεδομένων αποφοίτων.
 export const EXPORT_LANGS = new Set(["gr", "en"]);
 export type ExportLang = "gr" | "en";
 export type GraduateFileFormat = "xlsx" | "csv";
@@ -19,6 +20,7 @@ export function getGraduateFileFormat(raw: unknown): GraduateFileFormat {
   return String(raw ?? "").trim().toLowerCase() === "csv" ? "csv" : "xlsx";
 }
 
+// Ρυθμίζει βασική εμφάνιση Excel export χωρίς να αλλάζει τα δεδομένα.
 export function applySheetLayout(ws: XLSX.WorkSheet, rows: Array<Record<string, unknown>>) {
   const headers = rows.length ? Object.keys(rows[0] ?? {}) : [];
   ws["!cols"] = headers.map((header) => {
@@ -56,6 +58,7 @@ export function applyTemplateSheetLayout(ws: XLSX.WorkSheet, headerRows: string[
   }
 }
 
+// Κεντρικό σημείο για τα labels στηλών σε ελληνικά/αγγλικά.
 export function getColumnLabels(lang: ExportLang) {
   return lang === "en"
     ? { ad_code: "Diploma number", student_number: "Student number", last_name: "Last name", first_name: "First name", father_name: "Father name", gender: "Gender", entry_year: "Entry year", birth_date: "Birth date", degree_grade: "Degree grade", graduation_date: "Diploma award date", oath_date: "Oath date", study_program: "Study program", origin_country: "Country", origin_region: "Region", origin_municipality: "City" } as const
@@ -85,6 +88,7 @@ export function getStrictTemplateHeaderRows(lang: ExportLang) {
   return GRADUATES_COLUMN_KEYS.map((key) => labels[key]);
 }
 
+// Το import δέχεται μόνο το επίσημο template, με ίδια σειρά στηλών.
 export function getMatchedTemplateHeaderKeys(headers: string[]) {
   const normalizedHeaders = headers.map((header) => normHeader(header));
   const gr = getStrictTemplateHeaderRows("gr").map((header) => normHeader(header));
@@ -96,6 +100,7 @@ export function getMatchedTemplateHeaderKeys(headers: string[]) {
   return null;
 }
 
+// Παλαιότερα/εναλλακτικά ονόματα στηλών που αναγνωρίζονται από import helpers.
 export const IMPORT_HEADER_ALIASES = {
   student_number: ["student_number","student number","student_number_(required)","am","a_m","a.m","αμ","α.μ","student no.","student no","α.μ.","Α.Μ.","αριθμός μητρώου"],
   ad_code: ["ad_code","diploma number","diploma_number","diploma_number_(required)","αριθμός διπλώματος","aa","a_a","a.a","αα","α.α","a.d.","a.d","α.δ.","α.δ","A.D.","Α.Δ."],
@@ -124,6 +129,7 @@ export function toSortDirection(value: unknown): "ASC" | "DESC" {
   return String(value ?? "asc").trim().toLowerCase() === "desc" ? "DESC" : "ASC";
 }
 
+// Επιτρέπει ταξινόμηση μόνο σε γνωστά πεδία, ώστε να αποφεύγονται άκυρα sort params.
 export function parseSort(sortRaw: unknown): Array<[string, "ASC" | "DESC"]> {
   const raw = typeof sortRaw === "string" ? sortRaw.trim() : "";
   if (!raw) return [["id", "ASC"]];
@@ -167,6 +173,7 @@ export function parseYear(value: unknown) {
   return Number.isFinite(year) ? year : null;
 }
 
+// Κανόνες λογικής εγκυρότητας για ηλικία και ελάχιστη διάρκεια σπουδών.
 export function getGraduateRuleViolations(input: { entry_year: number | null; birth_date: string | null; graduation_date: string | null }, lang: RuleLang): GraduateRuleViolation[] {
   const violations: GraduateRuleViolation[] = [];
   const birthYear = parseYear(input.birth_date);
@@ -216,6 +223,7 @@ export function trimNullableText(value: unknown) {
   return normalized || null;
 }
 
+// Μετατρέπει διαφορετικές τιμές φύλου από import σε M/F.
 export function parseImportGender(value: unknown) {
   const normalized = normHeader(String(value ?? "").trim()).replace(/\./g, "");
   if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) return "M";
@@ -223,11 +231,13 @@ export function parseImportGender(value: unknown) {
   return null;
 }
 
+// Καθαρίζει ids από query params και κρατά μόνο θετικούς ακέραιους.
 export function parseIds(idsRaw: unknown): number[] {
   const values = Array.isArray(idsRaw) ? idsRaw : typeof idsRaw === "string" ? idsRaw.split(",") : idsRaw == null ? [] : [idsRaw];
   return Array.from(new Set(values.map((value) => Number(String(value).trim())).filter((value) => Number.isInteger(value) && value > 0)));
 }
 
+// Κάνει safe escaping για CSV/TSV και περνά πρώτα από export safety.
 export function csvEscape(value: unknown, delimiter: string) {
   const text = String(sanitizeExportCell(value) ?? "");
   const escaped = text.replace(/"/g, '""');
@@ -263,6 +273,7 @@ export function buildDelimitedText(rows: Array<Record<string, unknown>>, delimit
   return lines.join("\r\n");
 }
 
+// UTF-16LE με BOM για σωστό άνοιγμα ελληνικών χαρακτήρων στο Excel.
 export function buildUtf16CsvBuffer(text: string) {
   return Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]);
 }
@@ -274,6 +285,7 @@ export function formatDateDisplay(value: unknown) {
   return `${day}/${month}/${year}`;
 }
 
+// Εμφανίζει το φύλο στη γλώσσα του export/list.
 export function formatGenderValue(value: unknown, lang: ExportLang = "gr") {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) return lang === "en" ? "Male" : "Άνδρας";
@@ -294,6 +306,7 @@ export function isGreeceCountryValue(value: unknown) {
   return normalized === normalizeRegionText("Ελλάδα") || normalized === normalizeRegionText("Greece");
 }
 
+// Αποφασίζει αν η καταγωγή πρέπει να αντιμετωπιστεί ως εξωτερικό.
 export function isAbroadOriginInput(countryName: unknown, countryRegionId: unknown, greeceRegionId: number | null, foreignCity: unknown) {
   const normalizedCountry = trimNullableText(countryName);
   if (normalizedCountry) return !isGreeceCountryValue(normalizedCountry);
