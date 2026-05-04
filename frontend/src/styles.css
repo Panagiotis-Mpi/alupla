@@ -2648,7 +2648,8 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
 .table th{
   background:#eef4ff;
   color:#1e3a8a;
-  font-weight:800;
+  font-size:14px;
+  font-weight:500;
   letter-spacing:-.005em;
 }
 .table thead th:first-child{border-top-left-radius:12px}
@@ -2705,7 +2706,8 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
 .logs-summary-table th,
 .logs-list-table th{
   color:#1e3a8a;
-  font-weight:800;
+  font-size:14px;
+  font-weight:500;
 }
 
 @media (max-width:640px){
@@ -2726,5 +2728,5 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
 }
 
 .logs-mobile-pagination{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:nowrap;width:100%}
-.logs-mobile-pagination .btn{width:74px!important;min-width:74px!important;flex:0 0 auto!important}
-.logs-mobile-pagination .badge{min-width:92px;flex:0 0 auto}
+.logs-mobile-pagination .btn{width:52px!important;min-width:52px!important;flex:0 0 auto!important}
+.logs-mobile-pagination .badge{min-width:64px;flex:0 0 auto}

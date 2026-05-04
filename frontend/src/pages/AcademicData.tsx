@@ -38,7 +38,7 @@ const sortableHeaderStyle: React.CSSProperties = {
   border: 0,
   padding: 0,
   font: "inherit",
-  fontWeight: 400,
+  fontWeight: 500,
   color: "inherit",
   cursor: "pointer",
   display: "inline-flex",

@@ -457,7 +457,7 @@ export default function Graduates() {
   const headerButtonStyle: React.CSSProperties = {
     all: "unset",
     cursor: "pointer",
-    fontWeight: 400,
+    fontWeight: 500,
     color: "inherit",
     display: "inline-flex",
     alignItems: "center",

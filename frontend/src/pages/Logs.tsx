@@ -430,8 +430,8 @@ export default function Logs() {
               <button
                 className="btn"
                 style={{
-                  width: 74,
-                  minWidth: 74,
+                  width: 52,
+                  minWidth: 52,
                   height: 42,
                   padding: 0,
                   borderRadius: 12,
@@ -452,7 +452,7 @@ export default function Logs() {
               <span
                 className="badge"
                 style={{
-                  minWidth: 92,
+                  minWidth: 64,
                   height: 42,
                   padding: "0 14px",
                   display: "inline-flex",
@@ -468,8 +468,8 @@ export default function Logs() {
               <button
                 className="btn"
                 style={{
-                  width: 74,
-                  minWidth: 74,
+                  width: 52,
+                  minWidth: 52,
                   height: 42,
                   padding: 0,
                   borderRadius: 12,
