@@ -1,6 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/sequelize";
 
+// Model για εναλλακτικά ονόματα περιοχών που βοηθούν στο matching.
 export class RegionAlias extends Model {
   declare id: number;
   declare region_id: number;
@@ -9,6 +10,7 @@ export class RegionAlias extends Model {
   declare alias_type: string;
 }
 
+// Αντιστοίχιση του model με τον πίνακα region_aliases.
 RegionAlias.init(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },

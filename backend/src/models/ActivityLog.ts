@@ -1,6 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/sequelize";
 
+// Model για τις καταγραφές ενεργειών του συστήματος.
 export class ActivityLog extends Model {
   declare id: number;
   declare user_id: number | null;
@@ -10,6 +11,7 @@ export class ActivityLog extends Model {
   declare details: object | null;
 }
 
+// Αντιστοίχιση του model με τον πίνακα activity_logs.
 ActivityLog.init(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },

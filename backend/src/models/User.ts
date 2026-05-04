@@ -1,8 +1,10 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/sequelize";
 
+// Οι ρόλοι που επιτρέπονται στην πλατφόρμα.
 export type UserRole = "super_admin" | "secretariat";
 
+// Model για τους χρήστες της πλατφόρμας.
 export class User extends Model {
   declare id: number;
   declare first_name: string;
@@ -14,6 +16,7 @@ export class User extends Model {
   declare last_seen_at: Date | null;
 }
 
+// Αντιστοίχιση του model με τον πίνακα users.
 User.init(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },

@@ -1,6 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/sequelize";
 
+// Model για περιοχές που δεν αναγνωρίστηκαν αυτόματα στο import.
 export class UnresolvedRegion extends Model {
   declare id: number;
   declare raw_name: string;
@@ -13,6 +14,7 @@ export class UnresolvedRegion extends Model {
   declare resolved_by_user_id: number | null;
 }
 
+// Αντιστοίχιση του model με τον πίνακα unresolved_regions.
 UnresolvedRegion.init(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },

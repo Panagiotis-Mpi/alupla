@@ -13,6 +13,7 @@ import { ensureRegionCitiesSeeded } from "../seed/regionCities";
 import { normalizeRegionText } from "../utils/regionText";
 import { normalizeOriginLocation } from "../utils/resolvePeripheryRegionId";
 
+// Ορίζει τις σχέσεις ανάμεσα στα models.
 function setupAssociations() {
   StudyProgram.hasMany(Graduate, { foreignKey: "study_program_id" });
   Graduate.belongsTo(StudyProgram, { foreignKey: "study_program_id" });
@@ -45,6 +46,7 @@ function setupAssociations() {
 
 setupAssociations();
 
+// Προσθέτει στήλη μόνο αν δεν υπάρχει ήδη.
 async function ensureColumn(table: string, column: string, definition: any) {
   const qi = sequelize.getQueryInterface();
   const tableInfo = await qi.describeTable(table);
@@ -53,6 +55,7 @@ async function ensureColumn(table: string, column: string, definition: any) {
   }
 }
 
+// Προσθέτει index μόνο αν δεν υπάρχει ήδη.
 async function ensureIndex(table: string, fields: string[], name: string, options: Record<string, unknown> = {}) {
   const qi = sequelize.getQueryInterface();
   const rawIndexes = await qi.showIndex(table);
@@ -69,6 +72,7 @@ async function ensureRegionTypeEnum() {
   }
 }
 
+// Κρατά τη βάση συμβατή με την τρέχουσα έκδοση του κώδικα.
 async function ensureSchema() {
   const qi = sequelize.getQueryInterface();
 
@@ -120,6 +124,7 @@ async function ensureAppIndexes() {
   await ensureIndex("unresolved_regions", ["normalized_raw_name", "country_region_id", "periphery_id"], "unresolved_regions_key_idx", { unique: true });
 }
 
+// Γεμίζει βασικές χώρες/περιφέρειες/πόλεις αν λείπουν.
 async function seedRegions() {
   try {
     await ensureCountriesSeeded();
@@ -130,6 +135,7 @@ async function seedRegions() {
   }
 }
 
+// Καθαρίζει και συμπληρώνει παλιά δεδομένα περιοχών.
 async function backfillRegions() {
   const rows = await Region.findAll({ attributes: ["id", "name", "name_el", "name_en", "normalized_name", "type", "parent_id"] });
   const byId = new Map(rows.map((item: any) => [Number(item.id), item]));
@@ -161,6 +167,7 @@ async function backfillRegions() {
   }
 }
 
+// Ευθυγραμμίζει παλιές καταγωγές αποφοίτων με το νέο μοντέλο περιοχών.
 async function backfillGraduateOrigins() {
   const rows = await Graduate.findAll({
     attributes: [
@@ -193,6 +200,7 @@ async function backfillGraduateOrigins() {
   }
 }
 
+// Συμπληρώνει χώρα σε unresolved περιοχές όπου μπορεί να βρεθεί.
 async function backfillUnresolvedRegions() {
   const rows = await UnresolvedRegion.findAll({ attributes: ["id", "country_region_id", "periphery_id", "canonical_region_id"] });
   const regions = await Region.findAll({ attributes: ["id", "type", "parent_id", "normalized_name"] });
@@ -219,6 +227,7 @@ async function backfillUnresolvedRegions() {
   }
 }
 
+// Αρχικοποιεί σύνδεση, schema, seed και backfills στην εκκίνηση.
 export async function initDb() {
   await sequelize.authenticate();
   await sequelize.sync();
