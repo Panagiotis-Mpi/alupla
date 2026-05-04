@@ -1,3 +1,4 @@
+// Helpers για export του χάρτη σε εικόνα ή αρχείο.
 import * as XLSX from "xlsx";
 import { downloadBlob } from "../../lib/download";
 

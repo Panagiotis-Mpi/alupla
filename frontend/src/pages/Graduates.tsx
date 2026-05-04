@@ -1,3 +1,4 @@
+// Κεντρική σελίδα αποφοίτων: λίστα, φίλτρα, επιλογές, import και export.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";

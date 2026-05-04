@@ -1,3 +1,4 @@
+// Μικρές βοηθητικές συναρτήσεις για υπολογισμούς του χάρτη.
 import type { MapCityPoint } from "../../lib/api";
 
 export function normalizeKey(value: string): string {

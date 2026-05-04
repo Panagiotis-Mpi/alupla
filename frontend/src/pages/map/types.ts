@@ -1,3 +1,4 @@
+// Types που περιγράφουν τα δεδομένα και το state του χάρτη.
 export type AgeGroup = "" | "23-26" | "27-30" | "31+";
 
 export type FiltersState = {

@@ -1,3 +1,4 @@
+// Σελίδα προφίλ χρήστη και αλλαγής κωδικού.
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { changePassword, me } from "../lib/api";

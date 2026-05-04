@@ -1,3 +1,4 @@
+// Κοινά helpers για εμφάνιση, φίλτρα και exports των logs.
 import type { TFunction } from "i18next";
 import type { ActivityLog } from "../../lib/api";
 

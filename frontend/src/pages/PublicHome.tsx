@@ -1,3 +1,4 @@
+// Δημόσια αρχική σελίδα για επισκέπτες χωρίς login.
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 

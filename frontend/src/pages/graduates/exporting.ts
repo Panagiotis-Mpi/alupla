@@ -1,3 +1,4 @@
+// Helpers για export αποφοίτων από τη λίστα.
 import type { Graduate } from "../../lib/api";
 import type { RecentGraduateDownload, RecentGraduatePdfItem, RecentGraduateRequest } from "./recentDownloads";
 

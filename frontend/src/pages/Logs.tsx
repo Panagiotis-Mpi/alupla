@@ -1,3 +1,4 @@
+// Σελίδα καταγραφών ενεργειών με φίλτρα και exports.
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { downloadBlob } from "../lib/download";

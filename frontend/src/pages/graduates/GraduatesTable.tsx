@@ -1,8 +1,10 @@
+// Πίνακας αποφοίτων με στήλες, επιλογή γραμμών και actions.
 import React from "react";
 import { Link } from "react-router-dom";
 import type { Graduate } from "../../lib/api";
 import { formatValue, getGraduateOriginCountryDisplay, getGraduateOriginMunicipalityDisplay, getGraduateOriginRegionDisplay, type SortKey } from "./shared";
 
+// Εμφανίζει αποφοίτους σε πίνακα και ενημερώνει την επιλογή γραμμών.
 export function GraduatesTable(props: {
   visibleItems: Graduate[];
   loading: boolean;

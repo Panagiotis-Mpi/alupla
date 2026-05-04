@@ -1,3 +1,4 @@
+// Παίρνει εικόνα από τμήμα της σελίδας για exports PNG/PDF.
 function copyComputedStyles(source: Element, target: Element) {
   const sourceChildren = Array.from(source.children);
   const targetChildren = Array.from(target.children);

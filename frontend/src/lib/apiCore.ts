@@ -1,3 +1,4 @@
+// Κεντρικός μηχανισμός για HTTP requests, token και χειρισμό απαντήσεων API.
 export const API_URL: string = (() => {
   const env = import.meta.env as { VITE_API_URL?: string } | undefined;
   const envUrl = env?.VITE_API_URL;

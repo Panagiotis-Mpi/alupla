@@ -1,3 +1,4 @@
+// Σελίδα χάρτη: φίλτρα, δεδομένα περιοχών, bubbles και exports.
 import {
   useCallback,
   useEffect,

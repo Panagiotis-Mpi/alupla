@@ -1,3 +1,4 @@
+// Controls του χάρτη: φίλτρα, mode, κουμπιά και επιλογές export.
 import React from "react";
 
 type MetricOption = { label: string; legend: string };

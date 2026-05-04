@@ -1,3 +1,4 @@
+// Κοινά UI στοιχεία και helpers για τον χάρτη.
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import { useMap, useMapEvents } from "react-leaflet";

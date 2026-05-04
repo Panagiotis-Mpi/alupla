@@ -1,3 +1,4 @@
+// Κοινά helpers, labels και UI logic για τη σελίδα αποφοίτων.
 import React from "react";
 import type { Graduate, StudyProgram } from "../../lib/api";
 

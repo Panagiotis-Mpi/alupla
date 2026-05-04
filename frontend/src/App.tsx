@@ -1,3 +1,4 @@
+// Ορίζει τα βασικά routes, το header και τη γενική ροή πλοήγησης της εφαρμογής.
 import React from "react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -263,13 +264,15 @@ function TopNav() {
   );
 }
 
-export default function App() {
+export default // Κρατά το global state χρήστη και στήνει τις σελίδες της εφαρμογής.
+function App() {
   return (
     <div className="app-shell">
       <TopNav />
       <div className="container app-content">
         <React.Suspense fallback={<div className="page-loading">{i18n.language?.startsWith("en") ? "Loading" : "Φόρτωση"}</div>}>
-          <Routes>
+                  {/* Κάθε Route συνδέει URL με τη σελίδα που θα εμφανιστεί. */}
+<Routes>
           <Route path="/" element={<PublicHome />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

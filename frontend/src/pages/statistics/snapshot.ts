@@ -1,3 +1,4 @@
+// Παίρνει snapshot από τα στατιστικά για export εικόνας/PDF.
 import { prepareSnapshotClone, waitForRenderableImages } from "../../lib/domSnapshot";
 
 function expandSnapshotClone(sourceRoot: HTMLElement, cloneRoot: HTMLElement) {

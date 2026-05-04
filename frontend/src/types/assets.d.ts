@@ -1,3 +1,4 @@
+// Δηλώνει τύπους για αρχεία assets που εισάγονται στο frontend.
 declare module "*.geojson" {
   const value: any;
   export default value;

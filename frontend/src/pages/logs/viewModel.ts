@@ -1,3 +1,4 @@
+// Μετατρέπει raw logs από API σε μορφή έτοιμη για εμφάνιση.
 import type { TFunction } from "i18next";
 import { exportActivityLogsFile, getActivityLogFileSummary, listUsers, type QueryParams, type User } from "../../lib/api";
 import type { FileSummaryItem, FileSummaryRole } from "./shared";

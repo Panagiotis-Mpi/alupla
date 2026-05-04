@@ -1,3 +1,4 @@
+// Modal επιλογής ενοτήτων που θα μπουν στο export στατιστικών.
 import React from "react";
 import type { StatisticsChartId } from "../statisticsExport";
 

@@ -1,3 +1,4 @@
+// Σελίδα διαχείρισης προγραμμάτων σπουδών και σχετικών ακαδημαϊκών δεδομένων.
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {

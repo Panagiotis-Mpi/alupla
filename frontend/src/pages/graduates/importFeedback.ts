@@ -1,3 +1,4 @@
+// Μετατρέπει τα αποτελέσματα import σε μηνύματα που καταλαβαίνει ο χρήστης.
 export type ImportIssueGroup = {
   key: string;
   column: string;

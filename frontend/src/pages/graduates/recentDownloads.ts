@@ -1,3 +1,4 @@
+// Κρατά πρόσφατα downloads για να μπορεί ο χρήστης να τα ξανακατεβάσει.
 import type { Graduate } from "../../lib/api";
 import type { GraduatesFiltersState } from "./shared";
 

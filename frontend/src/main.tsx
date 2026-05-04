@@ -1,3 +1,4 @@
+// Ξεκινά το React app και το συνδέει με το div #root του index.html.
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

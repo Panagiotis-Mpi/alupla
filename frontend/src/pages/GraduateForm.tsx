@@ -1,3 +1,4 @@
+// Φόρμα δημιουργίας ή επεξεργασίας αποφοίτου.
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -104,7 +105,8 @@ export default function GraduateForm(props: { mode: Mode }) {
   const selectedCountryId = getResolvedCountryId(form, countries, greeceCountry);
   const greeceSelected = Number.isFinite(selectedCountryId) && selectedCountryId === Number(greeceCountry?.id ?? null);
 
-  useEffect(() => {
+    // Όταν υπάρχει id, φορτώνει τα στοιχεία για edit.
+useEffect(() => {
     (async () => {
       const [sp, countriesResponse] = await Promise.all([
         listStudyPrograms(),

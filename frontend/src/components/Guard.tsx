@@ -1,3 +1,4 @@
+// Προστατεύει σελίδες που χρειάζονται login ή συγκεκριμένο ρόλο χρήστη.
 import React from "react";
 import { Navigate } from "react-router-dom";
 import { getUser, type Role } from "../lib/auth";

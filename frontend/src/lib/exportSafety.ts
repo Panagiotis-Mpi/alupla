@@ -1,3 +1,4 @@
+// Καθαρίζει τιμές export ώστε να μην ανοίγουν ως formulas στο Excel.
 const FORMULA_LIKE_RE = /^[\s\t\r\n]*[=+\-@]/;
 
 export function sanitizeExportCell(value: unknown): unknown {

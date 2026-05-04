@@ -1,3 +1,4 @@
+// Χτίζει τις ενότητες KPIs και charts της σελίδας Στατιστικά.
 import React from "react";
 import {
   BarChartCard,

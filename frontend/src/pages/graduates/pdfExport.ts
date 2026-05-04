@@ -1,3 +1,4 @@
+// Φτιάχνει PDF export της λίστας αποφοίτων από το frontend.
 import type { Graduate } from "../../lib/api";
 
 type ExportLang = "gr" | "en";
@@ -432,6 +433,7 @@ function createPdfFromJpegs(images: Uint8Array[]) {
   return new Blob(parts, { type: "application/pdf" });
 }
 
+// Δημιουργεί PDF από τα δεδομένα της λίστας και ενημερώνει το backend για log.
 export async function exportGraduatesPdf(args: {
   items: Graduate[];
   lang: ExportLang;

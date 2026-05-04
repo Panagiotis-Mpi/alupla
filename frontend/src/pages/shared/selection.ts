@@ -1,3 +1,4 @@
+// Κοινό helper για επιλογή/αποεπιλογή εγγραφών σε λίστες.
 export function toggleSelectionValue<T extends string | number>(values: T[], value: T) {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 }

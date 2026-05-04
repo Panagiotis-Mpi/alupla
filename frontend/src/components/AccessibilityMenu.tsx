@@ -1,3 +1,4 @@
+// Χειρίζεται το μενού προσβασιμότητας και εφαρμόζει τις επιλογές εμφάνισης στο UI.
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {

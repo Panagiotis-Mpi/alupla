@@ -1,3 +1,4 @@
+// Αποθηκεύει και διαβάζει στοιχεία σύνδεσης χρήστη από το browser.
 export type Role = "secretariat" | "super_admin";
 
 export type SessionUser = {

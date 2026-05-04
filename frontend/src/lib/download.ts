@@ -1,3 +1,4 @@
+// Κατεβάζει αρχείο στον browser.
 export async function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");

@@ -1,3 +1,4 @@
+// Μικρό footer που εμφανίζεται στο κάτω μέρος της πλατφόρμας.
 import { useLocation } from "react-router-dom";
 
 const PINNED_PATHS = new Set(["/", "/login", "/register"]);

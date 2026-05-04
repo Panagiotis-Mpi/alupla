@@ -1,3 +1,4 @@
+// Custom hooks για φόρτωση και state του χάρτη.
 import { useEffect, useState } from "react";
 import {
   getGraduatesMap,

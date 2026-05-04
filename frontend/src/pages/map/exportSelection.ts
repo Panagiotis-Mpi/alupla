@@ -1,3 +1,4 @@
+// Διαχειρίζεται ποιες ενότητες του χάρτη θα μπουν σε export.
 import type { RefObject } from "react";
 import L from "leaflet";
 import { prepareSnapshotClone, waitForRenderableImages } from "../../lib/domSnapshot";

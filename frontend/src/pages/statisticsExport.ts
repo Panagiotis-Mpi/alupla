@@ -1,3 +1,4 @@
+// Φτιάχνει αρχεία export για τα στατιστικά.
 import type { TFunction } from "i18next";
 import * as XLSX from "xlsx";
 import { downloadBlob } from "../lib/download";

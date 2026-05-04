@@ -1,3 +1,4 @@
+// Σελίδα στατιστικών με KPIs, διαγράμματα, φίλτρα και exports.
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { getPublicStats, logPublicExport } from "../lib/api";

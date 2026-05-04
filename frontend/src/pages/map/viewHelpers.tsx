@@ -1,3 +1,4 @@
+// Helpers που μετατρέπουν δεδομένα χάρτη σε εμφανίσιμα στοιχεία UI.
 import { useEffect, useState } from "react";
 import type React from "react";
 

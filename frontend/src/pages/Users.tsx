@@ -1,3 +1,4 @@
+// Σελίδα διαχείρισης χρηστών για super admin.
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { createUser, deactivateUser, listUsers, updateUser, type AdminUser } from "../lib/api";
