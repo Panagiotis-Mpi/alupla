@@ -1,3 +1,4 @@
+// Διαβάζει, ελέγχει και εφαρμόζει βασικά πεδία αποφοίτου από φόρμα/create/update.
 import {
   DATE_ONLY_RE,
   getGraduateRuleViolations,
@@ -22,6 +23,7 @@ export type CreateGraduateInput = {
   birth_date: string;
 };
 
+// Διαβάζει από το body τα βασικά πεδία αποφοίτου για create.
 export function readCreateGraduateInput(body: Record<string, unknown>): CreateGraduateInput {
   return {
     ad_code: String(body.ad_code ?? "").trim(),
@@ -39,6 +41,7 @@ export function readCreateGraduateInput(body: Record<string, unknown>): CreateGr
   };
 }
 
+// Ελέγχει αν τα βασικά πεδία νέου αποφοίτου είναι σωστά.
 export function validateCreateGraduateInput(input: CreateGraduateInput) {
   const requiredTextFields: Array<keyof Pick<CreateGraduateInput, "last_name" | "first_name" | "father_name" | "student_number">> = [
     "last_name",
@@ -84,6 +87,7 @@ export function validateCreateGraduateInput(input: CreateGraduateInput) {
   return ruleViolation?.message ?? null;
 }
 
+// Εφαρμόζει αλλαγές απλών πεδίων αποφοίτου στο update.
 export function applyGraduateScalarPatch(item: GraduateEditable, body: Record<string, unknown>) {
   const scalarPatches: Array<[string, (value: unknown) => unknown]> = [
     ["last_name", (value) => String(value ?? "").trim()],
@@ -106,6 +110,7 @@ export function applyGraduateScalarPatch(item: GraduateEditable, body: Record<st
 }
 
 
+// Ελέγχει ότι ο απόφοιτος που θα σωθεί έχει έγκυρες τιμές.
 export function validateStoredGraduate(item: GraduateEditable) {
   const requiredTextFields = ["ad_code", "last_name", "first_name", "father_name", "student_number"] as const;
   for (const field of requiredTextFields) {

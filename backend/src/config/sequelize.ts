@@ -1,7 +1,9 @@
+// Φτιάχνει τη σύνδεση Sequelize με τη PostgreSQL βάση.
 import { Sequelize } from "sequelize";
 import { env } from "./env";
 
 const databaseUrl = env.db.url ? new URL(env.db.url) : null;
+// Στο production/Neon η σύνδεση PostgreSQL χρειάζεται συνήθως SSL.
 const useSsl = env.db.ssl || Boolean(databaseUrl?.searchParams.get("sslmode"));
 
 if (databaseUrl) {

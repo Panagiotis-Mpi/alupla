@@ -1,3 +1,4 @@
+// Στήνει το Express app: ασφάλεια, CORS, JSON body, routes και error handling.
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";

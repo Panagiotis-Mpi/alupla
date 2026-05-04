@@ -1,5 +1,7 @@
+// Προστατεύει CSV/XLSX exports από κελιά που θα μπορούσαν να εκτελεστούν σαν formulas.
 const FORMULA_LIKE_RE = /^[\s\t\r\n]*[=+\-@]/;
 
+// Κάνει ασφαλή ένα κελί export για να μη θεωρηθεί formula.
 export function sanitizeExportCell(value: unknown): unknown {
   if (typeof value !== "string") return value;
   return FORMULA_LIKE_RE.test(value) ? `'${value}` : value;

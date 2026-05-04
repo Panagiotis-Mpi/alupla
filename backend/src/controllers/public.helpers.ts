@@ -1,3 +1,4 @@
+// Helpers για δημόσια ανώνυμα δεδομένα, φίλτρα και logging exports επισκεπτών.
 import type { Request } from "express";
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/sequelize";
@@ -5,6 +6,7 @@ import { Region } from "../models/Region";
 import { verifyToken } from "../utils/jwt";
 import { logAction } from "../services/log.service";
 
+// Μετατρέπει τιμή DB σε αριθμό.
 export function num(v: any): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -12,6 +14,7 @@ export function num(v: any): number | null {
 
 let graduatesBirthModeCache: "birth_date" | "birth_year" | null = null;
 
+// Βλέπει αν η βάση κρατά birth_date ή birth_year.
 export async function getGraduatesBirthMode(): Promise<"birth_date" | "birth_year"> {
   if (graduatesBirthModeCache) return graduatesBirthModeCache;
 
@@ -28,16 +31,19 @@ export async function getGraduatesBirthMode(): Promise<"birth_date" | "birth_yea
   return graduatesBirthModeCache;
 }
 
+// Φτιάχνει SQL expression για ημερομηνία γέννησης.
 export async function getBirthDateExpr() {
   const mode = await getGraduatesBirthMode();
   return mode === "birth_date" ? "g.birth_date" : "CASE WHEN TRIM(CAST(g.birth_year AS TEXT)) ~ '^[0-9]{4}$' THEN make_date(CAST(g.birth_year AS INTEGER), 1, 1) ELSE NULL END";
 }
 
+// Φτιάχνει SQL expression για έτος γέννησης.
 export async function getBirthYearExpr() {
   const birthExpr = await getBirthDateExpr();
   return `CAST(EXTRACT(YEAR FROM ${birthExpr}) AS INTEGER)`;
 }
 
+// Καθαρίζει όνομα περιοχής για ομαδοποίηση.
 export function normalizePlaceName(value: unknown) {
   return String(value ?? "")
     .toLowerCase()
@@ -50,6 +56,7 @@ export function normalizePlaceName(value: unknown) {
 
 let regionRowsCache: Promise<any[]> | null = null;
 
+// Φορτώνει regions για δημόσιο χάρτη/στατιστικά.
 async function loadRegionRows() {
   if (!regionRowsCache) {
     regionRowsCache = Region.findAll({
@@ -67,6 +74,7 @@ async function loadRegionRows() {
   return regionRowsCache;
 }
 
+// Φτιάχνει lookup region id -> πληροφορίες περιοχής.
 export async function buildRegionLookup() {
   const rows = await loadRegionRows();
   const byId = new Map<number, any>();
@@ -96,6 +104,7 @@ export async function buildRegionLookup() {
   return { byId, cityByName, findPeriphery };
 }
 
+// Παίρνει user id αν υπάρχει token, αλλιώς επιστρέφει null.
 export function getOptionalUserId(req: Request) {
   const auth = req.headers.authorization;
   let token: string | null = null;
@@ -120,6 +129,7 @@ export function getOptionalUserId(req: Request) {
   }
 }
 
+// Γράφει activity log για public export.
 export async function logPublicExportAction(req: Request, action: string, entityType: string, details?: Record<string, any>) {
   await logAction({
     user_id: getOptionalUserId(req),
@@ -130,6 +140,7 @@ export async function logPublicExportAction(req: Request, action: string, entity
   });
 }
 
+// Χτίζει κοινό where για δημόσια στατιστικά/χάρτη.
 export async function buildWhere(req: Request) {
   const birthExpr = await getBirthDateExpr();
   const where: string[] = [];

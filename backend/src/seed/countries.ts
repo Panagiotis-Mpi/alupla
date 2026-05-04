@@ -1,3 +1,4 @@
+// Seed αρχείο: περνά βασικές χώρες στον πίνακα regions όταν λείπουν.
 import { Region } from "../models/Region";
 import { normalizeRegionText } from "../utils/regionText";
 
@@ -6,6 +7,7 @@ const COUNTRIES = [
   { name: "Κύπρος", latitude: 35.1264, longitude: 33.4299 },
 ];
 
+// Προσθέτει βασικές χώρες στη βάση αν δεν υπάρχουν.
 export async function ensureCountriesSeeded() {
   for (const item of COUNTRIES) {
     const existing = await Region.findOne({ where: { type: "COUNTRY", normalized_name: normalizeRegionText(item.name) } });

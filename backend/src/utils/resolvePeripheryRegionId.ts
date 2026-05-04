@@ -1,3 +1,4 @@
+// Μετατρέπει χώρα/περιφέρεια/πόλη καταγωγής σε σωστά region ids της βάσης.
 import { Region, type RegionType } from "../models/Region";
 import { RegionAlias } from "../models/RegionAlias";
 import { cleanRegionText, normalizeRegionText } from "./regionText";
@@ -45,6 +46,7 @@ const GREECE_KEYS = new Set([normalizeRegionText("Ελλάδα"), normalizeRegio
 
 let regionLookupsCache: Promise<RegionLookups> | null = null;
 
+// Προσθέτει πιθανό region match με score.
 function pushMatch(map: Map<string, RegionLite[]>, key: string, region: RegionLite) {
   const existing = map.get(key);
   if (existing) {
@@ -54,10 +56,12 @@ function pushMatch(map: Map<string, RegionLite[]>, key: string, region: RegionLi
   map.set(key, [region]);
 }
 
+// Ελέγχει αν μία τιμή περιοχής είναι Ελλάδα.
 function isGreece(region: RegionLite | null | undefined) {
   return Boolean(region && region.type === "COUNTRY" && GREECE_KEYS.has(region.normalized_name));
 }
 
+// Ανεβαίνει στην ιεραρχία regions για να βρει parent.
 function getAncestor(regionId: number | null | undefined, targetType: RegionType, byId: Map<number, RegionLite>) {
   if (!regionId) return null;
 
@@ -73,6 +77,7 @@ function getAncestor(regionId: number | null | undefined, targetType: RegionType
   return null;
 }
 
+// Διαλέγει region που ταιριάζει με χώρα/περιφέρεια scope.
 function pickScopedRegion(candidates: RegionLite[], preferredParentId: number | null, byId: Map<number, RegionLite>, mode: "greece" | "foreign") {
   if (candidates.length === 0) return null;
 
@@ -90,6 +95,7 @@ function pickScopedRegion(candidates: RegionLite[], preferredParentId: number | 
   return candidates[0] ?? null;
 }
 
+// Μετατρέπει Sequelize region σε ελαφρύ object lookup.
 function toRegionLite(row: Region) {
   return {
     id: Number(row.id),
@@ -100,6 +106,7 @@ function toRegionLite(row: Region) {
   } satisfies RegionLite;
 }
 
+// Φτιάχνει maps για γρήγορη εύρεση regions με id/name.
 function createRegionLookups(regions: Region[], aliases: RegionAliasLite[]) {
   const lookups: RegionLookups = {
     byId: new Map<number, RegionLite>(),
@@ -138,6 +145,7 @@ function createRegionLookups(regions: Region[], aliases: RegionAliasLite[]) {
   return lookups;
 }
 
+// Φορτώνει και cache-άρει lookups περιοχών για γρήγορο matching.
 async function loadRegionLookups() {
   if (!regionLookupsCache) {
     regionLookupsCache = Promise.all([
@@ -149,7 +157,9 @@ async function loadRegionLookups() {
   return regionLookupsCache;
 }
 
+// Βρίσκει χώρα από κείμενο import/φόρμας.
 function findCountryFromText(value: string, countryByKey: Map<string, RegionLite[]>, aliasByKey: Map<string, RegionLite[]>) {
+// Το matching γίνεται πάνω σε καθαρισμένο όνομα περιοχής.
   const normalized = normalizeRegionText(value);
   if (!normalized) return null;
 
@@ -159,10 +169,12 @@ function findCountryFromText(value: string, countryByKey: Map<string, RegionLite
   return (aliasByKey.get(normalized) ?? []).find((item) => item.type === "COUNTRY") ?? null;
 }
 
+// Καθαρίζει cache lookup περιοχών.
 export function clearRegionLookupCache() {
   regionLookupsCache = null;
 }
 
+// Μετατρέπει καταγωγή φόρμας/import σε συνεπή region ids.
 export async function normalizeOriginLocation(input: ResolveOriginInput): Promise<NormalizedOriginResult> {
   const { byId, cityByKey, foreignCityByKey, peripheryByKey, countryByKey, aliasByKey } = await loadRegionLookups();
 

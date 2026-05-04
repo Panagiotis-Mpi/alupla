@@ -1,3 +1,4 @@
+// Seed αρχείο: περνά πόλεις/δήμους ώστε import και χάρτης να κάνουν matching.
 import { Region } from "../models/Region";
 import { normalizeRegionText } from "../utils/regionText";
 
@@ -88,6 +89,7 @@ const CITIES: CitySeed[] = [
   { region: "Κρήτη", name: "Σητεία", latitude: 35.2078, longitude: 26.1047 },
 ];
 
+// Προσθέτει πόλεις/δήμους για να δουλεύει import και χάρτης.
 export async function ensureRegionCitiesSeeded(): Promise<void> {
   const peripheries = await Region.findAll({ where: { type: "PERIPHERY" } });
   const peripheryByName = new Map<string, any>();

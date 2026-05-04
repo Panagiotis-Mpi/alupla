@@ -1,3 +1,4 @@
+// Διαβάζει και καθαρίζει τιμές import: headers, αριθμούς, ημερομηνίες και CSV γραμμές.
 export function normHeader(h: any): string {
   return String(h ?? "")
     .trim()
@@ -6,22 +7,26 @@ export function normHeader(h: any): string {
     .replace(/[\-\/]+/g, "_");
 }
 
+// Μετατρέπει input σε αριθμό ή fallback.
 export function toInt(v: any): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = Number(String(v).trim());
   return Number.isFinite(n) ? Math.trunc(n) : null;
 }
 
+// Μετατρέπει συντεταγμένη/τιμή σε αριθμό.
 export function toNumber(v: any): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = Number(String(v).trim().replace(",", "."));
   return Number.isFinite(n) ? n : null;
 }
 
+// Συμπληρώνει ημέρα/μήνα με 0 όπου χρειάζεται.
 function padDatePart(value: number | string) {
   return String(value).padStart(2, "0");
 }
 
+// Φτιάχνει ημερομηνία YYYY-MM-DD από μέρη.
 function buildDateOnly(year: number | string, month: number | string, day: number | string) {
   const yyyy = String(year).padStart(4, "0");
   const mm = padDatePart(month);
@@ -32,6 +37,7 @@ function buildDateOnly(year: number | string, month: number | string, day: numbe
   return `${yyyy}-${mm}-${dd}`;
 }
 
+// Μετατρέπει Excel serial number σε ημερομηνία.
 function fromExcelSerial(value: number) {
   if (!Number.isFinite(value)) return null;
   const base = Date.UTC(1899, 11, 30);
@@ -41,6 +47,7 @@ function fromExcelSerial(value: number) {
   return buildDateOnly(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
 }
 
+// Μετατρέπει διάφορες μορφές ημερομηνίας σε YYYY-MM-DD.
 export function toDateOnly(v: any): string | null {
   if (!v && v !== 0) return null;
   if (v instanceof Date && !isNaN(v.getTime())) {
@@ -75,6 +82,7 @@ export function toDateOnly(v: any): string | null {
 }
 
 
+// Διαβάζει buffer CSV/TXT σε σωστό text.
 export function decodeTextBuffer(buffer: Buffer): string {
   if (!buffer.length) return "";
 
@@ -113,6 +121,7 @@ export function decodeTextBuffer(buffer: Buffer): string {
   return buffer.toString("utf8");
 }
 
+// Σπάει CSV/TSV text σε γραμμές και κελιά.
 export function parseDelimitedTextRows(text: string): string[][] {
   const input = String(text ?? "").replace(/^\ufeff/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   if (!input.trim()) return [];

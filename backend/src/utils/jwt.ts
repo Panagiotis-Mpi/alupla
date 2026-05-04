@@ -1,3 +1,4 @@
+// Δημιουργεί και επαληθεύει JWT tokens για authentication.
 import jwt, { type JwtPayload as StdJwtPayload, type Secret, type SignOptions } from "jsonwebtoken";
 
 const JWT_SECRET_RAW = process.env.JWT_SECRET;
@@ -12,11 +13,13 @@ export type AppJwtPayload = StdJwtPayload & {
   email?: string;
 };
 
+// Δημιουργεί JWT token για logged-in χρήστη.
 export function signToken(payload: Record<string, any>) {
   const options: SignOptions = { expiresIn: "7d" };
   return jwt.sign(payload, JWT_SECRET, options);
 }
 
+// Ελέγχει JWT token και επιστρέφει payload.
 export function verifyToken(token: string): AppJwtPayload {
   return jwt.verify(token, JWT_SECRET) as AppJwtPayload;
 }

@@ -1,3 +1,4 @@
+// Service για γεωγραφική επίλυση: geocoding, localized ονόματα και region matching.
 import fs from "fs/promises";
 import path from "path";
 import { Region } from "../models/Region";
@@ -73,7 +74,9 @@ type RegionLookups = {
 };
 
 const MAX_PARENT_STEPS = 25;
+// Κρατά προσωρινά δεδομένα για πιο γρήγορη απόκριση.
 const geocodeCache = new Map<string, Promise<ResolvedMapLocation | null>>();
+// Κρατά προσωρινά δεδομένα για πιο γρήγορη απόκριση.
 const countryCache = new Map<string, Promise<CountryResolution | null>>();
 let regionLookupPromise: Promise<RegionLookups> | null = null;
 let boundaryPromise: Promise<BoundaryFeature[]> | null = null;
@@ -108,19 +111,23 @@ const COUNTRY_QUERY_ALIASES: Record<string, string> = {
   [normalizeRegionText("Κατω Χωρες")]: "Netherlands",
 };
 
+// Μετατρέπει συντεταγμένη/τιμή σε αριθμό.
 function toNumber(value: unknown) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
 
+// Ελέγχει αν κείμενο περιέχει ελληνικούς χαρακτήρες.
 function hasGreekText(value: unknown) {
   return /[\u0370-\u03ff]/.test(String(value ?? ""));
 }
 
+// Ελέγχει αν κείμενο περιέχει λατινικούς χαρακτήρες.
 function hasLatinText(value: unknown) {
   return /[A-Za-z]/.test(String(value ?? ""));
 }
 
+// Ελέγχει αν ένα localized όνομα είναι χρήσιμο για εμφάνιση.
 function isUsableLocalizedName(value: unknown, lang: "el" | "en") {
   const text = cleanRegionText(value);
   if (!text) return false;
@@ -128,6 +135,7 @@ function isUsableLocalizedName(value: unknown, lang: "el" | "en") {
   return hasGreekText(text) || !hasLatinText(text);
 }
 
+// Προσθέτει χώρα στα στοιχεία geocoding.
 function withCountryFields(base: Omit<ResolvedMapLocation, "countryId" | "countryName">, country: CountryResolution | null) {
   return {
     ...base,
@@ -136,6 +144,7 @@ function withCountryFields(base: Omit<ResolvedMapLocation, "countryId" | "countr
   } satisfies ResolvedMapLocation;
 }
 
+// Καθαρίζει χώρα για αναζήτηση/geocoding.
 function normalizeCountryQuery(value: unknown) {
   const cleaned = cleanRegionText(value);
   const normalized = normalizeRegionText(cleaned);
@@ -148,6 +157,7 @@ function normalizeCountryQuery(value: unknown) {
   };
 }
 
+// Διαλέγει πόλη που ταιριάζει καλύτερα στο scope χώρας/περιφέρειας.
 function pickScopedCity(candidates: RegionLite[], preferredPeripheryId: number | null, byId: Map<number, RegionLite>) {
   if (!candidates.length) return null;
   if (preferredPeripheryId) {
@@ -157,6 +167,7 @@ function pickScopedCity(candidates: RegionLite[], preferredPeripheryId: number |
   return candidates[0] ?? null;
 }
 
+// Βρίσκει την περιφέρεια στην οποία ανήκει ένα region id.
 function getPeripheryFromRegionId(regionId: number | null | undefined, byId: Map<number, RegionLite>) {
   if (!regionId) return null;
   let current = byId.get(Number(regionId)) ?? null;
@@ -169,6 +180,7 @@ function getPeripheryFromRegionId(regionId: number | null | undefined, byId: Map
   return null;
 }
 
+// Φορτώνει και cache-άρει lookups περιοχών για γρήγορο matching.
 async function loadRegionLookups() {
   if (!regionLookupPromise) {
     regionLookupPromise = Region.findAll({
@@ -212,10 +224,12 @@ async function loadRegionLookups() {
   return regionLookupPromise;
 }
 
+// Καθαρίζει caches γεωγραφικής επίλυσης.
 function clearLocationCaches() {
   regionLookupPromise = null;
 }
 
+// Φορτώνει γεωγραφικά όρια περιφερειών για εύρεση από συντεταγμένες.
 async function loadBoundaries() {
   if (!boundaryPromise) {
     boundaryPromise = (async () => {
@@ -254,6 +268,7 @@ async function loadBoundaries() {
   return boundaryPromise;
 }
 
+// Ελέγχει αν ένα σημείο βρίσκεται μέσα σε polygon ring.
 function isPointInRing(lon: number, lat: number, ring: number[][]) {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -267,6 +282,7 @@ function isPointInRing(lon: number, lat: number, ring: number[][]) {
   return inside;
 }
 
+// Βρίσκει περιφέρεια από γεωγραφικές συντεταγμένες.
 async function findPeripheryByCoords(latitude: number, longitude: number) {
   const [boundaries, lookups] = await Promise.all([loadBoundaries(), loadRegionLookups()]);
   for (const feature of boundaries) {
@@ -277,6 +293,7 @@ async function findPeripheryByCoords(latitude: number, longitude: number) {
   return null;
 }
 
+// Προσπαθεί να βρει περιφέρεια από address/geocoding response.
 function peripheryFromAddress(address: Record<string, string> | undefined, peripheryByNormalized: Map<string, RegionLite>) {
   if (!address) return null;
   const candidates = [
@@ -293,6 +310,7 @@ function peripheryFromAddress(address: Record<string, string> | undefined, perip
   return null;
 }
 
+// Επιλέγει καθαρό όνομα πόλης από geocoding/region data.
 function resolveNormalizedCityName(...values: Array<unknown>) {
   for (const value of values) {
     const cleaned = cleanRegionText(value);
@@ -302,6 +320,7 @@ function resolveNormalizedCityName(...values: Array<unknown>) {
   return { cleaned: null, normalized: null };
 }
 
+// Βγάζει όνομα πόλης από address object.
 function cityNameFromAddress(rawName: string, address: Record<string, string> | undefined) {
   const candidate = cleanRegionText(
     address?.city ||
@@ -314,6 +333,7 @@ function cityNameFromAddress(rawName: string, address: Record<string, string> | 
   return candidate || cleanRegionText(rawName) || null;
 }
 
+// Καλεί geocoding για πόλη και επιστρέφει συντεταγμένες/ονόματα.
 async function geocodeCity(rawCityName: string, preferredPeripheryId: number | null) {
   const query = cleanRegionText(rawCityName);
   if (!query) return null;
@@ -385,6 +405,7 @@ async function geocodeCity(rawCityName: string, preferredPeripheryId: number | n
   }
 }
 
+// Καλεί geocoding για χώρα.
 async function geocodeCountry(rawCountryName: string) {
   const countryInput = normalizeCountryQuery(rawCountryName);
   if (!countryInput.query) return null;
@@ -448,6 +469,7 @@ async function geocodeCountry(rawCountryName: string) {
   }
 }
 
+// Βρίσκει ή δημιουργεί χώρα στη βάση για καταγωγή εξωτερικού.
 async function resolveCountry(rawCountryName: string | null | undefined, explicitCountryId: number | null) {
   const lookups = await loadRegionLookups();
   const explicitCountry = explicitCountryId ? lookups.byId.get(explicitCountryId) ?? null : null;
@@ -523,6 +545,7 @@ async function resolveCountry(rawCountryName: string | null | undefined, explici
         } satisfies CountryResolution;
       }
 
+// Αν βρεθεί νέα πόλη από geocoding, αποθηκεύεται για επόμενα imports/χάρτη.
       const created = await Region.create({
         name: countryInput.cleaned || geocoded.name,
         normalized_name: countryInput.normalized || normalizeRegionText(countryInput.cleaned || geocoded.name),
@@ -546,6 +569,7 @@ async function resolveCountry(rawCountryName: string | null | undefined, explici
   return pending;
 }
 
+// Αποθηκεύει πόλη από geocoding στη βάση regions.
 async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId: number | null) {
   const rawResolved = resolveNormalizedCityName(rawCityName);
   if (!rawResolved.normalized) return null;
@@ -596,6 +620,7 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
     if (scopedMatch) {
       city = scopedMatch;
     } else {
+// Αν βρεθεί νέα πόλη από geocoding, αποθηκεύεται για επόμενα imports/χάρτη.
       city = await Region.create({
         name: cityName,
         normalized_name: normalizedCityName,
@@ -640,8 +665,10 @@ type LocalizedRegionNames = {
   nameEn: string | null;
 };
 
+// Κρατά προσωρινά δεδομένα για πιο γρήγορη απόκριση.
 const localizedNameCache = new Map<string, Promise<LocalizedRegionNames>>();
 
+// Παίρνει localized ονόματα από region record.
 function localizedFromRegion(region: Partial<RegionLite> | null | undefined): LocalizedRegionNames {
   return {
     nameEl: region?.name_el || region?.name || null,
@@ -649,6 +676,7 @@ function localizedFromRegion(region: Partial<RegionLite> | null | undefined): Lo
   };
 }
 
+// Παίρνει το πρώτο χρήσιμο όνομα από geocoding address.
 function firstAddressName(item: NominatimItem | null | undefined, lang: "el" | "en") {
   const details = item?.namedetails || {};
   const address = item?.address || {};
@@ -670,6 +698,7 @@ function firstAddressName(item: NominatimItem | null | undefined, lang: "el" | "
   );
 }
 
+// Φέρνει αγγλικό/localized όνομα για υπάρχον region.
 async function fetchLocalizedNameForRegion(region: RegionLite, lang: "el" | "en") {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
@@ -720,6 +749,7 @@ async function fetchLocalizedNameForRegion(region: RegionLite, lang: "el" | "en"
   }
 }
 
+// Εξασφαλίζει ότι region έχει localized ονόματα για EN προβολή/export.
 export async function ensureLocalizedRegionNames(regionId: number | null | undefined) {
   if (!regionId) return { nameEl: null, nameEn: null };
   const lookups = await loadRegionLookups();
@@ -756,6 +786,7 @@ export async function ensureLocalizedRegionNames(regionId: number | null | undef
   }
   return pending;
 }
+// Λύνει χώρα/πόλη σε region data για χρήση στον χάρτη.
 export async function resolveMapLocation(input: GraduateOriginInput): Promise<ResolvedMapLocation | null> {
   const lookups = await loadRegionLookups();
   const explicitCityId = input.origin_city_region_id ? Number(input.origin_city_region_id) : null;

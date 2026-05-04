@@ -1,3 +1,4 @@
+// Χειρίζεται λογαριασμούς: εγγραφή, σύνδεση, αλλαγή κωδικού και current user.
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { User } from "../models/User";
@@ -6,6 +7,7 @@ import { signToken } from "../utils/jwt";
 import { fail, hashPassword, isStrongPassword, isValidEmail, normalizeEmail, normalizeText, toSafeUser } from "../utils/userAccounts";
 
 
+// Βρίσκει ενεργό χρήστη με email για login/register checks.
 async function findActiveUserByEmail(email: unknown) {
   const user = await User.findOne({ where: { email } });
   if (!user || !user.is_active) {
@@ -14,6 +16,7 @@ async function findActiveUserByEmail(email: unknown) {
   return user;
 }
 
+// Δημιουργεί νέο χρήστη με hashed password και αρχικό ρόλο.
 export async function register(req: Request, res: Response) {
   const { first_name, last_name, email, password } = req.body ?? {};
 
@@ -45,10 +48,12 @@ export async function register(req: Request, res: Response) {
     is_active: true
   });
 
+// Το token χρησιμοποιείται από το frontend για τα protected routes.
   const token = signToken({ sub: user.id, role: user.role });
   user.last_seen_at = new Date();
   await user.save();
 
+// Κάθε login/register/change password γράφεται στα logs.
   await logAction({ user_id: user.id, action: "register", entity_type: "user", entity_id: user.id });
 
   return res.json({
@@ -58,6 +63,7 @@ export async function register(req: Request, res: Response) {
   });
 }
 
+// Ελέγχει email/password και επιστρέφει JWT token στον χρήστη.
 export async function login(req: Request, res: Response) {
   const { email, password } = req.body ?? {};
 
@@ -75,15 +81,18 @@ export async function login(req: Request, res: Response) {
     return fail(res, 401, "Invalid credentials");
   }
 
+// Το token χρησιμοποιείται από το frontend για τα protected routes.
   const token = signToken({ sub: user.id, role: user.role });
   user.last_seen_at = new Date();
   await user.save();
 
+// Κάθε login/register/change password γράφεται στα logs.
   await logAction({ user_id: user.id, action: "login", entity_type: "system", entity_id: null });
 
   return res.json({ ok: true, token, user: toSafeUser(user) });
 }
 
+// Αλλάζει κωδικό χρήστη αφού περάσει validation.
 export async function changePassword(req: Request, res: Response) {
   const auth = req.auth!;
   const { current_password, new_password } = req.body ?? {};
@@ -109,11 +118,13 @@ export async function changePassword(req: Request, res: Response) {
   user.password_hash = await hashPassword(String(new_password));
   await user.save();
 
+// Κάθε login/register/change password γράφεται στα logs.
   await logAction({ user_id: user.id, action: "change_password", entity_type: "user", entity_id: user.id });
 
   return res.json({ ok: true });
 }
 
+// Επιστρέφει τα στοιχεία του logged-in χρήστη.
 export async function me(req: Request, res: Response) {
   const auth = req.auth!;
   const user = await User.findByPk(auth.id);

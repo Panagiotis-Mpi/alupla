@@ -1,3 +1,4 @@
+// Χειρίζεται διαχείριση προγραμμάτων σπουδών, κατευθύνσεων, template και import.
 import type { NextFunction, Request, Response } from "express";
 import XLSX from "xlsx";
 import { Op } from "sequelize";
@@ -23,6 +24,7 @@ type StudyProgramPatch = {
   is_active?: boolean;
 };
 
+// Βρίσκει πρόγραμμα σπουδών ή επιστρέφει 404-style error.
 async function findStudyProgramOrFail(id: number, res: Response) {
   const item = await StudyProgram.findByPk(id);
   if (!item) {
@@ -32,6 +34,7 @@ async function findStudyProgramOrFail(id: number, res: Response) {
   return item;
 }
 
+// Ελέγχει αν υπάρχει ήδη πρόγραμμα με ίδιο code/name.
 async function findDuplicateStudyProgram(code: string, nameEl: string, excludedId?: number) {
   return StudyProgram.findOne({
     where: {
@@ -41,6 +44,7 @@ async function findDuplicateStudyProgram(code: string, nameEl: string, excludedI
   });
 }
 
+// Επιστρέφει headers template για import προγραμμάτων σπουδών.
 function getTemplateHeaders(lang: string) {
   if (lang === "en") {
     return [[
@@ -58,6 +62,7 @@ function getTemplateHeaders(lang: string) {
   ]];
 }
 
+// Μετατρέπει row import σε καθαρά πεδία προγράμματος σπουδών.
 function normalizeProgramRow(input: Record<string, unknown>) {
   const row = Object.fromEntries(Object.entries(input).map(([key, value]) => {
     const normalized = normHeader(key);
@@ -121,6 +126,7 @@ function normalizeProgramRow(input: Record<string, unknown>) {
   };
 }
 
+// Επιστρέφει προγράμματα σπουδών και κατευθύνσεις για τη διαχείριση.
 export async function listStudyPrograms(_req: Request, res: Response, next: NextFunction) {
   try {
     const items = await StudyProgram.findAll({
@@ -133,6 +139,7 @@ export async function listStudyPrograms(_req: Request, res: Response, next: Next
   }
 }
 
+// Κατεβάζει template Excel/CSV για import προγραμμάτων.
 export async function downloadStudyProgramsTemplate(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = String(req.query.lang ?? "gr").toLowerCase().startsWith("en") ? "en" : "gr";
@@ -159,8 +166,10 @@ export async function downloadStudyProgramsTemplate(req: Request, res: Response,
   }
 }
 
+// Διαβάζει αρχείο και δημιουργεί/ενημερώνει προγράμματα σπουδών.
 export async function importStudyPrograms(req: Request, res: Response, next: NextFunction) {
   try {
+// Το αρχείο import μετατρέπεται σε rows για validation.
     const rows = readWorksheetRows(req.file);
     if (!rows.length) {
       return invalid(res, "Empty file");
@@ -198,6 +207,7 @@ export async function importStudyPrograms(req: Request, res: Response, next: Nex
       inserted += 1;
     }
 
+// Οι αλλαγές προγραμμάτων γράφονται στα logs.
     await logAction({
       user_id: req.user?.id ?? null,
       action: "import_study_programs",
@@ -212,6 +222,7 @@ export async function importStudyPrograms(req: Request, res: Response, next: Nex
   }
 }
 
+// Δημιουργεί πρόγραμμα σπουδών από τη φόρμα διαχείρισης.
 export async function createStudyProgram(req: Request, res: Response, next: NextFunction) {
   try {
     const code = readText(req.body?.code);
@@ -235,6 +246,7 @@ export async function createStudyProgram(req: Request, res: Response, next: Next
       is_active: isActive
     });
 
+// Οι αλλαγές προγραμμάτων γράφονται στα logs.
     await logAction({
       user_id: req.user?.id ?? null,
       action: "create_study_program",
@@ -249,6 +261,7 @@ export async function createStudyProgram(req: Request, res: Response, next: Next
   }
 }
 
+// Ενημερώνει πρόγραμμα σπουδών και γράφει log αλλαγής.
 export async function updateStudyProgram(req: Request, res: Response, next: NextFunction) {
   try {
     const id = parseId(req.params.id);
@@ -301,6 +314,7 @@ export async function updateStudyProgram(req: Request, res: Response, next: Next
 
     await item.update(patch);
 
+// Οι αλλαγές προγραμμάτων γράφονται στα logs.
     await logAction({
       user_id: req.user?.id ?? null,
       action: "update_study_program",
@@ -315,6 +329,7 @@ export async function updateStudyProgram(req: Request, res: Response, next: Next
   }
 }
 
+// Απενεργοποιεί/διαγράφει πρόγραμμα σπουδών αν επιτρέπεται.
 export async function deleteStudyProgram(req: Request, res: Response, next: NextFunction) {
   try {
     const id = parseId(req.params.id);
@@ -340,6 +355,7 @@ export async function deleteStudyProgram(req: Request, res: Response, next: Next
 
     await item.destroy();
 
+// Οι αλλαγές προγραμμάτων γράφονται στα logs.
     await logAction({
       user_id: req.user?.id ?? null,
       action: "delete_study_program",

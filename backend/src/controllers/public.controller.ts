@@ -1,3 +1,4 @@
+// Δημόσια endpoints για επισκέπτες: ανώνυμα στατιστικά, χάρτης και exports.
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/sequelize";
 import { NextFunction, Request, Response } from "express";
@@ -12,9 +13,11 @@ import {
 import { buildAnonymousStatisticsWorkbook, loadPublicMapRows } from "./public.stats";
 
 type PublicStatsCacheEntry = { expires: number; body: Record<string, unknown> };
+// Κρατά προσωρινά δεδομένα για πιο γρήγορη απόκριση.
 const publicStatsCache = new Map<string, PublicStatsCacheEntry>();
 const PUBLIC_STATS_CACHE_MS = 5 * 60 * 1000;
 
+// Διαβάζει cached δημόσια στατιστικά αν είναι ακόμα φρέσκα.
 function getPublicStatsCache(key: string) {
   const item = publicStatsCache.get(key);
   if (!item) return null;
@@ -25,14 +28,17 @@ function getPublicStatsCache(key: string) {
   return item.body;
 }
 
+// Αποθηκεύει δημόσια στατιστικά στο cache.
 function setPublicStatsCache(key: string, body: Record<string, unknown>) {
   publicStatsCache.set(key, { expires: Date.now() + PUBLIC_STATS_CACHE_MS, body });
 }
 
+// Καθαρίζει cache στατιστικών μετά από αλλαγές αποφοίτων.
 export function clearPublicStatsCache() {
   publicStatsCache.clear();
 }
 
+// Επιστρέφει ενεργά προγράμματα σπουδών για δημόσια φίλτρα.
 export async function publicStudyPrograms(_req: Request, res: Response) {
   const items = await StudyProgram.findAll({
     attributes: ["id", "code", "name_el", "name_en"],
@@ -41,9 +47,11 @@ export async function publicStudyPrograms(_req: Request, res: Response) {
   res.json({ ok: true, items });
 }
 
+// Επιστρέφει ανώνυμα στατιστικά για τη δημόσια σελίδα Στατιστικά.
 export async function publicStats(req: Request, res: Response) {
   try {
     const cacheKey = req.originalUrl || req.url;
+// Τα δημόσια στατιστικά cache-άρονται για να μη γίνονται βαριά queries συνέχεια.
     const cached = getPublicStatsCache(cacheKey);
     if (cached) {
       res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
@@ -481,6 +489,7 @@ export async function publicStats(req: Request, res: Response) {
   }
 }
 
+// Επιστρέφει ανώνυμα συγκεντρωτικά δεδομένα για τον δημόσιο χάρτη.
 export async function publicMap(req: Request, res: Response) {
   const context = await buildWhere(req);
   const { byId, findPeriphery } = await buildRegionLookup();
@@ -506,6 +515,7 @@ export async function publicMap(req: Request, res: Response) {
   res.json({ ok: true, rows: items });
 }
 
+// Εξάγει ανώνυμα δεδομένα αποφοίτων για επισκέπτες.
 export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
   const context = await buildWhere(req);
   const countsMode = req.query.counts_mode === "semester" ? "semester" : "year";
@@ -514,6 +524,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
 
   const { buffer, rowCount } = await buildAnonymousStatisticsWorkbook(context, countsMode, genderMode, lang);
 
+// Τα public exports γράφονται στα logs ως ενέργειες επισκέπτη.
   await logPublicExportAction(req, "statistics_export", "statistics", {
     format: "xls",
     graduation_year: req.query.graduation_year ?? null,
@@ -531,6 +542,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
   res.send(buffer);
 }
 
+// Γράφει log για δημόσια exports, ακόμα και χωρίς logged-in χρήστη.
 export async function publicExportActivity(req: Request, res: Response) {
   const action = typeof req.body?.action === "string" ? req.body.action : "";
   const format = typeof req.body?.format === "string" ? req.body.format : null;
@@ -540,6 +552,7 @@ export async function publicExportActivity(req: Request, res: Response) {
   }
 
   const entityType = action === "map_export" ? "map" : "statistics";
+// Τα public exports γράφονται στα logs ως ενέργειες επισκέπτη.
   await logPublicExportAction(req, action, entityType, { format });
   return res.json({ ok: true });
 }

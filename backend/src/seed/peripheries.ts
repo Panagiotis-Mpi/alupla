@@ -1,3 +1,4 @@
+// Seed αρχείο: περνά τις ελληνικές περιφέρειες κάτω από την Ελλάδα.
 import { Region } from "../models/Region";
 import { normalizeRegionText } from "../utils/regionText";
 
@@ -23,6 +24,7 @@ const PERIPHERIES: PeripherySeed[] = [
   { name: "Κρήτη", latitude: 35.3387, longitude: 25.1442 },
 ];
 
+// Προσθέτει ελληνικές περιφέρειες κάτω από την Ελλάδα.
 export async function ensurePeripheriesSeeded(): Promise<void> {
   const greece = await Region.findOne({ where: { type: "COUNTRY", normalized_name: normalizeRegionText("Ελλάδα") } });
   if (!greece) return;

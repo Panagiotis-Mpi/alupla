@@ -1,3 +1,4 @@
+// Κοινή λογική που χτίζει queries και paging για τις καταγραφές.
 import type { Request } from "express";
 import { Op } from "sequelize";
 import type { ActivityLog } from "../models/ActivityLog";
@@ -14,22 +15,26 @@ type LogLike = Partial<ActivityLog> & {
 
 type LooseWhere = Record<string, unknown>;
 
+// Διαβάζει υπάρχον Sequelize AND conditions από where object.
 function readWhereArray(where: LooseWhere, key: symbol) {
   const current = (where as any)[key];
   return Array.isArray(current) ? [...current] : [];
 }
 
+// Προσθέτει condition στο Sequelize where χωρίς να χαλάσει τα άλλα φίλτρα.
 function appendWhere(where: LooseWhere, key: symbol, clause: unknown) {
   const current = readWhereArray(where, key);
   current.push(clause);
   (where as any)[key] = current;
 }
 
+// Επιστρέφει καθαρό string ή undefined αν είναι κενό.
 export function nonEmptyString(value: unknown) {
   const normalized = String(value ?? "").trim();
   return normalized ? normalized : undefined;
 }
 
+// Διαβάζει details log είτε είναι JSON string είτε object.
 export function parseLogDetails(value: unknown) {
   if (value && typeof value === "object") return value as Record<string, unknown>;
   if (typeof value !== "string") return null;
@@ -43,12 +48,14 @@ export function parseLogDetails(value: unknown) {
   }
 }
 
+// Διαβάζει φίλτρο ρόλου από το request.
 export function getRoleFilter(req: Request): RoleFilter {
   const role = String(req.query.role ?? "all").trim().toLowerCase();
   if (role === "secretariat" || role === "super_admin" || role === "visitor") return role;
   return "all";
 }
 
+// Μετατρέπει φίλτρα UI των logs σε Sequelize where query.
 export function buildLogFilters(req: Request) {
   const where: LooseWhere = {};
   const userId = req.query.user_id;
@@ -81,6 +88,7 @@ export function buildLogFilters(req: Request) {
   return where;
 }
 
+// Προσθέτει φίλτρο χρήστη/actor στα logs.
 export function addActorFilter(where: LooseWhere, actor: string) {
   const parts = actor.split(/\s+/).filter(Boolean);
   const first = parts[0] ?? actor;
@@ -103,6 +111,7 @@ export function addActorFilter(where: LooseWhere, actor: string) {
   return where;
 }
 
+// Προσθέτει φίλτρο ρόλου στα logs.
 export function addRoleFilter(where: LooseWhere, role: RoleFilter) {
   if (role === "all") return where;
   if (role === "visitor") {
@@ -114,6 +123,7 @@ export function addRoleFilter(where: LooseWhere, role: RoleFilter) {
   return where;
 }
 
+// Ομαδοποιεί log ανά ρόλο actor για φίλτρα/προβολή.
 export function getRoleBucket(row: LogLike) {
   const details = parseLogDetails(row?.details);
   const detailRole = String((details as any)?.actor_role ?? "").trim().toLowerCase();
@@ -128,10 +138,12 @@ export function getRoleBucket(row: LogLike) {
   return "unknown";
 }
 
+// Ελέγχει αν ένα log ανήκει στον ζητούμενο ρόλο.
 export function matchesRole(row: LogLike, roleFilter: RoleFilter) {
   return roleFilter === "all" ? true : getRoleBucket(row) === roleFilter;
 }
 
+// Εντοπίζει αν το log είναι import, export ή άλλη ενέργεια.
 export function getOperation(row: LogLike): LogOperation | null {
   const action = String(row?.action ?? "").trim();
   if (action.startsWith("import_") || action === "upload") return "import";
@@ -139,6 +151,7 @@ export function getOperation(row: LogLike): LogOperation | null {
   return null;
 }
 
+// Διαβάζει page/limit για τη λίστα logs.
 export function getLogPage(row: LogLike): LogPage | null {
   const action = String(row?.action ?? "").trim();
   const entityType = String(row?.entity_type ?? "").trim();
@@ -151,6 +164,7 @@ export function getLogPage(row: LogLike): LogPage | null {
   return null;
 }
 
+// Βρίσκει format αρχείου από filename.
 function getFormatFromFilename(name: string): LogFileType | null {
   const normalized = String(name ?? "").trim().toLowerCase();
   if (!normalized.includes(".")) return null;
@@ -162,6 +176,7 @@ function getFormatFromFilename(name: string): LogFileType | null {
   return null;
 }
 
+// Επιστρέφει τύπο αρχείου που θα εμφανιστεί στα logs.
 export function getFileType(row: LogLike): LogFileType | null {
   const action = String(row?.action ?? "").trim();
   const details = parseLogDetails(row?.details) ?? {};

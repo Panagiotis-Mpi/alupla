@@ -1,3 +1,4 @@
+// Helpers για logs: φίλτρα, ελληνικά/αγγλικά labels, μορφοποίηση και export rows.
 import type { Request } from "express";
 import { Op } from "sequelize";
 import XLSX from "xlsx";
@@ -86,20 +87,24 @@ export const actionLabels = {
   }
 } as const;
 
+// Περιορίζει έναν αριθμό μέσα σε ασφαλές min/max.
 export function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
+// Μετατρέπει input σε ακέραιο με fallback.
 export function toInteger(value: unknown, fallback: number) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
 }
 
+// Επιστρέφει καθαρό string ή undefined αν είναι κενό.
 export function nonEmptyString(value: unknown) {
   const normalized = String(value ?? "").trim();
   return normalized.length > 0 ? normalized : undefined;
 }
 
+// Διαβάζει details log είτε είναι JSON string είτε object.
 export function parseLogDetails(value: unknown) {
   if (value && typeof value === "object") return value as Record<string, unknown>;
   if (typeof value !== "string") return null;
@@ -112,12 +117,14 @@ export function parseLogDetails(value: unknown) {
   }
 }
 
+// Κάνει ασφαλή τιμή CSV για να μη χαλάσει η γραμμή export.
 export function csvEscape(value: unknown, delimiter = ",") {
   const text = value === null || value === undefined ? "" : String(sanitizeExportCell(value));
   const shouldQuote = text.includes('"') || text.includes("\n") || text.includes("\r") || text.includes(delimiter);
   return shouldQuote ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
 
+// Φτιάχνει CSV/TSV text από rows και delimiter.
 export function buildDelimitedText(rows: Array<Record<string, unknown>>, delimiter = "\t") {
   if (!rows.length) return "";
   const headers = Object.keys(rows[0] ?? {});
@@ -128,10 +135,12 @@ export function buildDelimitedText(rows: Array<Record<string, unknown>>, delimit
   return lines.join("\r\n");
 }
 
+// Μετατρέπει CSV text σε UTF-16 buffer για σωστά ελληνικά στο Excel.
 export function buildUtf16CsvBuffer(text: string) {
   return Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]);
 }
 
+// Ρυθμίζει πλάτη στηλών στο Excel export.
 export function applySheetLayout(ws: XLSX.WorkSheet, rows: Array<Record<string, unknown>>) {
   const headers = rows.length ? Object.keys(rows[0] ?? {}) : [];
   ws["!cols"] = headers.map((header) => {
@@ -159,6 +168,7 @@ export function applySheetLayout(ws: XLSX.WorkSheet, rows: Array<Record<string, 
   }
 }
 
+// Μετατρέπει φίλτρα UI των logs σε Sequelize where query.
 export function buildLogFilters(req: Request) {
   const where: Record<string | symbol, unknown> = {};
   const userId = req.query.user_id;
@@ -186,18 +196,21 @@ export function buildLogFilters(req: Request) {
   return where;
 }
 
+// Μετατρέπει log σε απλή γραμμή CSV.
 export function toCsvRow(row: any) {
   return [row.id, row.created_at, row.user_id ?? "", row.action ?? "", row.entity_type ?? "", row.entity_id ?? "", JSON.stringify(row.details ?? null)]
     .map((value) => csvEscape(value))
     .join(",");
 }
 
+// Διαβάζει φίλτρο ρόλου από το request.
 export function getRoleFilter(req: Request) {
   const role = String(req.query.role ?? "all").trim().toLowerCase();
   if (role === "secretariat" || role === "super_admin" || role === "visitor") return role;
   return "all";
 }
 
+// Ομαδοποιεί log ανά ρόλο actor για φίλτρα/προβολή.
 export function getRoleBucket(row: any) {
   const details = parseLogDetails(row?.details);
   const detailRole = String((details as any)?.actor_role ?? "").trim().toLowerCase();
@@ -212,10 +225,12 @@ export function getRoleBucket(row: any) {
   return "unknown";
 }
 
+// Ελέγχει αν ένα log ανήκει στον ζητούμενο ρόλο.
 export function matchesRole(row: any, roleFilter: string) {
   return roleFilter === "all" ? true : getRoleBucket(row) === roleFilter;
 }
 
+// Διαβάζει page/limit για τη λίστα logs.
 export function getLogPage(row: any) {
   const action = String(row?.action ?? "").trim();
   const entityType = String(row?.entity_type ?? "").trim();
@@ -228,6 +243,7 @@ export function getLogPage(row: any) {
   return null;
 }
 
+// Εντοπίζει αν το log είναι import, export ή άλλη ενέργεια.
 export function getOperation(row: any) {
   const action = String(row?.action ?? "").trim();
   if (action.startsWith("import_") || action === "upload") return "import";
@@ -235,6 +251,7 @@ export function getOperation(row: any) {
   return null;
 }
 
+// Βρίσκει format αρχείου από filename.
 export function getFormatFromFilename(name: string) {
   const normalized = String(name ?? "").trim().toLowerCase();
   if (!normalized.includes(".")) return null;
@@ -246,6 +263,7 @@ export function getFormatFromFilename(name: string) {
   return null;
 }
 
+// Επιστρέφει τύπο αρχείου που θα εμφανιστεί στα logs.
 export function getFileType(row: any) {
   const action = String(row?.action ?? "").trim();
   const details = row?.details && typeof row.details === "object" ? row.details : {};
@@ -266,11 +284,13 @@ export function getFileType(row: any) {
   return null;
 }
 
+// Διαβάζει γλώσσα εμφάνισης από query/body.
 export function getLanguage(req: Request) {
   const lang = String(req.query.lang ?? "gr").trim().toLowerCase();
   return lang.startsWith("en") ? "en" : "gr";
 }
 
+// Μεταφράζει labels details log στη σωστή γλώσσα.
 export function localDetailLabel(lang: "gr" | "en", key: string) {
   const labels = lang === "en"
     ? {
@@ -380,6 +400,7 @@ export function localDetailLabel(lang: "gr" | "en", key: string) {
   return labels[key as keyof typeof labels] ?? key;
 }
 
+// Επιστρέφει τύπο αρχείου με κεφαλαία για εμφάνιση.
 export function upperFileType(value: string) {
   const normalized = String(value || "").trim().toLowerCase();
   if (normalized === "xlsx" || normalized === "xls") return "Excel";
@@ -389,6 +410,7 @@ export function upperFileType(value: string) {
   return value;
 }
 
+// Μεταφράζει γνωστές τιμές log για GR/EN εμφάνιση.
 export function localValue(lang: "gr" | "en", value: string) {
   const normalized = String(value ?? "").trim();
   if (!normalized) return "";
@@ -416,6 +438,7 @@ export function parseDetails(value: unknown) {
   }
 }
 
+// Παίρνει action code και το μετατρέπει σε κατανοητό μήνυμα για τον χρήστη.
 export function getLocalizedAction(lang: "gr" | "en", value: unknown, log?: any) {
   const key = String(value ?? "").trim();
   if ((key === "export_csv" || key === "export_xlsx") && String(log?.entity_type ?? "").trim() === "logs") {
@@ -424,6 +447,7 @@ export function getLocalizedAction(lang: "gr" | "en", value: unknown, log?: any)
   return actionLabels[lang][key as keyof typeof actionLabels.gr] ?? key.replace(/_/g, " ");
 }
 
+// Μετατρέπει τα details log σε σύντομο κείμενο για πίνακα/export.
 export function getLocalizedDetails(lang: "gr" | "en", log: any) {
   const action = String(log?.action ?? "").trim();
   if (["login", "logout", "register", "change_password"].includes(action)) return "";
@@ -539,6 +563,7 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
     .join(", ");
 }
 
+// Φτιάχνει καθαρό όνομα χρήστη/ρόλου για εμφάνιση στα logs.
 export function getActorLabel(log: any) {
   const firstName = String(log?.user?.first_name ?? "").trim();
   const lastName = String(log?.user?.last_name ?? "").trim();
@@ -548,6 +573,7 @@ export function getActorLabel(log: any) {
   return log?.user_id == null ? "Visitor" : "";
 }
 
+// Μορφοποιεί ημερομηνία log για GR/EN προβολή και exports.
 export function formatDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -557,10 +583,12 @@ export function formatDateTime(value: string) {
   return `${day} ${time}`;
 }
 
+// Φέρνει όλα τα logs που θα μπουν σε CSV/XLSX export.
 export function findLogsForExport(rows: any[], roleFilter: string) {
   return rows.filter((row) => matchesRole(row, roleFilter)).slice(0, EXPORT_LIMIT);
 }
 
+// Μετατρέπει logs βάσης σε γραμμές αρχείου export.
 export function getExportRows(rows: any[], lang: "gr" | "en") {
   return rows.map((row) => ({
     [lang === "en" ? "Date" : "Ημερομηνία"]: formatDateTime(String(row.created_at ?? "")),

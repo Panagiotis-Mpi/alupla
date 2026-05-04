@@ -1,3 +1,4 @@
+// Μετατρέπει τα φίλτρα της λίστας αποφοίτων σε Sequelize where query.
 import { Op, type WhereOptions } from "sequelize";
 import type { Graduate } from "../models/Graduate";
 
@@ -10,22 +11,26 @@ type TextFilterPair = {
   likeKey: string;
 };
 
+// Διαβάζει query param ως καθαρό string.
 function readString(value: unknown): string | undefined {
   if (value === undefined || value === null) return undefined;
   const normalized = String(value).trim();
   return normalized.length > 0 ? normalized : undefined;
 }
 
+// Διαβάζει query param ως number.
 function readNumber(value: unknown): number | undefined {
   if (value === undefined || value === null || value === "") return undefined;
   const normalized = Number(value);
   return Number.isFinite(normalized) ? normalized : undefined;
 }
 
+// Φτιάχνει case-insensitive LIKE φίλτρο.
 function contains(value: string) {
   return { [Op.like]: `%${value}%` };
 }
 
+// Προσθέτει φίλτρα κειμένου στη λίστα αποφοίτων.
 function setTextFilters(where: GraduateWhere, query: Query) {
   const pairs: TextFilterPair[] = [
     { field: "ad_code", exactKey: "ad_code", likeKey: "ad_code_like" },
@@ -47,6 +52,7 @@ function setTextFilters(where: GraduateWhere, query: Query) {
   }
 }
 
+// Προσθέτει φίλτρα enum/id όπως φύλο και πρόγραμμα.
 function setEnumAndForeignKeyFilters(where: GraduateWhere, query: Query) {
   const gender = readString(query.gender);
   if (gender === "M" || gender === "F") {
@@ -65,6 +71,7 @@ function setEnumAndForeignKeyFilters(where: GraduateWhere, query: Query) {
   }
 }
 
+// Προσθέτει φίλτρο ακριβούς τιμής ή εύρους.
 function setRangeOrExact(
   where: GraduateWhere,
   field: string,
@@ -86,6 +93,7 @@ function setRangeOrExact(
   };
 }
 
+// Προσθέτει φίλτρο ημερομηνίας από/έως.
 function setDateRange(where: GraduateWhere, field: string, from: string | undefined, to: string | undefined) {
   if (!from && !to) {
     return;
@@ -97,6 +105,7 @@ function setDateRange(where: GraduateWhere, field: string, from: string | undefi
   };
 }
 
+// Προσθέτει αριθμητικά φίλτρα αποφοίτων.
 function setNumericFilters(where: GraduateWhere, query: Query) {
   setRangeOrExact(
     where,
@@ -115,6 +124,7 @@ function setNumericFilters(where: GraduateWhere, query: Query) {
   );
 }
 
+// Προσθέτει φίλτρα για ηλικία/ημερομηνία γέννησης.
 function setBirthDateFilters(where: GraduateWhere, query: Query) {
   const exactBirthYear = readNumber(query.birth_year);
   const birthYearMin = readNumber(query.birth_year_min);
@@ -141,11 +151,13 @@ function setBirthDateFilters(where: GraduateWhere, query: Query) {
   setDateRange(where, "birth_date", readString(query.birth_date_from), readString(query.birth_date_to));
 }
 
+// Προσθέτει φίλτρα για ημερομηνίες αποφοίτησης/ορκωμοσίας.
 function setDateFilters(where: GraduateWhere, query: Query) {
   setDateRange(where, "graduation_date", readString(query.graduation_date_from), readString(query.graduation_date_to));
   setDateRange(where, "oath_date", readString(query.oath_date_from), readString(query.oath_date_to));
 }
 
+// Προσθέτει γρήγορη αναζήτηση στις ενεργές στήλες αποφοίτων.
 function setGlobalSearch(where: GraduateWhere, query: Query) {
   const keyword = readString(query.q);
   if (!keyword) {
@@ -164,6 +176,7 @@ function setGlobalSearch(where: GraduateWhere, query: Query) {
   ];
 }
 
+// Χτίζει τελικό where query για τη λίστα/exports αποφοίτων.
 export function buildGraduateWhere(query: Query): WhereOptions<Graduate> {
   const where: GraduateWhere = {};
 
@@ -172,6 +185,7 @@ export function buildGraduateWhere(query: Query): WhereOptions<Graduate> {
   setNumericFilters(where, query);
   setBirthDateFilters(where, query);
   setDateFilters(where, query);
+// Η γρήγορη αναζήτηση μπαίνει στο ίδιο where με τα υπόλοιπα φίλτρα.
   setGlobalSearch(where, query);
 
   return where;

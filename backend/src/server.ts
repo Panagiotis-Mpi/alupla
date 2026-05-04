@@ -1,3 +1,4 @@
+// Εκκινεί το backend server χρησιμοποιώντας το app και το port από το περιβάλλον.
 import { createApp } from "./app";
 import { env } from "./config/env";
 

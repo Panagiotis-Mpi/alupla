@@ -1,3 +1,4 @@
+// Υπολογίζει τα ανώνυμα στατιστικά που εμφανίζονται στη σελίδα Στατιστικά.
 import { QueryTypes } from "sequelize";
 import XLSX from "xlsx";
 import { sequelize } from "../config/sequelize";
@@ -26,6 +27,7 @@ const termOrderSql = `CASE
   ELSE 99
 END`;
 
+// Μετατρέπει έτος/εξάμηνο σε label για charts.
 export function termLabel(term: string, lang: PublicExportLang = "gr") {
   if (lang === "en") {
     if (term === "winter") return "Winter";
@@ -47,6 +49,7 @@ async function queryRows<T extends Record<string, unknown>>(sql: string, context
   return rows as T[];
 }
 
+// Φορτώνει όλα τα aggregated data για τη σελίδα Στατιστικά.
 export async function loadPublicStatsBundle(context: PublicWhereContext) {
   const birthExpr = context.birthExpr ?? "g.birth_date";
   const birthYearExpr = context.birthYearExpr ?? "CAST(EXTRACT(YEAR FROM g.birth_date) AS INTEGER)";
@@ -254,6 +257,7 @@ type PublicMapRow = {
   female: number;
 };
 
+// Φορτώνει γραμμές για τον χάρτη με τα ίδια φίλτρα στατιστικών.
 export async function loadPublicMapRows(context: PublicWhereContext) {
   return queryRows<PublicMapRow>(
     `SELECT
@@ -272,6 +276,7 @@ export async function loadPublicMapRows(context: PublicWhereContext) {
   );
 }
 
+// Φτιάχνει Excel workbook με ανώνυμα στατιστικά.
 export async function buildAnonymousStatisticsWorkbook(context: PublicWhereContext, countsMode: "year" | "semester", genderMode: "year" | "semester", lang: PublicExportLang = "gr") {
   const [byYear, byTerm, genderByYear, genderByTerm] = await Promise.all([
     queryRows<{ year: number; count: number }>(

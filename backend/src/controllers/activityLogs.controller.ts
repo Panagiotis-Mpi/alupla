@@ -1,3 +1,4 @@
+// Χειρίζεται τη σελίδα Καταγραφών: λίστα logs, σύνοψη αρχείων και exports.
 import type { NextFunction, Request, Response } from "express";
 import { Op } from "sequelize";
 import XLSX from "xlsx";
@@ -28,6 +29,7 @@ import {
   toInteger,
 } from "./activityLogs.helpers";
 
+// Φέρνει paginated logs για τη σελίδα Καταγραφών, με φίλτρα και γλώσσα.
 export async function listActivityLogs(req: Request, res: Response, next: NextFunction) {
   try {
     const page = clamp(toInteger(req.query.page, DEFAULT_PAGE), 1, MAX_PAGE);
@@ -36,6 +38,7 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
 
     const actor = nonEmptyString(req.query.actor);
     const role = getRoleFilter(req);
+// Τα φίλτρα του πίνακα logs γίνονται query στη βάση.
     const where = buildLogFilters(req);
 
     if (actor) {
@@ -78,6 +81,7 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
   }
 }
 
+// Υπολογίζει πόσα imports/exports εμφανίζονται στη σύνοψη αρχείων των logs.
 export async function getActivityLogFileSummary(req: Request, res: Response, next: NextFunction) {
   try {
     const rows = await ActivityLog.findAll({
@@ -120,6 +124,7 @@ export async function getActivityLogFileSummary(req: Request, res: Response, nex
 
 
 
+// Φτιάχνει καθαρό όνομα χρήστη/ρόλου για εμφάνιση στα logs.
 function getActorLabel(lang: "gr" | "en", row: any) {
   const fn = String(row?.user?.first_name ?? "").trim();
   const ln = String(row?.user?.last_name ?? "").trim();
@@ -128,6 +133,7 @@ function getActorLabel(lang: "gr" | "en", row: any) {
   return lang === "en" ? "Visitor" : "Επισκέπτης";
 }
 
+// Μορφοποιεί ημερομηνία log για GR/EN προβολή και exports.
 function formatDateTime(lang: "gr" | "en", value: unknown) {
   const date = new Date(String(value ?? ""));
   if (Number.isNaN(date.getTime())) return String(value ?? "");
@@ -148,9 +154,11 @@ function formatDateTime(lang: "gr" | "en", value: unknown) {
   return `${time}, ${day}`;
 }
 
+// Φέρνει όλα τα logs που θα μπουν σε CSV/XLSX export.
 async function findLogsForExport(req: Request) {
   const actor = nonEmptyString(req.query.actor);
   const role = getRoleFilter(req);
+// Τα φίλτρα του πίνακα logs γίνονται query στη βάση.
   const where = buildLogFilters(req);
 
   if (actor) {
@@ -187,6 +195,7 @@ async function findLogsForExport(req: Request) {
   });
 }
 
+// Μετατρέπει logs βάσης σε γραμμές αρχείου export.
 function getExportRows(lang: "gr" | "en", rows: any[]) {
   return rows.map((row) => ({
     [lang === "en" ? "#" : "#"]: row.id,
@@ -197,11 +206,14 @@ function getExportRows(lang: "gr" | "en", rows: any[]) {
   }));
 }
 
+// Εξάγει τις καταγραφές σε CSV/TSV αρχείο.
 export async function exportActivityLogsCsv(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = getLanguage(req);
+// Για export τραβάει τα ίδια logs που ταιριάζουν στα φίλτρα.
     const rows = await findLogsForExport(req);
 
+// Καταγράφει και την ίδια την ενέργεια export logs.
     await logAction({
       user_id: req.user?.id ?? null,
       action: "export_csv",
@@ -221,11 +233,14 @@ export async function exportActivityLogsCsv(req: Request, res: Response, next: N
   }
 }
 
+// Εξάγει τις καταγραφές σε Excel αρχείο.
 export async function exportActivityLogsXlsx(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = getLanguage(req);
+// Για export τραβάει τα ίδια logs που ταιριάζουν στα φίλτρα.
     const rows = await findLogsForExport(req);
 
+// Καταγράφει και την ίδια την ενέργεια export logs.
     await logAction({
       user_id: req.user?.id ?? null,
       action: "export_xlsx",

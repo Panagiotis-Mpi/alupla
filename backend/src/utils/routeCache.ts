@@ -1,3 +1,4 @@
+// Απλό in-memory cache για endpoints που διαβάζονται συχνά.
 import type { NextFunction, Request, Response } from "express";
 
 type CacheEntry = {
@@ -7,10 +8,12 @@ type CacheEntry = {
 
 const entries = new Map<string, CacheEntry>();
 
+// Φτιάχνει μοναδικό cache key από request URL/query.
 function cacheKey(scope: string, req: Request) {
   return `${scope}:${req.originalUrl || req.url}`;
 }
 
+// Επιστρέφει middleware που cache-άρει response συγκεκριμένου route.
 export function routeCache(scope: string, ttlMs: number) {
   return function cacheMiddleware(req: Request, res: Response, next: NextFunction) {
     if (req.method !== "GET") return next();
@@ -26,6 +29,7 @@ export function routeCache(scope: string, ttlMs: number) {
 
     if (cached) entries.delete(key);
 
+// Κρατά το response για να αποθηκευτεί στο cache πριν σταλεί.
     const originalJson = res.json.bind(res);
     res.json = (body: unknown) => {
       if (res.statusCode >= 200 && res.statusCode < 300 && (body as any)?.ok) {
@@ -39,6 +43,7 @@ export function routeCache(scope: string, ttlMs: number) {
   };
 }
 
+// Καθαρίζει cache για ένα route prefix.
 export function clearRouteCache(scope?: string) {
   if (!scope) {
     entries.clear();
@@ -51,6 +56,7 @@ export function clearRouteCache(scope?: string) {
   }
 }
 
+// Καθαρίζει πολλά route caches μετά από αλλαγή δεδομένων.
 export function clearRouteCaches(scopes: string[]) {
   for (const scope of scopes) clearRouteCache(scope);
 }

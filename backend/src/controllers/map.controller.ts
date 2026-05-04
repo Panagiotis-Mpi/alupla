@@ -1,3 +1,4 @@
+// Χειρίζεται τα δεδομένα του χάρτη: συγκεντρώσεις, φίλτρα, πόλεις και λεπτομέρειες.
 import type { Request, Response } from "express";
 import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
@@ -7,10 +8,12 @@ import { ensureLocalizedRegionNames, resolveMapLocation } from "../services/mapL
 import { sequelize } from "../config/sequelize";
 import { buildMapWhere, calculateAgeAtDate, isAbroadMapGraduate, isGreekMapGraduate, loadRegions, normalizeKey, pickTopName, toInt } from "./map.helpers";
 
+// Διαβάζει αν ο χάρτης δείχνει Ελλάδα, εξωτερικό ή όλα.
 function mapScopeFromRequest(req: Request) {
   return String(req.query.scope || "greece").trim().toLowerCase() === "abroad" ? "abroad" : "greece";
 }
 
+// Φορτώνει πρόγραμμα σπουδών για labels στα στοιχεία χάρτη.
 async function loadProgramMetadata() {
   const studyPrograms = await StudyProgram.findAll({ attributes: ["id", "code", "name_el", "name_en"] });
 
@@ -23,6 +26,7 @@ async function loadProgramMetadata() {
   return { studyProgramLabels };
 }
 
+// Δημιουργεί άδειο bucket μετρήσεων για μία περιοχή/πόλη χάρτη.
 function createMetricsBucket(seed: Record<string, unknown>) {
   return {
     ...seed,
@@ -39,6 +43,7 @@ function createMetricsBucket(seed: Record<string, unknown>) {
   };
 }
 
+// Προσθέτει έναν απόφοιτο στις μετρήσεις χάρτη του σωστού bucket.
 function applyGraduateMetrics(bucket: any, graduate: any, selectedStudyProgramId: number | null) {
   const studyProgramId = Number(graduate.study_program_id) || 0;
   if (selectedStudyProgramId && studyProgramId !== selectedStudyProgramId) return false;
@@ -73,6 +78,7 @@ function applyGraduateMetrics(bucket: any, graduate: any, selectedStudyProgramId
   return true;
 }
 
+// Μετατρέπει bucket μετρήσεων σε item που καταλαβαίνει το frontend map.
 function bucketToMapItem(bucket: any, labels: { studyProgramLabels: Map<number, string> }, nameKeys: { idKey: string; nameKey: string; latitudeKey?: string; longitudeKey?: string }) {
   const baseName = String(nameKeys.nameKey || "");
   return {
@@ -95,6 +101,7 @@ function bucketToMapItem(bucket: any, labels: { studyProgramLabels: Map<number, 
   };
 }
 
+// Επιστρέφει συγκεντρωτικά δεδομένα για τα bubbles/heatmap του χάρτη.
 export async function getGraduatesMap(req: Request, res: Response) {
   const scope = mapScopeFromRequest(req);
   const { where } = buildMapWhere(req);
@@ -136,6 +143,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
       groups.set(countryId, bucket);
     }
 
+// Τα buckets γίνονται τελικά σημεία που εμφανίζονται στον χάρτη.
     const items = Array.from(groups.values())
       .map((bucket) => bucketToMapItem(bucket, labels, { idKey: "periphery_id", nameKey: "periphery_name", latitudeKey: "latitude", longitudeKey: "longitude" }))
       .sort((left, right) => right.count - left.count);
@@ -182,6 +190,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
     groups.set(Number(periphery.id), bucket);
   }
 
+// Τα buckets γίνονται τελικά σημεία που εμφανίζονται στον χάρτη.
   const items = Array.from(groups.values())
     .map((bucket) => bucketToMapItem(bucket, labels, { idKey: "periphery_id", nameKey: "periphery_name", latitudeKey: "latitude", longitudeKey: "longitude" }))
     .sort((left, right) => right.count - left.count);
@@ -189,6 +198,7 @@ export async function getGraduatesMap(req: Request, res: Response) {
   return res.json({ ok: true, items, total: items.reduce((sum, item) => sum + (Number(item.count) || 0), 0) });
 }
 
+// Βρίσκει ελάχιστο/μέγιστο έτος αποφοίτησης για τον slider χάρτη.
 export async function getMapYearRange(req: Request, res: Response) {
   try {
     const rows = await sequelize.query<{ year: number | null }>(
@@ -211,6 +221,7 @@ export async function getMapYearRange(req: Request, res: Response) {
   }
 }
 
+// Επιστρέφει λίστα πόλεων που ταιριάζουν με τα φίλτρα χάρτη.
 export async function getMapCities(req: Request, res: Response) {
   const scope = mapScopeFromRequest(req);
   const { where } = buildMapWhere(req);
@@ -271,6 +282,7 @@ export async function getMapCities(req: Request, res: Response) {
     groups.set(key, bucket);
   }
 
+// Τα buckets γίνονται τελικά σημεία που εμφανίζονται στον χάρτη.
   const items = Array.from(groups.values())
     .filter((item) => item.count > 0)
     .map((item) => ({
@@ -307,6 +319,7 @@ export async function getMapCities(req: Request, res: Response) {
   return res.json({ ok: true, items });
 }
 
+// Επιστρέφει αναλυτικά στατιστικά για μία πόλη του χάρτη.
 export async function getMapCityDetail(req: Request, res: Response) {
   const scope = mapScopeFromRequest(req);
   const cityId = toInt(req.query.city_id);

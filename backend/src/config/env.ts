@@ -1,6 +1,8 @@
+// Μαζεύει τις βασικές ρυθμίσεις περιβάλλοντος που χρειάζεται το backend.
 import dotenv from "dotenv";
 dotenv.config();
 
+// Διαβάζει υποχρεωτική μεταβλητή περιβάλλοντος και σταματά αν λείπει.
 function required(name: string): string {
   const v = process.env[name];
   if (!v) throw new Error(`Missing env var: ${name}`);

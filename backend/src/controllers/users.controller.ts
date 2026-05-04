@@ -1,3 +1,4 @@
+// Χειρίζεται διαχείριση χρηστών από super admin.
 import type { NextFunction, Request, Response } from "express";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
@@ -6,10 +7,12 @@ import { clearRouteCaches } from "../utils/routeCache";
 
 type AllowedRole = "super_admin" | "secretariat";
 
+// Ελέγχει αν ο ρόλος χρήστη είναι επιτρεπτός.
 function isAllowedRole(role: string): role is AllowedRole {
   return role === "super_admin" || role === "secretariat";
 }
 
+// Βρίσκει χρήστη από id URL ή επιστρέφει 404.
 async function findUserByParamId(req: Request, res: Response) {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) {
@@ -26,6 +29,7 @@ async function findUserByParamId(req: Request, res: Response) {
   return user;
 }
 
+// Επιστρέφει λίστα χρηστών για super admin.
 export async function listUsers(_req: Request, res: Response, next: NextFunction) {
   try {
     const items = await User.findAll({ order: [["id", "ASC"]] });
@@ -35,6 +39,7 @@ export async function listUsers(_req: Request, res: Response, next: NextFunction
   }
 }
 
+// Δημιουργεί νέο χρήστη από super admin.
 export async function createUser(req: Request, res: Response, next: NextFunction) {
   try {
     const body = req.body ?? {};
@@ -65,6 +70,7 @@ export async function createUser(req: Request, res: Response, next: NextFunction
       is_active: true
     });
 
+// Δημιουργία/αλλαγή/απενεργοποίηση χρήστη καταγράφεται.
     await logAction({ user_id: req.auth!.id, action: "create_user", entity_type: "user", entity_id: u.id });
 
     clearRouteCaches(["users"]);
@@ -75,6 +81,7 @@ export async function createUser(req: Request, res: Response, next: NextFunction
   }
 }
 
+// Ενημερώνει ρόλο/κατάσταση χρήστη και γράφει log.
 export async function updateUser(req: Request, res: Response, next: NextFunction) {
   try {
     const u = await findUserByParamId(req, res);
@@ -106,6 +113,7 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
 
     await u.save();
 
+// Δημιουργία/αλλαγή/απενεργοποίηση χρήστη καταγράφεται.
     await logAction({
       user_id: req.auth!.id,
       action: "update_user",
@@ -122,6 +130,7 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
   }
 }
 
+// Απενεργοποιεί χρήστη αντί να τον χρησιμοποιεί ενεργά στην πλατφόρμα.
 export async function deactivateUser(req: Request, res: Response, next: NextFunction) {
   try {
     const u = await findUserByParamId(req, res);
@@ -130,6 +139,7 @@ export async function deactivateUser(req: Request, res: Response, next: NextFunc
     if (req.auth!.id === u.id) return badRequest(res, "Cannot deactivate yourself");
 
     const targetName = `${String(u.first_name ?? "").trim()} ${String(u.last_name ?? "").trim()}`.trim() || String(u.email ?? "").trim();
+// Δημιουργία/αλλαγή/απενεργοποίηση χρήστη καταγράφεται.
     await logAction({
       user_id: req.auth!.id,
       action: "διαγραφή χρήστη",
