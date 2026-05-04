@@ -14,6 +14,7 @@ import { presenceRouter } from "./routes/presence.routes";
 import mapRouter from "./routes/map.routes";
 import { publicRouter } from "./routes/public.routes";
 
+// Συγκεντρώνει όλα τα frontend URLs που επιτρέπεται να κάνουν requests στο backend.
 function collectAllowedOrigins() {
   const values = [
     process.env.CORS_ORIGIN,
@@ -24,6 +25,7 @@ function collectAllowedOrigins() {
     "https://alupla.vercel.app"
   ];
 
+  // Καθαρίζει τη λίστα: χωρίζει comma-separated τιμές, αφαιρεί κενά και διπλότυπα.
   return Array.from(
     new Set(
       values
@@ -34,11 +36,16 @@ function collectAllowedOrigins() {
   );
 }
 
+// Ρυθμίζει το Express app (middleware, routes, error handler)
 export function createApp() {
+  // Δημιουργεί το βασικό Express app.
   const app = express();
   const allowedOrigins = collectAllowedOrigins();
 
+  // Προσθέτει βασικά security headers.
   app.use(helmet());
+
+  // Ρυθμίζει ποια frontend origins επιτρέπεται να επικοινωνούν με το backend.
   app.use(
     cors({
       origin: (origin, callback) => {
@@ -51,28 +58,39 @@ export function createApp() {
       credentials: true
     })
   );
+
+  // Επιτρέπει στο backend να διαβάζει JSON bodies από requests.
   app.use(express.json({ limit: "2mb" }));
+
+  // Εκτυπώνει σύντομα logs για κάθε HTTP request στο terminal.
   app.use(morgan("dev"));
 
+  // Αρχικοποιεί τη σύνδεση με τη βάση δεδομένων.
   initDb().catch((e) => console.error("[db] connection failed:", e));
 
+  // Απλό endpoint ελέγχου ότι ο server λειτουργεί.
   app.get("/health", (_req, res) => {
     res.json({ ok: true });
   });
 
+  // Συνδέει τα βασικά route groups του backend.
   app.use("/auth", authRouter);
   app.use("/users", usersRouter);
   app.use("/activity-logs", activityLogsRouter);
   app.use("/presence", presenceRouter);
   app.use("/map", mapRouter);
 
+  // Public routes που μπορούν να χρησιμοποιηθούν χωρίς πλήρες admin flow.
   app.use("/public", publicRouter);
 
+  // Routes για προγράμματα σπουδών.
   app.use("/study-programs", studyProgramsRouter);
 
+  // Routes για αποφοίτους και γεωγραφικές περιοχές.
   app.use("/graduates", graduatesRouter);
   app.use("/regions", regionsRouter);
 
+  // Κεντρικός error handler, μπαίνει τελευταίος για να πιάνει σφάλματα από τα προηγούμενα routes.
   app.use(errorHandler);
 
   return app;
