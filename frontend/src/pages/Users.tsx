@@ -219,7 +219,7 @@ export default function Users() {
               {!items.length && (
                 <tr>
                   <td colSpan={6} className="muted">
-                    {t("table.none")}
+                    {loading ? t("table.loading") : t("table.none")}
                   </td>
                 </tr>
               )}

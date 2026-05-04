@@ -51,6 +51,7 @@ export default function AcademicData() {
   const lang = i18n.language?.startsWith("en") ? "en" : "gr";
 
   const [programs, setPrograms] = React.useState<StudyProgram[]>([]);
+  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [programForm, setProgramForm] = React.useState<StudyProgramForm>(emptyProgramForm);
   const [editingProgramId, setEditingProgramId] = React.useState<number | null>(null);
@@ -78,6 +79,7 @@ export default function AcademicData() {
   async function load() {
     if (inFlight.current) return;
     inFlight.current = true;
+    setLoading(true);
     setError(null);
 
     try {
@@ -86,6 +88,7 @@ export default function AcademicData() {
     } catch (error) {
       setError(errorText(error));
     } finally {
+      setLoading(false);
       inFlight.current = false;
     }
   }
@@ -289,7 +292,7 @@ export default function AcademicData() {
               ))}
               {!programs.length && (
                 <tr>
-                  <td colSpan={4} className="muted">{t("table.empty")}</td>
+                  <td colSpan={4} className="muted">{loading ? t("table.loading") : t("table.empty")}</td>
                 </tr>
               )}
             </tbody>

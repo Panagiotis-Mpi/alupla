@@ -25,7 +25,8 @@
     "resource": "Resource",
     "ip": "IP",
     "details": "Details",
-    "none": "No logs."
+    "none": "No logs.",
+    "loading": "Loading"
   },
   "error": "Error",
   "exportFailed": "Export failed",

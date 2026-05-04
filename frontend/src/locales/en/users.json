@@ -27,7 +27,8 @@
     "role": "Role",
     "online": "Online",
     "none": "No users.",
-    "deactivate": "Delete"
+    "deactivate": "Delete",
+    "loading": "Loading"
   },
   "status": {
     "online": "● online",

@@ -531,7 +531,7 @@ export default function Logs() {
               {!items.length && (
                 <tr>
                   <td colSpan={5} className="muted">
-                    {t("table.none")}
+                    {loading ? t("table.loading") : t("table.none")}
                   </td>
                 </tr>
               )}

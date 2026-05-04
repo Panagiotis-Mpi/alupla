@@ -22,7 +22,8 @@
     "name": "Name",
     "status": "Status",
     "actions": "Actions",
-    "empty": "No entries found."
+    "empty": "No entries found.",
+    "loading": "Loading"
   },
   "programs": {
     "title": "Study Programs",
