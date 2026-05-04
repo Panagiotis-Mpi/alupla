@@ -8,6 +8,7 @@ export type AuthUser = {
   role: "super_admin" | "secretariat";
 };
 
+// Προσθέτει user/auth πάνω στο Express request για χρήση στα protected routes.
 declare global {
   namespace Express {
     interface Request {
@@ -33,6 +34,7 @@ function trimWrappedValue(value: string): string {
   return trimmed;
 }
 
+// Καθαρίζει token τιμές που έρχονται με quotes, Bearer ή extra commas.
 function normalizeTokenValue(value: string): string {
   let normalized = trimWrappedValue(value);
 
@@ -82,6 +84,7 @@ function setAuthUser(req: Request, user: AuthUser) {
 
 const PRESENCE_TOUCH_INTERVAL_MS = 30 * 1000;
 
+// Ενημερώνει last_seen_at χωρίς να γράφει στη βάση σε κάθε request.
 function touchPresence(userId: number) {
   const now = new Date();
   const cutoff = new Date(now.getTime() - PRESENCE_TOUCH_INTERVAL_MS);
@@ -97,6 +100,7 @@ function touchPresence(userId: number) {
   );
 }
 
+// Middleware που απαιτεί έγκυρο JWT και ενεργό χρήστη.
 export async function authRequired(req: Request, res: Response, next: NextFunction) {
   const token = getRequestToken(req);
   if (!token) {
@@ -130,6 +134,7 @@ export async function authRequired(req: Request, res: Response, next: NextFuncti
   }
 }
 
+// Middleware που επιτρέπει μόνο συγκεκριμένους ρόλους.
 export function allowRoles(roles: Array<AuthUser["role"]>) {
   return (req: Request, res: Response, next: NextFunction) => {
     const currentUser = req.user;

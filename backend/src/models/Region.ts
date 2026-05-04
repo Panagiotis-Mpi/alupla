@@ -3,6 +3,7 @@ import { sequelize } from "../config/sequelize";
 
 export type RegionType = "COUNTRY" | "PERIPHERY" | "CITY" | "FOREIGN_CITY";
 
+// Model περιοχής: χρησιμοποιείται για χώρα, περιφέρεια, πόλη και χάρτη.
 export class Region extends Model {
   declare id: number;
   declare name: string;
@@ -16,6 +17,7 @@ export class Region extends Model {
   declare longitude: number | null;
 }
 
+// Ορισμός πεδίων περιοχής και σύνδεση με τον πίνακα regions.
 Region.init(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },

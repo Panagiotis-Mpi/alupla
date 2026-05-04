@@ -2,6 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/sequelize";
 
 export type Gender = "M" | "F";
+// Model αποφοίτου: δηλώνει τα πεδία όπως υπάρχουν στον πίνακα graduates.
 export class Graduate extends Model {
   declare id: number;
   declare ad_code: string;
@@ -25,6 +26,7 @@ export class Graduate extends Model {
   declare origin_municipality: string | null;
 }
 
+// Σύνδεση του model με τη βάση και τους τύπους κάθε πεδίου.
 Graduate.init(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },

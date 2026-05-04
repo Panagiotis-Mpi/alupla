@@ -1,6 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/sequelize";
 
+// Model προγράμματος σπουδών: κρατά κωδικό, ονόματα και ενεργή/ανενεργή κατάσταση.
 export class StudyProgram extends Model {
   declare id: number;
   declare code: string;
@@ -9,6 +10,7 @@ export class StudyProgram extends Model {
   declare is_active: boolean;
 }
 
+// Ορισμός πεδίων και σύνδεση με τον πίνακα study_programs.
 StudyProgram.init(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
