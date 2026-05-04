@@ -331,16 +331,16 @@ export default function Logs() {
                 display: "flex",
                 gap: 10,
                 alignItems: "center",
-                flexWrap: isCompact ? "wrap" : "nowrap",
+                flexWrap: "nowrap",
                 width: isCompact ? "100%" : "auto",
               }}
             >
-              <button className="btn" onClick={() => void load(1)} style={{ width: isCompact ? "100%" : "auto" }}>
+              <button className="btn" onClick={() => void load(1)} style={{ width: isCompact ? "calc(50% - 5px)" : "auto", flex: isCompact ? "1 1 0" : "0 0 auto" }}>
                 {t("filters.search")}
               </button>
               <button
                 className="btn"
-                style={{ width: isCompact ? "100%" : "auto" }}
+                style={{ width: isCompact ? "calc(50% - 5px)" : "auto", flex: isCompact ? "1 1 0" : "0 0 auto" }}
                 onClick={() => {
                   setFilters(emptyFilters);
                   setTimeout(() => void load(1), 0);
@@ -439,8 +439,8 @@ export default function Logs() {
               <button
                 className="btn"
                 style={{
-                  width: 42,
-                  minWidth: 42,
+                  width: isCompact ? 74 : 42,
+                  minWidth: isCompact ? 74 : 42,
                   height: 42,
                   padding: 0,
                   borderRadius: 12,
@@ -461,7 +461,7 @@ export default function Logs() {
               <span
                 className="badge"
                 style={{
-                  minWidth: 52,
+                  minWidth: isCompact ? 92 : 52,
                   height: 42,
                   padding: "0 14px",
                   display: "inline-flex",
@@ -477,8 +477,8 @@ export default function Logs() {
               <button
                 className="btn"
                 style={{
-                  width: 42,
-                  minWidth: 42,
+                  width: isCompact ? 74 : 42,
+                  minWidth: isCompact ? 74 : 42,
                   height: 42,
                   padding: 0,
                   borderRadius: 12,
