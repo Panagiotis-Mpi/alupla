@@ -15,13 +15,10 @@ import {
   createLogsLocalizer,
   emptyFilters,
   getSummaryLayout,
-  isSummaryCellSupported,
   knownActionKeys,
   summaryCellValue,
   type ActivityLogListResponse,
   type FileSummaryItem,
-  type FileSummaryFileType,
-  type FileSummaryPage,
   type FileSummaryRole,
   type LogFilters,
 } from "./logs/shared";

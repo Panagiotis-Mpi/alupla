@@ -33,7 +33,6 @@ import {
   getImportIssueHint,
   groupImportErrors,
   normalizeImportErrorMessage,
-  type ImportIssueGroup,
 } from "./graduates/importFeedback";
 import { downloadBlob } from "../lib/download";
 import { toggleMergedVisibleSelection, toggleSelectionValue } from "./shared/selection";

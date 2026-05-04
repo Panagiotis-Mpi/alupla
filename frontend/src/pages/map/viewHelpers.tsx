@@ -1,6 +1,5 @@
 // Helpers που μετατρέπουν δεδομένα χάρτη σε εμφανίσιμα στοιχεία UI.
 import { useEffect, useState } from "react";
-import type React from "react";
 
 export const genderColors = { male: "#3b82f6", female: "#db2777", balanced: "#475569", empty: "#dbe2ea" };
 

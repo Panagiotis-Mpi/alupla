@@ -1,6 +1,5 @@
 // Custom hooks της σελίδας αποφοίτων για state και δεδομένα.
 import { useEffect, type RefObject } from "react";
-import { downloadBlob } from "../../lib/download";
 import {
   listGraduates,
   listRegions,
