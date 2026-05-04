@@ -1,3 +1,4 @@
+// Controller για τα backend endpoints των αποφοίτων.
 import type { NextFunction, Request, Response } from "express";
 import { Graduate } from "../models/Graduate";
 import { StudyProgram } from "../models/StudyProgram";
@@ -42,6 +43,7 @@ import { clearPublicStatsCache } from "./public.controller";
 import { sanitizeExportRows } from "../utils/exportSafety";
 import { ensureLocalizedRegionNames } from "../services/mapLocation.service";
 
+// Μαζεύει τα region ids που χρειάζονται για localization/export, ώστε να μη γίνουν περιττές αναζητήσεις.
 function collectGraduateRegionIds(rows: Array<Record<string, any>>) {
   const ids = new Set<number>();
   for (const row of rows) {
@@ -66,6 +68,7 @@ function localizedName(localizedNamesById: LocalizedNamesByRegionId | undefined,
   return String(localizedNamesById?.get(numericId)?.nameEn ?? "").trim();
 }
 
+// Μετατρέπει τα Sequelize rows σε απλά objects και προσθέτει αγγλικά ονόματα περιοχών όταν ζητηθεί EN.
 async function serializeGraduateRows(rows: any[], lang: string) {
   const plainRows = rows.map((row) => row?.get ? row.get({ plain: true }) : row);
   const localizedNamesById = await getLocalizedNamesForGraduates(plainRows, lang);
@@ -78,12 +81,14 @@ async function serializeGraduateRows(rows: any[], lang: string) {
   }));
 }
 
+// GET /graduates: επιστρέφει λίστα αποφοίτων, με φίλτρα, ταξινόμηση και προαιρετικό pagination.
 export async function listGraduates(req: Request, res: Response, next: NextFunction) {
   try {
     const where = buildGraduateWhere(req.query as Record<string, unknown>);
     const order = parseSort(req.query.sort);
     const hasPaging = req.query.page != null || req.query.pageSize != null;
 
+    // Αν δεν ζητηθεί pagination, επιστρέφονται όλα τα αποτελέσματα που ταιριάζουν στα φίλτρα.
     if (!hasPaging) {
       const rows = await Graduate.findAll({ where, order });
       const total = rows.length;
@@ -123,6 +128,7 @@ export async function listGraduates(req: Request, res: Response, next: NextFunct
 
 
 
+// GET /graduates/export: εξάγει αποφοίτους σε CSV ή XLSX, με τα ίδια φίλτρα/ids της λίστας.
 export async function exportGraduates(req: Request, res: Response, next: NextFunction) {
   try {
     const where = buildGraduateWhere(req.query as Record<string, unknown>);
@@ -132,6 +138,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
     const lang = getExportLang(req.query.lang);
     const format = getGraduateFileFormat(req.query.format);
 
+    // Όταν έχουν επιλεγεί συγκεκριμένοι απόφοιτοι, το export περιορίζεται μόνο σε αυτά τα ids.
     if (ids.length) {
       (where as any).id = ids;
     }
@@ -139,6 +146,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
     const rows = await Graduate.findAll({ where, order, limit: ids.length ? undefined : limit });
     const { programsById, regionsById } = await getReferenceMaps();
     const localizedNamesById = await getLocalizedNamesForGraduates(rows as any[], lang);
+    // Πριν γραφτεί το αρχείο, καθαρίζονται τιμές που θα μπορούσαν να διαβαστούν ως Excel formulas.
     const data = sanitizeExportRows(buildExportRows(rows as any[], lang, programsById, regionsById, localizedNamesById));
 
     await logAction({
@@ -174,6 +182,7 @@ export async function exportGraduates(req: Request, res: Response, next: NextFun
   }
 }
 
+// Καταγράφει PDF exports που γίνονται από το frontend, επειδή το PDF παράγεται εκτός αυτού του endpoint.
 export async function logGraduatesPdfExport(req: Request, res: Response, next: NextFunction) {
   try {
     const where = buildGraduateWhere(req.body as Record<string, unknown>);
@@ -200,6 +209,7 @@ export async function logGraduatesPdfExport(req: Request, res: Response, next: N
 }
 
 
+// Κατεβάζει πρότυπο αρχείο εισαγωγής αποφοίτων, σε CSV ή XLSX.
 export async function exportGraduatesImportTemplate(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = getExportLang(req.query.lang);
@@ -228,6 +238,7 @@ export async function exportGraduatesImportTemplate(req: Request, res: Response,
   }
 }
 
+// POST /graduates/import: διαβάζει αρχείο CSV/XLSX, ελέγχει κάθε γραμμή και κάνει insert ή update.
 export async function importGraduates(req: Request, res: Response, next: NextFunction) {
   try {
     const file = (req as any).file as { buffer: Buffer; originalname: string; mimetype: string } | undefined;
@@ -251,6 +262,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
 
     const headerRow = rows[0];
     const headers = headerRow.map((header) => String(header ?? "").trim());
+    // Το import επιτρέπεται μόνο αν οι στήλες ταιριάζουν με το επίσημο template.
     const matchedHeaderKeys = getMatchedTemplateHeaderKeys(headers);
 
     if (!matchedHeaderKeys) {
@@ -296,6 +308,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
 
     const defaultGreeceId = getGreeceRegionId(regionsById);
 
+    // Κάθε γραμμή ελέγχεται ανεξάρτητα, ώστε ένα λάθος record να μη σταματήσει όλο το import.
     for (let r = 1; r < rows.length; r++) {
       const arr = rows[r];
       if (arr.every((v) => String(v ?? "").trim() === "")) continue;
@@ -351,12 +364,14 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         if (!origin_periphery_region_id && String(origin_region_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_region", message: "Invalid value", value: origin_region_source });
       }
 
+      // Αν η γραμμή έχει βασικά λάθη, δεν μπαίνει στα prepared rows.
       if (rowProblems.length) {
         errors.push(...rowProblems);
         skipped++;
         continue;
       }
 
+      // Για ελληνική καταγωγή γίνεται αντιστοίχιση χώρας/περιφέρειας/πόλης με τους managed regions.
       let normalizedOrigin: NormalizedOriginResult | null = null;
       if (!is_abroad) {
         normalizedOrigin = await normalizeOriginLocation({
@@ -375,6 +390,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         }
       }
 
+      // Εφαρμόζονται οι ακαδημαϊκοί κανόνες πριν αποθηκευτεί η εγγραφή.
       const ruleViolations = getGraduateRuleViolations({
         entry_year,
         birth_date,
@@ -421,6 +437,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       studentNumbers.push(student_number);
     }
 
+    // Τα έγκυρα rows αποθηκεύονται σε transaction: αν κάτι σπάσει, δεν μένει μισοτελειωμένο import.
     if (preparedRows.length) {
       const existingRows = await Graduate.findAll({
         where: { student_number: { [Op.in]: Array.from(new Set(studentNumbers)) } },
@@ -459,6 +476,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       });
     } catch {}
 
+    // Μετά από import καθαρίζονται τα cached δεδομένα που επηρεάζονται από αλλαγές αποφοίτων.
     clearRouteCaches(["graduates", "map"]);
     clearPublicStatsCache();
 
@@ -494,6 +512,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
   }
 }
 
+// GET /graduates/:id: φέρνει έναν απόφοιτο μαζί με καθαρό snapshot καταγωγής.
 export async function getGraduate(req: Request, res: Response, next: NextFunction) {
   try {
     const id = Number(req.params.id);
@@ -511,6 +530,7 @@ export async function getGraduate(req: Request, res: Response, next: NextFunctio
   }
 }
 
+// POST /graduates: δημιουργεί έναν απόφοιτο από τη φόρμα.
 export async function createGraduate(req: Request, res: Response, next: NextFunction) {
   try {
     const body = req.body ?? {};
@@ -530,6 +550,7 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     const oath_date = String(body.oath_date ?? "").trim(); // YYYY-MM-DD
     const birth_date = String(body.birth_date ?? "").trim(); // YYYY-MM-DD
 
+    // Πρώτα κόβονται κενά υποχρεωτικά πεδία, πριν γίνει οποιοδήποτε create στη βάση.
     const requiredStringError =
       requireNonEmptyString(res, last_name, "last_name") ??
       requireNonEmptyString(res, first_name, "first_name") ??
@@ -551,6 +572,7 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
       requireDateOnly(res, birth_date, "birth_date");
     if (dateError) return dateError;
 
+    // Οι ίδιοι ακαδημαϊκοί κανόνες εφαρμόζονται και στη χειροκίνητη καταχώριση.
     const createRuleViolation = getGraduateRuleViolations({
       entry_year,
       birth_date,
@@ -601,6 +623,7 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
 
 
 
+// Μόνο αυτά τα πεδία συμμετέχουν στο diff των update logs.
 const graduateLoggedFields = [
   "ad_code",
   "student_number",
@@ -654,10 +677,12 @@ function getGraduateLogSnapshot(values: Record<string, unknown>) {
   return Object.fromEntries(graduateLoggedFields.map((field) => [field, graduateLogValue(field, values[field])]));
 }
 
+// Συγκρίνει καθαρισμένες τιμές πριν/μετά, ώστε τα logs να δείχνουν μόνο πραγματικές αλλαγές.
 function getChangedGraduateFields(before: Record<string, unknown>, after: Record<string, unknown>) {
   return graduateLoggedFields.filter((field) => before[field] !== after[field]);
 }
 
+// PUT /graduates/:id: ενημερώνει απόφοιτο και γράφει log μόνο για τα πεδία που άλλαξαν.
 export async function updateGraduate(req: Request, res: Response, next: NextFunction) {
   try {
     const id = Number(req.params.id);
@@ -666,6 +691,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     const item = await Graduate.findByPk(id);
     if (!item) return notFound(res);
 
+    // Κρατάμε την αρχική εικόνα πριν γίνουν αλλαγές, για να βγει σωστό diff στο log.
     const beforeLogSnapshot = getGraduateLogSnapshot(item.get({ plain: true }) as Record<string, unknown>);
     const body = req.body ?? {};
 
@@ -687,6 +713,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
 
     const { regionsById } = await getReferenceMaps();
 
+    // Βοηθητική συνάρτηση: αλλάζει μόνο πεδία που στάλθηκαν στο request.
     const setIf = (key: string, fn?: (v: any) => any) => {
       if (body[key] !== undefined) (item as any)[key] = fn ? fn(body[key]) : body[key];
     };
@@ -726,6 +753,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     }, "en")[0];
     if (updateRuleViolation) return bad(res, updateRuleViolation.message);
 
+    // Η αποθήκευση γίνεται αφού περάσουν όλα τα validations και το origin patch.
     await item.save();
 
     const afterLogSnapshot = getGraduateLogSnapshot(item.get({ plain: true }) as Record<string, unknown>);
@@ -748,6 +776,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
   }
 }
 
+// DELETE /graduates/:id: διαγράφει απόφοιτο και κρατάει audit log με τον αριθμό μητρώου.
 export async function deleteGraduate(req: Request, res: Response, next: NextFunction) {
   try {
     const id = Number(req.params.id);
