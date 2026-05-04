@@ -73,7 +73,7 @@ textarea[aria-invalid="true"]{
 .label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block}
 .table{width:100%;border-collapse:collapse}
 .table th,.table td{border-bottom:1px solid #eef2f7;padding:8px 12px;text-align:left;font-size:14px;vertical-align:top}
-.table th{font-size:12px;color:var(--muted);background:#f8fafc}
+.table th{font-size:12px;color:var(--muted);background:#f8fafc;font-weight:400}
 .label,.table th,.table th button{word-break:normal;overflow-wrap:normal;hyphens:none}
 .table th button{white-space:normal}
 .table tr:hover td{background:#f8fafc}
@@ -2724,3 +2724,7 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
     font-size:13.5px;
   }
 }
+
+.logs-mobile-pagination{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:nowrap;width:100%}
+.logs-mobile-pagination .btn{width:74px!important;min-width:74px!important;flex:0 0 auto!important}
+.logs-mobile-pagination .badge{min-width:92px;flex:0 0 auto}

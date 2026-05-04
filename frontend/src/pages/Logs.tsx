@@ -426,21 +426,12 @@ export default function Logs() {
           </div>
 
           {isCompact && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 10,
-                flexWrap: "nowrap",
-                width: "100%",
-              }}
-            >
+            <div className="logs-mobile-pagination">
               <button
                 className="btn"
                 style={{
-                  width: isCompact ? 74 : 42,
-                  minWidth: isCompact ? 74 : 42,
+                  width: 74,
+                  minWidth: 74,
                   height: 42,
                   padding: 0,
                   borderRadius: 12,
@@ -461,7 +452,7 @@ export default function Logs() {
               <span
                 className="badge"
                 style={{
-                  minWidth: isCompact ? 92 : 52,
+                  minWidth: 92,
                   height: 42,
                   padding: "0 14px",
                   display: "inline-flex",
@@ -477,8 +468,8 @@ export default function Logs() {
               <button
                 className="btn"
                 style={{
-                  width: isCompact ? 74 : 42,
-                  minWidth: isCompact ? 74 : 42,
+                  width: 74,
+                  minWidth: 74,
                   height: 42,
                   padding: 0,
                   borderRadius: 12,
