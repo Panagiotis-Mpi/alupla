@@ -9,15 +9,23 @@ import { sequelize } from "../config/sequelize";
 import { buildMapWhere, calculateAgeAtDate, isAbroadMapGraduate, isGreekMapGraduate, loadRegions, normalizeKey, pickTopName, toInt } from "./map.helpers";
 
 const ATHENS_GROUP_KEY = "athens";
-const ATHENS_GROUP_NAMES = new Set([
+const ATHENS_GROUP = {
+  key: ATHENS_GROUP_KEY,
+  nameEl: "Αθήνα",
+  nameEn: "Athens",
+  latitude: 37.9838,
+  longitude: 23.7275,
+};
+const ATHENS_MUNICIPALITY_NAMES = [
   "Αθήνα",
   "Αθηναίων",
-  "Δήμος Αθηναίων",
+  "Athens",
   "Βύρωνας",
   "Βύρωνος",
   "Γαλάτσι",
   "Γαλατσίου",
   "Δάφνη-Υμηττός",
+  "Δάφνης-Υμηττού",
   "Δάφνη",
   "Υμηττός",
   "Ζωγράφου",
@@ -25,94 +33,137 @@ const ATHENS_GROUP_NAMES = new Set([
   "Ηλιούπολης",
   "Καισαριανή",
   "Καισαριανής",
-  "Νέα Φιλαδέλφεια-Νέα Χαλκηδόνα",
   "Φιλαδέλφεια-Χαλκηδόνα",
+  "Φιλαδέλφειας-Χαλκηδόνας",
+  "Νέα Φιλαδέλφεια-Νέα Χαλκηδόνα",
+  "Νέας Φιλαδέλφειας-Νέας Χαλκηδόνας",
   "Νέα Φιλαδέλφεια",
+  "Νέας Φιλαδέλφειας",
   "Νέα Χαλκηδόνα",
+  "Νέας Χαλκηδόνας",
   "Αγία Παρασκευή",
   "Αγίας Παρασκευής",
+  "Αγ Παρασκευή",
+  "Αγ Παρασκευής",
   "Αμαρούσιο",
   "Μαρούσι",
   "Αμαρουσίου",
   "Βριλήσσια",
   "Βριλησσίων",
+  "Ηράκλειο",
   "Ηράκλειο Αττικής",
   "Ηρακλείου",
   "Κηφισιά",
   "Κηφισιάς",
   "Λυκόβρυση-Πεύκη",
+  "Λυκόβρυσης-Πεύκης",
   "Λυκόβρυση",
+  "Λυκόβρυσης",
   "Πεύκη",
+  "Πεύκης",
   "Μεταμόρφωση",
   "Μεταμορφώσεως",
   "Νέα Ιωνία",
   "Νέας Ιωνίας",
   "Παπάγου-Χολαργός",
+  "Παπάγου-Χολαργού",
   "Παπάγου",
   "Χολαργός",
+  "Χολαργού",
   "Πεντέλη",
   "Πεντέλης",
   "Φιλοθέη-Ψυχικό",
+  "Φιλοθέης-Ψυχικού",
   "Φιλοθέη",
+  "Φιλοθέης",
   "Ψυχικό",
+  "Ψυχικού",
+  "Νέο Ψυχικό",
+  "Νέου Ψυχικού",
   "Χαλάνδρι",
   "Χαλανδρίου",
   "Άγιος Δημήτριος",
   "Αγίου Δημητρίου",
+  "Αγ Δημήτριος",
+  "Αγ Δημητρίου",
   "Άλιμος",
   "Αλίμου",
   "Γλυφάδα",
   "Γλυφάδας",
   "Ελληνικό-Αργυρούπολη",
+  "Ελληνικού-Αργυρούπολης",
   "Ελληνικό",
+  "Ελληνικού",
   "Αργυρούπολη",
+  "Αργυρούπολης",
   "Καλλιθέα",
   "Καλλιθέας",
   "Μοσχάτο-Ταύρος",
+  "Μοσχάτου-Ταύρου",
   "Μοσχάτο",
+  "Μοσχάτου",
   "Ταύρος",
+  "Ταύρου",
   "Νέα Σμύρνη",
   "Νέας Σμύρνης",
   "Παλαιό Φάληρο",
   "Παλαιού Φαλήρου",
   "Αγία Βαρβάρα",
   "Αγίας Βαρβάρας",
+  "Αγ Βαρβάρα",
+  "Αγ Βαρβάρας",
   "Άγιοι Ανάργυροι-Καματερό",
+  "Αγίων Αναργύρων-Καματερού",
+  "Αγ Ανάργυροι-Καματερό",
+  "Αγ Αναργύρων-Καματερού",
   "Άγιοι Ανάργυροι",
+  "Αγίων Αναργύρων",
+  "Αγ Ανάργυροι",
+  "Αγ Αναργύρων",
   "Καματερό",
+  "Καματερού",
   "Αιγάλεω",
-  "Ίλιον",
   "Ιλίου",
+  "Ίλιον",
   "Περιστέρι",
   "Περιστερίου",
   "Πετρούπολη",
   "Πετρούπολης",
   "Χαϊδάρι",
   "Χαϊδαρίου",
-].map((name) => normalizeKey(name)));
+];
+const ATHENS_GROUP_NAMES = new Set(ATHENS_MUNICIPALITY_NAMES.map((name) => athensLookupKey(name)));
+
+function athensLookupKey(value: unknown) {
+  const tokensToRemove = new Set(["δημοσ", "δημου", "δημοτικη", "δημοτικησ", "ενοτητα", "ενοτητασ"]);
+  return normalizeKey(String(value ?? ""))
+    .replace(/ς/g, "σ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .split(" ")
+    .filter((token) => token && !tokensToRemove.has(token))
+    .join("");
+}
+
+function isAtticaLocation(resolvedLocation: any) {
+  const peripheryId = Number(resolvedLocation?.peripheryId || 0);
+  if (peripheryId === 1) return true;
+  return athensLookupKey(resolvedLocation?.peripheryName) === athensLookupKey("Αττική");
+}
 
 function greekCityGroupForName(value: unknown) {
-  return ATHENS_GROUP_NAMES.has(normalizeKey(String(value ?? "")))
-    ? {
-        key: ATHENS_GROUP_KEY,
-        nameEl: "Αθήνα",
-        nameEn: "Athens",
-        latitude: 37.9838,
-        longitude: 23.7275,
-      }
-    : null;
+  return ATHENS_GROUP_NAMES.has(athensLookupKey(value)) ? ATHENS_GROUP : null;
+}
+
+function greekCityGroupForLocation(resolvedLocation: any, rawName?: unknown) {
+  const cityGroup = greekCityGroupForName(resolvedLocation?.cityName) || greekCityGroupForName(rawName);
+  if (!cityGroup) return null;
+  const cityKey = athensLookupKey(resolvedLocation?.cityName || rawName);
+  if (cityKey === athensLookupKey("Αθήνα") || cityKey === athensLookupKey("Αθηναίων")) return cityGroup;
+  return isAtticaLocation(resolvedLocation) ? cityGroup : null;
 }
 
 function greekCityGroupForKey(value: unknown) {
-  return String(value ?? "").trim() === ATHENS_GROUP_KEY
-    ? {
-        key: ATHENS_GROUP_KEY,
-        nameEl: "Αθήνα",
-        nameEn: "Athens",
-        latitude: 37.9838,
-        longitude: 23.7275,
-      }
-    : null;
+  return String(value ?? "").trim() === ATHENS_GROUP_KEY ? ATHENS_GROUP : null;
 }
 
 // Διαβάζει αν ο χάρτης δείχνει Ελλάδα, εξωτερικό ή όλα.
@@ -359,7 +410,7 @@ export async function getMapCities(req: Request, res: Response) {
     if (!resolvedLocation?.cityName || resolvedLocation.latitude === null || resolvedLocation.longitude === null) continue;
 
     const country = resolvedLocation.countryId ? findRegion(Number(resolvedLocation.countryId)) : (Number(graduate.origin_country_region_id) ? findRegion(Number(graduate.origin_country_region_id)) : null);
-    const cityGroup = scope === "greece" ? greekCityGroupForName(resolvedLocation.cityName) : null;
+    const cityGroup = scope === "greece" ? greekCityGroupForLocation(resolvedLocation, graduate.origin_municipality) : null;
     const key = scope === "abroad"
       ? `${normalizeKey(String(country?.name || resolvedLocation.countryName || graduate.origin_country || ""))}::${normalizeKey(resolvedLocation.cityName)}`
       : cityGroup
@@ -491,7 +542,7 @@ export async function getMapCityDetail(req: Request, res: Response) {
         origin_city_region_id: Number(graduate.origin_city_region_id) || null,
         origin_municipality: graduate.origin_municipality || null,
       });
-      if (greekCityGroupForName(resolvedLocation?.cityName)?.key === cityGroup.key) matching.push(graduate);
+      if (greekCityGroupForLocation(resolvedLocation, graduate.origin_municipality)?.key === cityGroup.key) matching.push(graduate);
     }
   } else {
     const city = cityId ? findRegion(cityId) : null;
