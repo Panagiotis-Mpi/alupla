@@ -1,4 +1,3 @@
-// Σελίδα διαχείρισης προγραμμάτων σπουδών και σχετικών ακαδημαϊκών δεδομένων.
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -21,6 +20,8 @@ type StudyProgramForm = {
 };
 
 type ProgramSortKey = "code" | "name" | "status";
+type ProgramSortDirection = "asc" | "desc";
+type ProgramSortState = { key: ProgramSortKey; direction: ProgramSortDirection };
 
 const emptyProgramForm: StudyProgramForm = {
   code: "",
@@ -48,6 +49,64 @@ const sortableHeaderStyle: React.CSSProperties = {
   lineHeight: 1.25,
 };
 
+const menuGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gap: 10,
+  alignItems: "stretch",
+  marginTop: 16,
+  width: "100%",
+};
+
+const menuButtonStyle: React.CSSProperties = {
+  width: "100%",
+  minHeight: 48,
+  padding: "0 18px",
+  fontSize: 16,
+  fontWeight: 700,
+  justifyContent: "center",
+  lineHeight: 1.25,
+};
+
+function nextProgramSort(current: ProgramSortState, key: ProgramSortKey): ProgramSortState {
+  return current.key === key ? { key, direction: current.direction === "asc" ? "desc" : "asc" } : { key, direction: "asc" };
+}
+
+function programName(program: StudyProgram, lang: "gr" | "en") {
+  if (lang === "en" && program.name_en) return program.name_en;
+  return program.name_el;
+}
+
+function programSortValue(program: StudyProgram, key: ProgramSortKey, lang: "gr" | "en") {
+  if (key === "code") return program.code ?? "";
+  if (key === "name") return programName(program, lang) ?? "";
+  return program.is_active ? "1" : "0";
+}
+
+function formFromProgram(program: StudyProgram): StudyProgramForm {
+  return {
+    code: program.code,
+    name_el: program.name_el,
+    name_en: program.name_en ?? "",
+    is_active: Boolean(program.is_active),
+  };
+}
+
+type SortableHeaderProps = {
+  label: React.ReactNode;
+  sortKey: ProgramSortKey;
+  state: ProgramSortState;
+  onSort: (key: ProgramSortKey) => void;
+};
+
+function SortableHeader({ label, sortKey, state, onSort }: SortableHeaderProps) {
+  return (
+    <button type="button" style={sortableHeaderStyle} onClick={() => onSort(sortKey)}>
+      {label}{sortIndicator(state.key, sortKey, state.direction)}
+    </button>
+  );
+}
+
 export default function AcademicData() {
   const { t, i18n } = useTranslation("academicData");
   const lang = i18n.language?.startsWith("en") ? "en" : "gr";
@@ -57,18 +116,10 @@ export default function AcademicData() {
   const [error, setError] = React.useState<string | null>(null);
   const [programForm, setProgramForm] = React.useState<StudyProgramForm>(emptyProgramForm);
   const [editingProgramId, setEditingProgramId] = React.useState<number | null>(null);
-  const [programSort, setProgramSort] = React.useState<{ key: ProgramSortKey; direction: "asc" | "desc" }>({
-    key: "code",
-    direction: "asc",
-  });
+  const [programSort, setProgramSort] = React.useState<ProgramSortState>({ key: "code", direction: "asc" });
 
   const importFileRef = React.useRef<HTMLInputElement | null>(null);
   const inFlight = React.useRef(false);
-
-  function programName(program: StudyProgram) {
-    if (lang === "en" && program.name_en) return program.name_en;
-    return program.name_el;
-  }
 
   function errorText(error: unknown) {
     if (error && typeof error === "object" && "message" in error) {
@@ -101,20 +152,8 @@ export default function AcademicData() {
 
   const sortedPrograms = React.useMemo(() => {
     return [...programs].sort((left, right) => {
-      let a = "";
-      let b = "";
-
-      if (programSort.key === "code") {
-        a = left.code ?? "";
-        b = right.code ?? "";
-      } else if (programSort.key === "name") {
-        a = programName(left) ?? "";
-        b = programName(right) ?? "";
-      } else {
-        a = left.is_active ? "1" : "0";
-        b = right.is_active ? "1" : "0";
-      }
-
+      const a = programSortValue(left, programSort.key, lang);
+      const b = programSortValue(right, programSort.key, lang);
       return compareSortText(a, b, programSort.direction, lang === "en" ? "en" : "el");
     });
   }, [lang, programSort, programs]);
@@ -131,13 +170,7 @@ export default function AcademicData() {
   }
 
   function changeProgramSort(key: ProgramSortKey) {
-    setProgramSort((current) =>
-      current.key === key ? { key, direction: current.direction === "asc" ? "desc" : "asc" } : { key, direction: "asc" }
-    );
-  }
-
-  function sortMark(key: ProgramSortKey) {
-    return sortIndicator(programSort.key, key, programSort.direction);
+    setProgramSort((current) => nextProgramSort(current, key));
   }
 
   async function saveProgram() {
@@ -178,11 +211,11 @@ export default function AcademicData() {
 
   function startProgramEdit(item: StudyProgram) {
     setEditingProgramId(item.id);
-    setProgramForm({ code: item.code, name_el: item.name_el, name_en: item.name_en ?? "", is_active: Boolean(item.is_active) });
+    setProgramForm(formFromProgram(item));
   }
 
   async function removeProgram(item: StudyProgram) {
-    if (!confirm(t("confirm.deleteProgram", { name: programName(item) }))) return;
+    if (!confirm(t("confirm.deleteProgram", { name: programName(item, lang) }))) return;
     try {
       await deleteStudyProgram(item.id);
       if (editingProgramId === item.id) clearProgramForm();
@@ -199,21 +232,11 @@ export default function AcademicData() {
           <h2 style={{ margin: 0 }}>{t("title")}</h2>
         </div>
 
-        <div
-          className="topbar"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-            gap: 10,
-            alignItems: "stretch",
-            marginTop: 16,
-            width: "100%",
-          }}
-        >
-          <button className="btn" style={{ width: "100%", minHeight: 48, padding: "0 18px", fontSize: 16, fontWeight: 700, justifyContent: "center", lineHeight: 1.25 }} onClick={() => void downloadTemplate()}>
+        <div className="topbar" style={menuGridStyle}>
+          <button className="btn" style={menuButtonStyle} onClick={() => void downloadTemplate()}>
             {t("menu.template")}
           </button>
-          <button className="btn" style={{ width: "100%", minHeight: 48, padding: "0 18px", fontSize: 16, fontWeight: 700, justifyContent: "center", lineHeight: 1.25 }} onClick={() => importFileRef.current?.click()}>
+          <button className="btn" style={menuButtonStyle} onClick={() => importFileRef.current?.click()}>
             {t("menu.import")}
           </button>
           <input ref={importFileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={importPrograms} />
@@ -258,21 +281,9 @@ export default function AcademicData() {
           <table className="table">
             <thead>
               <tr>
-                <th>
-                  <button type="button" style={sortableHeaderStyle} onClick={() => changeProgramSort("code")}>
-                    {t("table.code")}{sortMark("code")}
-                  </button>
-                </th>
-                <th>
-                  <button type="button" style={sortableHeaderStyle} onClick={() => changeProgramSort("name")}>
-                    {t("table.name")}{sortMark("name")}
-                  </button>
-                </th>
-                <th>
-                  <button type="button" style={sortableHeaderStyle} onClick={() => changeProgramSort("status")}>
-                    {t("table.status")}{sortMark("status")}
-                  </button>
-                </th>
+                <th><SortableHeader label={t("table.code")} sortKey="code" state={programSort} onSort={changeProgramSort} /></th>
+                <th><SortableHeader label={t("table.name")} sortKey="name" state={programSort} onSort={changeProgramSort} /></th>
+                <th><SortableHeader label={t("table.status")} sortKey="status" state={programSort} onSort={changeProgramSort} /></th>
                 <th>{t("table.actions")}</th>
               </tr>
             </thead>
@@ -280,7 +291,7 @@ export default function AcademicData() {
               {sortedPrograms.map((item) => (
                 <tr key={item.id}>
                   <td>{item.code}</td>
-                  <td>{programName(item)}</td>
+                  <td>{programName(item, lang)}</td>
                   <td>{item.is_active ? t("status.active") : t("status.inactive")}</td>
                   <td>
                     <div className="row-actions">

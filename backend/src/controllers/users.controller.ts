@@ -1,4 +1,3 @@
-// Χειρίζεται διαχείριση χρηστών από super admin.
 import type { NextFunction, Request, Response } from "express";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
@@ -7,12 +6,28 @@ import { clearRouteCaches } from "../utils/routeCache";
 
 type AllowedRole = "super_admin" | "secretariat";
 
-// Ελέγχει αν ο ρόλος χρήστη είναι επιτρεπτός.
+type UserCreateInput = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  password: string;
+};
+
 function isAllowedRole(role: string): role is AllowedRole {
   return role === "super_admin" || role === "secretariat";
 }
 
-// Βρίσκει χρήστη από id URL ή επιστρέφει 404.
+function readCreateInput(body: any): UserCreateInput {
+  return {
+    first_name: normalizeText(body?.first_name),
+    last_name: normalizeText(body?.last_name),
+    email: normalizeEmail(body?.email),
+    role: normalizeText(body?.role),
+    password: String(body?.password ?? "")
+  };
+}
+
 async function findUserByParamId(req: Request, res: Response) {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) {
@@ -29,7 +44,20 @@ async function findUserByParamId(req: Request, res: Response) {
   return user;
 }
 
-// Επιστρέφει λίστα χρηστών για super admin.
+async function writeUserLog(req: Request, action: string, user: User, details?: Record<string, unknown>) {
+  await logAction({
+    user_id: req.auth!.id,
+    action,
+    entity_type: "user",
+    entity_id: user.id,
+    ...(details ? { details } : {})
+  });
+}
+
+function userDisplayName(user: User) {
+  return `${String(user.first_name ?? "").trim()} ${String(user.last_name ?? "").trim()}`.trim() || String(user.email ?? "").trim();
+}
+
 export async function listUsers(_req: Request, res: Response, next: NextFunction) {
   try {
     const items = await User.findAll({ order: [["id", "ASC"]] });
@@ -39,121 +67,92 @@ export async function listUsers(_req: Request, res: Response, next: NextFunction
   }
 }
 
-// Δημιουργεί νέο χρήστη από super admin.
 export async function createUser(req: Request, res: Response, next: NextFunction) {
   try {
-    const body = req.body ?? {};
-    const first_name = normalizeText(body.first_name);
-    const last_name = normalizeText(body.last_name);
-    const email = normalizeEmail(body.email);
-    const role = normalizeText(body.role);
-    const password = String(body.password ?? "");
+    const input = readCreateInput(req.body ?? {});
 
-    if (!first_name || !last_name || !email || !role || !password) {
+    if (!input.first_name || !input.last_name || !input.email || !input.role || !input.password) {
       return badRequest(res, "Missing fields");
     }
 
-    if (!isAllowedRole(role)) return badRequest(res, "Invalid role");
-    if (!isStrongPassword(password)) {
+    if (!isAllowedRole(input.role)) return badRequest(res, "Invalid role");
+    if (!isStrongPassword(input.password)) {
       return badRequest(res, "Weak password (min 8, letter+number+symbol)");
     }
 
-    const exists = await User.findOne({ where: { email } });
+    const exists = await User.findOne({ where: { email: input.email } });
     if (exists) return res.status(409).json({ ok: false, error: { message: "Email already exists" } });
 
-    const u = await User.create({
-      first_name,
-      last_name,
-      email,
-      password_hash: await hashPassword(password),
-      role,
+    const user = await User.create({
+      first_name: input.first_name,
+      last_name: input.last_name,
+      email: input.email,
+      password_hash: await hashPassword(input.password),
+      role: input.role,
       is_active: true
     });
 
-// Δημιουργία/αλλαγή/απενεργοποίηση χρήστη καταγράφεται.
-    await logAction({ user_id: req.auth!.id, action: "create_user", entity_type: "user", entity_id: u.id });
-
+    await writeUserLog(req, "create_user", user);
     clearRouteCaches(["users"]);
 
-    res.status(201).json({ ok: true, item: toSafeUser(u) });
+    res.status(201).json({ ok: true, item: toSafeUser(user) });
   } catch (e) {
     next(e);
   }
 }
 
-// Ενημερώνει ρόλο/κατάσταση χρήστη και γράφει log.
 export async function updateUser(req: Request, res: Response, next: NextFunction) {
   try {
-    const u = await findUserByParamId(req, res);
-    if (!u) return;
+    const user = await findUserByParamId(req, res);
+    if (!user) return;
 
     const body = req.body ?? {};
 
-    if (body.first_name !== undefined) u.first_name = normalizeText(body.first_name);
-    if (body.last_name !== undefined) u.last_name = normalizeText(body.last_name);
-    if (body.email !== undefined) u.email = normalizeEmail(body.email);
+    if (body.first_name !== undefined) user.first_name = normalizeText(body.first_name);
+    if (body.last_name !== undefined) user.last_name = normalizeText(body.last_name);
+    if (body.email !== undefined) user.email = normalizeEmail(body.email);
 
     if (body.role !== undefined) {
       const role = normalizeText(body.role);
       if (!isAllowedRole(role)) return badRequest(res, "Invalid role");
-      u.role = role;
+      user.role = role;
     }
 
-    if (body.is_active !== undefined) u.is_active = Boolean(body.is_active);
+    if (body.is_active !== undefined) user.is_active = Boolean(body.is_active);
 
     if (body.password !== undefined && String(body.password).length) {
       const password = String(body.password);
       if (!isStrongPassword(password)) {
         return badRequest(res, "Weak password (min 8, letter+number+symbol)");
       }
-      u.password_hash = await hashPassword(password);
+      user.password_hash = await hashPassword(password);
     }
 
-    if (!u.first_name || !u.last_name || !u.email) return badRequest(res, "Invalid name/email");
+    if (!user.first_name || !user.last_name || !user.email) return badRequest(res, "Invalid name/email");
 
-    await u.save();
-
-// Δημιουργία/αλλαγή/απενεργοποίηση χρήστη καταγράφεται.
-    await logAction({
-      user_id: req.auth!.id,
-      action: "update_user",
-      entity_type: "user",
-      entity_id: u.id,
-      details: { changed: Object.keys(body) }
-    });
-
+    await user.save();
+    await writeUserLog(req, "update_user", user, { changed: Object.keys(body) });
     clearRouteCaches(["users"]);
 
-    res.json({ ok: true, item: toSafeUser(u) });
+    res.json({ ok: true, item: toSafeUser(user) });
   } catch (e) {
     next(e);
   }
 }
 
-// Απενεργοποιεί χρήστη αντί να τον χρησιμοποιεί ενεργά στην πλατφόρμα.
 export async function deactivateUser(req: Request, res: Response, next: NextFunction) {
   try {
-    const u = await findUserByParamId(req, res);
-    if (!u) return;
+    const user = await findUserByParamId(req, res);
+    if (!user) return;
 
-    if (req.auth!.id === u.id) return badRequest(res, "Cannot deactivate yourself");
+    if (req.auth!.id === user.id) return badRequest(res, "Cannot deactivate yourself");
 
-    const targetName = `${String(u.first_name ?? "").trim()} ${String(u.last_name ?? "").trim()}`.trim() || String(u.email ?? "").trim();
-// Δημιουργία/αλλαγή/απενεργοποίηση χρήστη καταγράφεται.
-    await logAction({
-      user_id: req.auth!.id,
-      action: "διαγραφή χρήστη",
-      entity_type: "user",
-      entity_id: u.id,
-      details: { target_name: targetName }
-    });
-    await u.destroy();
+    await writeUserLog(req, "διαγραφή χρήστη", user, { target_name: userDisplayName(user) });
+    await user.destroy();
 
     clearRouteCaches(["users"]);
-
     res.json({ ok: true });
   } catch (e) {
     next(e);
   }
 }
-

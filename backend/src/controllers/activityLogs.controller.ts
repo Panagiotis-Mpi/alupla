@@ -1,4 +1,3 @@
-// Χειρίζεται τη σελίδα Καταγραφών: λίστα logs, σύνοψη αρχείων και exports.
 import type { NextFunction, Request, Response } from "express";
 import { Op } from "sequelize";
 import XLSX from "xlsx";
@@ -29,50 +28,58 @@ import {
   toInteger,
 } from "./activityLogs.helpers";
 
-// Φέρνει paginated logs για τη σελίδα Καταγραφών, με φίλτρα και γλώσσα.
+type LogWhere = Record<string | symbol, unknown>;
+type LogLanguage = "gr" | "en";
+
+const logUserInclude = [{ model: User, as: "user", attributes: ["id", "email", "first_name", "last_name", "role"], required: false }];
+
+function addAndFilter(where: LogWhere, filter: Record<string | symbol, unknown>) {
+  where[Op.and] = [...(Array.isArray(where[Op.and]) ? where[Op.and] as unknown[] : []), filter];
+}
+
+function addActorFilter(where: LogWhere, actor: string | undefined) {
+  if (!actor) return;
+
+  const parts = actor.split(/\s+/);
+  const firstPart = parts[0] ?? actor;
+  const rest = parts.slice(1).join(" ") || actor;
+
+  addAndFilter(where, {
+    [Op.or]: [
+      { "$user.first_name$": { [Op.like]: `%${actor}%` } },
+      { "$user.last_name$": { [Op.like]: `%${actor}%` } },
+      { "$user.email$": { [Op.like]: `%${actor}%` } },
+      { [Op.and]: [{ "$user.first_name$": { [Op.like]: `%${firstPart}%` } }, { "$user.last_name$": { [Op.like]: `%${rest}%` } }] }
+    ]
+  });
+}
+
+function addRoleFilter(where: LogWhere, role: string) {
+  if (role === "visitor") {
+    addAndFilter(where, { user_id: null });
+  } else if (role !== "all") {
+    addAndFilter(where, { "$user.role$": role });
+  }
+}
+
+function buildActivityLogWhere(req: Request) {
+  const where = buildLogFilters(req) as LogWhere;
+  addActorFilter(where, nonEmptyString(req.query.actor));
+  addRoleFilter(where, getRoleFilter(req));
+  return where;
+}
+
 export async function listActivityLogs(req: Request, res: Response, next: NextFunction) {
   try {
     const page = clamp(toInteger(req.query.page, DEFAULT_PAGE), 1, MAX_PAGE);
     const pageSize = clamp(toInteger(req.query.pageSize, DEFAULT_PAGE_SIZE), 1, MAX_PAGE_SIZE);
-    const offset = (page - 1) * pageSize;
-
-    const actor = nonEmptyString(req.query.actor);
-    const role = getRoleFilter(req);
-// Τα φίλτρα του πίνακα logs γίνονται query στη βάση.
-    const where = buildLogFilters(req);
-
-    if (actor) {
-      where[Op.and] = [
-        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-        {
-          [Op.or]: [
-            { "$user.first_name$": { [Op.like]: `%${actor}%` } },
-            { "$user.last_name$": { [Op.like]: `%${actor}%` } },
-            { "$user.email$": { [Op.like]: `%${actor}%` } },
-            { [Op.and]: [{ "$user.first_name$": { [Op.like]: `%${actor.split(/\s+/)[0] ?? actor}%` } }, { "$user.last_name$": { [Op.like]: `%${actor.split(/\s+/).slice(1).join(" ") || actor}%` } }] }
-          ]
-        }
-      ];
-    }
-
-    if (role === "visitor") {
-      where[Op.and] = [
-        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-        { user_id: null }
-      ];
-    } else if (role !== "all") {
-      where[Op.and] = [
-        ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-        { "$user.role$": role }
-      ];
-    }
 
     const { rows, count } = await ActivityLog.findAndCountAll({
-      where,
+      where: buildActivityLogWhere(req),
       limit: pageSize,
-      offset,
+      offset: (page - 1) * pageSize,
       order: [["created_at", "DESC"]],
-      include: [{ model: User, as: "user", attributes: ["id", "email", "first_name", "last_name", "role"], required: false }]
+      include: logUserInclude
     });
 
     res.json({ ok: true, page, pageSize, total: count, items: rows });
@@ -81,7 +88,6 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
   }
 }
 
-// Υπολογίζει πόσα imports/exports εμφανίζονται στη σύνοψη αρχείων των logs.
 export async function getActivityLogFileSummary(req: Request, res: Response, next: NextFunction) {
   try {
     const rows = await ActivityLog.findAll({
@@ -110,8 +116,7 @@ export async function getActivityLogFileSummary(req: Request, res: Response, nex
       if (!page || !operation || !fileType) continue;
 
       const pageEntry = byPage.get(page);
-      if (!pageEntry) continue;
-      if (!fileTypes.includes(fileType)) continue;
+      if (!pageEntry || !fileTypes.includes(fileType)) continue;
 
       pageEntry[operation][fileType] += 1;
     }
@@ -122,10 +127,7 @@ export async function getActivityLogFileSummary(req: Request, res: Response, nex
   }
 }
 
-
-
-// Φτιάχνει καθαρό όνομα χρήστη/ρόλου για εμφάνιση στα logs.
-function getActorLabel(lang: "gr" | "en", row: any) {
+function getActorLabel(lang: LogLanguage, row: any) {
   const fn = String(row?.user?.first_name ?? "").trim();
   const ln = String(row?.user?.last_name ?? "").trim();
   const full = `${fn} ${ln}`.trim();
@@ -133,10 +135,10 @@ function getActorLabel(lang: "gr" | "en", row: any) {
   return lang === "en" ? "Visitor" : "Επισκέπτης";
 }
 
-// Μορφοποιεί ημερομηνία log για GR/EN προβολή και exports.
-function formatDateTime(lang: "gr" | "en", value: unknown) {
+function formatDateTime(lang: LogLanguage, value: unknown) {
   const date = new Date(String(value ?? ""));
   if (Number.isNaN(date.getTime())) return String(value ?? "");
+
   const locale = lang === "en" ? "en-GB" : "el-GR";
   const baseOptions = { timeZone: "Europe/Athens" } as const;
   const time = new Intl.DateTimeFormat(locale, {
@@ -154,49 +156,16 @@ function formatDateTime(lang: "gr" | "en", value: unknown) {
   return `${time}, ${day}`;
 }
 
-// Φέρνει όλα τα logs που θα μπουν σε CSV/XLSX export.
 async function findLogsForExport(req: Request) {
-  const actor = nonEmptyString(req.query.actor);
-  const role = getRoleFilter(req);
-// Τα φίλτρα του πίνακα logs γίνονται query στη βάση.
-  const where = buildLogFilters(req);
-
-  if (actor) {
-    where[Op.and] = [
-      ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-      {
-        [Op.or]: [
-          { "$user.first_name$": { [Op.like]: `%${actor}%` } },
-          { "$user.last_name$": { [Op.like]: `%${actor}%` } },
-          { "$user.email$": { [Op.like]: `%${actor}%` } },
-          { [Op.and]: [{ "$user.first_name$": { [Op.like]: `%${actor.split(/\s+/)[0] ?? actor}%` } }, { "$user.last_name$": { [Op.like]: `%${actor.split(/\s+/).slice(1).join(" ") || actor}%` } }] }
-        ]
-      }
-    ];
-  }
-
-  if (role === "visitor") {
-    where[Op.and] = [
-      ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-      { user_id: null }
-    ];
-  } else if (role !== "all") {
-    where[Op.and] = [
-      ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-      { "$user.role$": role }
-    ];
-  }
-
   return ActivityLog.findAll({
-    where,
+    where: buildActivityLogWhere(req),
     order: [["created_at", "DESC"]],
     limit: EXPORT_LIMIT,
-    include: [{ model: User, as: "user", attributes: ["id", "email", "first_name", "last_name", "role"], required: false }]
+    include: logUserInclude
   });
 }
 
-// Μετατρέπει logs βάσης σε γραμμές αρχείου export.
-function getExportRows(lang: "gr" | "en", rows: any[]) {
+function getExportRows(lang: LogLanguage, rows: any[]) {
   return rows.map((row) => ({
     [lang === "en" ? "#" : "#"]: row.id,
     [lang === "en" ? "Time, Date" : "Ώρα, Ημερομηνία"]: formatDateTime(lang, row.created_at),
@@ -206,24 +175,25 @@ function getExportRows(lang: "gr" | "en", rows: any[]) {
   }));
 }
 
-// Εξάγει τις καταγραφές σε CSV/TSV αρχείο.
+async function writeExportLog(req: Request, action: "export_csv" | "export_xlsx", count: number) {
+  await logAction({
+    user_id: req.user?.id ?? null,
+    action,
+    entity_type: "logs",
+    entity_id: null,
+    details: { format: action === "export_csv" ? "csv" : "xlsx", count }
+  });
+}
+
 export async function exportActivityLogsCsv(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = getLanguage(req);
-// Για export τραβάει τα ίδια logs που ταιριάζουν στα φίλτρα.
     const rows = await findLogsForExport(req);
 
-// Καταγράφει και την ίδια την ενέργεια export logs.
-    await logAction({
-      user_id: req.user?.id ?? null,
-      action: "export_csv",
-      entity_type: "logs",
-      entity_id: null,
-      details: { format: "csv", count: rows.length }
-    });
+    await writeExportLog(req, "export_csv", rows.length);
 
     const exportRows = sanitizeExportRows(getExportRows(lang, rows as any[]));
-    const csv = buildDelimitedText(exportRows, "	");
+    const csv = buildDelimitedText(exportRows, "\t");
     const buffer = buildUtf16CsvBuffer(csv);
     res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
     res.setHeader("Content-Disposition", "attachment; filename=alupla_system_logs_export.csv");
@@ -233,21 +203,12 @@ export async function exportActivityLogsCsv(req: Request, res: Response, next: N
   }
 }
 
-// Εξάγει τις καταγραφές σε Excel αρχείο.
 export async function exportActivityLogsXlsx(req: Request, res: Response, next: NextFunction) {
   try {
     const lang = getLanguage(req);
-// Για export τραβάει τα ίδια logs που ταιριάζουν στα φίλτρα.
     const rows = await findLogsForExport(req);
 
-// Καταγράφει και την ίδια την ενέργεια export logs.
-    await logAction({
-      user_id: req.user?.id ?? null,
-      action: "export_xlsx",
-      entity_type: "logs",
-      entity_id: null,
-      details: { format: "xlsx", count: rows.length }
-    });
+    await writeExportLog(req, "export_xlsx", rows.length);
 
     const workbook = XLSX.utils.book_new();
     const exportRows = sanitizeExportRows(getExportRows(lang, rows as any[]));

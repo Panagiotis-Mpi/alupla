@@ -1,4 +1,3 @@
-// Σελίδα καταγραφών ενεργειών με φίλτρα και exports.
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { downloadBlob } from "../lib/download";
@@ -64,6 +63,41 @@ const mobilePaginationBadgeStyle: React.CSSProperties = {
   flex: "0 0 auto",
 };
 
+type UserOption = { value: string; label: string };
+
+function localeForLanguage(lang: string) {
+  return lang === "gr" ? "el" : "en";
+}
+
+function userLabel(user: Partial<User> | null | undefined) {
+  return `${String(user?.first_name ?? "").trim()} ${String(user?.last_name ?? "").trim()}`.trim() || String(user?.email ?? "").trim();
+}
+
+function buildUserOptions(users: User[], visitorLabel: string, locale: string): UserOption[] {
+  const mapped = users
+    .map((user) => ({ value: String(user.id), label: userLabel(user) }))
+    .filter((option) => option.label)
+    .sort((a, b) => a.label.localeCompare(b.label, locale));
+
+  return [{ value: "visitor", label: visitorLabel }, ...mapped];
+}
+
+function actorLabel(log: any, visitorLabel: string) {
+  return userLabel(log?.user as Partial<User> | undefined) || visitorLabel;
+}
+
+function apiFilters(filters: LogFilters) {
+  const action = filters.action.trim();
+  const selectedActor = filters.actor;
+  const actorIsVisitor = selectedActor === "visitor";
+
+  return {
+    action: action || undefined,
+    user_id: actorIsVisitor || !selectedActor ? undefined : selectedActor,
+    role: actorIsVisitor ? "visitor" : undefined,
+  };
+}
+
 export default function Logs() {
   const { t, i18n } = useTranslation("logs");
   const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
@@ -77,7 +111,7 @@ export default function Logs() {
   const [filters, setFilters] = React.useState<LogFilters>(emptyFilters);
   const [summaryRole, setSummaryRole] = React.useState<FileSummaryRole>("secretariat");
   const [fileSummary, setFileSummary] = React.useState<FileSummaryItem[]>([]);
-  const [userOptions, setUserOptions] = React.useState<Array<{ value: string; label: string }>>([]);
+  const [userOptions, setUserOptions] = React.useState<UserOption[]>([]);
   const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -94,22 +128,10 @@ export default function Logs() {
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
-  function actorLabel(l: any): string {
-    const fn = (l?.user?.first_name ?? "").trim();
-    const ln = (l?.user?.last_name ?? "").trim();
-    const full = `${fn} ${ln}`.trim();
-    if (full) return full;
-    return t("summary.roles.visitor");
-  }
-
   const { fileTypeLabel, formatDateTime, formatLogDetails, pageLabel, toLocalizedAction } = logsText;
-
-  const actionForApi = filters.action.trim();
-
-  const selectedActor = filters.actor;
-  const actorIsVisitor = selectedActor === "visitor";
-  const actorIdForApi = actorIsVisitor || !selectedActor ? undefined : selectedActor;
-  const roleForApi = actorIsVisitor ? "visitor" : undefined;
+  const requestFilters = React.useMemo(() => apiFilters(filters), [filters]);
+  const locale = localeForLanguage(activeLang);
+  const visitorLabel = t("summary.roles.visitor");
 
   const summaryLayout = React.useMemo(() => getSummaryLayout(summaryRole), [summaryRole]);
   const visibleSummaryRows = React.useMemo(
@@ -120,7 +142,7 @@ export default function Logs() {
   const actionOptions = React.useMemo(() => {
     const options = knownActionKeys.map((key) => ({ value: key, label: toLocalizedAction(key as any) }));
     return options.sort((a, b) => a.label.localeCompare(b.label, activeLang === "gr" ? "el" : "en"));
-  }, [activeLang]);
+  }, [activeLang, toLocalizedAction]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -130,17 +152,9 @@ export default function Logs() {
         const data = await listUsers();
         if (cancelled) return;
         const users = Array.isArray(data?.items) ? data.items : [];
-        const mapped = users
-          .map((user: User) => ({
-            value: String(user.id),
-            label: `${String(user.first_name ?? "").trim()} ${String(user.last_name ?? "").trim()}`.trim() || String(user.email ?? "").trim(),
-          }))
-          .filter((user: { value: string; label: string }) => user.label)
-          .sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label, activeLang === "gr" ? "el" : "en"));
-
-        setUserOptions([{ value: "visitor", label: t("summary.roles.visitor") }, ...mapped]);
+        setUserOptions(buildUserOptions(users, visitorLabel, locale));
       } catch {
-        if (!cancelled) setUserOptions([{ value: "visitor", label: t("summary.roles.visitor") }]);
+        if (!cancelled) setUserOptions([{ value: "visitor", label: visitorLabel }]);
       }
     }
 
@@ -148,7 +162,7 @@ export default function Logs() {
     return () => {
       cancelled = true;
     };
-  }, [activeLang, t]);
+  }, [locale, visitorLabel]);
 
 
   async function loadFileSummary(role: FileSummaryRole) {
@@ -167,9 +181,7 @@ export default function Logs() {
       const data = await listActivityLogs({
         page: nextPage,
         pageSize: PAGE_SIZE,
-        action: actionForApi || undefined,
-        user_id: actorIdForApi,
-        role: roleForApi || undefined,
+        ...requestFilters,
       }) as ActivityLogListResponse;
       setItems(data.items ?? []);
       setTotalItems(Number(data.total ?? 0));
@@ -208,9 +220,7 @@ export default function Logs() {
       const blob = await exportActivityLogsFile(
         format,
         {
-          action: actionForApi || undefined,
-          user_id: actorIdForApi,
-          role: roleForApi || undefined,
+          ...requestFilters,
         },
         activeLang
       );
@@ -478,7 +488,7 @@ export default function Logs() {
                 <tr key={l.id}>
                   <td>{l.id}</td>
                   <td>{formatDateTime(l.created_at)}</td>
-                  <td>{actorLabel(l)}</td>
+                  <td>{actorLabel(l, visitorLabel)}</td>
                   <td>{toLocalizedAction(l.action, l)}</td>
                   <td style={{ whiteSpace: "normal", wordBreak: "break-word" }}>
                     {formatLogDetails(l)}

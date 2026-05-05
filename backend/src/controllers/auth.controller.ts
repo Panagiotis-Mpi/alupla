@@ -1,4 +1,3 @@
-// Χειρίζεται λογαριασμούς: εγγραφή, σύνδεση, αλλαγή κωδικού και current user.
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { User } from "../models/User";
@@ -6,17 +5,29 @@ import { logAction } from "../services/log.service";
 import { signToken } from "../utils/jwt";
 import { fail, hashPassword, isStrongPassword, isValidEmail, normalizeEmail, normalizeText, toSafeUser } from "../utils/userAccounts";
 
+type SessionLog = {
+  action: string;
+  entity_type: string;
+  entity_id: number | null;
+};
 
-// Βρίσκει ενεργό χρήστη με email για login/register checks.
 async function findActiveUserByEmail(email: unknown) {
   const user = await User.findOne({ where: { email } });
-  if (!user || !user.is_active) {
-    return null;
-  }
-  return user;
+  return user?.is_active ? user : null;
 }
 
-// Δημιουργεί νέο χρήστη με hashed password και αρχικό ρόλο.
+async function openSession(user: User, log: SessionLog) {
+  const token = signToken({ sub: user.id, role: user.role });
+  user.last_seen_at = new Date();
+  await user.save();
+  await logAction({ user_id: user.id, ...log });
+  return { token, user: toSafeUser(user) };
+}
+
+function passwordError(password: unknown) {
+  return isStrongPassword(String(password)) ? null : "Weak password (min 8, letter+number+symbol)";
+}
+
 export async function register(req: Request, res: Response) {
   const { first_name, last_name, email, password } = req.body ?? {};
 
@@ -24,46 +35,34 @@ export async function register(req: Request, res: Response) {
     return fail(res, 400, "Missing fields");
   }
 
-  if (!isStrongPassword(String(password))) {
-    return fail(res, 400, "Weak password (min 8, letter+number+symbol)");
+  const weakPasswordMessage = passwordError(password);
+  if (weakPasswordMessage) {
+    return fail(res, 400, weakPasswordMessage);
   }
 
   const normalizedEmail = normalizeEmail(email);
   if (!isValidEmail(normalizedEmail)) {
     return fail(res, 400, "Invalid email");
   }
+
   const existingUser = await User.findOne({ where: { email: normalizedEmail } });
   if (existingUser) {
     return fail(res, 409, "Email already exists");
   }
 
-  const password_hash = await hashPassword(String(password));
-
   const user = await User.create({
     first_name: normalizeText(first_name),
     last_name: normalizeText(last_name),
     email: normalizedEmail,
-    password_hash,
+    password_hash: await hashPassword(String(password)),
     role: "secretariat",
     is_active: true
   });
 
-// Το token χρησιμοποιείται από το frontend για τα protected routes.
-  const token = signToken({ sub: user.id, role: user.role });
-  user.last_seen_at = new Date();
-  await user.save();
-
-// Κάθε login/register/change password γράφεται στα logs.
-  await logAction({ user_id: user.id, action: "register", entity_type: "user", entity_id: user.id });
-
-  return res.json({
-    ok: true,
-    token,
-    user: toSafeUser(user)
-  });
+  const session = await openSession(user, { action: "register", entity_type: "user", entity_id: user.id });
+  return res.json({ ok: true, ...session });
 }
 
-// Ελέγχει email/password και επιστρέφει JWT token στον χρήστη.
 export async function login(req: Request, res: Response) {
   const { email, password } = req.body ?? {};
 
@@ -81,18 +80,10 @@ export async function login(req: Request, res: Response) {
     return fail(res, 401, "Invalid credentials");
   }
 
-// Το token χρησιμοποιείται από το frontend για τα protected routes.
-  const token = signToken({ sub: user.id, role: user.role });
-  user.last_seen_at = new Date();
-  await user.save();
-
-// Κάθε login/register/change password γράφεται στα logs.
-  await logAction({ user_id: user.id, action: "login", entity_type: "system", entity_id: null });
-
-  return res.json({ ok: true, token, user: toSafeUser(user) });
+  const session = await openSession(user, { action: "login", entity_type: "system", entity_id: null });
+  return res.json({ ok: true, ...session });
 }
 
-// Αλλάζει κωδικό χρήστη αφού περάσει validation.
 export async function changePassword(req: Request, res: Response) {
   const auth = req.auth!;
   const { current_password, new_password } = req.body ?? {};
@@ -101,8 +92,9 @@ export async function changePassword(req: Request, res: Response) {
     return fail(res, 400, "Missing fields");
   }
 
-  if (!isStrongPassword(String(new_password))) {
-    return fail(res, 400, "Weak password (min 8, letter+number+symbol)");
+  const weakPasswordMessage = passwordError(new_password);
+  if (weakPasswordMessage) {
+    return fail(res, 400, weakPasswordMessage);
   }
 
   const user = await User.findByPk(auth.id);
@@ -117,14 +109,11 @@ export async function changePassword(req: Request, res: Response) {
 
   user.password_hash = await hashPassword(String(new_password));
   await user.save();
-
-// Κάθε login/register/change password γράφεται στα logs.
   await logAction({ user_id: user.id, action: "change_password", entity_type: "user", entity_id: user.id });
 
   return res.json({ ok: true });
 }
 
-// Επιστρέφει τα στοιχεία του logged-in χρήστη.
 export async function me(req: Request, res: Response) {
   const auth = req.auth!;
   const user = await User.findByPk(auth.id);

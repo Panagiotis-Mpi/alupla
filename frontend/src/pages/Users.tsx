@@ -1,4 +1,3 @@
-// Σελίδα διαχείρισης χρηστών για super admin.
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { createUser, deactivateUser, listUsers, updateUser, type AdminUser } from "../lib/api";
@@ -31,6 +30,41 @@ const passwordHintStyle: React.CSSProperties = { whiteSpace: "pre-line" };
 const topSpacingStyle: React.CSSProperties = { marginTop: 12 };
 const errorCardStyle: React.CSSProperties = { borderColor: "#b00020", color: "#b00020" };
 
+type SortState = { key: SortKey; dir: SortDir };
+
+type RoleSelectProps = {
+  value: AdminUser["role"];
+  labelSecretariat: string;
+  labelSuperAdmin: string;
+  onChange: (value: AdminUser["role"]) => void | Promise<void>;
+};
+
+function userFullName(user: Pick<AdminUser, "first_name" | "last_name">) {
+  return `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
+}
+
+function sortValue(user: AdminUser, key: SortKey) {
+  return key === "name" ? userFullName(user) : user[key];
+}
+
+function nextSortState(state: SortState, key: SortKey): SortState {
+  return state.key === key ? { key, dir: state.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" };
+}
+
+function RoleSelect({ value, labelSecretariat, labelSuperAdmin, onChange }: RoleSelectProps) {
+  return (
+    <select
+      className="input"
+      style={inlineSelectStyle}
+      value={value}
+      onChange={(event) => void onChange(event.target.value as AdminUser["role"])}
+    >
+      <option value="secretariat">{labelSecretariat}</option>
+      <option value="super_admin">{labelSuperAdmin}</option>
+    </select>
+  );
+}
+
 export default function Users() {
   const { t } = useTranslation("users");
 
@@ -38,8 +72,13 @@ export default function Users() {
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
   const inFlight = React.useRef(false);
-  const [sortState, setSortState] = React.useState<{ key: SortKey; dir: SortDir }>({ key: "id", dir: "asc" });
+  const [sortState, setSortState] = React.useState<SortState>({ key: "id", dir: "asc" });
   const [form, setForm] = React.useState<UserFormState>(emptyForm);
+
+  const roleLabels = React.useMemo(() => ({
+    secretariat: t("roles.secretariat"),
+    superAdmin: t("roles.superAdmin")
+  }), [t]);
 
   const setFormValue = <K extends keyof UserFormState>(key: K, value: UserFormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -95,18 +134,11 @@ export default function Users() {
   }
 
   const sortedItems = React.useMemo(() => {
-    const nextItems = [...items];
-    nextItems.sort((a, b) => {
-      const av = sortState.key === "name" ? `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim() : a[sortState.key];
-      const bv = sortState.key === "name" ? `${b.first_name ?? ""} ${b.last_name ?? ""}`.trim() : b[sortState.key];
-
-      return compareSortValues(av, bv, sortState.dir);
-    });
-    return nextItems;
+    return [...items].sort((left, right) => compareSortValues(sortValue(left, sortState.key), sortValue(right, sortState.key), sortState.dir));
   }, [items, sortState]);
 
   function toggleSort(key: SortKey) {
-    setSortState((state) => (state.key === key ? { key, dir: state.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
+    setSortState((state) => nextSortState(state, key));
   }
 
   function getSortArrow(key: SortKey) {
@@ -140,8 +172,8 @@ export default function Users() {
           <div>
             <label className="label">{t("labels.role")}</label>
             <select className="input" value={form.role} onChange={(e) => setFormValue("role", e.target.value as AdminUser["role"])}>
-              <option value="secretariat">{t("roles.secretariat")}</option>
-              <option value="super_admin">{t("roles.superAdmin")}</option>
+              <option value="secretariat">{roleLabels.secretariat}</option>
+              <option value="super_admin">{roleLabels.superAdmin}</option>
             </select>
           </div>
           <div className="users-password-field" style={passwordFieldStyle}>
@@ -175,19 +207,14 @@ export default function Users() {
                 <tr key={user.id}>
                   <td>{user.id}</td>
                   <td>{user.email}</td>
-                  <td>{`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim()}</td>
+                  <td>{userFullName(user)}</td>
                   <td>
-                    <select
-                      className="input"
-                      style={inlineSelectStyle}
+                    <RoleSelect
                       value={user.role}
-                      onChange={async (e) => {
-                        await onRoleChange(user.id, e.target.value as AdminUser["role"]);
-                      }}
-                    >
-                      <option value="secretariat">{t("roles.secretariat")}</option>
-                      <option value="super_admin">{t("roles.superAdmin")}</option>
-                    </select>
+                      labelSecretariat={roleLabels.secretariat}
+                      labelSuperAdmin={roleLabels.superAdmin}
+                      onChange={(role) => onRoleChange(user.id, role)}
+                    />
                   </td>
                   <td>
                     <span className="badge" title={user.last_seen_at ?? ""} style={monospaceBadgeStyle}>
@@ -197,9 +224,7 @@ export default function Users() {
                   <td>
                     <button
                       className="btn danger"
-                      onClick={async () => {
-                        await onDeactivate(user.id);
-                      }}
+                      onClick={() => void onDeactivate(user.id)}
                     >
                       {t("actions.deactivate")}
                     </button>
