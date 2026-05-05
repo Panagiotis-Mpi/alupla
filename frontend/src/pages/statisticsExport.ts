@@ -73,6 +73,7 @@ export type BuildArgs = {
 
 type SheetBlock = {
   chartId: StatisticsChartId;
+  chartIds?: StatisticsChartId[];
   name: string;
   rows: SheetRow[];
   columnKinds: Record<string, ExportColumnKind>;
@@ -208,6 +209,64 @@ function appendDistributionTotal(rows: SheetRow[], firstColumn: string, countCol
       [percentageColumn]: percentage,
     },
   ];
+}
+
+
+function blockChartIds(block: SheetBlock) {
+  return block.chartIds ?? [block.chartId];
+}
+
+function mergeBlocksByFirstColumn(name: string, chartId: StatisticsChartId, blocks: SheetBlock[]) {
+  const firstBlock = blocks[0];
+  const firstRow = firstBlock?.rows[0];
+  const keyColumn = Object.keys(firstRow ?? {})[0];
+
+  if (!firstBlock || !firstRow || !keyColumn) return null;
+
+  const rowOrder: string[] = [];
+  const rowsByKey = new Map<string, SheetRow>();
+  const columnKinds: Record<string, ExportColumnKind> = {};
+
+  blocks.forEach((block) => {
+    const sourceKeyColumn = Object.keys(block.rows[0] ?? {})[0];
+    if (!sourceKeyColumn) return;
+
+    Object.entries(block.columnKinds).forEach(([column, kind]) => {
+      columnKinds[column === sourceKeyColumn ? keyColumn : column] = kind;
+    });
+
+    block.rows.forEach((row) => {
+      const sourceKeyValue = row[sourceKeyColumn];
+      const sourceKey = String(sourceKeyValue);
+
+      if (!rowsByKey.has(sourceKey)) {
+        rowsByKey.set(sourceKey, { [keyColumn]: sourceKeyValue });
+        rowOrder.push(sourceKey);
+      }
+
+      const target = rowsByKey.get(sourceKey);
+      if (!target) return;
+
+      Object.entries(row).forEach(([column, value]) => {
+        target[column === sourceKeyColumn ? keyColumn : column] = value;
+      });
+    });
+  });
+
+  return {
+    chartId,
+    chartIds: blocks.flatMap(blockChartIds),
+    name,
+    rows: rowOrder.map((key) => rowsByKey.get(key)).filter((row): row is SheetRow => !!row),
+    columnKinds,
+  };
+}
+
+function selectedBlocksFor(chartIds: StatisticsChartId[], sheets: Map<StatisticsChartId, SheetBlock>, selectedSet: Set<StatisticsChartId>) {
+  return chartIds
+    .filter((chartId) => !selectedSet.size || selectedSet.has(chartId))
+    .map((chartId) => sheets.get(chartId))
+    .filter((sheet): sheet is SheetBlock => !!sheet && sheet.rows.length > 0);
 }
 
 function buildSheets(args: BuildArgs) {
@@ -546,13 +605,38 @@ function buildSheets(args: BuildArgs) {
   });
 
   const selectedSet = new Set(Array.isArray(args.selectedChartIds) ? args.selectedChartIds : []);
-  const selectedIds = selectedSet.size
-    ? statisticsChartOrder.filter((chartId) => selectedSet.has(chartId))
-    : statisticsChartOrder;
+  const blocks: SheetBlock[] = [];
+  const usedChartIds = new Set<StatisticsChartId>();
+  const graduationYearBlocks = selectedBlocksFor(["byYear", "gender", "gradeByYear"], sheets, selectedSet);
+  const entryYearBlocks = selectedBlocksFor(["genderByEntryYear", "timeToDegreeByEntryYear"], sheets, selectedSet);
 
-  return selectedIds
-    .map((chartId) => sheets.get(chartId))
-    .filter((sheet): sheet is SheetBlock => !!sheet && sheet.rows.length > 0);
+  const graduationYearBlock = graduationYearBlocks.length > 1
+    ? mergeBlocksByFirstColumn(activeLang === "en" ? "Graduation Year Statistics" : "Στατιστικά ανά έτος αποφοίτησης", "byYear", graduationYearBlocks)
+    : graduationYearBlocks[0];
+
+  const entryYearBlock = entryYearBlocks.length > 1
+    ? mergeBlocksByFirstColumn(activeLang === "en" ? "Entry Year Statistics" : "Στατιστικά ανά έτος εισαγωγής", "genderByEntryYear", entryYearBlocks)
+    : entryYearBlocks[0];
+
+  if (graduationYearBlock) {
+    blocks.push(graduationYearBlock);
+    blockChartIds(graduationYearBlock).forEach((chartId) => usedChartIds.add(chartId));
+  }
+
+  if (entryYearBlock) {
+    blocks.push(entryYearBlock);
+    blockChartIds(entryYearBlock).forEach((chartId) => usedChartIds.add(chartId));
+  }
+
+  statisticsChartOrder.forEach((chartId) => {
+    if (usedChartIds.has(chartId)) return;
+    if (selectedSet.size && !selectedSet.has(chartId)) return;
+
+    const block = sheets.get(chartId);
+    if (block?.rows.length) blocks.push(block);
+  });
+
+  return blocks;
 }
 
 function workbookSheetName(name: string, usedNames: Set<string>) {
@@ -658,62 +742,17 @@ export function exportStatisticsWorkbookFile(args: BuildArgs, filename = buildSt
 
 export function exportStatisticsCsvFile(args: BuildArgs, filename = buildStatisticsExportFilename(args, "csv")) {
   const blocks = buildSheets(args);
-  const groupOrder: Array<{ key: string; name: string; chartIds: StatisticsChartId[] }> = [
-    {
-      key: "demographics",
-      name: args.activeLang === "en" ? "Demographic Data" : "Δημογραφικά στοιχεία",
-      chartIds: ["gender", "birthYear", "genderByEntryYear"],
-    },
-    {
-      key: "academic",
-      name: args.activeLang === "en" ? "Academic Data" : "Ακαδημαϊκά στοιχεία",
-      chartIds: ["byYear", "gradeByYear", "gradeDistribution", "timeToDegreeByEntryYear", "timeToDegreeDistribution"],
-    },
-    {
-      key: "geography",
-      name: args.activeLang === "en" ? "Geographic Distribution" : "Γεωγραφική κατανομή",
-      chartIds: ["originRegion", "originMunicipality", "originCountry", "abroadShare"],
-    },
-  ];
-
   const lines: string[] = [];
-  let exportedBlocks = 0;
 
-  groupOrder.forEach((group) => {
-    const groupBlocks = blocks.filter((block) => group.chartIds.includes(block.chartId));
-    if (!groupBlocks.length) return;
+  blocks.forEach((block, index) => {
+    lines.push(...csvLines(block, args.activeLang));
 
-    if (lines.length) {
+    if (index < blocks.length - 1) {
       lines.push("");
+      lines.push("--------------------------------------------------");
       lines.push("");
     }
-
-    lines.push(group.name);
-    lines.push("==================================================");
-    lines.push("");
-
-    groupBlocks.forEach((block, index) => {
-      lines.push(...csvLines(block, args.activeLang));
-      exportedBlocks += 1;
-
-      if (index < groupBlocks.length - 1) {
-        lines.push("");
-        lines.push("--------------------------------------------------");
-        lines.push("");
-      }
-    });
   });
-
-  if (!exportedBlocks && blocks.length) {
-    blocks.forEach((block, index) => {
-      lines.push(...csvLines(block, args.activeLang));
-      if (index < blocks.length - 1) {
-        lines.push("");
-        lines.push("--------------------------------------------------");
-        lines.push("");
-      }
-    });
-  }
 
   if (lines.length) exportUtf16Csv(filename, lines.join("\r\n"));
 }

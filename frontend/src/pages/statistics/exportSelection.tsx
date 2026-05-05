@@ -71,7 +71,9 @@ export function StatisticsExportSelectionModal(props: {
         background: "rgba(15, 23, 42, 0.34)",
         display: "grid",
         placeItems: "center",
-        padding: 16,
+        alignItems: "flex-start",
+        justifyItems: "center",
+        padding: "84px 16px 16px",
         zIndex: 60,
       }}
     >
@@ -79,25 +81,25 @@ export function StatisticsExportSelectionModal(props: {
         className="card"
         onClick={(event) => event.stopPropagation()}
         style={{
-          width: "min(680px, 100%)",
-          maxHeight: "min(78vh, 760px)",
+          width: "min(640px, 100%)",
+          maxHeight: "min(68vh, 620px)",
           display: "grid",
           gridTemplateRows: "auto minmax(0, 1fr) auto",
-          gap: 12,
-          padding: 14,
+          gap: 10,
+          padding: 12,
           overflow: "hidden",
         }}
       >
-        <div className="topbar" style={{ marginBottom: 0, gap: 10, alignItems: "flex-start" }}>
+        <div className="topbar" style={{ marginBottom: 0, gap: 8, alignItems: "flex-start" }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: 18 }}>{props.t("actions.exportSelectionTitle", { defaultValue: "Επιλογή διαγραμμάτων" })}</h3>
-            <div className="muted" style={{ marginTop: 4, fontSize: 13 }}>
+            <h3 style={{ margin: 0, fontSize: 17 }}>{props.t("actions.exportSelectionTitle", { defaultValue: "Επιλογή διαγραμμάτων" })}</h3>
+            <div className="muted" style={{ marginTop: 3, fontSize: 12 }}>
               {props.t("actions.exportSelectionSubtitle", { defaultValue: "Επίλεξε ποια διαγράμματα θέλεις να κατεβάσεις" })} · {props.exportFormatLabel}
             </div>
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 10, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
+        <div style={{ display: "grid", gap: 8, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
           <label style={{ ...props.selectionRowStyle, fontWeight: 700 }}>
             <input type="checkbox" style={props.selectionCheckboxStyle} checked={props.allChartsSelected} onChange={props.onToggleAll} />
             <span>{props.t("actions.selectAll", { defaultValue: "Όλα" })}</span>
@@ -108,7 +110,7 @@ export function StatisticsExportSelectionModal(props: {
             const groupChecked = groupChartIds.every((id) => props.selectedChartIds.includes(id));
 
             return (
-              <div key={group.key} style={{ display: "grid", gap: 8, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 10, background: "rgba(248, 250, 252, 0.76)" }}>
+              <div key={group.key} style={{ display: "grid", gap: 6, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 8, background: "rgba(248, 250, 252, 0.76)" }}>
                 <label style={{ ...props.selectionRowStyle, fontWeight: 700 }}>
                   <input type="checkbox" style={props.selectionCheckboxStyle} checked={groupChecked} onChange={() => props.onToggleGroup(groupChartIds)} />
                   <span>{group.label}</span>
@@ -126,7 +128,7 @@ export function StatisticsExportSelectionModal(props: {
           })}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap", paddingTop: 2 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap", paddingTop: 0 }}>
           <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={props.onClose}>
             {props.t("actions.cancel", { defaultValue: "Ακύρωση" })}
           </button>
