@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
-import { QueryTypes } from "sequelize";
+import { col, fn, literal, QueryTypes } from "sequelize";
 import { ensureLocalizedRegionNames, resolveMapLocation } from "../services/mapLocation.service";
 import { sequelize } from "../config/sequelize";
 import { buildMapWhere, calculateAgeAtDate, isAbroadMapGraduate, isGreekMapGraduate, loadRegions, normalizeKey, pickTopName, toInt } from "./map.helpers";
@@ -186,6 +186,48 @@ const MAP_GRADUATE_ATTRIBUTES = [
   "study_program_id",
 ] as const;
 
+type AggregatedGraduateRow = {
+  origin_country: string | null;
+  origin_foreign_city: string | null;
+  origin_country_region_id: number | null;
+  origin_periphery_region_id: number | null;
+  origin_region_id: number | null;
+  origin_city_region_id: number | null;
+  origin_municipality: string | null;
+  gender: "M" | "F" | null;
+  study_program_id: number | null;
+  graduate_count: number | string | null;
+  grade_sum: number | string | null;
+  grade_count: number | string | null;
+  age_sum: number | string | null;
+  age_count: number | string | null;
+  graduation_duration_sum: number | string | null;
+  graduation_duration_count: number | string | null;
+};
+
+const MAP_LOCATION_GROUP_FIELDS = [
+  "origin_country",
+  "origin_foreign_city",
+  "origin_country_region_id",
+  "origin_periphery_region_id",
+  "origin_region_id",
+  "origin_city_region_id",
+  "origin_municipality",
+  "gender",
+  "study_program_id",
+] as const;
+
+const mapAggregateAttributes = [
+  ...MAP_LOCATION_GROUP_FIELDS,
+  [fn("COUNT", col("id")), "graduate_count"],
+  [literal("SUM(CASE WHEN degree_grade IS NOT NULL AND degree_grade >= 0 THEN degree_grade ELSE 0 END)"), "grade_sum"],
+  [literal("COUNT(CASE WHEN degree_grade IS NOT NULL AND degree_grade >= 0 THEN 1 END)"), "grade_count"],
+  [literal("SUM(CASE WHEN birth_date IS NOT NULL AND graduation_date IS NOT NULL AND graduation_date >= birth_date THEN EXTRACT(YEAR FROM AGE(graduation_date, birth_date)) ELSE 0 END)"), "age_sum"],
+  [literal("COUNT(CASE WHEN birth_date IS NOT NULL AND graduation_date IS NOT NULL AND graduation_date >= birth_date THEN 1 END)"), "age_count"],
+  [literal("SUM(CASE WHEN entry_year IS NOT NULL AND graduation_date IS NOT NULL AND entry_year > 1900 AND CAST(EXTRACT(YEAR FROM graduation_date) AS INTEGER) >= entry_year THEN CAST(EXTRACT(YEAR FROM graduation_date) AS INTEGER) - entry_year ELSE 0 END)"), "graduation_duration_sum"],
+  [literal("COUNT(CASE WHEN entry_year IS NOT NULL AND graduation_date IS NOT NULL AND entry_year > 1900 AND CAST(EXTRACT(YEAR FROM graduation_date) AS INTEGER) >= entry_year THEN 1 END)"), "graduation_duration_count"],
+] as const;
+
 function graduateLocationKey(graduate: any, scope: MapScope) {
   return [
     scope,
@@ -233,6 +275,21 @@ async function getLocalizedNames(regionId: number | null | undefined, cache: Map
 
 function isSelectedProgram(graduate: any, selectedStudyProgramId: number | null) {
   return !selectedStudyProgramId || Number(graduate.study_program_id) === selectedStudyProgramId;
+}
+
+function metricNumber(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+async function loadAggregatedMapRows(where: Record<string | symbol, unknown>) {
+  const rows = await Graduate.findAll({
+    where,
+    attributes: mapAggregateAttributes as any,
+    group: [...MAP_LOCATION_GROUP_FIELDS],
+    raw: true,
+  });
+  return rows as unknown as AggregatedGraduateRow[];
 }
 
 function finishMapBuckets(groups: Map<unknown, any>, labels: { studyProgramLabels: Map<number, string> }) {
@@ -349,6 +406,31 @@ function applyGraduateMetrics(bucket: any, graduate: any, selectedStudyProgramId
   return true;
 }
 
+function applyAggregatedMetrics(bucket: any, row: AggregatedGraduateRow, selectedStudyProgramId: number | null) {
+  const studyProgramId = Number(row.study_program_id) || 0;
+  if (selectedStudyProgramId && studyProgramId !== selectedStudyProgramId) return false;
+
+  const count = metricNumber(row.graduate_count);
+  if (count <= 0) return false;
+
+  bucket.count += count;
+  if (row.gender === "M") bucket.male += count;
+  if (row.gender === "F") bucket.female += count;
+
+  if (studyProgramId > 0) {
+    bucket.programCounts.set(studyProgramId, (bucket.programCounts.get(studyProgramId) || 0) + count);
+  }
+
+  bucket.ageSum += metricNumber(row.age_sum);
+  bucket.ageCount += metricNumber(row.age_count);
+  bucket.gradeSum += metricNumber(row.grade_sum);
+  bucket.gradeCount += metricNumber(row.grade_count);
+  bucket.graduationDurationSum += metricNumber(row.graduation_duration_sum);
+  bucket.graduationDurationCount += metricNumber(row.graduation_duration_count);
+
+  return true;
+}
+
 // Μετατρέπει bucket μετρήσεων σε item που καταλαβαίνει το frontend map.
 function bucketToMapItem(bucket: any, labels: { studyProgramLabels: Map<number, string> }, nameKeys: { idKey: string; nameKey: string; latitudeKey?: string; longitudeKey?: string }) {
   const baseName = String(nameKeys.nameKey || "");
@@ -384,10 +466,7 @@ async function buildMapData(req: Request, options: MapBuildOptions = {}) {
   const locationCache = new Map<string, Promise<any>>();
   const localizedCache = new Map<number, Promise<LocalizedNames>>();
 
-  const grads = await Graduate.findAll({
-    where,
-    attributes: [...MAP_GRADUATE_ATTRIBUTES],
-  });
+  const grads = await loadAggregatedMapRows(where as Record<string | symbol, unknown>);
 
   const mapGroups = new Map<unknown, any>();
   const cityGroups = new Map<string, any>();
@@ -407,7 +486,7 @@ async function buildMapData(req: Request, options: MapBuildOptions = {}) {
     }
   }
 
-  for (const graduate of grads as any[]) {
+  for (const graduate of grads) {
     if (!isSelectedProgram(graduate, selectedStudyProgramId)) continue;
     if (scope === "abroad" && !isAbroadMapGraduate(graduate)) continue;
     if (scope === "greece" && !isGreekMapGraduate(graduate)) continue;
@@ -428,7 +507,7 @@ async function buildMapData(req: Request, options: MapBuildOptions = {}) {
             latitude: resolvedLocation?.latitude ?? (country as any).latitude ?? null,
             longitude: resolvedLocation?.longitude ?? (country as any).longitude ?? null,
           });
-          applyGraduateMetrics(bucket, graduate, selectedStudyProgramId);
+          applyAggregatedMetrics(bucket, graduate, selectedStudyProgramId);
           mapGroups.set(countryId, bucket);
         }
       } else {
@@ -443,7 +522,7 @@ async function buildMapData(req: Request, options: MapBuildOptions = {}) {
             latitude: (periphery as any).latitude ?? null,
             longitude: (periphery as any).longitude ?? null,
           });
-          applyGraduateMetrics(bucket, graduate, selectedStudyProgramId);
+          applyAggregatedMetrics(bucket, graduate, selectedStudyProgramId);
           mapGroups.set(Number(periphery.id), bucket);
         }
       }
@@ -483,7 +562,7 @@ async function buildMapData(req: Request, options: MapBuildOptions = {}) {
       longitude: cityGroup ? cityGroup.longitude : resolvedLocation.longitude,
     });
 
-    applyGraduateMetrics(bucket, graduate, selectedStudyProgramId);
+    applyAggregatedMetrics(bucket, graduate, selectedStudyProgramId);
     cityGroups.set(key, bucket);
   }
 
