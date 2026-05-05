@@ -185,7 +185,12 @@ function sameMapSelection(scope: MapScope, left: any, right: any) {
     if (leftCountryId && rightCountryId) return leftCountryId === rightCountryId;
     return localizedCountryKey(left.country_name || left.periphery_name || left.city_name || "") === localizedCountryKey(right.country_name || right.periphery_name || right.city_name || "");
   }
-  return normalizeKey(left.city_name || "") === normalizeKey(right.city_name || "") && Number(left.country_region_id || left.periphery_id || 0) === Number(right.country_region_id || right.periphery_id || 0);
+  const leftName = normalizeKey(left.raw_city_name || left.city_name || "");
+  const rightName = normalizeKey(right.raw_city_name || right.city_name || "");
+  const leftPeripheryId = Number(left.periphery_id || 0);
+  const rightPeripheryId = Number(right.periphery_id || 0);
+  if (leftPeripheryId && rightPeripheryId) return leftName === rightName && leftPeripheryId === rightPeripheryId;
+  return leftName === rightName;
 }
 
 
@@ -474,8 +479,19 @@ export default function GraduatesMapPage() {
       const key = metroGroup ? `metro:${metroGroup.key}` : `city:${mapCityKey(city as any)}`;
       const current = grouped.get(key) || {
         ...(metroGroup ? {
-          city_id: 0,
+          city_id: Number((city as any).city_id || 0),
           city_name: localizedCityRecordName(city, mapLanguage),
+          city_name_el: (city as any).city_name_el ?? (city as any).city_name,
+          city_name_en: (city as any).city_name_en ?? (city as any).city_name,
+          raw_city_name: (city as any).city_name,
+          periphery_id: (city as any).periphery_id ?? null,
+          periphery_name: (city as any).periphery_name ?? "",
+          periphery_name_el: (city as any).periphery_name_el ?? (city as any).periphery_name,
+          periphery_name_en: (city as any).periphery_name_en ?? (city as any).periphery_name,
+          country_region_id: (city as any).country_region_id ?? null,
+          country_name: (city as any).country_name ?? null,
+          country_name_el: (city as any).country_name_el ?? (city as any).country_name,
+          country_name_en: (city as any).country_name_en ?? (city as any).country_name,
           latitude: metroGroup.center.latitude,
           longitude: metroGroup.center.longitude,
           male_count: 0,
@@ -519,12 +535,20 @@ export default function GraduatesMapPage() {
       grouped.set(key, current);
     }
 
-    const points = Array.from(grouped.values()).map((item) => ({
-      ...item,
-      avg_age: Number(item.avg_age_weight || 0) > 0 ? Number(item.avg_age_weighted_sum || 0) / Number(item.avg_age_weight || 1) : item.avg_age,
-      avg_grade: Number(item.avg_grade_weight || 0) > 0 ? Number(item.avg_grade_weighted_sum || 0) / Number(item.avg_grade_weight || 1) : item.avg_grade,
-      avg_graduation_years: Number(item.avg_graduation_weight || 0) > 0 ? Number(item.avg_graduation_weighted_sum || 0) / Number(item.avg_graduation_weight || 1) : item.avg_graduation_years,
-    }));
+    const points = Array.from(grouped.values()).map((item) => {
+      const maleCount = Math.max(0, Number(item.male_count || 0));
+      const femaleCount = Math.max(0, Number(item.female_count || 0));
+      const genderTotal = maleCount + femaleCount;
+      return {
+        ...item,
+        male_pct: genderTotal ? Math.round((maleCount / genderTotal) * 1000) / 10 : 0,
+        female_pct: genderTotal ? Math.round((femaleCount / genderTotal) * 1000) / 10 : 0,
+        dominant_gender: !genderTotal ? null : maleCount > femaleCount ? "M" : femaleCount > maleCount ? "F" : "balanced",
+        avg_age: Number(item.avg_age_weight || 0) > 0 ? Number(item.avg_age_weighted_sum || 0) / Number(item.avg_age_weight || 1) : item.avg_age,
+        avg_grade: Number(item.avg_grade_weight || 0) > 0 ? Number(item.avg_grade_weighted_sum || 0) / Number(item.avg_grade_weight || 1) : item.avg_grade,
+        avg_graduation_years: Number(item.avg_graduation_weight || 0) > 0 ? Number(item.avg_graduation_weighted_sum || 0) / Number(item.avg_graduation_weight || 1) : item.avg_graduation_years,
+      };
+    });
 
     const counts = points.map((item) => Math.max(0, Number(item.count) || 0));
     if (!counts.length) return { items: [] as Array<any>, legend: [] as Array<any>, maxCount: 0 };
@@ -1014,7 +1038,8 @@ export default function GraduatesMapPage() {
     const requestParams = {
       ...(city.city_id ? { city_id: city.city_id } : {}),
       ...(mapScope === "greece" && (city.raw_city_name || city.city_name) ? { city_name: city.raw_city_name || city.city_name } : {}),
-      ...(city.country_region_id ? { country_region_id: city.country_region_id } : {}),
+      ...(mapScope === "greece" && city.periphery_id ? { periphery_id: city.periphery_id } : {}),
+      ...(mapScope === "abroad" && city.country_region_id ? { country_region_id: city.country_region_id } : {}),
       mode: mapMetric,
       lang: mapLanguage,
       ...params,

@@ -254,7 +254,7 @@ export async function getMapCities(req: Request, res: Response) {
     const country = resolvedLocation.countryId ? findRegion(Number(resolvedLocation.countryId)) : (Number(graduate.origin_country_region_id) ? findRegion(Number(graduate.origin_country_region_id)) : null);
     const key = scope === "abroad"
       ? `${normalizeKey(String(country?.name || resolvedLocation.countryName || graduate.origin_country || ""))}::${normalizeKey(resolvedLocation.cityName)}`
-      : `${resolvedLocation.cityId || normalizeKey(resolvedLocation.cityName)}::${resolvedLocation.peripheryId || "none"}`;
+      : `${normalizeKey(resolvedLocation.cityName)}::${resolvedLocation.peripheryId || "none"}`;
 
     const cityNames = await ensureLocalizedRegionNames(resolvedLocation.cityId);
     const countryNames = await ensureLocalizedRegionNames(resolvedLocation.countryId || Number(graduate.origin_country_region_id) || null);
@@ -325,6 +325,7 @@ export async function getMapCityDetail(req: Request, res: Response) {
   const cityId = toInt(req.query.city_id);
   const cityNameQuery = String(req.query.city_name || "").trim();
   const countryRegionId = toInt(req.query.country_region_id) || toInt(req.query.periphery_id);
+  const requestedPeripheryId = toInt(req.query.periphery_id);
   const mode = String(req.query.mode || "count");
   const selectedStudyProgramId = toInt(req.query.study_program_id);
   const { where, currentYear } = buildMapWhere(req);
@@ -368,10 +369,11 @@ export async function getMapCityDetail(req: Request, res: Response) {
     }
   } else {
     const city = cityId ? findRegion(cityId) : null;
-    if (!cityId || !city || String((city as any).type) !== "CITY") {
+    const cityNameFilter = normalizeKey(cityNameQuery || String((city as any)?.name || ""));
+    if (!cityNameFilter) {
       return res.status(404).json({ ok: false, error: "city not found" });
     }
-    cityLabel = String((city as any).name || cityNameQuery || "");
+    cityLabel = String((city as any)?.name || cityNameQuery || "");
     for (const graduate of grads as any[]) {
       if (!isGreekMapGraduate(graduate)) continue;
       const resolvedLocation = await resolveMapLocation({
@@ -382,7 +384,12 @@ export async function getMapCityDetail(req: Request, res: Response) {
         origin_city_region_id: Number(graduate.origin_city_region_id) || null,
         origin_municipality: graduate.origin_municipality || null,
       });
-      if (Number(resolvedLocation?.cityId || 0) === cityId) matching.push(graduate);
+      const sameCityId = cityId ? Number(resolvedLocation?.cityId || 0) === cityId : false;
+      const sameCityName = normalizeKey(String(resolvedLocation?.cityName || "")) === cityNameFilter;
+      const samePeriphery = requestedPeripheryId
+        ? Number(resolvedLocation?.peripheryId || 0) === requestedPeripheryId
+        : true;
+      if ((sameCityId || sameCityName) && samePeriphery) matching.push(graduate);
     }
   }
 
