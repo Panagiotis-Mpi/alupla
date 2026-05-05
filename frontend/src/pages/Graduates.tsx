@@ -36,6 +36,7 @@ import {
 } from "./graduates/importFeedback";
 import { downloadBlob } from "../lib/download";
 import { toggleMergedVisibleSelection, toggleSelectionValue } from "./shared/selection";
+import { sortIndicator } from "./shared/sorting";
 import {
   MAX_RECENT_GRADUATE_DOWNLOADS,
   buildRecentDownloadFiltersLabel,
@@ -244,10 +245,7 @@ export default function Graduates() {
   }
 
   function getSortIndicator(key: SortKey) {
-    if (sortState.key !== key) {
-      return "";
-    }
-    return sortState.dir === "asc" ? " ▲" : " ▼";
+    return sortIndicator(sortState.key, key, sortState.dir);
   }
 
   function closeMenus() {

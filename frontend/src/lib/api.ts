@@ -1,6 +1,7 @@
 // Συγκεντρώνει τις κλήσεις προς το backend API που χρησιμοποιούν οι σελίδες.
 export { API_URL, clearToken, getToken, setToken, toQueryString, type QueryParams } from "./apiCore";
 import { API_URL, api, fetchBlob, getToken, parseJsonSafe, toQueryString, type QueryParams } from "./apiCore";
+import { clearCachedValues, readCachedValue, writeCachedValue, type CacheStore } from "./cache";
 
 export type UserRole = "super_admin" | "secretariat";
 export type User = {
@@ -150,75 +151,24 @@ const USERS_CACHE_MS = 8 * 1000;
 const LOGS_CACHE_MS = 15 * 1000;
 const LOGS_SUMMARY_CACHE_MS = 30 * 1000;
 const REFERENCE_CACHE_MS = 10 * 60 * 1000;
-const publicStatsMemoryCache = new Map<string, { expires: number; value: PublicStatsResponse }>();
-const mapMemoryCache = new Map<string, { expires: number; value: unknown }>();
-const protectedMemoryCache = new Map<string, { expires: number; value: unknown }>();
+const publicStatsMemoryCache: CacheStore = new Map();
+const mapMemoryCache: CacheStore = new Map();
+const protectedMemoryCache: CacheStore = new Map();
 
 function readPublicStatsCache(key: string) {
-  const now = Date.now();
-  const memory = publicStatsMemoryCache.get(key);
-  if (memory && memory.expires > now) return memory.value;
-  if (memory) publicStatsMemoryCache.delete(key);
-
-  try {
-    const raw = sessionStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { expires?: number; value?: PublicStatsResponse };
-    if (parsed?.expires && parsed.expires > now && parsed.value?.ok) {
-      publicStatsMemoryCache.set(key, { expires: parsed.expires, value: parsed.value });
-      return parsed.value;
-    }
-    sessionStorage.removeItem(key);
-  } catch {
-    try {
-      sessionStorage.removeItem(key);
-    } catch {
-    }
-  }
-  return null;
+  return readCachedValue<PublicStatsResponse>(key, publicStatsMemoryCache, isOkResponse);
 }
 
 function writePublicStatsCache(key: string, value: PublicStatsResponse) {
-  const entry = { expires: Date.now() + PUBLIC_STATS_CACHE_MS, value };
-  publicStatsMemoryCache.set(key, entry);
-  try {
-    sessionStorage.setItem(key, JSON.stringify(entry));
-  } catch {
-  }
+  writeCachedValue(key, publicStatsMemoryCache, value, PUBLIC_STATS_CACHE_MS);
 }
 
-
 function readMapCache<T>(key: string): T | null {
-  const now = Date.now();
-  const memory = mapMemoryCache.get(key);
-  if (memory && memory.expires > now) return memory.value as T;
-  if (memory) mapMemoryCache.delete(key);
-
-  try {
-    const raw = sessionStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { expires?: number; value?: T };
-    if (parsed?.expires && parsed.expires > now && parsed.value) {
-      mapMemoryCache.set(key, { expires: parsed.expires, value: parsed.value });
-      return parsed.value;
-    }
-    sessionStorage.removeItem(key);
-  } catch {
-    try {
-      sessionStorage.removeItem(key);
-    } catch {
-    }
-  }
-  return null;
+  return readCachedValue<T>(key, mapMemoryCache);
 }
 
 function writeMapCache<T>(key: string, value: T) {
-  const entry = { expires: Date.now() + MAP_CACHE_MS, value };
-  mapMemoryCache.set(key, entry);
-  try {
-    sessionStorage.setItem(key, JSON.stringify(entry));
-  } catch {
-  }
+  writeCachedValue(key, mapMemoryCache, value, MAP_CACHE_MS);
 }
 
 async function cachedMapApi<T>(path: string): Promise<T> {
@@ -230,62 +180,24 @@ async function cachedMapApi<T>(path: string): Promise<T> {
   return response;
 }
 
+
 function privateCacheTokenPart() {
   const token = getToken();
   return token ? token.slice(0, 24) : "guest";
 }
 
 function readProtectedCache<T>(key: string): T | null {
-  const now = Date.now();
-  const memory = protectedMemoryCache.get(key);
-  if (memory && memory.expires > now) return memory.value as T;
-  if (memory) protectedMemoryCache.delete(key);
-
-  try {
-    const raw = sessionStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { expires?: number; value?: T };
-    if (parsed?.expires && parsed.expires > now && parsed.value) {
-      protectedMemoryCache.set(key, { expires: parsed.expires, value: parsed.value });
-      return parsed.value;
-    }
-    sessionStorage.removeItem(key);
-  } catch {
-    try {
-      sessionStorage.removeItem(key);
-    } catch {
-    }
-  }
-  return null;
+  return readCachedValue<T>(key, protectedMemoryCache);
 }
 
 function writeProtectedCache<T>(key: string, value: T, ttlMs: number) {
-  const entry = { expires: Date.now() + ttlMs, value };
-  protectedMemoryCache.set(key, entry);
-  try {
-    sessionStorage.setItem(key, JSON.stringify(entry));
-  } catch {
-  }
+  writeCachedValue(key, protectedMemoryCache, value, ttlMs);
 }
 
 function clearCachedKeys(prefixes: string[]) {
-  for (const key of Array.from(protectedMemoryCache.keys())) {
-    if (prefixes.some((prefix) => key.startsWith(prefix))) protectedMemoryCache.delete(key);
-  }
-  for (const key of Array.from(publicStatsMemoryCache.keys())) {
-    if (prefixes.some((prefix) => key.startsWith(prefix))) publicStatsMemoryCache.delete(key);
-  }
-  for (const key of Array.from(mapMemoryCache.keys())) {
-    if (prefixes.some((prefix) => key.startsWith(prefix))) mapMemoryCache.delete(key);
-  }
-  try {
-    for (let i = sessionStorage.length - 1; i >= 0; i--) {
-      const key = sessionStorage.key(i) || "";
-      if (prefixes.some((prefix) => key.startsWith(prefix))) sessionStorage.removeItem(key);
-    }
-  } catch {
-  }
+  clearCachedValues(prefixes, [protectedMemoryCache, publicStatsMemoryCache, mapMemoryCache]);
 }
+
 
 function clearGraduateRelatedCaches() {
   clearCachedKeys(["alupla:graduates:", "alupla:public-stats:", "alupla:map:", "alupla:logs:", "alupla:logs-summary:"]);

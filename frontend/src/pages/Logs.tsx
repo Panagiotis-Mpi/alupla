@@ -23,6 +23,47 @@ import {
   type LogFilters,
 } from "./logs/shared";
 
+const paginationButtonStyle = (size: number): React.CSSProperties => ({
+  width: size,
+  minWidth: size,
+  height: 42,
+  padding: 0,
+  borderRadius: 12,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 18,
+  lineHeight: 1,
+  fontWeight: 600,
+  flex: "0 0 auto",
+});
+
+const desktopPaginationBadgeStyle: React.CSSProperties = {
+  minWidth: 52,
+  height: 42,
+  padding: "0 14px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  textAlign: "center",
+  borderRadius: 12,
+  flex: "0 0 auto",
+};
+
+const mobilePaginationBadgeStyle: React.CSSProperties = {
+  minWidth: 52,
+  width: 52,
+  maxWidth: 52,
+  height: 42,
+  padding: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  textAlign: "center",
+  borderRadius: 12,
+  flex: "0 0 auto",
+};
+
 export default function Logs() {
   const { t, i18n } = useTranslation("logs");
   const activeLang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
@@ -362,20 +403,7 @@ export default function Logs() {
                 >
                   <button
                     className="btn"
-                    style={{
-                      width: 42,
-                      minWidth: 42,
-                      height: 42,
-                      padding: 0,
-                      borderRadius: 12,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 18,
-                      lineHeight: 1,
-                      fontWeight: 600,
-                      flex: "0 0 auto",
-                    }}
+                    style={paginationButtonStyle(42)}
                     disabled={page <= 1 || loading}
                     onClick={() => void load(Math.max(1, page - 1))}
                     aria-label={t("aria.previous", { ns: "common" })}
@@ -384,36 +412,13 @@ export default function Logs() {
                   </button>
                   <span
                     className="badge"
-                    style={{
-                      minWidth: 52,
-                      height: 42,
-                      padding: "0 14px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      textAlign: "center",
-                      borderRadius: 12,
-                      flex: "0 0 auto",
-                    }}
+                    style={desktopPaginationBadgeStyle}
                   >
                     {page}
                   </span>
                   <button
                     className="btn"
-                    style={{
-                      width: 42,
-                      minWidth: 42,
-                      height: 42,
-                      padding: 0,
-                      borderRadius: 12,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 18,
-                      lineHeight: 1,
-                      fontWeight: 600,
-                      flex: "0 0 auto",
-                    }}
+                    style={paginationButtonStyle(42)}
                     disabled={page >= totalPages || loading}
                     onClick={() => void load(Math.min(totalPages, page + 1))}
                     aria-label={t("aria.next", { ns: "common" })}
@@ -429,20 +434,7 @@ export default function Logs() {
             <div className="logs-mobile-pagination">
               <button
                 className="btn"
-                style={{
-                  width: 52,
-                  minWidth: 52,
-                  height: 42,
-                  padding: 0,
-                  borderRadius: 12,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 18,
-                  lineHeight: 1,
-                  fontWeight: 600,
-                  flex: "0 0 auto",
-                }}
+                style={paginationButtonStyle(52)}
                 disabled={page <= 1 || loading}
                 onClick={() => void load(Math.max(1, page - 1))}
                 aria-label={t("aria.previous", { ns: "common" })}
@@ -451,38 +443,13 @@ export default function Logs() {
               </button>
               <span
                 className="badge"
-                style={{
-                  minWidth: 52,
-                  width: 52,
-                  maxWidth: 52,
-                  height: 42,
-                  padding: 0,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  borderRadius: 12,
-                  flex: "0 0 auto",
-                }}
+                style={mobilePaginationBadgeStyle}
               >
                 {page}
               </span>
               <button
                 className="btn"
-                style={{
-                  width: 52,
-                  minWidth: 52,
-                  height: 42,
-                  padding: 0,
-                  borderRadius: 12,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 18,
-                  lineHeight: 1,
-                  fontWeight: 600,
-                  flex: "0 0 auto",
-                }}
+                style={paginationButtonStyle(52)}
                 disabled={page >= totalPages || loading}
                 onClick={() => void load(Math.min(totalPages, page + 1))}
                 aria-label={t("aria.next", { ns: "common" })}

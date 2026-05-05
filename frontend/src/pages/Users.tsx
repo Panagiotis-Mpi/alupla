@@ -2,6 +2,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { createUser, deactivateUser, listUsers, updateUser, type AdminUser } from "../lib/api";
+import { compareSortValues, sortIndicator } from "./shared/sorting";
 
 type SortDir = "asc" | "desc";
 type SortKey = "id" | "email" | "name" | "role" | "is_online";
@@ -99,18 +100,7 @@ export default function Users() {
       const av = sortState.key === "name" ? `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim() : a[sortState.key];
       const bv = sortState.key === "name" ? `${b.first_name ?? ""} ${b.last_name ?? ""}`.trim() : b[sortState.key];
 
-      if (av == null && bv == null) return 0;
-      if (av == null) return -1;
-      if (bv == null) return 1;
-
-      if (typeof av === "string" || typeof bv === "string") {
-        const result = String(av).localeCompare(String(bv), "el", { sensitivity: "base" });
-        return sortState.dir === "asc" ? result : -result;
-      }
-
-      if (av < bv) return sortState.dir === "asc" ? -1 : 1;
-      if (av > bv) return sortState.dir === "asc" ? 1 : -1;
-      return 0;
+      return compareSortValues(av, bv, sortState.dir);
     });
     return nextItems;
   }, [items, sortState]);
@@ -120,8 +110,7 @@ export default function Users() {
   }
 
   function getSortArrow(key: SortKey) {
-    if (sortState.key !== key) return "";
-    return sortState.dir === "asc" ? " ▲" : " ▼";
+    return sortIndicator(sortState.key, key, sortState.dir);
   }
 
   return (

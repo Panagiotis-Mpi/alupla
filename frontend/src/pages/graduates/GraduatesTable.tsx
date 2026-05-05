@@ -4,6 +4,24 @@ import { Link } from "react-router-dom";
 import type { Graduate } from "../../lib/api";
 import { formatValue, getGraduateOriginCountryDisplay, getGraduateOriginMunicipalityDisplay, getGraduateOriginRegionDisplay, type SortKey } from "./shared";
 
+const graduateSortColumns: Array<{ sortKey: SortKey; labelKey: string }> = [
+  { sortKey: "ad_code", labelKey: "table.ad" },
+  { sortKey: "student_number", labelKey: "table.am" },
+  { sortKey: "last_name", labelKey: "table.lastName" },
+  { sortKey: "first_name", labelKey: "table.firstName" },
+  { sortKey: "father_name", labelKey: "table.fatherName" },
+  { sortKey: "gender", labelKey: "table.gender" },
+  { sortKey: "entry_year", labelKey: "table.entryYear" },
+  { sortKey: "birth_date", labelKey: "table.birthDate" },
+  { sortKey: "degree_grade", labelKey: "table.degreeGrade" },
+  { sortKey: "graduation_date", labelKey: "table.graduationDate" },
+  { sortKey: "oath_date", labelKey: "table.oathDate" },
+  { sortKey: "study_program", labelKey: "table.studyProgram" },
+  { sortKey: "origin_country", labelKey: "table.country" },
+  { sortKey: "origin_region", labelKey: "table.region" },
+  { sortKey: "origin_municipality", labelKey: "table.originMunicipality" },
+];
+
 // Εμφανίζει αποφοίτους σε πίνακα και ενημερώνει την επιλογή γραμμών.
 export function GraduatesTable(props: {
   visibleItems: Graduate[];
@@ -48,21 +66,13 @@ export function GraduatesTable(props: {
           <thead>
             <tr>
               <th style={{ width: 44 }}><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} /></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("ad_code")}>{t("table.ad")}{getSortIndicator("ad_code")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("student_number")}>{t("table.am")}{getSortIndicator("student_number")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("last_name")}>{t("table.lastName")}{getSortIndicator("last_name")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("first_name")}>{t("table.firstName")}{getSortIndicator("first_name")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("father_name")}>{t("table.fatherName")}{getSortIndicator("father_name")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("gender")}>{t("table.gender")}{getSortIndicator("gender")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("entry_year")}>{t("table.entryYear")}{getSortIndicator("entry_year")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("birth_date")}>{t("table.birthDate")}{getSortIndicator("birth_date")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("degree_grade")}>{t("table.degreeGrade")}{getSortIndicator("degree_grade")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("graduation_date")}>{t("table.graduationDate")}{getSortIndicator("graduation_date")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("oath_date")}>{t("table.oathDate")}{getSortIndicator("oath_date")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("study_program")}>{t("table.studyProgram")}{getSortIndicator("study_program")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_country")}>{t("table.country")}{getSortIndicator("origin_country")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_region")}>{t("table.region")}{getSortIndicator("origin_region")}</button></th>
-              <th><button type="button" style={headerButtonStyle} onClick={() => toggleSort("origin_municipality")}>{t("table.originMunicipality")}{getSortIndicator("origin_municipality")}</button></th>
+              {graduateSortColumns.map((column) => (
+                <th key={column.sortKey}>
+                  <button type="button" style={headerButtonStyle} onClick={() => toggleSort(column.sortKey)}>
+                    {t(column.labelKey)}{getSortIndicator(column.sortKey)}
+                  </button>
+                </th>
+              ))}
               <th className="row-actions">{t("table.actions")}</th>
             </tr>
           </thead>

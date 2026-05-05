@@ -11,6 +11,7 @@ import {
   type StudyProgram,
 } from "../lib/api";
 import { downloadBlob } from "../lib/download";
+import { compareSortText, sortIndicator } from "./shared/sorting";
 
 type StudyProgramForm = {
   code: string;
@@ -99,7 +100,6 @@ export default function AcademicData() {
   }, []);
 
   const sortedPrograms = React.useMemo(() => {
-    const factor = programSort.direction === "asc" ? 1 : -1;
     return [...programs].sort((left, right) => {
       let a = "";
       let b = "";
@@ -115,7 +115,7 @@ export default function AcademicData() {
         b = right.is_active ? "1" : "0";
       }
 
-      return a.localeCompare(b, lang === "en" ? "en" : "el", { numeric: true, sensitivity: "base" }) * factor;
+      return compareSortText(a, b, programSort.direction, lang === "en" ? "en" : "el");
     });
   }, [lang, programSort, programs]);
 
@@ -137,8 +137,7 @@ export default function AcademicData() {
   }
 
   function sortMark(key: ProgramSortKey) {
-    if (programSort.key !== key) return "";
-    return programSort.direction === "asc" ? " ▲" : " ▼";
+    return sortIndicator(programSort.key, key, programSort.direction);
   }
 
   async function saveProgram() {
