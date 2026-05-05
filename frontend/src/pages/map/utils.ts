@@ -21,6 +21,8 @@ export function mapCityLongitude(city: MapCityPoint): number | null {
 }
 
 export function mapCityKey(city: MapCityPoint): string {
+  const groupKey = String((city as any).map_group_key || "").trim();
+  if (groupKey) return `group-${normalizeKey(groupKey)}`;
   if (Number(city.city_id) > 0) return `db-${city.city_id}`;
   return `name-${normalizeKey(city.city_name)}-${normalizeKey(city.country_name || city.periphery_name)}`;
 }

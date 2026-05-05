@@ -103,6 +103,7 @@ export type MapCityPoint = {
   city_name: string;
   city_name_el?: string | null;
   city_name_en?: string | null;
+  map_group_key?: string | null;
   periphery_id: number | null;
   periphery_name: string;
   periphery_name_el?: string | null;
@@ -239,6 +240,7 @@ export type MapCityDetailResponse = {
   city_name: string;
   city_name_el?: string | null;
   city_name_en?: string | null;
+  map_group_key?: string | null;
   country_name?: string | null;
   country_name_el?: string | null;
   country_name_en?: string | null;

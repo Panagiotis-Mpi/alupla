@@ -8,6 +8,113 @@ import { ensureLocalizedRegionNames, resolveMapLocation } from "../services/mapL
 import { sequelize } from "../config/sequelize";
 import { buildMapWhere, calculateAgeAtDate, isAbroadMapGraduate, isGreekMapGraduate, loadRegions, normalizeKey, pickTopName, toInt } from "./map.helpers";
 
+const ATHENS_GROUP_KEY = "athens";
+const ATHENS_GROUP_NAMES = new Set([
+  "Αθήνα",
+  "Αθηναίων",
+  "Δήμος Αθηναίων",
+  "Βύρωνας",
+  "Βύρωνος",
+  "Γαλάτσι",
+  "Γαλατσίου",
+  "Δάφνη-Υμηττός",
+  "Δάφνη",
+  "Υμηττός",
+  "Ζωγράφου",
+  "Ηλιούπολη",
+  "Ηλιούπολης",
+  "Καισαριανή",
+  "Καισαριανής",
+  "Νέα Φιλαδέλφεια-Νέα Χαλκηδόνα",
+  "Φιλαδέλφεια-Χαλκηδόνα",
+  "Νέα Φιλαδέλφεια",
+  "Νέα Χαλκηδόνα",
+  "Αγία Παρασκευή",
+  "Αγίας Παρασκευής",
+  "Αμαρούσιο",
+  "Μαρούσι",
+  "Αμαρουσίου",
+  "Βριλήσσια",
+  "Βριλησσίων",
+  "Ηράκλειο Αττικής",
+  "Ηρακλείου",
+  "Κηφισιά",
+  "Κηφισιάς",
+  "Λυκόβρυση-Πεύκη",
+  "Λυκόβρυση",
+  "Πεύκη",
+  "Μεταμόρφωση",
+  "Μεταμορφώσεως",
+  "Νέα Ιωνία",
+  "Νέας Ιωνίας",
+  "Παπάγου-Χολαργός",
+  "Παπάγου",
+  "Χολαργός",
+  "Πεντέλη",
+  "Πεντέλης",
+  "Φιλοθέη-Ψυχικό",
+  "Φιλοθέη",
+  "Ψυχικό",
+  "Χαλάνδρι",
+  "Χαλανδρίου",
+  "Άγιος Δημήτριος",
+  "Αγίου Δημητρίου",
+  "Άλιμος",
+  "Αλίμου",
+  "Γλυφάδα",
+  "Γλυφάδας",
+  "Ελληνικό-Αργυρούπολη",
+  "Ελληνικό",
+  "Αργυρούπολη",
+  "Καλλιθέα",
+  "Καλλιθέας",
+  "Μοσχάτο-Ταύρος",
+  "Μοσχάτο",
+  "Ταύρος",
+  "Νέα Σμύρνη",
+  "Νέας Σμύρνης",
+  "Παλαιό Φάληρο",
+  "Παλαιού Φαλήρου",
+  "Αγία Βαρβάρα",
+  "Αγίας Βαρβάρας",
+  "Άγιοι Ανάργυροι-Καματερό",
+  "Άγιοι Ανάργυροι",
+  "Καματερό",
+  "Αιγάλεω",
+  "Ίλιον",
+  "Ιλίου",
+  "Περιστέρι",
+  "Περιστερίου",
+  "Πετρούπολη",
+  "Πετρούπολης",
+  "Χαϊδάρι",
+  "Χαϊδαρίου",
+].map((name) => normalizeKey(name)));
+
+function greekCityGroupForName(value: unknown) {
+  return ATHENS_GROUP_NAMES.has(normalizeKey(String(value ?? "")))
+    ? {
+        key: ATHENS_GROUP_KEY,
+        nameEl: "Αθήνα",
+        nameEn: "Athens",
+        latitude: 37.9838,
+        longitude: 23.7275,
+      }
+    : null;
+}
+
+function greekCityGroupForKey(value: unknown) {
+  return String(value ?? "").trim() === ATHENS_GROUP_KEY
+    ? {
+        key: ATHENS_GROUP_KEY,
+        nameEl: "Αθήνα",
+        nameEn: "Athens",
+        latitude: 37.9838,
+        longitude: 23.7275,
+      }
+    : null;
+}
+
 // Διαβάζει αν ο χάρτης δείχνει Ελλάδα, εξωτερικό ή όλα.
 function mapScopeFromRequest(req: Request) {
   return String(req.query.scope || "greece").trim().toLowerCase() === "abroad" ? "abroad" : "greece";
@@ -252,18 +359,22 @@ export async function getMapCities(req: Request, res: Response) {
     if (!resolvedLocation?.cityName || resolvedLocation.latitude === null || resolvedLocation.longitude === null) continue;
 
     const country = resolvedLocation.countryId ? findRegion(Number(resolvedLocation.countryId)) : (Number(graduate.origin_country_region_id) ? findRegion(Number(graduate.origin_country_region_id)) : null);
+    const cityGroup = scope === "greece" ? greekCityGroupForName(resolvedLocation.cityName) : null;
     const key = scope === "abroad"
       ? `${normalizeKey(String(country?.name || resolvedLocation.countryName || graduate.origin_country || ""))}::${normalizeKey(resolvedLocation.cityName)}`
-      : `${normalizeKey(resolvedLocation.cityName)}::${resolvedLocation.peripheryId || "none"}`;
+      : cityGroup
+        ? `group:${cityGroup.key}`
+        : `${resolvedLocation.cityId || normalizeKey(resolvedLocation.cityName)}::${resolvedLocation.peripheryId || "none"}`;
 
-    const cityNames = await ensureLocalizedRegionNames(resolvedLocation.cityId);
+    const cityNames = cityGroup ? { nameEl: cityGroup.nameEl, nameEn: cityGroup.nameEn } : await ensureLocalizedRegionNames(resolvedLocation.cityId);
     const countryNames = await ensureLocalizedRegionNames(resolvedLocation.countryId || Number(graduate.origin_country_region_id) || null);
     const peripheryNames = scope === "greece" ? await ensureLocalizedRegionNames(resolvedLocation.peripheryId) : countryNames;
     const bucket = groups.get(key) || createMetricsBucket({
-      city_id: resolvedLocation.cityId || 0,
-      city_name: resolvedLocation.cityName,
+      city_id: cityGroup ? 0 : resolvedLocation.cityId || 0,
+      city_name: cityGroup ? cityGroup.nameEl : resolvedLocation.cityName,
       city_name_el: cityNames.nameEl || resolvedLocation.cityName,
       city_name_en: cityNames.nameEn || resolvedLocation.cityName,
+      map_group_key: cityGroup?.key || null,
       periphery_id: scope === "greece" ? resolvedLocation.peripheryId : (resolvedLocation.countryId || Number(graduate.origin_country_region_id) || null),
       periphery_name: scope === "greece"
         ? (resolvedLocation.peripheryName || "")
@@ -274,8 +385,8 @@ export async function getMapCities(req: Request, res: Response) {
       country_name: String(country?.name || resolvedLocation.countryName || graduate.origin_country || ""),
       country_name_el: countryNames.nameEl || String(country?.name || resolvedLocation.countryName || graduate.origin_country || ""),
       country_name_en: countryNames.nameEn || String(country?.name || resolvedLocation.countryName || graduate.origin_country || ""),
-      latitude: resolvedLocation.latitude,
-      longitude: resolvedLocation.longitude,
+      latitude: cityGroup ? cityGroup.latitude : resolvedLocation.latitude,
+      longitude: cityGroup ? cityGroup.longitude : resolvedLocation.longitude,
     });
 
     applyGraduateMetrics(bucket, graduate, selectedStudyProgramId);
@@ -290,6 +401,7 @@ export async function getMapCities(req: Request, res: Response) {
       city_name: item.city_name,
       city_name_el: item.city_name_el || item.city_name,
       city_name_en: item.city_name_en || item.city_name,
+      map_group_key: item.map_group_key || null,
       periphery_id: item.periphery_id,
       periphery_name: item.periphery_name,
       periphery_name_el: item.periphery_name_el || item.periphery_name,
@@ -324,8 +436,8 @@ export async function getMapCityDetail(req: Request, res: Response) {
   const scope = mapScopeFromRequest(req);
   const cityId = toInt(req.query.city_id);
   const cityNameQuery = String(req.query.city_name || "").trim();
+  const cityGroup = scope === "greece" ? (greekCityGroupForKey(req.query.map_group_key) || greekCityGroupForName(cityNameQuery)) : null;
   const countryRegionId = toInt(req.query.country_region_id) || toInt(req.query.periphery_id);
-  const requestedPeripheryId = toInt(req.query.periphery_id);
   const mode = String(req.query.mode || "count");
   const selectedStudyProgramId = toInt(req.query.study_program_id);
   const { where, currentYear } = buildMapWhere(req);
@@ -367,13 +479,8 @@ export async function getMapCityDetail(req: Request, res: Response) {
       }
       matching.push(graduate);
     }
-  } else {
-    const city = cityId ? findRegion(cityId) : null;
-    const cityNameFilter = normalizeKey(cityNameQuery || String((city as any)?.name || ""));
-    if (!cityNameFilter) {
-      return res.status(404).json({ ok: false, error: "city not found" });
-    }
-    cityLabel = String((city as any)?.name || cityNameQuery || "");
+  } else if (cityGroup) {
+    cityLabel = cityGroup.nameEl;
     for (const graduate of grads as any[]) {
       if (!isGreekMapGraduate(graduate)) continue;
       const resolvedLocation = await resolveMapLocation({
@@ -384,12 +491,25 @@ export async function getMapCityDetail(req: Request, res: Response) {
         origin_city_region_id: Number(graduate.origin_city_region_id) || null,
         origin_municipality: graduate.origin_municipality || null,
       });
-      const sameCityId = cityId ? Number(resolvedLocation?.cityId || 0) === cityId : false;
-      const sameCityName = normalizeKey(String(resolvedLocation?.cityName || "")) === cityNameFilter;
-      const samePeriphery = requestedPeripheryId
-        ? Number(resolvedLocation?.peripheryId || 0) === requestedPeripheryId
-        : true;
-      if ((sameCityId || sameCityName) && samePeriphery) matching.push(graduate);
+      if (greekCityGroupForName(resolvedLocation?.cityName)?.key === cityGroup.key) matching.push(graduate);
+    }
+  } else {
+    const city = cityId ? findRegion(cityId) : null;
+    if (!cityId || !city || String((city as any).type) !== "CITY") {
+      return res.status(404).json({ ok: false, error: "city not found" });
+    }
+    cityLabel = String((city as any).name || cityNameQuery || "");
+    for (const graduate of grads as any[]) {
+      if (!isGreekMapGraduate(graduate)) continue;
+      const resolvedLocation = await resolveMapLocation({
+        origin_country: graduate.origin_country || null,
+        origin_country_region_id: Number(graduate.origin_country_region_id) || null,
+        origin_periphery_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
+        origin_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
+        origin_city_region_id: Number(graduate.origin_city_region_id) || null,
+        origin_municipality: graduate.origin_municipality || null,
+      });
+      if (Number(resolvedLocation?.cityId || 0) === cityId) matching.push(graduate);
     }
   }
 
@@ -398,7 +518,7 @@ export async function getMapCityDetail(req: Request, res: Response) {
     applyGraduateMetrics(metricBucket, graduate, selectedStudyProgramId);
   }
 
-  const detailCityNames = cityId ? await ensureLocalizedRegionNames(cityId) : { nameEl: null, nameEn: null };
+  const detailCityNames = cityGroup ? { nameEl: cityGroup.nameEl, nameEn: cityGroup.nameEn } : cityId ? await ensureLocalizedRegionNames(cityId) : { nameEl: null, nameEn: null };
   const detailCountryNames = countryRegionId ? await ensureLocalizedRegionNames(countryRegionId) : { nameEl: null, nameEn: null };
   const detailNameEl = detailCityNames.nameEl || detailCountryNames.nameEl || cityLabel;
   const detailNameEn = detailCityNames.nameEn || detailCountryNames.nameEn || cityLabel;
@@ -411,10 +531,11 @@ export async function getMapCityDetail(req: Request, res: Response) {
     const totalGender = male + female;
     return res.json({
       ok: true,
-      city_id: cityId || 0,
+      city_id: cityGroup ? 0 : cityId || 0,
       city_name: cityLabel,
       city_name_el: detailNameEl,
       city_name_en: detailNameEn,
+      map_group_key: cityGroup?.key || null,
       country_name: detailCountryNameEl || detailCountryNameEn || null,
       country_name_el: detailCountryNameEl,
       country_name_en: detailCountryNameEn,
@@ -447,10 +568,11 @@ export async function getMapCityDetail(req: Request, res: Response) {
 
   return res.json({
     ok: true,
-    city_id: cityId || 0,
+    city_id: cityGroup ? 0 : cityId || 0,
     city_name: cityLabel,
     city_name_el: detailNameEl,
     city_name_en: detailNameEn,
+    map_group_key: cityGroup?.key || null,
     country_name: detailCountryNameEl || detailCountryNameEn || null,
     country_name_el: detailCountryNameEl,
     country_name_en: detailCountryNameEn,
