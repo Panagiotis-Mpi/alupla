@@ -95,6 +95,7 @@ export default function GraduateForm(props: { mode: Mode }) {
   const [peripheries, setPeripheries] = useState<Region[]>([]);
   const [cities, setCities] = useState<Region[]>([]);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(props.mode === "edit");
   const [form, setForm] = useState<Partial<Graduate>>(empty);
   const [highlightedMissing, setHighlightedMissing] = useState<string | null>(null);
   const isEdit = props.mode === "edit";
@@ -107,6 +108,7 @@ export default function GraduateForm(props: { mode: Mode }) {
 
     // Όταν υπάρχει id, φορτώνει τα στοιχεία για edit.
 useEffect(() => {
+    setLoading(isEdit);
     (async () => {
       const [sp, countriesResponse] = await Promise.all([
         listStudyPrograms(),
@@ -116,6 +118,7 @@ useEffect(() => {
       setCountries(countriesResponse.items || []);
 
       if (!isEdit) {
+        setLoading(false);
         const defaultCountry = (countriesResponse.items || []).find((item: Region) => String(item.name || "").trim().toLowerCase() === "ελλάδα");
         setForm((f) => ({
           ...f,
@@ -126,7 +129,10 @@ useEffect(() => {
         return;
       }
 
-      if (!gradId || !Number.isFinite(gradId)) return;
+      if (!gradId || !Number.isFinite(gradId)) {
+        setLoading(false);
+        return;
+      }
       const g = await getGraduate(gradId);
       setForm({
         ...g.item,
@@ -143,6 +149,7 @@ useEffect(() => {
         origin_city_region_id: g.item.origin_city_region_id ?? null,
         origin_municipality: g.item.origin_municipality ?? null,
       });
+      setLoading(false);
 
     })();
   }, [gradId, isEdit]);
@@ -308,6 +315,9 @@ useEffect(() => {
       </div>
 
       <div className="card" style={{ padding: 18 }}>
+        {loading ? (
+          <div className="muted" style={{ fontWeight: 800 }}>{t("loading")}</div>
+        ) : (
         <div style={{ display: "grid", gap: 16 }}>
           <div className="grid cols2">
             <div style={fieldStyle(t("labels.adCode"))}>
@@ -431,6 +441,7 @@ useEffect(() => {
             <button className="btn primary" disabled={saving} onClick={onSave}>{saving ? t("saving") : t("save")}</button>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

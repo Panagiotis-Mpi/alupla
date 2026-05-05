@@ -4,6 +4,7 @@
   "back": "Cancel",
   "save": "Save",
   "saving": "Saving...",
+  "loading": "Loading",
   "labels": {
     "lastName": "Last name",
     "firstName": "First name",
