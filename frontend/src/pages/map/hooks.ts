@@ -2,15 +2,17 @@
 import { useEffect, useState } from "react";
 import {
   getGraduatesMap,
-  getMapCities,
+  getMapSummary,
   type GraduatesMapItem,
   type MapCityPoint,
 } from "../../lib/api";
 
-export function useMapData(params: Record<string, string>) {
+export function useMapData(params: Record<string, string>, options: { includeCities?: boolean } = {}) {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<GraduatesMapItem[]>([]);
   const [cityPoints, setCityPoints] = useState<MapCityPoint[]>([]);
+
+  const includeCities = options.includeCities !== false;
 
   useEffect(() => {
     let active = true;
@@ -18,13 +20,17 @@ export function useMapData(params: Record<string, string>) {
 
     (async () => {
       try {
-        const [mapResponse, citiesResponse] = await Promise.all([
-          getGraduatesMap(params),
-          getMapCities(params),
-        ]);
-        if (!active) return;
-        setItems(Array.isArray(mapResponse?.items) ? mapResponse.items : []);
-        setCityPoints(Array.isArray(citiesResponse?.items) ? citiesResponse.items : []);
+        if (includeCities) {
+          const summaryResponse = await getMapSummary(params);
+          if (!active) return;
+          setItems(Array.isArray(summaryResponse?.items) ? summaryResponse.items : []);
+          setCityPoints(Array.isArray(summaryResponse?.cities) ? summaryResponse.cities : []);
+        } else {
+          const mapResponse = await getGraduatesMap(params);
+          if (!active) return;
+          setItems(Array.isArray(mapResponse?.items) ? mapResponse.items : []);
+          setCityPoints([]);
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -33,7 +39,7 @@ export function useMapData(params: Record<string, string>) {
     return () => {
       active = false;
     };
-  }, [params]);
+  }, [params, includeCities]);
 
   return {
     loading,

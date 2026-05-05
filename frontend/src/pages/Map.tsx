@@ -380,7 +380,7 @@ export default function GraduatesMapPage() {
       }),
     [counterpartScope, mapLanguage, selectedGraduationYearStart, selectedGraduationYearEnd],
   );
-  const { loading: counterpartLoading, items: counterpartItems } = useMapData(counterpartParams);
+  const { loading: counterpartLoading, items: counterpartItems } = useMapData(counterpartParams, { includeCities: false });
 
   const worldBounds = useMemo(() => L.latLngBounds(L.latLng(-60, -180), L.latLng(85, 180)), []);
   const greeceBounds = useMemo(

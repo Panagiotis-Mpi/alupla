@@ -444,6 +444,10 @@ export async function getGraduatesMap(params: QueryParams = {}): Promise<{ ok: t
   return cachedMapApi(`/map/graduates${toQueryString(params)}`);
 }
 
+export async function getMapSummary(params: QueryParams = {}): Promise<{ ok: true; items: GraduatesMapItem[]; total: number; cities: MapCityPoint[] }> {
+  return cachedMapApi(`/map/summary${toQueryString(params)}`);
+}
+
 export async function getMapYearRange(): Promise<MapYearRangeResponse> {
   return cachedMapApi(`/map/years`);
 }
