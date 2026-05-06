@@ -1221,7 +1221,7 @@ html.accessibility-high-contrast .alupla-map .leaflet-tile-container{
   background:transparent !important;
 }
 html.accessibility-high-contrast .alupla-map .leaflet-tile{
-  filter:none !important;
+  filter:brightness(.9) saturate(.95) !important;
   opacity:1 !important;
   mix-blend-mode:normal !important;
 }
