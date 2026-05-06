@@ -3,6 +3,8 @@ import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/sequelize";
 import { NextFunction, Request, Response } from "express";
 import { StudyProgram } from "../models/StudyProgram";
+import { Region } from "../models/Region";
+import { ensureLocalizedRegionNames } from "../services/mapLocation.service";
 import {
   buildRegionLookup,
   buildWhere,
@@ -16,6 +18,32 @@ type PublicStatsCacheEntry = { expires: number; body: Record<string, unknown> };
 // Κρατά προσωρινά δεδομένα για πιο γρήγορη απόκριση.
 const publicStatsCache = new Map<string, PublicStatsCacheEntry>();
 const PUBLIC_STATS_CACHE_MS = 5 * 60 * 1000;
+
+async function localizedNamesForRegion(regionId: number | null | undefined, fallback: string) {
+  const safeFallback = String(fallback ?? "").trim();
+  if (!regionId) return { name_el: safeFallback, name_en: safeFallback };
+  const names = await ensureLocalizedRegionNames(Number(regionId));
+  return {
+    name_el: String(names.nameEl ?? safeFallback).trim() || safeFallback,
+    name_en: String(names.nameEn ?? safeFallback).trim() || safeFallback,
+  };
+}
+
+function mergeLocalizedCount(
+  map: Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number }>,
+  key: string,
+  item: { id?: number | null; name: string; name_el: string; name_en: string; count: number }
+) {
+  const current = map.get(key);
+  if (current) {
+    current.count += item.count;
+    if (!current.id && item.id) current.id = item.id;
+    if (!current.name_el && item.name_el) current.name_el = item.name_el;
+    if (!current.name_en && item.name_en) current.name_en = item.name_en;
+    return;
+  }
+  map.set(key, item);
+}
 
 // Διαβάζει cached δημόσια στατιστικά αν είναι ακόμα φρέσκα.
 function getPublicStatsCache(key: string) {
@@ -352,16 +380,21 @@ export async function publicStats(req: Request, res: Response) {
     );
 
     const { cityByName } = await buildRegionLookup();
-    const municipalityGroups = new Map<string, { name: string; count: number }>();
+    const municipalityGroups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number }>();
     for (const row of rawOriginMunicipalityDistribution) {
       const rawName = String(row.name ?? "").trim();
       if (!rawName) continue;
       const canonical = cityByName.get(normalizePlaceName(rawName));
-      const label = canonical ? String(canonical.name) : rawName;
-      const key = normalizePlaceName(label);
-      const current = municipalityGroups.get(key) ?? { name: label, count: 0 };
-      current.count += Number(row.count) || 0;
-      municipalityGroups.set(key, current);
+      const baseName = canonical ? String(canonical.name) : rawName;
+      const names = await localizedNamesForRegion(canonical?.id, baseName);
+      const key = canonical?.id ? `city:${Number(canonical.id)}` : `name:${normalizePlaceName(names.name_el || baseName)}`;
+      mergeLocalizedCount(municipalityGroups, key, {
+        id: canonical?.id ?? null,
+        name: names.name_el || baseName,
+        name_el: names.name_el || baseName,
+        name_en: names.name_en || names.name_el || baseName,
+        count: Number(row.count) || 0,
+      });
     }
 
     const foreignCityWhere = sqlWhere
@@ -380,10 +413,17 @@ export async function publicStats(req: Request, res: Response) {
     for (const row of rawForeignCityDistribution) {
       const rawName = String(row.name ?? "").trim();
       if (!rawName) continue;
-      const key = normalizePlaceName(rawName);
-      const current = municipalityGroups.get(key) ?? { name: rawName, count: 0 };
-      current.count += Number(row.count) || 0;
-      municipalityGroups.set(key, current);
+      const canonical = cityByName.get(normalizePlaceName(rawName));
+      const baseName = canonical ? String(canonical.name) : rawName;
+      const names = await localizedNamesForRegion(canonical?.id, baseName);
+      const key = canonical?.id ? `city:${Number(canonical.id)}` : `name:${normalizePlaceName(names.name_el || baseName)}`;
+      mergeLocalizedCount(municipalityGroups, key, {
+        id: canonical?.id ?? null,
+        name: names.name_el || baseName,
+        name_el: names.name_el || baseName,
+        name_en: names.name_en || names.name_el || baseName,
+        count: Number(row.count) || 0,
+      });
     }
 
     const originMunicipalityDistribution = Array.from(municipalityGroups.values())
@@ -392,23 +432,52 @@ export async function publicStats(req: Request, res: Response) {
         return a.name.localeCompare(b.name, "el");
       });
 
-    const originCountryDistribution = await sequelize.query<{ name_el: string; name_en: string; count: number }>(
-      `SELECT CASE
+    const rawOriginCountryDistribution = await sequelize.query<{ id: number | null; name: string; count: number }>(
+      `SELECT g.origin_country_region_id as id,
+              CASE
                 WHEN COALESCE(NULLIF(TRIM(g.origin_country), ''), '') = '' THEN 'Άγνωστη χώρα'
                 WHEN LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) IN ('ελλαδα', 'greece') THEN 'Ελλάδα'
                 ELSE TRIM(g.origin_country)
-              END as name_el,
-              CASE
-                WHEN COALESCE(NULLIF(TRIM(g.origin_country), ''), '') = '' THEN 'Unknown country'
-                WHEN LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) IN ('ελλαδα', 'greece') THEN 'Greece'
-                ELSE TRIM(g.origin_country)
-              END as name_en,
+              END as name,
               CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${sqlWhere}
-       GROUP BY 1, 2
-       ORDER BY count DESC, name_el ASC`,
+       GROUP BY g.origin_country_region_id, 2
+       ORDER BY count DESC, name ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
+
+    const countryRows = await Region.findAll({ attributes: ["id", "name"], where: { type: "COUNTRY" } });
+    const countryByName = new Map<string, any>();
+    for (const country of countryRows as any[]) {
+      const key = normalizePlaceName(country.name);
+      if (key && !countryByName.has(key)) countryByName.set(key, country);
+    }
+
+    const countryGroups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number }>();
+    for (const row of rawOriginCountryDistribution) {
+      const rawName = String(row.name ?? "").trim();
+      if (!rawName) continue;
+      const matchedCountry = Number(row.id) ? { id: Number(row.id), name: rawName } : countryByName.get(normalizePlaceName(rawName));
+      const names = rawName === "Άγνωστη χώρα"
+        ? { name_el: "Άγνωστη χώρα", name_en: "Unknown country" }
+        : rawName === "Ελλάδα"
+          ? { name_el: "Ελλάδα", name_en: "Greece" }
+          : await localizedNamesForRegion(matchedCountry?.id, rawName);
+      const key = matchedCountry?.id ? `country:${Number(matchedCountry.id)}` : `name:${normalizePlaceName(names.name_el || rawName)}`;
+      mergeLocalizedCount(countryGroups, key, {
+        id: matchedCountry?.id ?? null,
+        name: names.name_el || rawName,
+        name_el: names.name_el || rawName,
+        name_en: names.name_en || names.name_el || rawName,
+        count: Number(row.count) || 0,
+      });
+    }
+
+    const originCountryDistribution = Array.from(countryGroups.values())
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.name_el.localeCompare(b.name_el, "el");
+      });
 
     const abroadSummaryRow = await sequelize.query<{ abroad_count: number }>(
       `SELECT CAST(COUNT(*) AS INTEGER) as abroad_count
@@ -449,6 +518,15 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
+    const localizedOriginRegionDistribution = await Promise.all(originRegionDistribution.map(async (r) => {
+      const names = await localizedNamesForRegion(r.id, String(r.name_el ?? r.name_en ?? ""));
+      return {
+        ...r,
+        name_el: names.name_el || r.name_el || 'Άγνωστη περιοχή',
+        name_en: names.name_en || r.name_en || 'Unknown region',
+      };
+    }));
+
     const body = {
       ok: true,
       total,
@@ -466,11 +544,7 @@ export async function publicStats(req: Request, res: Response) {
       avg_grade_by_term: [],
       degree_grade_bins: degreeGradeBins,
       gender_by_entry_year: genderByEntryYear,
-      origin_region_distribution: originRegionDistribution.map((r) => ({
-        ...r,
-        name_el: r.name_el ?? 'Άγνωστη περιοχή',
-        name_en: r.name_en ?? 'Unknown region',
-      })),
+      origin_region_distribution: localizedOriginRegionDistribution,
       origin_country_distribution: originCountryDistribution,
       abroad_count: Number(abroadSummaryRow?.[0]?.abroad_count ?? 0),
       abroad_pct: total > 0 ? Math.round((Number(abroadSummaryRow?.[0]?.abroad_count ?? 0) / total) * 1000) / 10 : 0,
