@@ -1212,7 +1212,7 @@ html.accessibility-high-contrast .alupla-city-bubble-number-gender{
 }
 
 html.accessibility-high-contrast .alupla-map .leaflet-container{
-  background:#d9e2e8 !important;
+  background:#26323a !important;
 }
 html.accessibility-high-contrast .alupla-map .leaflet-map-pane,
 html.accessibility-high-contrast .alupla-map .leaflet-tile-pane,
@@ -1221,7 +1221,7 @@ html.accessibility-high-contrast .alupla-map .leaflet-tile-container{
   background:transparent !important;
 }
 html.accessibility-high-contrast .alupla-map .leaflet-tile{
-  filter:brightness(.9) saturate(.95) !important;
+  filter:grayscale(1) contrast(2.35) brightness(.72) !important;
   opacity:1 !important;
   mix-blend-mode:normal !important;
 }
@@ -1653,13 +1653,17 @@ html.accessibility-high-contrast .accessibility-trigger-head{
 html.accessibility-high-contrast .accessibility-trigger-line{
   stroke:#7fffd4 !important;
 }
-html.accessibility-high-contrast .leaflet-container,
-html.accessibility-high-contrast .alupla-map .leaflet-container,
 html.accessibility-high-contrast .leaflet-control,
 html.accessibility-high-contrast .leaflet-popup-content-wrapper,
 html.accessibility-high-contrast .leaflet-popup-tip,
 html.accessibility-high-contrast .leaflet-bar a{
   background:#000000 !important;
+  color:#7fffd4 !important;
+  border-color:#2cf5c8 !important;
+}
+html.accessibility-high-contrast .leaflet-container,
+html.accessibility-high-contrast .alupla-map .leaflet-container{
+  background:#26323a !important;
   color:#7fffd4 !important;
   border-color:#2cf5c8 !important;
 }
@@ -1682,7 +1686,7 @@ html.accessibility-high-contrast .leaflet-popup-pane{
   background:transparent !important;
 }
 html.accessibility-high-contrast .leaflet-tile{
-  filter:grayscale(100%) contrast(150%) brightness(55%) sepia(100%) hue-rotate(105deg) saturate(170%) !important;
+  filter:grayscale(1) contrast(2.35) brightness(.72) !important;
   opacity:1 !important;
   mix-blend-mode:normal !important;
 }
@@ -1740,11 +1744,11 @@ html.accessibility-high-contrast .map-menu-item.active{
   color:#000000 !important;
 }
 html.accessibility-high-contrast .map-year-ruler-track{
-  background:repeating-linear-gradient(to right,#2cf5c8 0 1px,transparent 1px calc(100% / 12)),linear-gradient(#07352f,#07352f) !important;
-  box-shadow:inset 0 0 0 1px #2cf5c8 !important;
+  background:repeating-linear-gradient(to right,rgba(0,0,0,.32) 0 1px,transparent 1px calc(100% / 12)),linear-gradient(#d8dde3,#d8dde3) !important;
+  box-shadow:inset 0 0 0 1px #7fffd4 !important;
 }
 html.accessibility-high-contrast .map-year-ruler-fill{
-  background:#ffd400 !important;
+  background:#000000 !important;
   box-shadow:none !important;
 }
 html.accessibility-high-contrast .map-timeline-slider::-webkit-slider-thumb{
