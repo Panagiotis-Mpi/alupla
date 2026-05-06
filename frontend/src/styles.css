@@ -2743,3 +2743,34 @@ html.accessibility-high-contrast .alupla-map .leaflet-tile{
   opacity:1 !important;
   mix-blend-mode:normal !important;
 }
+
+html.accessibility-high-contrast .map-year-ruler-track{
+  background:repeating-linear-gradient(to right,rgba(0,0,0,.34) 0 1px,transparent 1px calc(100% / 12)),linear-gradient(#d9d9d9,#d9d9d9) !important;
+  box-shadow:inset 0 0 0 1px #14f5c8 !important;
+}
+html.accessibility-high-contrast .map-year-ruler-fill{
+  background:#4b5563 !important;
+  box-shadow:inset 0 0 0 1px #7fffd4 !important;
+}
+html.accessibility-high-contrast .map-timeline-slider-start{
+  z-index:7 !important;
+}
+html.accessibility-high-contrast .map-timeline-slider-end{
+  z-index:8 !important;
+}
+html.accessibility-high-contrast .map-timeline-slider::-webkit-slider-thumb{
+  width:30px !important;
+  height:30px !important;
+  background:#ffd400 !important;
+  border:5px solid #000000 !important;
+  box-shadow:0 0 0 3px #14f5c8 !important;
+  opacity:1 !important;
+}
+html.accessibility-high-contrast .map-timeline-slider::-moz-range-thumb{
+  width:20px !important;
+  height:20px !important;
+  background:#ffd400 !important;
+  border:5px solid #000000 !important;
+  box-shadow:0 0 0 3px #14f5c8 !important;
+  opacity:1 !important;
+}
