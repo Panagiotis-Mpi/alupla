@@ -2774,3 +2774,72 @@ html.accessibility-high-contrast .map-timeline-slider::-moz-range-thumb{
   box-shadow:0 0 0 3px #14f5c8 !important;
   opacity:1 !important;
 }
+
+html.accessibility-high-contrast .map-year-ruler{
+  overflow:visible !important;
+}
+html.accessibility-high-contrast .map-year-ruler-track{
+  left:18px !important;
+  right:18px !important;
+  top:20px !important;
+  height:12px !important;
+  z-index:1 !important;
+  background:repeating-linear-gradient(to right,rgba(0,0,0,.3) 0 1px,transparent 1px calc(100% / 12)),linear-gradient(#cfd4da,#cfd4da) !important;
+  border:1px solid #14f5c8 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .map-year-ruler-fill{
+  left:calc(18px + var(--range-left)) !important;
+  right:calc(18px + var(--range-right)) !important;
+  top:20px !important;
+  height:12px !important;
+  z-index:2 !important;
+  background:#2f3742 !important;
+  border:1px solid #ffd400 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .map-timeline-slider{
+  left:18px !important;
+  right:18px !important;
+  width:calc(100% - 36px) !important;
+  top:2px !important;
+  height:48px !important;
+  background:transparent !important;
+  opacity:1 !important;
+  pointer-events:none !important;
+}
+html.accessibility-high-contrast .map-timeline-slider-start{
+  z-index:30 !important;
+}
+html.accessibility-high-contrast .map-timeline-slider-end{
+  z-index:31 !important;
+}
+html.accessibility-high-contrast .map-timeline-slider::-webkit-slider-runnable-track{
+  height:12px !important;
+  background:transparent !important;
+  border:0 !important;
+}
+html.accessibility-high-contrast .map-timeline-slider::-moz-range-track{
+  height:12px !important;
+  background:transparent !important;
+  border:0 !important;
+}
+html.accessibility-high-contrast .map-timeline-slider::-webkit-slider-thumb{
+  width:34px !important;
+  height:34px !important;
+  margin-top:-11px !important;
+  background:#ffd400 !important;
+  border:5px solid #000000 !important;
+  box-shadow:0 0 0 4px #14f5c8 !important;
+  opacity:1 !important;
+  pointer-events:auto !important;
+}
+html.accessibility-high-contrast .map-timeline-slider::-moz-range-thumb{
+  width:24px !important;
+  height:24px !important;
+  background:#ffd400 !important;
+  border:5px solid #000000 !important;
+  box-shadow:0 0 0 4px #14f5c8 !important;
+  opacity:1 !important;
+  pointer-events:auto !important;
+}
