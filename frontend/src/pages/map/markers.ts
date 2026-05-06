@@ -8,7 +8,7 @@ export type MapScope = "greece" | "abroad";
 export const countMarkerPalette = ["#eff6ff", "#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#3b82f6"];
 
 export const lightMapTileUrl = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
-export const highContrastMapTileUrl = "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png";
+export const highContrastMapTileUrl = lightMapTileUrl;
 export const mapTileAttribution =
   "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/attributions\">CARTO</a>";
 

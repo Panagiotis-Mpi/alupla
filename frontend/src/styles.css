@@ -2843,3 +2843,11 @@ html.accessibility-high-contrast .map-timeline-slider::-moz-range-thumb{
   opacity:1 !important;
   pointer-events:auto !important;
 }
+html.accessibility-high-contrast .alupla-map .leaflet-tile-pane img.leaflet-tile{
+  filter:invert(1) brightness(0.58) contrast(1.42) saturate(0.72) sepia(0.18) hue-rotate(185deg) !important;
+  opacity:1 !important;
+  mix-blend-mode:normal !important;
+}
+html.accessibility-high-contrast .alupla-map .leaflet-container{
+  background:#24282d !important;
+}
