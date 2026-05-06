@@ -1,6 +1,6 @@
 // Κοινά helpers για εμφάνιση, φίλτρα και exports των logs.
 import type { TFunction } from "i18next";
-import type { ActivityLog } from "../../lib/api";
+import type { ActivityLog, StudyProgram } from "../../lib/api";
 
 export const PAGE_SIZE = 200;
 
@@ -184,9 +184,10 @@ export function upperFileType(value: string) {
 type LocalizerArgs = {
   activeLang: "gr" | "en";
   t: TFunction;
+  studyPrograms?: StudyProgram[];
 };
 
-export function createLogsLocalizer({ activeLang, t }: LocalizerArgs) {
+export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: LocalizerArgs) {
   const toLocalizedAction = (value: unknown, log?: ActivityLog) => {
     const key = String(value ?? "").trim();
     if ((key === "export_csv" || key === "export_xlsx" || key === "export_logs") && String(log?.entity_type ?? "logs").trim() === "logs") {
@@ -313,6 +314,38 @@ export function createLogsLocalizer({ activeLang, t }: LocalizerArgs) {
 
   const joinParts = (parts: Array<string | null | undefined>) => parts.map((part) => String(part ?? "").trim()).filter(Boolean).join(", ");
 
+  const normalizeLookup = (value: unknown) => String(value ?? "").trim().toLocaleLowerCase("el-GR");
+
+  const studyProgramById = new Map(studyPrograms.map((program) => [Number(program.id), program]));
+  const studyProgramByCode = new Map(studyPrograms.map((program) => [normalizeLookup(program.code), program]));
+  const studyProgramByName = new Map<string, StudyProgram>();
+
+  for (const program of studyPrograms) {
+    for (const value of [program.name_el, program.name_en]) {
+      const key = normalizeLookup(value);
+      if (key && !studyProgramByName.has(key)) studyProgramByName.set(key, program);
+    }
+  }
+
+  const localizedStudyProgramName = (details: Record<string, any>) => {
+    const directName = activeLang === "en" ? details.name_en : details.name_el;
+    if (String(directName ?? "").trim()) return String(directName).trim();
+
+    const id = Number(details.study_program_id);
+    const byId = Number.isFinite(id) ? studyProgramById.get(id) : undefined;
+    const byCode = studyProgramByCode.get(normalizeLookup(details.code));
+    const byName = studyProgramByName.get(normalizeLookup(details.name ?? details.name_el ?? details.name_en));
+    const program = byId ?? byCode ?? byName;
+
+    if (program) {
+      const preferred = activeLang === "en" ? program.name_en : program.name_el;
+      const fallback = activeLang === "en" ? program.name_el : program.name_en;
+      return String(preferred ?? fallback ?? program.code ?? "").trim();
+    }
+
+    return String(details.name ?? details.name_el ?? details.name_en ?? "").trim();
+  };
+
   const formatChangedFields = (value: unknown) => {
     const items = Array.isArray(value) ? value : [value];
     const names = items.map((item) => localFieldName(String(item ?? ""))).filter(Boolean);
@@ -408,9 +441,9 @@ export function createLogsLocalizer({ activeLang, t }: LocalizerArgs) {
 
     if (action === "update_graduate") return "";
 
-    if (details.code || details.name || details.name_el) {
+    if (details.code || details.name || details.name_el || details.name_en) {
       const code = String(details.code ?? "").trim();
-      const name = String(details.name ?? details.name_el ?? "").trim();
+      const name = localizedStudyProgramName(details);
       return joinParts([code ? `${localDetailLabel("code")}: ${code}` : "", name ? `${localDetailLabel("name")}: ${name}` : ""]);
     }
 

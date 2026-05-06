@@ -252,7 +252,7 @@ export async function createStudyProgram(req: Request, res: Response, next: Next
       action: "create_study_program",
       entity_type: "study_program",
       entity_id: item.id,
-      details: { code, name_el: nameEl }
+      details: { code, name_el: nameEl, name_en: nameEn }
     });
 
     res.status(201).json({ ok: true, item });
@@ -350,7 +350,8 @@ export async function deleteStudyProgram(req: Request, res: Response, next: Next
 
     const details = {
       code: item.code,
-      name_el: item.name_el
+      name_el: item.name_el,
+      name_en: item.name_en
     };
 
     await item.destroy();

@@ -496,9 +496,9 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
 
   if (action === "update_graduate") return "";
 
-  if ((details as any).code || (details as any).name || (details as any).name_el) {
+  if ((details as any).code || (details as any).name || (details as any).name_el || (details as any).name_en) {
     const code = String((details as any).code ?? "").trim();
-    const name = String((details as any).name ?? (details as any).name_el ?? "").trim();
+    const name = String(lang === "en" ? (details as any).name_en ?? (details as any).name ?? (details as any).name_el : (details as any).name_el ?? (details as any).name ?? (details as any).name_en ?? "").trim();
     return [code ? `${localDetailLabel(lang, "code")}: ${code}` : "", name ? `${localDetailLabel(lang, "name")}: ${name}` : ""].filter(Boolean).join(", ");
   }
 

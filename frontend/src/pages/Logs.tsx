@@ -6,7 +6,9 @@ import {
   exportActivityLogsFile,
   getActivityLogFileSummary,
   listUsers,
+  listStudyPrograms,
   type ActivityLog,
+  type StudyProgram,
   type User,
 } from "../lib/api";
 import {
@@ -112,6 +114,7 @@ export default function Logs() {
   const [summaryRole, setSummaryRole] = React.useState<FileSummaryRole>("secretariat");
   const [fileSummary, setFileSummary] = React.useState<FileSummaryItem[]>([]);
   const [userOptions, setUserOptions] = React.useState<UserOption[]>([]);
+  const [studyPrograms, setStudyPrograms] = React.useState<StudyProgram[]>([]);
   const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -122,7 +125,7 @@ export default function Logs() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  const logsText = React.useMemo(() => createLogsLocalizer({ activeLang, t }), [activeLang, t]);
+  const logsText = React.useMemo(() => createLogsLocalizer({ activeLang, t, studyPrograms }), [activeLang, t, studyPrograms]);
 
   function setFilter<K extends keyof LogFilters>(key: K, value: LogFilters[K]) {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -163,6 +166,26 @@ export default function Logs() {
       cancelled = true;
     };
   }, [locale, visitorLabel]);
+
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function loadStudyPrograms() {
+      try {
+        const data = await listStudyPrograms();
+        if (cancelled) return;
+        setStudyPrograms(Array.isArray(data?.items) ? data.items : []);
+      } catch {
+        if (!cancelled) setStudyPrograms([]);
+      }
+    }
+
+    void loadStudyPrograms();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
 
   async function loadFileSummary(role: FileSummaryRole) {
