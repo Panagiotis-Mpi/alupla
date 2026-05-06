@@ -157,7 +157,7 @@ function buildBarChartOptions(options?: {
           font: { size: 13, weight: "600" },
           callback: function (_: any, index: number) {
             const label = String(labels[index] ?? "");
-            return options?.xTickFormatter ? options.xTickFormatter(label) : label;
+            return options?.xTickFormatter ? options.xTickFormatter(label) : wrapAxisLabel(label, 18, 3);
           },
         },
         grid: { display: false },
@@ -430,24 +430,29 @@ export function buildLineDataset(label: string, data: number[], color: string, b
 }
 
 export function wrapAxisLabel(label: string, maxLineLength = 18, maxLines = 3) {
-  const words = String(label ?? "").split(/\s+/).filter(Boolean);
+  const text = String(label ?? "").trim();
+  const words = text.split(/\s+/).filter(Boolean);
   if (!words.length) return "";
 
   const lines: string[] = [];
   let current = "";
 
   words.forEach((word) => {
-    const next = current ? `${current} ${word}` : word;
-    if (next.length <= maxLineLength || !current) {
-      current = next;
-      return;
-    }
-    lines.push(current);
-    current = word;
+    const pieces = word.length > maxLineLength ? word.match(new RegExp(`.{1,${maxLineLength}}`, "g")) ?? [word] : [word];
+
+    pieces.forEach((piece) => {
+      const next = current ? `${current} ${piece}` : piece;
+      if (next.length <= maxLineLength || !current) {
+        current = next;
+        return;
+      }
+      lines.push(current);
+      current = piece;
+    });
   });
 
   if (current) lines.push(current);
-  if (lines.length <= maxLines) return lines;
+  if (lines.length <= maxLines) return lines.length === 1 ? lines[0] : lines;
 
   const visible = lines.slice(0, maxLines);
   const tail = lines.slice(maxLines - 1).join(" ");
@@ -455,10 +460,17 @@ export function wrapAxisLabel(label: string, maxLineLength = 18, maxLines = 3) {
   return visible;
 }
 
+function axisLabelLineCount(label: string, maxLineLength = 18, maxLines = 3) {
+  const wrapped = wrapAxisLabel(label, maxLineLength, maxLines);
+  return Array.isArray(wrapped) ? wrapped.length : 1;
+}
+
 function chartContentWidth(labels: string[], datasetCount = 1, minLabelWidth = 68, maxLabelWidth = 128) {
   const longest = labels.reduce((max, label) => Math.max(max, String(label ?? "").length), 0);
-  const labelWidth = Math.max(minLabelWidth, Math.min(maxLabelWidth, longest * 5 + 20));
-  return Math.max(640, labels.length * Math.max(labelWidth, 44 * Math.max(1, datasetCount)));
+  const longestWrapped = labels.reduce((max, label) => Math.max(max, axisLabelLineCount(String(label ?? ""), 18, 3)), 1);
+  const labelWidth = Math.max(minLabelWidth, Math.min(maxLabelWidth, longest * 5 + 28));
+  const readableLabelWidth = longestWrapped > 1 ? Math.max(labelWidth, Math.min(maxLabelWidth + 24, 132)) : labelWidth;
+  return Math.max(640, labels.length * Math.max(readableLabelWidth, 44 * Math.max(1, datasetCount)));
 }
 
 function useCompactStatisticsLayout() {
@@ -805,7 +817,17 @@ export function ChartCard(props: {
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
-              x: { offset: false, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
+              x: {
+                offset: false,
+                ticks: {
+                  autoSkip: false,
+                  maxRotation: 0,
+                  minRotation: 0,
+                  callback: function (_: any, index: number) {
+                    return wrapAxisLabel(String(props.labels[index] ?? ""), 18, 3);
+                  },
+                },
+              },
               y: { beginAtZero: true, ticks: { precision: 0 } },
             },
             layout: { padding: { left: 0, right: 0 } },
