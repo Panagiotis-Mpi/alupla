@@ -725,7 +725,7 @@ html.accessibility-high-contrast .leaflet-popup-tip{
 }
 html.accessibility-high-contrast .leaflet-container{
   border:2px solid #000000 !important;
-  background:#dbe4ea !important;
+  background:#0b1117 !important;
 }
 html.accessibility-high-contrast .leaflet-bar a{
   color:#000000 !important;
@@ -735,7 +735,7 @@ html.accessibility-high-contrast .leaflet-bar a:hover{
   color:#ffffff !important;
 }
 html.accessibility-high-contrast .leaflet-tile{
-  filter:grayscale(100%) contrast(135%) brightness(88%);
+  filter:none;
 }
 html.accessibility-high-contrast img:not(.leaflet-tile),
 html.accessibility-high-contrast video,
@@ -2734,3 +2734,12 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
 .logs-mobile-pagination{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:nowrap;width:100%}
 .logs-mobile-pagination .btn{width:52px!important;min-width:52px!important;flex:0 0 auto!important}
 .logs-mobile-pagination .badge{width:52px!important;min-width:52px!important;max-width:52px!important;flex:0 0 52px!important;padding:0!important}
+
+html.accessibility-high-contrast .alupla-map .leaflet-container{
+  background:#071116 !important;
+}
+html.accessibility-high-contrast .alupla-map .leaflet-tile{
+  filter:none !important;
+  opacity:1 !important;
+  mix-blend-mode:normal !important;
+}
