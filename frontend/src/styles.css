@@ -2736,11 +2736,11 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
 .logs-mobile-pagination .badge{width:52px!important;min-width:52px!important;max-width:52px!important;flex:0 0 52px!important;padding:0!important}
 
 html.accessibility-high-contrast .alupla-map .leaflet-container{
-  background:#071116 !important;
+  background:#5b666d !important;
 }
 html.accessibility-high-contrast .alupla-map .leaflet-tile{
-  filter:none !important;
-  opacity:1 !important;
+  filter:grayscale(1) contrast(1.45) brightness(1.08) sepia(.16) hue-rotate(215deg) saturate(1.08) !important;
+  opacity:.88 !important;
   mix-blend-mode:normal !important;
 }
 
