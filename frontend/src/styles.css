@@ -2844,10 +2844,16 @@ html.accessibility-high-contrast .map-timeline-slider::-moz-range-thumb{
   pointer-events:auto !important;
 }
 html.accessibility-high-contrast .alupla-map .leaflet-tile-pane img.leaflet-tile{
-  filter:invert(1) brightness(0.58) contrast(1.42) saturate(0.72) sepia(0.18) hue-rotate(185deg) !important;
+  filter:brightness(.72) contrast(1.08) saturate(.92) !important;
   opacity:1 !important;
   mix-blend-mode:normal !important;
+  background:transparent !important;
+}
+html.accessibility-high-contrast .alupla-map .leaflet-tile-pane,
+html.accessibility-high-contrast .alupla-map .leaflet-tile-container,
+html.accessibility-high-contrast .alupla-map .leaflet-layer{
+  background:transparent !important;
 }
 html.accessibility-high-contrast .alupla-map .leaflet-container{
-  background:#24282d !important;
+  background:#c3ccd2 !important;
 }
