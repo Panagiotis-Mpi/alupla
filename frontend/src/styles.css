@@ -2861,21 +2861,33 @@ html.accessibility-high-contrast .auth-page-shell{
   width:100vw !important;
   margin-left:calc(50% - 50vw) !important;
   margin-right:calc(50% - 50vw) !important;
-  background:linear-gradient(180deg,#eef4ff 0%,#ffffff 65%) !important;
-  color:#0f172a !important;
+  background:#000000 !important;
+  color:#7fffd4 !important;
 }
 html.accessibility-high-contrast .auth-page-shell .auth-form-card{
-  background:#ffffff !important;
-  color:#0f172a !important;
+  background:#000000 !important;
+  color:#7fffd4 !important;
   border-color:#14f5c8 !important;
-  box-shadow:0 10px 30px rgba(15,23,42,.08) !important;
+  box-shadow:none !important;
 }
 html.accessibility-high-contrast .auth-page-shell .auth-form-title,
 html.accessibility-high-contrast .auth-page-shell .auth-form-subtitle,
 html.accessibility-high-contrast .auth-page-shell .auth-form-label,
 html.accessibility-high-contrast .auth-page-shell .auth-form-links{
-  color:#0f172a !important;
+  color:#7fffd4 !important;
+}
+html.accessibility-high-contrast .auth-page-shell .auth-form-input{
+  background:#000000 !important;
+  color:#7fffd4 !important;
+  border-color:#14f5c8 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .auth-page-shell .auth-form-submit{
+  background:#ffd400 !important;
+  color:#000000 !important;
+  border-color:#14f5c8 !important;
+  box-shadow:none !important;
 }
 html.accessibility-high-contrast .auth-page-shell .auth-form-link{
-  color:#1e3a8a !important;
+  color:#7fffd4 !important;
 }
