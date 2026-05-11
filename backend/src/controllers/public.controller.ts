@@ -366,6 +366,58 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
+    const countByEntryYear = await sequelize.query<{ entry_year: number; count: number }>(
+      `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
+              CAST(COUNT(*) AS INTEGER) as count
+       FROM graduates g ${sqlWhere}
+       GROUP BY g.entry_year
+       ORDER BY g.entry_year ASC`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
+
+    const genderByRegionRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; male: number; female: number }>(
+      `SELECT r.id as id,
+              r.name as name_el,
+              r.name as name_en,
+              CAST(COUNT(*) AS INTEGER) as count,
+              CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
+              CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
+       FROM graduates g
+       LEFT JOIN regions r ON r.id = g.origin_region_id
+       ${originRegionWhere}
+       GROUP BY r.id, r.name
+       ORDER BY count DESC, r.name ASC`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
+
+    const avgGradeByRegionRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; avg: number }>(
+      `SELECT r.id as id,
+              r.name as name_el,
+              r.name as name_en,
+              CAST(COUNT(*) AS INTEGER) as count,
+              ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
+       FROM graduates g
+       LEFT JOIN regions r ON r.id = g.origin_region_id
+       ${originRegionWhere}
+       GROUP BY r.id, r.name
+       ORDER BY count DESC, r.name ASC`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
+
+    const avgYearsToDegreeByRegionRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; avg_years: number }>(
+      `SELECT r.id as id,
+              r.name as name_el,
+              r.name as name_en,
+              CAST(COUNT(*) AS INTEGER) as count,
+              ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
+       FROM graduates g
+       LEFT JOIN regions r ON r.id = g.origin_region_id
+       ${originRegionWhere}
+       GROUP BY r.id, r.name
+       ORDER BY count DESC, r.name ASC`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
+
     const municipalityWhere = sqlWhere
       ? `${sqlWhere} AND g.origin_municipality IS NOT NULL AND btrim(g.origin_municipality) <> ''`
       : `WHERE g.origin_municipality IS NOT NULL AND btrim(g.origin_municipality) <> ''`;
@@ -527,6 +579,33 @@ export async function publicStats(req: Request, res: Response) {
       };
     }));
 
+    const localizedGenderByRegion = await Promise.all(genderByRegionRaw.map(async (r) => {
+      const names = await localizedNamesForRegion(r.id, String(r.name_el ?? r.name_en ?? ""));
+      return {
+        ...r,
+        name_el: names.name_el || r.name_el || 'Άγνωστη περιοχή',
+        name_en: names.name_en || r.name_en || 'Unknown region',
+      };
+    }));
+
+    const localizedAvgGradeByRegion = await Promise.all(avgGradeByRegionRaw.map(async (r) => {
+      const names = await localizedNamesForRegion(r.id, String(r.name_el ?? r.name_en ?? ""));
+      return {
+        ...r,
+        name_el: names.name_el || r.name_el || 'Άγνωστη περιοχή',
+        name_en: names.name_en || r.name_en || 'Unknown region',
+      };
+    }));
+
+    const localizedAvgYearsToDegreeByRegion = await Promise.all(avgYearsToDegreeByRegionRaw.map(async (r) => {
+      const names = await localizedNamesForRegion(r.id, String(r.name_el ?? r.name_en ?? ""));
+      return {
+        ...r,
+        name_el: names.name_el || r.name_el || 'Άγνωστη περιοχή',
+        name_en: names.name_en || r.name_en || 'Unknown region',
+      };
+    }));
+
     const body = {
       ok: true,
       total,
@@ -543,8 +622,12 @@ export async function publicStats(req: Request, res: Response) {
       avg_grade_by_year: avgGradeByYear,
       avg_grade_by_term: [],
       degree_grade_bins: degreeGradeBins,
+      count_by_entry_year: countByEntryYear,
       gender_by_entry_year: genderByEntryYear,
       origin_region_distribution: localizedOriginRegionDistribution,
+      gender_by_region: localizedGenderByRegion,
+      avg_grade_by_region: localizedAvgGradeByRegion,
+      avg_years_to_degree_by_region: localizedAvgYearsToDegreeByRegion,
       origin_country_distribution: originCountryDistribution,
       abroad_count: Number(abroadSummaryRow?.[0]?.abroad_count ?? 0),
       abroad_pct: total > 0 ? Math.round((Number(abroadSummaryRow?.[0]?.abroad_count ?? 0) / total) * 1000) / 10 : 0,

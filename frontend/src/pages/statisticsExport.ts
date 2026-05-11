@@ -7,17 +7,21 @@ import { exportWorkbook } from "./map/mapExport";
 
 export type StatisticsChartId =
   | "byYear"
+  | "countByEntryYear"
   | "gender"
   | "birthYear"
   | "gradeByYear"
   | "gradeDistribution"
   | "genderByEntryYear"
+  | "gradeByRegion"
   | "originRegion"
+  | "genderByRegion"
   | "originMunicipality"
   | "originCountry"
   | "abroadShare"
   | "timeToDegreeByEntryYear"
   | "timeToDegreeDistribution"
+  | "timeToDegreeByRegion"
 ;
 
 type NamedCountRow = {
@@ -37,15 +41,19 @@ type NamedCountRow = {
 
 type StatisticsData = Partial<Record<
   | "by_year"
+  | "count_by_entry_year"
   | "gender_by_year"
   | "birth_year_distribution"
   | "avg_grade_by_year"
+  | "avg_grade_by_region"
   | "degree_grade_bins"
   | "gender_by_entry_year"
   | "origin_region_distribution"
+  | "gender_by_region"
   | "origin_municipality_distribution"
   | "origin_country_distribution"
   | "avg_years_to_degree_by_entry_year"
+  | "avg_years_to_degree_by_region"
   | "years_to_degree_distribution",
   NamedCountRow[]
 >> & {
@@ -80,15 +88,19 @@ type SheetBlock = {
 };
 
 const statisticsChartOrder: StatisticsChartId[] = [
-  "gender",
+  "byYear",
+  "countByEntryYear",
   "birthYear",
   "genderByEntryYear",
-  "byYear",
-  "gradeByYear",
+  "gender",
   "gradeDistribution",
+  "gradeByYear",
+  "gradeByRegion",
   "timeToDegreeByEntryYear",
   "timeToDegreeDistribution",
+  "timeToDegreeByRegion",
   "originRegion",
+  "genderByRegion",
   "originMunicipality",
   "originCountry",
   "abroadShare",
@@ -275,7 +287,7 @@ function buildSheets(args: BuildArgs) {
   const sheets = new Map<StatisticsChartId, SheetBlock>();
   const totalGraduates = num(args.total);
   const countByGraduationYear = new Map(rowsOf(data.by_year).map((row) => [num(row.year), num(row.count)]));
-  const countByEntryYear = new Map(rowsOf(data.gender_by_entry_year).map((row) => [num(row.entry_year), num(row.male) + num(row.female)]));
+  const countByEntryYear = new Map(rowsOf(data.count_by_entry_year).map((row) => [num(row.entry_year), num(row.count)]));
   const entryYearTotal = Array.from(countByEntryYear.values()).reduce((sum, value) => sum + value, 0);
 
   const byYearRows = rowsOf(data.by_year).map((row) => {
@@ -289,10 +301,30 @@ function buildSheets(args: BuildArgs) {
 
   sheets.set("byYear", {
     chartId: "byYear",
-    name: activeLang === "en" ? "Graduates by Graduation Year" : "Πλήθος αποφοίτων ανά έτος",
+    name: activeLang === "en" ? "Graduates by Graduation Year" : "Πλήθος αποφοίτων ανά έτος αποφοίτησης",
     rows: appendDistributionTotal(byYearRows, l.graduationYear, l.graduateCount, l.percentage, l.total),
     columnKinds: {
       [l.graduationYear]: "year",
+      [l.graduateCount]: "count",
+      [l.percentage]: "percentage",
+    },
+  });
+
+  const countByEntryYearRows = rowsOf(data.count_by_entry_year).map((row) => {
+    const count = num(row.count);
+    return {
+      [l.entryYear]: num(row.entry_year),
+      [l.graduateCount]: count,
+      [l.percentage]: percentOf(count, totalGraduates),
+    };
+  });
+
+  sheets.set("countByEntryYear", {
+    chartId: "countByEntryYear",
+    name: activeLang === "en" ? "Graduates by Entry Year" : "Πλήθος αποφοίτων ανά έτος εισαγωγής",
+    rows: appendDistributionTotal(countByEntryYearRows, l.entryYear, l.graduateCount, l.percentage, l.total),
+    columnKinds: {
+      [l.entryYear]: "year",
       [l.graduateCount]: "count",
       [l.percentage]: "percentage",
     },
@@ -352,7 +384,7 @@ function buildSheets(args: BuildArgs) {
 
   sheets.set("birthYear", {
     chartId: "birthYear",
-    name: activeLang === "en" ? "Graduate Distribution by Birth Year" : "Κατανομή αποφοίτων ανά έτος γέννησης",
+    name: activeLang === "en" ? "Graduates by Birth Year" : "Πλήθος αποφοίτων ανά έτος γέννησης",
     rows: appendDistributionTotal(birthYearRows, l.birthYear, l.graduateCount, l.percentage, l.total),
     columnKinds: {
       [l.birthYear]: "year",
@@ -411,6 +443,40 @@ function buildSheets(args: BuildArgs) {
       [l.graduationGradeRange]: "text",
       [l.graduateCount]: "count",
       [l.percentage]: "percentage",
+    },
+  });
+
+  const gradeByRegionRows = rowsOf(data.avg_grade_by_region).map((row) => {
+    const count = num(row.count);
+    return {
+      [l.regionOfOrigin]: localizedName(row, activeLang),
+      [l.graduateCount]: count,
+      [l.percentage]: percentOf(count, totalGraduates),
+      [l.averageGraduationGrade]: roundTo(row.avg, 2),
+    };
+  });
+  const weightedGradeRegionTotal = gradeByRegionRows.reduce((sum, row) => sum + num(row[l.graduateCount]) * num(row[l.averageGraduationGrade]), 0);
+  const gradeRegionCountTotal = gradeByRegionRows.reduce((sum, row) => sum + num(row[l.graduateCount]), 0);
+
+  sheets.set("gradeByRegion", {
+    chartId: "gradeByRegion",
+    name: activeLang === "en" ? "Average Graduation Grade by Region" : "Μέση βαθμολογία αποφοίτησης ανά περιφέρεια καταγωγής",
+    rows: gradeByRegionRows.length
+      ? [
+          ...gradeByRegionRows,
+          {
+            [l.regionOfOrigin]: l.total,
+            [l.graduateCount]: gradeRegionCountTotal,
+            [l.percentage]: gradeRegionCountTotal > 0 ? 100 : 0,
+            [l.averageGraduationGrade]: gradeRegionCountTotal > 0 ? roundTo(weightedGradeRegionTotal / gradeRegionCountTotal, 2) : 0,
+          },
+        ]
+      : gradeByRegionRows,
+    columnKinds: {
+      [l.regionOfOrigin]: "text",
+      [l.graduateCount]: "count",
+      [l.percentage]: "percentage",
+      [l.averageGraduationGrade]: "average",
     },
   });
 
@@ -474,6 +540,49 @@ function buildSheets(args: BuildArgs) {
       [l.regionOfOrigin]: "text",
       [l.graduateCount]: "count",
       [l.percentage]: "percentage",
+    },
+  });
+
+  const genderByRegionRows = rowsOf(data.gender_by_region).map((row) => {
+    const male = num(row.male);
+    const female = num(row.female);
+    const count = male + female;
+    return {
+      [l.regionOfOrigin]: localizedName(row, activeLang),
+      [l.maleCount]: male,
+      [l.femaleCount]: female,
+      [l.graduateCount]: count,
+      [l.malePercentage]: percentOf(male, count),
+      [l.femalePercentage]: percentOf(female, count),
+    };
+  });
+  const regionMaleTotal = sumValues(data.gender_by_region, (row) => row.male);
+  const regionFemaleTotal = sumValues(data.gender_by_region, (row) => row.female);
+  const regionGenderTotal = regionMaleTotal + regionFemaleTotal;
+
+  sheets.set("genderByRegion", {
+    chartId: "genderByRegion",
+    name: activeLang === "en" ? "Gender Distribution by Region" : "Κατανομή φύλου ανά περιφέρεια καταγωγής",
+    rows: genderByRegionRows.length
+      ? [
+          ...genderByRegionRows,
+          {
+            [l.regionOfOrigin]: l.total,
+            [l.maleCount]: regionMaleTotal,
+            [l.femaleCount]: regionFemaleTotal,
+            [l.graduateCount]: regionGenderTotal,
+            [l.malePercentage]: percentOf(regionMaleTotal, regionGenderTotal),
+            [l.femalePercentage]: percentOf(regionFemaleTotal, regionGenderTotal),
+          },
+        ]
+      : genderByRegionRows,
+    columnKinds: {
+      [l.regionOfOrigin]: "text",
+      [l.maleCount]: "count",
+      [l.femaleCount]: "count",
+      [l.graduateCount]: "count",
+      [l.malePercentage]: "percentage",
+      [l.femalePercentage]: "percentage",
     },
   });
 
@@ -584,6 +693,40 @@ function buildSheets(args: BuildArgs) {
     },
   });
 
+  const durationByRegionRows = rowsOf(data.avg_years_to_degree_by_region).map((row) => {
+    const count = num(row.count);
+    return {
+      [l.regionOfOrigin]: localizedName(row, activeLang),
+      [l.graduateCount]: count,
+      [l.percentage]: percentOf(count, totalGraduates),
+      [l.averageStudyDuration]: roundTo(row.avg_years, 2),
+    };
+  });
+  const weightedDurationRegionTotal = durationByRegionRows.reduce((sum, row) => sum + num(row[l.graduateCount]) * num(row[l.averageStudyDuration]), 0);
+  const durationRegionCountTotal = durationByRegionRows.reduce((sum, row) => sum + num(row[l.graduateCount]), 0);
+
+  sheets.set("timeToDegreeByRegion", {
+    chartId: "timeToDegreeByRegion",
+    name: activeLang === "en" ? "Average Study Duration by Region" : "Μέση διάρκεια σπουδών ανά περιφέρεια καταγωγής",
+    rows: durationByRegionRows.length
+      ? [
+          ...durationByRegionRows,
+          {
+            [l.regionOfOrigin]: l.total,
+            [l.graduateCount]: durationRegionCountTotal,
+            [l.percentage]: durationRegionCountTotal > 0 ? 100 : 0,
+            [l.averageStudyDuration]: durationRegionCountTotal > 0 ? roundTo(weightedDurationRegionTotal / durationRegionCountTotal, 2) : 0,
+          },
+        ]
+      : durationByRegionRows,
+    columnKinds: {
+      [l.regionOfOrigin]: "text",
+      [l.graduateCount]: "count",
+      [l.percentage]: "percentage",
+      [l.averageStudyDuration]: "duration",
+    },
+  });
+
   const durationDistributionRows = rowsOf(data.years_to_degree_distribution).map((row) => {
     const count = num(row.count);
     return {
@@ -608,7 +751,8 @@ function buildSheets(args: BuildArgs) {
   const blocks: SheetBlock[] = [];
   const usedChartIds = new Set<StatisticsChartId>();
   const graduationYearBlocks = selectedBlocksFor(["byYear", "gender", "gradeByYear"], sheets, selectedSet);
-  const entryYearBlocks = selectedBlocksFor(["genderByEntryYear", "timeToDegreeByEntryYear"], sheets, selectedSet);
+  const entryYearBlocks = selectedBlocksFor(["countByEntryYear", "genderByEntryYear", "timeToDegreeByEntryYear"], sheets, selectedSet);
+  const regionBlocks = selectedBlocksFor(["originRegion", "genderByRegion", "gradeByRegion", "timeToDegreeByRegion"], sheets, selectedSet);
 
   const graduationYearBlock = graduationYearBlocks.length > 1
     ? mergeBlocksByFirstColumn(activeLang === "en" ? "Graduation Year Statistics" : "Στατιστικά ανά έτος αποφοίτησης", "byYear", graduationYearBlocks)
@@ -626,6 +770,15 @@ function buildSheets(args: BuildArgs) {
   if (entryYearBlock) {
     blocks.push(entryYearBlock);
     blockChartIds(entryYearBlock).forEach((chartId) => usedChartIds.add(chartId));
+  }
+
+  const regionBlock = regionBlocks.length > 1
+    ? mergeBlocksByFirstColumn(activeLang === "en" ? "Region Statistics" : "Στατιστικά ανά περιφέρεια καταγωγής", "originRegion", regionBlocks)
+    : regionBlocks[0];
+
+  if (regionBlock) {
+    blocks.push(regionBlock);
+    blockChartIds(regionBlock).forEach((chartId) => usedChartIds.add(chartId));
   }
 
   statisticsChartOrder.forEach((chartId) => {
@@ -702,9 +855,9 @@ export function buildStatisticsExportFilename(args: BuildArgs, format: Statistic
   const chartCount = selected.length;
   const allSelected = chartCount === 0;
   const groupChartIds = {
-    demographics: ["gender", "birthYear", "genderByEntryYear"],
-    academic: ["byYear", "gradeByYear", "gradeDistribution", "timeToDegreeByEntryYear", "timeToDegreeDistribution"],
-    geography: ["originRegion", "originMunicipality", "originCountry", "abroadShare"],
+    demographics: ["byYear", "countByEntryYear", "birthYear", "genderByEntryYear", "gender"],
+    academic: ["gradeDistribution", "gradeByYear", "gradeByRegion", "timeToDegreeByEntryYear", "timeToDegreeDistribution", "timeToDegreeByRegion"],
+    geography: ["originRegion", "genderByRegion", "originMunicipality", "originCountry", "abroadShare"],
   } as const;
 
   const selectedSet = new Set(selected);

@@ -79,20 +79,23 @@ export default function Statistics() {
         key: "demographics" as const,
         label: t("groups.demographics"),
         charts: [
-          { id: "gender" as StatisticsChartId, label: t("sections.gender") },
+          { id: "byYear" as StatisticsChartId, label: t("sections.byYear") },
+          { id: "countByEntryYear" as StatisticsChartId, label: t("sections.countByEntryYear") },
           { id: "birthYear" as StatisticsChartId, label: t("sections.birthYear") },
           { id: "genderByEntryYear" as StatisticsChartId, label: t("sections.genderByEntryYear") },
+          { id: "gender" as StatisticsChartId, label: t("sections.gender") },
         ],
       },
       {
         key: "academic" as const,
         label: t("groups.academic"),
         charts: [
-          { id: "byYear" as StatisticsChartId, label: t("sections.byYear") },
-          { id: "gradeByYear" as StatisticsChartId, label: t("sections.gradeByYear") },
           { id: "gradeDistribution" as StatisticsChartId, label: t("sections.gradeDistribution") },
+          { id: "gradeByYear" as StatisticsChartId, label: t("sections.gradeByYear") },
+          { id: "gradeByRegion" as StatisticsChartId, label: t("sections.gradeByRegion") },
           { id: "timeToDegreeByEntryYear" as StatisticsChartId, label: t("sections.timeToDegreeByEntryYear") },
           { id: "timeToDegreeDistribution" as StatisticsChartId, label: t("sections.timeToDegreeDistribution") },
+          { id: "timeToDegreeByRegion" as StatisticsChartId, label: t("sections.timeToDegreeByRegion") },
         ],
       },
       {
@@ -100,6 +103,7 @@ export default function Statistics() {
         label: t("groups.geography"),
         charts: [
           { id: "originRegion" as StatisticsChartId, label: t("sections.originRegion") },
+          { id: "genderByRegion" as StatisticsChartId, label: t("sections.genderByRegion") },
           { id: "originMunicipality" as StatisticsChartId, label: t("sections.originMunicipality") },
           { id: "originCountry" as StatisticsChartId, label: t("sections.originCountry") },
           { id: "abroadShare" as StatisticsChartId, label: t("sections.abroadShare") },
@@ -255,13 +259,16 @@ export default function Statistics() {
     []
   );
 
+  const entryYears = seriesFromRows(data?.count_by_entry_year, { labelKey: "entry_year" });
   const birthYears = seriesFromRows(data?.birth_year_distribution, { labelKey: "year" });
   const avgGradesByYear = seriesFromRows(data?.avg_grade_by_year, { labelKey: "year", valueKey: "avg" });
+  const avgGradesByRegion = seriesFromRows(data?.avg_grade_by_region, { labelKey: "name", valueKey: "avg" });
   const gradeBins = seriesFromRows(data?.degree_grade_bins);
   const regions = seriesFromRows(data?.origin_region_distribution, { labelKey: "name" });
   const municipalities = seriesFromRows(data?.origin_municipality_distribution, { labelKey: "name" });
   const countries = seriesFromRows(data?.origin_country_distribution, { labelKey: "name" });
   const yearsToDegree = seriesFromRows(data?.avg_years_to_degree_by_entry_year, { labelKey: "entry_year", valueKey: "avg_years" });
+  const yearsToDegreeByRegion = seriesFromRows(data?.avg_years_to_degree_by_region, { labelKey: "name", valueKey: "avg_years" });
   const yearsToDegreeDistributionRaw = seriesFromRows(data?.years_to_degree_distribution);
 
   const yearsToDegreeDistribution = React.useMemo(() => {
@@ -289,6 +296,18 @@ export default function Statistics() {
 
     return { labels, values };
   }, [yearsToDegreeDistributionRaw]);
+
+  const genderByRegion = React.useMemo(() => {
+    const safeRows = Array.isArray(data?.gender_by_region) ? data.gender_by_region as NamedCountRow[] : [];
+    return {
+      labels: safeRows.map((row) => {
+        const value = activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name;
+        return String(value ?? "-");
+      }),
+      male: safeRows.map((row) => Number(row.male ?? 0)),
+      female: safeRows.map((row) => Number(row.female ?? 0)),
+    };
+  }, [activeLang, data]);
 
   const genderByEntryYearRows = React.useMemo(() => ((data?.gender_by_entry_year ?? []) as NamedCountRow[]), [data]);
 
@@ -452,7 +471,7 @@ export default function Statistics() {
     total,
     avgAge,
     avgGrade,
-    longestStudyYears,
+    earliestYear: longestStudyYears,
     busiestYear,
     busiestCity,
     selectedChartIds,
@@ -682,13 +701,17 @@ export default function Statistics() {
             genderChartOptions={genderChartOptions}
             countChartData={countChartData}
             countChartOptions={countChartOptions}
+            entryYears={entryYears}
             birthYears={birthYears}
             genderByEntryYearPies={genderByEntryYearPies}
             avgGradesByYear={avgGradesByYear}
+            avgGradesByRegion={avgGradesByRegion}
             gradeBins={gradeBins}
             yearsToDegree={yearsToDegree}
             yearsToDegreeDistribution={yearsToDegreeDistribution}
+            yearsToDegreeByRegion={yearsToDegreeByRegion}
             regions={regions}
+            genderByRegion={genderByRegion}
             municipalities={municipalities}
             countries={countries}
             total={total}
@@ -705,13 +728,17 @@ export default function Statistics() {
             genderChartOptions={genderChartOptions}
             countChartData={countChartData}
             countChartOptions={countChartOptions}
+            entryYears={entryYears}
             birthYears={birthYears}
             genderByEntryYearPies={genderByEntryYearPies}
             avgGradesByYear={avgGradesByYear}
+            avgGradesByRegion={avgGradesByRegion}
             gradeBins={gradeBins}
             yearsToDegree={yearsToDegree}
             yearsToDegreeDistribution={yearsToDegreeDistribution}
+            yearsToDegreeByRegion={yearsToDegreeByRegion}
             regions={regions}
+            genderByRegion={genderByRegion}
             municipalities={municipalities}
             countries={countries}
             total={total}
@@ -728,13 +755,17 @@ export default function Statistics() {
             genderChartOptions={genderChartOptions}
             countChartData={countChartData}
             countChartOptions={countChartOptions}
+            entryYears={entryYears}
             birthYears={birthYears}
             genderByEntryYearPies={genderByEntryYearPies}
             avgGradesByYear={avgGradesByYear}
+            avgGradesByRegion={avgGradesByRegion}
             gradeBins={gradeBins}
             yearsToDegree={yearsToDegree}
             yearsToDegreeDistribution={yearsToDegreeDistribution}
+            yearsToDegreeByRegion={yearsToDegreeByRegion}
             regions={regions}
+            genderByRegion={genderByRegion}
             municipalities={municipalities}
             countries={countries}
             total={total}
@@ -785,13 +816,17 @@ export default function Statistics() {
           genderChartOptions={genderChartOptions}
           countChartData={countChartData}
           countChartOptions={countChartOptions}
+          entryYears={entryYears}
           birthYears={birthYears}
           genderByEntryYearPies={genderByEntryYearPies}
           avgGradesByYear={avgGradesByYear}
+          avgGradesByRegion={avgGradesByRegion}
           gradeBins={gradeBins}
           yearsToDegree={yearsToDegree}
           yearsToDegreeDistribution={yearsToDegreeDistribution}
+          yearsToDegreeByRegion={yearsToDegreeByRegion}
           regions={regions}
+          genderByRegion={genderByRegion}
           municipalities={municipalities}
           countries={countries}
           total={total}

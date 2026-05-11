@@ -35,7 +35,11 @@
     "originCountry": "Graduates by country of origin",
     "abroadShare": "Greece and abroad graduate distribution",
     "timeToDegreeDistribution": "Study duration distribution",
-    "genderByEntryYear": "Gender distribution by entry year"
+    "genderByEntryYear": "Gender distribution by entry year",
+    "countByEntryYear": "Graduates by entry year",
+    "gradeByRegion": "Average graduation grade by region of origin",
+    "genderByRegion": "Gender distribution by region of origin",
+    "timeToDegreeByRegion": "Average study duration by region of origin"
   },
   "table": {
     "year": "Year",
@@ -74,15 +78,15 @@
   },
   "groups": {
     "overview": "Overview",
-    "demographics": "Demographics",
+    "demographics": "Counts and gender",
     "academic": "Academic insights",
     "geography": "Geographic distribution"
   },
   "groupText": {
     "overview": "Overall graduate snapshot with key indicators and broad trends.",
-    "demographics": "Statistics on age, gender and graduate demographic characteristics.",
-    "academic": "Statistics on grades, study duration and graduation years.",
-    "geography": "Statistics on graduate origin by region and city, along with geographic concentration charts."
+    "demographics": "Aggregated graduate counts and gender distribution in a clearer presentation order.",
+    "academic": "Statistics on graduation grades and study duration by year and region.",
+    "geography": "Statistics on graduate origin by region, city and country."
   },
   "summary": {
     "show": "Brief info",

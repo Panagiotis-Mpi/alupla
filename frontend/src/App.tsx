@@ -38,11 +38,11 @@ function TopNav() {
   const lang: "gr" | "en" = i18n.language?.startsWith("en") ? "en" : "gr";
 
   const visibleLinks = React.useMemo(() => {
-    const statistics = { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) };
     const map = { to: "/map", label: t("nav.map") };
+    const statistics = { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) };
 
     if (authRoute || !user) {
-      return [statistics, map];
+      return [map, statistics];
     }
 
     const graduates = { to: "/graduates", label: t("nav.graduates") };
@@ -55,8 +55,8 @@ function TopNav() {
 
     if (role === "super_admin") {
       return [
-        statistics,
         map,
+        statistics,
         graduates,
         academicData,
         { to: "/users", label: t("nav.users") },
@@ -64,7 +64,7 @@ function TopNav() {
       ];
     }
 
-    return [statistics, map, graduates, academicData];
+    return [map, statistics, graduates, academicData];
   }, [authRoute, lang, role, t, user]);
 
   const closeMenu = React.useCallback(() => setMenuOpen(false), []);

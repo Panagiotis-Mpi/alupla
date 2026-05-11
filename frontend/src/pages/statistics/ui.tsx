@@ -119,6 +119,7 @@ function buildBarChartOptions(options?: {
       scales: {
         x: {
           beginAtZero: options?.beginAtZero ?? true,
+          stacked: !!options?.stacked,
           min: options?.min,
           max: options?.max,
           ticks: { precision: yTickPrecision ?? 0, color: chartTickColor, callback: yTickCallback },
@@ -126,6 +127,7 @@ function buildBarChartOptions(options?: {
           border: { display: false },
         },
         y: {
+          stacked: !!options?.stacked,
           ticks: {
             autoSkip: false,
             color: "#334155",
@@ -635,6 +637,89 @@ export function BarChartCard(props: {
             scrollThreshold={props.scrollThreshold}
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+
+export function MultiBarChartCard(props: {
+  title: string;
+  labels: string[];
+  datasets: Array<{ label: string; values: number[]; color: string; borderColor?: string; dashed?: boolean; pointStyle?: "circle" | "square" | "diamond" }>;
+  height?: number;
+  minLabelWidth?: number;
+  maxLabelWidth?: number;
+  forceScrollable?: boolean;
+  scrollThreshold?: number;
+  chartId?: string;
+  stacked?: boolean;
+  yTickPrecision?: number;
+}) {
+  const highContrast = useHighContrastEnabled();
+  const palette = highContrast ? ["#ffd400", "#7fffd4", "#ffffff", "#ff8a00"] : props.datasets.map((dataset) => dataset.color);
+  const chartData = React.useMemo(
+    () => ({
+      labels: props.labels,
+      datasets: props.datasets.map((dataset, index) => {
+        const color = palette[index % palette.length] ?? dataset.color;
+        return {
+          label: dataset.label,
+          data: dataset.values,
+          borderColor: highContrast ? "#000000" : dataset.borderColor ?? color,
+          backgroundColor: color,
+          borderWidth: highContrast ? 2 : 1.5,
+          borderRadius: 8,
+          borderSkipped: false,
+          barPercentage: 0.62,
+          categoryPercentage: 0.72,
+          maxBarThickness: 42,
+        };
+      }),
+    }),
+    [highContrast, palette, props.datasets, props.labels],
+  );
+  const chartOptions = React.useMemo(
+    () =>
+      buildBarChartOptions({
+        labels: props.labels,
+        stacked: props.stacked,
+        yTickPrecision: props.yTickPrecision,
+      }),
+    [props.labels, props.stacked, props.yTickPrecision],
+  );
+  const ariaLabel = React.useMemo(() => {
+    const preview = props.labels
+      .slice(0, 5)
+      .map((label, index) => `${label}: ${props.datasets.map((dataset) => `${dataset.label} ${dataset.values[index] ?? 0}`).join(", ")}`)
+      .join("; ");
+    return preview ? `${props.title}. ${preview}` : props.title;
+  }, [props.datasets, props.labels, props.title]);
+
+  return (
+    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
+      <div className="topbar" style={compactTopbarStyle}>
+        <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.title}</h3>
+        <ChartLegendInset items={props.datasets.map((dataset, index) => ({
+          label: dataset.label,
+          color: palette[index % palette.length] ?? dataset.color,
+          borderColor: highContrast ? "#000000" : dataset.borderColor ?? dataset.color,
+          dashed: dataset.dashed,
+          pointStyle: dataset.pointStyle,
+        }))} />
+      </div>
+      <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
+        <ScrollableBarChart
+          height={props.height ?? 320}
+          labels={props.labels}
+          datasetCount={props.datasets.length}
+          minLabelWidth={props.minLabelWidth ?? 104}
+          maxLabelWidth={props.maxLabelWidth ?? 156}
+          data={chartData}
+          options={chartOptions}
+          forceScrollable={props.forceScrollable}
+          scrollThreshold={props.scrollThreshold}
+        />
       </div>
     </div>
   );
