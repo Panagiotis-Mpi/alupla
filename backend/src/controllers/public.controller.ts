@@ -349,6 +349,14 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
+    const originRegionJoin = `LEFT JOIN regions origin_region ON origin_region.id = g.origin_region_id
+       LEFT JOIN regions origin_parent_region ON origin_parent_region.id = origin_region.parent_id
+       LEFT JOIN regions r ON r.id = COALESCE(
+         g.origin_periphery_region_id,
+         CASE WHEN origin_region.type = 'PERIPHERY' THEN origin_region.id ELSE NULL END,
+         CASE WHEN origin_parent_region.type = 'PERIPHERY' THEN origin_parent_region.id ELSE NULL END
+       )`;
+
     const originRegionWhere = sqlWhere
       ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
       : `WHERE r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
@@ -359,7 +367,7 @@ export async function publicStats(req: Request, res: Response) {
               r.name as name_en,
               CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g
-       LEFT JOIN regions r ON r.id = g.origin_region_id
+       ${originRegionJoin}
        ${originRegionWhere}
        GROUP BY r.id, r.name
        ORDER BY count DESC, r.name ASC`,
@@ -383,7 +391,7 @@ export async function publicStats(req: Request, res: Response) {
               CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
               CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
        FROM graduates g
-       LEFT JOIN regions r ON r.id = g.origin_region_id
+       ${originRegionJoin}
        ${originRegionWhere}
        GROUP BY r.id, r.name
        ORDER BY count DESC, r.name ASC`,
@@ -397,7 +405,7 @@ export async function publicStats(req: Request, res: Response) {
               CAST(COUNT(*) AS INTEGER) as count,
               ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
        FROM graduates g
-       LEFT JOIN regions r ON r.id = g.origin_region_id
+       ${originRegionJoin}
        ${originRegionWhere}
        GROUP BY r.id, r.name
        ORDER BY count DESC, r.name ASC`,
@@ -411,7 +419,7 @@ export async function publicStats(req: Request, res: Response) {
               CAST(COUNT(*) AS INTEGER) as count,
               ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
        FROM graduates g
-       LEFT JOIN regions r ON r.id = g.origin_region_id
+       ${originRegionJoin}
        ${originRegionWhere}
        GROUP BY r.id, r.name
        ORDER BY count DESC, r.name ASC`,

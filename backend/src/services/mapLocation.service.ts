@@ -111,6 +111,22 @@ const COUNTRY_QUERY_ALIASES: Record<string, string> = {
   [normalizeRegionText("Κατω Χωρες")]: "Netherlands",
 };
 
+const GREECE_PERIPHERY_NAMES_EN: Record<string, string> = {
+  [normalizeRegionText("Αττική")]: "Attica",
+  [normalizeRegionText("Κεντρική Μακεδονία")]: "Central Macedonia",
+  [normalizeRegionText("Δυτική Μακεδονία")]: "Western Macedonia",
+  [normalizeRegionText("Ανατολική Μακεδονία και Θράκη")]: "Eastern Macedonia and Thrace",
+  [normalizeRegionText("Ήπειρος")]: "Epirus",
+  [normalizeRegionText("Θεσσαλία")]: "Thessaly",
+  [normalizeRegionText("Ιόνια Νησιά")]: "Ionian Islands",
+  [normalizeRegionText("Δυτική Ελλάδα")]: "Western Greece",
+  [normalizeRegionText("Στερεά Ελλάδα")]: "Central Greece",
+  [normalizeRegionText("Πελοπόννησος")]: "Peloponnese",
+  [normalizeRegionText("Βόρειο Αιγαίο")]: "North Aegean",
+  [normalizeRegionText("Νότιο Αιγαίο")]: "South Aegean",
+  [normalizeRegionText("Κρήτη")]: "Crete",
+};
+
 // Μετατρέπει συντεταγμένη/τιμή σε αριθμό.
 function toNumber(value: unknown) {
   const n = Number(value);
@@ -676,6 +692,15 @@ function localizedFromRegion(region: Partial<RegionLite> | null | undefined): Lo
   };
 }
 
+function localizedPeripheryNames(region: RegionLite): LocalizedRegionNames {
+  const nameEl = cleanRegionText(region.name) || cleanRegionText(region.name_el) || null;
+  const lookupKeys = [region.normalized_name, normalizeRegionText(region.name), normalizeRegionText(region.name_el)].filter((key): key is string => Boolean(key));
+  const mappedNameEn = lookupKeys.map((key) => GREECE_PERIPHERY_NAMES_EN[key]).find(Boolean) || null;
+  const currentEn = isUsableLocalizedName(region.name_en, "en") ? cleanRegionText(region.name_en) : null;
+  const nameEn = mappedNameEn || currentEn || (!hasGreekText(region.name) ? cleanRegionText(region.name) : null) || nameEl;
+  return { nameEl, nameEn };
+}
+
 // Παίρνει το πρώτο χρήσιμο όνομα από geocoding address.
 function firstAddressName(item: NominatimItem | null | undefined, lang: "el" | "en") {
   const details = item?.namedetails || {};
@@ -755,6 +780,18 @@ export async function ensureLocalizedRegionNames(regionId: number | null | undef
   const lookups = await loadRegionLookups();
   const region = lookups.byId.get(Number(regionId));
   if (!region) return { nameEl: null, nameEn: null };
+
+  if (region.type === "PERIPHERY") {
+    const names = localizedPeripheryNames(region);
+    const payload: Record<string, unknown> = {};
+    if (names.nameEl && names.nameEl !== region.name_el) payload.name_el = names.nameEl;
+    if (names.nameEn && names.nameEn !== region.name_en) payload.name_en = names.nameEn;
+    if (Object.keys(payload).length) {
+      await Region.update(payload, { where: { id: region.id } });
+      clearLocationCaches();
+    }
+    return names;
+  }
 
   const currentEl = isUsableLocalizedName(region.name_el, "el") ? region.name_el : null;
   const currentEn = isUsableLocalizedName(region.name_en, "en") ? region.name_en : null;
