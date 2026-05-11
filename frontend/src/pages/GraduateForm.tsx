@@ -85,6 +85,16 @@ function getResolvedCountryId(form: Partial<Graduate>, countries: Region[], gree
   return greeceCountry ? Number(greeceCountry.id) : null;
 }
 
+function getRegionDisplayName(item: Region, lang: string) {
+  return lang === "en" ? item.name_en || item.name_el || item.name : item.name_el || item.name;
+}
+
+async function loadRegionChildren(type: Region["type"], parentId: number) {
+  if (!Number.isFinite(parentId) || parentId <= 0) return [];
+  const response = await listRegions({ type, parent_id: parentId });
+  return response.items || [];
+}
+
 export default function GraduateForm(props: { mode: Mode }) {
   const { t, i18n } = useTranslation("graduateForm");
   const nav = useNavigate();
@@ -145,8 +155,8 @@ useEffect(() => {
         oath_date: g.item.oath_date ?? "",
         origin_foreign_city: g.item.origin_foreign_city ?? null,
         origin_country_region_id: getResolvedCountryId(g.item, countriesResponse.items || [], (countriesResponse.items || []).find((item: Region) => String(item.name || "").trim().toLowerCase() === "ελλάδα") ?? null),
-        origin_periphery_region_id: g.item.origin_periphery_region_id ?? g.item.origin_region_id ?? null,
-        origin_region_id: g.item.origin_periphery_region_id ?? g.item.origin_region_id ?? null,
+        origin_periphery_region_id: g.item.origin_periphery_region_id ?? null,
+        origin_region_id: g.item.origin_region_id ?? null,
         origin_city_region_id: g.item.origin_city_region_id ?? null,
         origin_municipality: g.item.origin_municipality ?? null,
       });
@@ -216,8 +226,8 @@ useEffect(() => {
 
     (async () => {
       try {
-        const response = await listRegions({ type: "NOMOS", parent_id: peripheryId });
-        setNomoi(response.items || []);
+        const items = await loadRegionChildren("NOMOS", peripheryId);
+        setNomoi(items);
       } catch {
         setNomoi([]);
       }
@@ -235,14 +245,20 @@ useEffect(() => {
 
     (async () => {
       try {
-        const parentId = Number.isFinite(nomosId) && nomosId > 0 ? nomosId : peripheryId;
-        const dimosResponse = await listRegions({ type: "DIMOS", parent_id: parentId });
-        if ((dimosResponse.items || []).length) {
-          setCities(dimosResponse.items || []);
-          return;
+        const parentIds = Number.isFinite(nomosId) && nomosId > 0 ? [nomosId, peripheryId] : [peripheryId];
+        for (const parentId of parentIds) {
+          const dimoi = await loadRegionChildren("DIMOS", parentId);
+          if (dimoi.length) {
+            setCities(dimoi);
+            return;
+          }
+          const cityItems = await loadRegionChildren("CITY", parentId);
+          if (cityItems.length) {
+            setCities(cityItems);
+            return;
+          }
         }
-        const cityResponse = await listRegions({ type: "CITY", parent_id: parentId });
-        setCities(cityResponse.items || []);
+        setCities([]);
       } catch {
         setCities([]);
       }
@@ -439,7 +455,7 @@ useEffect(() => {
                   <label style={labelStyle}>{t("labels.nomos")}</label>
                   <select className="input" value={form.origin_region_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_region_id: e.target.value ? Number(e.target.value) : null, origin_city_region_id: null, origin_municipality: null }))} disabled={!Number.isFinite(Number(form.origin_periphery_region_id)) || nomoi.length === 0}>
                     <option value="">{t("labels.choice")}</option>
-                    {nomoi.map((item) => <option key={item.id} value={item.id}>{activeLang === "en" ? item.name_en || item.name_el || item.name : item.name_el || item.name}</option>)}
+                    {nomoi.map((item) => <option key={item.id} value={item.id}>{getRegionDisplayName(item, activeLang)}</option>)}
                   </select>
                 </div>
                 <div style={fieldStyle(t("labels.originText"))}>
@@ -459,7 +475,7 @@ useEffect(() => {
                     disabled={!Number.isFinite(Number(form.origin_periphery_region_id))}
                   >
                     <option value="">{t("labels.choice")}</option>
-                    {cities.map((item) => <option key={item.id} value={item.id}>{activeLang === "en" ? item.name_en || item.name_el || item.name : item.name_el || item.name}</option>)}
+                    {cities.map((item) => <option key={item.id} value={item.id}>{getRegionDisplayName(item, activeLang)}</option>)}
                   </select>
                 </div>
               </>

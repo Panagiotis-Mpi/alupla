@@ -426,6 +426,7 @@ export async function listRegions(parentIdOrParams: number | null | QueryParams 
       : parentIdOrParams || {};
 
   const path = `/regions${toQueryString(params)}`;
+  if (["NOMOS", "DIMOS", "CITY"].includes(String(params.type || ""))) return api(path, { method: "GET" });
   return cachedPrivateApi("references", path, REFERENCE_CACHE_MS);
 }
 
