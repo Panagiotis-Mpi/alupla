@@ -9,7 +9,6 @@ export default function PublicHome() {
   const actions = [
     { to: "/map", label: t("home.map"), className: "public-home-action primary" },
     { to: "/statistics", label: t("home.stats"), className: "public-home-action secondary" },
-    { to: "/login", label: t("nav.login"), className: "public-home-action ghost" },
   ];
 
   return (

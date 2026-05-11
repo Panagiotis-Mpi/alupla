@@ -10,7 +10,9 @@
     "logout": "Αποσύνδεση",
     "statistics": "Στατιστικά",
     "login": "Σύνδεση",
-    "academicPrograms": "Ακαδημαϊκά προγράμματα"
+    "academicPrograms": "Ακαδημαϊκά προγράμματα",
+    "myAccount": "Ο λογαριασμός μου",
+    "myProfile": "Το προφίλ μου"
   },
   "login": {
     "title": "Σύνδεση",

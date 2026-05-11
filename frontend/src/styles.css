@@ -2891,3 +2891,17 @@ html.accessibility-high-contrast .auth-page-shell .auth-form-submit{
 html.accessibility-high-contrast .auth-page-shell .auth-form-link{
   color:#7fffd4 !important;
 }
+.nav-dropdown{position:relative;display:inline-flex;min-width:0}
+.nav-dropdown-toggle{gap:8px;white-space:nowrap}
+.nav-dropdown-chevron{font-size:18px;line-height:1;transform:translateY(-1px)}
+.nav-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:1300;min-width:190px;border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:var(--shadowHover);padding:8px;display:grid;gap:4px}
+.nav-dropdown-item{border:none;background:transparent;color:#334155;text-align:left;padding:10px 12px;border-radius:10px;font:inherit;font-weight:700;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:flex-start;white-space:nowrap}
+.nav-dropdown-item:hover{background:#eff6ff;color:#1d4ed8}
+.nav-dropdown-danger{color:#b00020}
+.nav-dropdown-danger:hover{background:#fef2f2;color:#b00020}
+.nav-account-menu{min-width:180px}
+@media (max-width: 640px){
+  .nav-dropdown-toggle{width:auto !important;padding:8px 10px}
+  .nav-dropdown-menu{min-width:170px}
+  .nav-actions .nav-dropdown .user-profile-btn{max-width:none;width:auto !important}
+}

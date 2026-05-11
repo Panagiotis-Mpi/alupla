@@ -30,9 +30,13 @@ function TopNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [languageOpen, setLanguageOpen] = React.useState(false);
+  const [accountOpen, setAccountOpen] = React.useState(false);
   const [isCompact, setIsCompact] = React.useState(() => (typeof window !== "undefined" ? window.innerWidth <= COMPACT_WIDTH : false));
   const brandRef = React.useRef<HTMLButtonElement | null>(null);
   const drawerRef = React.useRef<HTMLElement | null>(null);
+  const languageRef = React.useRef<HTMLDivElement | null>(null);
+  const accountRef = React.useRef<HTMLDivElement | null>(null);
 
   const authRoute = React.useMemo(() => ["/login", "/register"].some((path) => location.pathname.startsWith(path)), [location.pathname]);
   const lang: "gr" | "en" = i18n.language?.startsWith("en") ? "en" : "gr";
@@ -68,10 +72,24 @@ function TopNav() {
   }, [authRoute, lang, role, t, user]);
 
   const closeMenu = React.useCallback(() => setMenuOpen(false), []);
+  const currentLanguageLabel = lang === "en" ? "English" : "Ελληνικά";
+  const nextLanguageLabel = lang === "en" ? "Ελληνικά" : "English";
+  const nextLanguage = lang === "en" ? "gr" : "en";
+
+  const handleLanguageChange = React.useCallback((language: "gr" | "en") => {
+    void i18n.changeLanguage(language);
+    setLanguageOpen(false);
+  }, []);
 
   const handleLogout = React.useCallback(() => {
+    setAccountOpen(false);
     logout();
     navigate("/login");
+  }, [navigate]);
+
+  const handleProfileClick = React.useCallback(() => {
+    setAccountOpen(false);
+    navigate("/profile");
   }, [navigate]);
 
   const handleBrandClick = React.useCallback(() => {
@@ -99,7 +117,24 @@ function TopNav() {
 
   React.useEffect(() => {
     closeMenu();
+    setLanguageOpen(false);
+    setAccountOpen(false);
   }, [closeMenu, location.pathname]);
+
+  React.useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!languageRef.current?.contains(target)) {
+        setLanguageOpen(false);
+      }
+      if (!accountRef.current?.contains(target)) {
+        setAccountOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
 
   React.useEffect(() => {
     if (!isCompact || !menuOpen) {
@@ -190,49 +225,53 @@ function TopNav() {
       <div className="spacer" />
 
       <div className="nav-right">
-        <div className="lang-switcher">
+        <div className="nav-dropdown" ref={languageRef}>
           <button
-            className={"btn " + (lang === "gr" ? "nav-link-active" : "")}
-            onClick={() => i18n.changeLanguage("gr")}
-            aria-pressed={lang === "gr"}
-            title={t("aria.languageGreek")}
+            className="btn nav-dropdown-toggle"
+            onClick={() => setLanguageOpen((open) => !open)}
+            aria-expanded={languageOpen}
+            title={lang === "en" ? t("aria.languageEnglish") : t("aria.languageGreek")}
           >
-            GR
+            <span>{currentLanguageLabel}</span>
+            <span className="nav-dropdown-chevron" aria-hidden="true">⌄</span>
           </button>
-          <span className="lang-switcher-separator">|</span>
-          <button
-            className={"btn " + (lang === "en" ? "nav-link-active" : "")}
-            onClick={() => i18n.changeLanguage("en")}
-            aria-pressed={lang === "en"}
-            title={t("aria.languageEnglish")}
-          >
-            EN
-          </button>
+          {languageOpen && (
+            <div className="nav-dropdown-menu">
+              <button className="nav-dropdown-item" type="button" onClick={() => handleLanguageChange(nextLanguage)}>
+                {nextLanguageLabel}
+              </button>
+            </div>
+          )}
         </div>
 
         {!authRoute && (
           <div className="nav-actions">
             {user ? (
-              <button className={"btn user-profile-btn " + (location.pathname.startsWith("/profile") ? "nav-link-active" : "")} onClick={() => navigate("/profile")}>
-                {`${user.first_name} ${user.last_name}`}
-              </button>
-            ) : null}
-            <div className="desktop-only nav-actions-desktop">
-              {user ? (
-                <button className="btn" onClick={handleLogout}>
-                  {t("nav.logout")}
+              <div className="nav-dropdown" ref={accountRef}>
+                <button
+                  className={"btn nav-dropdown-toggle user-profile-btn " + (location.pathname.startsWith("/profile") ? "nav-link-active" : "")}
+                  onClick={() => setAccountOpen((open) => !open)}
+                  aria-expanded={accountOpen}
+                >
+                  <span>{t("nav.myAccount")}</span>
+                  <span className="nav-dropdown-chevron" aria-hidden="true">⌄</span>
                 </button>
-              ) : (
-                <button className="btn" onClick={() => navigate("/login")}>
-                  {t("nav.login", { defaultValue: "Σύνδεση" })}
-                </button>
-              )}
-            </div>
-            {!user ? (
+                {accountOpen && (
+                  <div className="nav-dropdown-menu nav-account-menu">
+                    <button className="nav-dropdown-item" type="button" onClick={handleProfileClick}>
+                      {t("nav.myProfile")}
+                    </button>
+                    <button className="nav-dropdown-item nav-dropdown-danger" type="button" onClick={handleLogout}>
+                      {t("nav.logout")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
               <button className="btn mobile-login" onClick={() => navigate("/login")}>
                 {t("nav.login", { defaultValue: "Σύνδεση" })}
               </button>
-            ) : null}
+            )}
           </div>
         )}
       </div>
@@ -246,13 +285,6 @@ function TopNav() {
           ))}
         </div>
 
-        {!authRoute && user && (
-          <div className="mobile-drawer-section">
-            <button className="btn" onClick={handleLogout}>
-              {t("nav.logout")}
-            </button>
-          </div>
-        )}
       </aside>
     </div>
   );

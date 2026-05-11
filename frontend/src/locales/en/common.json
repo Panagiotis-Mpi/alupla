@@ -10,7 +10,9 @@
     "logout": "Logout",
     "statistics": "Statistics",
     "login": "Login",
-    "academicPrograms": "Academic programs"
+    "academicPrograms": "Academic programs",
+    "myAccount": "My account",
+    "myProfile": "My profile"
   },
   "login": {
     "title": "Login",
