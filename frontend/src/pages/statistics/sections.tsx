@@ -197,7 +197,6 @@ export function GeographyCharts(props: ChartBlockProps) {
           minLabelWidth={104}
           maxLabelWidth={156}
           forceScrollable
-          stacked
         />
         <BarChartCard chartId="originMunicipality" title={props.t("sections.originMunicipality")} labels={props.municipalities.labels} values={props.municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
         <BarChartCard chartId="originCountry" title={props.t("sections.originCountry")} labels={props.countries.labels} values={props.countries.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
@@ -234,7 +233,6 @@ export function ExportChartsSurface(props: ChartBlockProps) {
         minLabelWidth={104}
         maxLabelWidth={156}
         forceScrollable
-        stacked
       />
       <BarChartCard chartId="originMunicipality" title={props.t("sections.originMunicipality")} labels={props.municipalities.labels} values={props.municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />
       <BarChartCard chartId="originCountry" title={props.t("sections.originCountry")} labels={props.countries.labels} values={props.countries.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable />

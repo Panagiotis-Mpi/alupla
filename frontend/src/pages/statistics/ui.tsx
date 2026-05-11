@@ -838,10 +838,7 @@ export function DualPieChartCard(props: {
       <div className="statistics-dual-pie-grid">
         {props.pies.map((pie) => (
           <div className="statistics-dual-pie-panel" key={pie.key}>
-            <div className="statistics-dual-pie-topbar">
-              <h4>{pie.title}</h4>
-              {pie.control}
-            </div>
+            {pie.control ? <div className="statistics-dual-pie-topbar">{pie.control}</div> : null}
             <PieChartFigure title={`${props.title} ${pie.title}`} labels={pie.labels} values={pie.values} height={props.height ?? 320} colors={props.colors} />
           </div>
         ))}

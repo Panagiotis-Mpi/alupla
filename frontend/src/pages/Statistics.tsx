@@ -193,6 +193,35 @@ export default function Statistics() {
     [activeLang]
   );
 
+
+  const sortSeriesDescending = React.useCallback((series: { labels: string[]; values: number[] }) => {
+    return series.labels
+      .map((label, index) => ({ label, value: Number(series.values[index] ?? 0), index }))
+      .sort((a, b) => b.value - a.value || a.index - b.index)
+      .reduce((acc, item) => {
+        acc.labels.push(item.label);
+        acc.values.push(item.value);
+        return acc;
+      }, { labels: [] as string[], values: [] as number[] });
+  }, []);
+
+  const sortGenderByRegionDescending = React.useCallback((series: { labels: string[]; male: number[]; female: number[] }) => {
+    return series.labels
+      .map((label, index) => ({
+        label,
+        male: Number(series.male[index] ?? 0),
+        female: Number(series.female[index] ?? 0),
+        index,
+      }))
+      .sort((a, b) => (b.male + b.female) - (a.male + a.female) || a.index - b.index)
+      .reduce((acc, item) => {
+        acc.labels.push(item.label);
+        acc.male.push(item.male);
+        acc.female.push(item.female);
+        return acc;
+      }, { labels: [] as string[], male: [] as number[], female: [] as number[] });
+  }, []);
+
   const byYearRows = React.useMemo(
     () => (data?.by_year ?? []).map((r: any) => ({ label: String(r.year), value: Number(r.count) || 0 })),
     [data]
@@ -262,13 +291,13 @@ export default function Statistics() {
   const entryYears = seriesFromRows(data?.count_by_entry_year, { labelKey: "entry_year" });
   const birthYears = seriesFromRows(data?.birth_year_distribution, { labelKey: "year" });
   const avgGradesByYear = seriesFromRows(data?.avg_grade_by_year, { labelKey: "year", valueKey: "avg" });
-  const avgGradesByRegion = seriesFromRows(data?.avg_grade_by_region, { labelKey: "name", valueKey: "avg" });
+  const avgGradesByRegion = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.avg_grade_by_region, { labelKey: "name", valueKey: "avg" })), [data, seriesFromRows, sortSeriesDescending]);
   const gradeBins = seriesFromRows(data?.degree_grade_bins);
-  const regions = seriesFromRows(data?.origin_region_distribution, { labelKey: "name" });
-  const municipalities = seriesFromRows(data?.origin_municipality_distribution, { labelKey: "name" });
-  const countries = seriesFromRows(data?.origin_country_distribution, { labelKey: "name" });
+  const regions = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.origin_region_distribution, { labelKey: "name" })), [data, seriesFromRows, sortSeriesDescending]);
+  const municipalities = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.origin_municipality_distribution, { labelKey: "name" })), [data, seriesFromRows, sortSeriesDescending]);
+  const countries = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.origin_country_distribution, { labelKey: "name" })), [data, seriesFromRows, sortSeriesDescending]);
   const yearsToDegree = seriesFromRows(data?.avg_years_to_degree_by_entry_year, { labelKey: "entry_year", valueKey: "avg_years" });
-  const yearsToDegreeByRegion = seriesFromRows(data?.avg_years_to_degree_by_region, { labelKey: "name", valueKey: "avg_years" });
+  const yearsToDegreeByRegion = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.avg_years_to_degree_by_region, { labelKey: "name", valueKey: "avg_years" })), [data, seriesFromRows, sortSeriesDescending]);
   const yearsToDegreeDistributionRaw = seriesFromRows(data?.years_to_degree_distribution);
 
   const yearsToDegreeDistribution = React.useMemo(() => {
@@ -299,15 +328,15 @@ export default function Statistics() {
 
   const genderByRegion = React.useMemo(() => {
     const safeRows = Array.isArray(data?.gender_by_region) ? data.gender_by_region as NamedCountRow[] : [];
-    return {
+    return sortGenderByRegionDescending({
       labels: safeRows.map((row) => {
         const value = activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name;
         return String(value ?? "-");
       }),
       male: safeRows.map((row) => Number(row.male ?? 0)),
       female: safeRows.map((row) => Number(row.female ?? 0)),
-    };
-  }, [activeLang, data]);
+    });
+  }, [activeLang, data, sortGenderByRegionDescending]);
 
   const genderByEntryYearRows = React.useMemo(() => ((data?.gender_by_entry_year ?? []) as NamedCountRow[]), [data]);
 
