@@ -268,7 +268,7 @@ function TopNav() {
                 )}
               </div>
             ) : (
-              <button className="btn mobile-login" onClick={() => navigate("/login")}>
+              <button className="btn nav-login-btn" onClick={() => navigate("/login")}>
                 {t("nav.login", { defaultValue: "Σύνδεση" })}
               </button>
             )}
