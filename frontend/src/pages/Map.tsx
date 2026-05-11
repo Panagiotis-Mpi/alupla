@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { MapContainer, Marker, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -776,10 +776,7 @@ export default function GraduatesMapPage() {
 
   async function toggleSelectedCityCard(city: any) {
     const alreadySelected = selectedCityCards.some((entry) => sameMapSelection(mapScope, entry, city));
-    if (alreadySelected) {
-      removeSelectedCityCard(city);
-      return;
-    }
+    if (alreadySelected) return;
 
     const requestParams = {
       ...(city.city_id ? { city_id: city.city_id } : {}),
@@ -819,6 +816,17 @@ export default function GraduatesMapPage() {
       const next = prev.filter((entry) => !sameMapSelection(mapScope, entry, mergedCity));
       next.push(mergedCity);
       return next.slice(-6);
+    });
+  }
+
+  function mapPopupTitle(item: any) {
+    return mapScope === "abroad" ? localizedCountryRecordName(item, mapLanguage) : localizedCityRecordName(item, mapLanguage);
+  }
+
+  function mapPopupTotalText(item: any) {
+    return mt("totalGraduatesLine", {
+      total: Number(item.total ?? item.count ?? 0),
+      defaultValue: "Σύνολο αποφοίτων: {{total}}",
     });
   }
 
@@ -1016,13 +1024,17 @@ export default function GraduatesMapPage() {
         .map-custom-legend { position: absolute; left: 20px; bottom: 24px; z-index: 900; background: rgba(255,255,255,.94); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; font-size: 12px; box-shadow: var(--shadow); max-width: 300px; pointer-events: none; transform: translateZ(0); backface-visibility: hidden; }
         .map-loading-overlay { position: absolute; inset: 8px 8px 12px; border-radius: 18px; background: rgba(255,255,255,.08); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 950; pointer-events: none; }
         .map-loading-overlay-card { min-width: 180px; min-height: 88px; padding: 16px 20px; border-radius: 18px; border: 0; background: transparent; box-shadow: none; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; text-align: center; }
-        .map-summary-shell, .map-timeline-shell, .map-details-shell { position: relative; }
-        .map-details-overlay { inset: 0; border-radius: 18px; }
+        .map-summary-shell, .map-timeline-shell { position: relative; }
         .map-main-card .map-canvas { height: clamp(760px, 80vh, 940px); min-height: 760px; }
         .map-trend-card, .map-combined-details-card { margin-top: 12px; padding: 16px; display: grid; gap: 12px; }
         .map-trend-canvas { height: 260px; min-height: 260px; width: 100%; }
         .map-trend-scroll { overflow: hidden; min-height: 260px; }
         .map-info-box { border: 1px solid var(--border); border-radius: 16px; background: rgba(248,250,252,.82); padding: 16px 18px; display: grid; gap: 14px; }
+        .alupla-map-info-popup .leaflet-popup-content-wrapper { border-radius: 18px; padding: 0; box-shadow: 0 18px 40px rgba(15,23,42,.18); }
+        .alupla-map-info-popup .leaflet-popup-content { margin: 0; min-width: 260px; max-width: min(420px, calc(100vw - 48px)); }
+        .alupla-map-info-popup .leaflet-popup-close-button { top: 8px; right: 8px; width: 28px; height: 28px; border: 1px solid rgba(148,163,184,.35); background: #fff; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; color: #334155; font-size: 18px; line-height: 26px; z-index: 2; }
+        .alupla-map-info-popup .map-info-box { border: 0; border-radius: 18px; background: rgba(248,250,252,.96); box-shadow: none; min-width: 260px; }
+        .alupla-map-info-popup .map-info-groups { grid-template-columns: 1fr; }
         .map-info-box-header, .map-info-group, .map-info-metrics, .map-info-metric { display: grid; gap: 6px; }
         .map-info-box-title { font-size: 18px; font-weight: 800; color: #0f172a; }
         .map-info-total-line, .map-info-metric-label { color: #64748b; font-size: 13px; }
@@ -1198,7 +1210,9 @@ export default function GraduatesMapPage() {
                 const latitude = mapCityLatitude(city);
                 const longitude = mapCityLongitude(city);
                 if (latitude === null || longitude === null) return null;
-                const activeCity = selectedCityCards.some((selectedCard) => sameMapSelection(mapScope, selectedCard, city));
+                const selectedCity = selectedCityCards.find((selectedCard) => sameMapSelection(mapScope, selectedCard, city));
+                const activeCity = Boolean(selectedCity);
+                const popupItem = selectedCity || city;
                 return (
                     <Marker
                       key={mapCityKey(city)}
@@ -1213,7 +1227,25 @@ export default function GraduatesMapPage() {
                           }
                         },
                       }}
-                    />
+                    >
+                      <Popup
+                        className="alupla-map-info-popup"
+                        autoPan
+                        minWidth={260}
+                        maxWidth={420}
+                        eventHandlers={{
+                          remove: () => {
+                            if (selectedCity) removeSelectedCityCard(selectedCity);
+                          },
+                        }}
+                      >
+                        <InfoBox
+                          title={mapPopupTitle(popupItem)}
+                          totalText={mapPopupTotalText(popupItem)}
+                          groups={detailGroups(popupItem)}
+                        />
+                      </Popup>
+                    </Marker>
                   );
               })}
             </MapContainer>
@@ -1273,53 +1305,6 @@ export default function GraduatesMapPage() {
             </div>
           ) : null}
         </div>
-      </div>
-
-      <div className="map-details-shell">
-        {selectedCityCards.length ? (
-          <div className="card map-combined-details-card">
-            <div style={{ fontWeight: 800, fontSize: 18 }}>
-              {mt("infoTitle", { defaultValue: "Πληροφορίες" })}
-            </div>
-            <div className="muted" style={{ marginTop: 6, marginBottom: 12 }}>
-              {comparisonHintText}
-            </div>
-            <div className="map-city-cards-inline">
-              {selectedCityCards.map((city) => (
-                <InfoBox
-                  key={mapCityKey(city)}
-                  title={mapScope === "abroad" ? localizedCountryRecordName(city, mapLanguage) : localizedCityRecordName(city, mapLanguage)}
-                  totalText={mt("totalGraduatesLine", {
-                    total: Number(city.total ?? city.count ?? 0),
-                    defaultValue: "Σύνολο αποφοίτων: {{total}}",
-                  })}
-                  groups={detailGroups(city)}
-                  onRemove={() => removeSelectedCityCard(city)}
-                  removeLabel={mt("removeSelection", { defaultValue: "Αφαίρεση επιλογής" })}
-                />
-              ))}
-            </div>
-          </div>
-        ) : items.length || cityPoints.length ? (
-          <div className="card map-combined-details-card">
-            <div className="muted">
-              {comparisonHintText}
-            </div>
-          </div>
-        ) : (
-          <div className="card map-combined-details-card">
-            <div className="muted">
-              {mt("noResults", {
-                defaultValue: "Δεν βρέθηκαν απόφοιτοι με τα συγκεκριμένα φίλτρα.",
-              })}
-            </div>
-          </div>
-        )}
-        {summaryLoading ? (
-          <div className="map-loading-overlay map-details-overlay">
-            <div className="map-loading-overlay-card">{mt("loadingLabel", { defaultValue: "Φόρτωση" })}</div>
-          </div>
-        ) : null}
       </div>
 
       {selectedExportFormat ? (
