@@ -28,6 +28,7 @@ export type RecentGraduatePdfItem = Pick<
   | "origin_periphery_region_id"
   | "origin_country_name_en"
   | "origin_region_name_en"
+  | "origin_nomos_name_en"
   | "origin_city_name_en"
   | "origin_region_id"
   | "origin_city_region_id"
@@ -90,6 +91,7 @@ export function normalizeRecentGraduateDownload(item: any): RecentGraduateDownlo
           origin_periphery_region_id: entry.origin_periphery_region_id == null || entry.origin_periphery_region_id === "" ? null : Number(entry.origin_periphery_region_id),
           origin_country_name_en: entry.origin_country_name_en == null ? null : String(entry.origin_country_name_en),
           origin_region_name_en: entry.origin_region_name_en == null ? null : String(entry.origin_region_name_en),
+          origin_nomos_name_en: entry.origin_nomos_name_en == null ? null : String(entry.origin_nomos_name_en),
           origin_city_name_en: entry.origin_city_name_en == null ? null : String(entry.origin_city_name_en),
           origin_region_id: entry.origin_region_id == null || entry.origin_region_id === "" ? null : Number(entry.origin_region_id),
           origin_city_region_id: entry.origin_city_region_id == null || entry.origin_city_region_id === "" ? null : Number(entry.origin_city_region_id),

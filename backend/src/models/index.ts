@@ -66,7 +66,7 @@ async function ensureIndex(table: string, fields: string[], name: string, option
 }
 
 async function ensureRegionTypeEnum() {
-  const values = ["COUNTRY", "PERIPHERY", "CITY", "FOREIGN_CITY"];
+  const values = ["COUNTRY", "PERIPHERY", "NOMOS", "DIMOS", "CITY", "FOREIGN_CITY"];
   for (const value of values) {
     await sequelize.query(`ALTER TYPE public.enum_regions_type ADD VALUE IF NOT EXISTS '${value}'`);
   }
@@ -145,7 +145,6 @@ async function backfillRegions() {
     const normalized = normalizeRegionText(row.name);
     const payload: Record<string, unknown> = {};
     if (normalized && normalized !== String(row.normalized_name || "")) payload.normalized_name = normalized;
-    if (row.type === "NOMOS" || row.type === "DIMOS") payload.type = "CITY";
     if (row.type === "PERIPHERY" && greece && row.parent_id == null) payload.parent_id = Number(greece.id);
     if (Object.keys(payload).length) await row.update(payload, { silent: true });
   }

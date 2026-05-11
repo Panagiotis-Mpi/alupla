@@ -20,7 +20,7 @@ const TABLE_HEADER_FONT = '600 10px "Segoe UI", Arial, sans-serif';
 const TABLE_FONT = '10px "Segoe UI", Arial, sans-serif';
 const TABLE_HEADER_LINE_HEIGHT = 14;
 const TABLE_LINE_HEIGHT = 13;
-const COLUMN_WIDTHS = [44, 58, 86, 82, 86, 58, 54, 62, 64, 72, 72, 146, 110, 102, 118];
+const COLUMN_WIDTHS = [42, 54, 78, 76, 78, 52, 50, 58, 58, 66, 66, 128, 92, 88, 84, 94];
 
 function formatGenderValue(value: unknown, lang: ExportLang) {
   const normalized = String(value ?? "").trim().toLowerCase();
@@ -91,7 +91,8 @@ function getLabels(lang: ExportLang) {
       study_program: "Study program",
       origin_country: "Country",
       origin_region: "Region",
-      origin_municipality: "City"
+      origin_nomos: "Regional unit",
+      origin_municipality: "Municipality"
     } as const;
   }
 
@@ -110,7 +111,8 @@ function getLabels(lang: ExportLang) {
     study_program: "Πρόγραμμα σπουδών",
     origin_country: "Χώρα",
     origin_region: "Περιφέρεια",
-    origin_municipality: "Πόλη"
+    origin_nomos: "Νομός",
+    origin_municipality: "Δήμος"
   } as const;
 }
 
@@ -131,7 +133,8 @@ function buildRows(args: {
       : formatCountryValue(explicitCountry || String(regionNameById.get(Number(item.origin_country_region_id)) ?? ""), lang);
     const normalizedCountry = countryName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
     const isGreece = normalizedCountry === "greece" || normalizedCountry === "ελλαδα";
-    const regionName = isGreece ? (lang === "en" && localizedText(item, "origin_region_name_en") ? localizedText(item, "origin_region_name_en") : regionNameById.get(Number(item.origin_periphery_region_id ?? item.origin_region_id)) ?? "") : "";
+    const regionName = isGreece ? (lang === "en" && localizedText(item, "origin_region_name_en") ? localizedText(item, "origin_region_name_en") : regionNameById.get(Number(item.origin_periphery_region_id)) ?? "") : "";
+    const nomosName = isGreece ? (lang === "en" && localizedText(item, "origin_nomos_name_en") ? localizedText(item, "origin_nomos_name_en") : regionNameById.get(Number(item.origin_region_id)) ?? "") : "";
     const municipalityName = lang === "en" && localizedText(item, "origin_city_name_en")
       ? localizedText(item, "origin_city_name_en")
       : String(item.origin_foreign_city ?? "").trim()
@@ -154,6 +157,7 @@ function buildRows(args: {
       [labels.study_program]: studyProgramName,
       [labels.origin_country]: countryName,
       [labels.origin_region]: regionName,
+      [labels.origin_nomos]: nomosName,
       [labels.origin_municipality]: municipalityName
     } satisfies PdfRow;
   });

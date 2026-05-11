@@ -54,7 +54,10 @@ function setEnumAndForeignKeyFilters(where: GraduateWhere, query: Query) {
   if (studyProgramId !== undefined) where.study_program_id = studyProgramId;
 
   const originRegionId = readNumber(query.origin_region_id);
-  if (originRegionId !== undefined) where.origin_region_id = originRegionId;
+  if (originRegionId !== undefined) where.origin_periphery_region_id = originRegionId;
+
+  const originNomosId = readNumber(query.origin_nomos_region_id);
+  if (originNomosId !== undefined) where.origin_region_id = originNomosId;
 }
 
 function setRangeOrExact(

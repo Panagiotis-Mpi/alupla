@@ -27,8 +27,8 @@
     "select": "Select:",
     "originRegionId": "origin_region_id: {{value}}",
     "originRegionNull": "(null)",
-    "originText": "City",
-    "originTextPlaceholder": "City",
+    "originText": "Municipality",
+    "originTextPlaceholder": "Municipality",
     "required": "Missing required field:",
     "choice": "Select",
     "genderMale": "Male",
@@ -37,7 +37,8 @@
     "originTypeGreece": "Greece",
     "originTypeAbroad": "Abroad",
     "foreignCountry": "Foreign country",
-    "foreignCity": "Foreign city"
+    "foreignCity": "Foreign city",
+    "nomos": "Regional unit"
   },
   "tip": "",
   "error": "Error",

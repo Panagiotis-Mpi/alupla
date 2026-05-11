@@ -27,6 +27,8 @@ type RegionAliasLite = {
 type RegionLookups = {
   byId: Map<number, RegionLite>;
   cityByKey: Map<string, RegionLite[]>;
+  nomosByKey: Map<string, RegionLite[]>;
+  dimosByKey: Map<string, RegionLite[]>;
   foreignCityByKey: Map<string, RegionLite[]>;
   peripheryByKey: Map<string, RegionLite[]>;
   countryByKey: Map<string, RegionLite[]>;
@@ -84,7 +86,7 @@ function pickScopedRegion(candidates: RegionLite[], preferredParentId: number | 
   if (preferredParentId) {
     const scopedMatch = candidates.find((item) => {
       if (mode === "greece") {
-        return getAncestor(item.id, "PERIPHERY", byId)?.id === preferredParentId;
+        return item.parent_id === preferredParentId || getAncestor(item.id, "PERIPHERY", byId)?.id === preferredParentId;
       }
       return item.parent_id === preferredParentId;
     });
@@ -111,6 +113,8 @@ function createRegionLookups(regions: Region[], aliases: RegionAliasLite[]) {
   const lookups: RegionLookups = {
     byId: new Map<number, RegionLite>(),
     cityByKey: new Map<string, RegionLite[]>(),
+    nomosByKey: new Map<string, RegionLite[]>(),
+    dimosByKey: new Map<string, RegionLite[]>(),
     foreignCityByKey: new Map<string, RegionLite[]>(),
     peripheryByKey: new Map<string, RegionLite[]>(),
     countryByKey: new Map<string, RegionLite[]>(),
@@ -126,6 +130,8 @@ function createRegionLookups(regions: Region[], aliases: RegionAliasLite[]) {
     }
 
     if (region.type === "CITY") pushMatch(lookups.cityByKey, region.normalized_name, region);
+    if (region.type === "NOMOS") pushMatch(lookups.nomosByKey, region.normalized_name, region);
+    if (region.type === "DIMOS") pushMatch(lookups.dimosByKey, region.normalized_name, region);
     if (region.type === "FOREIGN_CITY") pushMatch(lookups.foreignCityByKey, region.normalized_name, region);
     if (region.type === "PERIPHERY") pushMatch(lookups.peripheryByKey, region.normalized_name, region);
     if (region.type === "COUNTRY") pushMatch(lookups.countryByKey, region.normalized_name, region);
@@ -176,20 +182,23 @@ export function clearRegionLookupCache() {
 
 // Μετατρέπει καταγωγή φόρμας/import σε συνεπή region ids.
 export async function normalizeOriginLocation(input: ResolveOriginInput): Promise<NormalizedOriginResult> {
-  const { byId, cityByKey, foreignCityByKey, peripheryByKey, countryByKey, aliasByKey } = await loadRegionLookups();
+  const { byId, cityByKey, nomosByKey, dimosByKey, foreignCityByKey, peripheryByKey, countryByKey, aliasByKey } = await loadRegionLookups();
 
   const rawMunicipality = cleanRegionText(input.origin_municipality);
   const normalizedMunicipality = normalizeRegionText(rawMunicipality);
 
   let country = input.origin_country_region_id != null ? byId.get(Number(input.origin_country_region_id)) ?? null : null;
   let periphery = input.origin_periphery_region_id != null ? byId.get(Number(input.origin_periphery_region_id)) ?? null : null;
-  const legacyPeriphery = input.origin_region_id != null ? byId.get(Number(input.origin_region_id)) ?? null : null;
+  const legacyRegion = input.origin_region_id != null ? byId.get(Number(input.origin_region_id)) ?? null : null;
+  let nomos = legacyRegion?.type === "NOMOS" ? legacyRegion : null;
   let city = input.origin_city_region_id != null ? byId.get(Number(input.origin_city_region_id)) ?? null : null;
 
-  if (!periphery && legacyPeriphery?.type === "PERIPHERY") periphery = legacyPeriphery;
+  if (!periphery && legacyRegion?.type === "PERIPHERY") periphery = legacyRegion;
+  if (!nomos && city?.type === "DIMOS") nomos = getAncestor(city.id, "NOMOS", byId);
+  if (!periphery && nomos) periphery = getAncestor(nomos.id, "PERIPHERY", byId);
   if (!country && periphery) country = getAncestor(periphery.id, "COUNTRY", byId);
   if (!country && city) country = getAncestor(city.id, "COUNTRY", byId);
-  if (!periphery && city?.type === "CITY") periphery = getAncestor(city.id, "PERIPHERY", byId);
+  if (!periphery && (city?.type === "CITY" || city?.type === "DIMOS")) periphery = getAncestor(city.id, "PERIPHERY", byId);
   if (!country && rawMunicipality) country = findCountryFromText(rawMunicipality, countryByKey, aliasByKey);
 
   if (!country) {
@@ -198,19 +207,23 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
 
   if (isGreece(country)) {
     if (normalizedMunicipality) {
-      if (!periphery && city?.type === "CITY") {
+      if (!periphery && (city?.type === "CITY" || city?.type === "DIMOS")) {
         periphery = getAncestor(city.id, "PERIPHERY", byId);
       }
 
-      if (!city || city.type !== "CITY") {
-        city = pickScopedRegion(cityByKey.get(normalizedMunicipality) ?? [], periphery?.id ?? null, byId, "greece");
+      if (!city || (city.type !== "CITY" && city.type !== "DIMOS")) {
+        city = pickScopedRegion(dimosByKey.get(normalizedMunicipality) ?? [], nomos?.id ?? periphery?.id ?? null, byId, "greece") ?? pickScopedRegion(cityByKey.get(normalizedMunicipality) ?? [], periphery?.id ?? null, byId, "greece");
       }
 
       if (!city) {
-        const aliasMatch = pickScopedRegion(aliasByKey.get(normalizedMunicipality) ?? [], periphery?.id ?? null, byId, "greece");
-        if (aliasMatch?.type === "CITY") {
+        const aliasMatch = pickScopedRegion(aliasByKey.get(normalizedMunicipality) ?? [], nomos?.id ?? periphery?.id ?? null, byId, "greece");
+        if (aliasMatch?.type === "CITY" || aliasMatch?.type === "DIMOS") {
           city = aliasMatch;
         }
+      }
+
+      if (!nomos && rawMunicipality) {
+        nomos = pickScopedRegion(nomosByKey.get(normalizedMunicipality) ?? [], periphery?.id ?? null, byId, "greece");
       }
 
       if (!periphery) {
@@ -218,7 +231,15 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
       }
     }
 
-    if (city?.type === "CITY") {
+    if (city?.type === "DIMOS") {
+      nomos = getAncestor(city.id, "NOMOS", byId) ?? nomos;
+    }
+
+    if (nomos?.type === "NOMOS") {
+      periphery = getAncestor(nomos.id, "PERIPHERY", byId) ?? periphery;
+    }
+
+    if (city?.type === "CITY" || city?.type === "DIMOS") {
       periphery = getAncestor(city.id, "PERIPHERY", byId) ?? periphery;
     }
 
@@ -229,9 +250,9 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
     return {
       origin_country_region_id: country?.id ?? null,
       origin_periphery_region_id: periphery?.id ?? null,
-      origin_region_id: periphery?.id ?? null,
-      origin_city_region_id: city?.type === "CITY" ? city.id : null,
-      origin_municipality: city?.type === "CITY" ? city.name : rawMunicipality || null,
+      origin_region_id: nomos?.type === "NOMOS" ? nomos.id : null,
+      origin_city_region_id: city?.type === "CITY" || city?.type === "DIMOS" ? city.id : null,
+      origin_municipality: city?.type === "CITY" || city?.type === "DIMOS" ? city.name : rawMunicipality || null,
     };
   }
 

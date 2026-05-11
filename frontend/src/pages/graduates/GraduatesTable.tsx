@@ -2,7 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import type { Graduate } from "../../lib/api";
-import { formatValue, getGraduateOriginCountryDisplay, getGraduateOriginMunicipalityDisplay, getGraduateOriginRegionDisplay, type SortKey } from "./shared";
+import { formatValue, getGraduateOriginCountryDisplay, getGraduateOriginMunicipalityDisplay, getGraduateOriginNomosDisplay, getGraduateOriginRegionDisplay, type SortKey } from "./shared";
 
 const graduateSortColumns: Array<{ sortKey: SortKey; labelKey: string }> = [
   { sortKey: "ad_code", labelKey: "table.ad" },
@@ -19,6 +19,7 @@ const graduateSortColumns: Array<{ sortKey: SortKey; labelKey: string }> = [
   { sortKey: "study_program", labelKey: "table.studyProgram" },
   { sortKey: "origin_country", labelKey: "table.country" },
   { sortKey: "origin_region", labelKey: "table.region" },
+  { sortKey: "origin_nomos", labelKey: "table.nomos" },
   { sortKey: "origin_municipality", labelKey: "table.originMunicipality" },
 ];
 
@@ -62,7 +63,7 @@ export function GraduatesTable(props: {
           msOverflowStyle: "none",
         }}
       >
-        <table className="table" style={{ minWidth: 2240 }}>
+        <table className="table" style={{ minWidth: 2380 }}>
           <thead>
             <tr>
               <th style={{ width: 44 }}><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} /></th>
@@ -98,6 +99,7 @@ export function GraduatesTable(props: {
                   <td>{programNameById.get(Number(graduate.study_program_id)) ?? ""}</td>
                   <td>{formatValue(getGraduateOriginCountryDisplay(graduate, regionNameById, t, activeLang))}</td>
                   <td>{formatValue(getGraduateOriginRegionDisplay(graduate, regionNameById, activeLang))}</td>
+                  <td>{formatValue(getGraduateOriginNomosDisplay(graduate, regionNameById, activeLang))}</td>
                   <td>{formatValue(getGraduateOriginMunicipalityDisplay(graduate, regionNameById, activeLang))}</td>
                   <td>
                     <div className="row-actions">
@@ -114,7 +116,7 @@ export function GraduatesTable(props: {
             })}
             {!visibleItems.length ? (
               <tr>
-                <td colSpan={18} className="muted">
+                <td colSpan={19} className="muted">
                   {loading ? t("table.loading", { defaultValue: t("topbar.loading") }) : t("table.empty")}
                 </td>
               </tr>

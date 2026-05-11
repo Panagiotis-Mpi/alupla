@@ -50,6 +50,13 @@ function getCountryExportName(row: GraduateExportSource, regionsById: Map<number
   return formatCountryValue(row.origin_country, lang);
 }
 
+function getNomosExportName(row: GraduateExportSource, regionsById: Map<number, RegionLookup>, isGreece: boolean, lang: ExportLang, localizedNamesById?: LocalizedNamesByRegionId) {
+  if (!isGreece) return "";
+  const region = regionsById.get(Number(row.origin_region_id));
+  if (!region || String(region.type) !== "NOMOS") return "";
+  return getRegionNameById(regionsById, row.origin_region_id, lang, localizedNamesById);
+}
+
 function getMunicipalityExportName(row: GraduateExportSource, regionsById: Map<number, RegionLookup>, isGreece: boolean, lang: ExportLang, localizedNamesById?: LocalizedNamesByRegionId) {
   const explicitMunicipality = String(row.origin_municipality ?? "").trim();
   const foreignCity = String(row.origin_foreign_city ?? "").trim();
@@ -93,6 +100,7 @@ export function buildExportRows(
     const countryExportName = getCountryExportName(row, regionsById, lang, localizedNamesById);
     const rawCountryName = String(row.origin_country ?? country?.name ?? countryExportName ?? "");
     const isGreece = isGreeceCountryValue(rawCountryName) || (country ? isGreeceCountryValue(country.name) : false);
+    const nomosName = getNomosExportName(row, regionsById, isGreece, lang, localizedNamesById);
     const municipalityName = getMunicipalityExportName(row, regionsById, isGreece, lang, localizedNamesById);
 
     return {
@@ -110,6 +118,7 @@ export function buildExportRows(
       [labels.study_program]: studyProgram ? String(lang === "en" ? studyProgram.name_en ?? studyProgram.name_el ?? studyProgram.code ?? studyProgram.id : studyProgram.name_el ?? studyProgram.name_en ?? studyProgram.code ?? studyProgram.id) : "",
       [labels.origin_country]: countryExportName,
       [labels.origin_region]: isGreece ? getRegionNameById(regionsById, regionId, lang, localizedNamesById) : "",
+      [labels.origin_nomos]: nomosName,
       [labels.origin_municipality]: municipalityName,
     };
   });
@@ -308,7 +317,7 @@ export async function buildCreateOriginPayload(body: Record<string, unknown>, re
     };
   }
 
-  const originPeripheryRegionId = toNullableNumber(body.origin_periphery_region_id ?? body.origin_region_id);
+  const originPeripheryRegionId = toNullableNumber(body.origin_periphery_region_id);
   if (isInvalidNullableNumber(originPeripheryRegionId)) return { error: "origin_periphery_region_id must be a number" };
 
   const originMunicipality = String(body.origin_municipality ?? "").trim();
@@ -317,7 +326,7 @@ export async function buildCreateOriginPayload(body: Record<string, unknown>, re
   const normalizedOrigin = await normalizeOriginLocation({
     origin_country_region_id: originCountryRegionId ?? null,
     origin_periphery_region_id: originPeripheryRegionId ?? null,
-    origin_region_id: originPeripheryRegionId ?? null,
+    origin_region_id: toNullableNumber(body.origin_region_id),
     origin_city_region_id: toNullableNumber(body.origin_city_region_id),
     origin_municipality: originMunicipality,
   });
@@ -351,10 +360,16 @@ export async function applyOriginPatch(item: ManagedOriginTarget, body: Record<s
     originRegionTouched = true;
   }
 
-  if (body.origin_periphery_region_id !== undefined || body.origin_region_id !== undefined) {
-    const value = toNullableNumber(body.origin_periphery_region_id ?? body.origin_region_id);
+  if (body.origin_periphery_region_id !== undefined) {
+    const value = toNullableNumber(body.origin_periphery_region_id);
     if (isInvalidNullableNumber(value)) return "origin_periphery_region_id must be a number";
     item.origin_periphery_region_id = value;
+    originRegionTouched = true;
+  }
+
+  if (body.origin_region_id !== undefined) {
+    const value = toNullableNumber(body.origin_region_id);
+    if (isInvalidNullableNumber(value)) return "origin_region_id must be a number";
     item.origin_region_id = value;
     originRegionTouched = true;
   }
@@ -410,8 +425,8 @@ export async function applyOriginPatch(item: ManagedOriginTarget, body: Record<s
 
   const normalized = await normalizeOriginLocation({
     origin_country_region_id: item.origin_country_region_id ?? null,
-    origin_periphery_region_id: item.origin_periphery_region_id ?? item.origin_region_id ?? null,
-    origin_region_id: item.origin_periphery_region_id ?? item.origin_region_id ?? null,
+    origin_periphery_region_id: item.origin_periphery_region_id ?? null,
+    origin_region_id: item.origin_region_id ?? null,
     origin_city_region_id: item.origin_city_region_id ?? null,
     origin_municipality: item.origin_municipality ?? null,
   });

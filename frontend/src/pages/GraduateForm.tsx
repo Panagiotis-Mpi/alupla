@@ -93,6 +93,7 @@ export default function GraduateForm(props: { mode: Mode }) {
   const [programs, setPrograms] = useState<StudyProgram[]>([]);
   const [countries, setCountries] = useState<Region[]>([]);
   const [peripheries, setPeripheries] = useState<Region[]>([]);
+  const [nomoi, setNomoi] = useState<Region[]>([]);
   const [cities, setCities] = useState<Region[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(props.mode === "edit");
@@ -158,10 +159,12 @@ useEffect(() => {
   useEffect(() => {
     if (!greeceSelected) {
       setPeripheries([]);
+      setNomoi([]);
       setCities([]);
       setForm((current) => {
         if (
           current.origin_periphery_region_id == null &&
+          current.origin_region_id == null &&
           current.origin_region_id == null &&
           current.origin_city_region_id == null &&
           current.origin_municipality == null
@@ -182,6 +185,7 @@ useEffect(() => {
     const greeceId = Number(form.origin_country_region_id ?? greeceCountry?.id ?? null);
     if (!Number.isFinite(greeceId)) {
       setPeripheries([]);
+      setNomoi([]);
       setCities([]);
       return;
     }
@@ -202,17 +206,43 @@ useEffect(() => {
 
   useEffect(() => {
     if (!greeceSelected) return;
-    const peripheryId = Number(form.origin_periphery_region_id ?? form.origin_region_id);
+    const peripheryId = Number(form.origin_periphery_region_id);
     if (!Number.isFinite(peripheryId) || peripheryId <= 0) {
+      setNomoi([]);
       setCities([]);
-      setForm((current) => ({ ...current, origin_city_region_id: null, origin_municipality: null, origin_region_id: current.origin_periphery_region_id ?? null }));
+      setForm((current) => ({ ...current, origin_region_id: null, origin_city_region_id: null, origin_municipality: null }));
       return;
     }
 
     (async () => {
       try {
-        const response = await listRegions({ type: "CITY", parent_id: peripheryId });
-        setCities(response.items || []);
+        const response = await listRegions({ type: "NOMOS", parent_id: peripheryId });
+        setNomoi(response.items || []);
+      } catch {
+        setNomoi([]);
+      }
+    })();
+  }, [form.origin_periphery_region_id, greeceSelected]);
+
+  useEffect(() => {
+    if (!greeceSelected) return;
+    const peripheryId = Number(form.origin_periphery_region_id);
+    const nomosId = Number(form.origin_region_id);
+    if (!Number.isFinite(peripheryId) || peripheryId <= 0) {
+      setCities([]);
+      return;
+    }
+
+    (async () => {
+      try {
+        const parentId = Number.isFinite(nomosId) && nomosId > 0 ? nomosId : peripheryId;
+        const dimosResponse = await listRegions({ type: "DIMOS", parent_id: parentId });
+        if ((dimosResponse.items || []).length) {
+          setCities(dimosResponse.items || []);
+          return;
+        }
+        const cityResponse = await listRegions({ type: "CITY", parent_id: parentId });
+        setCities(cityResponse.items || []);
       } catch {
         setCities([]);
       }
@@ -238,7 +268,8 @@ useEffect(() => {
     ];
     if (greeceSelected) {
       required.push(["origin_periphery_region_id", form.origin_periphery_region_id, t("labels.regionSearch")]);
-      required.push(["origin_municipality", form.origin_municipality, t("labels.originText")]);
+      if (nomoi.length) required.push(["origin_region_id", form.origin_region_id, t("labels.nomos")]);
+      required.push(["origin_city_region_id", form.origin_city_region_id, t("labels.originText")]);
     } else {
       required.push(["origin_country_region_id", form.origin_country_region_id, t("labels.country")]);
       required.push(["origin_foreign_city", form.origin_foreign_city, t("labels.originText")]);
@@ -272,8 +303,8 @@ useEffect(() => {
       const payload = {
         ...form,
         origin_country_region_id: form.origin_country_region_id ?? null,
-        origin_periphery_region_id: greeceSelected ? form.origin_periphery_region_id ?? form.origin_region_id ?? null : null,
-        origin_region_id: greeceSelected ? form.origin_periphery_region_id ?? form.origin_region_id ?? null : null,
+        origin_periphery_region_id: greeceSelected ? form.origin_periphery_region_id ?? null : null,
+        origin_region_id: greeceSelected ? form.origin_region_id ?? null : null,
         origin_city_region_id: greeceSelected ? form.origin_city_region_id ?? null : null,
         origin_municipality: greeceSelected ? form.origin_municipality ?? null : null,
         origin_country: greeceSelected ? "Ελλάδα" : (countries.find((item) => Number(item.id) === Number(form.origin_country_region_id))?.name ?? form.origin_country ?? null),
@@ -399,31 +430,37 @@ useEffect(() => {
               <>
                 <div style={fieldStyle(t("labels.regionSearch"))}>
                   <label style={labelStyle}>{t("labels.regionSearch")}</label>
-                  <select className="input" value={form.origin_periphery_region_id ?? form.origin_region_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_periphery_region_id: e.target.value ? Number(e.target.value) : null, origin_region_id: e.target.value ? Number(e.target.value) : null, origin_city_region_id: null, origin_municipality: null }))}>
+                  <select className="input" value={form.origin_periphery_region_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_periphery_region_id: e.target.value ? Number(e.target.value) : null, origin_region_id: null, origin_city_region_id: null, origin_municipality: null }))}>
                     <option value="">{t("labels.choice")}</option>
                     {peripheries.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
                 </div>
+                <div style={fieldStyle(t("labels.nomos"))}>
+                  <label style={labelStyle}>{t("labels.nomos")}</label>
+                  <select className="input" value={form.origin_region_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_region_id: e.target.value ? Number(e.target.value) : null, origin_city_region_id: null, origin_municipality: null }))} disabled={!Number.isFinite(Number(form.origin_periphery_region_id)) || nomoi.length === 0}>
+                    <option value="">{t("labels.choice")}</option>
+                    {nomoi.map((item) => <option key={item.id} value={item.id}>{activeLang === "en" ? item.name_en || item.name_el || item.name : item.name_el || item.name}</option>)}
+                  </select>
+                </div>
                 <div style={fieldStyle(t("labels.originText"))}>
                   <label style={labelStyle}>{t("labels.originText")}</label>
-                  <input
+                  <select
                     className="input"
-                    list="graduate-origin-cities"
-                    value={form.origin_municipality ?? ""}
+                    value={form.origin_city_region_id ?? ""}
                     onChange={(e) => {
-                      const cityName = e.target.value;
-                      const matchedCity = cities.find((item) => normalizeLookupText(item.name) === normalizeLookupText(cityName));
+                      const cityId = e.target.value ? Number(e.target.value) : null;
+                      const matchedCity = cities.find((item) => Number(item.id) === Number(cityId));
                       setForm((f) => ({
                         ...f,
-                        origin_city_region_id: matchedCity ? Number(matchedCity.id) : null,
-                        origin_municipality: cityName.trim() ? cityName : null,
+                        origin_city_region_id: cityId,
+                        origin_municipality: matchedCity ? String(matchedCity.name ?? "").trim() : null,
                       }));
                     }}
-                    disabled={!Number.isFinite(Number(form.origin_periphery_region_id ?? form.origin_region_id))}
-                  />
-                  <datalist id="graduate-origin-cities">
-                    {cities.map((item) => <option key={item.id} value={item.name} />)}
-                  </datalist>
+                    disabled={!Number.isFinite(Number(form.origin_periphery_region_id))}
+                  >
+                    <option value="">{t("labels.choice")}</option>
+                    {cities.map((item) => <option key={item.id} value={item.id}>{activeLang === "en" ? item.name_en || item.name_el || item.name : item.name_el || item.name}</option>)}
+                  </select>
                 </div>
               </>
             ) : (

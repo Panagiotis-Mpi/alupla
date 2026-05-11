@@ -55,7 +55,8 @@
     "originTypeGreece": "Greece",
     "originTypeAbroad": "Abroad",
     "foreignCountry": "Country",
-    "foreignCity": "Foreign city"
+    "foreignCity": "Foreign city",
+    "nomos": "Regional unit"
   },
   "table": {
     "id": "ID",
@@ -71,7 +72,7 @@
     "graduationDate": "Graduation date",
     "oathDate": "Oath date",
     "studyProgram": "Study program",
-    "originMunicipality": "City",
+    "originMunicipality": "Municipality",
     "actions": "Actions",
     "edit": "Edit",
     "delete": "Delete",
@@ -79,7 +80,8 @@
     "empty": "No results.",
     "region": "Region",
     "originType": "Origin category",
-    "country": "Country"
+    "country": "Country",
+    "nomos": "Regional unit"
   },
   "toast": {
     "importCompleted": "Import completed",
@@ -108,8 +110,8 @@
     "hintYear": "Enter a year using numbers only, e.g. 2020.",
     "hintGrade": "Enter a numeric grade, e.g. 7.50.",
     "hintStudyProgram": "The study program must already exist in the system.",
-    "hintRegion": "The region must already exist in the regions list.",
-    "hintCity": "The city must match a valid system region entry.",
+    "hintRegion": "The region or regional unit must already exist in the regions list.",
+    "hintCity": "The municipality must match a valid system region entry.",
     "hintAm": "Student Number is required and must be filled in correctly.",
     "hintAmDuplicate": "Student Number must be unique and must not be repeated in the file.",
     "hintAd": "Diploma Number is required and must be filled in correctly.",

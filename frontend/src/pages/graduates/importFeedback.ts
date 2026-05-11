@@ -28,6 +28,7 @@ export function getImportColumnLabel(column: string, t: Translator) {
     study_program: t("table.studyProgram"),
     origin_country: t("table.country"),
     origin_region: t("table.region"),
+    origin_nomos: t("table.nomos"),
     origin_municipality: t("table.originMunicipality"),
     origin_foreign_city: t("filters.foreignCity"),
   };
@@ -43,7 +44,7 @@ export function getImportIssueHint(column: string, reasons: string[], t: Transla
   if (column === "entry_year") return t("toast.hintYear");
   if (column === "degree_grade") return t("toast.hintGrade");
   if (column === "study_program") return t("toast.hintStudyProgram");
-  if (column === "origin_region") return t("toast.hintRegion");
+  if (column === "origin_region" || column === "origin_nomos") return t("toast.hintRegion");
   if (column === "origin_country") return t("toast.hintForeignCountry");
   if (FOREIGN_CITY_COLUMNS.has(column)) return t("toast.hintForeignCity");
 

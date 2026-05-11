@@ -879,7 +879,7 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
   }
 
 
-  if (explicitCity && explicitCity.type === "CITY") {
+  if (explicitCity && (explicitCity.type === "CITY" || explicitCity.type === "DIMOS")) {
     const periphery = getPeripheryFromRegionId(explicitCity.id, lookups.byId);
     if ((explicitCity.latitude !== null && explicitCity.longitude !== null) || !rawCityName) {
       return withCountryFields({

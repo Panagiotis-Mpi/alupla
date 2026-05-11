@@ -27,8 +27,8 @@
     "select": "Επιλογή:",
     "originRegionId": "origin_region_id: {{value}}",
     "originRegionNull": "(null)",
-    "originText": "Πόλη",
-    "originTextPlaceholder": "Πόλη",
+    "originText": "Δήμος",
+    "originTextPlaceholder": "Δήμος",
     "required": "Λείπει υποχρεωτικό πεδίο:",
     "choice": "Επιλογή",
     "genderMale": "Άνδρας",
@@ -37,7 +37,8 @@
     "originTypeGreece": "Ελλάδα",
     "originTypeAbroad": "Εξωτερικό",
     "foreignCountry": "Χώρα εξωτερικού",
-    "foreignCity": "Πόλη εξωτερικού"
+    "foreignCity": "Πόλη εξωτερικού",
+    "nomos": "Νομός"
   },
   "tip": "",
   "error": "Σφάλμα",

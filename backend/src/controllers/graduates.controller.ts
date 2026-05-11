@@ -76,7 +76,8 @@ async function serializeGraduateRows(rows: any[], lang: string) {
   return plainRows.map((row) => ({
     ...row,
     origin_country_name_en: localizedName(localizedNamesById, row.origin_country_region_id),
-    origin_region_name_en: localizedName(localizedNamesById, row.origin_periphery_region_id ?? row.origin_region_id),
+    origin_region_name_en: localizedName(localizedNamesById, row.origin_periphery_region_id),
+    origin_nomos_name_en: localizedName(localizedNamesById, row.origin_region_id),
     origin_city_name_en: localizedName(localizedNamesById, row.origin_city_region_id),
   }));
 }
@@ -336,9 +337,11 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       const is_abroad = !!(origin_country_name && !isGreeceCountryValue(origin_country_name));
       const origin_country_region_id = is_abroad ? matchedOriginCountryRegionId : (matchedOriginCountryRegionId ?? defaultGreeceId);
       const origin_region_source = get("origin_region");
+      const origin_nomos_source = get("origin_nomos" as any);
       const raw_origin_municipality = trimNullableText(get("origin_municipality"));
       const raw_origin_region = trimNullableText(origin_region_source);
       const origin_periphery_region_id = is_abroad ? null : resolveRegionId(origin_region_source, regionsById);
+      const origin_nomos_region_id = is_abroad ? null : resolveRegionId(origin_nomos_source, regionsById);
       const origin_foreign_city = is_abroad ? (raw_origin_municipality ?? raw_origin_region ?? null) : null;
       const origin_municipality = is_abroad ? origin_foreign_city : raw_origin_municipality;
 
@@ -362,6 +365,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
       } else {
         if (!origin_country_region_id) rowProblems.push({ row: rowNum, column: "origin_country", message: "Invalid value", value: origin_country_source });
         if (!origin_periphery_region_id && String(origin_region_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_region", message: "Invalid value", value: origin_region_source });
+        if (!origin_nomos_region_id && String(origin_nomos_source ?? "").trim()) rowProblems.push({ row: rowNum, column: "origin_nomos", message: "Invalid value", value: origin_nomos_source });
       }
 
       // Αν η γραμμή έχει βασικά λάθη, δεν μπαίνει στα prepared rows.
@@ -377,7 +381,7 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         normalizedOrigin = await normalizeOriginLocation({
           origin_country_region_id: origin_country_region_id ?? null,
           origin_periphery_region_id: origin_periphery_region_id ?? null,
-          origin_region_id: origin_periphery_region_id ?? null,
+          origin_region_id: origin_nomos_region_id ?? null,
           origin_city_region_id: null,
           origin_municipality,
         });
@@ -640,6 +644,7 @@ const graduateLoggedFields = [
   "origin_country",
   "origin_country_region_id",
   "origin_periphery_region_id",
+  "origin_region_id",
   "origin_city_region_id",
   "origin_municipality",
   "origin_foreign_city"
@@ -651,6 +656,7 @@ const graduateNumericLogFields = new Set([
   "study_program_id",
   "origin_country_region_id",
   "origin_periphery_region_id",
+  "origin_region_id",
   "origin_city_region_id"
 ]);
 

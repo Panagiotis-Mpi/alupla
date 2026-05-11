@@ -1,7 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/sequelize";
 
-export type RegionType = "COUNTRY" | "PERIPHERY" | "CITY" | "FOREIGN_CITY";
+export type RegionType = "COUNTRY" | "PERIPHERY" | "NOMOS" | "DIMOS" | "CITY" | "FOREIGN_CITY";
 
 // Model περιοχής: χρησιμοποιείται για χώρα, περιφέρεια, πόλη και χάρτη.
 export class Region extends Model {
@@ -26,7 +26,7 @@ Region.init(
     name_en: { type: DataTypes.STRING(255), allowNull: true },
     normalized_name: { type: DataTypes.STRING(255), allowNull: false, defaultValue: "" },
     external_ref_id: { type: DataTypes.STRING(255), allowNull: true },
-    type: { type: DataTypes.ENUM("COUNTRY", "PERIPHERY", "CITY", "FOREIGN_CITY"), allowNull: false },
+    type: { type: DataTypes.ENUM("COUNTRY", "PERIPHERY", "NOMOS", "DIMOS", "CITY", "FOREIGN_CITY"), allowNull: false },
     parent_id: { type: DataTypes.INTEGER, allowNull: true },
     latitude: { type: DataTypes.DECIMAL(10, 7), allowNull: true },
     longitude: { type: DataTypes.DECIMAL(10, 7), allowNull: true }

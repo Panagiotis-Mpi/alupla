@@ -61,8 +61,8 @@ export function applyTemplateSheetLayout(ws: XLSX.WorkSheet, headerRows: string[
 // Κεντρικό σημείο για τα labels στηλών σε ελληνικά/αγγλικά.
 export function getColumnLabels(lang: ExportLang) {
   return lang === "en"
-    ? { ad_code: "Diploma number", student_number: "Student number", last_name: "Last name", first_name: "First name", father_name: "Father name", gender: "Gender", entry_year: "Entry year", birth_date: "Birth date", degree_grade: "Degree grade", graduation_date: "Diploma award date", oath_date: "Oath date", study_program: "Study program", origin_country: "Country", origin_region: "Region", origin_municipality: "City" } as const
-    : { ad_code: "Αριθμός διπλώματος", student_number: "Αριθμός μητρώου", last_name: "Επώνυμο", first_name: "Όνομα", father_name: "Πατρώνυμο", gender: "Φύλο", entry_year: "Έτος εισαγωγής", birth_date: "Ημερομηνία γέννησης", degree_grade: "Βαθμός πτυχίου", graduation_date: "Ημερομηνία λήψης διπλώματος", oath_date: "Ημερομηνία ορκωμοσίας", study_program: "Πρόγραμμα σπουδών", origin_country: "Χώρα", origin_region: "Περιφέρεια", origin_municipality: "Πόλη" } as const;
+    ? { ad_code: "Diploma number", student_number: "Student number", last_name: "Last name", first_name: "First name", father_name: "Father name", gender: "Gender", entry_year: "Entry year", birth_date: "Birth date", degree_grade: "Degree grade", graduation_date: "Diploma award date", oath_date: "Oath date", study_program: "Study program", origin_country: "Country", origin_region: "Region", origin_nomos: "Regional unit", origin_municipality: "Municipality" } as const
+    : { ad_code: "Αριθμός διπλώματος", student_number: "Αριθμός μητρώου", last_name: "Επώνυμο", first_name: "Όνομα", father_name: "Πατρώνυμο", gender: "Φύλο", entry_year: "Έτος εισαγωγής", birth_date: "Ημερομηνία γέννησης", degree_grade: "Βαθμός πτυχίου", graduation_date: "Ημερομηνία λήψης διπλώματος", oath_date: "Ημερομηνία ορκωμοσίας", study_program: "Πρόγραμμα σπουδών", origin_country: "Χώρα", origin_region: "Περιφέρεια", origin_nomos: "Νομός", origin_municipality: "Δήμος" } as const;
 }
 
 export const GRADUATES_COLUMN_KEYS = [
@@ -80,6 +80,7 @@ export const GRADUATES_COLUMN_KEYS = [
   "study_program",
   "origin_country",
   "origin_region",
+  "origin_nomos",
   "origin_municipality",
 ] as const;
 
@@ -118,12 +119,13 @@ export const IMPORT_HEADER_ALIASES = {
   study_program_id: ["study_program_id","study_prog","program_id","προγραμμα","πρόγραμμα","program"],
   origin_country: ["origin_country","origin_country_region_id","country","χώρα","χωρα"],
   origin_country_region_id: ["origin_country_region_id","origin_country","country_id","country","χώρα","χωρα"],
-  origin_region: ["origin_region","origin_periphery_region_id","origin_region_id","origin_regio","region_id","περιοχη","περιοχή","περιφέρεια","region","periphery"],
-  origin_region_id: ["origin_periphery_region_id","origin_region_id","origin_regio","region_id","περιοχη","περιοχή","περιφέρεια","region","periphery"],
-  origin_municipality: ["origin_municipality","πόλη","municipality","city","foreign_city","city of origin"],
+  origin_region: ["origin_region","origin_periphery_region_id","origin_regio","periphery_id","περιφερεια","περιφέρεια","region","periphery"],
+  origin_region_id: ["origin_periphery_region_id","origin_regio","periphery_id","περιφερεια","περιφέρεια","region","periphery"],
+  origin_nomos: ["origin_nomos","origin_nomos_region_id","origin_region_id","nomos","regional_unit","regional unit","νομος","νομός","περιφερειακή ενότητα","περιφερειακη ενοτητα"],
+  origin_municipality: ["origin_municipality","δήμος","δημος","municipality","dimos","πόλη","city","foreign_city","city of origin"],
 } as const;
 
-const GRADUATE_SORT_FIELDS = new Set(["id", "last_name", "first_name", "entry_year", "graduation_date", "oath_date", "degree_grade", "birth_date", "study_program_id", "origin_region_id", "gender", "student_number", "ad_code"]);
+const GRADUATE_SORT_FIELDS = new Set(["id", "last_name", "first_name", "entry_year", "graduation_date", "oath_date", "degree_grade", "birth_date", "study_program_id", "origin_region_id", "origin_city_region_id", "gender", "student_number", "ad_code"]);
 
 export function toSortDirection(value: unknown): "ASC" | "DESC" {
   return String(value ?? "asc").trim().toLowerCase() === "desc" ? "DESC" : "ASC";

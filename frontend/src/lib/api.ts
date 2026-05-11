@@ -25,7 +25,7 @@ export type StudyProgram = {
   is_active: 0 | 1 | boolean;
 };
 
-export type RegionType = "COUNTRY" | "PERIPHERY" | "CITY" | "FOREIGN_CITY";
+export type RegionType = "COUNTRY" | "PERIPHERY" | "NOMOS" | "DIMOS" | "CITY" | "FOREIGN_CITY";
 export type Region = {
   id: number;
   name: string;
@@ -60,6 +60,7 @@ export type Graduate = {
   origin_municipality?: string | null;
   origin_country_name_en?: string | null;
   origin_region_name_en?: string | null;
+  origin_nomos_name_en?: string | null;
   origin_city_name_en?: string | null;
   created_at?: string;
   updated_at?: string;

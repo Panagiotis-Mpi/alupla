@@ -18,6 +18,7 @@ export type SortKey =
   | "study_program"
   | "origin_country"
   | "origin_region"
+  | "origin_nomos"
   | "origin_municipality";
 
 export type GraduatesFiltersState = {
@@ -39,6 +40,7 @@ export type GraduatesFiltersState = {
   oath_date_to: string;
   study_program_id: string;
   origin_region_id: string;
+  origin_nomos_region_id: string;
   origin_municipality_like: string;
   origin_country_like: string;
   origin_foreign_city_like: string;
@@ -63,6 +65,7 @@ export const EMPTY_GRADUATES_FILTERS: GraduatesFiltersState = {
   oath_date_to: "",
   study_program_id: "",
   origin_region_id: "",
+  origin_nomos_region_id: "",
   origin_municipality_like: "",
   origin_country_like: "",
   origin_foreign_city_like: "",
@@ -220,6 +223,17 @@ export function getGraduateOriginCountryDisplay(graduate: Graduate, regionNameBy
   return isGreeceDisplayValue(countryName) ? greeceLabel : countryName;
 }
 
+export function getGraduateOriginNomosDisplay(graduate: Graduate, regionNameById: Map<number, string>, activeLang: "gr" | "en" = "gr") {
+  if (String(graduate.origin_foreign_city ?? "").trim() && String(graduate.origin_country ?? "").trim() && !isGreeceDisplayValue(String(graduate.origin_country ?? ""))) {
+    return "";
+  }
+  if (activeLang === "en") {
+    const localized = String((graduate as any).origin_nomos_name_en ?? "").trim();
+    if (localized) return localized;
+  }
+  return regionNameById.get(Number(graduate.origin_region_id)) ?? "";
+}
+
 export function getGraduateOriginMunicipalityDisplay(graduate: Graduate, regionNameById?: Map<number, string>, activeLang: "gr" | "en" = "gr") {
   if (activeLang === "en") {
     const localized = String((graduate as any).origin_city_name_en ?? "").trim();
@@ -272,6 +286,12 @@ export function getGraduateSortValue(args: {
   }
   if (key === "origin_region") {
     return getGraduateOriginRegionDisplay(graduate, regionNameById, activeLang);
+  }
+  if (key === "origin_nomos") {
+    return getGraduateOriginNomosDisplay(graduate, regionNameById, activeLang);
+  }
+  if (key === "origin_municipality") {
+    return getGraduateOriginMunicipalityDisplay(graduate, regionNameById, activeLang);
   }
   if (key === "gender") {
     return renderGender(graduate.gender);
@@ -334,6 +354,7 @@ export function filterAndSortGraduates(args: {
       programNameById.get(Number(graduate.study_program_id)) ?? "",
       getGraduateOriginCountryDisplay(graduate, regionNameById, undefined, activeLang),
       getGraduateOriginRegionDisplay(graduate, regionNameById, activeLang),
+      getGraduateOriginNomosDisplay(graduate, regionNameById, activeLang),
       getGraduateOriginMunicipalityDisplay(graduate, regionNameById, activeLang),
     ];
     return values.some((value) => normalizeValue(value).includes(query));
@@ -435,7 +456,17 @@ export function GraduatesFilters(props: {
       <Field label={t("filters.region")}>
         <select className="input" value={filters.origin_region_id} onChange={(e) => setFilters((current) => ({ ...current, origin_region_id: e.target.value }))}>
           <option value="">{t("filters.all")}</option>
-          {regions.map((region) => (
+          {regions.filter((region) => String(region.type) === "PERIPHERY").map((region) => (
+            <option key={Number(region.id)} value={Number(region.id)}>
+              {region.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label={t("filters.nomos")}>
+        <select className="input" value={filters.origin_nomos_region_id} onChange={(e) => setFilters((current) => ({ ...current, origin_nomos_region_id: e.target.value }))}>
+          <option value="">{t("filters.all")}</option>
+          {regions.filter((region) => String(region.type) === "NOMOS").map((region) => (
             <option key={Number(region.id)} value={Number(region.id)}>
               {region.name}
             </option>
