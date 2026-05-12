@@ -113,9 +113,9 @@ function Login() {
                     style={{
                       height: 44,
                       borderRadius: 12,
-                      border: active ? "1px solid #bfdbfe" : "1px solid #3b82f6",
-                      background: active ? "#eff6ff" : "#3b82f6",
-                      color: active ? "#1d4ed8" : "#ffffff",
+                      border: active ? "1px solid #3b82f6" : "1px solid #bfdbfe",
+                      background: active ? "#3b82f6" : "#eff6ff",
+                      color: active ? "#ffffff" : "#1d4ed8",
                       fontWeight: 800,
                       cursor: "pointer",
                     }}
