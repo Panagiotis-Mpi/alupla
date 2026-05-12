@@ -1006,7 +1006,7 @@ export default function GraduatesMapPage() {
         .map-summary-label { color: #475569; font-size: 17px; line-height: 1.32; }
         .map-summary-value { font-size: 28px; font-weight: 800; line-height: 1.1; color: #0f172a; }
         .map-summary-sub { color: #64748b; font-size: 13px; line-height: 1.35; }
-        .map-main-card { margin: 12px auto 0; position: relative; left: 50%; transform: translateX(-50%); max-width: calc(100vw - 64px); width: min(1108px, calc(100vw - 64px)); border-left: 0; border-right: 0; border-radius: 0; }
+        .map-page-container .map-main-card { margin: 12px auto 0; position: relative; left: auto; transform: none; max-width: 1120px; width: min(1120px, calc(100% - 32px)); border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-radius: var(--radius); }
         .map-info-box { position: relative; }
         .map-info-box-close { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border: 1px solid rgba(148,163,184,.35); background: #fff; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; cursor: pointer; color: #334155; }
         .map-map-wrap { position: relative; padding: 8px 8px 12px; overflow: hidden; border-radius: 0; }
