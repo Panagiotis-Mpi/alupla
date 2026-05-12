@@ -270,8 +270,8 @@ export default function Logs() {
         <div className="topbar" style={{ alignItems: "center", justifyContent: "space-between", marginBottom: 12, width: "100%" }}>
           <h2 style={{ margin: 0 }}>{t("title")}</h2>
           <div ref={exportMenuRef} style={{ position: "relative", marginLeft: "auto" }}>
-            <button className="btn" onClick={() => setExportMenuOpen((current) => !current)} style={{ minWidth: 0, width: "100%", maxWidth: 220 }}>
-              {t("actions.export")}
+            <button className="btn dropdown-like" onClick={() => setExportMenuOpen((current) => !current)} style={{ minWidth: 0, width: "100%", maxWidth: 220 }}>
+              {t("actions.export")}<span className="btn-dropdown-chevron" aria-hidden="true" />
             </button>
             {exportMenuOpen && (
               <div

@@ -68,7 +68,7 @@ export function MapTopControls(props: {
             aria-expanded={showScopeMenu}
           >
             <span className="map-scope-button-label">{scopeLabel}</span>
-            <span className={`map-dropdown-caret ${showScopeMenu ? "open" : ""}`}>▾</span>
+            <span className={`map-dropdown-caret ${showScopeMenu ? "open" : ""}`} aria-hidden="true" />
           </button>
           {showScopeMenu ? (
             <div className="map-menu map-scope-menu">

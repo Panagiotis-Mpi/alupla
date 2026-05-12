@@ -609,12 +609,6 @@ export default function GraduatesMapPage() {
 
   const declutteredMarkerMap = useMemo(() => {
     const source = mapScope === "abroad" ? abroadCountryMarkers : greekCityMarkers.items;
-    const selectedKeys = new Set(
-      selectedCityCards.map((item) => {
-        const hit = source.find((candidate) => sameMapSelection(mapScope, item, candidate));
-        return hit ? mapCityKey(hit as any) : mapCityKey(item as any);
-      }),
-    );
     if (!source.length || !mapBounds || !mapCanvasRef.current) {
       return new Map(
         source.map((item) => {
@@ -628,9 +622,6 @@ export default function GraduatesMapPage() {
     const height = Math.max(1, mapCanvasRef.current.clientHeight || 0);
     const minDistance = markerDeclutterDistance(mapScope, mapZoom);
     const sorted = [...source].sort((left, right) => {
-      const leftSelected = selectedKeys.has(mapCityKey(left as any));
-      const rightSelected = selectedKeys.has(mapCityKey(right as any));
-      if (leftSelected !== rightSelected) return leftSelected ? -1 : 1;
       const leftCount = Math.max(0, Number((left as any).count) || 0);
       const rightCount = Math.max(0, Number((right as any).count) || 0);
       if (rightCount !== leftCount) return rightCount - leftCount;
@@ -654,18 +645,17 @@ export default function GraduatesMapPage() {
         result.set(key, { visible: true, showLabel: defaultLabel });
         continue;
       }
-      const selected = selectedKeys.has(key);
       const collision = placed.some((entry) => {
         const dx = entry.x - projected.x;
         const dy = entry.y - projected.y;
         return Math.hypot(dx, dy) < minDistance;
       });
-      const visible = selected || !collision;
+      const visible = !collision;
       result.set(key, { visible, showLabel: visible && defaultLabel });
       if (visible) placed.push({ x: projected.x, y: projected.y, key });
     }
     return result;
-  }, [abroadCountryMarkers, greekCityMarkers.items, mapBounds, mapScope, mapZoom, selectedCityCards]);
+  }, [abroadCountryMarkers, greekCityMarkers.items, mapBounds, mapScope, mapZoom]);
   const shouldShowMarkerLabel = useCallback((city: any) => declutteredMarkerMap.get(mapCityKey(city as any))?.showLabel ?? true, [declutteredMarkerMap]);
   const renderedMarkers = useMemo(() => {
     if (mapScope === "abroad" && (loading || scopeTransitionLoading)) return [];
@@ -938,7 +928,7 @@ export default function GraduatesMapPage() {
 
 
   return (
-    <div className="container">
+    <div className="container map-page-container">
       <style>{`
         .leaflet-container path:focus, .leaflet-interactive:focus, .leaflet-container:focus { outline: none !important; }
         .alupla-map .leaflet-container { background: transparent !important; }
@@ -948,7 +938,7 @@ export default function GraduatesMapPage() {
         .alupla-city-bubble-wrap { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; pointer-events: auto; overflow: visible; }
         .alupla-city-bubble-label, .alupla-city-label-text { text-align: center; color: #0f172a; font-size: 12px; font-weight: 700; line-height: 1.05; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); background: transparent !important; border: 0 !important; padding: 0; }
         .alupla-city-bubble-label { margin: 0 0 4px; }
-        .alupla-city-bubble-label.active { font-size: 13px; font-weight: 800; }
+        .alupla-city-bubble-label.active { font-size: 12px; font-weight: 700; }
         .alupla-city-bubble { position: relative; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #fff; font-weight: 800; border: 2px solid var(--alupla-bubble-border, rgba(51,65,85,.72)); background: var(--alupla-bubble-background, #60a5fa); opacity: var(--alupla-bubble-opacity, 1); box-shadow: var(--alupla-bubble-shadow, none); }
         .alupla-city-bubble-number { line-height: 1; color: #fff; text-shadow: 0 1px 1px rgba(15,23,42,.35); }
         .alupla-city-bubble-count .alupla-city-bubble-number { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.45); }
@@ -976,15 +966,15 @@ export default function GraduatesMapPage() {
         .map-top-controls-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; align-items: stretch; }
         .map-top-control-slot { position: relative; min-width: 0; }
         .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 16px; font-weight: 700; line-height: 1.25; letter-spacing: 0; }
-        .map-metric-button.active, .map-program-button.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
-        .map-scope-button { background: #fff; border-color: var(--border); color: #0f172a; font-weight: 700; }
+        .map-metric-button.active, .map-program-button.active { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; font-weight: 700; box-shadow: inset 0 0 0 1px rgba(59,130,246,.08); }
+        .map-scope-button { font-weight: 700; }
         .map-scope-button-label { flex: 1; text-align: center; font-size: inherit; font-weight: inherit; line-height: inherit; }
         .map-scope-button .map-dropdown-caret { margin-left: auto; }
-        .map-scope-button:hover { background: #f8fafc; }
+        .map-scope-button:hover { background: var(--primaryHover); border-color: var(--primaryHover); color: #fff; }
         .map-program-button { gap: 8px; }
         .map-dropdown-button { justify-content: space-between; padding-inline: 14px; }
-        .map-dropdown-caret { font-size: 13px; transition: transform .18s ease; }
-        .map-dropdown-caret.open { transform: rotate(180deg); }
+        .map-dropdown-caret { width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); display: inline-block; flex: 0 0 auto; transition: transform .18s ease; }
+        .map-dropdown-caret.open { transform: rotate(225deg) translateY(-1px); }
         .map-menu { position: absolute; top: calc(100% + 8px); right: 0; width: 220px; background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 18px 40px rgba(15,23,42,.16); padding: 8px; z-index: 3000; display: grid; gap: 6px; }
         .map-scope-menu { width: 100%; min-width: 100%; }
         .map-menu-item { width: 100%; border: 0; background: transparent; text-align: left; padding: 10px 12px; border-radius: 10px; cursor: pointer; font: inherit; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -1017,10 +1007,10 @@ export default function GraduatesMapPage() {
         .map-summary-label { color: #475569; font-size: 17px; line-height: 1.32; }
         .map-summary-value { font-size: 28px; font-weight: 800; line-height: 1.1; color: #0f172a; }
         .map-summary-sub { color: #64748b; font-size: 13px; line-height: 1.35; }
-        .map-main-card { margin: 12px auto 0; max-width: 1080px; }
+        .map-main-card { margin: 12px 0 0; max-width: none; width: 100%; border-left: 0; border-right: 0; border-radius: 0; }
         .map-info-box { position: relative; }
         .map-info-box-close { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border: 1px solid rgba(148,163,184,.35); background: #fff; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; cursor: pointer; color: #334155; }
-        .map-map-wrap { position: relative; padding: 8px 8px 12px; overflow: hidden; border-radius: 18px; }
+        .map-map-wrap { position: relative; padding: 8px 8px 12px; overflow: hidden; border-radius: 0; }
         .map-custom-legend { position: absolute; left: 20px; bottom: 24px; z-index: 900; background: rgba(255,255,255,.94); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; font-size: 12px; box-shadow: var(--shadow); max-width: 300px; pointer-events: none; transform: translateZ(0); backface-visibility: hidden; }
         .map-loading-overlay { position: absolute; inset: 8px 8px 12px; border-radius: 18px; background: rgba(255,255,255,.08); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 950; pointer-events: none; }
         .map-loading-overlay-card { min-width: 180px; min-height: 88px; padding: 16px 20px; border-radius: 18px; border: 0; background: transparent; box-shadow: none; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; text-align: center; }
@@ -1211,7 +1201,7 @@ export default function GraduatesMapPage() {
                 const longitude = mapCityLongitude(city);
                 if (latitude === null || longitude === null) return null;
                 const selectedCity = selectedCityCards.find((selectedCard) => sameMapSelection(mapScope, selectedCard, city));
-                const activeCity = Boolean(selectedCity);
+                const activeCity = false;
                 const popupItem = selectedCity || city;
                 return (
                     <Marker

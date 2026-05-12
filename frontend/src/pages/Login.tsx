@@ -39,15 +39,6 @@ const inputStyle: React.CSSProperties = {
   padding: "0 12px",
   outline: "none",
 };
-const linksRowStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 10,
-  fontSize: 13,
-  color: "#1e3a8a",
-  alignItems: "center",
-  flexWrap: "wrap",
-  marginTop: 4,
-};
 
 const ROLE_OPTIONS: Role[] = ["secretariat", "super_admin"];
 
@@ -122,9 +113,9 @@ function Login() {
                     style={{
                       height: 44,
                       borderRadius: 12,
-                      border: active ? "1px solid #2563eb" : "1px solid #dbeafe",
-                      background: active ? "rgba(37,99,235,0.08)" : "#ffffff",
-                      color: active ? "#1d4ed8" : "#334155",
+                      border: active ? "1px solid #bfdbfe" : "1px solid #3b82f6",
+                      background: active ? "#eff6ff" : "#3b82f6",
+                      color: active ? "#1d4ed8" : "#ffffff",
                       fontWeight: 800,
                       cursor: "pointer",
                     }}
@@ -189,8 +180,8 @@ function Login() {
             {loading ? t("common.loading") : t("login.button")}
           </button>
 
-          <div style={linksRowStyle}>
-            <Link to="/register" style={{ color: "#1e3a8a", fontWeight: 700 }}>
+          <div className="auth-form-links">
+            <Link to="/register" className="auth-form-link">
               {t("login.register")}
             </Link>
           </div>

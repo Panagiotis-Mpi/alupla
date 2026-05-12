@@ -567,12 +567,12 @@ export default function Graduates() {
                 />
                 <div ref={templateMenuRef} style={{ position: "relative" }}>
                   <button
-                    className="btn"
+                    className="btn dropdown-like"
                     type="button"
                     style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }}
                     onClick={() => toggleMenu("template")}
                   >
-                    {t("topbar.downloadTemplate")}
+                    {t("topbar.downloadTemplate")}<span className="btn-dropdown-chevron" aria-hidden="true" />
                   </button>
                   {templateMenuOpen ? (
                     <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, width: "max-content", maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
@@ -582,13 +582,13 @@ export default function Graduates() {
                 </div>
                 <div ref={importMenuRef} style={{ position: "relative" }}>
                   <button
-                    className="btn"
+                    className="btn dropdown-like"
                     type="button"
                     style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }}
                     onClick={() => toggleMenu("import")}
                     disabled={importBusy}
                   >
-                    {importBusy ? t("topbar.importing") : t("topbar.import")}
+                    {importBusy ? t("topbar.importing") : t("topbar.import")}<span className="btn-dropdown-chevron" aria-hidden="true" />
                   </button>
                   {importMenuOpen ? (
                     <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, width: "max-content", maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
@@ -598,12 +598,12 @@ export default function Graduates() {
                 </div>
                 <div ref={exportMenuRef} style={{ position: "relative" }}>
                   <button
-                    className="btn"
+                    className="btn dropdown-like"
                     type="button"
                     style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }}
                     onClick={() => toggleMenu("export")}
                   >
-                    {t("topbar.export")}
+                    {t("topbar.export")}<span className="btn-dropdown-chevron" aria-hidden="true" />
                   </button>
                   {exportMenuOpen ? (
                     <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, width: "max-content", maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
@@ -614,8 +614,8 @@ export default function Graduates() {
                 <div className="graduates-actions-secondary" style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "center", width: "100%" }}>
                   <div className="graduates-actions-grid" style={{ gap: 10, width: "100%", alignItems: "stretch" }}>
                     <div ref={recentDownloadsRef} style={{ position: "relative" }}>
-                      <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => toggleMenu("recent")}>
-                        {t("topbar.myFrequentDownloads")}
+                      <button className="btn dropdown-like" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => toggleMenu("recent")}>
+                        {t("topbar.myFrequentDownloads")}<span className="btn-dropdown-chevron" aria-hidden="true" />
                       </button>
                       {recentDownloadsOpen ? (
                         <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, width: 380, maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 10, display: "grid", gap: 10, zIndex: 30 }}>
