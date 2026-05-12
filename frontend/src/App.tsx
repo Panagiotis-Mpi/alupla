@@ -233,7 +233,7 @@ function TopNav() {
             title={lang === "en" ? t("aria.languageEnglish") : t("aria.languageGreek")}
           >
             <span>{currentLanguageLabel}</span>
-            <span className="nav-dropdown-chevron" aria-hidden="true">⌄</span>
+            <span className="nav-dropdown-chevron" aria-hidden="true" />
           </button>
           {languageOpen && (
             <div className="nav-dropdown-menu">
@@ -254,7 +254,7 @@ function TopNav() {
                   aria-expanded={accountOpen}
                 >
                   <span>{t("nav.myAccount")}</span>
-                  <span className="nav-dropdown-chevron" aria-hidden="true">⌄</span>
+                  <span className="nav-dropdown-chevron" aria-hidden="true" />
                 </button>
                 {accountOpen && (
                   <div className="nav-dropdown-menu nav-account-menu">

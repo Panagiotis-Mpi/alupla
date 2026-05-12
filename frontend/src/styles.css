@@ -2896,7 +2896,7 @@ html.accessibility-high-contrast .auth-page-shell .auth-form-link{
 }
 .nav-dropdown{position:relative;display:inline-flex;min-width:0}
 .nav-dropdown-toggle{gap:8px;white-space:nowrap}
-.nav-dropdown-chevron{font-size:18px;line-height:1;transform:translateY(-1px)}
+.nav-dropdown-chevron{width:10px;height:10px;border-right:3px solid currentColor;border-bottom:3px solid currentColor;transform:rotate(45deg) translateY(-2px);display:inline-block;flex:0 0 auto;margin-left:2px}
 .nav-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:1300;min-width:190px;border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:var(--shadowHover);padding:8px;display:grid;gap:4px}
 .nav-dropdown-item{border:none;background:transparent;color:#334155;text-align:left;padding:10px 12px;border-radius:10px;font:inherit;font-weight:700;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:flex-start;white-space:nowrap}
 .nav-dropdown-item:hover{background:#eff6ff;color:#1d4ed8}
