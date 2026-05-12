@@ -211,9 +211,12 @@ export function MapYearTimeline(props: {
             />
           </div>
           <div className="map-timeline-scale">
-            {ticks.map((year) => (
-              <span key={year} style={{ left: `${((year - minYear) / yearSpan) * 100}%` }}>{year}</span>
-            ))}
+            {ticks.map((year) => {
+              const tickPercent = ((year - minYear) / yearSpan) * 100;
+              return (
+                <span key={year} style={{ left: `${tickPercent}%`, "--tick-position": `${tickPercent}%` } as React.CSSProperties}>{year}</span>
+              );
+            })}
           </div>
         </div>
       ) : (
