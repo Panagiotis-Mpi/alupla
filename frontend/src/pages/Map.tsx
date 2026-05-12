@@ -966,7 +966,6 @@ export default function GraduatesMapPage() {
         .map-top-controls-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; align-items: stretch; }
         .map-top-control-slot { position: relative; min-width: 0; }
         .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 16px; font-weight: 700; line-height: 1.25; letter-spacing: 0; }
-        .map-metric-button.active, .map-program-button.active { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; font-weight: 700; box-shadow: inset 0 0 0 1px rgba(59,130,246,.08); }
         .map-scope-button { font-weight: 700; }
         .map-scope-button-label { flex: 1; text-align: center; font-size: inherit; font-weight: inherit; line-height: inherit; }
         .map-scope-button .map-dropdown-caret { margin-left: auto; }

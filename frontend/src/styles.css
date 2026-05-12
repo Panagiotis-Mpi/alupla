@@ -144,6 +144,7 @@ html.accessibility-high-contrast .statistics-metric-value{
 .map-page-container .map-combined-details-card{margin-left:var(--space-2);margin-right:var(--space-2)}
 .map-panel-stack{display:grid;gap:var(--space-2)}
 .map-canvas{height:calc(100vh - 240px);min-height:640px;width:100%}
+.map-page-container .map-main-card{width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);border-left:0;border-right:0;border-radius:0}
 
 .brand-compact{display:inline-flex;align-items:center;gap:8px}
 .brand-burger{font-size:16px;line-height:1}
