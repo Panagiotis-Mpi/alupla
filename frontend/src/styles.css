@@ -2921,3 +2921,122 @@ html.accessibility-high-contrast .auth-page-shell .auth-form-link{
 
 .btn-dropdown-chevron{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);display:inline-block;flex:0 0 auto;margin-left:8px}
 .btn.dropdown-like{gap:8px;justify-content:center}
+
+.btn,
+.nav .btn,
+.page-header-actions-grid .btn,
+.graduates-actions-grid .btn,
+.map-metric-button,
+.map-action-button,
+.map-program-button,
+.mobile-summary-toggle,
+.accessibility-panel-actions .btn{
+  background:#eff6ff;
+  border-color:#bfdbfe;
+  color:#1d4ed8;
+  box-shadow:inset 0 0 0 1px rgba(59,130,246,.08);
+}
+
+.btn:hover,
+.nav .btn:hover,
+.page-header-actions-grid .btn:hover,
+.graduates-actions-grid .btn:hover,
+.map-metric-button:hover,
+.map-action-button:hover,
+.map-program-button:hover,
+.mobile-summary-toggle:hover,
+.accessibility-panel-actions .btn:hover{
+  background:#dbeafe;
+  border-color:#93c5fd;
+  color:#1d4ed8;
+  box-shadow:0 6px 16px rgba(37,99,235,.08);
+}
+
+.btn.primary,
+.btn.active,
+.nav .btn.primary,
+.nav .btn.active,
+.nav-link-active,
+.nav .nav-link-active,
+.mobile-drawer .nav-link-active,
+.page-header-actions-grid .btn.primary,
+.graduates-actions-grid .btn.primary,
+.map-metric-button.primary,
+.map-metric-button.active,
+.map-action-button.primary,
+.map-program-button.primary,
+.mobile-summary-toggle.primary,
+.accessibility-toggle-btn.is-active,
+.accessibility-icon-btn.is-active{
+  background:var(--primary);
+  border-color:var(--primary);
+  color:#fff;
+  box-shadow:0 10px 22px rgba(37,99,235,.18);
+}
+
+.btn.primary:hover,
+.btn.active:hover,
+.nav .btn.primary:hover,
+.nav .btn.active:hover,
+.nav-link-active:hover,
+.nav .nav-link-active:hover,
+.mobile-drawer .nav-link-active:hover,
+.page-header-actions-grid .btn.primary:hover,
+.graduates-actions-grid .btn.primary:hover,
+.map-metric-button.primary:hover,
+.map-metric-button.active:hover,
+.map-action-button.primary:hover,
+.map-program-button.primary:hover,
+.mobile-summary-toggle.primary:hover,
+.accessibility-toggle-btn.is-active:hover,
+.accessibility-icon-btn.is-active:hover{
+  background:var(--primaryHover);
+  border-color:var(--primaryHover);
+  color:#fff;
+  box-shadow:0 10px 22px rgba(37,99,235,.22);
+}
+
+.btn.danger,
+.btn.danger:hover{
+  background:var(--danger);
+  border-color:var(--danger);
+  color:#fff;
+}
+
+.btn:disabled,
+.btn[disabled],
+.btn:disabled:hover,
+.btn[disabled]:hover{
+  background:#f8fafc;
+  border-color:var(--border);
+  color:#94a3b8;
+  box-shadow:none;
+}
+
+.public-home-action.primary{
+  border:1px solid var(--primary);
+  background:var(--primary);
+  color:#fff;
+  box-shadow:0 10px 22px rgba(37,99,235,.18);
+}
+
+.public-home-action.primary:hover{
+  background:var(--primaryHover);
+  border-color:var(--primaryHover);
+  color:#fff;
+}
+
+.public-home-action.secondary,
+.public-home-action.ghost{
+  border:1px solid #93c5fd;
+  background:#eff6ff;
+  color:#1e3a8a;
+  box-shadow:none;
+}
+
+.public-home-action.secondary:hover,
+.public-home-action.ghost:hover{
+  background:#dbeafe;
+  border-color:#60a5fa;
+  color:#1e3a8a;
+}
