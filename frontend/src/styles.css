@@ -2895,9 +2895,10 @@ html.accessibility-high-contrast .auth-page-shell .auth-form-link{
   color:#7fffd4 !important;
 }
 .nav-dropdown{position:relative;display:inline-flex;min-width:0}
-.nav-dropdown-toggle{gap:8px;white-space:nowrap}
-.nav-dropdown-chevron{width:10px;height:10px;border-right:3px solid currentColor;border-bottom:3px solid currentColor;transform:rotate(45deg) translateY(-2px);display:inline-block;flex:0 0 auto;margin-left:2px}
+.nav-dropdown-toggle{gap:7px;white-space:nowrap}
+.nav-dropdown-chevron{width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);display:inline-block;flex:0 0 auto;margin-left:2px}
 .nav-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:1300;min-width:190px;border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:var(--shadowHover);padding:8px;display:grid;gap:4px}
+.nav-right > .nav-dropdown:first-child > .nav-dropdown-menu{width:100%;min-width:100%;box-sizing:border-box}
 .nav-dropdown-item{border:none;background:transparent;color:#334155;text-align:left;padding:10px 12px;border-radius:10px;font:inherit;font-weight:700;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:flex-start;white-space:nowrap}
 .nav-dropdown-item:hover{background:#eff6ff;color:#1d4ed8}
 .nav-dropdown-danger{color:#b00020}
@@ -2906,5 +2907,6 @@ html.accessibility-high-contrast .auth-page-shell .auth-form-link{
 @media (max-width: 640px){
   .nav-dropdown-toggle{width:auto !important;padding:8px 10px}
   .nav-dropdown-menu{min-width:170px}
+  .nav-right > .nav-dropdown:first-child > .nav-dropdown-menu{width:100%;min-width:100%}
   .nav-actions .nav-dropdown .user-profile-btn{max-width:none;width:auto !important}
 }
