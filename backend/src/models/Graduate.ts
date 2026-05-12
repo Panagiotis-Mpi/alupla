@@ -34,7 +34,7 @@ Graduate.init(
     last_name: { type: DataTypes.STRING(100), allowNull: false },
     first_name: { type: DataTypes.STRING(100), allowNull: false },
     father_name: { type: DataTypes.STRING(100), allowNull: false },
-    degree_grade: { type: DataTypes.DECIMAL(4, 2), allowNull: false },
+    degree_grade: { type: DataTypes.DECIMAL(4, 2), allowNull: false, validate: { min: 5, max: 10 } },
     graduation_date: { type: DataTypes.DATEONLY, allowNull: false },
     oath_date: { type: DataTypes.DATEONLY, allowNull: false },
     entry_year: { type: DataTypes.SMALLINT, allowNull: false },

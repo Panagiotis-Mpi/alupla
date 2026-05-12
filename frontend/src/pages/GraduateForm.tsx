@@ -295,6 +295,9 @@ useEffect(() => {
       if (v === null || v === undefined || String(v).trim() === "") return label;
     }
 
+    const degreeGrade = Number(form.degree_grade);
+    if (!Number.isFinite(degreeGrade) || degreeGrade < 5 || degreeGrade > 10) return t("validation.degreeGradeRange");
+
     return null;
   };
 
@@ -405,7 +408,7 @@ useEffect(() => {
             </div>
             <div style={fieldStyle(t("labels.degreeGrade"))}>
               <label style={labelStyle}>{t("labels.degreeGrade")}</label>
-              <input className="input" inputMode="decimal" value={form.degree_grade ?? ""} onChange={(e) => setForm((f) => ({ ...f, degree_grade: e.target.value ? Number(e.target.value) : ("" as any) }))} />
+              <input className="input" type="number" min="5" max="10" step="0.01" value={form.degree_grade ?? ""} onChange={(e) => setForm((f) => ({ ...f, degree_grade: e.target.value ? Number(e.target.value) : ("" as any) }))} />
             </div>
             <div style={fieldStyle(t("labels.graduationDate"))}>
               <label style={labelStyle}>{t("labels.graduationDate")}</label>

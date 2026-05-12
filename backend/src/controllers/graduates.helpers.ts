@@ -154,9 +154,11 @@ export function toNullableNumber(v: any): number | null {
 export const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MIN_GRADUATE_AGE = 23;
 const MIN_GRADUATION_YEARS = 5;
+export const MIN_DEGREE_GRADE = 5;
+export const MAX_DEGREE_GRADE = 10;
 
 export type RuleLang = "gr" | "en";
-export type RuleViolationCode = "age_under_minimum" | "graduation_duration_under_minimum";
+export type RuleViolationCode = "age_under_minimum" | "graduation_duration_under_minimum" | "degree_grade_out_of_range";
 export type GraduateRuleViolation = { code: RuleViolationCode; message: string };
 
 export function getRuleLang(raw: unknown): RuleLang {
@@ -165,9 +167,13 @@ export function getRuleLang(raw: unknown): RuleLang {
 
 export function getRuleViolationMessage(code: RuleViolationCode, lang: RuleLang) {
   if (lang === "en") {
-    return code === "age_under_minimum" ? "Graduate age must be at least 23 years." : "Study duration must be at least 5 years from entry year.";
+    if (code === "age_under_minimum") return "Graduate age must be at least 23 years.";
+    if (code === "degree_grade_out_of_range") return "Degree grade must be from 5 to 10.";
+    return "Study duration must be at least 5 years from entry year.";
   }
-  return code === "age_under_minimum" ? "Η ηλικία αποφοίτησης πρέπει να είναι τουλάχιστον 23 έτη." : "Η διάρκεια σπουδών πρέπει να είναι τουλάχιστον 5 έτη από το έτος εισαγωγής.";
+  if (code === "age_under_minimum") return "Η ηλικία αποφοίτησης πρέπει να είναι τουλάχιστον 23 έτη.";
+  if (code === "degree_grade_out_of_range") return "Ο βαθμός πτυχίου πρέπει να είναι από 5 έως 10.";
+  return "Η διάρκεια σπουδών πρέπει να είναι τουλάχιστον 5 έτη από το έτος εισαγωγής.";
 }
 
 export function parseYear(value: unknown) {
@@ -176,10 +182,14 @@ export function parseYear(value: unknown) {
 }
 
 // Κανόνες λογικής εγκυρότητας για ηλικία και ελάχιστη διάρκεια σπουδών.
-export function getGraduateRuleViolations(input: { entry_year: number | null; birth_date: string | null; graduation_date: string | null }, lang: RuleLang): GraduateRuleViolation[] {
+export function getGraduateRuleViolations(input: { entry_year: number | null; birth_date: string | null; graduation_date: string | null; degree_grade?: number | null }, lang: RuleLang): GraduateRuleViolation[] {
   const violations: GraduateRuleViolation[] = [];
   const birthYear = parseYear(input.birth_date);
   const graduationYear = parseYear(input.graduation_date);
+  const degreeGrade = Number(input.degree_grade);
+  if (input.degree_grade !== undefined && (!Number.isFinite(degreeGrade) || degreeGrade < MIN_DEGREE_GRADE || degreeGrade > MAX_DEGREE_GRADE)) {
+    violations.push({ code: "degree_grade_out_of_range", message: getRuleViolationMessage("degree_grade_out_of_range", lang) });
+  }
   if (birthYear && graduationYear && graduationYear - birthYear < MIN_GRADUATE_AGE) {
     violations.push({ code: "age_under_minimum", message: getRuleViolationMessage("age_under_minimum", lang) });
   }

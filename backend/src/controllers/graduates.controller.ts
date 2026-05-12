@@ -399,12 +399,13 @@ export async function importGraduates(req: Request, res: Response, next: NextFun
         entry_year,
         birth_date,
         graduation_date,
+        degree_grade,
       }, importLang);
 
       if (ruleViolations.length) {
         errors.push({
           row: rowNum,
-          column: "graduation_date",
+          column: ruleViolations.some((item) => item.code === "degree_grade_out_of_range") ? "degree_grade" : "graduation_date",
           message: buildImportViolationSummary(ruleViolations, importLang),
           details: ruleViolations.map((item) => item.message),
           violation_codes: ruleViolations.map((item) => item.code),
@@ -581,6 +582,7 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
       entry_year,
       birth_date,
       graduation_date,
+      degree_grade,
     }, "en")[0];
     if (createRuleViolation) return bad(res, createRuleViolation.message);
 
@@ -756,6 +758,7 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
       entry_year: Number((item as any).entry_year),
       birth_date: String((item as any).birth_date ?? ""),
       graduation_date: String((item as any).graduation_date ?? ""),
+      degree_grade: Number((item as any).degree_grade),
     }, "en")[0];
     if (updateRuleViolation) return bad(res, updateRuleViolation.message);
 
