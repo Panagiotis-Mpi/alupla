@@ -20,13 +20,24 @@ function yearFromDate(value: unknown) {
   return Number.isFinite(year) ? year : null;
 }
 
+function isAtLeastAgeOnDate(birthDateValue: unknown, targetDateValue: unknown, minimumAge: number) {
+  const birthDate = new Date(String(birthDateValue ?? ""));
+  const targetDate = new Date(String(targetDateValue ?? ""));
+  if (Number.isNaN(birthDate.getTime()) || Number.isNaN(targetDate.getTime())) return true;
+  const ageLimitDate = new Date(birthDate);
+  ageLimitDate.setFullYear(ageLimitDate.getFullYear() + minimumAge);
+  return targetDate >= ageLimitDate;
+}
+
 function getGraduateValidationIssue(form: Partial<Graduate>, t: (key: string, options?: any) => string) {
   const entryYear = Number(form.entry_year);
   const birthYear = yearFromDate((form as any).birth_date);
-  const graduationYear = yearFromDate(form.graduation_date);
+  const degreeGrade = Number(form.degree_grade);
 
-  if (birthYear && graduationYear && graduationYear - birthYear < 23) return t("validation.minAge");
-  if (Number.isFinite(entryYear) && graduationYear && graduationYear - entryYear < 5) return t("validation.minDuration");
+  if (Number.isFinite(entryYear) && birthYear && entryYear - birthYear < 18) return t("validation.entryAge");
+  if (!Number.isFinite(degreeGrade) || degreeGrade < 5 || degreeGrade > 10) return t("validation.degreeGradeRange");
+  if (!isAtLeastAgeOnDate((form as any).birth_date, form.graduation_date, 23)) return t("validation.graduationAge");
+  if (!isAtLeastAgeOnDate((form as any).birth_date, form.oath_date, 23)) return t("validation.oathAge");
   return null;
 }
 

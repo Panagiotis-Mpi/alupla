@@ -51,9 +51,10 @@
     "originText": ""
   },
   "validation": {
-    "minAge": "Graduate age must be at least 23 years.",
-    "minDuration": "Study duration must be at least 5 years from entry year.",
-    "degreeGradeRange": "Degree grade must be from 5 to 10."
+    "entryAge": "The graduate must be at least 18 years old in the entry year.",
+    "degreeGradeRange": "Degree grade must be from 5 to 10.",
+    "graduationAge": "The graduate must be at least 23 years old on the diploma award date.",
+    "oathAge": "The graduate must be at least 23 years old on the oath date."
   },
   "requiredNotice": "All fields must be filled in."
 }

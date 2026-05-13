@@ -68,6 +68,30 @@ function localizedName(localizedNamesById: LocalizedNamesByRegionId | undefined,
   return String(localizedNamesById?.get(numericId)?.nameEn ?? "").trim();
 }
 
+function parsedDate(value: unknown) {
+  const date = new Date(String(value ?? ""));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function ageLimitDate(birthDate: Date, years: number) {
+  const date = new Date(birthDate);
+  date.setFullYear(date.getFullYear() + years);
+  return date;
+}
+
+function getManualGraduateValidationMessage(input: { entry_year: number; birth_date: string; graduation_date: string; oath_date: string; degree_grade: number }) {
+  const birthYear = Number(String(input.birth_date ?? "").slice(0, 4));
+  const birthDate = parsedDate(input.birth_date);
+  const graduationDate = parsedDate(input.graduation_date);
+  const oathDate = parsedDate(input.oath_date);
+
+  if (Number.isFinite(input.entry_year) && Number.isFinite(birthYear) && input.entry_year - birthYear < 18) return "Ο απόφοιτος πρέπει να είναι τουλάχιστον 18 ετών στο έτος εισαγωγής.";
+  if (!Number.isFinite(input.degree_grade) || input.degree_grade < 5 || input.degree_grade > 10) return "Ο βαθμός πτυχίου πρέπει να είναι από 5 έως 10.";
+  if (birthDate && graduationDate && graduationDate < ageLimitDate(birthDate, 23)) return "Ο απόφοιτος πρέπει να είναι τουλάχιστον 23 ετών στη λήψη διπλώματος.";
+  if (birthDate && oathDate && oathDate < ageLimitDate(birthDate, 23)) return "Ο απόφοιτος πρέπει να είναι τουλάχιστον 23 ετών στην ορκωμοσία.";
+  return null;
+}
+
 // Μετατρέπει τα Sequelize rows σε απλά objects και προσθέτει αγγλικά ονόματα περιοχών όταν ζητηθεί EN.
 async function serializeGraduateRows(rows: any[], lang: string) {
   const plainRows = rows.map((row) => row?.get ? row.get({ plain: true }) : row);
@@ -578,13 +602,14 @@ export async function createGraduate(req: Request, res: Response, next: NextFunc
     if (dateError) return dateError;
 
     // Οι ίδιοι ακαδημαϊκοί κανόνες εφαρμόζονται και στη χειροκίνητη καταχώριση.
-    const createRuleViolation = getGraduateRuleViolations({
+    const createValidationMessage = getManualGraduateValidationMessage({
       entry_year,
       birth_date,
       graduation_date,
+      oath_date,
       degree_grade,
-    }, "en")[0];
-    if (createRuleViolation) return bad(res, createRuleViolation.message);
+    });
+    if (createValidationMessage) return bad(res, createValidationMessage);
 
     const program = await StudyProgram.findByPk(study_program_id);
     if (!program) return bad(res, "study_program_id not found");
@@ -754,13 +779,14 @@ export async function updateGraduate(req: Request, res: Response, next: NextFunc
     if (!DATE_ONLY_RE.test(String((item as any).oath_date ?? ""))) return bad(res, "oath_date must be YYYY-MM-DD");
     if (!DATE_ONLY_RE.test(String((item as any).birth_date ?? ""))) return bad(res, "birth_date must be YYYY-MM-DD");
 
-    const updateRuleViolation = getGraduateRuleViolations({
+    const updateValidationMessage = getManualGraduateValidationMessage({
       entry_year: Number((item as any).entry_year),
       birth_date: String((item as any).birth_date ?? ""),
       graduation_date: String((item as any).graduation_date ?? ""),
+      oath_date: String((item as any).oath_date ?? ""),
       degree_grade: Number((item as any).degree_grade),
-    }, "en")[0];
-    if (updateRuleViolation) return bad(res, updateRuleViolation.message);
+    });
+    if (updateValidationMessage) return bad(res, updateValidationMessage);
 
     // Η αποθήκευση γίνεται αφού περάσουν όλα τα validations και το origin patch.
     await item.save();
