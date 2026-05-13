@@ -410,17 +410,32 @@ export default function GraduatesMapPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (initialPageReady || loading || yearRangeLoading) return;
-    const frame = window.requestAnimationFrame(() => setInitialPageReady(true));
-    return () => window.cancelAnimationFrame(frame);
-  }, [initialPageReady, loading, yearRangeLoading]);
+  const hasActiveMapData = items.length > 0 || cityPoints.length > 0;
 
   useEffect(() => {
-    if (!initialPageReady || loading || yearRangeLoading || counterpartWarmupEnabled) return;
+    if (initialPageReady || yearRangeLoading) return;
+    if (loading && !hasActiveMapData) return;
+    const frame = window.requestAnimationFrame(() => setInitialPageReady(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, [hasActiveMapData, initialPageReady, loading, yearRangeLoading]);
+
+  useEffect(() => {
+    if (loading && !hasActiveMapData) return;
+    if (!mapRef.current || !activeBounds) return;
+    const map = mapRef.current;
+    const frame = window.requestAnimationFrame(() => {
+      map.invalidateSize();
+      setMapZoom(map.getZoom());
+      setMapBounds(map.getBounds());
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeBounds, cityPoints, hasActiveMapData, items, loading]);
+
+  useEffect(() => {
+    if (!initialPageReady || (loading && !hasActiveMapData) || yearRangeLoading || counterpartWarmupEnabled) return;
     const timer = window.setTimeout(() => setCounterpartWarmupEnabled(true), 120);
     return () => window.clearTimeout(timer);
-  }, [counterpartWarmupEnabled, initialPageReady, loading, yearRangeLoading, counterpartParams]);
+  }, [counterpartWarmupEnabled, hasActiveMapData, initialPageReady, loading, yearRangeLoading, counterpartParams]);
 
   useEffect(() => {
     if (!scopeTransitionLoading || loading) return;
@@ -435,8 +450,9 @@ export default function GraduatesMapPage() {
   }, [mapMetric, metricTransitionLoading]);
 
   const pageLoading = !initialPageReady;
-  const inlineMapLoading = (!pageLoading && loading) || metricTransitionLoading || scopeTransitionLoading;
-  const summaryLoading = !pageLoading && (loading || metricTransitionLoading || scopeTransitionLoading);
+  const activeDataLoading = loading && !hasActiveMapData;
+  const inlineMapLoading = (!pageLoading && activeDataLoading) || metricTransitionLoading || scopeTransitionLoading;
+  const summaryLoading = !pageLoading && (activeDataLoading || metricTransitionLoading || scopeTransitionLoading);
 
   const exportCategoryOptions = useMemo(
     () => [
