@@ -7,15 +7,22 @@ import {
   type MapCityPoint,
 } from "../../lib/api";
 
-export function useMapData(params: Record<string, string>, options: { includeCities?: boolean } = {}) {
+export function useMapData(params: Record<string, string>, options: { includeCities?: boolean; enabled?: boolean } = {}) {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<GraduatesMapItem[]>([]);
   const [cityPoints, setCityPoints] = useState<MapCityPoint[]>([]);
 
   const includeCities = options.includeCities !== false;
+  const enabled = options.enabled !== false;
 
   useEffect(() => {
     let active = true;
+    if (!enabled) {
+      setLoading(false);
+      return () => {
+        active = false;
+      };
+    }
     setLoading(true);
 
     (async () => {
@@ -39,7 +46,7 @@ export function useMapData(params: Record<string, string>, options: { includeCit
     return () => {
       active = false;
     };
-  }, [params, includeCities]);
+  }, [params, includeCities, enabled]);
 
   return {
     loading,

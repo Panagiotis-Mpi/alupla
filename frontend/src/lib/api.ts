@@ -524,6 +524,7 @@ export async function getPublicStats(params: {
   study_program_id?: string;
   gender?: string;
   age_group?: string;
+  section?: string;
 } = { }): Promise<PublicStatsResponse> {
   const path = `/public/stats${toQueryString(params)}`;
   const cacheKey = `alupla:public-stats:${path}`;

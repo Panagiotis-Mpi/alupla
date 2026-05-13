@@ -110,6 +110,7 @@ export default function GraduatesMapPage() {
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [yearRangeLoading, setYearRangeLoading] = useState(false);
   const [initialPageReady, setInitialPageReady] = useState(false);
+  const [counterpartWarmupEnabled, setCounterpartWarmupEnabled] = useState(false);
   const [scopeTransitionLoading, setScopeTransitionLoading] = useState(false);
   const [metricTransitionLoading, setMetricTransitionLoading] = useState(false);
   const [highContrastEnabled, setHighContrastEnabled] = useState(() => typeof document !== "undefined" && document.documentElement.classList.contains("accessibility-high-contrast"));
@@ -154,7 +155,12 @@ export default function GraduatesMapPage() {
       }),
     [counterpartScope, mapLanguage, selectedGraduationYearStart, selectedGraduationYearEnd],
   );
-  const { loading: counterpartLoading, items: counterpartItems } = useMapData(counterpartParams, { includeCities: false });
+
+  useEffect(() => {
+    setCounterpartWarmupEnabled(false);
+  }, [counterpartParams]);
+
+  const { loading: counterpartLoading, items: counterpartItems } = useMapData(counterpartParams, { includeCities: false, enabled: counterpartWarmupEnabled });
 
   const worldBounds = useMemo(() => L.latLngBounds(L.latLng(-60, -180), L.latLng(85, 180)), []);
   const greeceBounds = useMemo(
@@ -411,6 +417,12 @@ export default function GraduatesMapPage() {
   }, [initialPageReady, loading, yearRangeLoading]);
 
   useEffect(() => {
+    if (!initialPageReady || loading || yearRangeLoading || counterpartWarmupEnabled) return;
+    const timer = window.setTimeout(() => setCounterpartWarmupEnabled(true), 120);
+    return () => window.clearTimeout(timer);
+  }, [counterpartWarmupEnabled, initialPageReady, loading, yearRangeLoading, counterpartParams]);
+
+  useEffect(() => {
     if (!scopeTransitionLoading || loading) return;
     const frame = window.requestAnimationFrame(() => setScopeTransitionLoading(false));
     return () => window.cancelAnimationFrame(frame);
@@ -424,7 +436,7 @@ export default function GraduatesMapPage() {
 
   const pageLoading = !initialPageReady;
   const inlineMapLoading = (!pageLoading && loading) || metricTransitionLoading || scopeTransitionLoading;
-  const summaryLoading = !pageLoading && (loading || counterpartLoading || metricTransitionLoading || scopeTransitionLoading);
+  const summaryLoading = !pageLoading && (loading || metricTransitionLoading || scopeTransitionLoading);
 
   const exportCategoryOptions = useMemo(
     () => [

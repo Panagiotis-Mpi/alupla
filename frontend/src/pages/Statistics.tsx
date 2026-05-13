@@ -53,6 +53,7 @@ const metricBottomRowStyle: React.CSSProperties = { display: "grid", gap: 12, gr
 const sectionMenuStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%" };
 const sectionButtonsStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" };
 const cardInnerStyle = { minWidth: 0 };
+type StatisticsGroupKey = "demographics" | "academic" | "geography";
 const compactTopbarStyle: React.CSSProperties = { marginBottom: 12, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 };
 
 export default function Statistics() {
@@ -61,7 +62,8 @@ export default function Statistics() {
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
   const [data, setData] = React.useState<any | null>(null);
-  const [activeGroup, setActiveGroup] = React.useState<"demographics" | "academic" | "geography">("demographics");
+  const [activeGroup, setActiveGroup] = React.useState<StatisticsGroupKey>("demographics");
+  const [loadedGroups, setLoadedGroups] = React.useState<Record<StatisticsGroupKey, boolean>>({ demographics: false, academic: false, geography: false });
   const [selectedGenderEntryYearLeft, setSelectedGenderEntryYearLeft] = React.useState<string>("all");
   const [selectedGenderEntryYearRight, setSelectedGenderEntryYearRight] = React.useState<string>("all");
   const [exportOpen, setExportOpen] = React.useState(false);
@@ -70,6 +72,7 @@ export default function Statistics() {
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
   const pageRef = React.useRef<HTMLDivElement | null>(null);
   const exportSurfaceRef = React.useRef<HTMLDivElement | null>(null);
+  const statsRequestsRef = React.useRef<Partial<Record<StatisticsGroupKey, Promise<any>>>>({});
 
   const activeLang = i18n.language?.toLowerCase().startsWith("en") ? "en" : "el";
 
@@ -123,12 +126,37 @@ export default function Statistics() {
     setSelectedChartIds((prev) => prev.filter((id) => allChartIds.includes(id)));
   }, [allChartIds]);
 
+  const mergeStatsData = React.useCallback((stats: any) => {
+    setData((current: any | null) => ({ ...(current || {}), ...(stats || {}) }));
+  }, []);
+
+  const loadStatsGroup = React.useCallback((group: StatisticsGroupKey) => {
+    if (statsRequestsRef.current[group]) return statsRequestsRef.current[group] as Promise<any>;
+    const request = getPublicStats({ section: group })
+      .then((stats) => {
+        mergeStatsData(stats);
+        setLoadedGroups((current) => ({ ...current, [group]: true }));
+        return stats;
+      })
+      .finally(() => {
+        delete statsRequestsRef.current[group];
+      });
+    statsRequestsRef.current[group] = request;
+    return request;
+  }, [mergeStatsData]);
+
   async function load() {
     setLoading(true);
     setErr(null);
+    setData(null);
+    setLoadedGroups({ demographics: false, academic: false, geography: false });
+    statsRequestsRef.current = {};
     try {
-      const st = await getPublicStats();
-      setData(st);
+      await loadStatsGroup("demographics");
+      window.setTimeout(() => {
+        void loadStatsGroup("academic").catch(() => {});
+        void loadStatsGroup("geography").catch(() => {});
+      }, 80);
     } catch (e: any) {
       setErr(e?.message ?? t("error"));
     } finally {
@@ -139,6 +167,11 @@ export default function Statistics() {
   React.useEffect(() => {
     void load();
   }, []);
+
+  React.useEffect(() => {
+    if (activeGroup === "demographics" || loadedGroups[activeGroup]) return;
+    void loadStatsGroup(activeGroup).catch((e: any) => setErr(e?.message ?? t("error")));
+  }, [activeGroup, loadStatsGroup, loadedGroups, t]);
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -484,6 +517,8 @@ export default function Statistics() {
   }, [selectedExportFormat]);
 
   function openExportSelection(format: "xlsx" | "csv" | "png") {
+    void loadStatsGroup("academic").catch(() => {});
+    void loadStatsGroup("geography").catch(() => {});
     setSelectedChartIds([]);
     setSelectedExportFormat(format);
     setExportOpen(false);
@@ -630,6 +665,7 @@ export default function Statistics() {
     if (!selectedChartIds.length || !selectedExportFormat) return;
 
     try {
+      await Promise.all([loadStatsGroup("academic"), loadStatsGroup("geography")]);
       if (selectedExportFormat === "xlsx") {
         exportStatisticsWorkbookFile(exportArgs, buildStatisticsExportFilename(exportArgs, "xlsx"));
       } else if (selectedExportFormat === "csv") {
@@ -653,6 +689,7 @@ export default function Statistics() {
 
   const loadingLabel = t("loading");
   const loadingLabelStyle = { "--statistics-loading-label": JSON.stringify(loadingLabel) } as React.CSSProperties;
+  const activeGroupLoading = loading || (activeGroup !== "demographics" && !loadedGroups[activeGroup]);
 
   return (
     <>
@@ -716,11 +753,11 @@ export default function Statistics() {
             metricGridStyle={metricGridStyle}
             metricTopRowStyle={metricTopRowStyle}
             metricBottomRowStyle={metricBottomRowStyle}
-            loading={loading}
+            loading={activeGroupLoading}
           />
         </div>
 
-        <div className={loading ? "statistics-chart-loading-region" : undefined} style={loading ? loadingLabelStyle : undefined}>
+        <div className={activeGroupLoading ? "statistics-chart-loading-region" : undefined} style={activeGroupLoading ? loadingLabelStyle : undefined}>
           {activeGroup === "demographics" ? (
           <DemographicsCharts
             t={t}

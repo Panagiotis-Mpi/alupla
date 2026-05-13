@@ -88,6 +88,368 @@ export async function publicStats(req: Request, res: Response) {
 
     const { sqlWhere, repl, birthExpr } = await buildWhere(req);
     const birthYearExpr = await getBirthYearExpr();
+    const section = String(req.query.section ?? "all").toLowerCase();
+
+    if (section === "demographics") {
+      const totalRow = await sequelize.query<{ total: number }>(
+        `SELECT COUNT(*) as total FROM graduates g ${sqlWhere}`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const total = Number(totalRow?.[0]?.total ?? 0);
+      const avgRow = await sequelize.query<{ avg_age: number | null; avg_degree_grade: number | null }>(
+        `SELECT AVG(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) as avg_age,
+                AVG(g.degree_grade) as avg_degree_grade
+         FROM graduates g ${sqlWhere}`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const byYear = await sequelize.query<{ year: number; count: number }>(
+        `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+                CAST(COUNT(*) AS INTEGER) as count
+         FROM graduates g ${sqlWhere}
+         GROUP BY EXTRACT(YEAR FROM g.graduation_date)
+         ORDER BY year ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const byTerm = await sequelize.query<{ year: number; term: string; count: number }>(
+        `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+                CASE
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
+                  WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+                  ELSE 'other'
+                END as term,
+                CAST(COUNT(*) AS INTEGER) as count
+         FROM graduates g ${sqlWhere}
+         GROUP BY EXTRACT(YEAR FROM g.graduation_date),
+                  CASE
+                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
+                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
+                    WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
+                    ELSE 'other'
+                  END
+         ORDER BY year ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const genderRows = await sequelize.query<{ gender: string; count: number }>(
+        `SELECT g.gender as gender, CAST(COUNT(*) AS INTEGER) as count
+         FROM graduates g ${sqlWhere}
+         GROUP BY g.gender`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const gender = { M: 0, F: 0 };
+      for (const r of genderRows) {
+        if (r.gender === 'M') gender.M = Number(r.count);
+        if (r.gender === 'F') gender.F = Number(r.count);
+      }
+      const genderByYear = await sequelize.query<{ year: number; male: number; female: number }>(
+        `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+                CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
+                CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
+         FROM graduates g ${sqlWhere}
+         GROUP BY EXTRACT(YEAR FROM g.graduation_date)
+         ORDER BY year ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const birthYearRows = await sequelize.query<{ year: number; count: number }>(
+        `SELECT ${birthYearExpr} as year,
+                CAST(COUNT(*) AS INTEGER) as count
+         FROM graduates g ${sqlWhere}
+         GROUP BY ${birthYearExpr}
+         ORDER BY year ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const countByEntryYear = await sequelize.query<{ entry_year: number; count: number }>(
+        `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
+                CAST(COUNT(*) AS INTEGER) as count
+         FROM graduates g ${sqlWhere}
+         GROUP BY g.entry_year
+         ORDER BY g.entry_year ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const genderByEntryYear = await sequelize.query<{ entry_year: number; male: number; female: number }>(
+        `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
+                CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
+                CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
+         FROM graduates g ${sqlWhere}
+         GROUP BY g.entry_year
+         ORDER BY g.entry_year ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const body = {
+        ok: true,
+        total,
+        avg_age: avgRow?.[0]?.avg_age ?? null,
+        avg_degree_grade: avgRow?.[0]?.avg_degree_grade ?? null,
+        by_year: byYear,
+        by_term: byTerm.filter((r) => r.term !== 'other'),
+        gender,
+        gender_by_year: genderByYear,
+        gender_by_term: [],
+        birth_years: birthYearRows,
+        birth_year_distribution: birthYearRows,
+        age_groups: [],
+        count_by_entry_year: countByEntryYear,
+        gender_by_entry_year: genderByEntryYear,
+      };
+      setPublicStatsCache(cacheKey, body);
+      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
+      return res.json(body);
+    }
+
+    if (section === "academic") {
+      const avgGradeByYear = await sequelize.query<{ year: number; avg: number }>(
+        `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+                ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
+         FROM graduates g ${sqlWhere}
+         GROUP BY EXTRACT(YEAR FROM g.graduation_date)
+         ORDER BY year ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const degreeGradeBins = await sequelize.query<{ label: string; count: number }>(
+        `SELECT CASE
+                  WHEN g.degree_grade < 5 THEN '<5'
+                  WHEN g.degree_grade < 6 THEN '5-5.99'
+                  WHEN g.degree_grade < 7 THEN '6-6.99'
+                  WHEN g.degree_grade < 8 THEN '7-7.99'
+                  WHEN g.degree_grade < 9 THEN '8-8.99'
+                  ELSE '9-10'
+                END as label,
+                CAST(COUNT(*) AS INTEGER) as count
+         FROM graduates g ${sqlWhere}
+         GROUP BY CASE
+                    WHEN g.degree_grade < 5 THEN '<5'
+                    WHEN g.degree_grade < 6 THEN '5-5.99'
+                    WHEN g.degree_grade < 7 THEN '6-6.99'
+                    WHEN g.degree_grade < 8 THEN '7-7.99'
+                    WHEN g.degree_grade < 9 THEN '8-8.99'
+                    ELSE '9-10'
+                  END
+         ORDER BY label ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
+        `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
+                ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
+         FROM graduates g ${sqlWhere}
+         GROUP BY g.entry_year
+         ORDER BY entry_year ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const yearsToDegreeDistributionWhere = sqlWhere
+        ? `${sqlWhere} AND g.graduation_date IS NOT NULL`
+        : 'WHERE g.graduation_date IS NOT NULL';
+      const yearsToDegreeDistribution = await sequelize.query<{ label: string; count: number }>(
+        `SELECT CAST((CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) AS TEXT) as label,
+                CAST(COUNT(*) AS INTEGER) as count
+         FROM graduates g ${yearsToDegreeDistributionWhere}
+         GROUP BY (CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year)
+         ORDER BY (CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const originRegionJoin = `LEFT JOIN regions origin_region ON origin_region.id = g.origin_region_id
+         LEFT JOIN regions origin_parent_region ON origin_parent_region.id = origin_region.parent_id
+         LEFT JOIN regions r ON r.id = COALESCE(
+           g.origin_periphery_region_id,
+           CASE WHEN origin_region.type = 'PERIPHERY' THEN origin_region.id ELSE NULL END,
+           CASE WHEN origin_parent_region.type = 'PERIPHERY' THEN origin_parent_region.id ELSE NULL END
+         )`;
+      const originRegionWhere = sqlWhere
+        ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
+        : `WHERE r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
+      const avgGradeByRegionRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; avg: number }>(
+        `SELECT r.id as id,
+                r.name as name_el,
+                r.name as name_en,
+                CAST(COUNT(*) AS INTEGER) as count,
+                ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
+         FROM graduates g
+         ${originRegionJoin}
+         ${originRegionWhere}
+         GROUP BY r.id, r.name
+         ORDER BY count DESC, r.name ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const avgYearsToDegreeByRegionRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; avg_years: number }>(
+        `SELECT r.id as id,
+                r.name as name_el,
+                r.name as name_en,
+                CAST(COUNT(*) AS INTEGER) as count,
+                ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
+         FROM graduates g
+         ${originRegionJoin}
+         ${originRegionWhere}
+         GROUP BY r.id, r.name
+         ORDER BY count DESC, r.name ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const localizedAvgGradeByRegion = await Promise.all(avgGradeByRegionRaw.map(async (r) => {
+        const names = await localizedNamesForRegion(r.id, String(r.name_el ?? r.name_en ?? ""));
+        return { ...r, name_el: names.name_el || r.name_el || 'Άγνωστη περιοχή', name_en: names.name_en || r.name_en || 'Unknown region' };
+      }));
+      const localizedAvgYearsToDegreeByRegion = await Promise.all(avgYearsToDegreeByRegionRaw.map(async (r) => {
+        const names = await localizedNamesForRegion(r.id, String(r.name_el ?? r.name_en ?? ""));
+        return { ...r, name_el: names.name_el || r.name_el || 'Άγνωστη περιοχή', name_en: names.name_en || r.name_en || 'Unknown region' };
+      }));
+      const body = {
+        ok: true,
+        avg_grade_by_year: avgGradeByYear,
+        avg_grade_by_term: [],
+        degree_grade_bins: degreeGradeBins,
+        avg_grade_by_region: localizedAvgGradeByRegion,
+        avg_years_to_degree_by_region: localizedAvgYearsToDegreeByRegion,
+        avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear,
+        years_to_degree_distribution: yearsToDegreeDistribution,
+      };
+      setPublicStatsCache(cacheKey, body);
+      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
+      return res.json(body);
+    }
+
+    if (section === "geography") {
+      const originRegionJoin = `LEFT JOIN regions origin_region ON origin_region.id = g.origin_region_id
+         LEFT JOIN regions origin_parent_region ON origin_parent_region.id = origin_region.parent_id
+         LEFT JOIN regions r ON r.id = COALESCE(
+           g.origin_periphery_region_id,
+           CASE WHEN origin_region.type = 'PERIPHERY' THEN origin_region.id ELSE NULL END,
+           CASE WHEN origin_parent_region.type = 'PERIPHERY' THEN origin_parent_region.id ELSE NULL END
+         )`;
+      const originRegionWhere = sqlWhere
+        ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
+        : `WHERE r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
+      const originRegionDistribution = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number }>(
+        `SELECT r.id as id,
+                r.name as name_el,
+                r.name as name_en,
+                CAST(COUNT(*) AS INTEGER) as count
+         FROM graduates g
+         ${originRegionJoin}
+         ${originRegionWhere}
+         GROUP BY r.id, r.name
+         ORDER BY count DESC, r.name ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const genderByRegionRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; male: number; female: number }>(
+        `SELECT r.id as id,
+                r.name as name_el,
+                r.name as name_en,
+                CAST(COUNT(*) AS INTEGER) as count,
+                CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
+                CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
+         FROM graduates g
+         ${originRegionJoin}
+         ${originRegionWhere}
+         GROUP BY r.id, r.name
+         ORDER BY count DESC, r.name ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const municipalityWhere = sqlWhere
+        ? `${sqlWhere} AND g.origin_municipality IS NOT NULL AND btrim(g.origin_municipality) <> ''`
+        : `WHERE g.origin_municipality IS NOT NULL AND btrim(g.origin_municipality) <> ''`;
+      const rawOriginMunicipalityDistribution = await sequelize.query<{ name: string; count: number }>(
+        `SELECT g.origin_municipality as name,
+                CAST(COUNT(*) AS INTEGER) as count
+         FROM graduates g ${municipalityWhere}
+         GROUP BY g.origin_municipality
+         ORDER BY count DESC, g.origin_municipality ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const { cityByName } = await buildRegionLookup();
+      const municipalityGroups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number }>();
+      for (const row of rawOriginMunicipalityDistribution) {
+        const rawName = String(row.name ?? "").trim();
+        if (!rawName) continue;
+        const canonical = cityByName.get(normalizePlaceName(rawName));
+        const baseName = canonical ? String(canonical.name) : rawName;
+        const names = await localizedNamesForRegion(canonical?.id, baseName);
+        const key = canonical?.id ? `city:${Number(canonical.id)}` : `name:${normalizePlaceName(names.name_el || baseName)}`;
+        mergeLocalizedCount(municipalityGroups, key, {
+          id: canonical?.id ?? null,
+          name: names.name_el || baseName,
+          name_el: names.name_el || baseName,
+          name_en: names.name_en || names.name_el || baseName,
+          count: Number(row.count) || 0,
+        });
+      }
+      const rawOriginCountryDistribution = await sequelize.query<{ id: number | null; name: string; count: number }>(
+        `SELECT g.origin_country_region_id as id,
+                CASE
+                  WHEN COALESCE(NULLIF(TRIM(g.origin_country), ''), '') = '' THEN 'Άγνωστη χώρα'
+                  WHEN LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) IN ('ελλαδα', 'greece') THEN 'Ελλάδα'
+                  ELSE TRIM(g.origin_country)
+                END as name,
+                CAST(COUNT(*) AS INTEGER) as count
+         FROM graduates g ${sqlWhere}
+         GROUP BY g.origin_country_region_id, 2
+         ORDER BY count DESC, name ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const countryRows = await Region.findAll({ attributes: ["id", "name"], where: { type: "COUNTRY" } });
+      const countryByName = new Map<string, any>();
+      for (const country of countryRows as any[]) {
+        const key = normalizePlaceName(country.name);
+        if (key && !countryByName.has(key)) countryByName.set(key, country);
+      }
+      const countryGroups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number }>();
+      for (const row of rawOriginCountryDistribution) {
+        const rawName = String(row.name ?? "").trim();
+        if (!rawName) continue;
+        const matchedCountry = Number(row.id) ? { id: Number(row.id), name: rawName } : countryByName.get(normalizePlaceName(rawName));
+        const names = rawName === "Άγνωστη χώρα"
+          ? { name_el: "Άγνωστη χώρα", name_en: "Unknown country" }
+          : rawName === "Ελλάδα"
+            ? { name_el: "Ελλάδα", name_en: "Greece" }
+            : await localizedNamesForRegion(matchedCountry?.id, rawName);
+        const key = matchedCountry?.id ? `country:${Number(matchedCountry.id)}` : `name:${normalizePlaceName(names.name_el || rawName)}`;
+        mergeLocalizedCount(countryGroups, key, {
+          id: matchedCountry?.id ?? null,
+          name: names.name_el || rawName,
+          name_el: names.name_el || rawName,
+          name_en: names.name_en || names.name_el || rawName,
+          count: Number(row.count) || 0,
+        });
+      }
+      const abroadSummaryRow = await sequelize.query<{ abroad_count: number }>(
+        `SELECT CAST(COUNT(*) AS INTEGER) as abroad_count
+         FROM graduates g
+         ${sqlWhere ? `${sqlWhere} AND` : 'WHERE'} COALESCE(NULLIF(TRIM(g.origin_country), ''), '') <> ''
+           AND LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) NOT IN ('ελλαδα', 'greece')`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const localizedOriginRegionDistribution = await Promise.all(originRegionDistribution.map(async (r) => {
+        const names = await localizedNamesForRegion(r.id, String(r.name_el ?? r.name_en ?? ""));
+        return { ...r, name_el: names.name_el || r.name_el || 'Άγνωστη περιοχή', name_en: names.name_en || r.name_en || 'Unknown region' };
+      }));
+      const localizedGenderByRegion = await Promise.all(genderByRegionRaw.map(async (r) => {
+        const names = await localizedNamesForRegion(r.id, String(r.name_el ?? r.name_en ?? ""));
+        return { ...r, name_el: names.name_el || r.name_el || 'Άγνωστη περιοχή', name_en: names.name_en || r.name_en || 'Unknown region' };
+      }));
+      const totalRow = await sequelize.query<{ total: number }>(
+        `SELECT COUNT(*) as total FROM graduates g ${sqlWhere}`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const total = Number(totalRow?.[0]?.total ?? 0);
+      const originMunicipalityDistribution = Array.from(municipalityGroups.values()).sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.name.localeCompare(b.name, "el");
+      });
+      const originCountryDistribution = Array.from(countryGroups.values()).sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.name_el.localeCompare(b.name_el, "el");
+      });
+      const abroadCount = Number(abroadSummaryRow?.[0]?.abroad_count ?? 0);
+      const body = {
+        ok: true,
+        origin_region_distribution: localizedOriginRegionDistribution,
+        gender_by_region: localizedGenderByRegion,
+        origin_country_distribution: originCountryDistribution,
+        abroad_count: abroadCount,
+        abroad_pct: total > 0 ? Math.round((abroadCount / total) * 1000) / 10 : 0,
+        origin_municipality_distribution: originMunicipalityDistribution,
+      };
+      setPublicStatsCache(cacheKey, body);
+      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
+      return res.json(body);
+    }
 
     const totalRow = await sequelize.query<{ total: number }>(
       `SELECT COUNT(*) as total FROM graduates g ${sqlWhere}`,
