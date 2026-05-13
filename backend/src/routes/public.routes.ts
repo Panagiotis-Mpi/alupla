@@ -17,7 +17,7 @@ publicRouter.get("/study-programs", publicStudyPrograms);
 publicRouter.get("/stats", publicStats);
 // Δημόσια ανώνυμα δεδομένα χάρτη.
 publicRouter.get("/map", publicMap);
-publicRouter.get("/anonymous-graduates.xls", publicAnonymousGraduatesCsv);
+publicRouter.get("/anonymous-graduates.xlsx", publicAnonymousGraduatesCsv);
 publicRouter.post("/activity-export", publicExportActivity);
 
 export { publicRouter };

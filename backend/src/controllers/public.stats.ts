@@ -204,9 +204,11 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
       context,
     ),
     queryRows<{ place: string; count: number }>(
-      `SELECT COALESCE(NULLIF(TRIM(g.origin_region), ''), NULLIF(TRIM(g.origin_municipality), ''), NULLIF(TRIM(g.origin_country), ''), 'Unknown') as place,
+      `SELECT COALESCE(NULLIF(TRIM(r.name), ''), NULLIF(TRIM(g.origin_municipality), ''), NULLIF(TRIM(g.origin_country), ''), 'Unknown') as place,
               CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${context.sqlWhere}
+       FROM graduates g
+       LEFT JOIN regions r ON r.id = g.origin_region_id
+       ${context.sqlWhere}
        GROUP BY place
        ORDER BY count DESC, place ASC
        LIMIT 20`,
@@ -352,7 +354,7 @@ export async function buildAnonymousStatisticsWorkbook(context: PublicWhereConte
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(safeGenderRows), labels.genderSheet);
 
   return {
-    buffer: XLSX.write(workbook, { type: "buffer", bookType: "xls" }),
+    buffer: XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }),
     rowCount: safeCountsRows.length + safeGenderRows.length,
   };
 }

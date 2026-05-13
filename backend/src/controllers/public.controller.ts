@@ -691,7 +691,7 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
 
 // Τα public exports γράφονται στα logs ως ενέργειες επισκέπτη.
   await logPublicExportAction(req, "statistics_export", "statistics", {
-    format: "xls",
+    format: "xlsx",
     graduation_year: req.query.graduation_year ?? null,
     study_program_id: req.query.study_program_id ?? null,
     gender: req.query.gender ?? null,
@@ -702,8 +702,8 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
     rows: rowCount,
   });
 
-  res.setHeader("Content-Type", "application/vnd.ms-excel");
-  res.setHeader("Content-Disposition", 'attachment; filename="statistics-export.xls"');
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition", 'attachment; filename="statistics-export.xlsx"');
   res.send(buffer);
 }
 
