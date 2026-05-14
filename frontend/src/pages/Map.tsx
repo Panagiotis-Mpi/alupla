@@ -1417,15 +1417,12 @@ export default function GraduatesMapPage() {
       >
         <div className="map-summary-grid">
           <div className="card map-summary-card">
-            <div className="map-summary-label">
-              {mt("summary.total", { defaultValue: "Σύνολο αποφοίτων" })}
-            </div>
             <div
               className={`map-summary-scope-list${summaryLoading ? " is-loading" : ""}`}
             >
               <div className="map-summary-total-row">
                 <span className="map-summary-total-name">
-                  {mt("summary.allGraduates", { defaultValue: "Σύνολο" })}
+                  {mt("summary.total", { defaultValue: "Σύνολο αποφοίτων" })}
                 </span>
                 <span className="map-summary-total-number">
                   {overallSummaryTotal ?? "…"}
