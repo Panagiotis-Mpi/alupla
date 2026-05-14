@@ -19,7 +19,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 type MenuGroup = "demographics" | "academic" | "geography";
 
-const greeceAbroadColors = { greece: "#60a5fa", abroad: "#f59e0b" };
+const greeceAbroadColors = { greece: "rgba(37, 99, 235, 0.72)", abroad: "#f59e0b" };
 
 type ChartBlockProps = {
   t: Translate;
