@@ -25,7 +25,11 @@ import {
   type SortDir,
   type SortKey,
 } from "./graduates/shared";
-import { loadGraduatesScreen, useMenuDismiss, useSyncedScrollbar } from "./graduates/hooks";
+import {
+  loadGraduatesScreen,
+  useMenuDismiss,
+  useSyncedScrollbar,
+} from "./graduates/hooks";
 import {
   buildImportDetail,
   buildImportTitle,
@@ -35,7 +39,10 @@ import {
   normalizeImportErrorMessage,
 } from "./graduates/importFeedback";
 import { downloadBlob } from "../lib/download";
-import { toggleMergedVisibleSelection, toggleSelectionValue } from "./shared/selection";
+import {
+  toggleMergedVisibleSelection,
+  toggleSelectionValue,
+} from "./shared/selection";
 import { sortIndicator } from "./shared/sorting";
 import {
   MAX_RECENT_GRADUATE_DOWNLOADS,
@@ -49,7 +56,6 @@ import {
   type RecentGraduateRequest,
 } from "./graduates/recentDownloads";
 
-
 export default function Graduates() {
   const { t, i18n } = useTranslation("graduates");
   const [importBusy, setImportBusy] = useState(false);
@@ -62,15 +68,22 @@ export default function Graduates() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [sortState, setSortState] = useState<{ key: SortKey; dir: SortDir }>({ key: "ad_code", dir: "asc" });
-  const [filters, setFilters] = useState<GraduatesFiltersState>(EMPTY_GRADUATES_FILTERS);
+  const [sortState, setSortState] = useState<{ key: SortKey; dir: SortDir }>({
+    key: "ad_code",
+    dir: "asc",
+  });
+  const [filters, setFilters] = useState<GraduatesFiltersState>(
+    EMPTY_GRADUATES_FILTERS,
+  );
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [importMenuOpen, setImportMenuOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [recentDownloadsOpen, setRecentDownloadsOpen] = useState(false);
-  const [recentDownloads, setRecentDownloads] = useState<RecentGraduateDownload[]>([]);
+  const [recentDownloads, setRecentDownloads] = useState<
+    RecentGraduateDownload[]
+  >([]);
 
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const importFileRef = useRef<HTMLInputElement | null>(null);
@@ -82,27 +95,65 @@ export default function Graduates() {
   const floatingScrollbarInnerRef = useRef<HTMLDivElement | null>(null);
   const selectAllRef = useRef<HTMLInputElement | null>(null);
 
-  const activeLang: "gr" | "en" = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
+  const activeLang: "gr" | "en" = (
+    i18n.resolvedLanguage ||
+    i18n.language ||
+    "gr"
+  )
+    .toLowerCase()
+    .startsWith("en")
+    ? "en"
+    : "gr";
   const params = useMemo(() => buildGraduatesParams(filters), [filters]);
-  const programNameById = useMemo(() => createNameMap(programs as Array<Record<string, unknown>>, activeLang), [programs, activeLang]);
-  const programDisplayNameById = useMemo(() => createNameMap(programs as Array<Record<string, unknown>>, "gr"), [programs]);
-  const regionNameById = useMemo(() => createRegionMap(regions, activeLang), [regions, activeLang]);
+  const programNameById = useMemo(
+    () => createNameMap(programs as Array<Record<string, unknown>>, activeLang),
+    [programs, activeLang],
+  );
+  const programDisplayNameById = useMemo(
+    () => createNameMap(programs as Array<Record<string, unknown>>, "gr"),
+    [programs],
+  );
+  const regionNameById = useMemo(
+    () => createRegionMap(regions, activeLang),
+    [regions, activeLang],
+  );
   const renderGender = (value: unknown) => renderGenderValue(value, activeLang);
 
-  const visibleItems = useMemo(() => filterAndSortGraduates({
-    items,
-    sortState,
-    searchTerm,
-    programNameById: programDisplayNameById,
-    regionNameById,
-    renderGender,
-    activeLang,
-  }), [items, sortState, searchTerm, programDisplayNameById, regionNameById, activeLang]);
+  const visibleItems = useMemo(
+    () =>
+      filterAndSortGraduates({
+        items,
+        sortState,
+        searchTerm,
+        programNameById: programDisplayNameById,
+        regionNameById,
+        renderGender,
+        activeLang,
+      }),
+    [
+      items,
+      sortState,
+      searchTerm,
+      programDisplayNameById,
+      regionNameById,
+      activeLang,
+    ],
+  );
 
-  const visibleIds = useMemo(() => visibleItems.map((graduate) => Number(graduate.id)).filter((id) => Number.isFinite(id)), [visibleItems]);
-  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+  const visibleIds = useMemo(
+    () =>
+      visibleItems
+        .map((graduate) => Number(graduate.id))
+        .filter((id) => Number.isFinite(id)),
+    [visibleItems],
+  );
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
   const someVisibleSelected = visibleIds.some((id) => selectedIds.includes(id));
-  const groupedImportIssues = useMemo(() => groupImportErrors(importReport?.errors), [importReport]);
+  const groupedImportIssues = useMemo(
+    () => groupImportErrors(importReport?.errors),
+    [importReport],
+  );
 
   function showToast(nextToast: ToastState) {
     setToast(nextToast);
@@ -117,7 +168,11 @@ export default function Graduates() {
       setRegions(response.regions);
       setItems(response.items);
       setTotal(response.total);
-      setSelectedIds((current) => current.filter((id) => response.items.some((graduate) => Number(graduate.id) === id)));
+      setSelectedIds((current) =>
+        current.filter((id) =>
+          response.items.some((graduate) => Number(graduate.id) === id),
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -127,19 +182,27 @@ export default function Graduates() {
     void load();
   }, [activeLang]);
 
+  useSyncedScrollbar(
+    tableWrapRef,
+    floatingScrollbarRef,
+    floatingScrollbarInnerRef,
+    [items, sortState, programs, regions],
+  );
 
-  useSyncedScrollbar(tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, [items, sortState, programs, regions]);
-
-  useMenuDismiss([importMenuRef, exportMenuRef, templateMenuRef, recentDownloadsRef], () => {
-    setImportMenuOpen(false);
-    setExportMenuOpen(false);
-    setTemplateMenuOpen(false);
-    setRecentDownloadsOpen(false);
-  });
+  useMenuDismiss(
+    [importMenuRef, exportMenuRef, templateMenuRef, recentDownloadsRef],
+    () => {
+      setImportMenuOpen(false);
+      setExportMenuOpen(false);
+      setTemplateMenuOpen(false);
+      setRecentDownloadsOpen(false);
+    },
+  );
 
   useEffect(() => {
     if (selectAllRef.current) {
-      selectAllRef.current.indeterminate = !allVisibleSelected && someVisibleSelected;
+      selectAllRef.current.indeterminate =
+        !allVisibleSelected && someVisibleSelected;
     }
   }, [allVisibleSelected, someVisibleSelected]);
 
@@ -157,7 +220,12 @@ export default function Graduates() {
     request?: RecentGraduateRequest;
     pdfItems?: RecentGraduatePdfItem[];
   }) {
-    const filtersLabel = buildRecentDownloadFiltersLabel(filters, activeLang, args.ids?.length || 0, items.length);
+    const filtersLabel = buildRecentDownloadFiltersLabel(
+      filters,
+      activeLang,
+      args.ids?.length || 0,
+      items.length,
+    );
     const signature = JSON.stringify({
       format: args.format,
       ids: args.ids || [],
@@ -165,37 +233,45 @@ export default function Graduates() {
       count: args.pdfItems?.length || 0,
     });
     const now = new Date().toISOString();
-    recentGraduateSessionDownloads.set(signature, { blob: args.blob, fileName: args.fileName });
+    recentGraduateSessionDownloads.set(signature, {
+      blob: args.blob,
+      fileName: args.fileName,
+    });
     const current = safeReadRecentGraduateDownloads();
     const existing = current.find((item) => item.signature === signature);
-    const nextItem: RecentGraduateDownload = existing ? {
-      ...existing,
-      fileName: args.fileName,
-      totalItems: items.length,
-      selectedItems: args.ids?.length || 0,
-      filtersLabel,
-      lastDownloadedAt: now,
-      count: existing.count + 1,
-      request: args.request || existing.request,
-      pdfItems: args.pdfItems || existing.pdfItems,
-    } : {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      signature,
-      format: args.format,
-      fileName: args.fileName,
-      createdAt: now,
-      lastDownloadedAt: now,
-      count: 1,
-      totalItems: items.length,
-      selectedItems: args.ids?.length || 0,
-      filtersLabel,
-      request: args.request,
-      pdfItems: args.pdfItems,
-    };
+    const nextItem: RecentGraduateDownload = existing
+      ? {
+          ...existing,
+          fileName: args.fileName,
+          totalItems: items.length,
+          selectedItems: args.ids?.length || 0,
+          filtersLabel,
+          lastDownloadedAt: now,
+          count: existing.count + 1,
+          request: args.request || existing.request,
+          pdfItems: args.pdfItems || existing.pdfItems,
+        }
+      : {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          signature,
+          format: args.format,
+          fileName: args.fileName,
+          createdAt: now,
+          lastDownloadedAt: now,
+          count: 1,
+          totalItems: items.length,
+          selectedItems: args.ids?.length || 0,
+          filtersLabel,
+          request: args.request,
+          pdfItems: args.pdfItems,
+        };
     const rest = current.filter((item) => item.signature !== signature);
     const next = [nextItem, ...rest].sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
-      return new Date(b.lastDownloadedAt).getTime() - new Date(a.lastDownloadedAt).getTime();
+      return (
+        new Date(b.lastDownloadedAt).getTime() -
+        new Date(a.lastDownloadedAt).getTime()
+      );
     });
     writeRecentGraduateDownloads(next);
     setRecentDownloads(next.slice(0, MAX_RECENT_GRADUATE_DOWNLOADS));
@@ -213,11 +289,21 @@ export default function Graduates() {
           programNameById: programDisplayNameById,
           regionNameById,
         });
-        recentGraduateSessionDownloads.set(item.signature, { blob, fileName: item.fileName });
+        recentGraduateSessionDownloads.set(item.signature, {
+          blob,
+          fileName: item.fileName,
+        });
         downloadBlob(blob, item.fileName);
       } else if (item.request) {
-        const blob = await exportGraduatesFile(item.request.params, item.format, item.request.lang);
-        recentGraduateSessionDownloads.set(item.signature, { blob, fileName: item.fileName });
+        const blob = await exportGraduatesFile(
+          item.request.params,
+          item.format,
+          item.request.lang,
+        );
+        recentGraduateSessionDownloads.set(item.signature, {
+          blob,
+          fileName: item.fileName,
+        });
         downloadBlob(blob, item.fileName);
       } else {
         throw new Error(t("export.failed"));
@@ -225,8 +311,21 @@ export default function Graduates() {
 
       const current = safeReadRecentGraduateDownloads();
       const next = current
-        .map((entry) => entry.id === item.id ? { ...entry, count: entry.count + 1, lastDownloadedAt: new Date().toISOString() } : entry)
-        .sort((a, b) => (b.count - a.count) || (new Date(b.lastDownloadedAt).getTime() - new Date(a.lastDownloadedAt).getTime()));
+        .map((entry) =>
+          entry.id === item.id
+            ? {
+                ...entry,
+                count: entry.count + 1,
+                lastDownloadedAt: new Date().toISOString(),
+              }
+            : entry,
+        )
+        .sort(
+          (a, b) =>
+            b.count - a.count ||
+            new Date(b.lastDownloadedAt).getTime() -
+              new Date(a.lastDownloadedAt).getTime(),
+        );
       writeRecentGraduateDownloads(next);
       setRecentDownloads(next.slice(0, MAX_RECENT_GRADUATE_DOWNLOADS));
     } catch (error: any) {
@@ -235,13 +334,19 @@ export default function Graduates() {
   }
 
   function removeStoredExport(itemId: string) {
-    const next = safeReadRecentGraduateDownloads().filter((item) => item.id !== itemId);
+    const next = safeReadRecentGraduateDownloads().filter(
+      (item) => item.id !== itemId,
+    );
     writeRecentGraduateDownloads(next);
     setRecentDownloads(next.slice(0, MAX_RECENT_GRADUATE_DOWNLOADS));
   }
 
   function toggleSort(key: SortKey) {
-    setSortState((current) => (current.key === key ? { key, dir: current.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
+    setSortState((current) =>
+      current.key === key
+        ? { key, dir: current.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: "asc" },
+    );
   }
 
   function getSortIndicator(key: SortKey) {
@@ -267,7 +372,9 @@ export default function Graduates() {
   }
 
   function toggleAllVisible() {
-    setSelectedIds((current) => toggleMergedVisibleSelection(current, visibleIds, allVisibleSelected));
+    setSelectedIds((current) =>
+      toggleMergedVisibleSelection(current, visibleIds, allVisibleSelected),
+    );
   }
 
   async function onExport(format: "xlsx" | "csv" | "pdf", ids?: number[]) {
@@ -278,7 +385,10 @@ export default function Graduates() {
       exportParams.ids = ids;
     }
     try {
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      const timestamp = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/[:T]/g, "-");
       if (format === "pdf") {
         const exportItems = ids?.length
           ? items.filter((item) => ids.includes(Number(item.id)))
@@ -316,12 +426,15 @@ export default function Graduates() {
             origin_country_region_id: item.origin_country_region_id ?? null,
             origin_periphery_region_id: item.origin_periphery_region_id ?? null,
             origin_foreign_city: item.origin_foreign_city ?? null,
-            origin_country_name_en: (item as any).origin_country_name_en ?? null,
+            origin_country_name_en:
+              (item as any).origin_country_name_en ?? null,
             origin_region_name_en: (item as any).origin_region_name_en ?? null,
             origin_city_name_en: (item as any).origin_city_name_en ?? null,
           })),
         });
-        await logGraduatesPdfExport(ids?.length ? { ...exportParams, ids } : exportParams);
+        await logGraduatesPdfExport(
+          ids?.length ? { ...exportParams, ids } : exportParams,
+        );
         return;
       }
       const request = {
@@ -340,7 +453,10 @@ export default function Graduates() {
 
   async function onDownloadTemplate(format: "xlsx" | "csv") {
     try {
-      const blob = await downloadGraduatesImportTemplate(format, i18n.resolvedLanguage || i18n.language);
+      const blob = await downloadGraduatesImportTemplate(
+        format,
+        i18n.resolvedLanguage || i18n.language,
+      );
       downloadBlob(blob, `alupla_graduates_import_template.${format}`);
     } catch (error: any) {
       alert(error?.message ?? t("export.failed"));
@@ -351,7 +467,10 @@ export default function Graduates() {
     setImportReport(null);
     setImportBusy(true);
     try {
-      const report = await importGraduatesFile(file, i18n.resolvedLanguage || i18n.language);
+      const report = await importGraduatesFile(
+        file,
+        i18n.resolvedLanguage || i18n.language,
+      );
       setImportReport(report);
       const inserted = Number(report?.summary?.inserted ?? 0);
       const updated = Number(report?.summary?.updated ?? 0);
@@ -370,7 +489,10 @@ export default function Graduates() {
         } catch {}
       }
     } catch (error: any) {
-      const reason = normalizeImportErrorMessage(error?.message ?? t("toast.somethingWentWrong"), t);
+      const reason = normalizeImportErrorMessage(
+        error?.message ?? t("toast.somethingWentWrong"),
+        t,
+      );
       showToast({
         type: "error",
         title: t("toast.importFailed"),
@@ -406,42 +528,82 @@ export default function Graduates() {
   }
 
   const importActions = [
-    { key: "xlsx", label: t("topbar.importExcel"), onClick: () => { closeMenus(); importFileRef.current?.click(); } },
-    { key: "csv", label: t("topbar.importCsv"), onClick: () => { closeMenus(); importFileRef.current?.click(); } },
+    {
+      key: "xlsx",
+      label: t("topbar.importExcel"),
+      onClick: () => {
+        closeMenus();
+        importFileRef.current?.click();
+      },
+    },
+    {
+      key: "csv",
+      label: t("topbar.importCsv"),
+      onClick: () => {
+        closeMenus();
+        importFileRef.current?.click();
+      },
+    },
   ];
 
   const templateActions = [
-    { key: "xlsx", label: t("topbar.templateExcel"), onClick: () => { closeMenus(); void onDownloadTemplate("xlsx"); } },
-    { key: "csv", label: t("topbar.templateCsv"), onClick: () => { closeMenus(); void onDownloadTemplate("csv"); } },
+    {
+      key: "xlsx",
+      label: t("topbar.templateExcel"),
+      onClick: () => {
+        closeMenus();
+        void onDownloadTemplate("xlsx");
+      },
+    },
+    {
+      key: "csv",
+      label: t("topbar.templateCsv"),
+      onClick: () => {
+        closeMenus();
+        void onDownloadTemplate("csv");
+      },
+    },
   ];
 
   const exportSelectionMessage = t("topbar.noSelection");
 
   const exportActions = [
-    { key: "xlsx", label: t("topbar.exportExcel"), onClick: () => {
-      closeMenus();
-      if (!selectedIds.length) {
-        alert(exportSelectionMessage);
-        return;
-      }
-      void onExport("xlsx", selectedIds);
-    } },
-    { key: "csv", label: t("topbar.exportCsv"), onClick: () => {
-      closeMenus();
-      if (!selectedIds.length) {
-        alert(exportSelectionMessage);
-        return;
-      }
-      void onExport("csv", selectedIds);
-    } },
-    { key: "pdf", label: t("topbar.exportPdf"), onClick: () => {
-      closeMenus();
-      if (!selectedIds.length) {
-        alert(exportSelectionMessage);
-        return;
-      }
-      void onExport("pdf", selectedIds);
-    } },
+    {
+      key: "xlsx",
+      label: t("topbar.exportExcel"),
+      onClick: () => {
+        closeMenus();
+        if (!selectedIds.length) {
+          alert(exportSelectionMessage);
+          return;
+        }
+        void onExport("xlsx", selectedIds);
+      },
+    },
+    {
+      key: "csv",
+      label: t("topbar.exportCsv"),
+      onClick: () => {
+        closeMenus();
+        if (!selectedIds.length) {
+          alert(exportSelectionMessage);
+          return;
+        }
+        void onExport("csv", selectedIds);
+      },
+    },
+    {
+      key: "pdf",
+      label: t("topbar.exportPdf"),
+      onClick: () => {
+        closeMenus();
+        if (!selectedIds.length) {
+          alert(exportSelectionMessage);
+          return;
+        }
+        void onExport("pdf", selectedIds);
+      },
+    },
   ];
 
   const wideCardStyle: React.CSSProperties = {
@@ -479,51 +641,150 @@ export default function Graduates() {
   return (
     <div className="grid" style={{ gap: 14 }}>
       {toast ? (
-        <div style={{ position: "fixed", top: 16, right: 16, zIndex: 9999, width: 360, maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(0,0,0,0.12)", borderLeft: `6px solid ${toast.type === "success" ? "#16a34a" : "#dc2626"}`, borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.12)", padding: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <div
+          style={{
+            position: "fixed",
+            top: 16,
+            right: 16,
+            zIndex: 9999,
+            width: 360,
+            maxWidth: "calc(100vw - 32px)",
+            background: "#fff",
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderLeft: `6px solid ${toast.type === "success" ? "#16a34a" : "#dc2626"}`,
+            borderRadius: 12,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+            padding: 12,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 10,
+            }}
+          >
             <div>
               <div style={{ fontWeight: 700 }}>{toast.title}</div>
-              {toast.detail ? <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>{toast.detail}</div> : null}
+              {toast.detail ? (
+                <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
+                  {toast.detail}
+                </div>
+              ) : null}
             </div>
-            <button className="btn" type="button" onClick={() => setToast(null)} style={{ padding: "6px 10px" }} aria-label="Close">
+            <button
+              className="btn"
+              type="button"
+              onClick={() => setToast(null)}
+              style={{ padding: "6px 10px" }}
+              aria-label="Close"
+            >
               ✕
             </button>
           </div>
           {importReport?.summary ? (
             <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button className="btn" type="button" onClick={() => setShowImportDetails((current) => !current)}>
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => setShowImportDetails((current) => !current)}
+                >
                   {showImportDetails ? t("toast.less") : t("toast.more")}
                 </button>
               </div>
               {showImportDetails ? (
-                <div style={{ maxHeight: 260, overflowY: "auto", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 10, padding: 10, background: "rgba(248,250,252,.9)", display: "grid", gap: 10 }}>
+                <div
+                  style={{
+                    maxHeight: 260,
+                    overflowY: "auto",
+                    border: "1px solid rgba(0,0,0,0.08)",
+                    borderRadius: 10,
+                    padding: 10,
+                    background: "rgba(248,250,252,.9)",
+                    display: "grid",
+                    gap: 10,
+                  }}
+                >
                   <div style={{ display: "grid", gap: 6, fontSize: 13 }}>
-                    <div>{t("toast.detailsInserted", { inserted: Number(importReport.summary.inserted ?? 0) })}</div>
-                    <div>{t("toast.detailsUpdated", { updated: Number(importReport.summary.updated ?? 0) })}</div>
-                    <div>{t("toast.detailsSkipped", { skipped: Number(importReport.summary.skipped ?? 0) })}</div>
+                    <div>
+                      {t("toast.detailsInserted", {
+                        inserted: Number(importReport.summary.inserted ?? 0),
+                      })}
+                    </div>
+                    <div>
+                      {t("toast.detailsUpdated", {
+                        updated: Number(importReport.summary.updated ?? 0),
+                      })}
+                    </div>
+                    <div>
+                      {t("toast.detailsSkipped", {
+                        skipped: Number(importReport.summary.skipped ?? 0),
+                      })}
+                    </div>
                     {groupedImportIssues.length > 0 ? (
-                      <div style={{ marginTop: 2, opacity: 0.9 }}>{t("toast.detailsIssues", { count: groupedImportIssues.length })}</div>
+                      <div style={{ marginTop: 2, opacity: 0.9 }}>
+                        {t("toast.detailsIssues", {
+                          count: groupedImportIssues.length,
+                        })}
+                      </div>
                     ) : (
-                      <div style={{ marginTop: 2, opacity: 0.9 }}>{t("toast.detailsNoIssues")}</div>
+                      <div style={{ marginTop: 2, opacity: 0.9 }}>
+                        {t("toast.detailsNoIssues")}
+                      </div>
                     )}
                   </div>
                   {groupedImportIssues.length > 0 ? (
-                    <div style={{ borderTop: "1px solid rgba(0,0,0,0.06)", paddingTop: 10, display: "grid", gap: 8 }}>
+                    <div
+                      style={{
+                        borderTop: "1px solid rgba(0,0,0,0.06)",
+                        paddingTop: 10,
+                        display: "grid",
+                        gap: 8,
+                      }}
+                    >
                       {groupedImportIssues.map((issue, index) => {
                         const label = getImportColumnLabel(issue.column, t);
-                        const hint = getImportIssueHint(issue.column, issue.reasons, t);
+                        const hint = getImportIssueHint(
+                          issue.column,
+                          issue.reasons,
+                          t,
+                        );
                         const rowsPreview = issue.rows.slice(0, 8).join(", ");
                         const hasMoreRows = issue.rows.length > 8;
                         return (
-                          <div key={issue.key} style={{ borderBottom: index === groupedImportIssues.length - 1 ? "none" : "1px solid rgba(0,0,0,0.06)", paddingBottom: 8 }}>
+                          <div
+                            key={issue.key}
+                            style={{
+                              borderBottom:
+                                index === groupedImportIssues.length - 1
+                                  ? "none"
+                                  : "1px solid rgba(0,0,0,0.06)",
+                              paddingBottom: 8,
+                            }}
+                          >
                             <div style={{ fontWeight: 600 }}>
-                              {t("toast.issueFieldTitle", { field: label, count: issue.rows.length })}
+                              {t("toast.issueFieldTitle", {
+                                field: label,
+                                count: issue.rows.length,
+                              })}
                             </div>
-                            <div style={{ fontSize: 13, marginTop: 4 }}>{hint}</div>
+                            <div style={{ fontSize: 13, marginTop: 4 }}>
+                              {hint}
+                            </div>
                             {issue.rows.length ? (
-                              <div style={{ fontSize: 12, opacity: 0.84, marginTop: 6 }}>
-                                {t("toast.issueRows", { rows: hasMoreRows ? `${rowsPreview}…` : rowsPreview })}
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  opacity: 0.84,
+                                  marginTop: 6,
+                                }}
+                              >
+                                {t("toast.issueRows", {
+                                  rows: hasMoreRows
+                                    ? `${rowsPreview}…`
+                                    : rowsPreview,
+                                })}
                               </div>
                             ) : null}
                           </div>
@@ -540,16 +801,49 @@ export default function Graduates() {
 
       <div className="card graduates-top-card" style={{ padding: 14 }}>
         <div style={{ display: "grid", gap: 14 }}>
-          <div className="graduates-top-layout" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
-            <div className="graduates-title-line" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div
+            className="graduates-top-layout"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 14,
+              flexWrap: "wrap",
+            }}
+          >
+            <div
+              className="graduates-title-line"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
               <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
-              <span className="badge">{loading ? t("topbar.loading") : t("topbar.total", { total })}</span>
-              <span className="badge">{t("topbar.selected", { count: selectedIds.length })}</span>
+              <span className="badge">
+                {loading ? t("topbar.loading") : t("topbar.total", { total })}
+              </span>
+              <span className="badge">
+                {t("topbar.selected", { count: selectedIds.length })}
+              </span>
             </div>
 
             <div style={{ display: "grid", gap: 10, width: "100%" }}>
-              <div className="graduates-actions-grid graduates-actions-grid-main" style={{ gap: 10, width: "100%", alignItems: "stretch" }}>
-                <Link className="btn primary" to="/graduates/new" style={{ ...topButtonStyle, textDecoration: "none", width: "100%", justifyContent: "center" }}>
+              <div
+                className="graduates-actions-grid graduates-actions-grid-main"
+                style={{ gap: 10, width: "100%", alignItems: "stretch" }}
+              >
+                <Link
+                  className="btn primary"
+                  to="/graduates/new"
+                  style={{
+                    ...topButtonStyle,
+                    textDecoration: "none",
+                    width: "100%",
+                    justifyContent: "center",
+                  }}
+                >
                   {t("topbar.newGraduate")}
                 </Link>
                 <input
@@ -565,94 +859,336 @@ export default function Graduates() {
                     e.currentTarget.value = "";
                   }}
                 />
-                <div ref={templateMenuRef} style={{ position: "relative" }}>
-                  <button
-                    className="btn dropdown-like"
-                    type="button"
-                    style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }}
-                    onClick={() => toggleMenu("template")}
-                  >
-                    {t("topbar.downloadTemplate")}<span className="btn-dropdown-chevron" aria-hidden="true" />
-                  </button>
-                  {templateMenuOpen ? (
-                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, width: "max-content", maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
-                      {templateActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
-                    </div>
-                  ) : null}
-                </div>
                 <div ref={importMenuRef} style={{ position: "relative" }}>
                   <button
                     className="btn dropdown-like"
                     type="button"
-                    style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }}
+                    style={{
+                      ...topButtonStyle,
+                      width: "100%",
+                      justifyContent: "center",
+                    }}
                     onClick={() => toggleMenu("import")}
                     disabled={importBusy}
                   >
-                    {importBusy ? t("topbar.importing") : t("topbar.import")}<span className="btn-dropdown-chevron" aria-hidden="true" />
+                    {importBusy ? t("topbar.importing") : t("topbar.import")}
+                    <span className="btn-dropdown-chevron" aria-hidden="true" />
                   </button>
                   {importMenuOpen ? (
-                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, width: "max-content", maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
-                      {importActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 8px)",
+                        left: 0,
+                        minWidth: 170,
+                        width: "max-content",
+                        maxWidth: "calc(100vw - 32px)",
+                        background: "#fff",
+                        border: "1px solid rgba(15,23,42,.12)",
+                        borderRadius: 12,
+                        boxShadow: "0 12px 30px rgba(15,23,42,.12)",
+                        padding: 8,
+                        display: "grid",
+                        gap: 8,
+                        zIndex: 30,
+                      }}
+                    >
+                      {importActions.map((action) => (
+                        <button
+                          key={action.key}
+                          className="btn"
+                          type="button"
+                          onClick={action.onClick}
+                        >
+                          {action.label}
+                        </button>
+                      ))}
                     </div>
                   ) : null}
                 </div>
-                <div ref={exportMenuRef} style={{ position: "relative" }}>
+                <div ref={templateMenuRef} style={{ position: "relative" }}>
                   <button
                     className="btn dropdown-like"
                     type="button"
-                    style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }}
-                    onClick={() => toggleMenu("export")}
+                    style={{
+                      ...topButtonStyle,
+                      width: "100%",
+                      justifyContent: "center",
+                    }}
+                    onClick={() => toggleMenu("template")}
                   >
-                    {t("topbar.export")}<span className="btn-dropdown-chevron" aria-hidden="true" />
+                    {t("topbar.downloadTemplate")}
+                    <span className="btn-dropdown-chevron" aria-hidden="true" />
                   </button>
-                  {exportMenuOpen ? (
-                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 170, width: "max-content", maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 8, display: "grid", gap: 8, zIndex: 30 }}>
-                      {exportActions.map((action) => <button key={action.key} className="btn" type="button" onClick={action.onClick}>{action.label}</button>)}
+                  {templateMenuOpen ? (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 8px)",
+                        left: 0,
+                        minWidth: 170,
+                        width: "max-content",
+                        maxWidth: "calc(100vw - 32px)",
+                        background: "#fff",
+                        border: "1px solid rgba(15,23,42,.12)",
+                        borderRadius: 12,
+                        boxShadow: "0 12px 30px rgba(15,23,42,.12)",
+                        padding: 8,
+                        display: "grid",
+                        gap: 8,
+                        zIndex: 30,
+                      }}
+                    >
+                      {templateActions.map((action) => (
+                        <button
+                          key={action.key}
+                          className="btn"
+                          type="button"
+                          onClick={action.onClick}
+                        >
+                          {action.label}
+                        </button>
+                      ))}
                     </div>
                   ) : null}
                 </div>
-                <div className="graduates-actions-secondary" style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "center", width: "100%" }}>
-                  <div className="graduates-actions-grid" style={{ gap: 10, width: "100%", alignItems: "stretch" }}>
-                    <div ref={recentDownloadsRef} style={{ position: "relative" }}>
-                      <button className="btn dropdown-like" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => toggleMenu("recent")}>
-                        {t("topbar.myFrequentDownloads")}<span className="btn-dropdown-chevron" aria-hidden="true" />
+                <button
+                  className="btn"
+                  type="button"
+                  style={{
+                    ...topButtonStyle,
+                    width: "100%",
+                    justifyContent: "center",
+                  }}
+                  onClick={() => setShowFilters((current) => !current)}
+                >
+                  {t("topbar.filters")}
+                </button>
+                <div
+                  className="graduates-actions-secondary"
+                  style={{
+                    gridColumn: "1 / -1",
+                    display: "flex",
+                    justifyContent: "center",
+                    width: "100%",
+                  }}
+                >
+                  <div
+                    className="graduates-actions-grid"
+                    style={{ gap: 10, width: "100%", alignItems: "stretch" }}
+                  >
+                    <div ref={exportMenuRef} style={{ position: "relative" }}>
+                      <button
+                        className="btn dropdown-like"
+                        type="button"
+                        style={{
+                          ...topButtonStyle,
+                          width: "100%",
+                          justifyContent: "center",
+                        }}
+                        onClick={() => toggleMenu("export")}
+                      >
+                        {t("topbar.export")}
+                        <span
+                          className="btn-dropdown-chevron"
+                          aria-hidden="true"
+                        />
+                      </button>
+                      {exportMenuOpen ? (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "calc(100% + 8px)",
+                            left: 0,
+                            minWidth: 170,
+                            width: "max-content",
+                            maxWidth: "calc(100vw - 32px)",
+                            background: "#fff",
+                            border: "1px solid rgba(15,23,42,.12)",
+                            borderRadius: 12,
+                            boxShadow: "0 12px 30px rgba(15,23,42,.12)",
+                            padding: 8,
+                            display: "grid",
+                            gap: 8,
+                            zIndex: 30,
+                          }}
+                        >
+                          {exportActions.map((action) => (
+                            <button
+                              key={action.key}
+                              className="btn"
+                              type="button"
+                              onClick={action.onClick}
+                            >
+                              {action.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                    <div
+                      ref={recentDownloadsRef}
+                      style={{ position: "relative" }}
+                    >
+                      <button
+                        className="btn dropdown-like"
+                        type="button"
+                        style={{
+                          ...topButtonStyle,
+                          width: "100%",
+                          justifyContent: "center",
+                        }}
+                        onClick={() => toggleMenu("recent")}
+                      >
+                        {t("topbar.myFrequentDownloads")}
+                        <span
+                          className="btn-dropdown-chevron"
+                          aria-hidden="true"
+                        />
                       </button>
                       {recentDownloadsOpen ? (
-                        <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, width: 380, maxWidth: "calc(100vw - 32px)", background: "#fff", border: "1px solid rgba(15,23,42,.12)", borderRadius: 12, boxShadow: "0 12px 30px rgba(15,23,42,.12)", padding: 10, display: "grid", gap: 10, zIndex: 30 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                            <div style={{ fontWeight: 700 }}>{t("topbar.myFrequentDownloads")}</div>
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "calc(100% + 8px)",
+                            left: 0,
+                            width: 380,
+                            maxWidth: "calc(100vw - 32px)",
+                            background: "#fff",
+                            border: "1px solid rgba(15,23,42,.12)",
+                            borderRadius: 12,
+                            boxShadow: "0 12px 30px rgba(15,23,42,.12)",
+                            padding: 10,
+                            display: "grid",
+                            gap: 10,
+                            zIndex: 30,
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: 10,
+                            }}
+                          >
+                            <div style={{ fontWeight: 700 }}>
+                              {t("topbar.myFrequentDownloads")}
+                            </div>
                             {recentDownloads.length ? (
-                              <span className="badge">{recentDownloads.length}</span>
+                              <span className="badge">
+                                {recentDownloads.length}
+                              </span>
                             ) : null}
                           </div>
                           {recentDownloads.length ? (
-                            <div style={{ display: "grid", gap: 8, maxHeight: 420, overflowY: "auto" }}>
+                            <div
+                              style={{
+                                display: "grid",
+                                gap: 8,
+                                maxHeight: 420,
+                                overflowY: "auto",
+                              }}
+                            >
                               {recentDownloads.map((item) => (
-                                <div key={item.id} style={{ border: "1px solid rgba(15,23,42,.08)", borderRadius: 12, padding: 10, display: "grid", gap: 6 }}>
-                                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                                    <div style={{ fontWeight: 700 }}>{item.format.toUpperCase()}</div>
-                                    <span className="badge">{t("topbar.downloadCount", { count: item.count })}</span>
+                                <div
+                                  key={item.id}
+                                  style={{
+                                    border: "1px solid rgba(15,23,42,.08)",
+                                    borderRadius: 12,
+                                    padding: 10,
+                                    display: "grid",
+                                    gap: 6,
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      gap: 10,
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <div style={{ fontWeight: 700 }}>
+                                      {item.format.toUpperCase()}
+                                    </div>
+                                    <span className="badge">
+                                      {t("topbar.downloadCount", {
+                                        count: item.count,
+                                      })}
+                                    </span>
                                   </div>
-                                  <div style={{ fontSize: 13, wordBreak: "break-word" }}>{item.fileName}</div>
-                                  <div className="muted" style={{ fontSize: 12 }}>{item.filtersLabel}</div>
-                                  <div className="muted" style={{ fontSize: 12 }}>{t("topbar.lastDownload", { date: formatRecentGraduateDownloadDate(item.lastDownloadedAt, activeLang) })}</div>
-                                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                    <button className="btn" type="button" onClick={() => downloadStoredExport(item)}>{t("topbar.downloadAgain")}</button>
-                                    <button className="btn" type="button" onClick={() => removeStoredExport(item.id)}>{t("topbar.removeDownload")}</button>
+                                  <div
+                                    style={{
+                                      fontSize: 13,
+                                      wordBreak: "break-word",
+                                    }}
+                                  >
+                                    {item.fileName}
+                                  </div>
+                                  <div
+                                    className="muted"
+                                    style={{ fontSize: 12 }}
+                                  >
+                                    {item.filtersLabel}
+                                  </div>
+                                  <div
+                                    className="muted"
+                                    style={{ fontSize: 12 }}
+                                  >
+                                    {t("topbar.lastDownload", {
+                                      date: formatRecentGraduateDownloadDate(
+                                        item.lastDownloadedAt,
+                                        activeLang,
+                                      ),
+                                    })}
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      gap: 8,
+                                      flexWrap: "wrap",
+                                    }}
+                                  >
+                                    <button
+                                      className="btn"
+                                      type="button"
+                                      onClick={() => downloadStoredExport(item)}
+                                    >
+                                      {t("topbar.downloadAgain")}
+                                    </button>
+                                    <button
+                                      className="btn"
+                                      type="button"
+                                      onClick={() =>
+                                        removeStoredExport(item.id)
+                                      }
+                                    >
+                                      {t("topbar.removeDownload")}
+                                    </button>
                                   </div>
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <div className="muted">{t("topbar.noDownloadsYet")}</div>
+                            <div className="muted">
+                              {t("topbar.noDownloadsYet")}
+                            </div>
                           )}
                         </div>
                       ) : null}
                     </div>
-                    <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => setShowFilters((current) => !current)}>
-                      {t("topbar.filters")}
-                    </button>
-                    <button className="btn" type="button" style={{ ...topButtonStyle, width: "100%", justifyContent: "center" }} onClick={() => void onDeleteSelected()} disabled={!selectedIds.length}>
+                    <button
+                      className="btn"
+                      type="button"
+                      style={{
+                        ...topButtonStyle,
+                        width: "100%",
+                        justifyContent: "center",
+                      }}
+                      onClick={() => void onDeleteSelected()}
+                      disabled={!selectedIds.length}
+                    >
                       {t("topbar.delete")}
                     </button>
                   </div>
@@ -677,7 +1213,12 @@ export default function Graduates() {
               }}
             />
           ) : null}
-          <input className="input graduates-search-input" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t("topbar.searchPlaceholder")} />
+          <input
+            className="input graduates-search-input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={t("topbar.searchPlaceholder")}
+          />
         </div>
       </div>
 

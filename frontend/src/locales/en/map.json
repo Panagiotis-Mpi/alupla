@@ -59,6 +59,7 @@
     "selectHint": "Click a region for details.",
     "region": "Region",
     "total": "Total graduates",
+    "allGraduates": "Total",
     "avgAge": "Average graduation age",
     "male": "Male",
     "female": "Female"
