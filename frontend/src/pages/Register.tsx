@@ -12,6 +12,11 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function isAllowedRegistrationEmail(value: string) {
+  const email = value.trim().toLowerCase();
+  return email.endsWith("@ceid.upatras.gr") || email.endsWith("@ac.upatras.gr");
+}
+
 export default function Register() {
   const { t } = useTranslation("auth");
   const navigate = useNavigate();
@@ -31,6 +36,11 @@ export default function Register() {
     const normalizedEmail = email.trim().toLowerCase();
     if (!isValidEmail(normalizedEmail)) {
       setErr(t("register.invalidEmail", "Βάλε έγκυρο email"));
+      return;
+    }
+
+    if (!isAllowedRegistrationEmail(normalizedEmail)) {
+      setErr(t("register.institutionalEmailRequired"));
       return;
     }
 

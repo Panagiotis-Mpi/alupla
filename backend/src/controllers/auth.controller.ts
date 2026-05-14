@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
 import { signToken } from "../utils/jwt";
-import { fail, hashPassword, isStrongPassword, isValidEmail, normalizeEmail, normalizeText, toSafeUser } from "../utils/userAccounts";
+import { fail, hashPassword, isAllowedRegistrationEmail, isStrongPassword, isValidEmail, normalizeEmail, normalizeText, toSafeUser } from "../utils/userAccounts";
 
 type SessionLog = {
   action: string;
@@ -43,6 +43,10 @@ export async function register(req: Request, res: Response) {
   const normalizedEmail = normalizeEmail(email);
   if (!isValidEmail(normalizedEmail)) {
     return fail(res, 400, "Invalid email");
+  }
+
+  if (!isAllowedRegistrationEmail(normalizedEmail)) {
+    return fail(res, 400, "Για την εγγραφή στην πλατφόρμα πρέπει να χρησιμοποιηθεί ιδρυματικό ή πανεπιστημιακό email.");
   }
 
   const existingUser = await User.findOne({ where: { email: normalizedEmail } });

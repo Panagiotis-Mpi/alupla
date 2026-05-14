@@ -6,6 +6,7 @@ const STRONG_PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 export const PASSWORD_HASH_ROUNDS = 10;
 export const ONLINE_WINDOW_MS = 90_000;
+export const REGISTRATION_EMAIL_DOMAINS = ["@ceid.upatras.gr", "@ac.upatras.gr"];
 
 export function fail(res: Response, status: number, message: string) {
   return res.status(status).json({ ok: false, error: { message } });
@@ -35,6 +36,11 @@ export function isValidEmail(value: unknown) {
   const email = normalizeEmail(value);
   if (!email || email.length > 254 || email.includes("..")) return false;
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export function isAllowedRegistrationEmail(value: unknown) {
+  const email = normalizeEmail(value);
+  return REGISTRATION_EMAIL_DOMAINS.some((domain) => email.endsWith(domain));
 }
 
 export function computeIsOnline(lastSeen: Date | null | undefined) {
