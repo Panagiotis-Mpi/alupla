@@ -17,8 +17,6 @@ export function StatisticsExportMenu(props: {
   onToggle: () => void;
   onPick: (format: "xlsx" | "csv" | "png") => void;
 }) {
-  const confirmDisabled = !props.selectedChartIds.length || !!(props.isPngExport && props.selectedChartIds.includes("genderByEntryYear") && !props.selectedGenderEntryYears?.length);
-
   return (
     <div style={{ position: "relative" }}>
       <button className="btn" type="button" style={props.topButtonStyle} onClick={props.onToggle}>
@@ -69,6 +67,8 @@ export function StatisticsExportSelectionModal(props: {
   onToggleGenderEntryYear?: (year: string) => void;
   onToggleAllGenderEntryYears?: () => void;
 }) {
+  const confirmDisabled = !props.selectedChartIds.length || !!(props.isPngExport && props.selectedChartIds.includes("genderByEntryYear") && !props.selectedGenderEntryYears?.length);
+
   return (
     <div
       onClick={props.onClose}
