@@ -408,7 +408,15 @@ export async function publicStats(req: Request, res: Response) {
          ORDER BY count DESC, r.name ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
-      const originNomosJoin = `LEFT JOIN regions r ON r.id = g.origin_region_id`;
+      const originNomosJoin = `LEFT JOIN regions origin_nomos_region ON origin_nomos_region.id = g.origin_region_id
+         LEFT JOIN regions origin_city_region ON origin_city_region.id = g.origin_city_region_id
+         LEFT JOIN regions origin_city_parent_region ON origin_city_parent_region.id = origin_city_region.parent_id
+         LEFT JOIN regions origin_city_grandparent_region ON origin_city_grandparent_region.id = origin_city_parent_region.parent_id
+         LEFT JOIN regions r ON r.id = COALESCE(
+           CASE WHEN origin_nomos_region.type = 'NOMOS' THEN origin_nomos_region.id ELSE NULL END,
+           CASE WHEN origin_city_parent_region.type = 'NOMOS' THEN origin_city_parent_region.id ELSE NULL END,
+           CASE WHEN origin_city_grandparent_region.type = 'NOMOS' THEN origin_city_grandparent_region.id ELSE NULL END
+         )`;
       const originNomosWhere = sqlWhere
         ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'NOMOS' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
         : `WHERE r.id IS NOT NULL AND r.type = 'NOMOS' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
@@ -445,6 +453,16 @@ export async function publicStats(req: Request, res: Response) {
          ORDER BY count DESC, g.origin_municipality ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
+      const rawGenderByMunicipality = await sequelize.query<{ name: string; count: number; male: number; female: number }>(
+        `SELECT g.origin_municipality as name,
+                CAST(COUNT(*) AS INTEGER) as count,
+                CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
+                CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
+         FROM graduates g ${municipalityWhere}
+         GROUP BY g.origin_municipality
+         ORDER BY count DESC, g.origin_municipality ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
       const { cityByName } = await buildRegionLookup();
       const municipalityGroups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number }>();
       for (const row of rawOriginMunicipalityDistribution) {
@@ -461,6 +479,31 @@ export async function publicStats(req: Request, res: Response) {
           name_en: names.name_en || names.name_el || baseName,
           count: Number(row.count) || 0,
         });
+      }
+      const genderMunicipalityGroups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number; male: number; female: number }>();
+      for (const row of rawGenderByMunicipality) {
+        const rawName = String(row.name ?? "").trim();
+        if (!rawName) continue;
+        const canonical = cityByName.get(normalizePlaceName(rawName));
+        const baseName = canonical ? String(canonical.name) : rawName;
+        const names = await localizedNamesForRegion(canonical?.id, baseName);
+        const key = canonical?.id ? `city:${Number(canonical.id)}` : `name:${normalizePlaceName(names.name_el || baseName)}`;
+        const current = genderMunicipalityGroups.get(key);
+        if (current) {
+          current.count += Number(row.count) || 0;
+          current.male += Number(row.male) || 0;
+          current.female += Number(row.female) || 0;
+        } else {
+          genderMunicipalityGroups.set(key, {
+            id: canonical?.id ?? null,
+            name: names.name_el || baseName,
+            name_el: names.name_el || baseName,
+            name_en: names.name_en || names.name_el || baseName,
+            count: Number(row.count) || 0,
+            male: Number(row.male) || 0,
+            female: Number(row.female) || 0,
+          });
+        }
       }
       const rawOriginCountryDistribution = await sequelize.query<{ id: number | null; name: string; count: number }>(
         `SELECT g.origin_country_region_id as id,
@@ -528,6 +571,10 @@ export async function publicStats(req: Request, res: Response) {
         if (b.count !== a.count) return b.count - a.count;
         return a.name.localeCompare(b.name, "el");
       });
+      const genderByMunicipality = Array.from(genderMunicipalityGroups.values()).sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.name.localeCompare(b.name, "el");
+      });
       const originCountryDistribution = Array.from(countryGroups.values()).sort((a, b) => {
         if (b.count !== a.count) return b.count - a.count;
         return a.name_el.localeCompare(b.name_el, "el");
@@ -543,6 +590,7 @@ export async function publicStats(req: Request, res: Response) {
         abroad_count: abroadCount,
         abroad_pct: total > 0 ? Math.round((abroadCount / total) * 1000) / 10 : 0,
         origin_municipality_distribution: originMunicipalityDistribution,
+        gender_by_municipality: genderByMunicipality,
       };
       setPublicStatsCache(cacheKey, body);
       res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");

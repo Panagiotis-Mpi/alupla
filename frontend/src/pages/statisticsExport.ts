@@ -19,6 +19,7 @@ export type StatisticsChartId =
   | "originRegion"
   | "genderByRegion"
   | "originMunicipality"
+  | "genderByMunicipality"
   | "originCountry"
   | "abroadShare"
   | "abroadByYear"
@@ -58,6 +59,7 @@ type StatisticsData = Partial<Record<
   | "origin_region_distribution"
   | "gender_by_region"
   | "origin_municipality_distribution"
+  | "gender_by_municipality"
   | "origin_country_distribution"
   | "abroad_by_year"
   | "avg_years_to_degree_by_entry_year"
@@ -105,14 +107,15 @@ const statisticsChartOrder: StatisticsChartId[] = [
   "gender",
   "gradeDistribution",
   "gradeDistributionByGender",
+  "timeToDegreeDistribution",
   "gradeByYear",
   "gradeByRegion",
   "timeToDegreeByEntryYear",
-  "timeToDegreeDistribution",
   "timeToDegreeByRegion",
   "originRegion",
   "genderByRegion",
   "originMunicipality",
+  "genderByMunicipality",
   "originCountry",
   "abroadShare",
   "abroadByYear",
@@ -507,7 +510,7 @@ function buildSheets(args: BuildArgs) {
 
   sheets.set("gradeDistributionByGender", {
     chartId: "gradeDistributionByGender",
-    name: activeLang === "en" ? "Graduation Grade Distribution by Gender" : "Κατανομή βαθμολογίας ανά φύλο",
+    name: activeLang === "en" ? "Graduation Grade Distribution by Gender" : "Κατανομή βαθμολογίας αποφοίτησης ανά φύλο",
     rows: gradeDistributionByGenderRows.length
       ? [
           ...gradeDistributionByGenderRows,
@@ -688,6 +691,49 @@ function buildSheets(args: BuildArgs) {
       [l.cityOfOrigin]: "text",
       [l.graduateCount]: "count",
       [l.percentage]: "percentage",
+    },
+  });
+
+  const genderByMunicipalityRows = rowsOf(data.gender_by_municipality).map((row) => {
+    const male = num(row.male);
+    const female = num(row.female);
+    const count = male + female;
+    return {
+      [l.cityOfOrigin]: localizedName(row, activeLang),
+      [l.maleCount]: male,
+      [l.femaleCount]: female,
+      [l.graduateCount]: count,
+      [l.malePercentage]: percentOf(male, count),
+      [l.femalePercentage]: percentOf(female, count),
+    };
+  });
+  const municipalityMaleTotal = sumValues(data.gender_by_municipality, (row) => row.male);
+  const municipalityFemaleTotal = sumValues(data.gender_by_municipality, (row) => row.female);
+  const municipalityGenderTotal = municipalityMaleTotal + municipalityFemaleTotal;
+
+  sheets.set("genderByMunicipality", {
+    chartId: "genderByMunicipality",
+    name: activeLang === "en" ? "Gender Distribution by City of Origin" : "Κατανομή φύλου ανά πόλη καταγωγής",
+    rows: genderByMunicipalityRows.length
+      ? [
+          ...genderByMunicipalityRows,
+          {
+            [l.cityOfOrigin]: l.total,
+            [l.maleCount]: municipalityMaleTotal,
+            [l.femaleCount]: municipalityFemaleTotal,
+            [l.graduateCount]: municipalityGenderTotal,
+            [l.malePercentage]: percentOf(municipalityMaleTotal, municipalityGenderTotal),
+            [l.femalePercentage]: percentOf(municipalityFemaleTotal, municipalityGenderTotal),
+          },
+        ]
+      : genderByMunicipalityRows,
+    columnKinds: {
+      [l.cityOfOrigin]: "text",
+      [l.maleCount]: "count",
+      [l.femaleCount]: "count",
+      [l.graduateCount]: "count",
+      [l.malePercentage]: "percentage",
+      [l.femalePercentage]: "percentage",
     },
   });
 
@@ -1015,8 +1061,8 @@ export function buildStatisticsExportFilename(args: BuildArgs, format: Statistic
   const allSelected = chartCount === 0;
   const groupChartIds = {
     demographics: ["byYear", "countByEntryYear", "birthYear", "genderTotal", "genderByEntryYear", "gender"],
-    academic: ["gradeDistribution", "gradeDistributionByGender", "gradeByYear", "gradeByRegion", "timeToDegreeByEntryYear", "timeToDegreeDistribution", "timeToDegreeByRegion"],
-    geography: ["originRegion", "genderByRegion", "originMunicipality", "originCountry", "abroadShare", "abroadByYear", "timeToDegreeByNomos"],
+    academic: ["gradeDistribution", "gradeDistributionByGender", "timeToDegreeDistribution", "gradeByYear", "gradeByRegion", "timeToDegreeByEntryYear", "timeToDegreeByRegion"],
+    geography: ["originRegion", "genderByRegion", "originMunicipality", "genderByMunicipality", "originCountry", "abroadShare", "abroadByYear", "timeToDegreeByNomos"],
   } as const;
 
   const selectedSet = new Set(selected);

@@ -96,10 +96,10 @@ export default function Statistics() {
         charts: [
           { id: "gradeDistribution" as StatisticsChartId, label: t("sections.gradeDistribution") },
           { id: "gradeDistributionByGender" as StatisticsChartId, label: t("sections.gradeDistributionByGender") },
+          { id: "timeToDegreeDistribution" as StatisticsChartId, label: t("sections.timeToDegreeDistribution") },
           { id: "gradeByYear" as StatisticsChartId, label: t("sections.gradeByYear") },
           { id: "gradeByRegion" as StatisticsChartId, label: t("sections.gradeByRegion") },
           { id: "timeToDegreeByEntryYear" as StatisticsChartId, label: t("sections.timeToDegreeByEntryYear") },
-          { id: "timeToDegreeDistribution" as StatisticsChartId, label: t("sections.timeToDegreeDistribution") },
           { id: "timeToDegreeByRegion" as StatisticsChartId, label: t("sections.timeToDegreeByRegion") },
         ],
       },
@@ -110,6 +110,7 @@ export default function Statistics() {
           { id: "originRegion" as StatisticsChartId, label: t("sections.originRegion") },
           { id: "genderByRegion" as StatisticsChartId, label: t("sections.genderByRegion") },
           { id: "originMunicipality" as StatisticsChartId, label: t("sections.originMunicipality") },
+          { id: "genderByMunicipality" as StatisticsChartId, label: t("sections.genderByMunicipality") },
           { id: "originCountry" as StatisticsChartId, label: t("sections.originCountry") },
           { id: "abroadShare" as StatisticsChartId, label: t("sections.abroadShare") },
           { id: "abroadByYear" as StatisticsChartId, label: t("sections.abroadByYear") },
@@ -390,6 +391,18 @@ export default function Statistics() {
 
   const genderByRegion = React.useMemo(() => {
     const safeRows = Array.isArray(data?.gender_by_region) ? data.gender_by_region as NamedCountRow[] : [];
+    return sortGenderByRegionDescending({
+      labels: safeRows.map((row) => {
+        const value = activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name;
+        return String(value ?? "-");
+      }),
+      male: safeRows.map((row) => Number(row.male ?? 0)),
+      female: safeRows.map((row) => Number(row.female ?? 0)),
+    });
+  }, [activeLang, data, sortGenderByRegionDescending]);
+
+  const genderByMunicipality = React.useMemo(() => {
+    const safeRows = Array.isArray(data?.gender_by_municipality) ? data.gender_by_municipality as NamedCountRow[] : [];
     return sortGenderByRegionDescending({
       labels: safeRows.map((row) => {
         const value = activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name;
@@ -811,6 +824,7 @@ export default function Statistics() {
             yearsToDegreeByRegion={yearsToDegreeByRegion}
             regions={regions}
             genderByRegion={genderByRegion}
+            genderByMunicipality={genderByMunicipality}
             municipalities={municipalities}
             countries={countries}
             total={total}
@@ -842,6 +856,7 @@ export default function Statistics() {
             yearsToDegreeByRegion={yearsToDegreeByRegion}
             regions={regions}
             genderByRegion={genderByRegion}
+            genderByMunicipality={genderByMunicipality}
             municipalities={municipalities}
             countries={countries}
             total={total}
@@ -873,6 +888,7 @@ export default function Statistics() {
             yearsToDegreeByRegion={yearsToDegreeByRegion}
             regions={regions}
             genderByRegion={genderByRegion}
+            genderByMunicipality={genderByMunicipality}
             municipalities={municipalities}
             countries={countries}
             total={total}
@@ -938,6 +954,7 @@ export default function Statistics() {
           yearsToDegreeByRegion={yearsToDegreeByRegion}
           regions={regions}
           genderByRegion={genderByRegion}
+          genderByMunicipality={genderByMunicipality}
           municipalities={municipalities}
           countries={countries}
           total={total}

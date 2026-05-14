@@ -43,7 +43,8 @@
     "countByEntryYear": "Graduates by entry year",
     "gradeByRegion": "Average graduation grade by region of origin",
     "genderByRegion": "Gender distribution by region of origin",
-    "timeToDegreeByRegion": "Average study duration by region of origin"
+    "timeToDegreeByRegion": "Average study duration by region of origin",
+    "genderByMunicipality": "Gender distribution by city of origin"
   },
   "table": {
     "year": "Year",

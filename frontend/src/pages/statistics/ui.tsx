@@ -534,7 +534,7 @@ function ScrollableBarChart(props: {
   const isCompact = useCompactStatisticsLayout();
   const highContrast = useHighContrastEnabled();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
-  const shouldScroll = !!props.forceScrollable || props.labels.length > (props.scrollThreshold ?? 7) || (props.datasetCount ?? 1) > 1;
+  const shouldScroll = !!props.forceScrollable || props.labels.length > (props.scrollThreshold ?? 7);
   const minWidth = shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
   const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
 
