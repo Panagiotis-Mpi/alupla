@@ -94,6 +94,7 @@ function buildBarChartOptions(options?: {
   xTickRotation?: number;
   xTickFormatter?: (label: string) => string | string[];
   yTickPrecision?: number;
+  exportMode?: boolean;
 }) {
   const labels = options?.labels ?? [];
   const yTickPrecision = options?.yTickPrecision;
@@ -159,7 +160,8 @@ function buildBarChartOptions(options?: {
           font: { size: 13, weight: "600" },
           callback: function (_: any, index: number) {
             const label = String(labels[index] ?? "");
-            return options?.xTickFormatter ? options.xTickFormatter(label) : wrapAxisLabel(label, 18, 3);
+            if (options?.xTickFormatter) return options.xTickFormatter(label);
+            return options?.exportMode ? exportAxisLabel(label, index, labels) : wrapAxisLabel(label, 18, 3);
           },
         },
         grid: { display: false },
@@ -475,6 +477,20 @@ function chartContentWidth(labels: string[], datasetCount = 1, minLabelWidth = 6
   return Math.max(640, labels.length * Math.max(readableLabelWidth, 44 * Math.max(1, datasetCount)));
 }
 
+function exportAxisLabelStep(labels: string[]) {
+  if (labels.length <= 15) return 1;
+  if (labels.length <= 30) return 2;
+  if (labels.length <= 45) return 3;
+  return 5;
+}
+
+function exportAxisLabel(label: string, index: number, labels: string[]) {
+  const step = exportAxisLabelStep(labels);
+  const lastIndex = labels.length - 1;
+  if (index !== 0 && index !== lastIndex && index % step !== 0) return "";
+  return wrapAxisLabel(label, 18, 2);
+}
+
 function useCompactStatisticsLayout() {
   const [isCompact, setIsCompact] = React.useState(() => typeof window !== "undefined" ? window.innerWidth <= 820 : false);
 
@@ -496,11 +512,12 @@ export function ScrollableLineChart(props: {
   datasetCount?: number;
   minLabelWidth?: number;
   maxLabelWidth?: number;
+  exportMode?: boolean;
 }) {
   const isCompact = useCompactStatisticsLayout();
   const highContrast = useHighContrastEnabled();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 68, props.maxLabelWidth ?? 128);
-  const shouldScroll = props.labels.length > 6 || (props.datasetCount ?? 1) > 1;
+  const shouldScroll = !props.exportMode && (props.labels.length > 6 || (props.datasetCount ?? 1) > 1);
   const minWidth = shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
   const normalizedData = React.useMemo(
     () => ({
@@ -509,7 +526,25 @@ export function ScrollableLineChart(props: {
     }),
     [highContrast, props.data],
   );
-  const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
+  const normalizedOptions = React.useMemo(() => {
+    const nextOptions = applyAccessibleChartOptions(props.options, highContrast);
+    if (!props.exportMode) return nextOptions;
+    const labels = props.labels;
+    return applyAccessibleChartOptions(nextOptions, highContrast, {
+      scales: {
+        x: {
+          ticks: {
+            autoSkip: false,
+            maxRotation: 0,
+            minRotation: 0,
+            callback: function (_: any, index: number) {
+              return exportAxisLabel(String(labels[index] ?? ""), index, labels);
+            },
+          },
+        },
+      },
+    });
+  }, [highContrast, props.exportMode, props.labels, props.options]);
 
   return (
     <div data-stat-chart-plot="true" style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
@@ -530,11 +565,12 @@ function ScrollableBarChart(props: {
   maxLabelWidth?: number;
   forceScrollable?: boolean;
   scrollThreshold?: number;
+  exportMode?: boolean;
 }) {
   const isCompact = useCompactStatisticsLayout();
   const highContrast = useHighContrastEnabled();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
-  const shouldScroll = !!props.forceScrollable || props.labels.length > (props.scrollThreshold ?? 7);
+  const shouldScroll = !props.exportMode && (!!props.forceScrollable || props.labels.length > (props.scrollThreshold ?? 7));
   const minWidth = shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
   const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
 
@@ -594,6 +630,7 @@ export function BarChartCard(props: {
   scrollThreshold?: number;
   chartId?: string;
   yTickPrecision?: number;
+  exportMode?: boolean;
 }) {
   const highContrast = useHighContrastEnabled();
   const chartHeight = props.height ?? (props.horizontal ? Math.max(300, props.labels.length * 54) : 280);
@@ -611,8 +648,9 @@ export function BarChartCard(props: {
         fullLabelTooltip: props.fullLabelTooltip,
         labels: props.labels,
         yTickPrecision: props.yTickPrecision,
+        exportMode: props.exportMode,
       }),
-    [props.fullLabelTooltip, props.horizontal, props.labels, props.yTickPrecision],
+    [props.exportMode, props.fullLabelTooltip, props.horizontal, props.labels, props.yTickPrecision],
   );
   const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
 
@@ -635,6 +673,7 @@ export function BarChartCard(props: {
             options={chartOptions}
             forceScrollable={props.forceScrollable}
             scrollThreshold={props.scrollThreshold}
+            exportMode={props.exportMode}
           />
         )}
       </div>
@@ -655,6 +694,7 @@ export function MultiBarChartCard(props: {
   chartId?: string;
   stacked?: boolean;
   yTickPrecision?: number;
+  exportMode?: boolean;
 }) {
   const highContrast = useHighContrastEnabled();
   const palette = highContrast ? ["#ffd400", "#7fffd4", "#ffffff", "#ff8a00"] : props.datasets.map((dataset) => dataset.color);
@@ -685,8 +725,9 @@ export function MultiBarChartCard(props: {
         labels: props.labels,
         stacked: props.stacked,
         yTickPrecision: props.yTickPrecision,
+        exportMode: props.exportMode,
       }),
-    [props.labels, props.stacked, props.yTickPrecision],
+    [props.exportMode, props.labels, props.stacked, props.yTickPrecision],
   );
   const ariaLabel = React.useMemo(() => {
     const preview = props.labels
@@ -719,6 +760,7 @@ export function MultiBarChartCard(props: {
           options={chartOptions}
           forceScrollable={props.forceScrollable}
           scrollThreshold={props.scrollThreshold}
+          exportMode={props.exportMode}
         />
       </div>
     </div>
@@ -876,6 +918,7 @@ export function ChartCard(props: {
   minLabelWidth?: number;
   maxLabelWidth?: number;
   forceScrollable?: boolean;
+  exportMode?: boolean;
 }) {
   const highContrast = useHighContrastEnabled();
   const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
@@ -893,6 +936,7 @@ export function ChartCard(props: {
           labels={props.labels}
           minLabelWidth={props.minLabelWidth ?? 76}
           maxLabelWidth={props.maxLabelWidth ?? 96}
+          exportMode={props.exportMode}
           data={{ labels: props.labels, datasets: [buildLineDataset(props.title, props.values, "#2563eb", "rgba(37, 99, 235, 0.28)")] }}
           options={{
             responsive: true,
@@ -906,7 +950,8 @@ export function ChartCard(props: {
                   maxRotation: 0,
                   minRotation: 0,
                   callback: function (_: any, index: number) {
-                    return wrapAxisLabel(String(props.labels[index] ?? ""), 18, 3);
+                    const label = String(props.labels[index] ?? "");
+                    return props.exportMode ? exportAxisLabel(label, index, props.labels) : wrapAxisLabel(label, 18, 3);
                   },
                 },
               },
@@ -933,6 +978,7 @@ export function VerticalBarChartCard(props: {
   forceScrollable?: boolean;
   xTickRotation?: number;
   xTickFormatter?: (label: string) => string | string[];
+  exportMode?: boolean;
 }) {
   const highContrast = useHighContrastEnabled();
   const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
@@ -951,6 +997,7 @@ export function VerticalBarChartCard(props: {
           minLabelWidth={props.minLabelWidth ?? 92}
           maxLabelWidth={props.maxLabelWidth ?? 152}
           forceScrollable={props.forceScrollable}
+          exportMode={props.exportMode}
           data={{ labels: props.labels, datasets: [buildBarDataset(props.title, props.values, { highContrast })] }}
           options={buildBarChartOptions({
             labels: props.labels,
@@ -959,6 +1006,7 @@ export function VerticalBarChartCard(props: {
             max: props.maxValue,
             xTickRotation: props.xTickRotation,
             xTickFormatter: props.xTickFormatter,
+            exportMode: props.exportMode,
           })}
         />
       </div>

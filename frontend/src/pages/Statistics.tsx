@@ -126,6 +126,7 @@ export default function Statistics() {
     [chartGroups]
   );
   const [selectedChartIds, setSelectedChartIds] = React.useState<StatisticsChartId[]>([]);
+  const [selectedExportGenderEntryYears, setSelectedExportGenderEntryYears] = React.useState<string[]>([]);
 
   React.useEffect(() => {
     setSelectedChartIds((prev) => prev.filter((id) => allChartIds.includes(id)));
@@ -515,6 +516,20 @@ export default function Statistics() {
     },
   ], [makeGenderByEntryYearPie, makeGenderEntryYearSelect, selectedGenderEntryYearLeft, selectedGenderEntryYearRight]);
 
+  const exportGenderByEntryYearPies = React.useMemo(() => {
+    const years = selectedExportGenderEntryYears.length ? selectedExportGenderEntryYears : [selectedGenderEntryYearLeft, selectedGenderEntryYearRight].filter((year, index, items) => year !== "all" && items.indexOf(year) === index);
+    return years.map((year) => ({
+      key: year,
+      title: year,
+      ...makeGenderByEntryYearPie(year),
+      control: null,
+    }));
+  }, [makeGenderByEntryYearPie, selectedExportGenderEntryYears, selectedGenderEntryYearLeft, selectedGenderEntryYearRight]);
+
+  React.useEffect(() => {
+    setSelectedExportGenderEntryYears((prev) => prev.filter((year) => entryYearOptions.some((option) => option.value === year)));
+  }, [entryYearOptions]);
+
   const allChartsSelected = allChartIds.length > 0 && selectedChartIds.length === allChartIds.length;
 
   const selectionRowStyle: React.CSSProperties = {
@@ -551,6 +566,14 @@ export default function Statistics() {
     setSelectedChartIds((prev) => toggleChartSelection(prev, chartId));
   }
 
+  function toggleExportGenderEntryYear(year: string) {
+    setSelectedExportGenderEntryYears((prev) => prev.includes(year) ? prev.filter((item) => item !== year) : [...prev, year]);
+  }
+
+  function toggleAllExportGenderEntryYears() {
+    setSelectedExportGenderEntryYears((prev) => prev.length === entryYearOptions.length ? [] : entryYearOptions.map((option) => option.value));
+  }
+
   const exportFormatLabel = React.useMemo(() => {
     if (selectedExportFormat === "xlsx") return "Excel";
     if (selectedExportFormat === "csv") return "CSV";
@@ -561,6 +584,8 @@ export default function Statistics() {
   function openExportSelection(format: "xlsx" | "csv" | "png") {
     void loadStatsGroup("academic").catch(() => {});
     void loadStatsGroup("geography").catch(() => {});
+    const visibleYears = [selectedGenderEntryYearLeft, selectedGenderEntryYearRight].filter((year, index, items) => year !== "all" && items.indexOf(year) === index);
+    setSelectedExportGenderEntryYears(format === "png" ? visibleYears : []);
     setSelectedChartIds([]);
     setSelectedExportFormat(format);
     setExportOpen(false);
@@ -912,6 +937,11 @@ export default function Statistics() {
           onToggleGroup={toggleGroupCharts}
           onToggleChart={toggleSingleChart}
           onConfirm={() => void handleExportAction()}
+          isPngExport={selectedExportFormat === "png"}
+          genderEntryYearOptions={entryYearOptions}
+          selectedGenderEntryYears={selectedExportGenderEntryYears}
+          onToggleGenderEntryYear={toggleExportGenderEntryYear}
+          onToggleAllGenderEntryYears={toggleAllExportGenderEntryYears}
         />
       ) : null}
 
@@ -941,7 +971,7 @@ export default function Statistics() {
           countChartOptions={countChartOptions}
           entryYears={entryYears}
           birthYears={birthYears}
-          genderByEntryYearPies={genderByEntryYearPies}
+          genderByEntryYearPies={exportGenderByEntryYearPies}
           genderTotal={genderTotal}
           gradeBinsByGender={gradeBinsByGender}
           abroadByYear={abroadByYear}
@@ -959,6 +989,7 @@ export default function Statistics() {
           countries={countries}
           total={total}
           abroadCount={abroadCount}
+          exportMode
         />
         </div>
       ) : null}

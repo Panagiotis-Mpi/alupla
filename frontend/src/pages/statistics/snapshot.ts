@@ -112,6 +112,10 @@ export async function renderElementSnapshot(element: HTMLElement) {
 export async function renderSegmentedElementSnapshots(element: HTMLElement) {
   await waitForRenderableImages(element);
 
+  if (element.closest('[data-stat-export-single="true"]')) {
+    return [await renderElementSnapshot(element)];
+  }
+
   const baseClone = await prepareSnapshotClone(element);
   const overflowPair = findPrimaryHorizontalOverflowPair(element, baseClone);
 

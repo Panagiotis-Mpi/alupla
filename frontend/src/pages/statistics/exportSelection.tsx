@@ -17,6 +17,8 @@ export function StatisticsExportMenu(props: {
   onToggle: () => void;
   onPick: (format: "xlsx" | "csv" | "png") => void;
 }) {
+  const confirmDisabled = !props.selectedChartIds.length || !!(props.isPngExport && props.selectedChartIds.includes("genderByEntryYear") && !props.selectedGenderEntryYears?.length);
+
   return (
     <div style={{ position: "relative" }}>
       <button className="btn" type="button" style={props.topButtonStyle} onClick={props.onToggle}>
@@ -61,6 +63,11 @@ export function StatisticsExportSelectionModal(props: {
   onToggleGroup: (chartIds: StatisticsChartId[]) => void;
   onToggleChart: (chartId: StatisticsChartId) => void;
   onConfirm: () => void;
+  isPngExport?: boolean;
+  genderEntryYearOptions?: Array<{ value: string; label: string }>;
+  selectedGenderEntryYears?: string[];
+  onToggleGenderEntryYear?: (year: string) => void;
+  onToggleAllGenderEntryYears?: () => void;
 }) {
   return (
     <div
@@ -116,12 +123,35 @@ export function StatisticsExportSelectionModal(props: {
                   <span>{group.label}</span>
                 </label>
                 <div style={{ display: "grid", gap: 6 }}>
-                  {group.charts.map((chart) => (
-                    <label key={chart.id} style={props.selectionRowStyle}>
-                      <input type="checkbox" style={props.selectionCheckboxStyle} checked={props.selectedChartIds.includes(chart.id)} onChange={() => props.onToggleChart(chart.id)} />
-                      <span>{chart.label}</span>
-                    </label>
-                  ))}
+                  {group.charts.map((chart) => {
+                    const showYearOptions = props.isPngExport && chart.id === "genderByEntryYear" && props.selectedChartIds.includes(chart.id) && (props.genderEntryYearOptions?.length ?? 0) > 0;
+                    const allYearsSelected = !!props.genderEntryYearOptions?.length && props.genderEntryYearOptions.every((option) => props.selectedGenderEntryYears?.includes(option.value));
+
+                    return (
+                      <div key={chart.id} style={{ display: "grid", gap: 6 }}>
+                        <label style={props.selectionRowStyle}>
+                          <input type="checkbox" style={props.selectionCheckboxStyle} checked={props.selectedChartIds.includes(chart.id)} onChange={() => props.onToggleChart(chart.id)} />
+                          <span>{chart.label}</span>
+                        </label>
+                        {showYearOptions ? (
+                          <div style={{ display: "grid", gap: 6, padding: "2px 0 2px 26px" }}>
+                            <label style={{ ...props.selectionRowStyle, minHeight: 36, fontSize: 14, fontWeight: 700 }}>
+                              <input type="checkbox" style={props.selectionCheckboxStyle} checked={allYearsSelected} onChange={props.onToggleAllGenderEntryYears} />
+                              <span>{props.t("actions.selectAllYears", { defaultValue: "Όλα τα έτη" })}</span>
+                            </label>
+                            <div style={{ display: "grid", gap: 6, gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))" }}>
+                              {props.genderEntryYearOptions?.map((option) => (
+                                <label key={option.value} style={{ ...props.selectionRowStyle, minHeight: 34, padding: "6px 8px", fontSize: 13 }}>
+                                  <input type="checkbox" style={props.selectionCheckboxStyle} checked={props.selectedGenderEntryYears?.includes(option.value) ?? false} onChange={() => props.onToggleGenderEntryYear?.(option.value)} />
+                                  <span>{option.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -132,7 +162,7 @@ export function StatisticsExportSelectionModal(props: {
           <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={props.onClose}>
             {props.t("actions.cancel", { defaultValue: "Ακύρωση" })}
           </button>
-          <button type="button" className="btn primary" disabled={!props.selectedChartIds.length} style={{ opacity: props.selectedChartIds.length ? 1 : 0.55 }} onClick={props.onConfirm}>
+          <button type="button" className="btn primary" disabled={confirmDisabled} style={{ opacity: confirmDisabled ? 0.55 : 1 }} onClick={props.onConfirm}>
             {props.t("actions.exportSelected", { defaultValue: "Εξαγωγή επιλεγμένων" })}
           </button>
         </div>
