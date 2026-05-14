@@ -107,17 +107,19 @@ hr{border:none;border-top:1px solid #eef2f7;margin:var(--space-2) 0}
 }
 .statistics-metric-label{
   color:#475569;
-  font-size:17px;
-  line-height:1.32;
+  font-size:clamp(14px,1.5vw,17px);
+  line-height:1.28;
   font-weight:500;
+  overflow-wrap:anywhere;
 }
 .statistics-metric-value.is-loading{filter:blur(3px);opacity:.72;pointer-events:none;user-select:none;transition:filter .18s ease,opacity .18s ease}
 .statistics-metric-value{
-  font-size:28px;
+  font-size:clamp(21px,2.4vw,28px);
   font-weight:800;
   margin-top:4px;
-  line-height:1.1;
+  line-height:1.12;
   color:#0f172a;
+  overflow-wrap:anywhere;
 }
 html.accessibility-high-contrast .statistics-metric-card{
   border-width:2px !important;
@@ -1436,8 +1438,9 @@ html.accessibility-high-contrast canvas{
   .container{max-width:100%;overflow-x:hidden}
   .graduates-actions-grid,.graduates-actions-grid-main{grid-template-columns:1fr}
   .statistics-summary-row{grid-template-columns:1fr !important}
-  .statistics-metric-label{font-size:18px}
-  .statistics-metric-value{font-size:30px}
+  .statistics-metric-card{min-height:88px !important;padding:12px !important;gap:6px !important}
+  .statistics-metric-label{font-size:14px;line-height:1.25;overflow-wrap:anywhere}
+  .statistics-metric-value{font-size:22px;line-height:1.12;overflow-wrap:anywhere}
   .logs-summary-card,.logs-filters-card{max-width:100%;overflow:hidden}
   .logs-summary-card .table-wrap,.logs-filters-card .table-wrap{max-width:100%;overflow-x:auto}
   .logs-summary-table{min-width:0 !important;width:100% !important;table-layout:fixed !important}

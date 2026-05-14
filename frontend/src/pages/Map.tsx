@@ -1030,10 +1030,10 @@ export default function GraduatesMapPage() {
         .map-timeline-scale span:last-child { transform: translateX(-100%); }
         .map-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 12px 0 0; }
         .map-summary-value.is-loading, .map-summary-sub.is-loading { filter: blur(3px); opacity: .72; pointer-events: none; user-select: none; transition: filter .18s ease, opacity .18s ease; }
-        .map-summary-card { min-height: 124px; padding: 18px; display: grid; align-content: space-between; gap: 8px; }
-        .map-summary-label { color: #475569; font-size: 17px; line-height: 1.32; }
-        .map-summary-value { font-size: 28px; font-weight: 800; line-height: 1.1; color: #0f172a; }
-        .map-summary-sub { color: #64748b; font-size: 13px; line-height: 1.35; }
+        .map-summary-card { min-height: 118px; padding: 16px; display: grid; align-content: space-between; gap: 8px; overflow: hidden; }
+        .map-summary-label { color: #475569; font-size: clamp(14px, 1.5vw, 17px); line-height: 1.28; overflow-wrap: anywhere; }
+        .map-summary-value { font-size: clamp(21px, 2.4vw, 28px); font-weight: 800; line-height: 1.12; color: #0f172a; overflow-wrap: anywhere; }
+        .map-summary-sub { color: #64748b; font-size: clamp(12px, 1.2vw, 13px); line-height: 1.32; overflow-wrap: anywhere; }
         .map-page-container .map-main-card { margin: 12px auto 0; position: relative; left: auto; transform: none; max-width: 1120px; width: min(1120px, calc(100% - 32px)); border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-radius: var(--radius); }
         .map-info-box { position: relative; }
         .map-info-box-close { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border: 1px solid rgba(148,163,184,.35); background: #fff; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; cursor: pointer; color: #334155; }
@@ -1061,7 +1061,7 @@ export default function GraduatesMapPage() {
         .map-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
         @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .map-city-cards-inline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (max-width: 780px) { .map-top-controls-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .map-top-menu-card { padding: 16px; gap: 12px; } .map-top-menu-title { gap: 10px; } .map-metric-button, .map-action-button, .map-program-button { min-height: 46px; font-size: 15px; } }
-        @media (max-width: 640px) { .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } .map-timeline-actions { width: 100%; } .map-timeline-current { width: 100%; justify-content: center; } }
+        @media (max-width: 640px) { .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } .map-summary-grid { gap: 10px; } .map-summary-card { min-height: 88px; padding: 12px; gap: 6px; } .map-summary-label { font-size: 14px; line-height: 1.25; } .map-summary-value { font-size: 22px; line-height: 1.12; } .map-summary-sub { font-size: 12px; line-height: 1.28; } .map-timeline-actions { width: 100%; } .map-timeline-current { width: 100%; justify-content: center; } }
         @media (max-width: 520px) { .map-timeline-card { gap: 18px; } .map-timeline-scale { margin: 0 18px; font-size: 12px; height: 24px; } .map-year-ruler { margin: 0 18px; } .map-timeline-slider::-webkit-slider-thumb { width: 30px; height: 30px; border-width: 7px; } .map-timeline-slider::-moz-range-thumb { width: 16px; height: 16px; border-width: 7px; } }
       `}</style>
 
