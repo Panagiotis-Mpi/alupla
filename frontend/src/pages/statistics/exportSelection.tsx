@@ -134,38 +134,42 @@ export function StatisticsExportSelectionModal(props: {
                     const showYearOptions = props.isPngExport && chart.id === "genderByEntryYear" && props.selectedChartIds.includes(chart.id) && (props.genderEntryYearOptions?.length ?? 0) > 0;
                     const allYearsSelected = !!props.genderEntryYearOptions?.length && props.genderEntryYearOptions.every((option) => props.selectedGenderEntryYears?.includes(option.value));
 
+                    const selectedYearsText = (props.selectedGenderEntryYears?.length ?? 0) === props.genderEntryYearOptions?.length
+                      ? props.t("actions.allYearsSelected", { defaultValue: "Όλα τα έτη" })
+                      : props.t("actions.selectedYearsCount", { defaultValue: "{{count}} έτη", count: props.selectedGenderEntryYears?.length ?? 0 });
+
                     return (
-                      <div key={chart.id} style={{ display: "grid", gap: 6 }}>
-                        <label style={props.selectionRowStyle}>
+                      <div key={chart.id} style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, zIndex: showYearOptions && openYearPicker ? 8 : 1 }}>
+                        <label style={{ ...props.selectionRowStyle, flex: "1 1 auto", minWidth: 0 }}>
                           <input type="checkbox" style={props.selectionCheckboxStyle} checked={props.selectedChartIds.includes(chart.id)} onChange={() => props.onToggleChart(chart.id)} />
                           <span>{chart.label}</span>
                         </label>
                         {showYearOptions ? (
-                          <div style={{ position: "relative", padding: "2px 0 2px 26px" }}>
+                          <div style={{ position: "relative", flex: "0 0 auto" }}>
                             <button
                               type="button"
                               className="btn"
                               style={{
-                                width: "min(260px, 100%)",
-                                minHeight: 38,
+                                width: 132,
+                                minHeight: 32,
                                 justifyContent: "space-between",
-                                padding: "0 12px",
-                                fontSize: 14,
+                                padding: "0 9px",
+                                fontSize: 12,
                                 fontWeight: 600,
+                                borderRadius: 10,
                               }}
                               onClick={() => setOpenYearPicker((value) => !value)}
                             >
-                              <span>
-                                {(props.selectedGenderEntryYears?.length ?? 0) === props.genderEntryYearOptions?.length
-                                  ? props.t("actions.allYearsSelected", { defaultValue: "Όλα τα έτη" })
-                                  : props.t("actions.selectedYearsCount", { defaultValue: "{{count}} έτη", count: props.selectedGenderEntryYears?.length ?? 0 })}
-                              </span>
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedYearsText}</span>
                               <span aria-hidden="true">⌄</span>
                             </button>
                             {openYearPicker ? (
                               <div
                                 style={{
-                                  width: "min(260px, 100%)",
+                                  position: "absolute",
+                                  top: "calc(100% + 6px)",
+                                  right: 0,
+                                  width: 180,
                                   maxHeight: 220,
                                   overflowY: "auto",
                                   border: "1px solid rgba(148, 163, 184, 0.28)",
@@ -173,9 +177,9 @@ export function StatisticsExportSelectionModal(props: {
                                   background: "#fff",
                                   boxShadow: "0 16px 32px rgba(15, 23, 42, 0.12)",
                                   padding: 6,
-                                  marginTop: 6,
                                   display: "grid",
                                   gap: 4,
+                                  zIndex: 30,
                                 }}
                               >
                                 <label style={{ ...props.selectionRowStyle, minHeight: 34, padding: "6px 8px", fontSize: 13, fontWeight: 700 }}>
