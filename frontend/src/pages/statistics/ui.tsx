@@ -4,7 +4,7 @@ import { Bar, Line, Pie } from "react-chartjs-2";
 
 const cardInnerStyle = { minWidth: 0 };
 const compactTopbarStyle: React.CSSProperties = { marginBottom: 12, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 };
-const metricCardStyle: React.CSSProperties = { minWidth: 0, minHeight: 124, padding: 18, display: "grid", alignContent: "space-between", gap: 8 };
+const metricCardStyle: React.CSSProperties = { minWidth: 0, minHeight: 118, padding: 16, display: "grid", alignContent: "space-between", gap: 8 };
 const sectionHeaderStyle: React.CSSProperties = { display: "grid", gap: 4, marginTop: 2 };
 const sectionTitleStyle: React.CSSProperties = { margin: 0, fontSize: 24, fontWeight: 800 };
 const sectionTextStyle: React.CSSProperties = { margin: 0, color: "#64748b", fontSize: 14 };

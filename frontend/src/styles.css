@@ -104,6 +104,7 @@ hr{border:none;border-top:1px solid #eef2f7;margin:var(--space-2) 0}
 
 .statistics-metric-card{
   min-width:0;
+  overflow:hidden;
 }
 .statistics-metric-label{
   color:#475569;
@@ -194,6 +195,9 @@ html.accessibility-high-contrast .statistics-metric-value{
   .container{padding:12px}
   .page-header-actions-grid{grid-template-columns:1fr}
   .card{padding:10px}
+  .statistics-metric-card{min-height:88px !important;padding:12px !important;gap:6px}
+  .statistics-metric-label{font-size:14px;line-height:1.25}
+  .statistics-metric-value{font-size:22px;line-height:1.12}
   .btn{width:100%;justify-content:center;text-align:center}
   .page-title-row{align-items:flex-start}
   .topbar{align-items:stretch}
