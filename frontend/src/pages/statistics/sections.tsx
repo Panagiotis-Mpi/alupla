@@ -113,7 +113,7 @@ export function StatisticsSummaryCards(props: {
   );
 }
 
-function GenderLineCard(props: Pick<ChartBlockProps, "t" | "cardInnerStyle" | "compactTopbarStyle" | "genderChartData" | "genderChartOptions">) {
+function GenderLineCard(props: Pick<ChartBlockProps, "t" | "cardInnerStyle" | "compactTopbarStyle" | "genderChartData" | "genderChartOptions" | "exportMode">) {
   return (
     <div className="card" style={props.cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="gender">
       <div className="topbar" style={props.compactTopbarStyle}>
@@ -168,7 +168,7 @@ export function DemographicsCharts(props: ChartBlockProps) {
         <ChartCard chartId="birthYear" title={props.t("sections.birthYear")} labels={props.birthYears.labels} values={props.birthYears.values} height={320} exportMode={props.exportMode} />
         <PieChartCard chartId="genderTotal" title={props.t("sections.genderTotal")} labels={props.genderTotal.labels} values={props.genderTotal.values} height={320} colors={["#3b82f6", "#db2777"]} />
         <DualPieChartCard chartId="genderByEntryYear" title={props.t("sections.genderByEntryYear")} pies={props.genderByEntryYearPies} height={300} colors={["#3b82f6", "#db2777"]} />
-        <GenderLineCard {...props} exportMode />
+        <GenderLineCard {...props} exportMode={props.exportMode} />
       </div>
     </div>
   );

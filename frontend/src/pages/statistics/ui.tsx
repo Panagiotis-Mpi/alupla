@@ -53,7 +53,7 @@ function pieColors(length: number, highContrast = false) {
   return Array.from({ length }, (_, index) => source[index % source.length]);
 }
 
-function buildBarDataset(label: string, data: number[], options?: { highContrast?: boolean }) {
+function buildBarDataset(label: string, data: number[], options?: { highContrast?: boolean; exportMode?: boolean }) {
   if (options?.highContrast) {
     return {
       label,
@@ -66,6 +66,7 @@ function buildBarDataset(label: string, data: number[], options?: { highContrast
       barPercentage: 0.62,
       categoryPercentage: 0.72,
       maxBarThickness: 42,
+      minBarLength: options?.exportMode ? 4 : undefined,
     };
   }
 
@@ -80,6 +81,7 @@ function buildBarDataset(label: string, data: number[], options?: { highContrast
     barPercentage: 0.62,
     categoryPercentage: 0.72,
     maxBarThickness: 42,
+    minBarLength: options?.exportMode ? 4 : undefined,
   } as React.CSSProperties;
 }
 
@@ -485,10 +487,13 @@ function exportAxisLabelStep(labels: string[]) {
 }
 
 function exportAxisLabel(label: string, index: number, labels: string[]) {
-  const step = exportAxisLabelStep(labels);
-  const lastIndex = labels.length - 1;
-  if (index !== 0 && index !== lastIndex && index % step !== 0) return "";
-  return wrapAxisLabel(label, 18, 2);
+  const numericLabels = labels.every((item) => /^\d{4}$/.test(String(item ?? "")));
+  if (numericLabels) {
+    const step = exportAxisLabelStep(labels);
+    const lastIndex = labels.length - 1;
+    if (index !== 0 && index !== lastIndex && index % step !== 0) return "";
+  }
+  return wrapAxisLabel(label, 16, 3);
 }
 
 function useCompactStatisticsLayout() {
@@ -518,7 +523,8 @@ export function ScrollableLineChart(props: {
   const highContrast = useHighContrastEnabled();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 68, props.maxLabelWidth ?? 128);
   const shouldScroll = !props.exportMode && (props.labels.length > 6 || (props.datasetCount ?? 1) > 1);
-  const minWidth = shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
+  const exportWidth = props.exportMode ? Math.max(contentWidth, 960) : 0;
+  const minWidth = props.exportMode ? exportWidth : shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
   const normalizedData = React.useMemo(
     () => ({
       ...props.data,
@@ -547,8 +553,8 @@ export function ScrollableLineChart(props: {
   }, [highContrast, props.exportMode, props.labels, props.options]);
 
   return (
-    <div data-stat-chart-plot="true" style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
-      <div style={{ minWidth: shouldScroll ? minWidth : "100%", width: shouldScroll ? "max-content" : "100%", height: props.height ?? 280 }}>
+    <div data-stat-chart-plot="true" style={{ width: props.exportMode ? minWidth || "100%" : "100%", maxWidth: props.exportMode ? "none" : "100%", overflowX: shouldScroll ? "auto" : props.exportMode ? "visible" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+      <div style={{ minWidth: props.exportMode ? minWidth : shouldScroll ? minWidth : "100%", width: props.exportMode ? minWidth : shouldScroll ? "max-content" : "100%", height: props.height ?? 280 }}>
         <Line data={normalizedData} options={normalizedOptions} />
       </div>
     </div>
@@ -571,12 +577,13 @@ function ScrollableBarChart(props: {
   const highContrast = useHighContrastEnabled();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
   const shouldScroll = !props.exportMode && (!!props.forceScrollable || props.labels.length > (props.scrollThreshold ?? 7));
-  const minWidth = shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
+  const exportWidth = props.exportMode ? Math.max(contentWidth, 960) : 0;
+  const minWidth = props.exportMode ? exportWidth : shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
   const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
 
   return (
-    <div data-stat-chart-plot="true" style={{ width: "100%", maxWidth: "100%", overflowX: shouldScroll ? "auto" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
-      <div style={{ minWidth: shouldScroll ? minWidth : "100%", width: shouldScroll ? "max-content" : "100%", height: props.height ?? 280 }}>
+    <div data-stat-chart-plot="true" style={{ width: props.exportMode ? minWidth || "100%" : "100%", maxWidth: props.exportMode ? "none" : "100%", overflowX: shouldScroll ? "auto" : props.exportMode ? "visible" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+      <div style={{ minWidth: props.exportMode ? minWidth : shouldScroll ? minWidth : "100%", width: props.exportMode ? minWidth : shouldScroll ? "max-content" : "100%", height: props.height ?? 280 }}>
         <Bar data={props.data} options={normalizedOptions} />
       </div>
     </div>
@@ -637,9 +644,9 @@ export function BarChartCard(props: {
   const chartData = React.useMemo(
     () => ({
       labels: props.labels,
-      datasets: [buildBarDataset(props.datasetLabel ?? props.title, props.values, { highContrast })],
+      datasets: [buildBarDataset(props.datasetLabel ?? props.title, props.values, { highContrast, exportMode: props.exportMode })],
     }),
-    [highContrast, props.datasetLabel, props.labels, props.title, props.values],
+    [highContrast, props.datasetLabel, props.exportMode, props.labels, props.title, props.values],
   );
   const chartOptions = React.useMemo(
     () =>
@@ -714,10 +721,11 @@ export function MultiBarChartCard(props: {
           barPercentage: 0.62,
           categoryPercentage: 0.72,
           maxBarThickness: 42,
+          minBarLength: props.exportMode ? 4 : undefined,
         };
       }),
     }),
-    [highContrast, palette, props.datasets, props.labels],
+    [highContrast, palette, props.datasets, props.exportMode, props.labels],
   );
   const chartOptions = React.useMemo(
     () =>
@@ -880,7 +888,7 @@ export function DualPieChartCard(props: {
       <div className="statistics-dual-pie-grid">
         {props.pies.map((pie) => (
           <div className="statistics-dual-pie-panel" key={pie.key}>
-            {pie.control ? <div className="statistics-dual-pie-topbar">{pie.control}</div> : null}
+            {pie.control ? <div className="statistics-dual-pie-topbar">{pie.control}</div> : pie.title ? <div className="statistics-dual-pie-topbar"><strong>{pie.title}</strong></div> : null}
             <PieChartFigure title={`${props.title} ${pie.title}`} labels={pie.labels} values={pie.values} height={props.height ?? 320} colors={props.colors} />
           </div>
         ))}
@@ -998,7 +1006,7 @@ export function VerticalBarChartCard(props: {
           maxLabelWidth={props.maxLabelWidth ?? 152}
           forceScrollable={props.forceScrollable}
           exportMode={props.exportMode}
-          data={{ labels: props.labels, datasets: [buildBarDataset(props.title, props.values, { highContrast })] }}
+          data={{ labels: props.labels, datasets: [buildBarDataset(props.title, props.values, { highContrast, exportMode: props.exportMode })] }}
           options={buildBarChartOptions({
             labels: props.labels,
             beginAtZero: false,
