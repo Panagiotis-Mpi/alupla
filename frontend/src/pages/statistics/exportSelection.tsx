@@ -67,7 +67,14 @@ export function StatisticsExportSelectionModal(props: {
   onToggleGenderEntryYear?: (year: string) => void;
   onToggleAllGenderEntryYears?: () => void;
 }) {
+  const [openYearPicker, setOpenYearPicker] = React.useState(false);
   const confirmDisabled = !props.selectedChartIds.length || !!(props.isPngExport && props.selectedChartIds.includes("genderByEntryYear") && !props.selectedGenderEntryYears?.length);
+
+  React.useEffect(() => {
+    if (!props.isPngExport || !props.selectedChartIds.includes("genderByEntryYear")) {
+      setOpenYearPicker(false);
+    }
+  }, [props.isPngExport, props.selectedChartIds]);
 
   return (
     <div
@@ -134,19 +141,55 @@ export function StatisticsExportSelectionModal(props: {
                           <span>{chart.label}</span>
                         </label>
                         {showYearOptions ? (
-                          <div style={{ display: "grid", gap: 6, padding: "2px 0 2px 26px" }}>
-                            <label style={{ ...props.selectionRowStyle, minHeight: 36, fontSize: 14, fontWeight: 700 }}>
-                              <input type="checkbox" style={props.selectionCheckboxStyle} checked={allYearsSelected} onChange={props.onToggleAllGenderEntryYears} />
-                              <span>{props.t("actions.selectAllYears", { defaultValue: "Όλα τα έτη" })}</span>
-                            </label>
-                            <div style={{ display: "grid", gap: 6, gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))" }}>
-                              {props.genderEntryYearOptions?.map((option) => (
-                                <label key={option.value} style={{ ...props.selectionRowStyle, minHeight: 34, padding: "6px 8px", fontSize: 13 }}>
-                                  <input type="checkbox" style={props.selectionCheckboxStyle} checked={props.selectedGenderEntryYears?.includes(option.value) ?? false} onChange={() => props.onToggleGenderEntryYear?.(option.value)} />
-                                  <span>{option.label}</span>
+                          <div style={{ position: "relative", padding: "2px 0 2px 26px" }}>
+                            <button
+                              type="button"
+                              className="btn"
+                              style={{
+                                width: "min(260px, 100%)",
+                                minHeight: 38,
+                                justifyContent: "space-between",
+                                padding: "0 12px",
+                                fontSize: 14,
+                                fontWeight: 600,
+                              }}
+                              onClick={() => setOpenYearPicker((value) => !value)}
+                            >
+                              <span>
+                                {(props.selectedGenderEntryYears?.length ?? 0) === props.genderEntryYearOptions?.length
+                                  ? props.t("actions.allYearsSelected", { defaultValue: "Όλα τα έτη" })
+                                  : props.t("actions.selectedYearsCount", { defaultValue: "{{count}} έτη", count: props.selectedGenderEntryYears?.length ?? 0 })}
+                              </span>
+                              <span aria-hidden="true">⌄</span>
+                            </button>
+                            {openYearPicker ? (
+                              <div
+                                style={{
+                                  width: "min(260px, 100%)",
+                                  maxHeight: 220,
+                                  overflowY: "auto",
+                                  border: "1px solid rgba(148, 163, 184, 0.28)",
+                                  borderRadius: 12,
+                                  background: "#fff",
+                                  boxShadow: "0 16px 32px rgba(15, 23, 42, 0.12)",
+                                  padding: 6,
+                                  marginTop: 6,
+                                  display: "grid",
+                                  gap: 4,
+                                }}
+                              >
+                                <label style={{ ...props.selectionRowStyle, minHeight: 34, padding: "6px 8px", fontSize: 13, fontWeight: 700 }}>
+                                  <input type="checkbox" style={props.selectionCheckboxStyle} checked={allYearsSelected} onChange={props.onToggleAllGenderEntryYears} />
+                                  <span>{props.t("actions.selectAllYears", { defaultValue: "Όλα τα έτη" })}</span>
                                 </label>
-                              ))}
-                            </div>
+                                {props.genderEntryYearOptions?.map((option) => (
+                                  <label key={option.value} style={{ ...props.selectionRowStyle, minHeight: 32, padding: "5px 8px", fontSize: 13 }}>
+                                    <input type="checkbox" style={props.selectionCheckboxStyle} checked={props.selectedGenderEntryYears?.includes(option.value) ?? false} onChange={() => props.onToggleGenderEntryYear?.(option.value)} />
+                                    <span>{option.label}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
                         ) : null}
                       </div>
