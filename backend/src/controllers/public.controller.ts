@@ -227,6 +227,71 @@ export async function publicStats(req: Request, res: Response) {
          ORDER BY label ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
+      const degreeGradeBinsByGender = await sequelize.query<{ label: string; male: number; female: number }>(
+        `SELECT CASE
+                  WHEN g.degree_grade < 5 THEN '<5'
+                  WHEN g.degree_grade < 6 THEN '5-5.99'
+                  WHEN g.degree_grade < 7 THEN '6-6.99'
+                  WHEN g.degree_grade < 8 THEN '7-7.99'
+                  WHEN g.degree_grade < 9 THEN '8-8.99'
+                  ELSE '9-10'
+                END as label,
+                CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
+                CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
+         FROM graduates g ${sqlWhere}
+         GROUP BY CASE
+                    WHEN g.degree_grade < 5 THEN '<5'
+                    WHEN g.degree_grade < 6 THEN '5-5.99'
+                    WHEN g.degree_grade < 7 THEN '6-6.99'
+                    WHEN g.degree_grade < 8 THEN '7-7.99'
+                    WHEN g.degree_grade < 9 THEN '8-8.99'
+                    ELSE '9-10'
+                  END
+         ORDER BY CASE
+                    WHEN CASE
+                      WHEN g.degree_grade < 5 THEN '<5'
+                      WHEN g.degree_grade < 6 THEN '5-5.99'
+                      WHEN g.degree_grade < 7 THEN '6-6.99'
+                      WHEN g.degree_grade < 8 THEN '7-7.99'
+                      WHEN g.degree_grade < 9 THEN '8-8.99'
+                      ELSE '9-10'
+                    END = '<5' THEN 1
+                    WHEN CASE
+                      WHEN g.degree_grade < 5 THEN '<5'
+                      WHEN g.degree_grade < 6 THEN '5-5.99'
+                      WHEN g.degree_grade < 7 THEN '6-6.99'
+                      WHEN g.degree_grade < 8 THEN '7-7.99'
+                      WHEN g.degree_grade < 9 THEN '8-8.99'
+                      ELSE '9-10'
+                    END = '5-5.99' THEN 2
+                    WHEN CASE
+                      WHEN g.degree_grade < 5 THEN '<5'
+                      WHEN g.degree_grade < 6 THEN '5-5.99'
+                      WHEN g.degree_grade < 7 THEN '6-6.99'
+                      WHEN g.degree_grade < 8 THEN '7-7.99'
+                      WHEN g.degree_grade < 9 THEN '8-8.99'
+                      ELSE '9-10'
+                    END = '6-6.99' THEN 3
+                    WHEN CASE
+                      WHEN g.degree_grade < 5 THEN '<5'
+                      WHEN g.degree_grade < 6 THEN '5-5.99'
+                      WHEN g.degree_grade < 7 THEN '6-6.99'
+                      WHEN g.degree_grade < 8 THEN '7-7.99'
+                      WHEN g.degree_grade < 9 THEN '8-8.99'
+                      ELSE '9-10'
+                    END = '7-7.99' THEN 4
+                    WHEN CASE
+                      WHEN g.degree_grade < 5 THEN '<5'
+                      WHEN g.degree_grade < 6 THEN '5-5.99'
+                      WHEN g.degree_grade < 7 THEN '6-6.99'
+                      WHEN g.degree_grade < 8 THEN '7-7.99'
+                      WHEN g.degree_grade < 9 THEN '8-8.99'
+                      ELSE '9-10'
+                    END = '8-8.99' THEN 5
+                    ELSE 6
+                  END ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
       const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
         `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
                 ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
@@ -295,6 +360,7 @@ export async function publicStats(req: Request, res: Response) {
         avg_grade_by_year: avgGradeByYear,
         avg_grade_by_term: [],
         degree_grade_bins: degreeGradeBins,
+        degree_grade_bins_by_gender: degreeGradeBinsByGender,
         avg_grade_by_region: localizedAvgGradeByRegion,
         avg_years_to_degree_by_region: localizedAvgYearsToDegreeByRegion,
         avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear,
@@ -340,6 +406,32 @@ export async function publicStats(req: Request, res: Response) {
          ${originRegionWhere}
          GROUP BY r.id, r.name
          ORDER BY count DESC, r.name ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const originNomosJoin = `LEFT JOIN regions r ON r.id = g.origin_region_id`;
+      const originNomosWhere = sqlWhere
+        ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'NOMOS' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
+        : `WHERE r.id IS NOT NULL AND r.type = 'NOMOS' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
+      const avgYearsToDegreeByNomosRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; avg_years: number }>(
+        `SELECT r.id as id,
+                r.name as name_el,
+                r.name as name_en,
+                CAST(COUNT(*) AS INTEGER) as count,
+                ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
+         FROM graduates g
+         ${originNomosJoin}
+         ${originNomosWhere}
+         GROUP BY r.id, r.name
+         ORDER BY count DESC, r.name ASC`,
+        { replacements: repl, type: QueryTypes.SELECT }
+      );
+      const abroadByYear = await sequelize.query<{ year: number; greece: number; abroad: number }>(
+        `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+                CAST(SUM(CASE WHEN COALESCE(NULLIF(TRIM(g.origin_country), ''), '') <> '' AND LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) NOT IN ('ελλαδα', 'greece') THEN 0 ELSE 1 END) AS INTEGER) as greece,
+                CAST(SUM(CASE WHEN COALESCE(NULLIF(TRIM(g.origin_country), ''), '') <> '' AND LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) NOT IN ('ελλαδα', 'greece') THEN 1 ELSE 0 END) AS INTEGER) as abroad
+         FROM graduates g ${sqlWhere}
+         GROUP BY EXTRACT(YEAR FROM g.graduation_date)
+         ORDER BY year ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
       const municipalityWhere = sqlWhere
@@ -423,6 +515,10 @@ export async function publicStats(req: Request, res: Response) {
         const names = await localizedNamesForRegion(r.id, String(r.name_el ?? r.name_en ?? ""));
         return { ...r, name_el: names.name_el || r.name_el || 'Άγνωστη περιοχή', name_en: names.name_en || r.name_en || 'Unknown region' };
       }));
+      const localizedAvgYearsToDegreeByNomos = await Promise.all(avgYearsToDegreeByNomosRaw.map(async (r) => {
+        const names = await localizedNamesForRegion(r.id, String(r.name_el ?? r.name_en ?? ""));
+        return { ...r, name_el: names.name_el || r.name_el || 'Άγνωστος νομός', name_en: names.name_en || r.name_en || 'Unknown regional unit' };
+      }));
       const totalRow = await sequelize.query<{ total: number }>(
         `SELECT COUNT(*) as total FROM graduates g ${sqlWhere}`,
         { replacements: repl, type: QueryTypes.SELECT }
@@ -442,6 +538,8 @@ export async function publicStats(req: Request, res: Response) {
         origin_region_distribution: localizedOriginRegionDistribution,
         gender_by_region: localizedGenderByRegion,
         origin_country_distribution: originCountryDistribution,
+        abroad_by_year: abroadByYear,
+        avg_years_to_degree_by_nomos: localizedAvgYearsToDegreeByNomos,
         abroad_count: abroadCount,
         abroad_pct: total > 0 ? Math.round((abroadCount / total) * 1000) / 10 : 0,
         origin_municipality_distribution: originMunicipalityDistribution,
