@@ -1,5 +1,5 @@
 // Custom hooks για φόρτωση και state του χάρτη.
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getGraduatesMap,
   getMapSummary,
@@ -9,11 +9,11 @@ import {
 
 export function useMapData(params: Record<string, string>, options: { includeCities?: boolean; enabled?: boolean } = {}) {
   const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<GraduatesMapItem[]>([]);
-  const [cityPoints, setCityPoints] = useState<MapCityPoint[]>([]);
+  const [data, setData] = useState({ key: "", items: [] as GraduatesMapItem[], cityPoints: [] as MapCityPoint[] });
 
   const includeCities = options.includeCities !== false;
   const enabled = options.enabled !== false;
+  const paramsKey = useMemo(() => JSON.stringify(params), [params]);
 
   useEffect(() => {
     let active = true;
@@ -30,13 +30,19 @@ export function useMapData(params: Record<string, string>, options: { includeCit
         if (includeCities) {
           const summaryResponse = await getMapSummary(params);
           if (!active) return;
-          setItems(Array.isArray(summaryResponse?.items) ? summaryResponse.items : []);
-          setCityPoints(Array.isArray(summaryResponse?.cities) ? summaryResponse.cities : []);
+          setData({
+            key: paramsKey,
+            items: Array.isArray(summaryResponse?.items) ? summaryResponse.items : [],
+            cityPoints: Array.isArray(summaryResponse?.cities) ? summaryResponse.cities : [],
+          });
         } else {
           const mapResponse = await getGraduatesMap(params);
           if (!active) return;
-          setItems(Array.isArray(mapResponse?.items) ? mapResponse.items : []);
-          setCityPoints([]);
+          setData({
+            key: paramsKey,
+            items: Array.isArray(mapResponse?.items) ? mapResponse.items : [],
+            cityPoints: [],
+          });
         }
       } finally {
         if (active) setLoading(false);
@@ -46,11 +52,13 @@ export function useMapData(params: Record<string, string>, options: { includeCit
     return () => {
       active = false;
     };
-  }, [params, includeCities, enabled]);
+  }, [params, paramsKey, includeCities, enabled]);
+
+  const current = data.key === paramsKey;
 
   return {
-    loading,
-    items,
-    cityPoints,
+    loading: loading || !current,
+    items: current ? data.items : [],
+    cityPoints: current ? data.cityPoints : [],
   };
 }

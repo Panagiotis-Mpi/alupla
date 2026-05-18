@@ -117,7 +117,7 @@ export default function GraduatesMapPage() {
   const [yearRangeLoading, setYearRangeLoading] = useState(false);
   const [initialPageReady, setInitialPageReady] = useState(false);
   const [counterpartWarmupEnabled, setCounterpartWarmupEnabled] =
-    useState(false);
+    useState(true);
   const [scopeTotals, setScopeTotals] = useState<
     Partial<Record<MapScope, number>>
   >({});
@@ -188,7 +188,7 @@ export default function GraduatesMapPage() {
   );
 
   useEffect(() => {
-    setCounterpartWarmupEnabled(false);
+    setCounterpartWarmupEnabled(true);
   }, [counterpartParams]);
 
   const { loading: counterpartLoading, items: counterpartItems } = useMapData(
@@ -521,28 +521,6 @@ export default function GraduatesMapPage() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [activeBounds, cityPoints, hasActiveMapData, items, loading]);
-
-  useEffect(() => {
-    if (
-      !initialPageReady ||
-      (loading && !hasActiveMapData) ||
-      yearRangeLoading ||
-      counterpartWarmupEnabled
-    )
-      return;
-    const timer = window.setTimeout(
-      () => setCounterpartWarmupEnabled(true),
-      120,
-    );
-    return () => window.clearTimeout(timer);
-  }, [
-    counterpartWarmupEnabled,
-    hasActiveMapData,
-    initialPageReady,
-    loading,
-    yearRangeLoading,
-    counterpartParams,
-  ]);
 
   useEffect(() => {
     if (!scopeTransitionLoading || loading) return;
@@ -899,8 +877,16 @@ export default function GraduatesMapPage() {
       ),
     [counterpartItems],
   );
-  const greeceSummaryTotal = mapScope === "greece" ? total : scopeTotals.greece;
-  const abroadSummaryTotal = mapScope === "abroad" ? total : scopeTotals.abroad;
+  const greeceSummaryTotal = summaryLoading
+    ? null
+    : mapScope === "greece"
+      ? total
+      : scopeTotals.greece;
+  const abroadSummaryTotal = summaryLoading
+    ? null
+    : mapScope === "abroad"
+      ? total
+      : scopeTotals.abroad;
   const overallSummaryTotal =
     typeof greeceSummaryTotal === "number" &&
     typeof abroadSummaryTotal === "number"
@@ -1425,7 +1411,7 @@ export default function GraduatesMapPage() {
                   {mt("summary.total", { defaultValue: "Σύνολο αποφοίτων" })}
                 </span>
                 <span className="map-summary-total-number">
-                  {overallSummaryTotal ?? "…"}
+                  {summaryLoading ? "…" : overallSummaryTotal ?? "…"}
                 </span>
               </div>
               <div
@@ -1437,7 +1423,7 @@ export default function GraduatesMapPage() {
                   })}
                 </span>
                 <span className="map-summary-scope-number">
-                  {greeceSummaryTotal ?? "…"}
+                  {summaryLoading ? "…" : greeceSummaryTotal ?? "…"}
                 </span>
               </div>
               <div
@@ -1449,7 +1435,7 @@ export default function GraduatesMapPage() {
                   })}
                 </span>
                 <span className="map-summary-scope-number">
-                  {abroadSummaryTotal ?? "…"}
+                  {summaryLoading ? "…" : abroadSummaryTotal ?? "…"}
                 </span>
               </div>
             </div>
@@ -1467,18 +1453,22 @@ export default function GraduatesMapPage() {
             <div
               className={`map-summary-value${summaryLoading ? " is-loading" : ""}`}
             >
-              {topPeriphery
-                ? mapScope === "abroad"
-                  ? localizedCountryRecordName(topPeriphery, mapLanguage)
-                  : localizedPeripheryRecordName(topPeriphery, mapLanguage)
-                : "-"}
+              {summaryLoading
+                ? "…"
+                : topPeriphery
+                  ? mapScope === "abroad"
+                    ? localizedCountryRecordName(topPeriphery, mapLanguage)
+                    : localizedPeripheryRecordName(topPeriphery, mapLanguage)
+                  : "-"}
             </div>
             <div
               className={`map-summary-sub${summaryLoading ? " is-loading" : ""}`}
             >
-              {topPeriphery
-                ? `${topPeriphery.count} ${mt("export.count", { defaultValue: "Απόφοιτοι" })}`
-                : "-"}
+              {summaryLoading
+                ? "…"
+                : topPeriphery
+                  ? `${topPeriphery.count} ${mt("export.count", { defaultValue: "Απόφοιτοι" })}`
+                  : "-"}
             </div>
           </div>
           <div className="card map-summary-card">
@@ -1490,14 +1480,16 @@ export default function GraduatesMapPage() {
             <div
               className={`map-summary-value${summaryLoading ? " is-loading" : ""}`}
             >
-              {topCityName || "-"}
+              {summaryLoading ? "…" : topCityName || "-"}
             </div>
             <div
               className={`map-summary-sub${summaryLoading ? " is-loading" : ""}`}
             >
-              {topCity
-                ? `${topCity.count} ${mt("export.count", { defaultValue: "Απόφοιτοι" })}`
-                : "-"}
+              {summaryLoading
+                ? "…"
+                : topCity
+                  ? `${topCity.count} ${mt("export.count", { defaultValue: "Απόφοιτοι" })}`
+                  : "-"}
             </div>
           </div>
           <div className="card map-summary-card">
@@ -1507,7 +1499,7 @@ export default function GraduatesMapPage() {
             <div
               className={`map-summary-value${summaryLoading ? " is-loading" : ""}`}
             >
-              {weightedAvgAge === null ? "-" : compactNumber(weightedAvgAge)}
+              {summaryLoading ? "…" : weightedAvgAge === null ? "-" : compactNumber(weightedAvgAge)}
             </div>
           </div>
         </div>
@@ -1524,6 +1516,7 @@ export default function GraduatesMapPage() {
           loading={yearRangeLoading}
           onRangeChange={(startYear, endYear) => {
             resetComparedSelections();
+            setScopeTotals({});
             setSelectedGraduationYearStart(startYear);
             setSelectedGraduationYearEnd(endYear);
           }}
