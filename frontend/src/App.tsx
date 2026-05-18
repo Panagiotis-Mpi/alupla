@@ -292,6 +292,36 @@ function TopNav() {
   );
 }
 
+function ScrollToTopButton() {
+  const [visible, setVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const updateVisibility = () => {
+      setVisible(window.scrollY > 420);
+    };
+
+    updateVisibility();
+    window.addEventListener("scroll", updateVisibility, { passive: true });
+    return () => window.removeEventListener("scroll", updateVisibility);
+  }, []);
+
+  const handleClick = React.useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  return (
+    <button
+      className={`scroll-to-top-button ${visible ? "is-visible" : ""}`}
+      type="button"
+      onClick={handleClick}
+      aria-label={i18n.language?.startsWith("en") ? "Back to top" : "Πίσω στην αρχή"}
+      title={i18n.language?.startsWith("en") ? "Back to top" : "Πίσω στην αρχή"}
+    >
+      <span aria-hidden="true">↑</span>
+    </button>
+  );
+}
+
 export default // Κρατά το global state χρήστη και στήνει τις σελίδες της εφαρμογής.
 function App() {
   return (
@@ -368,6 +398,7 @@ function App() {
         </React.Suspense>
       </div>
       <Footer />
+      <ScrollToTopButton />
       <AccessibilityMenu />
     </div>
   );
