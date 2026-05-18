@@ -18,7 +18,7 @@ type PieSeries = { labels: string[]; values: number[] };
 type GenderEntryYearPie = PieSeries & { key: string; title: string; control: React.ReactNode };
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
-type MenuGroup = "demographics" | "academic" | "geography";
+type MenuGroup = "demographics" | "academic" | "geography" | "compare";
 
 const greeceAbroadColors = { greece: "rgba(37, 99, 235, 0.72)", abroad: "#f59e0b" };
 
@@ -65,7 +65,7 @@ export function StatisticsGroupMenu(props: {
   return (
     <div style={props.sectionMenuStyle}>
       <div className="page-header-actions-grid" style={props.sectionButtonsStyle}>
-        {(["demographics", "academic", "geography"] as const).map((groupKey) => (
+        {(["demographics", "academic", "geography", "compare"] as const).map((groupKey) => (
           <button
             key={groupKey}
             type="button"

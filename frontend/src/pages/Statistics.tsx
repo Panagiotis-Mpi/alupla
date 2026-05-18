@@ -53,7 +53,8 @@ const metricBottomRowStyle: React.CSSProperties = { display: "grid", gap: 12, gr
 const sectionMenuStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%" };
 const sectionButtonsStyle: React.CSSProperties = { display: "grid", gap: 12, width: "100%", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" };
 const cardInnerStyle = { minWidth: 0 };
-type StatisticsGroupKey = "demographics" | "academic" | "geography";
+type StatisticsDataGroupKey = "demographics" | "academic" | "geography";
+type StatisticsGroupKey = StatisticsDataGroupKey | "compare";
 const compactTopbarStyle: React.CSSProperties = { marginBottom: 12, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 };
 
 export default function Statistics() {
@@ -63,13 +64,12 @@ export default function Statistics() {
   const [err, setErr] = React.useState<string | null>(null);
   const [data, setData] = React.useState<any | null>(null);
   const [activeGroup, setActiveGroup] = React.useState<StatisticsGroupKey>("demographics");
-  const [loadedGroups, setLoadedGroups] = React.useState<Record<StatisticsGroupKey, boolean>>({ demographics: false, academic: false, geography: false });
+  const [loadedGroups, setLoadedGroups] = React.useState<Record<StatisticsDataGroupKey, boolean>>({ demographics: false, academic: false, geography: false });
   const [selectedGenderEntryYearLeft, setSelectedGenderEntryYearLeft] = React.useState<string>("all");
   const [selectedGenderEntryYearRight, setSelectedGenderEntryYearRight] = React.useState<string>("all");
   const [exportOpen, setExportOpen] = React.useState(false);
   const [mobileSummaryOpen, setMobileSummaryOpen] = React.useState(false);
-  const [compareOpen, setCompareOpen] = React.useState(false);
-  const [compareAStart, setCompareAStart] = React.useState<string>("");
+    const [compareAStart, setCompareAStart] = React.useState<string>("");
   const [compareAEnd, setCompareAEnd] = React.useState<string>("");
   const [compareBStart, setCompareBStart] = React.useState<string>("");
   const [compareBEnd, setCompareBEnd] = React.useState<string>("");
@@ -77,7 +77,7 @@ export default function Statistics() {
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
   const pageRef = React.useRef<HTMLDivElement | null>(null);
   const exportSurfaceRef = React.useRef<HTMLDivElement | null>(null);
-  const statsRequestsRef = React.useRef<Partial<Record<StatisticsGroupKey, Promise<any>>>>({});
+  const statsRequestsRef = React.useRef<Partial<Record<StatisticsDataGroupKey, Promise<any>>>>({});
 
   const activeLang = i18n.language?.toLowerCase().startsWith("en") ? "en" : "el";
 
@@ -141,7 +141,7 @@ export default function Statistics() {
     setData((current: any | null) => ({ ...(current || {}), ...(stats || {}) }));
   }, []);
 
-  const loadStatsGroup = React.useCallback((group: StatisticsGroupKey) => {
+  const loadStatsGroup = React.useCallback((group: StatisticsDataGroupKey) => {
     if (statsRequestsRef.current[group]) return statsRequestsRef.current[group] as Promise<any>;
     const request = getPublicStats({ section: group })
       .then((stats) => {
@@ -180,6 +180,11 @@ export default function Statistics() {
   }, []);
 
   React.useEffect(() => {
+    if (activeGroup === "compare") {
+      void loadStatsGroup("academic").catch((e: any) => setErr(e?.message ?? t("error")));
+      void loadStatsGroup("geography").catch((e: any) => setErr(e?.message ?? t("error")));
+      return;
+    }
     if (activeGroup === "demographics" || loadedGroups[activeGroup]) return;
     void loadStatsGroup(activeGroup).catch((e: any) => setErr(e?.message ?? t("error")));
   }, [activeGroup, loadStatsGroup, loadedGroups, t]);
@@ -497,6 +502,8 @@ export default function Statistics() {
     }, 0);
     const avgGradeCount = avgGradeRows.reduce((sum, row) => sum + Number(yearRows.find((item) => item.label === String(row.year ?? ""))?.value ?? 0), 0);
     const topYear = yearRows.length ? yearRows.reduce((best, row) => Number(row.value) > Number(best.value) ? row : best, yearRows[0]) : null;
+    const yearsCount = Number.isFinite(min) && Number.isFinite(max) ? Math.max(0, max - min + 1) : 0;
+    const share = (value: number) => totalValue > 0 ? `${((value / totalValue) * 100).toFixed(1)}%` : "-";
     return {
       range: Number.isFinite(min) && Number.isFinite(max) ? `${min}–${max}` : "-",
       total: totalValue,
@@ -505,6 +512,12 @@ export default function Statistics() {
       abroad: abroadValue,
       avgGrade: avgGradeCount > 0 ? (avgGradeWeighted / avgGradeCount).toFixed(2) : "-",
       topYear: topYear?.label ?? "-",
+      topYearCount: topYear ? Number(topYear.value ?? 0) : 0,
+      yearsCount,
+      annualAverage: yearsCount > 0 ? (totalValue / yearsCount).toFixed(1) : "-",
+      maleShare: share(maleValue),
+      femaleShare: share(femaleValue),
+      abroadShare: share(abroadValue),
     };
   }, [byYearRows, data]);
 
@@ -837,7 +850,7 @@ export default function Statistics() {
 
   const loadingLabel = t("loading");
   const loadingLabelStyle = { "--statistics-loading-label": JSON.stringify(loadingLabel) } as React.CSSProperties;
-  const activeGroupLoading = loading || (activeGroup !== "demographics" && !loadedGroups[activeGroup]);
+  const activeGroupLoading = loading || (activeGroup === "compare" ? !loadedGroups.academic || !loadedGroups.geography : activeGroup !== "demographics" && !loadedGroups[activeGroup]);
 
   return (
     <>
@@ -862,25 +875,15 @@ export default function Statistics() {
                 sectionMenuStyle={sectionMenuStyle}
                 sectionButtonsStyle={sectionButtonsStyle}
                 exportButton={(
-                  <>
-                    <button
-                      type="button"
-                      className={compareOpen ? "btn primary" : "btn"}
-                      style={topButtonStyle}
-                      onClick={() => setCompareOpen((open) => !open)}
-                    >
-                      {t("actions.compare")}
-                    </button>
-                    <div ref={exportMenuRef}>
-                      <StatisticsExportMenu
-                        t={t}
-                        open={exportOpen}
-                        topButtonStyle={topButtonStyle}
-                        onToggle={() => setExportOpen((open) => !open)}
-                        onPick={openExportSelection}
-                      />
-                    </div>
-                  </>
+                  <div ref={exportMenuRef}>
+                    <StatisticsExportMenu
+                      t={t}
+                      open={exportOpen}
+                      topButtonStyle={topButtonStyle}
+                      onToggle={() => setExportOpen((open) => !open)}
+                      onPick={openExportSelection}
+                    />
+                  </div>
                 )}
               />
               <div className="mobile-submenu-toggle-row">
@@ -898,14 +901,14 @@ export default function Statistics() {
           </div>
         </div>
 
-        {compareOpen ? (
+        {activeGroup === "compare" ? (
           <div className="card statistics-compare-card">
             <div className="statistics-compare-head">
               <div className="statistics-compare-title">
                 <h3>{t("compare.title")}</h3>
                 <p>{t("compare.subtitle")}</p>
               </div>
-              <button type="button" className="btn" onClick={() => setCompareOpen(false)}>{t("actions.close")}</button>
+              <button type="button" className="btn" onClick={() => setActiveGroup("demographics")}>{t("compare.backToStatistics")}</button>
             </div>
             <div className="statistics-compare-grid">
               <div className="statistics-compare-panel">
@@ -919,9 +922,13 @@ export default function Statistics() {
                 </div>
                 <div className="statistics-compare-metrics">
                   <div className="statistics-compare-metric"><strong>{compareA.total}</strong><span>{t("compare.total")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareA.annualAverage}</strong><span>{t("compare.annualAverage")}</span></div>
                   <div className="statistics-compare-metric"><strong>{compareA.avgGrade}</strong><span>{t("compare.avgGrade")}</span></div>
                   <div className="statistics-compare-metric"><strong>{compareA.male}/{compareA.female}</strong><span>{t("compare.gender")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareA.abroad}</strong><span>{t("compare.abroad")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareA.maleShare}</strong><span>{t("compare.maleShare")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareA.femaleShare}</strong><span>{t("compare.femaleShare")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareA.abroad} ({compareA.abroadShare})</strong><span>{t("compare.abroad")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareA.topYear}</strong><span>{t("compare.topYear", { count: compareA.topYearCount })}</span></div>
                 </div>
               </div>
               <div className="statistics-compare-panel">
@@ -935,9 +942,13 @@ export default function Statistics() {
                 </div>
                 <div className="statistics-compare-metrics">
                   <div className="statistics-compare-metric"><strong>{compareB.total}</strong><span>{t("compare.total")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareB.annualAverage}</strong><span>{t("compare.annualAverage")}</span></div>
                   <div className="statistics-compare-metric"><strong>{compareB.avgGrade}</strong><span>{t("compare.avgGrade")}</span></div>
                   <div className="statistics-compare-metric"><strong>{compareB.male}/{compareB.female}</strong><span>{t("compare.gender")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareB.abroad}</strong><span>{t("compare.abroad")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareB.maleShare}</strong><span>{t("compare.maleShare")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareB.femaleShare}</strong><span>{t("compare.femaleShare")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareB.abroad} ({compareB.abroadShare})</strong><span>{t("compare.abroad")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareB.topYear}</strong><span>{t("compare.topYear", { count: compareB.topYearCount })}</span></div>
                 </div>
               </div>
             </div>
@@ -950,6 +961,7 @@ export default function Statistics() {
           </div>
         ) : null}
 
+        {activeGroup !== "compare" ? (
         <div className={`mobile-summary-panel${mobileSummaryOpen ? " open" : ""}`}>
           <StatisticsSummaryCards
             t={t}
@@ -966,7 +978,9 @@ export default function Statistics() {
             loading={activeGroupLoading}
           />
         </div>
+        ) : null}
 
+        {activeGroup !== "compare" ? (
         <div className={activeGroupLoading ? "statistics-chart-loading-region" : undefined} style={activeGroupLoading ? loadingLabelStyle : undefined}>
           {activeGroup === "demographics" ? (
           <DemographicsCharts
@@ -1064,6 +1078,7 @@ export default function Statistics() {
           />
           ) : null}
         </div>
+        ) : null}
       </div>
 
       {selectedExportFormat ? (

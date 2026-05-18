@@ -90,13 +90,15 @@
     "overview": "Overview",
     "demographics": "Counts and gender",
     "academic": "Academic insights",
-    "geography": "Geographic distribution"
+    "geography": "Geographic distribution",
+    "compare": "Compare"
   },
   "groupText": {
     "overview": "Overall graduate snapshot with key indicators and broad trends.",
     "demographics": "Aggregated graduate counts and gender distribution in a clearer presentation order.",
     "academic": "Statistics on graduation grades and study duration by year and region.",
-    "geography": "Statistics on graduate origin by region, city and country."
+    "geography": "Statistics on graduate origin by region, city and country.",
+    "compare": "Comparison of key graduate indicators between two selected time ranges."
   },
   "summary": {
     "show": "Brief info",
@@ -114,6 +116,11 @@
     "totalChange": "Graduate change",
     "maleShareChange": "Male share change",
     "femaleShareChange": "Female share change",
-    "abroadShareChange": "Abroad share change"
+    "abroadShareChange": "Abroad share change",
+    "backToStatistics": "Back to statistics",
+    "annualAverage": "Average per year",
+    "maleShare": "Male share",
+    "femaleShare": "Female share",
+    "topYear": "Top year: {{count}} graduates"
   }
 }
