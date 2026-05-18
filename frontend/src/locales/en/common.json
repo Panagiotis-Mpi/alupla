@@ -27,7 +27,13 @@
     "heroSublead": "Through the platform, you can explore anonymized statistical data and navigate the map, discovering the geographic distribution of graduates and key indicators by area.",
     "map": "Graduate Map",
     "stats": "Statistics and charts",
-    "heroLoginHint": "For Secretariat / Administrator access:"
+    "heroLoginHint": "For Secretariat / Administrator access:",
+    "counters": {
+      "label": "Home page key figures",
+      "graduates": "Graduates",
+      "countries": "Countries",
+      "years": "Graduation years"
+    }
   },
   "common": {
     "all": "All",
