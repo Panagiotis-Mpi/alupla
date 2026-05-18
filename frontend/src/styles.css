@@ -3084,6 +3084,12 @@ html.accessibility-high-contrast .auth-page-shell .auth-form-link{
   color:#1e3a8a;
 }
 
+@media (min-width:821px){
+  body.public-home-scroll-lock{overflow:hidden}
+  body.public-home-scroll-lock .app-shell{height:100vh;overflow:hidden}
+  body.public-home-scroll-lock .app-content{overflow:hidden}
+}
+
 .scroll-to-top-button{
   position:fixed;
   right:22px;
@@ -3101,8 +3107,6 @@ html.accessibility-high-contrast .auth-page-shell .auth-form-link{
   justify-content:center;
   cursor:pointer;
   font:inherit;
-  font-size:20px;
-  font-weight:800;
   opacity:0;
   pointer-events:none;
   transform:translateY(10px);
@@ -3112,6 +3116,15 @@ html.accessibility-high-contrast .auth-page-shell .auth-form-link{
   opacity:1;
   pointer-events:auto;
   transform:translateY(0);
+}
+.scroll-to-top-button svg{
+  width:24px;
+  height:24px;
+  stroke:currentColor;
+  stroke-width:3.2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  fill:none;
 }
 .scroll-to-top-button:hover{
   background:var(--primaryHover);

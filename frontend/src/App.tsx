@@ -317,7 +317,10 @@ function ScrollToTopButton() {
       aria-label={i18n.language?.startsWith("en") ? "Back to top" : "Πίσω στην αρχή"}
       title={i18n.language?.startsWith("en") ? "Back to top" : "Πίσω στην αρχή"}
     >
-      <span aria-hidden="true">↑</span>
+      <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+        <path d="M12 19V5" />
+        <path d="M6.5 10.5 12 5l5.5 5.5" />
+      </svg>
     </button>
   );
 }

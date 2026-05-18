@@ -1,5 +1,6 @@
 // Δημόσια αρχική σελίδα για επισκέπτες χωρίς login.
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function PublicHome() {
@@ -10,6 +11,11 @@ export default function PublicHome() {
     { to: "/map", label: t("home.map"), className: "public-home-action primary" },
     { to: "/statistics", label: t("home.stats"), className: "public-home-action secondary" },
   ];
+
+  useEffect(() => {
+    document.body.classList.add("public-home-scroll-lock");
+    return () => document.body.classList.remove("public-home-scroll-lock");
+  }, []);
 
   return (
     <div className="public-home-shell">
