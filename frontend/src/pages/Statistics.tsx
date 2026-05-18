@@ -68,6 +68,11 @@ export default function Statistics() {
   const [selectedGenderEntryYearRight, setSelectedGenderEntryYearRight] = React.useState<string>("all");
   const [exportOpen, setExportOpen] = React.useState(false);
   const [mobileSummaryOpen, setMobileSummaryOpen] = React.useState(false);
+  const [compareOpen, setCompareOpen] = React.useState(false);
+  const [compareAStart, setCompareAStart] = React.useState<string>("");
+  const [compareAEnd, setCompareAEnd] = React.useState<string>("");
+  const [compareBStart, setCompareBStart] = React.useState<string>("");
+  const [compareBEnd, setCompareBEnd] = React.useState<string>("");
   const [selectedExportFormat, setSelectedExportFormat] = React.useState<"xlsx" | "csv" | "png" | null>(null);
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
   const pageRef = React.useRef<HTMLDivElement | null>(null);
@@ -447,6 +452,82 @@ export default function Statistics() {
   const busiestCity = busiestCityIndex >= 0 ? municipalities.labels[busiestCityIndex] : "-";
   const abroadCount = Number(data?.abroad_count ?? 0);
 
+  const compareYearOptions = React.useMemo(() => {
+    return byYearRows
+      .map((row) => Number(row.label))
+      .filter((year) => Number.isFinite(year))
+      .sort((a, b) => a - b)
+      .map((year) => String(year));
+  }, [byYearRows]);
+
+  React.useEffect(() => {
+    if (!compareYearOptions.length) return;
+    const first = compareYearOptions[0];
+    const last = compareYearOptions[compareYearOptions.length - 1];
+    const middleIndex = Math.max(0, Math.floor((compareYearOptions.length - 1) / 2));
+    const middle = compareYearOptions[middleIndex];
+    const afterMiddle = compareYearOptions[Math.min(compareYearOptions.length - 1, middleIndex + 1)] ?? middle;
+
+    setCompareAStart((current) => compareYearOptions.includes(current) ? current : first);
+    setCompareAEnd((current) => compareYearOptions.includes(current) ? current : middle);
+    setCompareBStart((current) => compareYearOptions.includes(current) ? current : afterMiddle);
+    setCompareBEnd((current) => compareYearOptions.includes(current) ? current : last);
+  }, [compareYearOptions]);
+
+  const compareStats = React.useCallback((startValue: string, endValue: string) => {
+    const start = Number(startValue);
+    const end = Number(endValue);
+    const min = Math.min(start, end);
+    const max = Math.max(start, end);
+    const yearRows = byYearRows.filter((row) => {
+      const year = Number(row.label);
+      return Number.isFinite(year) && year >= min && year <= max;
+    });
+    const totalValue = yearRows.reduce((sum, row) => sum + Number(row.value ?? 0), 0);
+    const yearSet = new Set(yearRows.map((row) => row.label));
+    const genderRows = ((data?.gender_by_year ?? []) as NamedCountRow[]).filter((row) => yearSet.has(String(row.year ?? "")));
+    const maleValue = genderRows.reduce((sum, row) => sum + Number(row.male ?? 0), 0);
+    const femaleValue = genderRows.reduce((sum, row) => sum + Number(row.female ?? 0), 0);
+    const abroadRows = ((data?.abroad_by_year ?? []) as any[]).filter((row) => yearSet.has(String(row.year ?? "")));
+    const abroadValue = abroadRows.reduce((sum, row) => sum + Number(row.abroad ?? 0), 0);
+    const avgGradeRows = ((data?.avg_grade_by_year ?? []) as NamedCountRow[]).filter((row) => yearSet.has(String(row.year ?? "")));
+    const avgGradeWeighted = avgGradeRows.reduce((sum, row) => {
+      const count = Number(yearRows.find((item) => item.label === String(row.year ?? ""))?.value ?? 0);
+      return sum + Number(row.avg ?? 0) * count;
+    }, 0);
+    const avgGradeCount = avgGradeRows.reduce((sum, row) => sum + Number(yearRows.find((item) => item.label === String(row.year ?? ""))?.value ?? 0), 0);
+    const topYear = yearRows.length ? yearRows.reduce((best, row) => Number(row.value) > Number(best.value) ? row : best, yearRows[0]) : null;
+    return {
+      range: Number.isFinite(min) && Number.isFinite(max) ? `${min}–${max}` : "-",
+      total: totalValue,
+      male: maleValue,
+      female: femaleValue,
+      abroad: abroadValue,
+      avgGrade: avgGradeCount > 0 ? (avgGradeWeighted / avgGradeCount).toFixed(2) : "-",
+      topYear: topYear?.label ?? "-",
+    };
+  }, [byYearRows, data]);
+
+  const compareA = React.useMemo(() => compareStats(compareAStart, compareAEnd), [compareAEnd, compareAStart, compareStats]);
+  const compareB = React.useMemo(() => compareStats(compareBStart, compareBEnd), [compareBEnd, compareBStart, compareStats]);
+  const compareDelta = React.useMemo(() => {
+    const percent = (value: number, base: number) => base > 0 ? `${(((value - base) / base) * 100).toFixed(1)}%` : "-";
+    const genderPercent = (value: number, totalValue: number) => totalValue > 0 ? (value / totalValue) * 100 : 0;
+    return {
+      total: compareB.total - compareA.total,
+      totalPercent: percent(compareB.total, compareA.total),
+      male: `${(genderPercent(compareB.male, compareB.total) - genderPercent(compareA.male, compareA.total)).toFixed(1)}%`,
+      female: `${(genderPercent(compareB.female, compareB.total) - genderPercent(compareA.female, compareA.total)).toFixed(1)}%`,
+      abroad: `${(genderPercent(compareB.abroad, compareB.total) - genderPercent(compareA.abroad, compareA.total)).toFixed(1)}%`,
+    };
+  }, [compareA, compareB]);
+
+  const compareSelect = React.useCallback((value: string, onChange: (value: string) => void) => (
+    <select value={value} onChange={(event) => onChange(event.target.value)}>
+      {compareYearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+    </select>
+  ), [compareYearOptions]);
+
   const entryYearOptions = React.useMemo(() => {
     return genderByEntryYearRows
       .filter((row) => row.entry_year !== null && row.entry_year !== undefined)
@@ -781,15 +862,25 @@ export default function Statistics() {
                 sectionMenuStyle={sectionMenuStyle}
                 sectionButtonsStyle={sectionButtonsStyle}
                 exportButton={(
-                  <div ref={exportMenuRef}>
-                    <StatisticsExportMenu
-                      t={t}
-                      open={exportOpen}
-                      topButtonStyle={topButtonStyle}
-                      onToggle={() => setExportOpen((open) => !open)}
-                      onPick={openExportSelection}
-                    />
-                  </div>
+                  <>
+                    <button
+                      type="button"
+                      className={compareOpen ? "btn primary" : "btn"}
+                      style={topButtonStyle}
+                      onClick={() => setCompareOpen((open) => !open)}
+                    >
+                      {t("actions.compare")}
+                    </button>
+                    <div ref={exportMenuRef}>
+                      <StatisticsExportMenu
+                        t={t}
+                        open={exportOpen}
+                        topButtonStyle={topButtonStyle}
+                        onToggle={() => setExportOpen((open) => !open)}
+                        onPick={openExportSelection}
+                      />
+                    </div>
+                  </>
                 )}
               />
               <div className="mobile-submenu-toggle-row">
@@ -806,6 +897,58 @@ export default function Statistics() {
             </div>
           </div>
         </div>
+
+        {compareOpen ? (
+          <div className="card statistics-compare-card">
+            <div className="statistics-compare-head">
+              <div className="statistics-compare-title">
+                <h3>{t("compare.title")}</h3>
+                <p>{t("compare.subtitle")}</p>
+              </div>
+              <button type="button" className="btn" onClick={() => setCompareOpen(false)}>{t("actions.close")}</button>
+            </div>
+            <div className="statistics-compare-grid">
+              <div className="statistics-compare-panel">
+                <div className="statistics-compare-panel-head">
+                  <span className="statistics-compare-panel-title">{t("compare.periodA")}</span>
+                  <span className="statistics-compare-selects">
+                    {compareSelect(compareAStart, setCompareAStart)}
+                    <span>–</span>
+                    {compareSelect(compareAEnd, setCompareAEnd)}
+                  </span>
+                </div>
+                <div className="statistics-compare-metrics">
+                  <div className="statistics-compare-metric"><strong>{compareA.total}</strong><span>{t("compare.total")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareA.avgGrade}</strong><span>{t("compare.avgGrade")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareA.male}/{compareA.female}</strong><span>{t("compare.gender")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareA.abroad}</strong><span>{t("compare.abroad")}</span></div>
+                </div>
+              </div>
+              <div className="statistics-compare-panel">
+                <div className="statistics-compare-panel-head">
+                  <span className="statistics-compare-panel-title">{t("compare.periodB")}</span>
+                  <span className="statistics-compare-selects">
+                    {compareSelect(compareBStart, setCompareBStart)}
+                    <span>–</span>
+                    {compareSelect(compareBEnd, setCompareBEnd)}
+                  </span>
+                </div>
+                <div className="statistics-compare-metrics">
+                  <div className="statistics-compare-metric"><strong>{compareB.total}</strong><span>{t("compare.total")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareB.avgGrade}</strong><span>{t("compare.avgGrade")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareB.male}/{compareB.female}</strong><span>{t("compare.gender")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareB.abroad}</strong><span>{t("compare.abroad")}</span></div>
+                </div>
+              </div>
+            </div>
+            <div className="statistics-compare-delta">
+              <div className="statistics-compare-delta-item">{t("compare.totalChange")}<strong>{compareDelta.total >= 0 ? "+" : ""}{compareDelta.total} ({compareDelta.totalPercent})</strong></div>
+              <div className="statistics-compare-delta-item">{t("compare.maleShareChange")}<strong>{compareDelta.male}</strong></div>
+              <div className="statistics-compare-delta-item">{t("compare.femaleShareChange")}<strong>{compareDelta.female}</strong></div>
+              <div className="statistics-compare-delta-item">{t("compare.abroadShareChange")}<strong>{compareDelta.abroad}</strong></div>
+            </div>
+          </div>
+        ) : null}
 
         <div className={`mobile-summary-panel${mobileSummaryOpen ? " open" : ""}`}>
           <StatisticsSummaryCards

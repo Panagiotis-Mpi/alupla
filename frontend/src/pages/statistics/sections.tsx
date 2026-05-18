@@ -3,6 +3,7 @@ import React from "react";
 import {
   BarChartCard,
   ChartCard,
+  ChartFullscreenButton,
   ChartLegendInset,
   DualPieChartCard,
   MetricCard,
@@ -118,6 +119,7 @@ function GenderLineCard(props: Pick<ChartBlockProps, "t" | "cardInnerStyle" | "c
     <div className="card" style={props.cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="gender">
       <div className="topbar" style={props.compactTopbarStyle}>
         <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.t("sections.gender")}</h3>
+        {!props.exportMode ? <ChartFullscreenButton label={props.t("actions.fullscreen")} title={props.t("actions.fullscreen")} /> : null}
         <ChartLegendInset items={[
           { label: props.t("table.male"), color: "#3b82f6", borderColor: "#3b82f6", pointStyle: "circle" },
           { label: props.t("table.female"), color: "#db2777", borderColor: "#db2777", pointStyle: "diamond", dashed: true },
@@ -142,6 +144,7 @@ function GraduationLineCard(props: Pick<ChartBlockProps, "t" | "cardInnerStyle" 
     <div className="card" style={props.cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="byYear">
       <div className="topbar" style={props.compactTopbarStyle}>
         <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.t("sections.byYear")}</h3>
+        <ChartFullscreenButton label={props.t("actions.fullscreen")} title={props.t("actions.fullscreen")} />
         <ChartLegendInset items={[{ label: props.t("sections.byYear"), color: "#2563eb", borderColor: "#2563eb", pointStyle: "circle" }]} />
       </div>
       <div className="chart-figure" role="img" aria-label={props.t("sections.byYear")} style={{ position: "relative" }}>
@@ -166,8 +169,8 @@ export function DemographicsCharts(props: ChartBlockProps) {
         <GraduationLineCard {...props} />
         <ChartCard chartId="countByEntryYear" title={props.t("sections.countByEntryYear")} labels={props.entryYears.labels} values={props.entryYears.values} height={320} exportMode={props.exportMode} />
         <ChartCard chartId="birthYear" title={props.t("sections.birthYear")} labels={props.birthYears.labels} values={props.birthYears.values} height={320} exportMode={props.exportMode} />
-        <PieChartCard chartId="genderTotal" title={props.t("sections.genderTotal")} labels={props.genderTotal.labels} values={props.genderTotal.values} height={320} colors={["#3b82f6", "#db2777"]} />
-        <DualPieChartCard chartId="genderByEntryYear" title={props.t("sections.genderByEntryYear")} pies={props.genderByEntryYearPies} height={300} colors={["#3b82f6", "#db2777"]} />
+        <PieChartCard chartId="genderTotal" title={props.t("sections.genderTotal")} labels={props.genderTotal.labels} values={props.genderTotal.values} height={320} colors={["#3b82f6", "#db2777"]} exportMode={props.exportMode} />
+        <DualPieChartCard chartId="genderByEntryYear" title={props.t("sections.genderByEntryYear")} pies={props.genderByEntryYearPies} height={300} colors={["#3b82f6", "#db2777"]} exportMode={props.exportMode} />
         <GenderLineCard {...props} exportMode={props.exportMode} />
       </div>
     </div>
@@ -239,7 +242,7 @@ export function GeographyCharts(props: ChartBlockProps) {
         
           exportMode={props.exportMode}/>
         <BarChartCard chartId="originCountry" title={props.t("sections.originCountry")} labels={props.countries.labels} values={props.countries.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable exportMode={props.exportMode} />
-        <PieChartCard chartId="abroadShare" title={props.t("sections.abroadShare")} labels={[props.t("table.greece"), props.t("table.abroad")]} values={[Math.max(0, props.total - props.abroadCount), props.abroadCount]} height={340} colors={[greeceAbroadColors.greece, greeceAbroadColors.abroad]} />
+        <PieChartCard chartId="abroadShare" title={props.t("sections.abroadShare")} labels={[props.t("table.greece"), props.t("table.abroad")]} values={[Math.max(0, props.total - props.abroadCount), props.abroadCount]} height={340} colors={[greeceAbroadColors.greece, greeceAbroadColors.abroad]} exportMode={props.exportMode} />
         <MultiBarChartCard
           chartId="abroadByYear"
           title={props.t("sections.abroadByYear")}
@@ -266,8 +269,8 @@ export function ExportChartsSurface(props: ChartBlockProps) {
       <GraduationLineCard {...props} exportMode />
       <ChartCard chartId="countByEntryYear" title={props.t("sections.countByEntryYear")} labels={props.entryYears.labels} values={props.entryYears.values} height={320} exportMode={props.exportMode} />
       <ChartCard chartId="birthYear" title={props.t("sections.birthYear")} labels={props.birthYears.labels} values={props.birthYears.values} height={320} exportMode={props.exportMode} />
-      <PieChartCard chartId="genderTotal" title={props.t("sections.genderTotal")} labels={props.genderTotal.labels} values={props.genderTotal.values} height={320} colors={["#3b82f6", "#db2777"]} />
-      <DualPieChartCard chartId="genderByEntryYear" title={props.t("sections.genderByEntryYear")} pies={props.genderByEntryYearPies} height={300} colors={["#3b82f6", "#db2777"]} />
+      <PieChartCard chartId="genderTotal" title={props.t("sections.genderTotal")} labels={props.genderTotal.labels} values={props.genderTotal.values} height={320} colors={["#3b82f6", "#db2777"]} exportMode={props.exportMode} />
+      <DualPieChartCard chartId="genderByEntryYear" title={props.t("sections.genderByEntryYear")} pies={props.genderByEntryYearPies} height={300} colors={["#3b82f6", "#db2777"]} exportMode={props.exportMode} />
       <GenderLineCard {...props} exportMode />
       <BarChartCard chartId="gradeDistribution" title={props.t("sections.gradeDistribution")} labels={props.gradeBins.labels} values={props.gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} exportMode={props.exportMode} />
       <MultiBarChartCard
@@ -319,7 +322,7 @@ export function ExportChartsSurface(props: ChartBlockProps) {
       
           exportMode={props.exportMode}/>
       <BarChartCard chartId="originCountry" title={props.t("sections.originCountry")} labels={props.countries.labels} values={props.countries.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable exportMode={props.exportMode} />
-      <PieChartCard chartId="abroadShare" title={props.t("sections.abroadShare")} labels={[props.t("table.greece"), props.t("table.abroad")]} values={[Math.max(0, props.total - props.abroadCount), props.abroadCount]} height={340} colors={[greeceAbroadColors.greece, greeceAbroadColors.abroad]} />
+      <PieChartCard chartId="abroadShare" title={props.t("sections.abroadShare")} labels={[props.t("table.greece"), props.t("table.abroad")]} values={[Math.max(0, props.total - props.abroadCount), props.abroadCount]} height={340} colors={[greeceAbroadColors.greece, greeceAbroadColors.abroad]} exportMode={props.exportMode} />
       <MultiBarChartCard
         chartId="abroadByYear"
         title={props.t("sections.abroadByYear")}

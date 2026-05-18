@@ -82,7 +82,9 @@
     "exportSelectionSubtitle": "Choose which charts you want to download",
     "exportSelected": "Export selected",
     "cancel": "Cancel",
-    "close": "Close"
+    "close": "Close",
+    "compare": "Compare",
+    "fullscreen": "Fullscreen"
   },
   "groups": {
     "overview": "Overview",
@@ -99,5 +101,19 @@
   "summary": {
     "show": "Brief info",
     "hide": "Hide summary"
+  },
+  "compare": {
+    "title": "Time range comparison",
+    "subtitle": "Select two time ranges to compare the main graduate indicators quickly.",
+    "periodA": "Range A",
+    "periodB": "Range B",
+    "total": "Graduates",
+    "avgGrade": "Average grade",
+    "gender": "Male / Female",
+    "abroad": "Abroad graduates",
+    "totalChange": "Graduate change",
+    "maleShareChange": "Male share change",
+    "femaleShareChange": "Female share change",
+    "abroadShareChange": "Abroad share change"
   }
 }

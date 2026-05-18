@@ -324,6 +324,40 @@ function markerStyle(item: ChartLegendItem): React.CSSProperties {
   } as React.CSSProperties;
 }
 
+export function ChartFullscreenButton(props: { label?: string; title?: string }) {
+  const [active, setActive] = React.useState(false);
+  const fallbackLabel = typeof window !== "undefined" && window.localStorage.getItem("i18nextLng")?.toLowerCase().startsWith("en") ? "Fullscreen" : "Πλήρης οθόνη";
+
+  React.useEffect(() => {
+    const update = () => setActive(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", update);
+    update();
+    return () => document.removeEventListener("fullscreenchange", update);
+  }, []);
+
+  function toggleFullscreen(event: React.MouseEvent<HTMLButtonElement>) {
+    const card = event.currentTarget.closest("[data-stat-chart-card]") as HTMLElement | null;
+    if (!card) return;
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+      return;
+    }
+    void card.requestFullscreen?.();
+  }
+
+  return (
+    <button
+      type="button"
+      className="btn statistics-chart-fullscreen-btn"
+      onClick={toggleFullscreen}
+      title={props.title ?? props.label ?? fallbackLabel}
+      aria-label={props.title ?? props.label ?? fallbackLabel}
+    >
+      {active ? "⤢" : "⛶"}
+    </button>
+  );
+}
+
 export function ChartLegendInset(props: { items: ChartLegendItem[] }) {
   const highContrast = useHighContrastEnabled();
   const items = React.useMemo(() => {
@@ -665,6 +699,7 @@ export function BarChartCard(props: {
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.title}</h3>
+        {!props.exportMode ? <ChartFullscreenButton label="Fullscreen" title="Fullscreen" /> : null}
         <ChartLegendInset items={[{ label: props.datasetLabel ?? props.title, color: highContrast ? "#ffd400" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }]} />
       </div>
       <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
@@ -749,6 +784,7 @@ export function MultiBarChartCard(props: {
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.title}</h3>
+        {!props.exportMode ? <ChartFullscreenButton label="Fullscreen" title="Fullscreen" /> : null}
         <ChartLegendInset items={props.datasets.map((dataset, index) => ({
           label: dataset.label,
           color: palette[index % palette.length] ?? dataset.color,
@@ -861,12 +897,16 @@ export function PieChartCard(props: {
   height?: number;
   control?: React.ReactNode;
   colors?: string[];
+  exportMode?: boolean;
 }) {
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={{ ...compactTopbarStyle, display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
-        {props.control}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+          {!props.exportMode ? <ChartFullscreenButton label="Fullscreen" title="Fullscreen" /> : null}
+          {props.control}
+        </span>
       </div>
       <PieChartFigure title={props.title} labels={props.labels} values={props.values} height={props.height} colors={props.colors} />
     </div>
@@ -879,11 +919,13 @@ export function DualPieChartCard(props: {
   pies: Array<{ key: string; title: string; labels: string[]; values: number[]; control?: React.ReactNode }>;
   height?: number;
   colors?: string[];
+  exportMode?: boolean;
 }) {
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
+        {!props.exportMode ? <ChartFullscreenButton label="Fullscreen" title="Fullscreen" /> : null}
       </div>
       <div className="statistics-dual-pie-grid">
         {props.pies.map((pie) => (
@@ -902,15 +944,17 @@ export function MultiPieChartRow(props: {
   pies: Array<{ title: string; labels: string[]; values: number[] }>;
   compact?: boolean;
   chartId?: string;
+  exportMode?: boolean;
 }) {
   return (
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0 }}>{props.title}</h3>
+        {!props.exportMode ? <ChartFullscreenButton label="Fullscreen" title="Fullscreen" /> : null}
       </div>
       <div style={{ display: "grid", gap: 14, gridTemplateColumns: props.compact ? "repeat(2, minmax(0, 1fr))" : "repeat(auto-fit, minmax(240px, 1fr))" }}>
         {props.pies.map((pie) => (
-          <PieChartCard key={pie.title} title={pie.title} labels={pie.labels} values={pie.values} height={props.compact ? 280 : 320} />
+          <PieChartCard key={pie.title} title={pie.title} labels={pie.labels} values={pie.values} height={props.compact ? 280 : 320} exportMode={props.exportMode} />
         ))}
       </div>
     </div>
@@ -936,6 +980,7 @@ export function ChartCard(props: {
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.title}</h3>
+        {!props.exportMode ? <ChartFullscreenButton label="Fullscreen" title="Fullscreen" /> : null}
         <ChartLegendInset items={legendItems} />
       </div>
       <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
@@ -996,6 +1041,7 @@ export function VerticalBarChartCard(props: {
     <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.title}</h3>
+        {!props.exportMode ? <ChartFullscreenButton label="Fullscreen" title="Fullscreen" /> : null}
         <ChartLegendInset items={legendItems} />
       </div>
       <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
