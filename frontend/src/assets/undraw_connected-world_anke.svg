@@ -33,10 +33,10 @@
   <circle id="svg_30" fill="#6c63ff" r="11.96804" cy="308.99591" cx="780.69818"/>
   <circle id="svg_31" fill="#6c63ff" r="11.96804" cy="607.78414" cx="991.17056"/>
   <circle id="svg_32" fill="#6c63ff" r="11.96804" cy="477.67534" cx="604.35225"/>
-  <ellipse ry="46" rx="45.33333" id="svg_37" cy="305.77263" cx="214.17306" stroke="null" fill="#f70e0e"/>
-  <ellipse stroke="null" ry="30.66667" rx="30" id="svg_38" cy="567.77261" cx="321.50639" fill="#f70e0e"/>
-  <ellipse stroke="null" ry="28" rx="28" id="svg_39" cy="479.77262" cx="602.17303" fill="#f70e0e"/>
-  <ellipse stroke="null" ry="32" rx="32" id="svg_40" cy="314.4393" cx="780.83973" fill="#f70e0e"/>
-  <ellipse stroke="null" ry="23.33333" rx="22" id="svg_41" cy="605.77262" cx="988.17305" fill="#f70e0e"/>
+  <path id="svg_37" d="m214.17306,351.77263c-25.04604,0 -45.33333,-20.58563 -45.33333,-46c0,-25.41436 20.28729,-46 45.33333,-46c25.04604,0 45.33333,20.58563 45.33333,46c0,25.41436 -20.28729,46 -45.33333,46z" opacity="undefined" stroke="null" fill="#3b82f6"/>
+  <ellipse stroke="null" ry="30.66667" rx="30" id="svg_38" cy="567.77261" cx="321.50639" fill="#3b82f6"/>
+  <ellipse stroke="null" ry="28" rx="28" id="svg_39" cy="479.77262" cx="602.17303" fill="#3b82f6"/>
+  <ellipse stroke="null" ry="32" rx="32" id="svg_40" cy="314.4393" cx="780.83973" fill="#3b82f6"/>
+  <ellipse stroke="null" ry="23.33333" rx="22" id="svg_41" cy="605.77262" cx="988.17305" fill="#3b82f6"/>
  </g>
 </svg>
