@@ -342,9 +342,9 @@ html.accessibility-high-contrast .statistics-metric-value{
 .accessibility-trigger{
   width:60px;
   height:60px;
-  border:none;
-  background:transparent;
-  color:#fff;
+  border:1px solid #bfdbfe;
+  background:#eff6ff;
+  color:#1d4ed8;
   box-shadow:var(--shadow);
   border-radius:999px;
   display:inline-flex;
@@ -360,21 +360,21 @@ html.accessibility-high-contrast .statistics-metric-value{
   display:block;
 }
 .accessibility-trigger-disc-outer{
-  fill:#fff;
-  stroke:#0f172a;
+  fill:#eff6ff;
+  stroke:#bfdbfe;
   stroke-width:2;
 }
 .accessibility-trigger-disc-inner{
-  fill:#0f172a;
-  stroke:#fff;
+  fill:#eff6ff;
+  stroke:#2563eb;
   stroke-width:2.6;
 }
 .accessibility-trigger-head{
-  fill:#fff;
+  fill:#1d4ed8;
 }
 .accessibility-trigger-line{
   fill:none;
-  stroke:#fff;
+  stroke:#1d4ed8;
   stroke-width:5;
   stroke-linecap:round;
   stroke-linejoin:round;
@@ -1025,9 +1025,9 @@ html.accessibility-underline-links .mobile-table-card :is(button, .btn, a){
   z-index:1250;
 }
 .accessibility-trigger{
-  border:1px solid var(--border);
-  background:var(--surface);
-  color:var(--text);
+  border:1px solid #bfdbfe;
+  background:#eff6ff;
+  color:#1d4ed8;
   box-shadow:var(--shadow);
   border-radius:999px;
   min-height:48px;
@@ -1984,7 +1984,7 @@ html.accessibility-high-contrast video{
 }
 
 html.accessibility-high-contrast .brand-logo{
-  filter:invert(1) brightness(1.25) contrast(1.15) !important;
+  filter:brightness(0) saturate(100%) invert(88%) sepia(57%) saturate(716%) hue-rotate(102deg) brightness(102%) contrast(105%) !important;
 }
 
 html.accessibility-high-contrast .statistics-chart-loading-region [data-stat-chart-card]::after{
@@ -3158,3 +3158,7 @@ html.accessibility-high-contrast .scroll-to-top-button{
     height:40px;
   }
 }
+html.accessibility-high-contrast img.brand-logo:not(.leaflet-tile){
+  filter:brightness(0) saturate(100%) invert(88%) sepia(57%) saturate(716%) hue-rotate(102deg) brightness(102%) contrast(105%) !important;
+}
+
