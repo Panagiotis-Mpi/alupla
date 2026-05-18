@@ -3,6 +3,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { register as apiRegister } from "../lib/api";
+import aluplaLogo from "../assets/alupla-logo.png";
 
 const labelStyle: React.CSSProperties = { display: "grid", gap: 8 };
 
@@ -62,7 +63,10 @@ export default function Register() {
     <div className="auth-page-shell">
       <div className="auth-form-card">
         <div className="auth-form-heading">
-          <h2 className="auth-form-title">ALUPLA</h2>
+          <div className="auth-logo-lockup">
+            <img src={aluplaLogo} alt="" className="auth-logo-mark" aria-hidden="true" />
+            <span>ALUPLA</span>
+          </div>
           <p className="auth-form-subtitle">{t("register.title")}</p>
         </div>
 

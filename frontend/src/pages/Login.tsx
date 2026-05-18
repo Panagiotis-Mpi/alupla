@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { login as apiLogin } from "../lib/api";
 import { setSession, type Role } from "../lib/auth";
+import aluplaLogo from "../assets/alupla-logo.png";
 
 const pageStyle: React.CSSProperties = {
   minHeight: "calc(100vh - 70px)",
@@ -78,18 +79,10 @@ function Login() {
   return (
     <div style={pageStyle}>
       <div style={cardStyle}>
-        <h2
-          style={{
-            margin: 0,
-            marginBottom: "1.6rem",
-            fontSize: "2rem",
-            fontWeight: 800,
-            color: "#1e3a8a",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          ALUPLA
-        </h2>
+        <div className="auth-logo-lockup auth-logo-lockup-login">
+          <img src={aluplaLogo} alt="" className="auth-logo-mark" aria-hidden="true" />
+          <span>ALUPLA</span>
+        </div>
 
         <form onSubmit={onSubmit} style={{ display: "grid", gap: "1.05rem" }}>
           <label style={labelStyle}>

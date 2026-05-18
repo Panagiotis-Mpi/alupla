@@ -9,6 +9,7 @@ import { pingPresence } from "./lib/api";
 import Footer from "./components/Footer";
 import AccessibilityMenu from "./components/AccessibilityMenu";
 import PublicHome from "./pages/PublicHome";
+import aluplaLogo from "./assets/alupla-logo.png";
 
 const Login = React.lazy(() => import("./pages/Login"));
 const Register = React.lazy(() => import("./pages/Register"));
@@ -211,6 +212,7 @@ function TopNav() {
         aria-controls={isCompact ? "mobile-drawer" : undefined}
       >
         {isCompact && <span className="brand-burger" aria-hidden="true">☰</span>}
+        <img src={aluplaLogo} alt="" className="brand-logo" aria-hidden="true" />
         <span>ALUPLA</span>
       </button>
 

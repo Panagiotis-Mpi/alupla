@@ -32,6 +32,15 @@ a{color:inherit}
   letter-spacing:.4px;
   cursor:pointer;
   color:var(--text);
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+.brand-logo{
+  width:34px;
+  height:34px;
+  object-fit:contain;
+  flex:0 0 auto;
 }
 .brand:focus-visible{
   outline:2px solid rgba(59,130,246,.45);
@@ -2562,6 +2571,25 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
   font-weight:800;
   letter-spacing:-.02em;
 }
+.auth-logo-lockup{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  color:#1e3a8a;
+  font-size:2rem;
+  line-height:1.15;
+  font-weight:800;
+  letter-spacing:-.02em;
+}
+.auth-logo-lockup-login{
+  margin-bottom:1.6rem;
+}
+.auth-logo-mark{
+  width:54px;
+  height:54px;
+  object-fit:contain;
+  flex:0 0 auto;
+}
 .auth-form-subtitle{
   margin:0;
   color:#334155;
@@ -2643,6 +2671,13 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
   }
   .auth-form-title{
     font-size:1.55rem;
+  }
+  .auth-logo-lockup{
+    font-size:1.55rem;
+  }
+  .auth-logo-mark{
+    width:44px;
+    height:44px;
   }
   .auth-form-subtitle{
     font-size:.95rem;
