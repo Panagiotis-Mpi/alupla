@@ -3314,8 +3314,18 @@ html.accessibility-high-contrast .public-home-counter span{
 
 .public-home-visual{
   justify-content:flex-start;
-  gap:1rem;
-  padding:.2rem 0 0;
+  gap:.85rem;
+  padding:.1rem 0 0;
+}
+
+.public-home-counters-note{
+  width:100%;
+  max-width:410px;
+  margin:0;
+  color:#475569;
+  font-size:.9rem;
+  line-height:1.45;
+  font-weight:650;
 }
 
 .public-home-counters{
@@ -3325,17 +3335,17 @@ html.accessibility-high-contrast .public-home-counter span{
 
 .public-home-counter{
   min-height:0;
-  padding:10px 12px;
-  border-radius:14px;
+  padding:9px 11px;
+  border-radius:13px;
 }
 
 .public-home-counter strong{
-  font-size:1.12rem;
+  font-size:1.08rem;
 }
 
 .public-home-counter span{
-  margin-top:3px;
-  font-size:.76rem;
+  margin-top:2px;
+  font-size:.74rem;
 }
 
 .public-home-illustration{
@@ -3358,27 +3368,31 @@ html.accessibility-high-contrast .public-home-counter span{
 
 html.accessibility-high-contrast .public-home-shell{
   background:#000 !important;
-  color:#fff !important;
+  color:#7fffd4 !important;
 }
 
 html.accessibility-high-contrast .public-home-card{
   background:#000 !important;
-  color:#fff !important;
-  border:2px solid #fff !important;
+  color:#7fffd4 !important;
+  border:2px solid #2cf5c8 !important;
   box-shadow:none !important;
 }
 
 html.accessibility-high-contrast .public-home-counter{
   background:#000 !important;
-  color:#fff !important;
-  border:2px solid #00ff99 !important;
+  color:#7fffd4 !important;
+  border:2px solid #2cf5c8 !important;
   box-shadow:none !important;
 }
 
 html.accessibility-high-contrast .public-home-title,
+html.accessibility-high-contrast .public-home-counter strong{
+  color:#7fffd4 !important;
+}
+
 html.accessibility-high-contrast .public-home-text,
-html.accessibility-high-contrast .public-home-counter strong,
+html.accessibility-high-contrast .public-home-counters-note,
 html.accessibility-high-contrast .public-home-counter span{
-  color:#fff !important;
+  color:#b8fff3 !important;
 }
 

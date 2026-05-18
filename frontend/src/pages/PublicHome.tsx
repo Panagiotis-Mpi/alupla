@@ -99,7 +99,8 @@ export default function PublicHome() {
             </div>
           </div>
 
-          <div className="public-home-visual" aria-hidden="true">
+          <div className="public-home-visual">
+            <p className="public-home-counters-note">{t("home.counters.description")}</p>
             <div className="public-home-counters" aria-label={t("home.counters.label")}>
               {counters.map((counter) => (
                 <div className="public-home-counter" key={counter.label}>

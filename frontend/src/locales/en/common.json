@@ -32,7 +32,8 @@
       "label": "Home page key figures",
       "graduates": "Graduates",
       "countries": "Countries",
-      "years": "Graduation years"
+      "years": "Graduation years",
+      "description": "A brief overview of the available anonymized data presented in the platform."
     }
   },
   "common": {
