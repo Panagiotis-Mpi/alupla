@@ -3396,3 +3396,24 @@ html.accessibility-high-contrast .public-home-counter span{
   color:#b8fff3 !important;
 }
 
+
+.public-home-actions{
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:center;
+  gap:14px;
+}
+
+.public-home-action{
+  width:auto;
+  white-space:nowrap;
+}
+
+@media (max-width:640px){
+  .public-home-actions{
+    flex-wrap:wrap;
+  }
+  .public-home-action{
+    width:100%;
+  }
+}
