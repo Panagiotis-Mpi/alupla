@@ -1983,6 +1983,10 @@ html.accessibility-high-contrast video{
   filter:none !important;
 }
 
+html.accessibility-high-contrast .brand-logo{
+  filter:invert(1) brightness(1.25) contrast(1.15) !important;
+}
+
 html.accessibility-high-contrast .statistics-chart-loading-region [data-stat-chart-card]::after{
   background:#000000 !important;
   color:#7fffd4 !important;
