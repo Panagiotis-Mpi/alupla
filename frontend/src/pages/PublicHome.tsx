@@ -27,11 +27,6 @@ export default function PublicHome() {
   ];
 
   useEffect(() => {
-    document.body.classList.add("public-home-scroll-lock");
-    return () => document.body.classList.remove("public-home-scroll-lock");
-  }, []);
-
-  useEffect(() => {
     let active = true;
 
     getPublicStats()
