@@ -90,15 +90,6 @@ export default function PublicHome() {
 
             <p className="public-home-text public-home-text-spaced">{t("home.heroSublead")}</p>
 
-            <div className="public-home-counters" aria-label={t("home.counters.label")}>
-              {counters.map((counter) => (
-                <div className="public-home-counter" key={counter.label}>
-                  <strong>{counter.value}</strong>
-                  <span>{counter.label}</span>
-                </div>
-              ))}
-            </div>
-
             <div className="public-home-actions">
               {actions.map((action) => (
                 <button
@@ -114,6 +105,14 @@ export default function PublicHome() {
           </div>
 
           <div className="public-home-visual" aria-hidden="true">
+            <div className="public-home-counters" aria-label={t("home.counters.label")}>
+              {counters.map((counter) => (
+                <div className="public-home-counter" key={counter.label}>
+                  <strong>{counter.value}</strong>
+                  <span>{counter.label}</span>
+                </div>
+              ))}
+            </div>
             <img src={connectedWorldIllustration} alt="" className="public-home-illustration" />
           </div>
         </div>
