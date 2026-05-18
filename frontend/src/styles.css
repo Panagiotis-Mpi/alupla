@@ -3092,10 +3092,10 @@ html.accessibility-high-contrast .auth-page-shell .auth-form-link{
   width:42px;
   height:42px;
   border-radius:999px;
-  border:1px solid #bfdbfe;
-  background:rgba(239,246,255,.94);
-  color:#1d4ed8;
-  box-shadow:0 10px 22px rgba(15,23,42,.12);
+  border:1px solid var(--primary);
+  background:var(--primary);
+  color:#fff;
+  box-shadow:0 10px 22px rgba(37,99,235,.22);
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -3114,10 +3114,10 @@ html.accessibility-high-contrast .auth-page-shell .auth-form-link{
   transform:translateY(0);
 }
 .scroll-to-top-button:hover{
-  background:#dbeafe;
-  border-color:#93c5fd;
-  color:#1d4ed8;
-  box-shadow:0 12px 26px rgba(37,99,235,.16);
+  background:var(--primaryHover);
+  border-color:var(--primaryHover);
+  color:#fff;
+  box-shadow:0 12px 26px rgba(37,99,235,.26);
 }
 .scroll-to-top-button:active{
   transform:translateY(1px);
