@@ -95,7 +95,7 @@
   },
   "groupText": {
     "overview": "Overall graduate snapshot with key indicators and broad trends.",
-    "demographics": "Aggregated graduate counts and gender distribution in a clearer presentation order.",
+    "demographics": "Aggregated graduate counts and gender distribution.",
     "academic": "Statistics on graduation grades and study duration by year and region.",
     "geography": "Statistics on graduate origin by region, city and country.",
     "compare": "Comparison of key graduate indicators between two selected time ranges."
@@ -121,6 +121,7 @@
     "annualAverage": "Average per year",
     "maleShare": "Male share",
     "femaleShare": "Female share",
-    "topYear": "Top year: {{count}} graduates"
+    "topYear": "Top year: {{count}} graduates",
+    "greece": "Greece graduates"
   }
 }

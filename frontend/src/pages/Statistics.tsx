@@ -510,6 +510,7 @@ export default function Statistics() {
       male: maleValue,
       female: femaleValue,
       abroad: abroadValue,
+      greece: Math.max(0, totalValue - abroadValue),
       avgGrade: avgGradeCount > 0 ? (avgGradeWeighted / avgGradeCount).toFixed(2) : "-",
       topYear: topYear?.label ?? "-",
       topYearCount: topYear ? Number(topYear.value ?? 0) : 0,
@@ -925,10 +926,8 @@ export default function Statistics() {
                   <div className="statistics-compare-metric"><strong>{compareA.annualAverage}</strong><span>{t("compare.annualAverage")}</span></div>
                   <div className="statistics-compare-metric"><strong>{compareA.avgGrade}</strong><span>{t("compare.avgGrade")}</span></div>
                   <div className="statistics-compare-metric"><strong>{compareA.male}/{compareA.female}</strong><span>{t("compare.gender")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareA.maleShare}</strong><span>{t("compare.maleShare")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareA.femaleShare}</strong><span>{t("compare.femaleShare")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareA.greece}</strong><span>{t("compare.greece")}</span></div>
                   <div className="statistics-compare-metric"><strong>{compareA.abroad} ({compareA.abroadShare})</strong><span>{t("compare.abroad")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareA.topYear}</strong><span>{t("compare.topYear", { count: compareA.topYearCount })}</span></div>
                 </div>
               </div>
               <div className="statistics-compare-panel">
@@ -945,10 +944,8 @@ export default function Statistics() {
                   <div className="statistics-compare-metric"><strong>{compareB.annualAverage}</strong><span>{t("compare.annualAverage")}</span></div>
                   <div className="statistics-compare-metric"><strong>{compareB.avgGrade}</strong><span>{t("compare.avgGrade")}</span></div>
                   <div className="statistics-compare-metric"><strong>{compareB.male}/{compareB.female}</strong><span>{t("compare.gender")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareB.maleShare}</strong><span>{t("compare.maleShare")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareB.femaleShare}</strong><span>{t("compare.femaleShare")}</span></div>
+                  <div className="statistics-compare-metric"><strong>{compareB.greece}</strong><span>{t("compare.greece")}</span></div>
                   <div className="statistics-compare-metric"><strong>{compareB.abroad} ({compareB.abroadShare})</strong><span>{t("compare.abroad")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareB.topYear}</strong><span>{t("compare.topYear", { count: compareB.topYearCount })}</span></div>
                 </div>
               </div>
             </div>
