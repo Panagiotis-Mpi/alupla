@@ -526,15 +526,35 @@ export default function Statistics() {
   const compareB = React.useMemo(() => compareStats(compareBStart, compareBEnd), [compareBEnd, compareBStart, compareStats]);
   const compareDelta = React.useMemo(() => {
     const percent = (value: number, base: number) => base > 0 ? `${(((value - base) / base) * 100).toFixed(1)}%` : "-";
+    const plainDelta = (nextValue: number | string, previousValue: number | string, digits = 1) => {
+      const nextNumber = Number(nextValue);
+      const previousNumber = Number(previousValue);
+      if (!Number.isFinite(nextNumber) || !Number.isFinite(previousNumber)) return "-";
+      const difference = nextNumber - previousNumber;
+      return `${difference >= 0 ? "+" : ""}${difference.toFixed(digits)}`;
+    };
     const genderPercent = (value: number, totalValue: number) => totalValue > 0 ? (value / totalValue) * 100 : 0;
     return {
       total: compareB.total - compareA.total,
       totalPercent: percent(compareB.total, compareA.total),
+      annualAverage: plainDelta(compareB.annualAverage, compareA.annualAverage),
+      avgGrade: plainDelta(compareB.avgGrade, compareA.avgGrade, 2),
+      gender: `${compareB.male - compareA.male >= 0 ? "+" : ""}${compareB.male - compareA.male} / ${compareB.female - compareA.female >= 0 ? "+" : ""}${compareB.female - compareA.female}`,
+      greece: `${compareB.greece - compareA.greece >= 0 ? "+" : ""}${compareB.greece - compareA.greece} (${percent(compareB.greece, compareA.greece)})`,
       male: `${(genderPercent(compareB.male, compareB.total) - genderPercent(compareA.male, compareA.total)).toFixed(1)}%`,
       female: `${(genderPercent(compareB.female, compareB.total) - genderPercent(compareA.female, compareA.total)).toFixed(1)}%`,
       abroad: `${(genderPercent(compareB.abroad, compareB.total) - genderPercent(compareA.abroad, compareA.total)).toFixed(1)}%`,
     };
   }, [compareA, compareB]);
+
+  const compareRows = React.useMemo(() => [
+    { key: "total", label: t("compare.total"), a: String(compareA.total), b: String(compareB.total), deltaLabel: t("compare.totalChange"), delta: `${compareDelta.total >= 0 ? "+" : ""}${compareDelta.total} (${compareDelta.totalPercent})` },
+    { key: "annualAverage", label: t("compare.annualAverage"), a: String(compareA.annualAverage), b: String(compareB.annualAverage), deltaLabel: t("compare.annualAverageChange"), delta: compareDelta.annualAverage },
+    { key: "avgGrade", label: t("compare.avgGrade"), a: String(compareA.avgGrade), b: String(compareB.avgGrade), deltaLabel: t("compare.avgGradeChange"), delta: compareDelta.avgGrade },
+    { key: "gender", label: t("compare.gender"), a: `${compareA.male}/${compareA.female}`, b: `${compareB.male}/${compareB.female}`, deltaLabel: t("compare.genderChange"), delta: compareDelta.gender },
+    { key: "greece", label: t("compare.greece"), a: String(compareA.greece), b: String(compareB.greece), deltaLabel: t("compare.greeceChange"), delta: compareDelta.greece },
+    { key: "abroad", label: t("compare.abroad"), a: `${compareA.abroad} (${compareA.abroadShare})`, b: `${compareB.abroad} (${compareB.abroadShare})`, deltaLabel: t("compare.abroadShareChange"), delta: compareDelta.abroad },
+  ], [compareA, compareB, compareDelta, t]);
 
   const compareSelect = React.useCallback((value: string, onChange: (value: string) => void) => (
     <select value={value} onChange={(event) => onChange(event.target.value)}>
@@ -911,49 +931,44 @@ export default function Statistics() {
               </div>
               <button type="button" className="btn" onClick={() => setActiveGroup("demographics")}>{t("compare.backToStatistics")}</button>
             </div>
-            <div className="statistics-compare-grid">
-              <div className="statistics-compare-panel">
-                <div className="statistics-compare-panel-head">
-                  <span className="statistics-compare-panel-title">{t("compare.periodA")}</span>
-                  <span className="statistics-compare-selects">
-                    {compareSelect(compareAStart, setCompareAStart)}
-                    <span>–</span>
-                    {compareSelect(compareAEnd, setCompareAEnd)}
-                  </span>
-                </div>
-                <div className="statistics-compare-metrics">
-                  <div className="statistics-compare-metric"><strong>{compareA.total}</strong><span>{t("compare.total")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareA.annualAverage}</strong><span>{t("compare.annualAverage")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareA.avgGrade}</strong><span>{t("compare.avgGrade")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareA.male}/{compareA.female}</strong><span>{t("compare.gender")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareA.greece}</strong><span>{t("compare.greece")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareA.abroad} ({compareA.abroadShare})</strong><span>{t("compare.abroad")}</span></div>
-                </div>
+            <div className="statistics-compare-ranges">
+              <div className="statistics-compare-range-control">
+                <span className="statistics-compare-panel-title">{t("compare.periodA")}</span>
+                <span className="statistics-compare-selects">
+                  {compareSelect(compareAStart, setCompareAStart)}
+                  <span>–</span>
+                  {compareSelect(compareAEnd, setCompareAEnd)}
+                </span>
               </div>
-              <div className="statistics-compare-panel">
-                <div className="statistics-compare-panel-head">
-                  <span className="statistics-compare-panel-title">{t("compare.periodB")}</span>
-                  <span className="statistics-compare-selects">
-                    {compareSelect(compareBStart, setCompareBStart)}
-                    <span>–</span>
-                    {compareSelect(compareBEnd, setCompareBEnd)}
-                  </span>
-                </div>
-                <div className="statistics-compare-metrics">
-                  <div className="statistics-compare-metric"><strong>{compareB.total}</strong><span>{t("compare.total")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareB.annualAverage}</strong><span>{t("compare.annualAverage")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareB.avgGrade}</strong><span>{t("compare.avgGrade")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareB.male}/{compareB.female}</strong><span>{t("compare.gender")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareB.greece}</strong><span>{t("compare.greece")}</span></div>
-                  <div className="statistics-compare-metric"><strong>{compareB.abroad} ({compareB.abroadShare})</strong><span>{t("compare.abroad")}</span></div>
-                </div>
+              <div className="statistics-compare-range-control">
+                <span className="statistics-compare-panel-title">{t("compare.periodB")}</span>
+                <span className="statistics-compare-selects">
+                  {compareSelect(compareBStart, setCompareBStart)}
+                  <span>–</span>
+                  {compareSelect(compareBEnd, setCompareBEnd)}
+                </span>
               </div>
             </div>
-            <div className="statistics-compare-delta">
-              <div className="statistics-compare-delta-item">{t("compare.totalChange")}<strong>{compareDelta.total >= 0 ? "+" : ""}{compareDelta.total} ({compareDelta.totalPercent})</strong></div>
-              <div className="statistics-compare-delta-item">{t("compare.maleShareChange")}<strong>{compareDelta.male}</strong></div>
-              <div className="statistics-compare-delta-item">{t("compare.femaleShareChange")}<strong>{compareDelta.female}</strong></div>
-              <div className="statistics-compare-delta-item">{t("compare.abroadShareChange")}<strong>{compareDelta.abroad}</strong></div>
+            <div className="statistics-compare-rows">
+              {compareRows.map((row) => (
+                <div className="statistics-compare-row" key={row.key}>
+                  <div className="statistics-compare-metric statistics-compare-row-metric">
+                    <span className="statistics-compare-row-period">{t("compare.periodA")}</span>
+                    <strong>{row.a}</strong>
+                    <span>{row.label}</span>
+                  </div>
+                  <div className="statistics-compare-arrow" aria-hidden="true">→</div>
+                  <div className="statistics-compare-metric statistics-compare-row-metric">
+                    <span className="statistics-compare-row-period">{t("compare.periodB")}</span>
+                    <strong>{row.b}</strong>
+                    <span>{row.label}</span>
+                  </div>
+                  <div className="statistics-compare-change">
+                    <span>{row.deltaLabel}</span>
+                    <strong>{row.delta}</strong>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ) : null}

@@ -3636,35 +3636,37 @@ html.accessibility-high-contrast .public-home-counter span{
 .statistics-compare-title{display:grid;gap:4px}
 .statistics-compare-title h3{margin:0}
 .statistics-compare-title p{margin:0;color:#64748b;font-size:14px;line-height:1.4}
-.statistics-compare-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.statistics-compare-panel{border:1px solid var(--border);border-radius:16px;background:#fff;padding:14px;display:grid;gap:12px;min-width:0}
-.statistics-compare-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .statistics-compare-panel-title{font-weight:800;color:#0f172a}
 .statistics-compare-selects{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .statistics-compare-selects select{min-height:38px;border-radius:12px;border:1px solid rgba(148,163,184,.45);padding:0 12px;background:#fff;color:#0f172a;font-weight:700}
-.statistics-compare-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.statistics-compare-ranges{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.statistics-compare-range-control{border:1px solid var(--border);border-radius:16px;background:#fff;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;flex-wrap:wrap}
+.statistics-compare-rows{display:grid;gap:10px}
+.statistics-compare-row{display:grid;grid-template-columns:minmax(0,1fr) 36px minmax(0,1fr) minmax(150px,.64fr);align-items:stretch;gap:10px}
 .statistics-compare-metric{border:1px solid rgba(37,99,235,.15);border-radius:14px;background:#f8fafc;padding:10px;min-width:0}
 .statistics-compare-metric strong{display:block;color:#1e3a8a;font-size:20px;line-height:1.1;overflow-wrap:anywhere}
 .statistics-compare-metric span{display:block;color:#64748b;font-size:13px;font-weight:700;line-height:1.25;margin-top:4px}
-.statistics-compare-delta{border-top:1px solid var(--border);padding-top:12px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.statistics-compare-delta-item{font-size:13px;color:#475569;font-weight:700}
-.statistics-compare-delta-item strong{display:block;color:#0f172a;font-size:18px;line-height:1.2;margin-top:2px}
+.statistics-compare-row-period{color:#1d4ed8 !important;font-size:12px !important;margin-top:0 !important;margin-bottom:5px;text-transform:none}
+.statistics-compare-arrow{border:1px solid rgba(37,99,235,.15);border-radius:14px;background:#fff;color:#1e3a8a;font-size:22px;font-weight:900;display:flex;align-items:center;justify-content:center;min-width:0}
+.statistics-compare-change{border:1px solid rgba(37,99,235,.15);border-radius:14px;background:#fff;padding:10px;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.statistics-compare-change span{display:block;color:#64748b;font-size:13px;font-weight:700;line-height:1.25}
+.statistics-compare-change strong{display:block;color:#0f172a;font-size:18px;line-height:1.2;margin-top:4px;overflow-wrap:anywhere}
 html.accessibility-high-contrast .statistics-chart-fullscreen-btn,
-html.accessibility-high-contrast .statistics-compare-panel,
-html.accessibility-high-contrast .statistics-compare-metric{border:2px solid #14f5c8 !important;background:#000000 !important;color:#7fffd4 !important}
+html.accessibility-high-contrast .statistics-compare-range-control,
+html.accessibility-high-contrast .statistics-compare-metric,
+html.accessibility-high-contrast .statistics-compare-arrow,
+html.accessibility-high-contrast .statistics-compare-change{border:2px solid #14f5c8 !important;background:#000000 !important;color:#7fffd4 !important}
 html.accessibility-high-contrast [data-stat-chart-card]:fullscreen{background:#000000 !important;color:#7fffd4 !important;border:2px solid #14f5c8 !important}
 html.accessibility-high-contrast .statistics-compare-title p,
 html.accessibility-high-contrast .statistics-compare-panel-title,
 html.accessibility-high-contrast .statistics-compare-metric strong,
 html.accessibility-high-contrast .statistics-compare-metric span,
-html.accessibility-high-contrast .statistics-compare-delta-item,
-html.accessibility-high-contrast .statistics-compare-delta-item strong{color:#7fffd4 !important}
+html.accessibility-high-contrast .statistics-compare-arrow,
+html.accessibility-high-contrast .statistics-compare-change span,
+html.accessibility-high-contrast .statistics-compare-change strong{color:#7fffd4 !important}
 html.accessibility-high-contrast .statistics-compare-selects select{background:#000000 !important;color:#7fffd4 !important;border:2px solid #14f5c8 !important}
-@media (max-width: 820px){
-  .statistics-compare-grid,
-  .statistics-compare-delta{grid-template-columns:1fr}
-  .statistics-compare-metrics{grid-template-columns:1fr 1fr}
-}
-@media (max-width: 520px){
-  .statistics-compare-metrics{grid-template-columns:1fr}
+@media (max-width: 900px){
+  .statistics-compare-ranges{grid-template-columns:1fr}
+  .statistics-compare-row{grid-template-columns:1fr;gap:8px}
+  .statistics-compare-arrow{min-height:34px;transform:rotate(90deg)}
 }

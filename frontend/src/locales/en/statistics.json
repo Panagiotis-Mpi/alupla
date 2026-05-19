@@ -122,6 +122,10 @@
     "maleShare": "Male share",
     "femaleShare": "Female share",
     "topYear": "Top year: {{count}} graduates",
-    "greece": "Greece graduates"
+    "greece": "Greece graduates",
+    "annualAverageChange": "Average per year change",
+    "avgGradeChange": "Average grade change",
+    "genderChange": "Male / female change",
+    "greeceChange": "Greece graduates change"
   }
 }
