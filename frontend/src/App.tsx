@@ -9,7 +9,7 @@ import { pingPresence } from "./lib/api";
 import Footer from "./components/Footer";
 import AccessibilityMenu from "./components/AccessibilityMenu";
 import PublicHome from "./pages/PublicHome";
-import aluplaLogo from "./assets/alupla-logo.png";
+import aluplaLogo from "./assets/logo_black.svg";
 
 const Login = React.lazy(() => import("./pages/Login"));
 const Register = React.lazy(() => import("./pages/Register"));
