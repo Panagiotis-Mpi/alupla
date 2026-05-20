@@ -92,6 +92,8 @@ export type GraduatesMapItem = {
   male_pct: number;
   female_pct: number;
   avg_age: number | null;
+  min_age?: number | null;
+  max_age?: number | null;
   avg_grade: number | null;
   avg_graduation_years: number | null;
   dominant_gender?: "M" | "F" | "balanced" | null;
@@ -121,6 +123,8 @@ export type MapCityPoint = {
   male_pct?: number;
   female_pct?: number;
   avg_age?: number | null;
+  min_age?: number | null;
+  max_age?: number | null;
   avg_grade?: number | null;
   avg_graduation_years?: number | null;
   dominant_gender?: "M" | "F" | "balanced" | null;

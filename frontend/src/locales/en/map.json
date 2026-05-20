@@ -108,7 +108,9 @@
     "fromGreece": "Graduates from Greece",
     "fromAbroad": "Graduates from abroad",
     "show": "Brief info",
-    "hide": "Hide summary"
+    "hide": "Hide summary",
+    "minAge": "Minimum",
+    "maxAge": "Maximum"
   },
   "detailGroups": {
     "basics": "Basics",

@@ -201,6 +201,8 @@ type AggregatedGraduateRow = {
   grade_count: number | string | null;
   age_sum: number | string | null;
   age_count: number | string | null;
+  min_age: number | string | null;
+  max_age: number | string | null;
   graduation_duration_sum: number | string | null;
   graduation_duration_count: number | string | null;
 };
@@ -224,6 +226,8 @@ const mapAggregateAttributes = [
   [literal("COUNT(CASE WHEN degree_grade IS NOT NULL AND degree_grade >= 0 THEN 1 END)"), "grade_count"],
   [literal("SUM(CASE WHEN birth_date IS NOT NULL AND graduation_date IS NOT NULL AND graduation_date >= birth_date THEN EXTRACT(YEAR FROM AGE(graduation_date, birth_date)) ELSE 0 END)"), "age_sum"],
   [literal("COUNT(CASE WHEN birth_date IS NOT NULL AND graduation_date IS NOT NULL AND graduation_date >= birth_date THEN 1 END)"), "age_count"],
+  [literal("MIN(CASE WHEN birth_date IS NOT NULL AND graduation_date IS NOT NULL AND graduation_date >= birth_date THEN EXTRACT(YEAR FROM AGE(graduation_date, birth_date)) ELSE NULL END)"), "min_age"],
+  [literal("MAX(CASE WHEN birth_date IS NOT NULL AND graduation_date IS NOT NULL AND graduation_date >= birth_date THEN EXTRACT(YEAR FROM AGE(graduation_date, birth_date)) ELSE NULL END)"), "max_age"],
   [literal("SUM(CASE WHEN entry_year IS NOT NULL AND graduation_date IS NOT NULL AND entry_year > 1900 AND CAST(EXTRACT(YEAR FROM graduation_date) AS INTEGER) >= entry_year THEN CAST(EXTRACT(YEAR FROM graduation_date) AS INTEGER) - entry_year ELSE 0 END)"), "graduation_duration_sum"],
   [literal("COUNT(CASE WHEN entry_year IS NOT NULL AND graduation_date IS NOT NULL AND entry_year > 1900 AND CAST(EXTRACT(YEAR FROM graduation_date) AS INTEGER) >= entry_year THEN 1 END)"), "graduation_duration_count"],
 ] as const;
@@ -325,6 +329,8 @@ function finishCityBuckets(groups: Map<string, any>) {
       male_pct: item.count ? Math.round((item.male / item.count) * 1000) / 10 : 0,
       female_pct: item.count ? Math.round((item.female / item.count) * 1000) / 10 : 0,
       avg_age: item.ageCount ? Math.round((item.ageSum / item.ageCount) * 10) / 10 : null,
+      min_age: item.minAge === null ? null : Math.round(Number(item.minAge) * 10) / 10,
+      max_age: item.maxAge === null ? null : Math.round(Number(item.maxAge) * 10) / 10,
       avg_grade: item.gradeCount ? Math.round((item.gradeSum / item.gradeCount) * 100) / 100 : null,
       avg_graduation_years: item.graduationDurationCount ? Math.round((item.graduationDurationSum / item.graduationDurationCount) * 10) / 10 : null,
       dominant_gender: !item.count ? null : item.male > item.female ? "M" : item.female > item.male ? "F" : "balanced",
@@ -363,6 +369,8 @@ function createMetricsBucket(seed: Record<string, unknown>) {
     female: 0,
     ageSum: 0,
     ageCount: 0,
+    minAge: null,
+    maxAge: null,
     gradeSum: 0,
     gradeCount: 0,
     graduationDurationSum: 0,
@@ -388,6 +396,8 @@ function applyGraduateMetrics(bucket: any, graduate: any, selectedStudyProgramId
   if (graduationAge !== null) {
     bucket.ageSum += graduationAge;
     bucket.ageCount += 1;
+    bucket.minAge = bucket.minAge === null ? graduationAge : Math.min(bucket.minAge, graduationAge);
+    bucket.maxAge = bucket.maxAge === null ? graduationAge : Math.max(bucket.maxAge, graduationAge);
   }
 
   const degreeGrade = Number(graduate.degree_grade);
@@ -423,6 +433,10 @@ function applyAggregatedMetrics(bucket: any, row: AggregatedGraduateRow, selecte
 
   bucket.ageSum += metricNumber(row.age_sum);
   bucket.ageCount += metricNumber(row.age_count);
+  const minAge = Number(row.min_age);
+  const maxAge = Number(row.max_age);
+  if (Number.isFinite(minAge)) bucket.minAge = bucket.minAge === null ? minAge : Math.min(bucket.minAge, minAge);
+  if (Number.isFinite(maxAge)) bucket.maxAge = bucket.maxAge === null ? maxAge : Math.max(bucket.maxAge, maxAge);
   bucket.gradeSum += metricNumber(row.grade_sum);
   bucket.gradeCount += metricNumber(row.grade_count);
   bucket.graduationDurationSum += metricNumber(row.graduation_duration_sum);
@@ -447,6 +461,8 @@ function bucketToMapItem(bucket: any, labels: { studyProgramLabels: Map<number, 
     male_pct: bucket.count ? Math.round((bucket.male / bucket.count) * 1000) / 10 : 0,
     female_pct: bucket.count ? Math.round((bucket.female / bucket.count) * 1000) / 10 : 0,
     avg_age: bucket.ageCount ? Math.round((bucket.ageSum / bucket.ageCount) * 10) / 10 : null,
+    min_age: bucket.minAge === null ? null : Math.round(Number(bucket.minAge) * 10) / 10,
+    max_age: bucket.maxAge === null ? null : Math.round(Number(bucket.maxAge) * 10) / 10,
     avg_grade: bucket.gradeCount ? Math.round((bucket.gradeSum / bucket.gradeCount) * 100) / 100 : null,
     avg_graduation_years: bucket.graduationDurationCount ? Math.round((bucket.graduationDurationSum / bucket.graduationDurationCount) * 10) / 10 : null,
     dominant_gender: !bucket.count ? null : bucket.male > bucket.female ? "M" : bucket.female > bucket.male ? "F" : "balanced",

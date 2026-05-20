@@ -316,6 +316,8 @@ export default function GraduatesMapPage() {
         female_count: 0,
         avg_age_weighted_sum: 0,
         avg_age_weight: 0,
+        min_age: null,
+        max_age: null,
         avg_grade_weighted_sum: 0,
         avg_grade_weight: 0,
         avg_graduation_weighted_sum: 0,
@@ -336,6 +338,14 @@ export default function GraduatesMapPage() {
         current.avg_age_weighted_sum =
           Number(current.avg_age_weighted_sum || 0) + avgAge * count;
         current.avg_age_weight = Number(current.avg_age_weight || 0) + count;
+      }
+      const minAge = Number((city as any).min_age);
+      const maxAge = Number((city as any).max_age);
+      if (Number.isFinite(minAge)) {
+        current.min_age = current.min_age === null ? minAge : Math.min(current.min_age, minAge);
+      }
+      if (Number.isFinite(maxAge)) {
+        current.max_age = current.max_age === null ? maxAge : Math.max(current.max_age, maxAge);
       }
       const avgGrade = Number((city as any).avg_grade);
       if (Number.isFinite(avgGrade)) {
@@ -930,6 +940,22 @@ export default function GraduatesMapPage() {
       : null;
   }, [items]);
 
+  const ageRange = useMemo(() => {
+    let minAge: number | null = null;
+    let maxAge: number | null = null;
+    items.forEach((item) => {
+      const itemMinAge = Number((item as any).min_age ?? NaN);
+      const itemMaxAge = Number((item as any).max_age ?? NaN);
+      if (Number.isFinite(itemMinAge)) {
+        minAge = minAge === null ? itemMinAge : Math.min(minAge, itemMinAge);
+      }
+      if (Number.isFinite(itemMaxAge)) {
+        maxAge = maxAge === null ? itemMaxAge : Math.max(maxAge, itemMaxAge);
+      }
+    });
+    return { minAge, maxAge };
+  }, [items]);
+
   const comparisonHintText =
     mapScope === "abroad"
       ? mt("detailsHintAbroad", {
@@ -1500,6 +1526,15 @@ export default function GraduatesMapPage() {
               className={`map-summary-value${summaryLoading ? " is-loading" : ""}`}
             >
               {summaryLoading ? "…" : weightedAvgAge === null ? "-" : compactNumber(weightedAvgAge)}
+            </div>
+            <div
+              className={`map-summary-sub${summaryLoading ? " is-loading" : ""}`}
+            >
+              {summaryLoading
+                ? "…"
+                : ageRange.minAge === null || ageRange.maxAge === null
+                  ? "-"
+                  : `${mt("summary.minAge", { defaultValue: "Ελάχιστη" })}: ${compactNumber(ageRange.minAge)} · ${mt("summary.maxAge", { defaultValue: "Μέγιστη" })}: ${compactNumber(ageRange.maxAge)}`}
             </div>
           </div>
         </div>
