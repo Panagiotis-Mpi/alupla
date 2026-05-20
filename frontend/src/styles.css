@@ -131,6 +131,36 @@ hr{border:none;border-top:1px solid #eef2f7;margin:var(--space-2) 0}
   color:#0f172a;
   overflow-wrap:anywhere;
 }
+
+.statistics-metric-sub-list{
+  display:grid;
+  gap:6px;
+  margin-top:2px;
+}
+.statistics-metric-sub-list.is-loading{filter:blur(3px);opacity:.72;pointer-events:none;user-select:none;transition:filter .18s ease,opacity .18s ease}
+.statistics-metric-sub-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;
+  gap:10px;
+  color:#64748b;
+  line-height:1.2;
+  min-width:0;
+}
+.statistics-metric-sub-label{
+  font-size:clamp(12px,1.2vw,13px);
+  font-weight:500;
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.statistics-metric-sub-value{
+  font-size:clamp(18px,2vw,22px);
+  font-weight:800;
+  line-height:1.12;
+  color:#0f172a;
+  white-space:nowrap;
+}
+
 html.accessibility-high-contrast .statistics-metric-card{
   border-width:2px !important;
 }
@@ -207,6 +237,9 @@ html.accessibility-high-contrast .statistics-metric-value{
   .statistics-metric-card{min-height:88px !important;padding:12px !important;gap:6px}
   .statistics-metric-label{font-size:14px;line-height:1.25}
   .statistics-metric-value{font-size:22px;line-height:1.12}
+  .statistics-metric-sub-list{gap:5px}
+  .statistics-metric-sub-label{font-size:12px;line-height:1.22}
+  .statistics-metric-sub-value{font-size:20px}
   .btn{width:100%;justify-content:center;text-align:center}
   .page-title-row{align-items:flex-start}
   .topbar{align-items:stretch}
@@ -1454,6 +1487,9 @@ html.accessibility-high-contrast canvas{
   .statistics-metric-card{min-height:88px !important;padding:12px !important;gap:6px !important}
   .statistics-metric-label{font-size:14px;line-height:1.25;overflow-wrap:anywhere}
   .statistics-metric-value{font-size:22px;line-height:1.12;overflow-wrap:anywhere}
+  .statistics-metric-sub-list{gap:5px}
+  .statistics-metric-sub-label{font-size:12px;line-height:1.22}
+  .statistics-metric-sub-value{font-size:20px}
   .logs-summary-card,.logs-filters-card{max-width:100%;overflow:hidden}
   .logs-summary-card .table-wrap,.logs-filters-card .table-wrap{max-width:100%;overflow-x:auto}
   .logs-summary-table{min-width:0 !important;width:100% !important;table-layout:fixed !important}

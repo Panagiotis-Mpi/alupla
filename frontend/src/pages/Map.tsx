@@ -871,6 +871,11 @@ export default function GraduatesMapPage() {
     scopeTransitionLoading,
   ]);
   const topPeriphery = useMemo(() => items[0] || null, [items]);
+  const topAbroadCountry = useMemo(() => {
+    const source = mapScope === "abroad" ? items : counterpartItems;
+    return source[0] || null;
+  }, [counterpartItems, items, mapScope]);
+  const topAbroadCountryLoading = summaryLoading || (mapScope === "greece" && counterpartLoading);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const topCityName = topCity
     ? localizedCityRecordName(topCity, mapLanguage)
@@ -1520,21 +1525,27 @@ export default function GraduatesMapPage() {
           </div>
           <div className="card map-summary-card">
             <div className="map-summary-label">
-              {mt("summary.avgAge", { defaultValue: "Μέση ηλικία αποφοίτων" })}
+              {mt("summary.topAbroadCountry", {
+                defaultValue: "Χώρα εκτός Ελλάδας με τους περισσότερους αποφοίτους",
+              })}
             </div>
             <div
-              className={`map-summary-value${summaryLoading ? " is-loading" : ""}`}
+              className={`map-summary-value${topAbroadCountryLoading ? " is-loading" : ""}`}
             >
-              {summaryLoading ? "…" : weightedAvgAge === null ? "-" : compactNumber(weightedAvgAge)}
-            </div>
-            <div
-              className={`map-summary-sub${summaryLoading ? " is-loading" : ""}`}
-            >
-              {summaryLoading
+              {topAbroadCountryLoading
                 ? "…"
-                : ageRange.minAge === null || ageRange.maxAge === null
-                  ? "-"
-                  : `${mt("summary.minAge", { defaultValue: "Ελάχιστη" })}: ${compactNumber(ageRange.minAge)} · ${mt("summary.maxAge", { defaultValue: "Μέγιστη" })}: ${compactNumber(ageRange.maxAge)}`}
+                : topAbroadCountry
+                  ? localizedCountryRecordName(topAbroadCountry, mapLanguage)
+                  : "-"}
+            </div>
+            <div
+              className={`map-summary-sub${topAbroadCountryLoading ? " is-loading" : ""}`}
+            >
+              {topAbroadCountryLoading
+                ? "…"
+                : topAbroadCountry
+                  ? `${topAbroadCountry.count} ${mt("export.count", { defaultValue: "Απόφοιτοι" })}`
+                  : "-"}
             </div>
           </div>
         </div>

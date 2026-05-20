@@ -648,11 +648,21 @@ export function SectionTitle(props: { title: string; subtitle?: string }) {
   );
 }
 
-export function MetricCard(props: { label: string; value: string | number; loading?: boolean }) {
+export function MetricCard(props: { label: string; value: string | number; loading?: boolean; subItems?: { label: string; value: string | number }[] }) {
   return (
     <div className="card statistics-metric-card" style={metricCardStyle}>
       <div className="statistics-metric-label">{props.label}</div>
       <div className={`statistics-metric-value${props.loading ? " is-loading" : ""}`}>{props.value}</div>
+      {props.subItems?.length ? (
+        <div className={`statistics-metric-sub-list${props.loading ? " is-loading" : ""}`}>
+          {props.subItems.map((item) => (
+            <div className="statistics-metric-sub-row" key={item.label}>
+              <span className="statistics-metric-sub-label">{item.label}</span>
+              <span className="statistics-metric-sub-value">{item.value}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

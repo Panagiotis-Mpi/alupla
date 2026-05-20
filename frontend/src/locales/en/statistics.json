@@ -19,7 +19,15 @@
     "earliestYear": "Maximum study duration",
     "latestYear": "Latest graduation year",
     "topGraduationYear": "Year with maximum graduates",
-    "topCity": "Most common city of origin"
+    "topCity": "Most common city of origin",
+    "minAge": "Minimum",
+    "maxAge": "Maximum",
+    "minGrade": "Minimum",
+    "maxGrade": "Maximum",
+    "avgStudyYears": "Average study duration",
+    "minStudyYears": "Minimum",
+    "maxStudyYears": "Maximum",
+    "minGraduationYear": "Year with minimum graduates"
   },
   "sections": {
     "byYear": "Graduates by graduation year",

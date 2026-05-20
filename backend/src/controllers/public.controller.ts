@@ -96,9 +96,26 @@ export async function publicStats(req: Request, res: Response) {
         { replacements: repl, type: QueryTypes.SELECT }
       );
       const total = Number(totalRow?.[0]?.total ?? 0);
-      const avgRow = await sequelize.query<{ avg_age: number | null; avg_degree_grade: number | null }>(
+      const avgRow = await sequelize.query<{
+        avg_age: number | null;
+        min_age: number | null;
+        max_age: number | null;
+        avg_degree_grade: number | null;
+        min_degree_grade: number | null;
+        max_degree_grade: number | null;
+        avg_years_to_degree: number | null;
+        min_years_to_degree: number | null;
+        max_years_to_degree: number | null;
+      }>(
         `SELECT AVG(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) as avg_age,
-                AVG(g.degree_grade) as avg_degree_grade
+                MIN(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) as min_age,
+                MAX(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) as max_age,
+                AVG(g.degree_grade) as avg_degree_grade,
+                MIN(g.degree_grade) as min_degree_grade,
+                MAX(g.degree_grade) as max_degree_grade,
+                AVG(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as avg_years_to_degree,
+                MIN(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as min_years_to_degree,
+                MAX(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as max_years_to_degree
          FROM graduates g ${sqlWhere}`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
@@ -179,7 +196,14 @@ export async function publicStats(req: Request, res: Response) {
         ok: true,
         total,
         avg_age: avgRow?.[0]?.avg_age ?? null,
+        min_age: avgRow?.[0]?.min_age ?? null,
+        max_age: avgRow?.[0]?.max_age ?? null,
         avg_degree_grade: avgRow?.[0]?.avg_degree_grade ?? null,
+        min_degree_grade: avgRow?.[0]?.min_degree_grade ?? null,
+        max_degree_grade: avgRow?.[0]?.max_degree_grade ?? null,
+        avg_years_to_degree: avgRow?.[0]?.avg_years_to_degree ?? null,
+        min_years_to_degree: avgRow?.[0]?.min_years_to_degree ?? null,
+        max_years_to_degree: avgRow?.[0]?.max_years_to_degree ?? null,
         by_year: byYear,
         by_term: byTerm.filter((r) => r.term !== 'other'),
         gender,
@@ -603,9 +627,26 @@ export async function publicStats(req: Request, res: Response) {
     );
     const total = Number(totalRow?.[0]?.total ?? 0);
 
-    const avgRow = await sequelize.query<{ avg_age: number | null; avg_degree_grade: number | null }>(
+    const avgRow = await sequelize.query<{
+      avg_age: number | null;
+      min_age: number | null;
+      max_age: number | null;
+      avg_degree_grade: number | null;
+      min_degree_grade: number | null;
+      max_degree_grade: number | null;
+      avg_years_to_degree: number | null;
+      min_years_to_degree: number | null;
+      max_years_to_degree: number | null;
+    }>(
       `SELECT AVG(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) as avg_age,
-              AVG(g.degree_grade) as avg_degree_grade
+              MIN(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) as min_age,
+              MAX(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) as max_age,
+              AVG(g.degree_grade) as avg_degree_grade,
+              MIN(g.degree_grade) as min_degree_grade,
+              MAX(g.degree_grade) as max_degree_grade,
+              AVG(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as avg_years_to_degree,
+              MIN(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as min_years_to_degree,
+              MAX(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as max_years_to_degree
        FROM graduates g ${sqlWhere}`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
@@ -1126,7 +1167,14 @@ export async function publicStats(req: Request, res: Response) {
       ok: true,
       total,
       avg_age: avgRow?.[0]?.avg_age ?? null,
+      min_age: avgRow?.[0]?.min_age ?? null,
+      max_age: avgRow?.[0]?.max_age ?? null,
       avg_degree_grade: avgRow?.[0]?.avg_degree_grade ?? null,
+      min_degree_grade: avgRow?.[0]?.min_degree_grade ?? null,
+      max_degree_grade: avgRow?.[0]?.max_degree_grade ?? null,
+      avg_years_to_degree: avgRow?.[0]?.avg_years_to_degree ?? null,
+      min_years_to_degree: avgRow?.[0]?.min_years_to_degree ?? null,
+      max_years_to_degree: avgRow?.[0]?.max_years_to_degree ?? null,
       by_year: byYear,
       by_term: byTerm.filter((r) => r.term !== 'other'),
       gender,

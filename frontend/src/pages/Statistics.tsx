@@ -212,8 +212,29 @@ export default function Statistics() {
   }, []);
 
   const total = Number(data?.total ?? 0);
-  const avgAge = data?.avg_age === null || data?.avg_age === undefined ? "-" : Number(data.avg_age).toFixed(1);
-  const avgGrade = data?.avg_degree_grade === null || data?.avg_degree_grade === undefined ? "-" : Number(data.avg_degree_grade).toFixed(2);
+  const numberValue = React.useCallback((value: unknown, digits = 1) => {
+    if (value === null || value === undefined) return "-";
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "-";
+    return numeric.toFixed(digits);
+  }, []);
+  const integerValue = React.useCallback((value: unknown) => {
+    if (value === null || value === undefined) return "-";
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "-";
+    return String(Math.round(numeric));
+  }, []);
+  const avgAge = numberValue(data?.avg_age, 1);
+  const minAge = integerValue(data?.min_age);
+  const maxAge = integerValue(data?.max_age);
+  const avgGrade = numberValue(data?.avg_degree_grade, 2);
+  const minGrade = numberValue(data?.min_degree_grade, 2);
+  const maxGrade = numberValue(data?.max_degree_grade, 2);
+  const avgStudyYears = numberValue(data?.avg_years_to_degree, 1);
+  const minStudyYears = integerValue(data?.min_years_to_degree);
+  const maxStudyYears = integerValue(data?.max_years_to_degree);
+  const maleCount = Number(data?.gender?.M ?? 0);
+  const femaleCount = Number(data?.gender?.F ?? 0);
 
   const seriesFromRows = React.useCallback(
     (
@@ -443,16 +464,10 @@ export default function Statistics() {
     };
   }, [genderByEntryYearByValue, genderByEntryYearRows, t]);
 
-  const maxGraduationYears = yearsToDegreeDistributionRaw.labels.reduce<number | null>((current, label, index) => {
-    const numericLabel = Number(label);
-    const count = Number(yearsToDegreeDistributionRaw.values[index] ?? 0);
-    if (!Number.isFinite(numericLabel) || count <= 0) return current;
-    if (current === null || numericLabel > current) return numericLabel;
-    return current;
-  }, null);
-  const longestStudyYears = maxGraduationYears === null ? "-" : maxGraduationYears;
   const busiestYearIndex = byYearRows.length ? byYearRows.findIndex((row) => row.value === Math.max(...byYearRows.map((item) => item.value))) : -1;
   const busiestYear = busiestYearIndex >= 0 ? byYearRows[busiestYearIndex].label : "-";
+  const quietestYearIndex = byYearRows.length ? byYearRows.findIndex((row) => row.value === Math.min(...byYearRows.map((item) => item.value))) : -1;
+  const quietestYear = quietestYearIndex >= 0 ? byYearRows[quietestYearIndex].label : "-";
   const busiestCityIndex = municipalities.values.length ? municipalities.values.findIndex((value) => value === Math.max(...municipalities.values)) : -1;
   const busiestCity = busiestCityIndex >= 0 ? municipalities.labels[busiestCityIndex] : "-";
   const abroadCount = Number(data?.abroad_count ?? 0);
@@ -717,11 +732,11 @@ export default function Statistics() {
     total,
     avgAge,
     avgGrade,
-    earliestYear: longestStudyYears,
+    earliestYear: avgStudyYears,
     busiestYear,
     busiestCity,
     selectedChartIds,
-  }), [activeLang, avgAge, avgGrade, busiestCity, busiestYear, data, longestStudyYears, selectedChartIds, t, total]);
+  }), [activeLang, avgAge, avgGrade, avgStudyYears, busiestCity, busiestYear, data, selectedChartIds, t, total]);
 
   async function exportSelectedChartsAsPng() {
     if (!selectedChartIds.length) return;
@@ -978,10 +993,19 @@ export default function Statistics() {
           <StatisticsSummaryCards
             t={t}
             total={total}
+            maleCount={maleCount}
+            femaleCount={femaleCount}
             avgAge={avgAge}
+            minAge={minAge}
+            maxAge={maxAge}
             avgGrade={avgGrade}
-            longestStudyYears={longestStudyYears}
+            minGrade={minGrade}
+            maxGrade={maxGrade}
+            avgStudyYears={avgStudyYears}
+            minStudyYears={minStudyYears}
+            maxStudyYears={maxStudyYears}
             busiestYear={busiestYear}
+            quietestYear={quietestYear}
             busiestCity={busiestCity}
             sectionWrapStyle={sectionWrapStyle}
             metricGridStyle={metricGridStyle}
