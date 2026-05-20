@@ -3329,23 +3329,23 @@ html.accessibility-high-contrast .public-home-counter span{
 }
 
 .public-home-counters{
-  max-width:520px;
-  gap:14px;
+  max-width:450px;
+  gap:12px;
 }
 
 .public-home-counter{
-  min-height:88px;
-  padding:18px 18px;
+  min-height:0;
+  padding:14px 14px;
   border-radius:15px;
 }
 
 .public-home-counter strong{
-  font-size:1.38rem;
+  font-size:1.24rem;
 }
 
 .public-home-counter span{
-  margin-top:6px;
-  font-size:.9rem;
+  margin-top:4px;
+  font-size:.82rem;
 }
 
 .public-home-illustration{
@@ -3466,12 +3466,12 @@ html.accessibility-high-contrast .public-home-counter span{
     line-height:1.42;
   }
   .public-home-counters{
-    max-width:540px;
-    gap:14px;
+    max-width:460px;
+    gap:12px;
   }
-  .public-home-counter{padding:18px 18px;min-height:92px}
-  .public-home-counter strong{font-size:1.42rem}
-  .public-home-counter span{font-size:.9rem}
+  .public-home-counter{padding:14px 14px}
+  .public-home-counter strong{font-size:1.28rem}
+  .public-home-counter span{font-size:.84rem}
   .public-home-illustration{max-width:min(330px,92%)}
 }
 
@@ -3595,7 +3595,7 @@ html.accessibility-high-contrast .public-home-counter span{
     gap:8px;
   }
   .public-home-counter:last-child{grid-column:1 / -1}
-  .public-home-counter{padding:16px 16px;min-height:84px}
+  .public-home-counter{padding:12px 14px}
   .public-home-illustration{
     align-self:center;
     max-width:min(430px,100%);
