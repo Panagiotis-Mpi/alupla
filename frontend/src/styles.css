@@ -113,6 +113,11 @@ hr{border:none;border-top:1px solid #eef2f7;margin:var(--space-2) 0}
 
 .statistics-metric-card{
   min-width:0;
+  min-height:118px;
+  padding:16px;
+  display:grid;
+  align-content:space-between;
+  gap:8px;
   overflow:hidden;
 }
 .statistics-metric-label{
@@ -122,51 +127,36 @@ hr{border:none;border-top:1px solid #eef2f7;margin:var(--space-2) 0}
   font-weight:500;
   overflow-wrap:anywhere;
 }
-.statistics-metric-value.is-loading{filter:blur(3px);opacity:.72;pointer-events:none;user-select:none;transition:filter .18s ease,opacity .18s ease}
+.statistics-metric-value.is-loading,
+.statistics-metric-detail.is-loading,
+.statistics-metric-sub-list.is-loading,
+.statistics-metric-row-list.is-loading{
+  filter:blur(3px);
+  opacity:.72;
+  pointer-events:none;
+  user-select:none;
+  transition:filter .18s ease,opacity .18s ease;
+}
 .statistics-metric-value{
   font-size:clamp(21px,2.4vw,28px);
   font-weight:800;
-  margin-top:4px;
   line-height:1.12;
   color:#0f172a;
   overflow-wrap:anywhere;
 }
-
-.statistics-metric-sub-list{
-  display:grid;
-  gap:6px;
-  margin-top:2px;
-}
-.statistics-metric-sub-list.is-loading{filter:blur(3px);opacity:.72;pointer-events:none;user-select:none;transition:filter .18s ease,opacity .18s ease}
-.statistics-metric-sub-row{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) auto;
-  align-items:end;
-  gap:10px;
+.statistics-metric-detail{
   color:#64748b;
-  line-height:1.2;
-  min-width:0;
-}
-.statistics-metric-sub-label{
   font-size:clamp(12px,1.2vw,13px);
+  line-height:1.32;
   font-weight:500;
-  min-width:0;
   overflow-wrap:anywhere;
 }
-.statistics-metric-sub-value{
-  font-size:clamp(18px,2vw,22px);
-  font-weight:800;
-  line-height:1.12;
-  color:#0f172a;
-  white-space:nowrap;
-}
-
-
+.statistics-metric-sub-list,
 .statistics-metric-row-list{
   display:grid;
   gap:8px;
 }
-.statistics-metric-row-list.is-loading{filter:blur(3px);opacity:.72;pointer-events:none;user-select:none;transition:filter .18s ease,opacity .18s ease}
+.statistics-metric-sub-row,
 .statistics-metric-row{
   display:grid;
   grid-template-columns:minmax(0,1fr) auto;
@@ -176,13 +166,17 @@ hr{border:none;border-top:1px solid #eef2f7;margin:var(--space-2) 0}
   line-height:1.2;
   min-width:0;
 }
-.statistics-metric-row.active{color:#0f172a}
+.statistics-metric-row.active{
+  color:#0f172a;
+}
+.statistics-metric-sub-label,
 .statistics-metric-row-label{
   font-size:clamp(12px,1.2vw,13px);
   font-weight:500;
   min-width:0;
   overflow-wrap:anywhere;
 }
+.statistics-metric-sub-value,
 .statistics-metric-row-value{
   font-size:clamp(21px,2.4vw,28px);
   font-weight:800;
@@ -190,15 +184,6 @@ hr{border:none;border-top:1px solid #eef2f7;margin:var(--space-2) 0}
   color:#0f172a;
   white-space:nowrap;
 }
-.statistics-metric-detail{
-  color:#64748b;
-  font-size:clamp(12px,1.2vw,13px);
-  line-height:1.32;
-  font-weight:500;
-  margin-top:2px;
-  overflow-wrap:anywhere;
-}
-.statistics-metric-detail.is-loading{filter:blur(3px);opacity:.72;pointer-events:none;user-select:none;transition:filter .18s ease,opacity .18s ease}
 
 html.accessibility-high-contrast .statistics-metric-card{
   border-width:2px !important;
@@ -278,7 +263,7 @@ html.accessibility-high-contrast .statistics-metric-value{
   .statistics-metric-value{font-size:22px;line-height:1.12}
   .statistics-metric-sub-list{gap:5px}
   .statistics-metric-sub-label{font-size:12px;line-height:1.22}
-  .statistics-metric-sub-value{font-size:20px}
+  .statistics-metric-sub-value{font-size:22px}
   .statistics-metric-row-list{gap:6px}
   .statistics-metric-row-label{font-size:12px;line-height:1.22}
   .statistics-metric-row-value{font-size:22px}
@@ -1532,7 +1517,7 @@ html.accessibility-high-contrast canvas{
   .statistics-metric-value{font-size:22px;line-height:1.12;overflow-wrap:anywhere}
   .statistics-metric-sub-list{gap:5px}
   .statistics-metric-sub-label{font-size:12px;line-height:1.22}
-  .statistics-metric-sub-value{font-size:20px}
+  .statistics-metric-sub-value{font-size:22px}
   .statistics-metric-row-list{gap:6px}
   .statistics-metric-row-label{font-size:12px;line-height:1.22}
   .statistics-metric-row-value{font-size:22px}

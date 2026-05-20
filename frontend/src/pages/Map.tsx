@@ -557,7 +557,10 @@ export default function GraduatesMapPage() {
     scopeTransitionLoading;
   const summaryLoading =
     !pageLoading &&
-    (activeDataLoading || metricTransitionLoading || scopeTransitionLoading);
+    (activeDataLoading ||
+      metricTransitionLoading ||
+      scopeTransitionLoading ||
+      (mapScope === "greece" && counterpartLoading));
 
   const exportCategoryOptions = useMemo(
     () => [
@@ -875,7 +878,7 @@ export default function GraduatesMapPage() {
     const source = mapScope === "abroad" ? items : counterpartItems;
     return source[0] || null;
   }, [counterpartItems, items, mapScope]);
-  const topAbroadCountryLoading = summaryLoading || (mapScope === "greece" && counterpartLoading);
+  const topAbroadCountryLoading = summaryLoading;
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const topCityName = topCity
     ? localizedCityRecordName(topCity, mapLanguage)
