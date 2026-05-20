@@ -19,7 +19,7 @@
     "earliestYear": "Μέγιστη διάρκεια σπουδών",
     "latestYear": "Νεότερο έτος αποφοίτησης",
     "topGraduationYear": "Έτος μέγιστου αριθμού αποφοίτων",
-    "topCity": "Συχνότερη πόλη καταγωγής",
+    "topCity": "Πόλη με τους περισσότερους αποφοίτους",
     "minAge": "Ελάχιστη",
     "maxAge": "Μεγαλύτερη",
     "minGrade": "Ελάχιστη",
@@ -27,7 +27,8 @@
     "avgStudyYears": "Μέση διάρκεια σπουδών",
     "minStudyYears": "Ελάχιστη",
     "maxStudyYears": "Μεγαλύτερη",
-    "minGraduationYear": "Έτος ελάχιστου αριθμού"
+    "minGraduationYear": "Έτος ελάχιστου αριθμού",
+    "graduatesCount": "Απόφοιτοι"
   },
   "sections": {
     "byYear": "Πλήθος αποφοίτων ανά έτος αποφοίτησης",

@@ -99,6 +99,7 @@ export function StatisticsSummaryCards(props: {
   busiestYear: string | number;
   quietestYear: string | number;
   busiestCity: string | number;
+  busiestCityCount: string | number;
   sectionWrapStyle: React.CSSProperties;
   metricGridStyle: React.CSSProperties;
   metricTopRowStyle: React.CSSProperties;
@@ -109,14 +110,14 @@ export function StatisticsSummaryCards(props: {
     <div className="statistics-summary-section" style={props.sectionWrapStyle}>
       <div className="statistics-summary-grid" style={props.metricGridStyle}>
         <div className="statistics-summary-row" style={props.metricTopRowStyle}>
-          <MetricCard label={props.t("cards.total")} value={props.total} loading={props.loading} subItems={[{ label: props.t("table.male"), value: props.maleCount }, { label: props.t("table.female"), value: props.femaleCount }]} />
-          <MetricCard label={props.t("cards.avgAge")} value={props.avgAge} loading={props.loading} subItems={[{ label: props.t("cards.minAge"), value: props.minAge }, { label: props.t("cards.maxAge"), value: props.maxAge }]} />
-          <MetricCard label={props.t("cards.avgGrade")} value={props.avgGrade} loading={props.loading} subItems={[{ label: props.t("cards.minGrade"), value: props.minGrade }, { label: props.t("cards.maxGrade"), value: props.maxGrade }]} />
+          <MetricCard label={props.t("cards.total")} value={props.total} loading={props.loading} subItems={[{ label: props.t("table.male"), value: props.maleCount }, { label: props.t("table.female"), value: props.femaleCount }]} inlineRows />
+          <MetricCard label={props.t("cards.avgAge")} value={props.avgAge} loading={props.loading} subItems={[{ label: props.t("cards.minAge"), value: props.minAge }, { label: props.t("cards.maxAge"), value: props.maxAge }]} inlineRows />
+          <MetricCard label={props.t("cards.avgGrade")} value={props.avgGrade} loading={props.loading} subItems={[{ label: props.t("cards.minGrade"), value: props.minGrade }, { label: props.t("cards.maxGrade"), value: props.maxGrade }]} inlineRows />
         </div>
         <div className="statistics-summary-row" style={props.metricBottomRowStyle}>
-          <MetricCard label={props.t("cards.avgStudyYears")} value={props.avgStudyYears} loading={props.loading} subItems={[{ label: props.t("cards.minStudyYears"), value: props.minStudyYears }, { label: props.t("cards.maxStudyYears"), value: props.maxStudyYears }]} />
-          <MetricCard label={props.t("cards.topGraduationYear")} value={props.busiestYear} loading={props.loading} subItems={[{ label: props.t("cards.minGraduationYear"), value: props.quietestYear }]} />
-          <MetricCard label={props.t("cards.topCity")} value={props.busiestCity} loading={props.loading} />
+          <MetricCard label={props.t("cards.avgStudyYears")} value={props.avgStudyYears} loading={props.loading} subItems={[{ label: props.t("cards.minStudyYears"), value: props.minStudyYears }, { label: props.t("cards.maxStudyYears"), value: props.maxStudyYears }]} inlineRows />
+          <MetricCard label={props.t("cards.topGraduationYear")} value={props.busiestYear} loading={props.loading} subItems={[{ label: props.t("cards.minGraduationYear"), value: props.quietestYear }]} inlineRows />
+          <MetricCard label={props.t("cards.topCity")} value={props.busiestCity} loading={props.loading} detail={props.busiestCityCount === "-" ? "-" : `${props.busiestCityCount} ${props.t("cards.graduatesCount")}`} />
         </div>
       </div>
     </div>

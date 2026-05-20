@@ -648,17 +648,36 @@ export function SectionTitle(props: { title: string; subtitle?: string }) {
   );
 }
 
-export function MetricCard(props: { label: string; value: string | number; loading?: boolean; subItems?: { label: string; value: string | number }[] }) {
+export function MetricCard(props: { label: string; value: string | number; loading?: boolean; subItems?: { label: string; value: string | number }[]; inlineRows?: boolean; detail?: string | number }) {
+  if (props.inlineRows) {
+    const rows = [{ label: props.label, value: props.value }, ...(props.subItems ?? [])];
+    return (
+      <div className="card statistics-metric-card" style={metricCardStyle}>
+        <div className={`statistics-metric-row-list${props.loading ? " is-loading" : ""}`}>
+          {rows.map((item, index) => (
+            <div className={`statistics-metric-row${index === 0 ? " active" : ""}`} key={item.label}>
+              <span className="statistics-metric-row-label">{item.label}</span>
+              <span className="statistics-metric-row-value">{props.loading ? "…" : item.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="card statistics-metric-card" style={metricCardStyle}>
       <div className="statistics-metric-label">{props.label}</div>
-      <div className={`statistics-metric-value${props.loading ? " is-loading" : ""}`}>{props.value}</div>
+      <div className={`statistics-metric-value${props.loading ? " is-loading" : ""}`}>{props.loading ? "…" : props.value}</div>
+      {props.detail !== undefined ? (
+        <div className={`statistics-metric-detail${props.loading ? " is-loading" : ""}`}>{props.loading ? "…" : props.detail}</div>
+      ) : null}
       {props.subItems?.length ? (
         <div className={`statistics-metric-sub-list${props.loading ? " is-loading" : ""}`}>
           {props.subItems.map((item) => (
             <div className="statistics-metric-sub-row" key={item.label}>
               <span className="statistics-metric-sub-label">{item.label}</span>
-              <span className="statistics-metric-sub-value">{item.value}</span>
+              <span className="statistics-metric-sub-value">{props.loading ? "…" : item.value}</span>
             </div>
           ))}
         </div>

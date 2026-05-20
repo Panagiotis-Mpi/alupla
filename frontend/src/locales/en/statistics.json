@@ -19,7 +19,7 @@
     "earliestYear": "Maximum study duration",
     "latestYear": "Latest graduation year",
     "topGraduationYear": "Year with maximum graduates",
-    "topCity": "Most common city of origin",
+    "topCity": "City with the most graduates",
     "minAge": "Minimum",
     "maxAge": "Maximum",
     "minGrade": "Minimum",

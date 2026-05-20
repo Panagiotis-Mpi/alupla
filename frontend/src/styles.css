@@ -161,6 +161,45 @@ hr{border:none;border-top:1px solid #eef2f7;margin:var(--space-2) 0}
   white-space:nowrap;
 }
 
+
+.statistics-metric-row-list{
+  display:grid;
+  gap:8px;
+}
+.statistics-metric-row-list.is-loading{filter:blur(3px);opacity:.72;pointer-events:none;user-select:none;transition:filter .18s ease,opacity .18s ease}
+.statistics-metric-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;
+  gap:10px;
+  color:#64748b;
+  line-height:1.2;
+  min-width:0;
+}
+.statistics-metric-row.active{color:#0f172a}
+.statistics-metric-row-label{
+  font-size:clamp(12px,1.2vw,13px);
+  font-weight:500;
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.statistics-metric-row-value{
+  font-size:clamp(21px,2.4vw,28px);
+  font-weight:800;
+  line-height:1.12;
+  color:#0f172a;
+  white-space:nowrap;
+}
+.statistics-metric-detail{
+  color:#64748b;
+  font-size:clamp(12px,1.2vw,13px);
+  line-height:1.32;
+  font-weight:500;
+  margin-top:2px;
+  overflow-wrap:anywhere;
+}
+.statistics-metric-detail.is-loading{filter:blur(3px);opacity:.72;pointer-events:none;user-select:none;transition:filter .18s ease,opacity .18s ease}
+
 html.accessibility-high-contrast .statistics-metric-card{
   border-width:2px !important;
 }
@@ -240,6 +279,10 @@ html.accessibility-high-contrast .statistics-metric-value{
   .statistics-metric-sub-list{gap:5px}
   .statistics-metric-sub-label{font-size:12px;line-height:1.22}
   .statistics-metric-sub-value{font-size:20px}
+  .statistics-metric-row-list{gap:6px}
+  .statistics-metric-row-label{font-size:12px;line-height:1.22}
+  .statistics-metric-row-value{font-size:22px}
+  .statistics-metric-detail{font-size:12px;line-height:1.28}
   .btn{width:100%;justify-content:center;text-align:center}
   .page-title-row{align-items:flex-start}
   .topbar{align-items:stretch}
@@ -1490,6 +1533,10 @@ html.accessibility-high-contrast canvas{
   .statistics-metric-sub-list{gap:5px}
   .statistics-metric-sub-label{font-size:12px;line-height:1.22}
   .statistics-metric-sub-value{font-size:20px}
+  .statistics-metric-row-list{gap:6px}
+  .statistics-metric-row-label{font-size:12px;line-height:1.22}
+  .statistics-metric-row-value{font-size:22px}
+  .statistics-metric-detail{font-size:12px;line-height:1.28}
   .logs-summary-card,.logs-filters-card{max-width:100%;overflow:hidden}
   .logs-summary-card .table-wrap,.logs-filters-card .table-wrap{max-width:100%;overflow-x:auto}
   .logs-summary-table{min-width:0 !important;width:100% !important;table-layout:fixed !important}

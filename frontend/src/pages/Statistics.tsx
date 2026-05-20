@@ -470,6 +470,7 @@ export default function Statistics() {
   const quietestYear = quietestYearIndex >= 0 ? byYearRows[quietestYearIndex].label : "-";
   const busiestCityIndex = municipalities.values.length ? municipalities.values.findIndex((value) => value === Math.max(...municipalities.values)) : -1;
   const busiestCity = busiestCityIndex >= 0 ? municipalities.labels[busiestCityIndex] : "-";
+  const busiestCityCount = busiestCityIndex >= 0 ? integerValue(municipalities.values[busiestCityIndex]) : "-";
   const abroadCount = Number(data?.abroad_count ?? 0);
 
   const compareYearOptions = React.useMemo(() => {
@@ -1007,6 +1008,7 @@ export default function Statistics() {
             busiestYear={busiestYear}
             quietestYear={quietestYear}
             busiestCity={busiestCity}
+            busiestCityCount={busiestCityCount}
             sectionWrapStyle={sectionWrapStyle}
             metricGridStyle={metricGridStyle}
             metricTopRowStyle={metricTopRowStyle}
