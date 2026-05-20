@@ -3,7 +3,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { register as apiRegister } from "../lib/api";
-import aluplaLogo from "../assets/alupla-logo.png";
+import aluplaLogo from "../assets/logo_black.svg";
 
 const labelStyle: React.CSSProperties = { display: "grid", gap: 8 };
 

@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { login as apiLogin } from "../lib/api";
 import { setSession, type Role } from "../lib/auth";
-import aluplaLogo from "../assets/alupla-logo.png";
+import aluplaLogo from "../assets/logo_black.svg";
 
 const pageStyle: React.CSSProperties = {
   minHeight: "calc(100vh - 70px)",
