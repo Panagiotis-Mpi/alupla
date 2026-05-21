@@ -648,38 +648,37 @@ export function SectionTitle(props: { title: string; subtitle?: string }) {
   );
 }
 
-export function MetricCard(props: { label: string; value: string | number; loading?: boolean; subItems?: { label: string; value: string | number }[]; inlineRows?: boolean; detail?: string | number }) {
-  if (props.inlineRows) {
-    const rows = [{ label: props.label, value: props.value }, ...(props.subItems ?? [])];
-    return (
-      <div className="card statistics-metric-card" style={metricCardStyle}>
-        <div className={`statistics-metric-row-list${props.loading ? " is-loading" : ""}`}>
-          {rows.map((item, index) => (
-            <div className={`statistics-metric-row${index === 0 ? " active" : ""}`} key={item.label}>
-              <span className="statistics-metric-row-label">{item.label}</span>
-              <span className="statistics-metric-row-value">{props.loading ? "…" : item.value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+export function MetricCard(props: { label: string; value: string | number; loading?: boolean; subItems?: { label: string; value: string | number }[]; inlineRows?: boolean; detail?: string | number; detailsLabel?: string; hideDetailsLabel?: string }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const hasDetails = Boolean(props.subItems?.length || props.detail !== undefined);
+  const detailsId = React.useId();
+  const toggleLabel = expanded ? props.hideDetailsLabel ?? "Απόκρυψη" : props.detailsLabel ?? "Λεπτομέρειες";
 
   return (
     <div className="card statistics-metric-card" style={metricCardStyle}>
-      <div className="statistics-metric-label">{props.label}</div>
-      <div className={`statistics-metric-value${props.loading ? " is-loading" : ""}`}>{props.loading ? "…" : props.value}</div>
-      {props.detail !== undefined ? (
-        <div className={`statistics-metric-detail${props.loading ? " is-loading" : ""}`}>{props.loading ? "…" : props.detail}</div>
+      <div className={`statistics-metric-main${props.loading ? " is-loading" : ""}`}>
+        <div className="statistics-metric-label">{props.label}</div>
+        <div className="statistics-metric-value">{props.loading ? "…" : props.value}</div>
+      </div>
+      {hasDetails ? (
+        <button type="button" className="statistics-metric-toggle" onClick={() => setExpanded((value) => !value)} aria-expanded={expanded} aria-controls={detailsId} disabled={props.loading}>
+          {toggleLabel}
+          <span aria-hidden="true" className="statistics-metric-toggle-icon">{expanded ? "−" : "+"}</span>
+        </button>
       ) : null}
-      {props.subItems?.length ? (
-        <div className={`statistics-metric-sub-list${props.loading ? " is-loading" : ""}`}>
-          {props.subItems.map((item) => (
-            <div className="statistics-metric-sub-row" key={item.label}>
-              <span className="statistics-metric-sub-label">{item.label}</span>
-              <span className="statistics-metric-sub-value">{props.loading ? "…" : item.value}</span>
+      {hasDetails && expanded ? (
+        <div id={detailsId} className={`statistics-metric-details-panel${props.loading ? " is-loading" : ""}`}>
+          {props.detail !== undefined ? <div className="statistics-metric-detail">{props.loading ? "…" : props.detail}</div> : null}
+          {props.subItems?.length ? (
+            <div className="statistics-metric-sub-list">
+              {props.subItems.map((item) => (
+                <div className="statistics-metric-sub-row" key={item.label}>
+                  <span className="statistics-metric-sub-label">{item.label}</span>
+                  <span className="statistics-metric-sub-value">{props.loading ? "…" : item.value}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          ) : null}
         </div>
       ) : null}
     </div>

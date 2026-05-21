@@ -28,7 +28,9 @@
     "minStudyYears": "Ελάχιστη",
     "maxStudyYears": "Μεγαλύτερη",
     "minGraduationYear": "Έτος ελάχιστου αριθμού αποφοίτων",
-    "graduatesCount": "Απόφοιτοι"
+    "graduatesCount": "Απόφοιτοι",
+    "details": "Λεπτομέρειες",
+    "hideDetails": "Απόκρυψη"
   },
   "sections": {
     "byYear": "Πλήθος αποφοίτων ανά έτος αποφοίτησης",
