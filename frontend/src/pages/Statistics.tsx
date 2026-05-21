@@ -587,11 +587,6 @@ export default function Statistics() {
 
   const compareRangeLabel = React.useCallback((range: string) => t("compare.periodRange", { range }), [t]);
 
-  const compareMetricWidth = React.useCallback((value: number, max: number) => {
-    if (!Number.isFinite(value) || !Number.isFinite(max) || max <= 0) return "0%";
-    return `${Math.max(8, Math.min(100, (value / max) * 100))}%`;
-  }, []);
-
   const compareSelect = React.useCallback((value: string, onChange: (value: string) => void) => (
     <select value={value} onChange={(event) => onChange(event.target.value)}>
       {compareYearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
@@ -984,40 +979,26 @@ export default function Statistics() {
                 </span>
               </div>
             </div>
-            <div className="statistics-compare-timeline" aria-hidden="true">
-              <span>{compareRangeLabel(compareA.range)}</span>
-              <div><i></i></div>
-              <span>{compareRangeLabel(compareB.range)}</span>
-            </div>
             <div className="statistics-compare-rows">
-              {compareRows.map((row) => {
-                const rowMax = Math.max(Number(row.aValue) || 0, Number(row.bValue) || 0);
-                return (
+              {compareRows.map((row) => (
                 <div className="statistics-compare-row" key={row.key}>
                   <div className="statistics-compare-metric statistics-compare-row-metric">
                     <span className="statistics-compare-row-period">{compareRangeLabel(compareA.range)}</span>
                     <strong>{row.a}</strong>
                     <span>{row.label}</span>
-                    <div className="statistics-compare-mini-chart" aria-hidden="true">
-                      <i style={{ width: compareMetricWidth(Number(row.aValue), rowMax) }}></i>
-                    </div>
                   </div>
                   <div className="statistics-compare-arrow" aria-hidden="true">→</div>
                   <div className="statistics-compare-metric statistics-compare-row-metric">
                     <span className="statistics-compare-row-period">{compareRangeLabel(compareB.range)}</span>
                     <strong>{row.b}</strong>
                     <span>{row.label}</span>
-                    <div className="statistics-compare-mini-chart" aria-hidden="true">
-                      <i style={{ width: compareMetricWidth(Number(row.bValue), rowMax) }}></i>
-                    </div>
                   </div>
                   <div className={`statistics-compare-change ${row.direction > 0 ? "is-up" : row.direction < 0 ? "is-down" : "is-neutral"}`}>
                     <span>{row.deltaLabel}</span>
                     <strong><span className="statistics-compare-change-arrow" aria-hidden="true">{row.direction > 0 ? "↑" : row.direction < 0 ? "↓" : "–"}</span>{row.delta}</strong>
                   </div>
                 </div>
-                );
-              })}
+              ))}
             </div>
           </div>
         ) : null}
