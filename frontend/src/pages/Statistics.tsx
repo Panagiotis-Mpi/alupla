@@ -545,31 +545,45 @@ export default function Statistics() {
     const plainDelta = (nextValue: number | string, previousValue: number | string, digits = 1) => {
       const nextNumber = Number(nextValue);
       const previousNumber = Number(previousValue);
-      if (!Number.isFinite(nextNumber) || !Number.isFinite(previousNumber)) return "-";
+      if (!Number.isFinite(nextNumber) || !Number.isFinite(previousNumber)) return { value: "-", amount: 0 };
       const difference = nextNumber - previousNumber;
-      return `${difference >= 0 ? "+" : ""}${difference.toFixed(digits)}`;
+      return { value: `${difference >= 0 ? "+" : ""}${difference.toFixed(digits)}`, amount: difference };
     };
     const genderPercent = (value: number, totalValue: number) => totalValue > 0 ? (value / totalValue) * 100 : 0;
+    const maleShareDifference = genderPercent(compareB.male, compareB.total) - genderPercent(compareA.male, compareA.total);
+    const femaleShareDifference = genderPercent(compareB.female, compareB.total) - genderPercent(compareA.female, compareA.total);
+    const abroadShareDifference = genderPercent(compareB.abroad, compareB.total) - genderPercent(compareA.abroad, compareA.total);
     return {
       total: compareB.total - compareA.total,
       totalPercent: percent(compareB.total, compareA.total),
       annualAverage: plainDelta(compareB.annualAverage, compareA.annualAverage),
       avgGrade: plainDelta(compareB.avgGrade, compareA.avgGrade, 2),
       gender: `${compareB.male - compareA.male >= 0 ? "+" : ""}${compareB.male - compareA.male} / ${compareB.female - compareA.female >= 0 ? "+" : ""}${compareB.female - compareA.female}`,
+      genderAmount: compareB.total - compareA.total,
       greece: `${compareB.greece - compareA.greece >= 0 ? "+" : ""}${compareB.greece - compareA.greece} (${percent(compareB.greece, compareA.greece)})`,
-      male: `${(genderPercent(compareB.male, compareB.total) - genderPercent(compareA.male, compareA.total)).toFixed(1)}%`,
-      female: `${(genderPercent(compareB.female, compareB.total) - genderPercent(compareA.female, compareA.total)).toFixed(1)}%`,
-      abroad: `${(genderPercent(compareB.abroad, compareB.total) - genderPercent(compareA.abroad, compareA.total)).toFixed(1)}%`,
+      greeceAmount: compareB.greece - compareA.greece,
+      male: `${maleShareDifference >= 0 ? "+" : ""}${maleShareDifference.toFixed(1)}%`,
+      maleAmount: maleShareDifference,
+      female: `${femaleShareDifference >= 0 ? "+" : ""}${femaleShareDifference.toFixed(1)}%`,
+      femaleAmount: femaleShareDifference,
+      abroad: `${abroadShareDifference >= 0 ? "+" : ""}${abroadShareDifference.toFixed(1)}%`,
+      abroadAmount: abroadShareDifference,
+      topYear: plainDelta(compareB.topYear, compareA.topYear, 0),
+      yearsCount: plainDelta(compareB.yearsCount, compareA.yearsCount, 0),
     };
   }, [compareA, compareB]);
 
   const compareRows = React.useMemo(() => [
-    { key: "total", label: t("compare.total"), a: String(compareA.total), b: String(compareB.total), deltaLabel: t("compare.totalChange"), delta: `${compareDelta.total >= 0 ? "+" : ""}${compareDelta.total} (${compareDelta.totalPercent})` },
-    { key: "annualAverage", label: t("compare.annualAverage"), a: String(compareA.annualAverage), b: String(compareB.annualAverage), deltaLabel: t("compare.annualAverageChange"), delta: compareDelta.annualAverage },
-    { key: "avgGrade", label: t("compare.avgGrade"), a: String(compareA.avgGrade), b: String(compareB.avgGrade), deltaLabel: t("compare.avgGradeChange"), delta: compareDelta.avgGrade },
-    { key: "gender", label: t("compare.gender"), a: `${compareA.male}/${compareA.female}`, b: `${compareB.male}/${compareB.female}`, deltaLabel: t("compare.genderChange"), delta: compareDelta.gender },
-    { key: "greece", label: t("compare.greece"), a: String(compareA.greece), b: String(compareB.greece), deltaLabel: t("compare.greeceChange"), delta: compareDelta.greece },
-    { key: "abroad", label: t("compare.abroad"), a: `${compareA.abroad} (${compareA.abroadShare})`, b: `${compareB.abroad} (${compareB.abroadShare})`, deltaLabel: t("compare.abroadShareChange"), delta: compareDelta.abroad },
+    { key: "total", label: t("compare.total"), a: String(compareA.total), b: String(compareB.total), deltaLabel: t("compare.totalChange"), delta: `${compareDelta.total >= 0 ? "+" : ""}${compareDelta.total} (${compareDelta.totalPercent})`, direction: compareDelta.total },
+    { key: "annualAverage", label: t("compare.annualAverage"), a: String(compareA.annualAverage), b: String(compareB.annualAverage), deltaLabel: t("compare.annualAverageChange"), delta: compareDelta.annualAverage.value, direction: compareDelta.annualAverage.amount },
+    { key: "avgGrade", label: t("compare.avgGrade"), a: String(compareA.avgGrade), b: String(compareB.avgGrade), deltaLabel: t("compare.avgGradeChange"), delta: compareDelta.avgGrade.value, direction: compareDelta.avgGrade.amount },
+    { key: "gender", label: t("compare.gender"), a: `${compareA.male}/${compareA.female}`, b: `${compareB.male}/${compareB.female}`, deltaLabel: t("compare.genderChange"), delta: compareDelta.gender, direction: compareDelta.genderAmount },
+    { key: "maleShare", label: t("compare.maleShare"), a: compareA.maleShare, b: compareB.maleShare, deltaLabel: t("compare.maleShareChange"), delta: compareDelta.male, direction: compareDelta.maleAmount },
+    { key: "femaleShare", label: t("compare.femaleShare"), a: compareA.femaleShare, b: compareB.femaleShare, deltaLabel: t("compare.femaleShareChange"), delta: compareDelta.female, direction: compareDelta.femaleAmount },
+    { key: "greece", label: t("compare.greece"), a: String(compareA.greece), b: String(compareB.greece), deltaLabel: t("compare.greeceChange"), delta: compareDelta.greece, direction: compareDelta.greeceAmount },
+    { key: "abroad", label: t("compare.abroad"), a: `${compareA.abroad} (${compareA.abroadShare})`, b: `${compareB.abroad} (${compareB.abroadShare})`, deltaLabel: t("compare.abroadShareChange"), delta: compareDelta.abroad, direction: compareDelta.abroadAmount },
+    { key: "topYear", label: t("compare.topYearLabel"), a: `${compareA.topYear} (${compareA.topYearCount})`, b: `${compareB.topYear} (${compareB.topYearCount})`, deltaLabel: t("compare.topYearChange"), delta: compareDelta.topYear.value, direction: compareDelta.topYear.amount },
+    { key: "yearsCount", label: t("compare.yearsCount"), a: String(compareA.yearsCount), b: String(compareB.yearsCount), deltaLabel: t("compare.yearsCountChange"), delta: compareDelta.yearsCount.value, direction: compareDelta.yearsCount.amount },
   ], [compareA, compareB, compareDelta, t]);
 
   const compareSelect = React.useCallback((value: string, onChange: (value: string) => void) => (
@@ -979,9 +993,9 @@ export default function Statistics() {
                     <strong>{row.b}</strong>
                     <span>{row.label}</span>
                   </div>
-                  <div className="statistics-compare-change">
+                  <div className={`statistics-compare-change ${row.direction > 0 ? "is-up" : row.direction < 0 ? "is-down" : "is-neutral"}`}>
                     <span>{row.deltaLabel}</span>
-                    <strong>{row.delta}</strong>
+                    <strong><span className="statistics-compare-change-arrow" aria-hidden="true">{row.direction > 0 ? "↑" : row.direction < 0 ? "↓" : "–"}</span>{row.delta}</strong>
                   </div>
                 </div>
               ))}

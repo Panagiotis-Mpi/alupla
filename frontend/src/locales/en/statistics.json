@@ -137,6 +137,10 @@
     "annualAverageChange": "Average per year change",
     "avgGradeChange": "Average grade change",
     "genderChange": "Male / female change",
-    "greeceChange": "Greece graduates change"
+    "greeceChange": "Greece graduates change",
+    "topYearLabel": "Peak graduation year",
+    "topYearChange": "Peak year change",
+    "yearsCount": "Years in range",
+    "yearsCountChange": "Years in range change"
   }
 }
