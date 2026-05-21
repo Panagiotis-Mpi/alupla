@@ -18,7 +18,7 @@
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);overflow-x:hidden;font-size:16px;line-height:1.5}
 a{color:inherit}
 .container{max-width:1120px;margin:0 auto;padding:var(--space-2)}
-.nav{display:flex;gap:var(--space-2);align-items:center;padding:12px var(--space-2);border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(255,255,255,.94);backdrop-filter:saturate(160%) blur(10px);z-index:1000;min-height:64px}
+.nav{display:flex;gap:var(--space-2);align-items:center;padding:12px var(--space-2);border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(255,255,255,.94);backdrop-filter:saturate(160%) blur(10px);z-index:1000;min-height:64px;overflow:visible}
 .nav strong{letter-spacing:.2px}
 .nav .spacer{flex:1}
 
@@ -41,6 +41,21 @@ a{color:inherit}
   height:40px;
   object-fit:contain;
   flex:0 0 auto;
+}
+.brand:not(.brand-compact) .brand-logo{
+  width:62px;
+  height:62px;
+  padding:9px;
+  border-radius:999px;
+  background:#ffffff;
+  border:1px solid rgba(191,219,254,.95);
+  box-shadow:0 10px 22px rgba(15,23,42,.10),0 0 0 6px rgba(239,246,255,.86);
+  transform:translateY(11px);
+  margin-top:-10px;
+  margin-bottom:-22px;
+}
+.brand:not(.brand-compact){
+  gap:12px;
 }
 .brand:focus-visible{
   outline:2px solid rgba(59,130,246,.45);
@@ -671,6 +686,11 @@ html.accessibility-high-contrast .app-footer{
 }
 html.accessibility-high-contrast .drawer-backdrop{
   background:rgba(0,0,0,.22) !important;
+}
+html.accessibility-high-contrast .brand:not(.brand-compact) .brand-logo{
+  background:#ffffff !important;
+  border-color:#000000 !important;
+  box-shadow:0 0 0 4px #00ff66 !important;
 }
 html.accessibility-high-contrast *{
   text-shadow:none !important;
