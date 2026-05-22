@@ -691,7 +691,7 @@ html.accessibility-high-contrast .drawer-backdrop{
   background:rgba(0,0,0,.22) !important;
 }
 html.accessibility-high-contrast .brand:not(.brand-compact) .brand-logo{
-  background:#ffffff !important;
+  background:transparent !important;
   border-color:transparent !important;
   box-shadow:none !important;
 }
