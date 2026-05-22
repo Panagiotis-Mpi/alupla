@@ -53,12 +53,12 @@ a{color:inherit}
   background:rgba(255,255,255,.94);
   border:0;
   box-shadow:none;
-  transform:translateY(18px);
+  transform:translateY(4px);
   margin-top:-18px;
   margin-bottom:-34px;
 }
 .brand:not(.brand-compact){
-  gap:10px;
+  gap:4px;
 }
 .brand:focus-visible{
   outline:2px solid rgba(59,130,246,.45);
