@@ -3823,3 +3823,13 @@ html.accessibility-high-contrast .statistics-compare-selects select{background:#
 html.accessibility-high-contrast .statistics-compare-change-arrow{background:#000000 !important;color:#7fffd4 !important;border:2px solid #14f5c8 !important;box-shadow:none !important}
 html.accessibility-high-contrast .statistics-compare-change.is-up .statistics-compare-change-arrow{color:#39ff14 !important;border-color:#39ff14 !important}
 html.accessibility-high-contrast .statistics-compare-change.is-down .statistics-compare-change-arrow{color:#ff5c5c !important;border-color:#ff5c5c !important}
+html.accessibility-high-contrast .brand:not(.brand-compact),
+html.accessibility-high-contrast .brand:not(.brand-compact):hover,
+html.accessibility-high-contrast .brand:not(.brand-compact):active{
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .brand:not(.brand-compact) span{
+  color:#7fffd4 !important;
+}
