@@ -1,8 +1,6 @@
-// Χειρίζεται unresolved περιοχές/πόλεις που χρειάζονται αντιστοίχιση.
 import type { NextFunction, Request, Response } from "express";
 import { Region } from "../models/Region";
 
-// Διαβάζει φίλτρα λίστας unresolved regions.
 function parseListFilters(req: Request) {
   const where: Record<string, unknown> = {};
 
@@ -24,7 +22,6 @@ function parseListFilters(req: Request) {
   return where;
 }
 
-// Επιστρέφει unresolved regions που χρειάζονται έλεγχο/αντιστοίχιση.
 export async function listRegions(req: Request, res: Response, next: NextFunction) {
   try {
     const items = await Region.findAll({ where: parseListFilters(req), order: [["name", "ASC"]] });

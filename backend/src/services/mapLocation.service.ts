@@ -676,6 +676,21 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
 }
 
 
+export async function ensureGreekCityRegion(rawCityName: string | null | undefined, preferredPeripheryId: number | null) {
+  const cityName = cleanRegionText(rawCityName);
+  if (!cityName) return null;
+
+  const resolved = await persistCityFromGeocode(cityName, preferredPeripheryId);
+  if (!resolved?.cityId) return null;
+
+  return {
+    origin_city_region_id: resolved.cityId,
+    origin_periphery_region_id: resolved.peripheryId,
+    origin_municipality: resolved.cityName || cityName,
+  };
+}
+
+
 type LocalizedRegionNames = {
   nameEl: string | null;
   nameEn: string | null;

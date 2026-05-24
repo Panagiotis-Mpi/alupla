@@ -73,8 +73,6 @@ export const actionLabels = {
     update_region_city: "Ενημέρωση πόλης",
     delete_region_city: "Διαγραφή πόλης",
     import_region_cities: "Εισαγωγή πόλεων",
-    resolve_unmatched_city: "Αντιστοίχιση μη αναγνωρισμένης πόλης",
-    dismiss_unmatched_cities: "Απόρριψη μη αναγνωρισμένων πόλεων"
   },
   en: {
     login: "Login",
@@ -112,8 +110,6 @@ export const actionLabels = {
     update_region_city: "City update",
     delete_region_city: "City deletion",
     import_region_cities: "City import",
-    resolve_unmatched_city: "Resolve unmatched city",
-    dismiss_unmatched_cities: "Dismiss unmatched cities"
   }
 } as const;
 
@@ -223,7 +219,6 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
           name_el: "Name (Greek)",
           parent_id: "Parent region",
           study_program_id: "Study program",
-          unresolved_id: "Pending item",
           raw_name: "Raw name",
           ids: "IDs",
           student_number: "Student number",
@@ -275,7 +270,6 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
           name_el: "Όνομα (Ελληνικά)",
           parent_id: "Γονική περιοχή",
           study_program_id: "Πρόγραμμα σπουδών",
-          unresolved_id: "Εκκρεμότητα",
           raw_name: "Αρχικό όνομα",
           ids: "IDs",
           student_number: "Αριθμός μητρώου",
@@ -456,7 +450,6 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
       ["study_program_id", details.study_program_id],
       ["reason", details.reason],
       ["parent_id", details.parent_id],
-      ["unresolved_id", details.unresolved_id],
       ["raw_name", details.raw_name],
       ["missing", details.missing]
     ];

@@ -1,6 +1,7 @@
 // Μετατρέπει χώρα/περιφέρεια/πόλη καταγωγής σε σωστά region ids της βάσης.
 import { Region, type RegionType } from "../models/Region";
 import { RegionAlias } from "../models/RegionAlias";
+import { ensureGreekCityRegion } from "../services/mapLocation.service";
 import { cleanRegionText, normalizeRegionText } from "./regionText";
 
 type ResolveOriginInput = {
@@ -9,6 +10,7 @@ type ResolveOriginInput = {
   origin_region_id?: number | null;
   origin_city_region_id?: number | null;
   origin_municipality?: string | null;
+  allowOnlineLookup?: boolean;
 };
 
 type RegionLite = {
@@ -182,7 +184,7 @@ export function clearRegionLookupCache() {
 
 // Μετατρέπει καταγωγή φόρμας/import σε συνεπή region ids.
 export async function normalizeOriginLocation(input: ResolveOriginInput): Promise<NormalizedOriginResult> {
-  const { byId, cityByKey, nomosByKey, dimosByKey, foreignCityByKey, peripheryByKey, countryByKey, aliasByKey } = await loadRegionLookups();
+  let { byId, cityByKey, nomosByKey, dimosByKey, foreignCityByKey, peripheryByKey, countryByKey, aliasByKey } = await loadRegionLookups();
 
   const rawMunicipality = cleanRegionText(input.origin_municipality);
   const normalizedMunicipality = normalizeRegionText(rawMunicipality);
@@ -219,6 +221,18 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
         const aliasMatch = pickScopedRegion(aliasByKey.get(normalizedMunicipality) ?? [], nomos?.id ?? periphery?.id ?? null, byId, "greece");
         if (aliasMatch?.type === "CITY" || aliasMatch?.type === "DIMOS") {
           city = aliasMatch;
+        }
+      }
+
+      if (!city && input.allowOnlineLookup !== false) {
+        const onlineCity = await ensureGreekCityRegion(rawMunicipality, periphery?.id ?? null);
+        if (onlineCity?.origin_city_region_id) {
+          clearRegionLookupCache();
+          ({ byId, cityByKey, nomosByKey, dimosByKey, foreignCityByKey, peripheryByKey, countryByKey, aliasByKey } = await loadRegionLookups());
+          city = byId.get(Number(onlineCity.origin_city_region_id)) ?? null;
+          if (!periphery && onlineCity.origin_periphery_region_id) {
+            periphery = byId.get(Number(onlineCity.origin_periphery_region_id)) ?? null;
+          }
         }
       }
 

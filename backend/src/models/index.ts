@@ -1,4 +1,4 @@
-import { DataTypes, QueryTypes } from "sequelize";
+import { DataTypes } from "sequelize";
 import { sequelize } from "../config/sequelize";
 import { User } from "./User";
 import { StudyProgram } from "./StudyProgram";
@@ -6,7 +6,6 @@ import { Graduate } from "./Graduate";
 import { ActivityLog } from "./ActivityLog";
 import { Region } from "./Region";
 import { RegionAlias } from "./RegionAlias";
-import { UnresolvedRegion } from "./UnresolvedRegion";
 import { ensureCountriesSeeded } from "../seed/countries";
 import { ensurePeripheriesSeeded } from "../seed/peripheries";
 import { ensureRegionCitiesSeeded } from "../seed/regionCities";
@@ -33,12 +32,6 @@ function setupAssociations() {
   Region.hasMany(RegionAlias, { foreignKey: "region_id", as: "aliases" });
   RegionAlias.belongsTo(Region, { foreignKey: "region_id", as: "region" });
 
-  Region.hasMany(UnresolvedRegion, { foreignKey: "country_region_id", as: "countryUnresolvedEntries" });
-  UnresolvedRegion.belongsTo(Region, { foreignKey: "country_region_id", as: "country" });
-  Region.hasMany(UnresolvedRegion, { foreignKey: "periphery_id", as: "unresolvedEntries" });
-  UnresolvedRegion.belongsTo(Region, { foreignKey: "periphery_id", as: "periphery" });
-  Region.hasMany(UnresolvedRegion, { foreignKey: "canonical_region_id", as: "resolvedEntries" });
-  UnresolvedRegion.belongsTo(Region, { foreignKey: "canonical_region_id", as: "canonicalRegion" });
 
   User.hasMany(ActivityLog, { foreignKey: "user_id" });
   ActivityLog.belongsTo(User, { foreignKey: "user_id", as: "user" });
@@ -83,8 +76,6 @@ async function ensureSchema() {
   await ensureColumn("graduates", "origin_country_region_id", { type: DataTypes.INTEGER, allowNull: true });
   await ensureColumn("graduates", "origin_periphery_region_id", { type: DataTypes.INTEGER, allowNull: true });
   await ensureColumn("graduates", "origin_city_region_id", { type: DataTypes.INTEGER, allowNull: true });
-  await ensureColumn("unresolved_regions", "country_region_id", { type: DataTypes.INTEGER, allowNull: true });
-
   const tables = await qi.showAllTables();
   const tableNames = tables.map((item: any) => (typeof item === "string" ? item : item.tableName || item.toString()));
 
@@ -99,29 +90,12 @@ async function ensureSchema() {
       updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
     });
   }
-
-  if (!tableNames.includes("unresolved_regions")) {
-    await qi.createTable("unresolved_regions", {
-      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true, allowNull: false },
-      raw_name: { type: DataTypes.STRING(255), allowNull: false },
-      normalized_raw_name: { type: DataTypes.STRING(255), allowNull: false, defaultValue: "" },
-      country_region_id: { type: DataTypes.INTEGER, allowNull: true },
-      periphery_id: { type: DataTypes.INTEGER, allowNull: true },
-      count: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-      status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: "pending" },
-      canonical_region_id: { type: DataTypes.INTEGER, allowNull: true },
-      resolved_by_user_id: { type: DataTypes.INTEGER, allowNull: true },
-      created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
-      updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
-    });
-  }
 }
 
 async function ensureAppIndexes() {
   await ensureIndex("regions", ["type", "normalized_name"], "regions_type_normalized_name_idx");
   await ensureIndex("regions", ["normalized_name", "parent_id", "type"], "regions_city_scope_idx", { unique: true, where: { type: ["CITY", "FOREIGN_CITY"] } as any });
   await ensureIndex("region_aliases", ["normalized_alias", "region_id"], "region_aliases_normalized_alias_region_id_idx", { unique: true });
-  await ensureIndex("unresolved_regions", ["normalized_raw_name", "country_region_id", "periphery_id"], "unresolved_regions_key_idx", { unique: true });
 }
 
 // Γεμίζει βασικές χώρες/περιφέρειες/πόλεις αν λείπουν.
@@ -186,6 +160,7 @@ async function backfillGraduateOrigins() {
       origin_region_id: row.origin_region_id != null ? Number(row.origin_region_id) : null,
       origin_city_region_id: row.origin_city_region_id != null ? Number(row.origin_city_region_id) : null,
       origin_municipality: row.origin_municipality ?? null,
+      allowOnlineLookup: false,
     });
 
     const changed =
@@ -199,33 +174,6 @@ async function backfillGraduateOrigins() {
   }
 }
 
-// Συμπληρώνει χώρα σε unresolved περιοχές όπου μπορεί να βρεθεί.
-async function backfillUnresolvedRegions() {
-  const rows = await UnresolvedRegion.findAll({ attributes: ["id", "country_region_id", "periphery_id", "canonical_region_id"] });
-  const regions = await Region.findAll({ attributes: ["id", "type", "parent_id", "normalized_name"] });
-  const byId = new Map(regions.map((item: any) => [Number(item.id), item]));
-  const greece = regions.find((item: any) => String(item.type) === "COUNTRY" && String(item.normalized_name) === normalizeRegionText("Ελλάδα")) as any;
-
-  function findCountry(regionId: number | null | undefined): number | null {
-    let current = regionId ? byId.get(Number(regionId)) ?? null : null;
-    let steps = 0;
-    while (current && steps < 20) {
-      if (String(current.type) === "COUNTRY") return Number(current.id);
-      current = current.parent_id ? byId.get(Number(current.parent_id)) ?? null : null;
-      steps += 1;
-    }
-    return null;
-  }
-
-  for (const row of rows as any[]) {
-    if (row.country_region_id != null) continue;
-    const countryId = findCountry(row.periphery_id) ?? findCountry(row.canonical_region_id) ?? (greece ? Number(greece.id) : null);
-    if (countryId != null) {
-      await row.update({ country_region_id: countryId }, { silent: true });
-    }
-  }
-}
-
 // Αρχικοποιεί σύνδεση, schema, seed και backfills στην εκκίνηση.
 export async function initDb() {
   await sequelize.authenticate();
@@ -236,5 +184,4 @@ export async function initDb() {
   await backfillRegions();
   await ensureAppIndexes();
   await backfillGraduateOrigins();
-  await backfillUnresolvedRegions();
 }

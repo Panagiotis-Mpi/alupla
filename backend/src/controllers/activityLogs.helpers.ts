@@ -318,7 +318,6 @@ export function localDetailLabel(lang: "gr" | "en", key: string) {
         name: "Name",
         name_el: "Name (Greek)",
         parent_id: "Parent region",
-        unresolved_id: "Unresolved item",
         raw_name: "Original name",
         ids: "IDs",
         student_number: "Student number",
@@ -370,7 +369,6 @@ export function localDetailLabel(lang: "gr" | "en", key: string) {
         name: "Όνομα",
         name_el: "Όνομα (Ελληνικά)",
         parent_id: "Γονική περιοχή",
-        unresolved_id: "Εκκρεμότητα",
         raw_name: "Αρχικό όνομα",
         ids: "IDs",
         student_number: "Αριθμός μητρώου",
@@ -511,7 +509,6 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
     ["study_program_id", (details as any).study_program_id],
     ["reason", (details as any).reason],
     ["parent_id", (details as any).parent_id],
-    ["unresolved_id", (details as any).unresolved_id],
     ["raw_name", (details as any).raw_name],
     ["missing", (details as any).missing]
   ];
