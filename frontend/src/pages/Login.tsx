@@ -6,26 +6,6 @@ import { login as apiLogin } from "../lib/api";
 import { setSession, type Role } from "../lib/auth";
 import aluplaLogo from "../assets/logo_black.svg";
 
-const pageStyle: React.CSSProperties = {
-  minHeight: "calc(100vh - 70px)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "1.2rem 1.5rem",
-  paddingBottom: "4rem",
-  background: "linear-gradient(180deg, #eef4ff 0%, #ffffff 65%)",
-};
-
-const cardStyle: React.CSSProperties = {
-  width: "100%",
-  maxWidth: 520,
-  background: "white",
-  borderRadius: 18,
-  border: "1px solid #e5edff",
-  boxShadow: "0 10px 30px rgba(59,130,246,0.08)",
-  padding: "2.2rem 2.4rem",
-};
-
 const labelStyle: React.CSSProperties = { display: "grid", gap: 8 };
 const labelTextStyle: React.CSSProperties = {
   fontSize: 13,
@@ -77,23 +57,19 @@ function Login() {
   }
 
   return (
-    <div style={pageStyle}>
-      <div style={cardStyle}>
-        <div className="auth-logo-lockup auth-logo-lockup-login">
-          <img src={aluplaLogo} alt="" className="auth-logo-mark" aria-hidden="true" />
-          <span>ALUPLA</span>
+    <div className="auth-page-shell">
+      <div className="auth-form-card auth-form-card-login">
+        <div className="auth-form-heading auth-form-heading-login">
+          <div className="auth-logo-lockup">
+            <img src={aluplaLogo} alt="" className="auth-logo-mark" aria-hidden="true" />
+            <span>ALUPLA</span>
+          </div>
         </div>
 
-        <form onSubmit={onSubmit} style={{ display: "grid", gap: "1.05rem" }}>
+        <form onSubmit={onSubmit} className="auth-form-grid">
           <label style={labelStyle}>
-            <span style={labelTextStyle}>{t("login.role")}</span>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                gap: 10,
-              }}
-            >
+            <span className="auth-form-label" style={labelTextStyle}>{t("login.role")}</span>
+            <div className="auth-role-options">
               {ROLE_OPTIONS.map((role) => {
                 const active = selectedRole === role;
                 return (
@@ -121,9 +97,10 @@ function Login() {
           </label>
 
           <label style={labelStyle}>
-            <span style={labelTextStyle}>{t("login.email")}</span>
+            <span className="auth-form-label" style={labelTextStyle}>{t("login.email")}</span>
             <input
               autoComplete="email"
+              className="input auth-form-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               style={inputStyle}
@@ -131,10 +108,11 @@ function Login() {
           </label>
 
           <label style={labelStyle}>
-            <span style={labelTextStyle}>{t("login.password")}</span>
+            <span className="auth-form-label" style={labelTextStyle}>{t("login.password")}</span>
             <input
               type="password"
               autoComplete="current-password"
+              className="input auth-form-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={inputStyle}
@@ -158,6 +136,7 @@ function Login() {
           <button
             disabled={loading}
             type="submit"
+            className="auth-form-submit"
             style={{
               height: 46,
               borderRadius: 12,
