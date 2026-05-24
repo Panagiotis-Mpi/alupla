@@ -67,7 +67,6 @@ export default function Register() {
             <img src={aluplaLogo} alt="" className="auth-logo-mark" aria-hidden="true" />
             <span>ALUPLA</span>
           </div>
-          <p className="auth-form-subtitle">{t("register.title")}</p>
         </div>
 
         <form onSubmit={onSubmit} className="auth-form-grid">

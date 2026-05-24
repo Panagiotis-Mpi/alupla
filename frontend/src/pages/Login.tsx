@@ -68,7 +68,6 @@ function Login() {
 
         <form onSubmit={onSubmit} className="auth-form-grid">
           <label style={labelStyle}>
-            <span className="auth-form-label" style={labelTextStyle}>{t("login.role")}</span>
             <div className="auth-role-options">
               {ROLE_OPTIONS.map((role) => {
                 const active = selectedRole === role;
