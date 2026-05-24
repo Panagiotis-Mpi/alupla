@@ -3156,6 +3156,19 @@ html.accessibility-high-contrast .auth-page-shell .auth-form-submit{
 html.accessibility-high-contrast .auth-page-shell .auth-form-link{
   color:#7fffd4 !important;
 }
+
+html.accessibility-high-contrast .auth-page-shell .auth-password-info{
+  background:#ffd400 !important;
+  color:#000000 !important;
+  border-color:#14f5c8 !important;
+  box-shadow:0 0 0 2px #000000 !important;
+}
+html.accessibility-high-contrast .auth-page-shell .auth-password-help-bubble{
+  background:#000000 !important;
+  color:#7fffd4 !important;
+  border:2px solid #14f5c8 !important;
+  box-shadow:none !important;
+}
 .nav-dropdown{position:relative;display:inline-flex;min-width:0}
 .nav-dropdown-toggle{gap:7px;white-space:nowrap}
 .nav-dropdown-chevron{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);display:inline-block;flex:0 0 auto;margin-left:2px}
