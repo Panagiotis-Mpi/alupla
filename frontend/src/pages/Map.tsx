@@ -117,7 +117,7 @@ export default function GraduatesMapPage() {
   const [yearRangeLoading, setYearRangeLoading] = useState(false);
   const [initialPageReady, setInitialPageReady] = useState(false);
   const [counterpartWarmupEnabled, setCounterpartWarmupEnabled] =
-    useState(true);
+    useState(false);
   const [scopeTotals, setScopeTotals] = useState<
     Partial<Record<MapScope, number>>
   >({});
@@ -162,6 +162,7 @@ export default function GraduatesMapPage() {
     ],
   );
   const { loading, items, cityPoints } = useMapData(params);
+  const hasActiveMapData = items.length > 0 || cityPoints.length > 0;
 
   const counterpartScope = mapScope === "greece" ? "abroad" : "greece";
   const counterpartParams = useMemo(
@@ -188,8 +189,36 @@ export default function GraduatesMapPage() {
   );
 
   useEffect(() => {
-    setCounterpartWarmupEnabled(true);
+    setCounterpartWarmupEnabled(false);
   }, [counterpartParams]);
+
+  useEffect(() => {
+    if (!initialPageReady || loading || !hasActiveMapData) return;
+    let cancelled = false;
+    let idleId: number | null = null;
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      const startWarmup = () => {
+        if (!cancelled) setCounterpartWarmupEnabled(true);
+      };
+      const requestIdle = (window as any).requestIdleCallback as
+        | ((callback: () => void, options?: { timeout?: number }) => number)
+        | undefined;
+      if (requestIdle) idleId = requestIdle(startWarmup, { timeout: 1200 });
+      else startWarmup();
+    }, 700);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      if (idleId !== null) {
+        const cancelIdle = (window as any).cancelIdleCallback as
+          | ((id: number) => void)
+          | undefined;
+        if (cancelIdle) cancelIdle(idleId);
+      }
+    };
+  }, [hasActiveMapData, initialPageReady, loading]);
 
   const { loading: counterpartLoading, items: counterpartItems } = useMapData(
     counterpartParams,
@@ -511,14 +540,12 @@ export default function GraduatesMapPage() {
     };
   }, []);
 
-  const hasActiveMapData = items.length > 0 || cityPoints.length > 0;
-
   useEffect(() => {
-    if (initialPageReady || yearRangeLoading) return;
+    if (initialPageReady) return;
     if (loading && !hasActiveMapData) return;
     const frame = window.requestAnimationFrame(() => setInitialPageReady(true));
     return () => window.cancelAnimationFrame(frame);
-  }, [hasActiveMapData, initialPageReady, loading, yearRangeLoading]);
+  }, [hasActiveMapData, initialPageReady, loading]);
 
   useEffect(() => {
     if (loading && !hasActiveMapData) return;
@@ -557,10 +584,7 @@ export default function GraduatesMapPage() {
     scopeTransitionLoading;
   const summaryLoading =
     !pageLoading &&
-    (activeDataLoading ||
-      metricTransitionLoading ||
-      scopeTransitionLoading ||
-      (mapScope === "greece" && counterpartLoading));
+    (activeDataLoading || metricTransitionLoading || scopeTransitionLoading);
 
   const exportCategoryOptions = useMemo(
     () => [
@@ -878,7 +902,9 @@ export default function GraduatesMapPage() {
     const source = mapScope === "abroad" ? items : counterpartItems;
     return source[0] || null;
   }, [counterpartItems, items, mapScope]);
-  const topAbroadCountryLoading = summaryLoading;
+  const topAbroadCountryLoading =
+    summaryLoading ||
+    (mapScope === "greece" && counterpartWarmupEnabled && counterpartLoading);
   const topCity = useMemo(() => cityPoints[0] || null, [cityPoints]);
   const topCityName = topCity
     ? localizedCityRecordName(topCity, mapLanguage)

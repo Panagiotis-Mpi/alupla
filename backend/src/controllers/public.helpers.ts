@@ -152,8 +152,9 @@ export async function buildWhere(req: Request) {
   const ageGroup = typeof req.query.age_group === "string" ? req.query.age_group : "";
 
   if (graduationYear) {
-    where.push("EXTRACT(YEAR FROM g.graduation_date) = :graduationYear");
-    repl.graduationYear = graduationYear;
+    where.push("g.graduation_date >= :graduationDateFrom AND g.graduation_date <= :graduationDateTo");
+    repl.graduationDateFrom = `${graduationYear}-01-01`;
+    repl.graduationDateTo = `${graduationYear}-12-31`;
   }
   if (studyProgramId) {
     where.push("g.study_program_id = :studyProgramId");

@@ -57,7 +57,7 @@ export function useMapData(params: Record<string, string>, options: { includeCit
   const current = data.key === paramsKey;
 
   return {
-    loading: loading || !current,
+    loading: enabled ? loading || !current : false,
     items: current ? data.items : [],
     cityPoints: current ? data.cityPoints : [],
   };
