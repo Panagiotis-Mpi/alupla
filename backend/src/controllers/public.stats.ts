@@ -1,53 +1,28 @@
 // Υπολογίζει τα ανώνυμα στατιστικά που εμφανίζονται στη σελίδα Στατιστικά.
-import { QueryTypes } from "sequelize";
 import XLSX from "xlsx";
-import { sequelize } from "../config/sequelize";
 import { sanitizeExportRows } from "../utils/exportSafety";
+import {
+  AnalyticsWhereContext,
+  ExportLang,
+  getAgeGroups,
+  getAverageGradeByGraduationYear,
+  getCityRows,
+  getCountByBirthYear,
+  getCountByGraduationTerm,
+  getCountByGraduationYear,
+  getGenderByGraduationTerm,
+  getGenderByGraduationYear,
+  getGenderCounts,
+  getOriginRows,
+  getOverviewSummary,
+  getTotalGraduates,
+  genderRowsToCounts,
+  queryAnalyticsRows,
+  termLabel,
+} from "../services/analyticsAggregations.service";
 
-export type PublicWhereContext = {
-  sqlWhere: string;
-  repl: Record<string, unknown>;
-  birthExpr?: string;
-  birthYearExpr?: string;
-};
-
-type PublicExportLang = "gr" | "en";
-
-const termCaseSql = `CASE
-  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
-  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
-  WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-  ELSE 'other'
-END`;
-
-const termOrderSql = `CASE
-  WHEN ${termCaseSql} = 'winter' THEN 1
-  WHEN ${termCaseSql} = 'spring' THEN 2
-  WHEN ${termCaseSql} = 'september' THEN 3
-  ELSE 99
-END`;
-
-// Μετατρέπει έτος/εξάμηνο σε label για charts.
-export function termLabel(term: string, lang: PublicExportLang = "gr") {
-  if (lang === "en") {
-    if (term === "winter") return "Winter";
-    if (term === "spring") return "Spring";
-    if (term === "september") return "September";
-    return term;
-  }
-  if (term === "winter") return "Χειμερινό";
-  if (term === "spring") return "Εαρινό";
-  if (term === "september") return "Σεπτέμβριος";
-  return term;
-}
-
-async function queryRows<T extends Record<string, unknown>>(sql: string, context: PublicWhereContext): Promise<T[]> {
-  const rows = await sequelize.query(sql, {
-    replacements: context.repl,
-    type: QueryTypes.SELECT,
-  });
-  return rows as T[];
-}
+export type PublicWhereContext = AnalyticsWhereContext;
+type PublicExportLang = ExportLang;
 
 // Φορτώνει όλα τα aggregated data για τη σελίδα Στατιστικά.
 export async function loadPublicStatsBundle(context: PublicWhereContext) {
@@ -70,110 +45,17 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
     originRows,
     cityRows,
   ] = await Promise.all([
-    queryRows<{ total: number }>(`SELECT COUNT(*) as total FROM graduates g ${context.sqlWhere}`, context),
-    queryRows<{ avg_age: number | null; avg_degree_grade: number | null }>(
-      `SELECT AVG(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) as avg_age,
-              AVG(g.degree_grade) as avg_degree_grade
-       FROM graduates g ${context.sqlWhere}`,
-      context,
-    ),
-    queryRows<{ year: number; count: number }>(
-      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
-              CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY EXTRACT(YEAR FROM g.graduation_date)
-       ORDER BY year ASC`,
-      context,
-    ),
-    queryRows<{ year: number; term: string; count: number }>(
-      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
-              ${termCaseSql} as term,
-              CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY EXTRACT(YEAR FROM g.graduation_date), ${termCaseSql}
-       ORDER BY year ASC, ${termOrderSql} ASC`,
-      context,
-    ),
-    queryRows<{ gender: string; count: number }>(
-      `SELECT g.gender as gender, CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY g.gender`,
-      context,
-    ),
-    queryRows<{ year: number; male: number; female: number }>(
-      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
-              CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
-              CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY EXTRACT(YEAR FROM g.graduation_date)
-       ORDER BY year ASC`,
-      context,
-    ),
-    queryRows<{ year: number; term: string; male: number; female: number }>(
-      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
-              ${termCaseSql} as term,
-              CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
-              CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY EXTRACT(YEAR FROM g.graduation_date), ${termCaseSql}
-       ORDER BY year ASC, ${termOrderSql} ASC`,
-      context,
-    ),
-    queryRows<{ year: number; count: number }>(
-      `SELECT ${birthYearExpr} as year,
-              CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY ${birthYearExpr}
-       ORDER BY year ASC`,
-      context,
-    ),
-    queryRows<{ label: string; count: number }>(
-      `SELECT CASE
-                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
-                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 27 AND 30 THEN '27-30'
-                WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 31 THEN '31+'
-                ELSE 'unknown'
-              END as label,
-              CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY CASE
-                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
-                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 27 AND 30 THEN '27-30'
-                  WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 31 THEN '31+'
-                  ELSE 'unknown'
-                END
-       ORDER BY CASE
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 27 AND 30 THEN '27-30'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 31 THEN '31+'
-                    ELSE 'unknown'
-                  END = '23-26' THEN 1
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 27 AND 30 THEN '27-30'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 31 THEN '31+'
-                    ELSE 'unknown'
-                  END = '27-30' THEN 2
-                  WHEN CASE
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 27 AND 30 THEN '27-30'
-                    WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 31 THEN '31+'
-                    ELSE 'unknown'
-                  END = '31+' THEN 3
-                  ELSE 99
-                END`,
-      context,
-    ),
-    queryRows<{ year: number; avg: number }>(
-      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
-              ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY EXTRACT(YEAR FROM g.graduation_date)
-       ORDER BY year ASC`,
-      context,
-    ),
-    queryRows<{ bucket: string; count: number }>(
+    getTotalGraduates(context),
+    getOverviewSummary(context),
+    getCountByGraduationYear(context),
+    getCountByGraduationTerm(context),
+    getGenderCounts(context),
+    getGenderByGraduationYear(context),
+    getGenderByGraduationTerm(context),
+    getCountByBirthYear(context, birthYearExpr),
+    getAgeGroups(context),
+    getAverageGradeByGraduationYear(context),
+    queryAnalyticsRows<{ bucket: string; count: number }>(
       `SELECT CASE
                 WHEN g.degree_grade < 5 THEN '<5'
                 WHEN g.degree_grade >= 5 AND g.degree_grade < 6 THEN '5-5.99'
@@ -195,7 +77,7 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
        END`,
       context,
     ),
-    queryRows<{ entry_year: number; avg_years: number }>(
+    queryAnalyticsRows<{ entry_year: number; avg_years: number }>(
       `SELECT g.entry_year,
               ROUND(CAST(AVG(EXTRACT(YEAR FROM age(g.graduation_date, make_date(g.entry_year, 1, 1)))) AS NUMERIC), 2) as avg_years
        FROM graduates g ${context.sqlWhere}
@@ -203,33 +85,11 @@ export async function loadPublicStatsBundle(context: PublicWhereContext) {
        ORDER BY g.entry_year ASC`,
       context,
     ),
-    queryRows<{ place: string; count: number }>(
-      `SELECT COALESCE(NULLIF(TRIM(r.name), ''), NULLIF(TRIM(g.origin_municipality), ''), NULLIF(TRIM(g.origin_country), ''), 'Unknown') as place,
-              CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g
-       LEFT JOIN regions r ON r.id = g.origin_region_id
-       ${context.sqlWhere}
-       GROUP BY place
-       ORDER BY count DESC, place ASC
-       LIMIT 20`,
-      context,
-    ),
-    queryRows<{ place: string; count: number }>(
-      `SELECT COALESCE(NULLIF(TRIM(g.origin_municipality), ''), 'Unknown') as place,
-              CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY place
-       ORDER BY count DESC, place ASC
-       LIMIT 20`,
-      context,
-    ),
+    getOriginRows(context),
+    getCityRows(context),
   ]);
 
-  const gender = { M: 0, F: 0 };
-  for (const row of genderRows) {
-    if (row.gender === "M") gender.M = Number(row.count);
-    if (row.gender === "F") gender.F = Number(row.count);
-  }
+  const gender = genderRowsToCounts(genderRows);
 
   return {
     total: Number(totalRow[0]?.total ?? 0),
@@ -261,7 +121,7 @@ type PublicMapRow = {
 
 // Φορτώνει γραμμές για τον χάρτη με τα ίδια φίλτρα στατιστικών.
 export async function loadPublicMapRows(context: PublicWhereContext) {
-  return queryRows<PublicMapRow>(
+  return queryAnalyticsRows<PublicMapRow>(
     `SELECT
         g.origin_region_id as region_id,
         COALESCE(r.name, 'Unknown') as region_name,
@@ -281,42 +141,10 @@ export async function loadPublicMapRows(context: PublicWhereContext) {
 // Φτιάχνει Excel workbook με ανώνυμα στατιστικά.
 export async function buildAnonymousStatisticsWorkbook(context: PublicWhereContext, countsMode: "year" | "semester", genderMode: "year" | "semester", lang: PublicExportLang = "gr") {
   const [byYear, byTerm, genderByYear, genderByTerm] = await Promise.all([
-    queryRows<{ year: number; count: number }>(
-      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
-              CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY EXTRACT(YEAR FROM g.graduation_date)
-       ORDER BY year ASC`,
-      context,
-    ),
-    queryRows<{ year: number; term: string; count: number }>(
-      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
-              ${termCaseSql} as term,
-              CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY EXTRACT(YEAR FROM g.graduation_date), ${termCaseSql}
-       ORDER BY year ASC, ${termOrderSql} ASC`,
-      context,
-    ),
-    queryRows<{ year: number; male: number; female: number }>(
-      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
-              CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
-              CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY EXTRACT(YEAR FROM g.graduation_date)
-       ORDER BY year ASC`,
-      context,
-    ),
-    queryRows<{ year: number; term: string; male: number; female: number }>(
-      `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
-              ${termCaseSql} as term,
-              CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
-              CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY EXTRACT(YEAR FROM g.graduation_date), ${termCaseSql}
-       ORDER BY year ASC, ${termOrderSql} ASC`,
-      context,
-    ),
+    getCountByGraduationYear(context),
+    getCountByGraduationTerm(context),
+    getGenderByGraduationYear(context),
+    getGenderByGraduationTerm(context),
   ]);
 
   const labels = lang === "en"

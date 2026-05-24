@@ -13,6 +13,23 @@ import {
   normalizePlaceName,
 } from "./public.helpers";
 import { buildAnonymousStatisticsWorkbook, loadPublicMapRows } from "./public.stats";
+import {
+  getAverageGradeByGraduationYear,
+  getAverageYearsToDegreeByEntryYear,
+  getCountByBirthYear,
+  getCountByEntryYear,
+  getCountByGraduationTerm,
+  getCountByGraduationYear,
+  getDegreeGradeBins,
+  getDegreeGradeBinsByGender,
+  getGenderByEntryYear,
+  getGenderByGraduationYear,
+  getGenderCounts,
+  getOverviewSummary,
+  getTotalGraduates,
+  getYearsToDegreeDistribution,
+  genderRowsToCounts,
+} from "../services/analyticsAggregations.service";
 
 type PublicStatsCacheEntry = { expires: number; body: Record<string, unknown> };
 // Κρατά προσωρινά δεδομένα για πιο γρήγορη απόκριση.
@@ -91,107 +108,20 @@ export async function publicStats(req: Request, res: Response) {
     const section = String(req.query.section ?? "all").toLowerCase();
 
     if (section === "demographics") {
-      const totalRow = await sequelize.query<{ total: number }>(
-        `SELECT COUNT(*) as total FROM graduates g ${sqlWhere}`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
+      const context = { sqlWhere, repl, birthExpr, birthYearExpr };
+      const [totalRow, avgRow, byYear, byTerm, genderRows, genderByYear, birthYearRows, countByEntryYear, genderByEntryYear] = await Promise.all([
+        getTotalGraduates(context),
+        getOverviewSummary(context),
+        getCountByGraduationYear(context),
+        getCountByGraduationTerm(context),
+        getGenderCounts(context),
+        getGenderByGraduationYear(context),
+        getCountByBirthYear(context, birthYearExpr),
+        getCountByEntryYear(context),
+        getGenderByEntryYear(context),
+      ]);
       const total = Number(totalRow?.[0]?.total ?? 0);
-      const avgRow = await sequelize.query<{
-        avg_age: number | null;
-        min_age: number | null;
-        max_age: number | null;
-        avg_degree_grade: number | null;
-        min_degree_grade: number | null;
-        max_degree_grade: number | null;
-        avg_years_to_degree: number | null;
-        min_years_to_degree: number | null;
-        max_years_to_degree: number | null;
-      }>(
-        `SELECT AVG(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) as avg_age,
-                MIN(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) as min_age,
-                MAX(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) as max_age,
-                AVG(g.degree_grade) as avg_degree_grade,
-                MIN(g.degree_grade) as min_degree_grade,
-                MAX(g.degree_grade) as max_degree_grade,
-                AVG(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as avg_years_to_degree,
-                MIN(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as min_years_to_degree,
-                MAX(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as max_years_to_degree
-         FROM graduates g ${sqlWhere}`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
-      const byYear = await sequelize.query<{ year: number; count: number }>(
-        `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
-                CAST(COUNT(*) AS INTEGER) as count
-         FROM graduates g ${sqlWhere}
-         GROUP BY EXTRACT(YEAR FROM g.graduation_date)
-         ORDER BY year ASC`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
-      const byTerm = await sequelize.query<{ year: number; term: string; count: number }>(
-        `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
-                CASE
-                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
-                  WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
-                  WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-                  ELSE 'other'
-                END as term,
-                CAST(COUNT(*) AS INTEGER) as count
-         FROM graduates g ${sqlWhere}
-         GROUP BY EXTRACT(YEAR FROM g.graduation_date),
-                  CASE
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
-                    WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
-                    ELSE 'other'
-                  END
-         ORDER BY year ASC`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
-      const genderRows = await sequelize.query<{ gender: string; count: number }>(
-        `SELECT g.gender as gender, CAST(COUNT(*) AS INTEGER) as count
-         FROM graduates g ${sqlWhere}
-         GROUP BY g.gender`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
-      const gender = { M: 0, F: 0 };
-      for (const r of genderRows) {
-        if (r.gender === 'M') gender.M = Number(r.count);
-        if (r.gender === 'F') gender.F = Number(r.count);
-      }
-      const genderByYear = await sequelize.query<{ year: number; male: number; female: number }>(
-        `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
-                CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
-                CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-         FROM graduates g ${sqlWhere}
-         GROUP BY EXTRACT(YEAR FROM g.graduation_date)
-         ORDER BY year ASC`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
-      const birthYearRows = await sequelize.query<{ year: number; count: number }>(
-        `SELECT ${birthYearExpr} as year,
-                CAST(COUNT(*) AS INTEGER) as count
-         FROM graduates g ${sqlWhere}
-         GROUP BY ${birthYearExpr}
-         ORDER BY year ASC`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
-      const countByEntryYear = await sequelize.query<{ entry_year: number; count: number }>(
-        `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
-                CAST(COUNT(*) AS INTEGER) as count
-         FROM graduates g ${sqlWhere}
-         GROUP BY g.entry_year
-         ORDER BY g.entry_year ASC`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
-      const genderByEntryYear = await sequelize.query<{ entry_year: number; male: number; female: number }>(
-        `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
-                CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
-                CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-         FROM graduates g ${sqlWhere}
-         GROUP BY g.entry_year
-         ORDER BY g.entry_year ASC`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
+      const gender = genderRowsToCounts(genderRows);
       const body = {
         ok: true,
         total,
@@ -221,120 +151,14 @@ export async function publicStats(req: Request, res: Response) {
     }
 
     if (section === "academic") {
-      const avgGradeByYear = await sequelize.query<{ year: number; avg: number }>(
-        `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
-                ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
-         FROM graduates g ${sqlWhere}
-         GROUP BY EXTRACT(YEAR FROM g.graduation_date)
-         ORDER BY year ASC`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
-      const degreeGradeBins = await sequelize.query<{ label: string; count: number }>(
-        `SELECT CASE
-                  WHEN g.degree_grade < 5 THEN '<5'
-                  WHEN g.degree_grade < 6 THEN '5-5.99'
-                  WHEN g.degree_grade < 7 THEN '6-6.99'
-                  WHEN g.degree_grade < 8 THEN '7-7.99'
-                  WHEN g.degree_grade < 9 THEN '8-8.99'
-                  ELSE '9-10'
-                END as label,
-                CAST(COUNT(*) AS INTEGER) as count
-         FROM graduates g ${sqlWhere}
-         GROUP BY CASE
-                    WHEN g.degree_grade < 5 THEN '<5'
-                    WHEN g.degree_grade < 6 THEN '5-5.99'
-                    WHEN g.degree_grade < 7 THEN '6-6.99'
-                    WHEN g.degree_grade < 8 THEN '7-7.99'
-                    WHEN g.degree_grade < 9 THEN '8-8.99'
-                    ELSE '9-10'
-                  END
-         ORDER BY label ASC`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
-      const degreeGradeBinsByGender = await sequelize.query<{ label: string; male: number; female: number }>(
-        `SELECT CASE
-                  WHEN g.degree_grade < 5 THEN '<5'
-                  WHEN g.degree_grade < 6 THEN '5-5.99'
-                  WHEN g.degree_grade < 7 THEN '6-6.99'
-                  WHEN g.degree_grade < 8 THEN '7-7.99'
-                  WHEN g.degree_grade < 9 THEN '8-8.99'
-                  ELSE '9-10'
-                END as label,
-                CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
-                CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-         FROM graduates g ${sqlWhere}
-         GROUP BY CASE
-                    WHEN g.degree_grade < 5 THEN '<5'
-                    WHEN g.degree_grade < 6 THEN '5-5.99'
-                    WHEN g.degree_grade < 7 THEN '6-6.99'
-                    WHEN g.degree_grade < 8 THEN '7-7.99'
-                    WHEN g.degree_grade < 9 THEN '8-8.99'
-                    ELSE '9-10'
-                  END
-         ORDER BY CASE
-                    WHEN CASE
-                      WHEN g.degree_grade < 5 THEN '<5'
-                      WHEN g.degree_grade < 6 THEN '5-5.99'
-                      WHEN g.degree_grade < 7 THEN '6-6.99'
-                      WHEN g.degree_grade < 8 THEN '7-7.99'
-                      WHEN g.degree_grade < 9 THEN '8-8.99'
-                      ELSE '9-10'
-                    END = '<5' THEN 1
-                    WHEN CASE
-                      WHEN g.degree_grade < 5 THEN '<5'
-                      WHEN g.degree_grade < 6 THEN '5-5.99'
-                      WHEN g.degree_grade < 7 THEN '6-6.99'
-                      WHEN g.degree_grade < 8 THEN '7-7.99'
-                      WHEN g.degree_grade < 9 THEN '8-8.99'
-                      ELSE '9-10'
-                    END = '5-5.99' THEN 2
-                    WHEN CASE
-                      WHEN g.degree_grade < 5 THEN '<5'
-                      WHEN g.degree_grade < 6 THEN '5-5.99'
-                      WHEN g.degree_grade < 7 THEN '6-6.99'
-                      WHEN g.degree_grade < 8 THEN '7-7.99'
-                      WHEN g.degree_grade < 9 THEN '8-8.99'
-                      ELSE '9-10'
-                    END = '6-6.99' THEN 3
-                    WHEN CASE
-                      WHEN g.degree_grade < 5 THEN '<5'
-                      WHEN g.degree_grade < 6 THEN '5-5.99'
-                      WHEN g.degree_grade < 7 THEN '6-6.99'
-                      WHEN g.degree_grade < 8 THEN '7-7.99'
-                      WHEN g.degree_grade < 9 THEN '8-8.99'
-                      ELSE '9-10'
-                    END = '7-7.99' THEN 4
-                    WHEN CASE
-                      WHEN g.degree_grade < 5 THEN '<5'
-                      WHEN g.degree_grade < 6 THEN '5-5.99'
-                      WHEN g.degree_grade < 7 THEN '6-6.99'
-                      WHEN g.degree_grade < 8 THEN '7-7.99'
-                      WHEN g.degree_grade < 9 THEN '8-8.99'
-                      ELSE '9-10'
-                    END = '8-8.99' THEN 5
-                    ELSE 6
-                  END ASC`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
-      const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
-        `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
-                ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
-         FROM graduates g ${sqlWhere}
-         GROUP BY g.entry_year
-         ORDER BY entry_year ASC`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
-      const yearsToDegreeDistributionWhere = sqlWhere
-        ? `${sqlWhere} AND g.graduation_date IS NOT NULL`
-        : 'WHERE g.graduation_date IS NOT NULL';
-      const yearsToDegreeDistribution = await sequelize.query<{ label: string; count: number }>(
-        `SELECT CAST((CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) AS TEXT) as label,
-                CAST(COUNT(*) AS INTEGER) as count
-         FROM graduates g ${yearsToDegreeDistributionWhere}
-         GROUP BY (CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year)
-         ORDER BY (CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) ASC`,
-        { replacements: repl, type: QueryTypes.SELECT }
-      );
+      const context = { sqlWhere, repl, birthExpr, birthYearExpr };
+      const [avgGradeByYear, degreeGradeBins, degreeGradeBinsByGender, avgYearsToDegreeByEntryYear, yearsToDegreeDistribution] = await Promise.all([
+        getAverageGradeByGraduationYear(context),
+        getDegreeGradeBins(context),
+        getDegreeGradeBinsByGender(context),
+        getAverageYearsToDegreeByEntryYear(context),
+        getYearsToDegreeDistribution(context),
+      ]);
       const originRegionJoin = `LEFT JOIN regions origin_region ON origin_region.id = g.origin_region_id
          LEFT JOIN regions origin_parent_region ON origin_parent_region.id = origin_region.parent_id
          LEFT JOIN regions r ON r.id = COALESCE(

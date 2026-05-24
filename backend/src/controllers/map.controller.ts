@@ -3,10 +3,10 @@ import type { Request, Response } from "express";
 import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
-import { col, fn, literal, QueryTypes } from "sequelize";
+import { col, fn, literal } from "sequelize";
 import { ensureLocalizedRegionNames, resolveMapLocation } from "../services/mapLocation.service";
-import { sequelize } from "../config/sequelize";
 import { buildMapWhere, calculateAgeAtDate, isAbroadMapGraduate, isGreekMapGraduate, loadRegions, normalizeKey, pickTopName, toInt } from "./map.helpers";
+import { getGraduationYears } from "../services/analyticsAggregations.service";
 
 const ATHENS_GROUP_KEY = "athens";
 const ATHENS_GROUP = {
@@ -607,19 +607,7 @@ export async function getMapCities(req: Request, res: Response) {
 // Βρίσκει ελάχιστο/μέγιστο έτος αποφοίτησης για τον slider χάρτη.
 export async function getMapYearRange(req: Request, res: Response) {
   try {
-    const rows = await sequelize.query<{ year: number | null }>(
-      `SELECT DISTINCT DATE_PART('year', graduation_date)::INTEGER AS year
-       FROM graduates
-       WHERE graduation_date IS NOT NULL
-       ORDER BY year ASC`,
-      { type: QueryTypes.SELECT }
-    );
-
-    const years = rows
-      .map((row) => Number(row.year))
-      .filter((year) => Number.isFinite(year) && year > 1900)
-      .sort((left, right) => left - right);
-
+    const years = await getGraduationYears();
     return res.json({ ok: true, years, min_year: years[0] ?? null, max_year: years.length ? years[years.length - 1] : null });
   } catch (error) {
     console.error("[map] failed to load year range:", (error as Error)?.message ?? error);
