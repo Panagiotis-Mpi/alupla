@@ -24,7 +24,7 @@ const inputStyle: React.CSSProperties = {
 const ROLE_OPTIONS: Role[] = ["secretariat", "super_admin"];
 
 function Login() {
-  const { t } = useTranslation("auth");
+  const { t } = useTranslation(["auth", "users"]);
   const navigate = useNavigate();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -106,7 +106,7 @@ function Login() {
             />
           </label>
 
-          <label style={labelStyle}>
+          <label className="auth-password-field" style={labelStyle}>
             <span className="auth-form-label" style={labelTextStyle}>{t("login.password")}</span>
             <input
               type="password"
@@ -116,6 +116,7 @@ function Login() {
               onChange={(e) => setPassword(e.target.value)}
               style={inputStyle}
             />
+            <div className="muted auth-password-help">{t("labels.passwordHint", { ns: "users" })}</div>
           </label>
 
           {err && (

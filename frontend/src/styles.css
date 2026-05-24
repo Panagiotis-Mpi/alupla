@@ -2709,10 +2709,10 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
 }
 .auth-form-heading{
   display:grid;
-  justify-items:center;
+  justify-items:start;
   gap:.35rem;
   margin:0 0 1.25rem;
-  text-align:center;
+  text-align:left;
 }
 .auth-form-heading-login{
   margin-bottom:1.35rem;
@@ -2728,7 +2728,7 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
 .auth-logo-lockup{
   display:flex;
   align-items:center;
-  justify-content:center;
+  justify-content:flex-start;
   gap:10px;
   color:#1e3a8a;
   font-size:2rem;
@@ -2777,6 +2777,16 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
   border-color:#dbeafe;
   background:#fff;
   font-size:1rem;
+}
+
+.auth-password-help{
+  display:none;
+  white-space:pre-line;
+  margin-top:-2px;
+}
+.auth-password-field:hover .auth-password-help,
+.auth-password-field:focus-within .auth-password-help{
+  display:block;
 }
 .auth-form-message{
   border-radius:12px;

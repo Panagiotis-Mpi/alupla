@@ -19,7 +19,7 @@ function isAllowedRegistrationEmail(value: string) {
 }
 
 export default function Register() {
-  const { t } = useTranslation("auth");
+  const { t } = useTranslation(["auth", "users"]);
   const navigate = useNavigate();
   const [first, setFirst] = React.useState("");
   const [last, setLast] = React.useState("");
@@ -94,8 +94,8 @@ export default function Register() {
             />
           </label>
 
-          <label style={labelStyle}>
-            <span className="auth-form-label">{t("register.passwordHint")}</span>
+          <label className="auth-password-field" style={labelStyle}>
+            <span className="auth-form-label">{t("login.password")}</span>
             <input
               type="password"
               autoComplete="new-password"
@@ -103,6 +103,7 @@ export default function Register() {
               onChange={(e) => setPw(e.target.value)}
               className="input auth-form-input"
             />
+            <div className="muted auth-password-help">{t("labels.passwordHint", { ns: "users" })}</div>
           </label>
 
           {err && <div className="auth-form-message auth-form-message-error">{err}</div>}
