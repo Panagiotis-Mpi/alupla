@@ -95,7 +95,11 @@ export default function Register() {
           </label>
 
           <label className="auth-password-field" style={labelStyle}>
-            <span className="auth-form-label">{t("login.password")}</span>
+            <span className="auth-form-label auth-password-label-row">
+              {t("login.password")}
+              <span className="auth-password-info" aria-label={t("labels.passwordHint", { ns: "users" })} tabIndex={0}>i</span>
+              <span className="auth-password-help-bubble muted">{t("labels.passwordHint", { ns: "users" })}</span>
+            </span>
             <input
               type="password"
               autoComplete="new-password"
@@ -103,7 +107,6 @@ export default function Register() {
               onChange={(e) => setPw(e.target.value)}
               className="input auth-form-input"
             />
-            <div className="muted auth-password-help">{t("labels.passwordHint", { ns: "users" })}</div>
           </label>
 
           {err && <div className="auth-form-message auth-form-message-error">{err}</div>}

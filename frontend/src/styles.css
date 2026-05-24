@@ -2779,13 +2779,52 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
   font-size:1rem;
 }
 
-.auth-password-help{
-  display:none;
-  white-space:pre-line;
-  margin-top:-2px;
+.auth-password-field{
+  position:relative;
 }
-.auth-password-field:hover .auth-password-help,
-.auth-password-field:focus-within .auth-password-help{
+.auth-password-label-row{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  width:max-content;
+}
+.auth-password-info{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:17px;
+  height:17px;
+  border-radius:999px;
+  border:1px solid #bfdbfe;
+  background:#eff6ff;
+  color:#1d4ed8;
+  font-size:11px;
+  line-height:1;
+  font-weight:800;
+  cursor:help;
+}
+.auth-password-help-bubble{
+  position:absolute;
+  left:calc(100% + 10px);
+  top:50%;
+  transform:translateY(-50%);
+  z-index:20;
+  display:none;
+  width:max-content;
+  max-width:280px;
+  white-space:pre-line;
+  padding:10px 12px;
+  border:1px solid #dbeafe;
+  border-radius:12px;
+  background:#ffffff;
+  box-shadow:0 12px 26px rgba(30,58,138,.14);
+  color:#475569;
+  font-size:12px;
+  line-height:1.35;
+}
+.auth-password-field:hover .auth-password-help-bubble,
+.auth-password-field:focus-within .auth-password-help-bubble{
   display:block;
 }
 .auth-form-message{

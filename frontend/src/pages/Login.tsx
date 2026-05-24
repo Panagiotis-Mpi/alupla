@@ -106,7 +106,7 @@ function Login() {
             />
           </label>
 
-          <label className="auth-password-field" style={labelStyle}>
+          <label style={labelStyle}>
             <span className="auth-form-label" style={labelTextStyle}>{t("login.password")}</span>
             <input
               type="password"
@@ -116,7 +116,6 @@ function Login() {
               onChange={(e) => setPassword(e.target.value)}
               style={inputStyle}
             />
-            <div className="muted auth-password-help">{t("labels.passwordHint", { ns: "users" })}</div>
           </label>
 
           {err && (
