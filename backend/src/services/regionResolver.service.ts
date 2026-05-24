@@ -2,6 +2,7 @@ import { Region, type RegionType } from "../models/Region";
 import { ensureGreekCityRegion } from "./mapLocation.service";
 import { cleanRegionText, normalizeRegionText } from "../utils/regionText";
 import { clearGraduateLocalizationCache } from "./graduateLocalization.service";
+import { getGreekNomosNormalizedName } from "./greekNomosLookup.service";
 
 type ResolveOriginInput = {
   origin_country_region_id?: number | null;
@@ -207,7 +208,8 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
       }
 
       if (!nomos && rawMunicipality) {
-        nomos = pickScopedRegion(nomosByKey.get(normalizedMunicipality) ?? [], periphery?.id ?? null, byId, "greece");
+        const nomosKey = getGreekNomosNormalizedName(rawMunicipality);
+        nomos = pickScopedRegion(nomosByKey.get(nomosKey || normalizedMunicipality) ?? [], periphery?.id ?? null, byId, "greece");
       }
 
       if (!periphery) {
@@ -216,7 +218,9 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
     }
 
     if (city?.type === "CITY" || city?.type === "DIMOS") {
-      nomos = getAncestor(city.id, "NOMOS", byId) ?? nomos;
+      const nomosKey = getGreekNomosNormalizedName(city.name || rawMunicipality);
+      const mappedNomos = nomosKey ? pickScopedRegion(nomosByKey.get(nomosKey) ?? [], periphery?.id ?? null, byId, "greece") : null;
+      nomos = getAncestor(city.id, "NOMOS", byId) ?? mappedNomos ?? nomos;
     }
 
     if (nomos?.type === "NOMOS") {

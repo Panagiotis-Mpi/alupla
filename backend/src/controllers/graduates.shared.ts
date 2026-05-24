@@ -7,6 +7,7 @@ import {
   type NormalizedOriginResult,
 } from "../services/regionResolver.service";
 import { normalizeRegionText } from "../utils/regionText";
+import { getGreekNomosNormalizedName } from "../services/greekNomosLookup.service";
 import {
   formatCountryValue,
   formatDateDisplay,
@@ -104,13 +105,41 @@ function getRegionAncestor(
   return null;
 }
 
+function findNomosByCityName(
+  regionsById: Map<number, RegionLookup>,
+  cityName: unknown,
+  peripheryId: number | null,
+) {
+  const nomosKey = getGreekNomosNormalizedName(cityName);
+  if (!nomosKey) return null;
+  const candidates = [...regionsById.values()].filter(
+    (item) => String(item.type) === "NOMOS" && normalizeRegionText(item.normalized_name || item.name) === nomosKey,
+  );
+  if (!candidates.length) return null;
+  if (peripheryId) {
+    const scoped = candidates.find(
+      (item) => Number(item.parent_id) === peripheryId,
+    );
+    if (scoped) return scoped;
+  }
+  return candidates[0] ?? null;
+}
+
 function resolveGraduateNomosId(
   row: GraduateExportSource,
   regionsById: Map<number, RegionLookup>,
 ) {
   const direct = regionsById.get(Number(row.origin_region_id));
   if (direct && String(direct.type) === "NOMOS") return Number(direct.id);
-  return getRegionAncestor(regionsById, row.origin_city_region_id, "NOMOS")?.id ?? null;
+  const ancestor = getRegionAncestor(regionsById, row.origin_city_region_id, "NOMOS");
+  if (ancestor) return Number(ancestor.id);
+  const city = regionsById.get(Number(row.origin_city_region_id));
+  const peripheryId = resolveGraduatePeripheryId(row, regionsById);
+  return findNomosByCityName(
+    regionsById,
+    row.origin_municipality || city?.name,
+    peripheryId,
+  )?.id ?? null;
 }
 
 function resolveGraduatePeripheryId(
@@ -499,6 +528,11 @@ export function buildResolvedOriginSnapshot<T extends ManagedOriginTarget>(
       : (item.origin_region_id ??
           getRegionAncestor(regionsById, item.origin_city_region_id, "NOMOS")
             ?.id ??
+          findNomosByCityName(
+            regionsById,
+            item.origin_municipality,
+            item.origin_periphery_region_id ?? null,
+          )?.id ??
           null),
     origin_city_region_id: isAbroad
       ? null

@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import { Region } from "../models/Region";
 import { cleanRegionText, normalizeRegionText } from "../utils/regionText";
+import { getGreekNomosNormalizedName } from "./greekNomosLookup.service";
 
 type RegionLite = {
   id: number;
@@ -71,6 +72,7 @@ type RegionLookups = {
   cityByNormalized: Map<string, RegionLite[]>;
   peripheryByNormalized: Map<string, RegionLite>;
   countryByNormalized: Map<string, RegionLite>;
+  nomosByNormalized: Map<string, RegionLite[]>;
 };
 
 const MAX_PARENT_STEPS = 25;
@@ -206,6 +208,7 @@ async function loadRegionLookups() {
       const cityByNormalized = new Map<string, RegionLite[]>();
       const peripheryByNormalized = new Map<string, RegionLite>();
       const countryByNormalized = new Map<string, RegionLite>();
+      const nomosByNormalized = new Map<string, RegionLite[]>();
 
       for (const row of rows as any[]) {
         const item: RegionLite = {
@@ -229,12 +232,17 @@ async function loadRegionLookups() {
         if (item.type === "PERIPHERY" && item.normalized_name && !peripheryByNormalized.has(item.normalized_name)) {
           peripheryByNormalized.set(item.normalized_name, item);
         }
+        if (item.type === "NOMOS" && item.normalized_name) {
+          const current = nomosByNormalized.get(item.normalized_name) || [];
+          current.push(item);
+          nomosByNormalized.set(item.normalized_name, current);
+        }
         if (item.type === "COUNTRY" && item.normalized_name && !countryByNormalized.has(item.normalized_name)) {
           countryByNormalized.set(item.normalized_name, item);
         }
       }
 
-      return { byId, cityByNormalized, peripheryByNormalized, countryByNormalized };
+      return { byId, cityByNormalized, peripheryByNormalized, countryByNormalized, nomosByNormalized };
     });
   }
   return regionLookupPromise;
@@ -310,6 +318,19 @@ async function findPeripheryByCoords(latitude: number, longitude: number) {
 }
 
 // Προσπαθεί να βρει περιφέρεια από address/geocoding response.
+
+function getNomosFromCityName(cityName: string | null | undefined, preferredPeripheryId: number | null, lookups: RegionLookups) {
+  const nomosKey = getGreekNomosNormalizedName(cityName);
+  if (!nomosKey) return null;
+  const candidates = lookups.nomosByNormalized.get(nomosKey) || [];
+  if (!candidates.length) return null;
+  if (preferredPeripheryId) {
+    const scoped = candidates.find((item) => getPeripheryFromRegionId(item.id, lookups.byId)?.id === preferredPeripheryId);
+    if (scoped) return scoped;
+  }
+  return candidates[0] ?? null;
+}
+
 function peripheryFromAddress(address: Record<string, string> | undefined, peripheryByNormalized: Map<string, RegionLite>) {
   if (!address) return null;
   const candidates = [
@@ -636,13 +657,13 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
     if (scopedMatch) {
       city = scopedMatch;
     } else {
-// Αν βρεθεί νέα πόλη από geocoding, αποθηκεύεται για επόμενα imports/χάρτη.
+      const nomos = getNomosFromCityName(cityName, peripheryId, lookups);
       city = await Region.create({
         name: cityName,
         normalized_name: normalizedCityName,
         external_ref_id: geocoded.externalRefId,
         type: "CITY",
-        parent_id: peripheryId,
+        parent_id: nomos?.id ?? peripheryId,
         latitude: geocoded.lat,
         longitude: geocoded.lng,
       } as any) as any;
