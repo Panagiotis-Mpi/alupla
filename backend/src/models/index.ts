@@ -5,7 +5,6 @@ import { StudyProgram } from "./StudyProgram";
 import { Graduate } from "./Graduate";
 import { ActivityLog } from "./ActivityLog";
 import { Region } from "./Region";
-import { RegionAlias } from "./RegionAlias";
 import { ensureCountriesSeeded } from "../seed/countries";
 import { ensurePeripheriesSeeded } from "../seed/peripheries";
 import { ensureRegionCitiesSeeded } from "../seed/regionCities";
@@ -28,10 +27,6 @@ function setupAssociations() {
   Graduate.belongsTo(Region, { foreignKey: "origin_region_id", as: "originRegion" });
   Region.hasMany(Graduate, { foreignKey: "origin_city_region_id" });
   Graduate.belongsTo(Region, { foreignKey: "origin_city_region_id", as: "originCity" });
-
-  Region.hasMany(RegionAlias, { foreignKey: "region_id", as: "aliases" });
-  RegionAlias.belongsTo(Region, { foreignKey: "region_id", as: "region" });
-
 
   User.hasMany(ActivityLog, { foreignKey: "user_id" });
   ActivityLog.belongsTo(User, { foreignKey: "user_id", as: "user" });
@@ -76,26 +71,11 @@ async function ensureSchema() {
   await ensureColumn("graduates", "origin_country_region_id", { type: DataTypes.INTEGER, allowNull: true });
   await ensureColumn("graduates", "origin_periphery_region_id", { type: DataTypes.INTEGER, allowNull: true });
   await ensureColumn("graduates", "origin_city_region_id", { type: DataTypes.INTEGER, allowNull: true });
-  const tables = await qi.showAllTables();
-  const tableNames = tables.map((item: any) => (typeof item === "string" ? item : item.tableName || item.toString()));
-
-  if (!tableNames.includes("region_aliases")) {
-    await qi.createTable("region_aliases", {
-      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true, allowNull: false },
-      region_id: { type: DataTypes.INTEGER, allowNull: false },
-      alias: { type: DataTypes.STRING(255), allowNull: false },
-      normalized_alias: { type: DataTypes.STRING(255), allowNull: false, defaultValue: "" },
-      alias_type: { type: DataTypes.STRING(30), allowNull: false, defaultValue: "manual" },
-      created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
-      updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
-    });
-  }
 }
 
 async function ensureAppIndexes() {
   await ensureIndex("regions", ["type", "normalized_name"], "regions_type_normalized_name_idx");
   await ensureIndex("regions", ["normalized_name", "parent_id", "type"], "regions_city_scope_idx", { unique: true, where: { type: ["CITY", "FOREIGN_CITY"] } as any });
-  await ensureIndex("region_aliases", ["normalized_alias", "region_id"], "region_aliases_normalized_alias_region_id_idx", { unique: true });
 }
 
 // Γεμίζει βασικές χώρες/περιφέρειες/πόλεις αν λείπουν.
@@ -121,14 +101,6 @@ async function backfillRegions() {
     if (normalized && normalized !== String(row.normalized_name || "")) payload.normalized_name = normalized;
     if (row.type === "PERIPHERY" && greece && row.parent_id == null) payload.parent_id = Number(greece.id);
     if (Object.keys(payload).length) await row.update(payload, { silent: true });
-  }
-
-  const aliases = await RegionAlias.findAll({ attributes: ["id", "alias", "normalized_alias"] });
-  for (const row of aliases as any[]) {
-    const normalized = normalizeRegionText(row.alias);
-    if (normalized && normalized !== String(row.normalized_alias || "")) {
-      await row.update({ normalized_alias: normalized }, { silent: true });
-    }
   }
 
   for (const row of rows as any[]) {

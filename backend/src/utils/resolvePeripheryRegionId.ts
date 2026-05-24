@@ -1,6 +1,5 @@
 // Μετατρέπει χώρα/περιφέρεια/πόλη καταγωγής σε σωστά region ids της βάσης.
 import { Region, type RegionType } from "../models/Region";
-import { RegionAlias } from "../models/RegionAlias";
 import { ensureGreekCityRegion } from "../services/mapLocation.service";
 import { cleanRegionText, normalizeRegionText } from "./regionText";
 
@@ -21,10 +20,6 @@ type RegionLite = {
   parent_id: number | null;
 };
 
-type RegionAliasLite = {
-  region_id: number;
-  normalized_alias: string;
-};
 
 type RegionLookups = {
   byId: Map<number, RegionLite>;
@@ -34,7 +29,6 @@ type RegionLookups = {
   foreignCityByKey: Map<string, RegionLite[]>;
   peripheryByKey: Map<string, RegionLite[]>;
   countryByKey: Map<string, RegionLite[]>;
-  aliasByKey: Map<string, RegionLite[]>;
 };
 
 export type NormalizedOriginResult = {
@@ -111,7 +105,7 @@ function toRegionLite(row: Region) {
 }
 
 // Φτιάχνει maps για γρήγορη εύρεση regions με id/name.
-function createRegionLookups(regions: Region[], aliases: RegionAliasLite[]) {
+function createRegionLookups(regions: Region[]) {
   const lookups: RegionLookups = {
     byId: new Map<number, RegionLite>(),
     cityByKey: new Map<string, RegionLite[]>(),
@@ -120,7 +114,6 @@ function createRegionLookups(regions: Region[], aliases: RegionAliasLite[]) {
     foreignCityByKey: new Map<string, RegionLite[]>(),
     peripheryByKey: new Map<string, RegionLite[]>(),
     countryByKey: new Map<string, RegionLite[]>(),
-    aliasByKey: new Map<string, RegionLite[]>(),
   };
 
   for (const row of regions) {
@@ -139,42 +132,25 @@ function createRegionLookups(regions: Region[], aliases: RegionAliasLite[]) {
     if (region.type === "COUNTRY") pushMatch(lookups.countryByKey, region.normalized_name, region);
   }
 
-  for (const alias of aliases) {
-    const region = lookups.byId.get(Number(alias.region_id));
-    const key = String(alias.normalized_alias ?? "");
-
-    if (!region || !key) {
-      continue;
-    }
-
-    pushMatch(lookups.aliasByKey, key, region);
-  }
-
   return lookups;
 }
 
 // Φορτώνει και cache-άρει lookups περιοχών για γρήγορο matching.
 async function loadRegionLookups() {
   if (!regionLookupsCache) {
-    regionLookupsCache = Promise.all([
-      Region.findAll({ attributes: ["id", "name", "normalized_name", "type", "parent_id"] }),
-      RegionAlias.findAll({ attributes: ["region_id", "normalized_alias"], raw: true }) as Promise<RegionAliasLite[]>,
-    ]).then(([regions, aliases]) => createRegionLookups(regions, aliases));
+    regionLookupsCache = Region.findAll({ attributes: ["id", "name", "normalized_name", "type", "parent_id"] }).then((regions) => createRegionLookups(regions));
   }
 
   return regionLookupsCache;
 }
 
 // Βρίσκει χώρα από κείμενο import/φόρμας.
-function findCountryFromText(value: string, countryByKey: Map<string, RegionLite[]>, aliasByKey: Map<string, RegionLite[]>) {
+function findCountryFromText(value: string, countryByKey: Map<string, RegionLite[]>) {
 // Το matching γίνεται πάνω σε καθαρισμένο όνομα περιοχής.
   const normalized = normalizeRegionText(value);
   if (!normalized) return null;
 
-  const directMatch = (countryByKey.get(normalized) ?? [])[0];
-  if (directMatch) return directMatch;
-
-  return (aliasByKey.get(normalized) ?? []).find((item) => item.type === "COUNTRY") ?? null;
+  return (countryByKey.get(normalized) ?? [])[0] ?? null;
 }
 
 // Καθαρίζει cache lookup περιοχών.
@@ -184,7 +160,7 @@ export function clearRegionLookupCache() {
 
 // Μετατρέπει καταγωγή φόρμας/import σε συνεπή region ids.
 export async function normalizeOriginLocation(input: ResolveOriginInput): Promise<NormalizedOriginResult> {
-  let { byId, cityByKey, nomosByKey, dimosByKey, foreignCityByKey, peripheryByKey, countryByKey, aliasByKey } = await loadRegionLookups();
+  let { byId, cityByKey, nomosByKey, dimosByKey, foreignCityByKey, peripheryByKey, countryByKey } = await loadRegionLookups();
 
   const rawMunicipality = cleanRegionText(input.origin_municipality);
   const normalizedMunicipality = normalizeRegionText(rawMunicipality);
@@ -201,7 +177,7 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
   if (!country && periphery) country = getAncestor(periphery.id, "COUNTRY", byId);
   if (!country && city) country = getAncestor(city.id, "COUNTRY", byId);
   if (!periphery && (city?.type === "CITY" || city?.type === "DIMOS")) periphery = getAncestor(city.id, "PERIPHERY", byId);
-  if (!country && rawMunicipality) country = findCountryFromText(rawMunicipality, countryByKey, aliasByKey);
+  if (!country && rawMunicipality) country = findCountryFromText(rawMunicipality, countryByKey);
 
   if (!country) {
     country = (countryByKey.get(normalizeRegionText("Ελλάδα")) ?? [])[0] ?? null;
@@ -217,18 +193,11 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
         city = pickScopedRegion(dimosByKey.get(normalizedMunicipality) ?? [], nomos?.id ?? periphery?.id ?? null, byId, "greece") ?? pickScopedRegion(cityByKey.get(normalizedMunicipality) ?? [], periphery?.id ?? null, byId, "greece");
       }
 
-      if (!city) {
-        const aliasMatch = pickScopedRegion(aliasByKey.get(normalizedMunicipality) ?? [], nomos?.id ?? periphery?.id ?? null, byId, "greece");
-        if (aliasMatch?.type === "CITY" || aliasMatch?.type === "DIMOS") {
-          city = aliasMatch;
-        }
-      }
-
       if (!city && input.allowOnlineLookup !== false) {
         const onlineCity = await ensureGreekCityRegion(rawMunicipality, periphery?.id ?? null);
         if (onlineCity?.origin_city_region_id) {
           clearRegionLookupCache();
-          ({ byId, cityByKey, nomosByKey, dimosByKey, foreignCityByKey, peripheryByKey, countryByKey, aliasByKey } = await loadRegionLookups());
+          ({ byId, cityByKey, nomosByKey, dimosByKey, foreignCityByKey, peripheryByKey, countryByKey } = await loadRegionLookups());
           city = byId.get(Number(onlineCity.origin_city_region_id)) ?? null;
           if (!periphery && onlineCity.origin_periphery_region_id) {
             periphery = byId.get(Number(onlineCity.origin_periphery_region_id)) ?? null;
@@ -273,13 +242,6 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
   if (normalizedMunicipality) {
     if (!city || city.type !== "FOREIGN_CITY") {
       city = pickScopedRegion(foreignCityByKey.get(normalizedMunicipality) ?? [], country?.id ?? null, byId, "foreign");
-    }
-
-    if (!city) {
-      const aliasMatch = pickScopedRegion(aliasByKey.get(normalizedMunicipality) ?? [], country?.id ?? null, byId, "foreign");
-      if (aliasMatch?.type === "FOREIGN_CITY") {
-        city = aliasMatch;
-      }
     }
   }
 
