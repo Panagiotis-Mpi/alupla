@@ -1,6 +1,7 @@
 import { Region, type RegionType } from "../models/Region";
 import { ensureGreekCityRegion } from "./mapLocation.service";
 import { cleanRegionText, normalizeRegionText } from "../utils/regionText";
+import { clearGraduateLocalizationCache } from "./graduateLocalization.service";
 
 type ResolveOriginInput = {
   origin_country_region_id?: number | null;
@@ -155,6 +156,7 @@ function findCountryFromText(value: string, countryByKey: Map<string, RegionLite
 // Καθαρίζει cache lookup περιοχών.
 export function clearRegionLookupCache() {
   regionLookupsCache = null;
+  clearGraduateLocalizationCache();
 }
 
 // Μετατρέπει καταγωγή φόρμας/import σε συνεπή region ids.
@@ -171,7 +173,7 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
   let city = input.origin_city_region_id != null ? byId.get(Number(input.origin_city_region_id)) ?? null : null;
 
   if (!periphery && legacyRegion?.type === "PERIPHERY") periphery = legacyRegion;
-  if (!nomos && city?.type === "DIMOS") nomos = getAncestor(city.id, "NOMOS", byId);
+  if (!nomos && (city?.type === "CITY" || city?.type === "DIMOS")) nomos = getAncestor(city.id, "NOMOS", byId);
   if (!periphery && nomos) periphery = getAncestor(nomos.id, "PERIPHERY", byId);
   if (!country && periphery) country = getAncestor(periphery.id, "COUNTRY", byId);
   if (!country && city) country = getAncestor(city.id, "COUNTRY", byId);
@@ -213,7 +215,7 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
       }
     }
 
-    if (city?.type === "DIMOS") {
+    if (city?.type === "CITY" || city?.type === "DIMOS") {
       nomos = getAncestor(city.id, "NOMOS", byId) ?? nomos;
     }
 

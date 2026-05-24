@@ -34,6 +34,7 @@ export type RegionLookup = Pick<
   | "normalized_name"
   | "external_ref_id"
   | "type"
+  | "parent_id"
 >;
 export type LocalizedNamesByRegionId = Map<
   number,
@@ -82,6 +83,47 @@ function isInvalidNullableNumber(value: number | null) {
 }
 
 // Βρίσκει το όνομα περιοχής στη σωστή γλώσσα.
+
+function getRegionAncestor(
+  regionsById: Map<number, RegionLookup>,
+  value: unknown,
+  targetType: string,
+) {
+  const startId = Number(value);
+  if (!Number.isFinite(startId) || startId <= 0) return null;
+  let current = regionsById.get(startId) ?? null;
+  let steps = 0;
+
+  while (current && steps < 25) {
+    if (String(current.type) === targetType) return current;
+    const parentId = Number(current.parent_id);
+    current = Number.isFinite(parentId) && parentId > 0 ? regionsById.get(parentId) ?? null : null;
+    steps += 1;
+  }
+
+  return null;
+}
+
+function resolveGraduateNomosId(
+  row: GraduateExportSource,
+  regionsById: Map<number, RegionLookup>,
+) {
+  const direct = regionsById.get(Number(row.origin_region_id));
+  if (direct && String(direct.type) === "NOMOS") return Number(direct.id);
+  return getRegionAncestor(regionsById, row.origin_city_region_id, "NOMOS")?.id ?? null;
+}
+
+function resolveGraduatePeripheryId(
+  row: GraduateExportSource,
+  regionsById: Map<number, RegionLookup>,
+) {
+  const direct = regionsById.get(Number(row.origin_periphery_region_id));
+  if (direct && String(direct.type) === "PERIPHERY") return Number(direct.id);
+  const fromNomos = getRegionAncestor(regionsById, row.origin_region_id, "PERIPHERY");
+  if (fromNomos) return Number(fromNomos.id);
+  return getRegionAncestor(regionsById, row.origin_city_region_id, "PERIPHERY")?.id ?? null;
+}
+
 function getRegionNameById(
   regionsById: Map<number, RegionLookup>,
   value: unknown,
@@ -126,11 +168,11 @@ function getNomosExportName(
   localizedNamesById?: LocalizedNamesByRegionId,
 ) {
   if (!isGreece) return "";
-  const region = regionsById.get(Number(row.origin_region_id));
-  if (!region || String(region.type) !== "NOMOS") return "";
+  const nomosId = resolveGraduateNomosId(row, regionsById);
+  if (!nomosId) return "";
   return getRegionNameById(
     regionsById,
-    row.origin_region_id,
+    nomosId,
     lang,
     localizedNamesById,
   );
@@ -202,9 +244,7 @@ export function buildExportRows(
 
   return [...rows].sort(compareDiplomaNumber).map((row) => {
     const studyProgram = programsById.get(Number(row.study_program_id));
-    const regionId = Number(
-      row.origin_periphery_region_id ?? row.origin_region_id,
-    );
+    const regionId = resolveGraduatePeripheryId(row, regionsById);
     const country = regionsById.get(Number(row.origin_country_region_id));
     const countryExportName = getCountryExportName(
       row,
@@ -454,7 +494,12 @@ export function buildResolvedOriginSnapshot<T extends ManagedOriginTarget>(
     origin_periphery_region_id: isAbroad
       ? null
       : (item.origin_periphery_region_id ?? null),
-    origin_region_id: isAbroad ? null : (item.origin_region_id ?? null),
+    origin_region_id: isAbroad
+      ? null
+      : (item.origin_region_id ??
+          getRegionAncestor(regionsById, item.origin_city_region_id, "NOMOS")
+            ?.id ??
+          null),
     origin_city_region_id: isAbroad
       ? null
       : (item.origin_city_region_id ?? null),
