@@ -9,7 +9,7 @@ import { ensureCountriesSeeded } from "../seed/countries";
 import { ensurePeripheriesSeeded } from "../seed/peripheries";
 import { ensureRegionCitiesSeeded } from "../seed/regionCities";
 import { normalizeRegionText } from "../utils/regionText";
-import { normalizeOriginLocation } from "../utils/resolvePeripheryRegionId";
+import { normalizeOriginLocation } from "../services/regionResolver.service";
 
 // Ορίζει τις σχέσεις ανάμεσα στα models.
 function setupAssociations() {

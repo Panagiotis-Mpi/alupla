@@ -2,7 +2,7 @@
 import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
-import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
+import { normalizeOriginLocation, type NormalizedOriginResult } from "../services/regionResolver.service";
 import { normalizeRegionText } from "../utils/regionText";
 import {
   formatCountryValue,

@@ -37,7 +37,7 @@ import {
   trimNullableText,
 } from "./graduates.helpers";
 import { applyOriginPatch, buildCreateOriginPayload, buildExportRows, buildResolvedOriginSnapshot, ensureManagedOrigin, getReferenceMaps, getTemplateHeaders, resolveRegionId, resolveStudyProgramId, type LocalizedNamesByRegionId } from "./graduates.shared";
-import { normalizeOriginLocation, type NormalizedOriginResult } from "../utils/resolvePeripheryRegionId";
+import { normalizeOriginLocation, type NormalizedOriginResult } from "../services/regionResolver.service";
 import { clearRouteCaches } from "../utils/routeCache";
 import { clearPublicStatsCache } from "./public.controller";
 import { sanitizeExportRows } from "../utils/exportSafety";

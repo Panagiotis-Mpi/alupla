@@ -1,7 +1,6 @@
-// Μετατρέπει χώρα/περιφέρεια/πόλη καταγωγής σε σωστά region ids της βάσης.
 import { Region, type RegionType } from "../models/Region";
-import { ensureGreekCityRegion } from "../services/mapLocation.service";
-import { cleanRegionText, normalizeRegionText } from "./regionText";
+import { ensureGreekCityRegion } from "./mapLocation.service";
+import { cleanRegionText, normalizeRegionText } from "../utils/regionText";
 
 type ResolveOriginInput = {
   origin_country_region_id?: number | null;
