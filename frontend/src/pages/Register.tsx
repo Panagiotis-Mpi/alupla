@@ -26,6 +26,7 @@ export default function Register() {
   const [email, setEmail] = React.useState("");
   const [pw, setPw] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+  const [showPasswordHelp, setShowPasswordHelp] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
   const [ok, setOk] = React.useState<string | null>(null);
 
@@ -97,8 +98,19 @@ export default function Register() {
           <label className="auth-password-field" style={labelStyle}>
             <span className="auth-form-label auth-password-label-row">
               {t("login.password")}
-              <span className="auth-password-info" aria-label={t("labels.passwordHint", { ns: "users" })} tabIndex={0}>i</span>
-              <span className="auth-password-help-bubble muted">{t("labels.passwordHint", { ns: "users" })}</span>
+              <button
+                type="button"
+                className="auth-password-info"
+                aria-label={t("labels.passwordHint", { ns: "users" })}
+                aria-expanded={showPasswordHelp}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowPasswordHelp((value) => !value);
+                }}
+              >
+                i
+              </button>
+              <span className={`auth-password-help-bubble muted${showPasswordHelp ? " is-visible" : ""}`}>{t("labels.passwordHint", { ns: "users" })}</span>
             </span>
             <input
               type="password"
