@@ -67,7 +67,7 @@ function RoleSelect({ value, labelSecretariat, labelSuperAdmin, onChange }: Role
 }
 
 export default function Users() {
-  const { t } = useTranslation("users");
+  const { t, i18n } = useTranslation("users");
 
   const [items, setItems] = React.useState<AdminUser[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -117,7 +117,7 @@ export default function Users() {
   async function onCreate() {
     try {
       setOk(null);
-      const response = await createUser(form);
+      const response = await createUser({ ...form, language: i18n.language });
       setOk(response.mail_sent ? t("messages.createdWithEmail") : t("messages.createdWithoutEmail"));
       setForm(emptyForm);
       await load();

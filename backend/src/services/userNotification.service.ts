@@ -1,9 +1,12 @@
+type EmailLanguage = "gr" | "en";
+
 type NewUserAccountEmailInput = {
   firstName: string;
   lastName: string;
   email: string;
   role: "super_admin" | "secretariat";
   password: string;
+  language?: string;
 };
 
 function readEnv(...names: string[]) {
@@ -26,6 +29,18 @@ function mailFromName() {
   return readEnv("MAIL_FROM_NAME", "BREVO_FROM_NAME") || "ALUPLA";
 }
 
+function appUrl() {
+  return readEnv("APP_URL", "FRONTEND_URL", "PUBLIC_APP_URL") || "https://alupla.vercel.app";
+}
+
+function normalizedAppUrl() {
+  return appUrl().replace(/\/+$/, "");
+}
+
+function loginUrl() {
+  return `${normalizedAppUrl()}/login`;
+}
+
 function isMailConfigured() {
   return Boolean(brevoApiKey() && mailFrom());
 }
@@ -39,8 +54,14 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#39;");
 }
 
-function accountRoleLabel(role: NewUserAccountEmailInput["role"]) {
-  return role === "super_admin" ? "Διαχειριστής / Administrator" : "Γραμματεία / Secretariat";
+function normalizeLanguage(value?: string): EmailLanguage {
+  const language = String(value || "").toLowerCase();
+  return language.startsWith("en") ? "en" : "gr";
+}
+
+function accountRoleLabel(role: NewUserAccountEmailInput["role"], language: EmailLanguage) {
+  if (language === "en") return role === "super_admin" ? "Administrator" : "Secretariat";
+  return role === "super_admin" ? "Διαχειριστής" : "Γραμματεία";
 }
 
 function fullName(input: NewUserAccountEmailInput) {
@@ -48,8 +69,26 @@ function fullName(input: NewUserAccountEmailInput) {
 }
 
 function buildText(input: NewUserAccountEmailInput) {
+  const language = normalizeLanguage(input.language);
   const name = fullName(input);
-  const role = accountRoleLabel(input.role);
+  const role = accountRoleLabel(input.role, language);
+  const url = loginUrl();
+
+  if (language === "en") {
+    return [
+      "Your ALUPLA account has been created.",
+      "",
+      `Name: ${name}`,
+      `Login email: ${input.email}`,
+      `Role: ${role}`,
+      `Temporary password: ${input.password}`,
+      "",
+      `Platform URL: ${url}`,
+      "",
+      "Please sign in to the platform and change your password from your profile."
+    ].join("\n");
+  }
+
   return [
     "Δημιουργήθηκε λογαριασμός στην πλατφόρμα ALUPLA.",
     "",
@@ -58,37 +97,36 @@ function buildText(input: NewUserAccountEmailInput) {
     `Ρόλος: ${role}`,
     `Προσωρινός κωδικός: ${input.password}`,
     "",
-    "Παρακαλούμε συνδεθείτε στην πλατφόρμα και αλλάξτε τον κωδικό σας από το προφίλ σας.",
+    `URL πλατφόρμας: ${url}`,
     "",
-    "Your ALUPLA account has been created.",
-    "",
-    `Name: ${name}`,
-    `Login email: ${input.email}`,
-    `Role: ${role}`,
-    `Temporary password: ${input.password}`,
-    "",
-    "Please sign in to the platform and change your password from your profile."
+    "Παρακαλούμε συνδεθείτε στην πλατφόρμα και αλλάξτε τον κωδικό σας από το προφίλ σας."
   ].join("\n");
 }
 
 function buildHtml(input: NewUserAccountEmailInput) {
+  const language = normalizeLanguage(input.language);
   const name = escapeHtml(fullName(input));
   const email = escapeHtml(input.email);
-  const role = escapeHtml(accountRoleLabel(input.role));
+  const role = escapeHtml(accountRoleLabel(input.role, language));
   const password = escapeHtml(input.password);
+  const url = escapeHtml(loginUrl());
+  const labels = language === "en"
+    ? { intro: "Your ALUPLA account has been created.", name: "Name", email: "Login email", role: "Role", password: "Temporary password", url: "Platform URL", action: "Open ALUPLA", note: "Please sign in to the platform and change your password from your profile." }
+    : { intro: "Δημιουργήθηκε λογαριασμός στην πλατφόρμα ALUPLA.", name: "Όνομα", email: "Email σύνδεσης", role: "Ρόλος", password: "Προσωρινός κωδικός", url: "URL πλατφόρμας", action: "Άνοιγμα ALUPLA", note: "Παρακαλούμε συνδεθείτε στην πλατφόρμα και αλλάξτε τον κωδικό σας από το προφίλ σας." };
+
   return [
     "<div style=\"font-family:Arial,sans-serif;line-height:1.55;color:#1f2937\">",
     "<h2 style=\"color:#1e3a8a;margin:0 0 14px\">ALUPLA</h2>",
-    "<p>Δημιουργήθηκε λογαριασμός στην πλατφόρμα ALUPLA.</p>",
+    `<p>${labels.intro}</p>`,
     "<table style=\"border-collapse:collapse;margin:14px 0\">",
-    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">Όνομα</td><td style=\"padding:6px 0\">${name}</td></tr>`,
-    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">Email σύνδεσης</td><td style=\"padding:6px 0\">${email}</td></tr>`,
-    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">Ρόλος</td><td style=\"padding:6px 0\">${role}</td></tr>`,
-    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">Προσωρινός κωδικός</td><td style=\"padding:6px 0\"><strong>${password}</strong></td></tr>`,
+    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">${labels.name}</td><td style=\"padding:6px 0\">${name}</td></tr>`,
+    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">${labels.email}</td><td style=\"padding:6px 0\">${email}</td></tr>`,
+    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">${labels.role}</td><td style=\"padding:6px 0\">${role}</td></tr>`,
+    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">${labels.password}</td><td style=\"padding:6px 0\"><strong>${password}</strong></td></tr>`,
+    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">${labels.url}</td><td style=\"padding:6px 0\"><a href=\"${url}\">${url}</a></td></tr>`,
     "</table>",
-    "<p>Παρακαλούμε συνδεθείτε στην πλατφόρμα και αλλάξτε τον κωδικό σας από το προφίλ σας.</p>",
-    "<hr style=\"border:none;border-top:1px solid #dbeafe;margin:18px 0\" />",
-    "<p>Your ALUPLA account has been created. Please sign in to the platform and change your password from your profile.</p>",
+    `<p><a href=\"${url}\" style=\"display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:10px;font-weight:700\">${labels.action}</a></p>`,
+    `<p>${labels.note}</p>`,
     "</div>"
   ].join("");
 }
@@ -104,7 +142,7 @@ async function sendWithBrevo(input: NewUserAccountEmailInput) {
     body: JSON.stringify({
       sender: { email: mailFrom(), name: mailFromName() },
       to: [{ email: input.email, name: fullName(input) || input.email }],
-      subject: "ALUPLA - Δημιουργία λογαριασμού",
+      subject: normalizeLanguage(input.language) === "en" ? "ALUPLA - Account created" : "ALUPLA - Δημιουργία λογαριασμού",
       textContent: buildText(input),
       htmlContent: buildHtml(input)
     })

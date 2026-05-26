@@ -13,6 +13,7 @@ type UserCreateInput = {
   email: string;
   role: string;
   password: string;
+  language: string;
 };
 
 function isAllowedRole(role: string): role is AllowedRole {
@@ -25,7 +26,8 @@ function readCreateInput(body: any): UserCreateInput {
     last_name: normalizeText(body?.last_name),
     email: normalizeEmail(body?.email),
     role: normalizeText(body?.role),
-    password: String(body?.password ?? "")
+    password: String(body?.password ?? ""),
+    language: normalizeText(body?.language ?? body?.lang ?? "")
   };
 }
 
@@ -102,7 +104,8 @@ export async function createUser(req: Request, res: Response, next: NextFunction
         lastName: input.last_name,
         email: input.email,
         role: input.role,
-        password: input.password
+        password: input.password,
+        language: input.language
       });
     } catch (error) {
       mailError = error instanceof Error ? error.message : "Email notification failed";
