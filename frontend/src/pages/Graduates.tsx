@@ -1228,6 +1228,7 @@ export default function Graduates() {
         visibleItems={visibleItems}
         loading={loading}
         selectedIds={selectedIds}
+        selectedIdSet={selectedIdSet}
         allVisibleSelected={allVisibleSelected}
         selectAllRef={selectAllRef}
         tableWrapRef={tableWrapRef}
