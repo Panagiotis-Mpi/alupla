@@ -29,6 +29,7 @@ const passwordFieldStyle: React.CSSProperties = { gridColumn: "span 2" };
 const passwordHintStyle: React.CSSProperties = { whiteSpace: "pre-line" };
 const topSpacingStyle: React.CSSProperties = { marginTop: 12 };
 const errorCardStyle: React.CSSProperties = { borderColor: "#b00020", color: "#b00020" };
+const successCardStyle: React.CSSProperties = { borderColor: "#bfdbfe", color: "#1d4ed8" };
 
 type SortState = { key: SortKey; dir: SortDir };
 
@@ -71,6 +72,7 @@ export default function Users() {
   const [items, setItems] = React.useState<AdminUser[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
+  const [ok, setOk] = React.useState<string | null>(null);
   const inFlight = React.useRef(false);
   const [sortState, setSortState] = React.useState<SortState>({ key: "id", dir: "asc" });
   const [form, setForm] = React.useState<UserFormState>(emptyForm);
@@ -114,7 +116,9 @@ export default function Users() {
 
   async function onCreate() {
     try {
-      await createUser(form);
+      setOk(null);
+      const response = await createUser(form);
+      setOk(response.mail_sent ? t("messages.createdWithEmail") : t("messages.createdWithoutEmail"));
       setForm(emptyForm);
       await load();
     } catch (e: any) {
@@ -153,6 +157,7 @@ export default function Users() {
       </div>
 
       {err && <div className="card" style={errorCardStyle}>{err}</div>}
+      {ok && <div className="card" style={successCardStyle}>{ok}</div>}
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>{t("newUser")}</h3>

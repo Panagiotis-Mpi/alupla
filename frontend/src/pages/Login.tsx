@@ -1,6 +1,6 @@
 // Σελίδα σύνδεσης χρήστη στην πλατφόρμα.
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { login as apiLogin } from "../lib/api";
 import { setSession, type Role } from "../lib/auth";
@@ -151,11 +151,6 @@ function Login() {
             {loading ? t("common.loading") : t("login.button")}
           </button>
 
-          <div className="auth-form-links">
-            <Link to="/register" className="auth-form-link">
-              {t("login.register")}
-            </Link>
-          </div>
         </form>
       </div>
     </div>

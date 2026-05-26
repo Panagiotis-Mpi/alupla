@@ -12,7 +12,6 @@ import PublicHome from "./pages/PublicHome";
 import aluplaLogo from "./assets/logo_black.svg";
 
 const Login = React.lazy(() => import("./pages/Login"));
-const Register = React.lazy(() => import("./pages/Register"));
 const Graduates = React.lazy(() => import("./pages/Graduates"));
 const GraduateForm = React.lazy(() => import("./pages/GraduateForm"));
 const Profile = React.lazy(() => import("./pages/Profile"));
@@ -39,7 +38,7 @@ function TopNav() {
   const languageRef = React.useRef<HTMLDivElement | null>(null);
   const accountRef = React.useRef<HTMLDivElement | null>(null);
 
-  const authRoute = React.useMemo(() => ["/login", "/register"].some((path) => location.pathname.startsWith(path)), [location.pathname]);
+  const authRoute = React.useMemo(() => location.pathname.startsWith("/login"), [location.pathname]);
   const lang: "gr" | "en" = i18n.language?.startsWith("en") ? "en" : "gr";
 
   const visibleLinks = React.useMemo(() => {
@@ -336,7 +335,7 @@ function App() {
 <Routes>
           <Route path="/" element={<PublicHome />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/register" element={<Navigate to="/login" replace />} />
           <Route path="/map" element={<Map />} />
           <Route path="/statistics" element={<Statistics />} />
           <Route

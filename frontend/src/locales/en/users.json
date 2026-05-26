@@ -38,5 +38,9 @@
   },
   "confirm": {
     "deactivate": "Delete user #{{id}}?"
+  },
+  "messages": {
+    "createdWithEmail": "The user was created and an email with the login details was sent.",
+    "createdWithoutEmail": "The user was created. No email was sent because backend email settings are not configured."
   }
 }

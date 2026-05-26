@@ -308,8 +308,8 @@ export async function createUser(payload: {
   email: string;
   role: UserRole;
   password: string;
- }): Promise<ItemResponse<User>> {
-  const response = await api<ItemResponse<User>>("/users", { method: "POST", body: payload });
+ }): Promise<ItemResponse<User> & { mail_sent?: boolean }> {
+  const response = await api<ItemResponse<User> & { mail_sent?: boolean }>("/users", { method: "POST", body: payload });
   clearUserRelatedCaches();
   return response;
 }

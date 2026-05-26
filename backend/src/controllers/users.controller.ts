@@ -3,6 +3,7 @@ import { User } from "../models/User";
 import { logAction } from "../services/log.service";
 import { badRequest, hashPassword, isStrongPassword, normalizeEmail, normalizeText, notFound, toSafeUser } from "../utils/userAccounts";
 import { clearRouteCaches } from "../utils/routeCache";
+import { sendNewUserAccountEmail } from "../services/userNotification.service";
 
 type AllowedRole = "super_admin" | "secretariat";
 
@@ -92,10 +93,25 @@ export async function createUser(req: Request, res: Response, next: NextFunction
       is_active: true
     });
 
-    await writeUserLog(req, "create_user", user);
+    let mailSent = false;
+    let mailError = "";
+
+    try {
+      mailSent = await sendNewUserAccountEmail({
+        firstName: input.first_name,
+        lastName: input.last_name,
+        email: input.email,
+        role: input.role,
+        password: input.password
+      });
+    } catch (error) {
+      mailError = error instanceof Error ? error.message : "Email notification failed";
+    }
+
+    await writeUserLog(req, "create_user", user, { mail_sent: mailSent, ...(mailError ? { mail_error: mailError } : {}) });
     clearRouteCaches(["users"]);
 
-    res.status(201).json({ ok: true, item: toSafeUser(user) });
+    res.status(201).json({ ok: true, item: toSafeUser(user), mail_sent: mailSent });
   } catch (e) {
     next(e);
   }
