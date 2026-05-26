@@ -73,8 +73,8 @@ function TopNav() {
   }, [authRoute, lang, role, t, user]);
 
   const closeMenu = React.useCallback(() => setMenuOpen(false), []);
-  const currentLanguageLabel = lang === "en" ? "English" : "Ελληνικά";
-  const nextLanguageLabel = lang === "en" ? "Ελληνικά" : "English";
+  const currentLanguageLabel = lang === "en" ? "EN" : "EL";
+  const nextLanguageLabel = lang === "en" ? "EL" : "EN";
   const nextLanguage = lang === "en" ? "gr" : "en";
 
   const handleLanguageChange = React.useCallback((language: "gr" | "en") => {
