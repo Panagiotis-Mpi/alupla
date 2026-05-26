@@ -106,6 +106,7 @@ export async function createUser(req: Request, res: Response, next: NextFunction
       });
     } catch (error) {
       mailError = error instanceof Error ? error.message : "Email notification failed";
+      console.error("ALUPLA user email notification failed:", mailError);
     }
 
     await writeUserLog(req, "create_user", user, { mail_sent: mailSent, ...(mailError ? { mail_error: mailError } : {}) });

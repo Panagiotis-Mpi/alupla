@@ -41,6 +41,6 @@
   },
   "messages": {
     "createdWithEmail": "Ο χρήστης δημιουργήθηκε και στάλθηκε email με τα στοιχεία σύνδεσης.",
-    "createdWithoutEmail": "Ο χρήστης δημιουργήθηκε. Δεν στάλθηκε email γιατί δεν υπάρχουν ενεργές ρυθμίσεις αποστολής email στο backend."
+    "createdWithoutEmail": "Ο χρήστης δημιουργήθηκε. Δεν στάλθηκε email. Έλεγξε τις SMTP ρυθμίσεις και το Gmail App Password στο backend."
   }
 }
