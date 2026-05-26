@@ -148,9 +148,10 @@ export default function Graduates() {
         .filter((id) => Number.isFinite(id)),
     [visibleItems],
   );
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const allVisibleSelected =
-    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
-  const someVisibleSelected = visibleIds.some((id) => selectedIds.includes(id));
+    visibleIds.length > 0 && visibleIds.every((id) => selectedIdSet.has(id));
+  const someVisibleSelected = visibleIds.some((id) => selectedIdSet.has(id));
   const groupedImportIssues = useMemo(
     () => groupImportErrors(importReport?.errors),
     [importReport],

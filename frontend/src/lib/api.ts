@@ -1,6 +1,6 @@
 // Συγκεντρώνει τις κλήσεις προς το backend API που χρησιμοποιούν οι σελίδες.
 export { API_URL, clearToken, getToken, setToken, toQueryString, type QueryParams } from "./apiCore";
-import { API_URL, api, fetchBlob, getToken, parseJsonSafe, toQueryString, type QueryParams } from "./apiCore";
+import { API_URL, api, fetchBlob, getToken, parseJsonSafe, postBlob, toQueryString, type QueryParams } from "./apiCore";
 import { clearCachedValues, readCachedValue, writeCachedValue, type CacheStore } from "./cache";
 
 export type UserRole = "super_admin" | "secretariat";
@@ -483,7 +483,7 @@ export async function exportActivityLogsFile(format: "csv" | "xlsx", params: Que
 
 
 export async function exportGraduatesFile(params: QueryParams, format: "xlsx" | "csv" | "pdf", lang?: string): Promise<Blob> {
-  return fetchBlob("/graduates/export", { ...params, format }, lang);
+  return postBlob("/graduates/export", { ...params, format }, lang);
 }
 
 export async function downloadGraduatesImportTemplate(format: "xlsx" | "csv", lang?: string): Promise<Blob> {

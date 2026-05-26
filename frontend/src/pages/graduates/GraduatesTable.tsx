@@ -28,6 +28,7 @@ export function GraduatesTable(props: {
   visibleItems: Graduate[];
   loading: boolean;
   selectedIds: number[];
+  selectedIdSet: Set<number>;
   allVisibleSelected: boolean;
   selectAllRef: React.RefObject<HTMLInputElement>;
   tableWrapRef: React.RefObject<HTMLDivElement>;
@@ -46,7 +47,7 @@ export function GraduatesTable(props: {
   t: (key: string, options?: Record<string, unknown>) => string;
   onDelete: (graduate: Graduate) => Promise<void>;
 }) {
-  const { visibleItems, loading, selectedIds, allVisibleSelected, selectAllRef, tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, headerButtonStyle, wideCardStyle, toggleAllVisible, toggleSelected, toggleSort, getSortIndicator, renderGender, programNameById, regionNameById, activeLang, t, onDelete } = props;
+  const { visibleItems, loading, selectedIdSet, allVisibleSelected, selectAllRef, tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, headerButtonStyle, wideCardStyle, toggleAllVisible, toggleSelected, toggleSort, getSortIndicator, renderGender, programNameById, regionNameById, activeLang, t, onDelete } = props;
 
   return (
     <div className="card" style={{ ...wideCardStyle, position: "relative" }}>
@@ -80,10 +81,11 @@ export function GraduatesTable(props: {
           <tbody>
             {visibleItems.map((graduate) => {
               const id = Number(graduate.id);
+              const selected = selectedIdSet.has(id);
               return (
-                <tr key={graduate.id} className={selectedIds.includes(id) ? "is-selected-row" : undefined} aria-selected={selectedIds.includes(id)}>
+                <tr key={graduate.id} className={selected ? "is-selected-row" : undefined} aria-selected={selected}>
                   <td>
-                    <input type="checkbox" checked={selectedIds.includes(id)} onChange={() => toggleSelected(id)} />
+                    <input type="checkbox" checked={selected} onChange={() => toggleSelected(id)} />
                   </td>
                   <td>{formatValue(graduate.ad_code)}</td>
                   <td>{formatValue(graduate.student_number ?? (graduate as unknown as Record<string, unknown>).student_nuad_code ?? (graduate as unknown as Record<string, unknown>).am ?? (graduate as unknown as Record<string, unknown>).student_id)}</td>

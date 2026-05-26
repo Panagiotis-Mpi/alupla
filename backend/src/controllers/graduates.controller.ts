@@ -113,12 +113,13 @@ export async function exportGraduates(
   next: NextFunction,
 ) {
   try {
-    const where = buildGraduateWhere(req.query as Record<string, unknown>);
-    const order = parseSort(req.query.sort);
-    const ids = parseIds(req.query.ids);
-    const limit = clamp(toIntParam(req.query.limit, 5000), 1, 10000);
-    const lang = getExportLang(req.query.lang);
-    const format = getGraduateFileFormat(req.query.format);
+    const source = req.method === "POST" ? { ...req.query, ...(req.body || {}) } : req.query;
+    const where = buildGraduateWhere(source as Record<string, unknown>);
+    const order = parseSort((source as Record<string, unknown>).sort);
+    const ids = parseIds((source as Record<string, unknown>).ids);
+    const limit = clamp(toIntParam((source as Record<string, unknown>).limit, 5000), 1, 10000);
+    const lang = getExportLang((source as Record<string, unknown>).lang);
+    const format = getGraduateFileFormat((source as Record<string, unknown>).format);
 
     // Όταν έχουν επιλεγεί συγκεκριμένοι απόφοιτοι, το export περιορίζεται μόνο σε αυτά τα ids.
     if (ids.length) {

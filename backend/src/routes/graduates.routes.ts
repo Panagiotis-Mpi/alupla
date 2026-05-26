@@ -29,6 +29,7 @@ graduatesRouter.post("/", createGraduate);
 
 // Εξαγωγές και template εισαγωγής αποφοίτων.
 graduatesRouter.get("/export", exportGraduates);
+graduatesRouter.post("/export", exportGraduates);
 graduatesRouter.get("/import-template", exportGraduatesImportTemplate);
 graduatesRouter.post("/export-pdf-log", logGraduatesPdfExport);
 

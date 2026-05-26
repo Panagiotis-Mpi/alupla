@@ -145,6 +145,27 @@ export async function fetchBlob(path: string, params: QueryParams = {}, lang?: s
   return res.blob();
 }
 
+export async function postBlob(path: string, body: QueryParams = {}, lang?: string) {
+  const token = getToken();
+  const headers = new Headers();
+  headers.set("Content-Type", "application/json");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(lang ? { ...body, lang } : body),
+  });
+
+  if (!res.ok) {
+    const data = await parseJsonSafe(res);
+    const message = data?.error?.message || data?.message || res.statusText;
+    throw new Error(message);
+  }
+
+  return res.blob();
+}
+
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getToken();
   const normalized = normalizeRequestInit(init);
