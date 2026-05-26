@@ -3912,3 +3912,29 @@ html.accessibility-high-contrast .brand:not(.brand-compact):active{
 html.accessibility-high-contrast .brand:not(.brand-compact) span{
   color:#7fffd4 !important;
 }
+
+.public-home-card > .public-home-title{
+  width:100%;
+  max-width:none;
+  margin:0 0 1.05rem;
+}
+
+@media (min-width:1025px){
+  .public-home-content{
+    align-items:start;
+  }
+  .public-home-visual{
+    padding:.35rem 0 0;
+  }
+  .public-home-card > .public-home-title{
+    font-size:clamp(2.25rem,3.25vw,3.05rem);
+    line-height:1.08;
+    letter-spacing:-.025em;
+  }
+}
+
+@media (max-width:1024px){
+  .public-home-card > .public-home-title{
+    margin-bottom:1rem;
+  }
+}

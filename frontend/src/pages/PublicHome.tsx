@@ -84,10 +84,9 @@ export default function PublicHome() {
   return (
     <div className="public-home-shell">
       <div className="public-home-card">
+        <h1 className="public-home-title">{t("home.heroTitle")}</h1>
         <div className="public-home-content">
           <div className="public-home-copy">
-            <h1 className="public-home-title">{t("home.heroTitle")}</h1>
-
             <p className="public-home-text">{t("home.heroLead")}</p>
 
             <p className="public-home-text public-home-text-spaced">{t("home.heroSublead")}</p>
