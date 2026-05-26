@@ -41,6 +41,6 @@
   },
   "messages": {
     "createdWithEmail": "The user was created and an email with the login details was sent.",
-    "createdWithoutEmail": "The user was created. No email was sent. Check the SMTP settings and the Gmail App Password in the backend."
+    "createdWithoutEmail": "The user was created. No email was sent. Check the Brevo/API email settings in the backend."
   }
 }

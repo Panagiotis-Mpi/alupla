@@ -1,8 +1,3 @@
-import nodemailer from "nodemailer";
-
-const DEFAULT_SMTP_HOST = "smtp.gmail.com";
-const DEFAULT_SMTP_PORT = 465;
-
 type NewUserAccountEmailInput = {
   firstName: string;
   lastName: string;
@@ -19,34 +14,20 @@ function readEnv(...names: string[]) {
   return "";
 }
 
-function smtpHost() {
-  return readEnv("SMTP_HOST", "MAIL_HOST") || DEFAULT_SMTP_HOST;
-}
-
-function smtpPort() {
-  const value = Number(readEnv("SMTP_PORT", "MAIL_PORT") || DEFAULT_SMTP_PORT);
-  return Number.isFinite(value) && value > 0 ? value : DEFAULT_SMTP_PORT;
-}
-
-function smtpSecure() {
-  const value = (readEnv("SMTP_SECURE", "MAIL_SECURE") || "true").toLowerCase();
-  return value !== "false";
-}
-
-function smtpUser() {
-  return readEnv("GMAIL_USER", "SMTP_USER", "MAIL_USER");
-}
-
-function smtpPass() {
-  return readEnv("SMTP_PASS", "MAIL_PASS").replace(/\s+/g, "");
+function brevoApiKey() {
+  return readEnv("BREVO_API_KEY", "SENDINBLUE_API_KEY");
 }
 
 function mailFrom() {
-  return readEnv("MAIL_FROM", "SMTP_FROM", "GMAIL_USER", "SMTP_USER", "MAIL_USER");
+  return readEnv("MAIL_FROM", "BREVO_FROM", "SMTP_FROM", "SMTP_USER", "MAIL_USER");
+}
+
+function mailFromName() {
+  return readEnv("MAIL_FROM_NAME", "BREVO_FROM_NAME") || "ALUPLA";
 }
 
 function isMailConfigured() {
-  return Boolean(smtpUser() && smtpPass() && mailFrom());
+  return Boolean(brevoApiKey() && mailFrom());
 }
 
 function escapeHtml(value: string) {
@@ -112,26 +93,32 @@ function buildHtml(input: NewUserAccountEmailInput) {
   ].join("");
 }
 
-export async function sendNewUserAccountEmail(input: NewUserAccountEmailInput) {
-  if (!isMailConfigured()) return false;
-
-  const transporter = nodemailer.createTransport({
-    host: smtpHost(),
-    port: smtpPort(),
-    secure: smtpSecure(),
-    auth: {
-      user: smtpUser(),
-      pass: smtpPass()
-    }
+async function sendWithBrevo(input: NewUserAccountEmailInput) {
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "api-key": brevoApiKey(),
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      sender: { email: mailFrom(), name: mailFromName() },
+      to: [{ email: input.email, name: fullName(input) || input.email }],
+      subject: "ALUPLA - Δημιουργία λογαριασμού",
+      textContent: buildText(input),
+      htmlContent: buildHtml(input)
+    })
   });
 
-  await transporter.sendMail({
-    from: mailFrom(),
-    to: input.email,
-    subject: "ALUPLA - Δημιουργία λογαριασμού",
-    text: buildText(input),
-    html: buildHtml(input)
-  });
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Brevo email failed (${response.status}) ${body}`.trim());
+  }
 
   return true;
+}
+
+export async function sendNewUserAccountEmail(input: NewUserAccountEmailInput) {
+  if (!isMailConfigured()) return false;
+  return sendWithBrevo(input);
 }
