@@ -64,69 +64,53 @@ function accountRoleLabel(role: NewUserAccountEmailInput["role"], language: Emai
   return role === "super_admin" ? "Διαχειριστής" : "Γραμματεία";
 }
 
+function bilingualRoleLabel(role: NewUserAccountEmailInput["role"]) {
+  return `${accountRoleLabel(role, "gr")} / ${accountRoleLabel(role, "en")}`;
+}
+
 function fullName(input: NewUserAccountEmailInput) {
   return `${input.firstName} ${input.lastName}`.trim();
 }
 
 function buildText(input: NewUserAccountEmailInput) {
-  const language = normalizeLanguage(input.language);
   const name = fullName(input);
-  const role = accountRoleLabel(input.role, language);
-  const url = loginUrl();
-
-  if (language === "en") {
-    return [
-      "Your ALUPLA account has been created.",
-      "",
-      `Name: ${name}`,
-      `Login email: ${input.email}`,
-      `Role: ${role}`,
-      `Temporary password: ${input.password}`,
-      "",
-      `Platform URL: ${url}`,
-      "",
-      "Please sign in to the platform and change your password from your profile."
-    ].join("\n");
-  }
+  const role = bilingualRoleLabel(input.role);
 
   return [
     "Δημιουργήθηκε λογαριασμός στην πλατφόρμα ALUPLA.",
+    "Your ALUPLA account has been created.",
     "",
-    `Όνομα: ${name}`,
-    `Email σύνδεσης: ${input.email}`,
-    `Ρόλος: ${role}`,
-    `Προσωρινός κωδικός: ${input.password}`,
+    `Ονοματεπώνυμο / Full name: ${name}`,
+    `Email σύνδεσης / Login email: ${input.email}`,
+    `Ρόλος / Role: ${role}`,
+    `Προσωρινός κωδικός / Temporary password: ${input.password}`,
     "",
-    `URL πλατφόρμας: ${url}`,
-    "",
-    "Παρακαλούμε συνδεθείτε στην πλατφόρμα και αλλάξτε τον κωδικό σας από το προφίλ σας."
+    "Παρακαλούμε συνδεθείτε στην πλατφόρμα και αλλάξτε τον κωδικό σας από το προφίλ σας.",
+    "Please sign in to the platform and change your password from your profile."
   ].join("\n");
 }
 
 function buildHtml(input: NewUserAccountEmailInput) {
-  const language = normalizeLanguage(input.language);
   const name = escapeHtml(fullName(input));
   const email = escapeHtml(input.email);
-  const role = escapeHtml(accountRoleLabel(input.role, language));
+  const role = escapeHtml(bilingualRoleLabel(input.role));
   const password = escapeHtml(input.password);
   const url = escapeHtml(loginUrl());
-  const labels = language === "en"
-    ? { intro: "Your ALUPLA account has been created.", name: "Name", email: "Login email", role: "Role", password: "Temporary password", url: "Platform URL", action: "Open ALUPLA", note: "Please sign in to the platform and change your password from your profile." }
-    : { intro: "Δημιουργήθηκε λογαριασμός στην πλατφόρμα ALUPLA.", name: "Όνομα", email: "Email σύνδεσης", role: "Ρόλος", password: "Προσωρινός κωδικός", url: "URL πλατφόρμας", action: "Άνοιγμα ALUPLA", note: "Παρακαλούμε συνδεθείτε στην πλατφόρμα και αλλάξτε τον κωδικό σας από το προφίλ σας." };
 
   return [
     "<div style=\"font-family:Arial,sans-serif;line-height:1.55;color:#1f2937\">",
     "<h2 style=\"color:#1e3a8a;margin:0 0 14px\">ALUPLA</h2>",
-    `<p>${labels.intro}</p>`,
+    "<p style=\"margin:0 0 6px\">Δημιουργήθηκε λογαριασμός στην πλατφόρμα ALUPLA.</p>",
+    "<p style=\"margin:0 0 14px\">Your ALUPLA account has been created.</p>",
     "<table style=\"border-collapse:collapse;margin:14px 0\">",
-    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">${labels.name}</td><td style=\"padding:6px 0\">${name}</td></tr>`,
-    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">${labels.email}</td><td style=\"padding:6px 0\">${email}</td></tr>`,
-    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">${labels.role}</td><td style=\"padding:6px 0\">${role}</td></tr>`,
-    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">${labels.password}</td><td style=\"padding:6px 0\"><strong>${password}</strong></td></tr>`,
-    `<tr><td style=\"padding:6px 12px 6px 0;font-weight:700\">${labels.url}</td><td style=\"padding:6px 0\"><a href=\"${url}\">${url}</a></td></tr>`,
+    `<tr><td style=\"padding:6px 18px 6px 0;font-weight:700\">Ονοματεπώνυμο / Full name</td><td style=\"padding:6px 0\">${name}</td></tr>`,
+    `<tr><td style=\"padding:6px 18px 6px 0;font-weight:700\">Email σύνδεσης / Login email</td><td style=\"padding:6px 0\">${email}</td></tr>`,
+    `<tr><td style=\"padding:6px 18px 6px 0;font-weight:700\">Ρόλος / Role</td><td style=\"padding:6px 0\">${role}</td></tr>`,
+    `<tr><td style=\"padding:6px 18px 6px 0;font-weight:700\">Προσωρινός κωδικός / Temporary password</td><td style=\"padding:6px 0\"><strong>${password}</strong></td></tr>`,
     "</table>",
-    `<p><a href=\"${url}\" style=\"display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:10px;font-weight:700\">${labels.action}</a></p>`,
-    `<p>${labels.note}</p>`,
+    `<p style=\"margin:18px 0 14px\"><a href=\"${url}\" style=\"display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:10px;font-weight:700\">Άνοιγμα ALUPLA / Open ALUPLA</a></p>`,
+    "<p style=\"margin:0 0 6px\">Παρακαλούμε συνδεθείτε στην πλατφόρμα και αλλάξτε τον κωδικό σας από το προφίλ σας.</p>",
+    "<p style=\"margin:0\">Please sign in to the platform and change your password from your profile.</p>",
     "</div>"
   ].join("");
 }
@@ -142,7 +126,7 @@ async function sendWithBrevo(input: NewUserAccountEmailInput) {
     body: JSON.stringify({
       sender: { email: mailFrom(), name: mailFromName() },
       to: [{ email: input.email, name: fullName(input) || input.email }],
-      subject: normalizeLanguage(input.language) === "en" ? "ALUPLA - Account created" : "ALUPLA - Δημιουργία λογαριασμού",
+      subject: "ALUPLA - Δημιουργία λογαριασμού / Account created",
       textContent: buildText(input),
       htmlContent: buildHtml(input)
     })
