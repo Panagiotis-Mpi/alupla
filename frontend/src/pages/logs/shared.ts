@@ -240,6 +240,8 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
           origin_municipality: "Municipality",
           origin_foreign_city: "Foreign city",
           email: "Email",
+          target_name: "New user",
+          target_role: "Role",
           role_id: "Role",
           is_active: "Active",
           approved: "Approved",
@@ -291,6 +293,8 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
           origin_municipality: "Δήμος",
           origin_foreign_city: "Πόλη εξωτερικού",
           email: "Email",
+          target_name: "Νέος χρήστης",
+          target_role: "Ρόλος",
           role_id: "Ρόλος",
           is_active: "Ενεργός",
           approved: "Εγκεκριμένος",
@@ -395,6 +399,16 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
     return parts.join(", ");
   };
 
+  const formatCreateUserDetails = (details: Record<string, any>) => {
+    const targetName = String(details.target_name ?? details.name ?? "").trim();
+    const role = String(details.target_role ?? details.role ?? "").trim();
+    const targetRole = role ? localValue(role) || role : "";
+    if (!targetName && !targetRole) return "";
+    return activeLang === "en"
+      ? joinParts([targetName ? `New user: ${targetName}` : "", targetRole ? `Role: ${targetRole}` : ""])
+      : joinParts([targetName ? `Νέος χρήστης: ${targetName}` : "", targetRole ? `Ρόλος: ${targetRole}` : ""]);
+  };
+
   const formatImportDetails = (details: Record<string, any>) => {
     const file = String(details.file ?? details.filename ?? "").trim();
     const parts: string[] = [];
@@ -418,6 +432,8 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
     if (["διαγραφή χρήστη", "delete_user", "deactivate_user"].includes(action)) {
       return String(details.target_name ?? "").trim();
     }
+
+    if (action === "create_user") return formatCreateUserDetails(details);
 
     const studentNumber = String(details.student_number ?? "").trim();
     if (studentNumber) return `${localDetailLabel("student_number")}: ${studentNumber}`;

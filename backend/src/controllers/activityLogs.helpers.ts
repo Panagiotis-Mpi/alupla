@@ -339,6 +339,8 @@ export function localDetailLabel(lang: "gr" | "en", key: string) {
         origin_municipality: "Municipality",
         origin_foreign_city: "Foreign city",
         email: "Email",
+        target_name: "New user",
+        target_role: "Role",
         role_id: "Role",
         is_active: "Active",
         approved: "Approved",
@@ -390,6 +392,8 @@ export function localDetailLabel(lang: "gr" | "en", key: string) {
         origin_municipality: "Δήμος",
         origin_foreign_city: "Πόλη εξωτερικού",
         email: "Email",
+        target_name: "Νέος χρήστης",
+        target_role: "Ρόλος",
         role_id: "Ρόλος",
         is_active: "Ενεργός",
         approved: "Εγκεκριμένος",
@@ -445,6 +449,16 @@ export function getLocalizedAction(lang: "gr" | "en", value: unknown, log?: any)
   return actionLabels[lang][key as keyof typeof actionLabels.gr] ?? key.replace(/_/g, " ");
 }
 
+function formatCreateUserDetails(lang: "gr" | "en", details: Record<string, unknown>) {
+  const targetName = String((details as any).target_name ?? (details as any).name ?? "").trim();
+  const role = String((details as any).target_role ?? (details as any).role ?? "").trim();
+  const targetRole = role ? localValue(lang, role) || role : "";
+  const parts = lang === "en"
+    ? [targetName ? `New user: ${targetName}` : "", targetRole ? `Role: ${targetRole}` : ""]
+    : [targetName ? `Νέος χρήστης: ${targetName}` : "", targetRole ? `Ρόλος: ${targetRole}` : ""];
+  return parts.filter(Boolean).join(", ");
+}
+
 // Μετατρέπει τα details log σε σύντομο κείμενο για πίνακα/export.
 export function getLocalizedDetails(lang: "gr" | "en", log: any) {
   const action = String(log?.action ?? "").trim();
@@ -457,6 +471,8 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
   if (["διαγραφή χρήστη", "delete_user", "deactivate_user"].includes(action)) {
     return String((details as any).target_name ?? "").trim();
   }
+
+  if (action === "create_user") return formatCreateUserDetails(lang, details as Record<string, unknown>);
 
   const studentNumber = String((details as any).student_number ?? "").trim();
   if (studentNumber) return `${localDetailLabel(lang, "student_number")}: ${studentNumber}`;

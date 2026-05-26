@@ -112,7 +112,7 @@ export async function createUser(req: Request, res: Response, next: NextFunction
       console.error("ALUPLA user email notification failed:", mailError);
     }
 
-    await writeUserLog(req, "create_user", user, { mail_sent: mailSent, ...(mailError ? { mail_error: mailError } : {}) });
+    await writeUserLog(req, "create_user", user, { target_name: userDisplayName(user), target_role: input.role, mail_sent: mailSent, ...(mailError ? { mail_error: mailError } : {}) });
     clearRouteCaches(["users"]);
 
     res.status(201).json({ ok: true, item: toSafeUser(user), mail_sent: mailSent });

@@ -13,7 +13,7 @@ type LogActionParams = {
 // Συμπληρώνει στοιχεία χρήστη στα logs, εκτός από update αποφοίτου.
 async function buildLogDetails(userId: number | null, action: string, details: Record<string, unknown> | null | undefined) {
   const nextDetails: Record<string, unknown> = details && typeof details === "object" ? { ...details } : {};
-  const includeActorDetails = action !== "update_graduate";
+  const includeActorDetails = action !== "update_graduate" && action !== "create_user";
 
   if (!includeActorDetails) return Object.keys(nextDetails).length ? nextDetails : null;
 
