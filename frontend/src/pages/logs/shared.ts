@@ -61,6 +61,7 @@ export const actionLabels = {
     create_graduate: "Δημιουργία αποφοίτου",
     update_graduate: "Ενημέρωση αποφοίτου",
     delete_graduate: "Διαγραφή αποφοίτου",
+    bulk_delete_graduates: "Διαγραφή αποφοίτων",
     create_study_program: "Δημιουργία προγράμματος σπουδών",
     update_study_program: "Ενημέρωση προγράμματος σπουδών",
     delete_study_program: "Διαγραφή προγράμματος σπουδών",
@@ -98,6 +99,7 @@ export const actionLabels = {
     create_graduate: "Graduate creation",
     update_graduate: "Graduate update",
     delete_graduate: "Graduate deletion",
+    bulk_delete_graduates: "Graduate deletion",
     create_study_program: "Study program creation",
     update_study_program: "Study program update",
     delete_study_program: "Study program deletion",
@@ -124,6 +126,7 @@ export const knownActionKeys = [
   "create_graduate",
   "update_graduate",
   "delete_graduate",
+  "bulk_delete_graduates",
   "import_graduates",
   "export_graduates",
   "create_study_program",
@@ -188,6 +191,12 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
     const key = String(value ?? "").trim();
     if ((key === "export_csv" || key === "export_xlsx" || key === "export_logs") && String(log?.entity_type ?? "logs").trim() === "logs") {
       return activeLang === "en" ? "Log export" : "Εξαγωγή καταγραφών";
+    }
+    if (key === "bulk_delete_graduates") {
+      const details = parseDetails(log?.details);
+      const deleted = details && typeof details === "object" ? Number(details.deleted) : NaN;
+      if (Number.isFinite(deleted) && deleted > 0) return activeLang === "en" ? `Deleted ${deleted} graduates` : `Διαγραφή ${deleted} αποφοίτων`;
+      return activeLang === "en" ? "Graduate deletion" : "Διαγραφή αποφοίτων";
     }
     return actionLabels[activeLang][key as keyof (typeof actionLabels)["gr"]] ?? key.replace(/_/g, " ");
   };
@@ -434,6 +443,8 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
     }
 
     if (action === "create_user") return formatCreateUserDetails(details);
+
+    if (action === "bulk_delete_graduates") return "";
 
     const studentNumber = String(details.student_number ?? "").trim();
     if (studentNumber) return `${localDetailLabel("student_number")}: ${studentNumber}`;

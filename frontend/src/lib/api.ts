@@ -424,6 +424,12 @@ export async function deleteGraduate(id: number | string): Promise<ApiOk> {
   return response;
 }
 
+export async function deleteGraduates(ids: Array<number | string>): Promise<ApiOk & { deleted?: number }> {
+  const response = await api<ApiOk & { deleted?: number }>(`/graduates/bulk`, { method: "DELETE", body: { ids } });
+  clearGraduateRelatedCaches();
+  return response;
+}
+
 export async function listRegions(parentIdOrParams: number | null | QueryParams = {}): Promise<RegionListResponse> {
   const params: QueryParams =
     typeof parentIdOrParams === "number" || parentIdOrParams === null

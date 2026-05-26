@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createGraduate,
   deleteGraduate,
+  deleteGraduates,
   getGraduate,
   listGraduates,
   updateGraduate,
@@ -33,6 +34,7 @@ graduatesRouter.post("/export-pdf-log", logGraduatesPdfExport);
 
 // Μαζική εισαγωγή αποφοίτων από αρχείο που ανεβαίνει με πεδίο ονόματος "file".
 graduatesRouter.post("/import", upload.single("file"), importGraduates);
+graduatesRouter.delete("/bulk", deleteGraduates);
 
 // Ενέργειες πάνω σε συγκεκριμένο απόφοιτο, με βάση το id του URL.
 graduatesRouter.get("/:id", getGraduate);

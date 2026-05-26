@@ -1,5 +1,6 @@
 // Controller για τα backend endpoints των αποφοίτων.
 import type { NextFunction, Request, Response } from "express";
+import { Op } from "sequelize";
 import { Graduate } from "../models/Graduate";
 import { StudyProgram } from "../models/StudyProgram";
 import { buildGraduateWhere } from "../utils/buildGraduateWhere";
@@ -575,6 +576,44 @@ export async function updateGraduate(
     clearPublicStatsCache();
 
     res.json({ ok: true, item });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteGraduates(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const rawIds = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    const ids = Array.from(
+      new Set(
+        rawIds
+          .map((value: unknown) => Number(value))
+          .filter((value: number) => Number.isInteger(value) && value > 0),
+      ),
+    );
+
+    if (!ids.length) return bad(res, "Invalid ids");
+
+    const deleted = await Graduate.destroy({ where: { id: { [Op.in]: ids } } });
+
+    if (deleted > 0) {
+      await logAction({
+        user_id: req.user?.id ?? null,
+        action: "bulk_delete_graduates",
+        entity_type: "graduate",
+        entity_id: null,
+        details: { deleted },
+      });
+    }
+
+    clearRouteCaches(["graduates", "map"]);
+    clearPublicStatsCache();
+
+    res.json({ ok: true, deleted });
   } catch (err) {
     next(err);
   }

@@ -35,6 +35,7 @@ export const actionLabels = {
     create_graduate: "Δημιουργία αποφοίτου",
     update_graduate: "Ενημέρωση αποφοίτου",
     delete_graduate: "Διαγραφή αποφοίτου",
+    bulk_delete_graduates: "Διαγραφή αποφοίτων",
     create_study_program: "Δημιουργία προγράμματος σπουδών",
     update_study_program: "Ενημέρωση προγράμματος σπουδών",
     delete_study_program: "Διαγραφή προγράμματος σπουδών",
@@ -72,6 +73,7 @@ export const actionLabels = {
     create_graduate: "Graduate creation",
     update_graduate: "Graduate update",
     delete_graduate: "Graduate deletion",
+    bulk_delete_graduates: "Graduate deletion",
     create_study_program: "Study program creation",
     update_study_program: "Study program update",
     delete_study_program: "Study program deletion",
@@ -446,6 +448,12 @@ export function getLocalizedAction(lang: "gr" | "en", value: unknown, log?: any)
   if ((key === "export_csv" || key === "export_xlsx") && String(log?.entity_type ?? "").trim() === "logs") {
     return lang === "en" ? "Log export" : "Εξαγωγή καταγραφών";
   }
+  if (key === "bulk_delete_graduates") {
+    const details = parseDetails(log?.details);
+    const deleted = details && typeof details === "object" ? Number((details as any).deleted) : NaN;
+    if (Number.isFinite(deleted) && deleted > 0) return lang === "en" ? `Deleted ${deleted} graduates` : `Διαγραφή ${deleted} αποφοίτων`;
+    return lang === "en" ? "Graduate deletion" : "Διαγραφή αποφοίτων";
+  }
   return actionLabels[lang][key as keyof typeof actionLabels.gr] ?? key.replace(/_/g, " ");
 }
 
@@ -473,6 +481,8 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
   }
 
   if (action === "create_user") return formatCreateUserDetails(lang, details as Record<string, unknown>);
+
+  if (action === "bulk_delete_graduates") return "";
 
   const studentNumber = String((details as any).student_number ?? "").trim();
   if (studentNumber) return `${localDetailLabel(lang, "student_number")}: ${studentNumber}`;
