@@ -42,6 +42,7 @@ export function MapTopControls(props: {
     setShowScopeMenu(false);
   }, [props.mapScope]);
 
+  const scopeTitle = props.mt("scope.title", { defaultValue: "Χώρα καταγωγής" });
   const scopeLabel =
     props.mapScope === "greece"
       ? props.mt("scope.greece", { defaultValue: "Ελλάδα" })
@@ -66,9 +67,9 @@ export function MapTopControls(props: {
             onClick={() => setShowScopeMenu((prev) => !prev)}
             aria-haspopup="menu"
             aria-expanded={showScopeMenu}
-            aria-label={`${props.mt("scope.title", { defaultValue: "Χώρα καταγωγής" })}: ${scopeLabel}`}
+            aria-label={`${scopeTitle}: ${scopeLabel}`}
           >
-            <span>{scopeLabel}</span>
+            <span>{scopeTitle}</span>
             <span className={`map-dropdown-caret ${showScopeMenu ? "open" : ""}`} aria-hidden="true" />
           </button>
           {showScopeMenu ? (
