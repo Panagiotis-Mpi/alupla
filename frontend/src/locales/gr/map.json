@@ -93,7 +93,7 @@
     "femalePct": "Ποσοστό γυναικών",
     "avgAge": "Μέση ηλικία αποφοίτησης",
     "avgGrade": "Μέσος βαθμός",
-    "dominantGender": "Φύλο",
+    "dominantGender": "Γεωκατανομή φύλου",
     "dominantDirection": "Πρόγραμμα σπουδών"
   },
   "summary": {
@@ -163,6 +163,7 @@
   },
   "mapReset": "Επαναφορά αρχικής προβολής",
   "scope": {
+    "title": "Χώρα καταγωγής",
     "greece": "Ελλάδα",
     "abroad": "Εξωτερικό"
   },

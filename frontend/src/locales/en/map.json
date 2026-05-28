@@ -93,7 +93,7 @@
     "femalePct": "Female percentage",
     "avgAge": "Average graduation age",
     "avgGrade": "Average grade",
-    "dominantGender": "Gender",
+    "dominantGender": "Gender geo-distribution",
     "dominantDirection": "Study program"
   },
   "summary": {
@@ -163,6 +163,7 @@
   },
   "mapReset": "Reset initial view",
   "scope": {
+    "title": "Country of origin",
     "greece": "Greece",
     "abroad": "Abroad"
   },

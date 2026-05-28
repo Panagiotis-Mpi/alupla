@@ -67,7 +67,10 @@ export function MapTopControls(props: {
             aria-haspopup="menu"
             aria-expanded={showScopeMenu}
           >
-            <span className="map-scope-button-label">{scopeLabel}</span>
+            <span className="map-scope-button-text">
+              <span className="map-scope-button-title">{props.mt("scope.title", { defaultValue: "Χώρα καταγωγής" })}</span>
+              <span className="map-scope-button-label">{scopeLabel}</span>
+            </span>
             <span className={`map-dropdown-caret ${showScopeMenu ? "open" : ""}`} aria-hidden="true" />
           </button>
           {showScopeMenu ? (

@@ -3837,10 +3837,34 @@ html.accessibility-high-contrast .public-home-counter span{
   width:38px;
   padding:0;
   border-radius:12px;
-  font-size:18px;
   line-height:1;
   flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
 }
+.statistics-fullscreen-icon{
+  width:18px;
+  height:18px;
+  position:relative;
+  display:inline-block;
+  color:currentColor;
+  flex:0 0 auto;
+}
+.statistics-fullscreen-icon span{
+  position:absolute;
+  width:6px;
+  height:6px;
+  border-color:currentColor;
+}
+.statistics-fullscreen-icon span:nth-child(1){top:1px;left:1px;border-top:2px solid;border-left:2px solid}
+.statistics-fullscreen-icon span:nth-child(2){top:1px;right:1px;border-top:2px solid;border-right:2px solid}
+.statistics-fullscreen-icon span:nth-child(3){right:1px;bottom:1px;border-right:2px solid;border-bottom:2px solid}
+.statistics-fullscreen-icon span:nth-child(4){left:1px;bottom:1px;border-left:2px solid;border-bottom:2px solid}
+.statistics-fullscreen-icon.is-active span:nth-child(1){top:4px;left:4px}
+.statistics-fullscreen-icon.is-active span:nth-child(2){top:4px;right:4px}
+.statistics-fullscreen-icon.is-active span:nth-child(3){right:4px;bottom:4px}
+.statistics-fullscreen-icon.is-active span:nth-child(4){left:4px;bottom:4px}
 [data-stat-chart-card]:fullscreen{
   width:100vw;
   height:100vh;

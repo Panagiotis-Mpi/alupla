@@ -353,7 +353,12 @@ export function ChartFullscreenButton(props: { label?: string; title?: string })
       title={props.title ?? props.label ?? fallbackLabel}
       aria-label={props.title ?? props.label ?? fallbackLabel}
     >
-      {active ? "⤢" : "⛶"}
+      <span className={active ? "statistics-fullscreen-icon is-active" : "statistics-fullscreen-icon"} aria-hidden="true">
+        <span />
+        <span />
+        <span />
+        <span />
+      </span>
     </button>
   );
 }
