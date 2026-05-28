@@ -66,34 +66,36 @@ export function MapTopControls(props: {
             onClick={() => setShowScopeMenu((prev) => !prev)}
             aria-haspopup="menu"
             aria-expanded={showScopeMenu}
+            aria-label={`${props.mt("scope.title", { defaultValue: "Χώρα καταγωγής" })}: ${scopeLabel}`}
           >
-            <span className="map-scope-button-text">
-              <span className="map-scope-button-title">{props.mt("scope.title", { defaultValue: "Χώρα καταγωγής" })}</span>
-              <span className="map-scope-button-label">{scopeLabel}</span>
-            </span>
+            <span className="map-scope-button-title">{props.mt("scope.title", { defaultValue: "Χώρα καταγωγής" })}</span>
+            <span className="map-scope-selected-pill">{scopeLabel}</span>
             <span className={`map-dropdown-caret ${showScopeMenu ? "open" : ""}`} aria-hidden="true" />
           </button>
           {showScopeMenu ? (
-            <div className="map-menu map-scope-menu">
-              {(["greece", "abroad"] as MapScope[])
-                .filter((option) => option !== props.mapScope)
-                .map((option) => (
+            <div className="map-menu map-scope-menu" role="menu">
+              {(["greece", "abroad"] as MapScope[]).map((option) => {
+                const optionLabel = option === "greece"
+                  ? props.mt("scope.greece", { defaultValue: "Ελλάδα" })
+                  : props.mt("scope.abroad", { defaultValue: "Εξωτερικό" });
+                const isActive = option === props.mapScope;
+                return (
                   <button
                     key={option}
                     type="button"
-                    className="map-menu-item"
+                    role="menuitemradio"
+                    aria-checked={isActive}
+                    className={`map-menu-item map-scope-menu-item ${isActive ? "active" : ""}`}
                     onClick={() => {
                       setShowScopeMenu(false);
-                      props.onScopeChange(option);
+                      if (!isActive) props.onScopeChange(option);
                     }}
                   >
-                    <span>
-                      {option === "greece"
-                        ? props.mt("scope.greece", { defaultValue: "Ελλάδα" })
-                        : props.mt("scope.abroad", { defaultValue: "Εξωτερικό" })}
-                    </span>
+                    <span>{optionLabel}</span>
+                    {isActive ? <span className="map-scope-menu-check" aria-hidden="true">✓</span> : null}
                   </button>
-                ))}
+                );
+              })}
             </div>
           ) : null}
         </div>
