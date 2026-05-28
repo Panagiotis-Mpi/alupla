@@ -119,6 +119,7 @@
     "title": "Time range comparison",
     "subtitle": "Select two time ranges to compare the main graduate indicators quickly.",
     "periodA": "Range A",
+    "change": "Change",
     "periodB": "Range B",
     "total": "Graduates",
     "avgGrade": "Average graduation grade",

@@ -994,6 +994,7 @@ export default function Statistics() {
                     <span>{row.label}</span>
                   </div>
                   <div className={`statistics-compare-change ${row.direction > 0 ? "is-up" : row.direction < 0 ? "is-down" : "is-neutral"}`}>
+                    <span className="statistics-compare-row-period">{t("compare.change")}</span>
                     <strong><span className="statistics-compare-change-arrow" aria-hidden="true">{row.direction > 0 ? "↑" : row.direction < 0 ? "↓" : "–"}</span>{row.delta}</strong>
                   </div>
                 </div>
