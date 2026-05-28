@@ -117,7 +117,7 @@
   },
   "compare": {
     "title": "Time range comparison",
-    "subtitle": "Select two time ranges to compare the main graduate indicators quickly.",
+    "subtitle": "Select time ranges to compare the main graduate indicators.",
     "periodA": "Range A",
     "periodB": "Range B",
     "total": "Graduates",
