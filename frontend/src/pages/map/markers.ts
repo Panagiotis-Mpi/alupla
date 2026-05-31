@@ -101,28 +101,36 @@ function genderSegmentPosition(startPercent: number, sizePercent: number, bubble
   };
 }
 
-function buildCountBreaks(max: number, maxBuckets: number) {
-  const safeMax = Math.max(1, Math.round(Number(max) || 1));
-  const base = safeMax > 100 ? [3, 7, 15, 30, 60, 100] : [3, 7, 12, 21, 35, 55];
-  const breaks = base.filter((value) => value < safeMax).slice(0, Math.max(0, maxBuckets - 1));
-  breaks.push(safeMax);
-  return breaks.filter((value, index, list) => index === 0 || value > list[index - 1]);
+function buildCountBreaks(counts: number[], maxBuckets: number) {
+  const uniqueCounts = Array.from(new Set(counts)).sort((left, right) => left - right);
+  if (!uniqueCounts.length) return [] as number[];
+  if (uniqueCounts.length <= maxBuckets) return uniqueCounts;
+
+  const breaks: number[] = [];
+  for (let step = 1; step <= maxBuckets; step += 1) {
+    const index = Math.min(
+      uniqueCounts.length - 1,
+      Math.ceil((step * uniqueCounts.length) / maxBuckets) - 1,
+    );
+    const value = uniqueCounts[index];
+    if (breaks.length === 0 || value > breaks[breaks.length - 1]) breaks.push(value);
+  }
+
+  const max = uniqueCounts[uniqueCounts.length - 1];
+  if (breaks[breaks.length - 1] !== max) breaks[breaks.length - 1] = max;
+  return breaks;
 }
 
 export function buildCountMarkerScale(countsInput: number[], palette: string[], radii: number[]) {
-  const counts = Array.from(
-    new Set(
-      countsInput
-        .map((value) => Math.max(0, Math.round(Number(value) || 0)))
-        .filter((value) => value > 0),
-    ),
-  ).sort((left, right) => left - right);
+  const counts = countsInput
+    .map((value) => Math.max(0, Math.round(Number(value) || 0)))
+    .filter((value) => value > 0)
+    .sort((left, right) => left - right);
 
   if (!counts.length) return { breaks: [] as number[], bucketForCount: () => 0 };
 
   const maxBuckets = Math.min(palette.length, radii.length);
-  const max = counts[counts.length - 1];
-  const breaks = buildCountBreaks(max, maxBuckets);
+  const breaks = buildCountBreaks(counts, maxBuckets);
 
   const bucketForCount = (count: number) => {
     const safeCount = Math.max(0, Math.round(Number(count) || 0));

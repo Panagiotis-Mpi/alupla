@@ -1319,11 +1319,10 @@ export default function GraduatesMapPage() {
         .map-top-controls-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; align-items: stretch; }
         .map-top-control-slot { position: relative; min-width: 0; }
         .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 16px; font-weight: 700; line-height: 1.25; letter-spacing: 0; }
-        .map-scope-button { font-weight: 800; gap: 10px; color: #1d4ed8; background: #eff6ff; border-color: #bfdbfe; }
+        .map-scope-button { gap: 10px; position: relative; padding-inline: 14px 34px; }
         .map-scope-button-title { flex: 1; min-width: 0; display: block; font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
         .map-scope-selected-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 86px; padding: 7px 12px; border-radius: 999px; background: #ffffff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 14px; font-weight: 800; line-height: 1; box-shadow: 0 6px 16px rgba(37,99,235,.12); white-space: nowrap; }
-        .map-scope-button .map-dropdown-caret { margin-left: 0; }
-        .map-scope-button:hover, .map-scope-button[aria-expanded="true"] { background: #dbeafe; border-color: #93c5fd; color: #1d4ed8; }
+        .map-scope-button .map-dropdown-caret { position: absolute; right: 16px; margin-left: 0; }
         .map-program-button { gap: 8px; }
         .map-dropdown-button { justify-content: space-between; padding-inline: 14px; }
         .map-dropdown-caret { width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); display: inline-block; flex: 0 0 auto; transition: transform .18s ease; }
@@ -1399,9 +1398,9 @@ export default function GraduatesMapPage() {
         .map-city-cards-inline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
         .map-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
         @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .map-city-cards-inline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @media (max-width: 780px) { .map-top-controls-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .map-top-menu-card { padding: 16px; gap: 12px; } .map-top-menu-title { gap: 10px; } .map-metric-button, .map-action-button, .map-program-button { min-height: 46px; font-size: 15px; } .map-scope-button-title { font-size: 14px; } .map-scope-selected-pill { min-width: 74px; padding: 6px 10px; font-size: 13px; } }
+        @media (max-width: 780px) { .map-top-controls-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .map-top-menu-card { padding: 16px; gap: 12px; } .map-top-menu-title { gap: 10px; } .map-metric-button, .map-action-button, .map-program-button { min-height: 46px; font-size: 15px; } }
         @media (max-width: 640px) { .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } .map-summary-grid { gap: 10px; } .map-summary-card { min-height: 88px; padding: 12px; gap: 6px; } .map-summary-label { font-size: 14px; line-height: 1.25; } .map-summary-value { font-size: 22px; line-height: 1.12; } .map-summary-sub { font-size: 12px; line-height: 1.28; } .map-summary-scope-list { gap: 6px; } .map-summary-total-name, .map-summary-scope-name { font-size: 12px; line-height: 1.22; } .map-summary-total-number, .map-summary-scope-number { font-size: 22px; } .map-summary-scope-row.active .map-summary-scope-name { font-size: 12px; } .map-summary-scope-row.active .map-summary-scope-number { font-size: 22px; } .map-timeline-actions { width: 100%; } .map-timeline-current { width: 100%; justify-content: center; } }
-        @media (max-width: 520px) { .map-scope-button { gap: 6px; padding-inline: 10px; } .map-scope-button-title { font-size: 13px; } .map-scope-selected-pill { min-width: 68px; padding: 6px 8px; font-size: 12px; } .map-timeline-card { gap: 18px; } .map-timeline-scale { margin: 0 18px; font-size: 12px; height: 24px; } .map-year-ruler { margin: 0 18px; } .map-timeline-slider::-webkit-slider-thumb { width: 30px; height: 30px; border-width: 7px; } .map-timeline-slider::-moz-range-thumb { width: 16px; height: 16px; border-width: 7px; } }
+        @media (max-width: 520px) { .map-scope-button { gap: 6px; padding-inline: 10px 30px; } .map-timeline-card { gap: 18px; } .map-timeline-scale { margin: 0 18px; font-size: 12px; height: 24px; } .map-year-ruler { margin: 0 18px; } .map-timeline-slider::-webkit-slider-thumb { width: 30px; height: 30px; border-width: 7px; } .map-timeline-slider::-moz-range-thumb { width: 16px; height: 16px; border-width: 7px; } }
       `}</style>
 
       <MapTopControls
