@@ -1319,7 +1319,7 @@ export default function GraduatesMapPage() {
         .map-top-controls-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; align-items: stretch; }
         .map-top-control-slot { position: relative; min-width: 0; }
         .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 16px; font-weight: 700; line-height: 1.25; letter-spacing: 0; }
-        .map-scope-button { gap: 10px; position: relative; padding-inline: 14px 34px; }
+        .map-scope-button { gap: 10px; position: relative; padding-inline: 14px 34px; justify-content: center; }
         .map-scope-button-title { flex: 1; min-width: 0; display: block; font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
         .map-scope-selected-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 86px; padding: 7px 12px; border-radius: 999px; background: #ffffff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 14px; font-weight: 800; line-height: 1; box-shadow: 0 6px 16px rgba(37,99,235,.12); white-space: nowrap; }
         .map-scope-button .map-dropdown-caret { position: absolute; right: 16px; margin-left: 0; }
@@ -1335,6 +1335,7 @@ export default function GraduatesMapPage() {
         .map-scope-menu-item { min-height: 42px; border: 1px solid transparent; font-weight: 700; }
         .map-scope-menu-item.active { border-color: #bfdbfe; box-shadow: inset 0 0 0 1px rgba(59,130,246,.08); }
         .map-scope-menu-check { width: 24px; height: 24px; border-radius: 999px; background: var(--primary); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; line-height: 1; flex: 0 0 auto; }
+        .map-scope-button > span:first-child { display:block; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .map-timeline-card { margin: 12px auto 0; max-width: 1080px; padding: 16px 18px; display: grid; gap: 14px; }
         .map-timeline-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
         .map-timeline-title { font-size: 18px; font-weight: 800; color: #0f172a; }

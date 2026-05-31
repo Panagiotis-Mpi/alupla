@@ -101,22 +101,35 @@ function genderSegmentPosition(startPercent: number, sizePercent: number, bubble
   };
 }
 
+function roundLegendBreak(value: number, max: number) {
+  if (value >= max) return max;
+  if (value <= 12) return Math.max(1, Math.ceil(value));
+  const step = value < 50 ? 5 : value < 200 ? 10 : value < 500 ? 20 : 50;
+  return Math.min(max, Math.max(1, Math.ceil(value / step) * step));
+}
+
 function buildCountBreaks(counts: number[], maxBuckets: number) {
   const uniqueCounts = Array.from(new Set(counts)).sort((left, right) => left - right);
   if (!uniqueCounts.length) return [] as number[];
   if (uniqueCounts.length <= maxBuckets) return uniqueCounts;
 
-  const breaks: number[] = [];
-  for (let step = 1; step <= maxBuckets; step += 1) {
-    const index = Math.min(
-      uniqueCounts.length - 1,
-      Math.ceil((step * uniqueCounts.length) / maxBuckets) - 1,
-    );
-    const value = uniqueCounts[index];
-    if (breaks.length === 0 || value > breaks[breaks.length - 1]) breaks.push(value);
-  }
-
   const max = uniqueCounts[uniqueCounts.length - 1];
+  if (max <= 1) return [max];
+
+  const sevenStepRatios = [0.02, 0.05, 0.1, 0.2, 0.4, 0.7, 1];
+  const usableBuckets = Math.min(maxBuckets, uniqueCounts.length);
+  const ratioStart = Math.max(0, sevenStepRatios.length - usableBuckets);
+  const ratios = sevenStepRatios.slice(ratioStart);
+  const breaks: number[] = [];
+
+  ratios.forEach((ratio, index) => {
+    let value = index === ratios.length - 1 ? max : roundLegendBreak(max * ratio, max);
+    while (breaks.length > 0 && value <= breaks[breaks.length - 1] && value < max) {
+      value += 1;
+    }
+    if (breaks.length === 0 || value > breaks[breaks.length - 1]) breaks.push(value);
+  });
+
   if (breaks[breaks.length - 1] !== max) breaks[breaks.length - 1] = max;
   return breaks;
 }
