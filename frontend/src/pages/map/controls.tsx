@@ -92,7 +92,6 @@ export function MapTopControls(props: {
                     }}
                   >
                     <span>{optionLabel}</span>
-                    {isActive ? <span className="map-scope-menu-check" aria-hidden="true">✓</span> : null}
                   </button>
                 );
               })}

@@ -1334,7 +1334,6 @@ export default function GraduatesMapPage() {
         .map-menu-item.active { background: #eff6ff; color: #1d4ed8; font-weight: 700; }
         .map-scope-menu-item { min-height: 42px; border: 1px solid transparent; font-weight: 700; }
         .map-scope-menu-item.active { border-color: #bfdbfe; box-shadow: inset 0 0 0 1px rgba(59,130,246,.08); }
-        .map-scope-menu-check { width: 24px; height: 24px; border-radius: 999px; background: var(--primary); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; line-height: 1; flex: 0 0 auto; }
         .map-scope-button > span:first-child { display:block; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .map-timeline-card { margin: 12px auto 0; max-width: 1080px; padding: 16px 18px; display: grid; gap: 14px; }
         .map-timeline-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
