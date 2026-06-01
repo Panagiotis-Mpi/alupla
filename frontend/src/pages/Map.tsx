@@ -577,11 +577,9 @@ export default function GraduatesMapPage() {
   }, [mapMetric, metricTransitionLoading]);
 
   const pageLoading = !initialPageReady;
-  const activeDataLoading = loading && !hasActiveMapData;
+  const activeDataLoading = loading;
   const inlineMapLoading =
-    (!pageLoading && activeDataLoading) ||
-    metricTransitionLoading ||
-    scopeTransitionLoading;
+    pageLoading || activeDataLoading || metricTransitionLoading || scopeTransitionLoading;
   const summaryLoading =
     !pageLoading &&
     (activeDataLoading || metricTransitionLoading || scopeTransitionLoading);
