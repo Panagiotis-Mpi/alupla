@@ -1,5 +1,9 @@
 // Modal επιλογής ενοτήτων που θα μπουν στο export στατιστικών.
 import React from "react";
+import Icon from "../../components/Icon";
+import fileSpreadsheetIcon from "../../assets/icons/file-spreadsheet.svg";
+import chartIcon from "../../assets/icons/chart-column-big.svg";
+import arrowDownIcon from "../../assets/icons/arrow-down-to-line.svg";
 import type { StatisticsChartId } from "../statisticsExport";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -20,7 +24,8 @@ export function StatisticsExportMenu(props: {
   return (
     <div style={{ position: "relative" }}>
       <button className="btn" type="button" style={props.topButtonStyle} onClick={props.onToggle}>
-        {props.t("actions.export", { defaultValue: "Εξαγωγή" })}
+        <Icon src={fileSpreadsheetIcon} size={18} />
+        <span>{props.t("actions.export", { defaultValue: "Εξαγωγή" })}</span>
       </button>
       {props.open ? (
         <div
@@ -39,9 +44,9 @@ export function StatisticsExportMenu(props: {
             gap: 6,
           }}
         >
-          <button className="btn" type="button" style={{ ...props.topButtonStyle, justifyContent: "flex-start" }} onClick={() => props.onPick("xlsx")}>Excel</button>
-          <button className="btn" type="button" style={{ ...props.topButtonStyle, justifyContent: "flex-start" }} onClick={() => props.onPick("csv")}>CSV</button>
-          <button className="btn" type="button" style={{ ...props.topButtonStyle, justifyContent: "flex-start" }} onClick={() => props.onPick("png")}>PNG</button>
+          <button className="btn" type="button" style={{ ...props.topButtonStyle, justifyContent: "flex-start" }} onClick={() => props.onPick("xlsx")}><Icon src={fileSpreadsheetIcon} size={17} /><span>Excel</span></button>
+          <button className="btn" type="button" style={{ ...props.topButtonStyle, justifyContent: "flex-start" }} onClick={() => props.onPick("csv")}><Icon src={fileSpreadsheetIcon} size={17} /><span>CSV</span></button>
+          <button className="btn" type="button" style={{ ...props.topButtonStyle, justifyContent: "flex-start" }} onClick={() => props.onPick("png")}><Icon src={chartIcon} size={17} /><span>PNG</span></button>
         </div>
       ) : null}
     </div>
@@ -210,7 +215,8 @@ export function StatisticsExportSelectionModal(props: {
             {props.t("actions.cancel", { defaultValue: "Ακύρωση" })}
           </button>
           <button type="button" className="btn primary" disabled={confirmDisabled} style={{ opacity: confirmDisabled ? 0.55 : 1 }} onClick={props.onConfirm}>
-            {props.t("actions.exportSelected", { defaultValue: "Εξαγωγή επιλεγμένων" })}
+            <Icon src={arrowDownIcon} size={17} />
+            <span>{props.t("actions.exportSelected", { defaultValue: "Εξαγωγή επιλεγμένων" })}</span>
           </button>
         </div>
       </div>

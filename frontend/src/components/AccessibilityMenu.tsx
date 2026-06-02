@@ -1,6 +1,10 @@
 // Χειρίζεται το μενού προσβασιμότητας και εφαρμόζει τις επιλογές εμφάνισης στο UI.
 import React from "react";
 import { useTranslation } from "react-i18next";
+import Icon from "./Icon";
+import personStandingIcon from "../assets/icons/person-standing.svg";
+import contrastIcon from "../assets/icons/contrast.svg";
+import linkIcon from "../assets/icons/link.svg";
 import {
   applyAccessibilitySettings,
   readAccessibilitySettings,
@@ -88,7 +92,7 @@ function ToggleButton({
         onClick={onClick}
         aria-pressed={active}
       >
-        <span className="accessibility-toggle-icon" aria-hidden="true">{icon}</span>
+        <span className="accessibility-toggle-icon" aria-hidden="true"><Icon src={icon} size={22} /></span>
         <span>{stateLabel}</span>
       </button>
     </div>
@@ -171,20 +175,7 @@ export default function AccessibilityMenu() {
         aria-label={t("accessibility.open", { defaultValue: "Μενού προσβασιμότητας" })}
         onClick={() => setOpen((value) => !value)}
       >
-        <svg
-          className="accessibility-trigger-icon"
-          viewBox="0 0 64 64"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <circle className="accessibility-trigger-disc-outer" cx="32" cy="32" r="31" />
-          <circle className="accessibility-trigger-disc-inner" cx="32" cy="32" r="29.75" />
-          <circle className="accessibility-trigger-head" cx="32" cy="15.75" r="5.2" />
-          <path className="accessibility-trigger-line" d="M15 22.75h34" />
-          <path className="accessibility-trigger-line" d="M32 22.75v24.25" />
-          <path className="accessibility-trigger-line" d="M32 28.5L20.25 50" />
-          <path className="accessibility-trigger-line" d="M32 28.5L43.75 50" />
-        </svg>
+        <Icon src={personStandingIcon} size={32} className="accessibility-trigger-icon" />
       </button>
 
       {open ? (
@@ -210,7 +201,7 @@ export default function AccessibilityMenu() {
                 label={t("accessibility.highContrast")}
                 active={settings.highContrast}
                 onClick={() => toggleSetting("highContrast")}
-                icon="◐"
+                icon={contrastIcon}
                 stateLabel={stateLabel(settings.highContrast)}
               />
             </div>
@@ -220,7 +211,7 @@ export default function AccessibilityMenu() {
                 label={t("accessibility.underlineLinks")}
                 active={settings.underlineLinks}
                 onClick={() => toggleSetting("underlineLinks")}
-                icon="🔗"
+                icon={linkIcon}
                 stateLabel={stateLabel(settings.underlineLinks)}
               />
             </div>

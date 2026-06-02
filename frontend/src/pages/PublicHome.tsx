@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import connectedWorldIllustration from "../assets/undraw_connected-world_anke.svg";
 import { getPublicStats } from "../lib/api";
+import Icon from "../components/Icon";
+import chartIcon from "../assets/icons/chart-column-big.svg";
+import globeIcon from "../assets/icons/globe.svg";
+import historyIcon from "../assets/icons/history.svg";
+import usersIcon from "../assets/icons/users.svg";
 
 type HomeStats = {
   total: number;
@@ -22,8 +27,8 @@ export default function PublicHome() {
   const [homeStats, setHomeStats] = useState<HomeStats | null>(null);
 
   const actions = [
-    { to: "/map", label: t("home.map"), className: "public-home-action primary" },
-    { to: "/statistics", label: t("home.stats"), className: "public-home-action secondary" },
+    { to: "/map", label: t("home.map"), className: "public-home-action primary", icon: globeIcon },
+    { to: "/statistics", label: t("home.stats"), className: "public-home-action secondary", icon: chartIcon },
   ];
 
   useEffect(() => {
@@ -68,14 +73,17 @@ export default function PublicHome() {
       {
         value: formatCounter(homeStats?.total ?? null, i18n.language),
         label: t("home.counters.graduates"),
+        icon: usersIcon,
       },
       {
         value: formatCounter(homeStats?.countries ?? null, i18n.language),
         label: t("home.counters.countries"),
+        icon: globeIcon,
       },
       {
         value: homeStats?.yearRange ?? "—",
         label: t("home.counters.years"),
+        icon: historyIcon,
       },
     ],
     [homeStats, i18n.language, t]
@@ -99,7 +107,8 @@ export default function PublicHome() {
                   onClick={() => navigate(action.to)}
                   className={action.className}
                 >
-                  {action.label}
+                  <Icon src={action.icon} size={20} />
+                  <span>{action.label}</span>
                 </button>
               ))}
             </div>
@@ -109,6 +118,7 @@ export default function PublicHome() {
             <div className="public-home-counters" aria-label={t("home.counters.label")}>
               {counters.map((counter) => (
                 <div className="public-home-counter" key={counter.label}>
+                  <span className="public-home-counter-icon"><Icon src={counter.icon} size={20} /></span>
                   <strong>{counter.value}</strong>
                   <span>{counter.label}</span>
                 </div>

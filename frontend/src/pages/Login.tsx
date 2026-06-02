@@ -5,6 +5,11 @@ import { useTranslation } from "react-i18next";
 import { login as apiLogin } from "../lib/api";
 import { setSession, type Role } from "../lib/auth";
 import aluplaLogo from "../assets/logo_black.svg";
+import Icon from "../components/Icon";
+import lockIcon from "../assets/icons/lock.svg";
+import mailIcon from "../assets/icons/mail.svg";
+import shieldIcon from "../assets/icons/shield-half.svg";
+import userIcon from "../assets/icons/user.svg";
 
 const labelStyle: React.CSSProperties = { display: "grid", gap: 8 };
 const labelTextStyle: React.CSSProperties = {
@@ -96,7 +101,7 @@ function Login() {
           </label>
 
           <label style={labelStyle}>
-            <span className="auth-form-label" style={labelTextStyle}>{t("login.email")}</span>
+            <span className="auth-form-label" style={{ ...labelTextStyle, display: "inline-flex", alignItems: "center", gap: 7 }}><Icon src={mailIcon} size={16} />{t("login.email")}</span>
             <input
               autoComplete="email"
               className="input auth-form-input"
@@ -107,7 +112,7 @@ function Login() {
           </label>
 
           <label style={labelStyle}>
-            <span className="auth-form-label" style={labelTextStyle}>{t("login.password")}</span>
+            <span className="auth-form-label" style={{ ...labelTextStyle, display: "inline-flex", alignItems: "center", gap: 7 }}><Icon src={lockIcon} size={16} />{t("login.password")}</span>
             <input
               type="password"
               autoComplete="current-password"

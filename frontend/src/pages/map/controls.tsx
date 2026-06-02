@@ -1,5 +1,10 @@
 // Controls του χάρτη: φίλτρα, mode, κουμπιά και επιλογές export.
 import React from "react";
+import Icon from "../../components/Icon";
+import arrowDownIcon from "../../assets/icons/arrow-down-to-line.svg";
+import chartIcon from "../../assets/icons/chart-column-big.svg";
+import globeIcon from "../../assets/icons/globe.svg";
+import usersIcon from "../../assets/icons/users.svg";
 
 type MetricOption = { label: string; legend: string };
 type MapMetric = "count" | "dominant_gender";
@@ -57,7 +62,8 @@ export function MapTopControls(props: {
       <div className="map-top-controls-row">
         {(["count", "dominant_gender"] as MapMetric[]).map((option) => (
           <button key={option} type="button" className={`btn map-metric-button ${props.mapMetric === option ? "active primary" : ""}`} onClick={() => props.onMetricChange(option)}>
-            {props.metricOptions[option].label}
+            <Icon src={option === "count" ? usersIcon : chartIcon} size={18} />
+            <span>{props.metricOptions[option].label}</span>
           </button>
         ))}
         <div className="map-top-control-slot" ref={scopeMenuRef}>
@@ -69,6 +75,7 @@ export function MapTopControls(props: {
             aria-expanded={showScopeMenu}
             aria-label={`${scopeTitle}: ${scopeLabel}`}
           >
+            <Icon src={globeIcon} size={18} />
             <span>{scopeTitle}</span>
             <span className={`map-dropdown-caret ${showScopeMenu ? "open" : ""}`} aria-hidden="true" />
           </button>
@@ -100,7 +107,8 @@ export function MapTopControls(props: {
         </div>
         <div className="map-top-control-slot">
           <button className="btn map-action-button" type="button" style={{ width: "100%" }} onClick={props.onExportClick}>
-            {props.mt("downloadMap", { defaultValue: "Λήψη χάρτη" })}
+            <Icon src={arrowDownIcon} size={18} />
+            <span>{props.mt("downloadMap", { defaultValue: "Λήψη χάρτη" })}</span>
           </button>
         </div>
       </div>

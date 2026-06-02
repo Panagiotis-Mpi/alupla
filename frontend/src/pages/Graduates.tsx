@@ -40,6 +40,13 @@ import {
   normalizeImportErrorMessage,
 } from "./graduates/importFeedback";
 import { downloadBlob } from "../lib/download";
+import Icon from "../components/Icon";
+import arrowDownIcon from "../assets/icons/arrow-down-to-line.svg";
+import arrowUpIcon from "../assets/icons/arrow-up-to-line.svg";
+import fileSpreadsheetIcon from "../assets/icons/file-spreadsheet.svg";
+import historyIcon from "../assets/icons/history.svg";
+import listFilterIcon from "../assets/icons/list-filter.svg";
+import userIcon from "../assets/icons/user.svg";
 import {
   toggleMergedVisibleSelection,
   toggleSelectionValue,
@@ -846,7 +853,8 @@ export default function Graduates() {
                     justifyContent: "center",
                   }}
                 >
-                  {t("topbar.newGraduate")}
+                  <Icon src={userIcon} size={18} />
+                  <span>{t("topbar.newGraduate")}</span>
                 </Link>
                 <input
                   ref={importFileRef}
@@ -873,7 +881,8 @@ export default function Graduates() {
                     onClick={() => toggleMenu("import")}
                     disabled={importBusy}
                   >
-                    {importBusy ? t("topbar.importing") : t("topbar.import")}
+                    <Icon src={arrowUpIcon} size={18} />
+                    <span>{importBusy ? t("topbar.importing") : t("topbar.import")}</span>
                     <span className="btn-dropdown-chevron" aria-hidden="true" />
                   </button>
                   {importMenuOpen ? (
@@ -919,7 +928,8 @@ export default function Graduates() {
                     }}
                     onClick={() => toggleMenu("template")}
                   >
-                    {t("topbar.downloadTemplate")}
+                    <Icon src={arrowDownIcon} size={18} />
+                    <span>{t("topbar.downloadTemplate")}</span>
                     <span className="btn-dropdown-chevron" aria-hidden="true" />
                   </button>
                   {templateMenuOpen ? (
@@ -964,7 +974,8 @@ export default function Graduates() {
                   }}
                   onClick={() => setShowFilters((current) => !current)}
                 >
-                  {t("topbar.filters")}
+                  <Icon src={listFilterIcon} size={18} />
+                  <span>{t("topbar.filters")}</span>
                 </button>
                 <div
                   className="graduates-actions-secondary"
@@ -990,7 +1001,8 @@ export default function Graduates() {
                         }}
                         onClick={() => toggleMenu("export")}
                       >
-                        {t("topbar.export")}
+                        <Icon src={fileSpreadsheetIcon} size={18} />
+                        <span>{t("topbar.export")}</span>
                         <span
                           className="btn-dropdown-chevron"
                           aria-hidden="true"
@@ -1042,7 +1054,8 @@ export default function Graduates() {
                         }}
                         onClick={() => toggleMenu("recent")}
                       >
-                        {t("topbar.myFrequentDownloads")}
+                        <Icon src={historyIcon} size={18} />
+                        <span>{t("topbar.myFrequentDownloads")}</span>
                         <span
                           className="btn-dropdown-chevron"
                           aria-hidden="true"

@@ -1,6 +1,10 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { downloadBlob } from "../lib/download";
+import Icon from "../components/Icon";
+import fileSpreadsheetIcon from "../assets/icons/file-spreadsheet.svg";
+import historyIcon from "../assets/icons/history.svg";
+import listFilterIcon from "../assets/icons/list-filter.svg";
 import {
   listActivityLogs,
   exportActivityLogsFile,
@@ -271,7 +275,8 @@ export default function Logs() {
           <h2 style={{ margin: 0 }}>{t("title")}</h2>
           <div ref={exportMenuRef} style={{ position: "relative", marginLeft: "auto" }}>
             <button className="btn dropdown-like" onClick={() => setExportMenuOpen((current) => !current)} style={{ minWidth: 0, width: "100%", maxWidth: 220 }}>
-              {t("actions.export")}<span className="btn-dropdown-chevron" aria-hidden="true" />
+              <Icon src={fileSpreadsheetIcon} size={18} />
+              <span>{t("actions.export")}</span><span className="btn-dropdown-chevron" aria-hidden="true" />
             </button>
             {exportMenuOpen && (
               <div
@@ -291,10 +296,12 @@ export default function Logs() {
                 }}
               >
                 <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("xlsx")}>
-                  {t("summary.fileTypes.excel")}
+                  <Icon src={fileSpreadsheetIcon} size={17} />
+                  <span>{t("summary.fileTypes.excel")}</span>
                 </button>
                 <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("csv")}>
-                  {t("summary.fileTypes.csv")}
+                  <Icon src={fileSpreadsheetIcon} size={17} />
+                  <span>{t("summary.fileTypes.csv")}</span>
                 </button>
               </div>
             )}
@@ -410,7 +417,8 @@ export default function Logs() {
               }}
             >
               <button className="btn" onClick={() => void load(1)} style={{ width: isCompact ? "calc(50% - 5px)" : "auto", flex: isCompact ? "1 1 0" : "0 0 auto" }}>
-                {t("filters.search")}
+                <Icon src={listFilterIcon} size={17} />
+                <span>{t("filters.search")}</span>
               </button>
               <button
                 className="btn"
@@ -420,7 +428,8 @@ export default function Logs() {
                   setTimeout(() => void load(1), 0);
                 }}
               >
-                {t("filters.reset")}
+                <Icon src={historyIcon} size={17} />
+                  <span>{t("filters.reset")}</span>
               </button>
 
               {!isCompact && (
