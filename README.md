@@ -33,3 +33,4 @@ ALUPLA is a full-stack alumni management platform designed to support data entry
 * **Deployment:** Vercel, Render, Neon PostgreSQL
 
 ---
+
