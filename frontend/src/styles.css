@@ -93,7 +93,7 @@ textarea[aria-invalid="true"]{
 .btn.danger:hover{background:#9f001d;border-color:#9f001d;color:#fff}
 .btn:disabled,.btn[disabled]{background:#f8fafc;border-color:var(--border);color:#94a3b8;cursor:not-allowed;box-shadow:none;transform:none}
 
-.ui-icon{width:var(--icon-size,18px);height:var(--icon-size,18px);display:inline-block;flex:0 0 auto;background:currentColor;mask:var(--icon-url) center/contain no-repeat;-webkit-mask:var(--icon-url) center/contain no-repeat;vertical-align:-.15em}
+.ui-icon{width:var(--icon-size,18px);height:var(--icon-size,18px);display:inline-block;flex:0 0 auto;background-color:currentColor;-webkit-mask-image:var(--icon-url);-webkit-mask-position:center;-webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;mask-image:var(--icon-url);mask-position:center;mask-size:contain;mask-repeat:no-repeat;vertical-align:-.15em;line-height:0}
 .btn .ui-icon{margin-right:8px}
 .icon-only .ui-icon,.btn-dropdown-chevron + .ui-icon{margin-right:0}
 .public-home-action{display:inline-flex;align-items:center;justify-content:center;gap:10px}
