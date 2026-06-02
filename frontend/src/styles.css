@@ -4003,3 +4003,22 @@ html.accessibility-high-contrast .map-dropdown-caret{border-color:currentColor !
 .auth-role-button .ui-icon{margin:0}
 html.accessibility-high-contrast .ui-icon{color:currentColor;background:currentColor}
 html.accessibility-high-contrast .public-home-counter-icon{background:#000;color:#ffd400;border:1px solid #ffd400}
+.auth-input-shell{position:relative;display:block;width:100%}
+.auth-input-shell .auth-form-input{width:100%}
+.auth-form-input-with-icon{padding-left:42px !important}
+.auth-form-input-with-action{padding-right:48px !important}
+.auth-input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);z-index:2;color:#64748b;pointer-events:none}
+.auth-password-visibility{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:0;background:transparent;color:#94a3b8;display:inline-flex;align-items:center;justify-content:center;padding:0;border-radius:999px;cursor:pointer}
+.auth-password-visibility:hover{color:#2563eb;background:#eff6ff}
+.auth-password-visibility .ui-icon{margin:0}
+.auth-form-input::placeholder{color:#9fb1d2;opacity:1}
+.public-home-counter-icon{background:transparent;color:#475569;width:32px;height:32px}
+.public-home-counter-icon .ui-icon{width:24px !important;height:24px !important}
+.accessibility-trigger{width:66px;height:66px;border:2px solid #bfdbfe;box-shadow:0 8px 22px rgba(37,99,235,.14), inset 0 0 0 1px rgba(37,99,235,.16)}
+.accessibility-trigger-icon{width:36px !important;height:36px !important;color:#2563eb}
+html.accessibility-high-contrast .auth-page-shell .auth-input-icon,
+html.accessibility-high-contrast .auth-page-shell .auth-password-visibility{color:#7fffd4 !important}
+html.accessibility-high-contrast .auth-page-shell .auth-password-visibility:hover{background:#000000 !important;color:#ffd400 !important}
+html.accessibility-high-contrast .public-home-counter-icon{color:#7fffd4 !important;background:transparent !important}
+html.accessibility-high-contrast .accessibility-trigger{border-color:#14f5c8 !important;box-shadow:0 0 0 2px #000000, inset 0 0 0 1px #14f5c8 !important}
+html.accessibility-high-contrast .accessibility-trigger-icon{color:#14f5c8 !important}

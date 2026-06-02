@@ -8,8 +8,7 @@ import aluplaLogo from "../assets/logo_black.svg";
 import Icon from "../components/Icon";
 import lockIcon from "../assets/icons/lock.svg";
 import mailIcon from "../assets/icons/mail.svg";
-import shieldIcon from "../assets/icons/shield-half.svg";
-import userIcon from "../assets/icons/user.svg";
+import eyeIcon from "../assets/icons/eye.svg";
 
 const labelStyle: React.CSSProperties = { display: "grid", gap: 8 };
 const labelTextStyle: React.CSSProperties = {
@@ -34,6 +33,7 @@ function Login() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [selectedRole, setSelectedRole] = React.useState<Role>("secretariat");
+  const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
 
@@ -101,26 +101,42 @@ function Login() {
           </label>
 
           <label style={labelStyle}>
-            <span className="auth-form-label" style={{ ...labelTextStyle, display: "inline-flex", alignItems: "center", gap: 7 }}><Icon src={mailIcon} size={16} />{t("login.email")}</span>
-            <input
-              autoComplete="email"
-              className="input auth-form-input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={inputStyle}
-            />
+            <span className="auth-form-label" style={labelTextStyle}>{t("login.email")}</span>
+            <span className="auth-input-shell">
+              <Icon src={mailIcon} size={18} className="auth-input-icon" />
+              <input
+                autoComplete="email"
+                className="input auth-form-input auth-form-input-with-icon"
+                placeholder="name@ac.upatras.gr"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={inputStyle}
+              />
+            </span>
           </label>
 
           <label style={labelStyle}>
-            <span className="auth-form-label" style={{ ...labelTextStyle, display: "inline-flex", alignItems: "center", gap: 7 }}><Icon src={lockIcon} size={16} />{t("login.password")}</span>
-            <input
-              type="password"
-              autoComplete="current-password"
-              className="input auth-form-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={inputStyle}
-            />
+            <span className="auth-form-label" style={labelTextStyle}>{t("login.password")}</span>
+            <span className="auth-input-shell auth-input-shell-password">
+              <Icon src={lockIcon} size={18} className="auth-input-icon" />
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                className="input auth-form-input auth-form-input-with-icon auth-form-input-with-action"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={inputStyle}
+              />
+              <button
+                type="button"
+                className="auth-password-visibility"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={showPassword ? t("login.hidePassword", { defaultValue: "Hide password" }) : t("login.showPassword", { defaultValue: "Show password" })}
+              >
+                <Icon src={eyeIcon} size={20} />
+              </button>
+            </span>
           </label>
 
           {err && (
