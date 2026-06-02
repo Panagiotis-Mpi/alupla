@@ -8,10 +8,17 @@ type IconProps = {
 };
 
 export default function Icon({ src, label, size = 18, className }: IconProps) {
+  const iconStyle = {
+    width: `${size}px`,
+    height: `${size}px`,
+    WebkitMask: `url("${src}") center / contain no-repeat`,
+    mask: `url("${src}") center / contain no-repeat`,
+  } as CSSProperties;
+
   return (
     <span
       className={`ui-icon${className ? ` ${className}` : ""}`}
-      style={{ "--icon-url": `url(${src})`, "--icon-size": `${size}px` } as CSSProperties}
+      style={iconStyle}
       aria-hidden={label ? undefined : "true"}
       aria-label={label}
       role={label ? "img" : undefined}
