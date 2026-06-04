@@ -8,8 +8,14 @@ import { getUser, logout } from "./lib/auth";
 import { pingPresence } from "./lib/api";
 import Footer from "./components/Footer";
 import AccessibilityMenu from "./components/AccessibilityMenu";
+import Icon from "./components/Icon";
 import PublicHome from "./pages/PublicHome";
 import aluplaLogo from "./assets/logo_black.svg";
+import chartColumnIcon from "./assets/icons/chart-column-big.svg";
+import globeIcon from "./assets/icons/globe.svg";
+import graduationCapIcon from "./assets/icons/graduation-cap.svg";
+import historyIcon from "./assets/icons/history.svg";
+import usersIcon from "./assets/icons/users.svg";
 
 const Login = React.lazy(() => import("./pages/Login"));
 const Graduates = React.lazy(() => import("./pages/Graduates"));
@@ -22,6 +28,15 @@ const Statistics = React.lazy(() => import("./pages/Statistics"));
 const AcademicData = React.lazy(() => import("./pages/AcademicData"));
 
 const COMPACT_WIDTH = 820;
+
+const navIconByRoute: Record<string, string> = {
+  "/map": globeIcon,
+  "/statistics": chartColumnIcon,
+  "/graduates": usersIcon,
+  "/academic-data": graduationCapIcon,
+  "/users": usersIcon,
+  "/logs": historyIcon,
+};
 
 function TopNav() {
   const { t } = useTranslation();
@@ -217,8 +232,9 @@ function TopNav() {
 
       <div className="nav-links desktop-only">
         {visibleLinks.map((link) => (
-          <Link key={link.to} className={"btn " + (location.pathname.startsWith(link.to) ? "nav-link-active" : "")} to={link.to}>
-            {link.label}
+          <Link key={link.to} className={"btn nav-link-with-icon " + (location.pathname.startsWith(link.to) ? "nav-link-active" : "")} to={link.to}>
+            {navIconByRoute[link.to] && <Icon src={navIconByRoute[link.to]} size={17} className="nav-link-icon" />}
+            <span>{link.label}</span>
           </Link>
         ))}
       </div>
@@ -280,8 +296,9 @@ function TopNav() {
       <aside id="mobile-drawer" ref={drawerRef} className={`mobile-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
         <div className="mobile-drawer-section">
           {visibleLinks.map((link) => (
-            <Link key={link.to} className={"btn " + (location.pathname.startsWith(link.to) ? "nav-link-active" : "")} to={link.to}>
-              {link.label}
+            <Link key={link.to} className={"btn nav-link-with-icon " + (location.pathname.startsWith(link.to) ? "nav-link-active" : "")} to={link.to}>
+              {navIconByRoute[link.to] && <Icon src={navIconByRoute[link.to]} size={17} className="nav-link-icon" />}
+              <span>{link.label}</span>
             </Link>
           ))}
         </div>
