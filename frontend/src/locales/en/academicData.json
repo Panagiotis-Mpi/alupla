@@ -23,7 +23,9 @@
     "status": "Status",
     "actions": "Actions",
     "empty": "No entries found.",
-    "loading": "Loading"
+    "loading": "Loading",
+    "nameEl": "Name",
+    "nameEn": "Name"
   },
   "programs": {
     "title": "Study Programs",
