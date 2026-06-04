@@ -4022,3 +4022,83 @@ html.accessibility-high-contrast .auth-page-shell .auth-password-visibility:hove
 html.accessibility-high-contrast .public-home-counter-icon{color:#7fffd4 !important;background:transparent !important}
 html.accessibility-high-contrast .accessibility-trigger{border-color:#14f5c8 !important;box-shadow:0 0 0 2px #000000, inset 0 0 0 1px #14f5c8 !important}
 html.accessibility-high-contrast .accessibility-trigger-icon{color:#14f5c8 !important}
+
+@media (min-width: 821px){
+  .nav{
+    flex-wrap:nowrap;
+    gap:10px;
+    padding-top:8px;
+    padding-bottom:8px;
+    min-height:62px;
+  }
+  .nav-links{
+    flex:1 1 auto;
+    min-width:0;
+    flex-wrap:nowrap;
+    gap:6px;
+    overflow:hidden;
+  }
+  .nav-right{
+    flex:0 0 auto;
+    margin-left:auto;
+    flex-wrap:nowrap;
+    gap:8px;
+  }
+  .nav-actions{
+    flex-wrap:nowrap;
+  }
+  .nav .nav-link-with-icon{
+    flex:0 1 auto;
+    white-space:nowrap;
+    padding:8px 10px;
+    gap:7px;
+    font-size:15px;
+    line-height:1.15;
+  }
+  .nav .nav-link-icon{
+    --icon-size:16px;
+    margin-right:0;
+  }
+  .nav-dropdown-toggle,
+  .nav-login-btn{
+    padding:8px 12px;
+    white-space:nowrap;
+  }
+  .user-profile-btn{
+    max-width:210px;
+  }
+}
+
+@media (min-width: 821px) and (max-width: 1320px){
+  .nav{
+    gap:8px;
+    padding-left:12px;
+    padding-right:12px;
+  }
+  .brand:not(.brand-compact){
+    margin-left:-12px;
+  }
+  .brand:not(.brand-compact) .brand-logo{
+    width:74px;
+    height:74px;
+  }
+  .brand span{
+    font-size:16px;
+  }
+  .nav .nav-link-with-icon{
+    padding:8px 9px;
+    gap:6px;
+    font-size:14px;
+  }
+  .nav .nav-link-icon{
+    --icon-size:15px;
+  }
+  .nav-dropdown-toggle,
+  .nav-login-btn{
+    padding:8px 10px;
+    font-size:14px;
+  }
+  .user-profile-btn{
+    max-width:170px;
+  }
+}
