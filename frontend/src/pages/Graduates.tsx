@@ -911,7 +911,8 @@ export default function Graduates() {
                           type="button"
                           onClick={action.onClick}
                         >
-                          {action.label}
+                          <Icon src={arrowUpIcon} size={17} />
+                          <span>{action.label}</span>
                         </button>
                       ))}
                     </div>
@@ -958,7 +959,8 @@ export default function Graduates() {
                           type="button"
                           onClick={action.onClick}
                         >
-                          {action.label}
+                          <Icon src={action.key === "xlsx" || action.key === "csv" ? fileSpreadsheetIcon : arrowDownIcon} size={17} />
+                          <span>{action.label}</span>
                         </button>
                       ))}
                     </div>
@@ -1034,7 +1036,8 @@ export default function Graduates() {
                               type="button"
                               onClick={action.onClick}
                             >
-                              {action.label}
+                              <Icon src={fileSpreadsheetIcon} size={17} />
+                              <span>{action.label}</span>
                             </button>
                           ))}
                         </div>
@@ -1170,7 +1173,8 @@ export default function Graduates() {
                                       type="button"
                                       onClick={() => downloadStoredExport(item)}
                                     >
-                                      {t("topbar.downloadAgain")}
+                                      <Icon src={arrowDownIcon} size={17} />
+                                      <span>{t("topbar.downloadAgain")}</span>
                                     </button>
                                     <button
                                       className="btn"

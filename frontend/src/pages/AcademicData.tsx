@@ -11,6 +11,10 @@ import {
 } from "../lib/api";
 import { downloadBlob } from "../lib/download";
 import { compareSortText } from "./shared/sorting";
+import Icon from "../components/Icon";
+import arrowDownIcon from "../assets/icons/arrow-down-to-line.svg";
+import arrowUpIcon from "../assets/icons/arrow-up-to-line.svg";
+import graduationCapIcon from "../assets/icons/graduation-cap.svg";
 
 type StudyProgramForm = {
   name_el: string;
@@ -226,14 +230,16 @@ export default function AcademicData() {
             style={menuButtonStyle}
             onClick={() => void downloadTemplate()}
           >
-            {t("menu.template")}
+            <Icon src={arrowDownIcon} size={18} />
+            <span>{t("menu.template")}</span>
           </button>
           <button
             className="btn"
             style={menuButtonStyle}
             onClick={() => importFileRef.current?.click()}
           >
-            {t("menu.import")}
+            <Icon src={arrowUpIcon} size={18} />
+            <span>{t("menu.import")}</span>
           </button>
           <input
             ref={importFileRef}
@@ -281,7 +287,8 @@ export default function AcademicData() {
 
         <div className="row-actions" style={{ marginTop: 12 }}>
           <button className="btn primary" onClick={() => void saveProgram()}>
-            {editingProgramId ? t("actions.save") : t("actions.add")}
+            <Icon src={graduationCapIcon} size={18} />
+            <span>{editingProgramId ? t("actions.save") : t("actions.add")}</span>
           </button>
           {hasProgramDraft && (
             <button className="btn" onClick={clearProgramForm}>

@@ -1,6 +1,9 @@
 // Κοινά helpers, labels και UI logic για τη σελίδα αποφοίτων.
 import React from "react";
 import type { Graduate, StudyProgram } from "../../lib/api";
+import Icon from "../../components/Icon";
+import listFilterIcon from "../../assets/icons/list-filter.svg";
+import historyIcon from "../../assets/icons/history.svg";
 
 export type SortDir = "asc" | "desc";
 export type SortKey =
@@ -484,10 +487,12 @@ export function GraduatesFilters(props: {
       </Field>
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-start" }}>
         <button className="btn" onClick={onSearch}>
-          {t("filters.search")}
+          <Icon src={listFilterIcon} size={17} />
+          <span>{t("filters.search")}</span>
         </button>
         <button className="btn" onClick={onReset}>
-          {t("filters.reset")}
+          <Icon src={historyIcon} size={17} />
+          <span>{t("filters.reset")}</span>
         </button>
       </div>
     </div>

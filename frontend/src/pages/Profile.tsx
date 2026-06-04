@@ -2,6 +2,8 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { changePassword, me, type User } from "../lib/api";
+import Icon from "../components/Icon";
+import lockIcon from "../assets/icons/lock.svg";
 
 const profileCardStyle: React.CSSProperties = {
   display: "grid",
@@ -126,7 +128,8 @@ export default function Profile() {
 
           {!showPassword ? (
             <button className="btn primary" onClick={() => setShowPassword(true)} style={{ width: "auto" }}>
-              {t("changePassword.show")}
+              <Icon src={lockIcon} size={18} />
+              <span>{t("changePassword.show")}</span>
             </button>
           ) : (
             <div style={actionStyle}>
@@ -134,7 +137,8 @@ export default function Profile() {
                 {t("changePassword.cancel")}
               </button>
               <button className="btn primary" onClick={onSavePassword} style={{ width: "auto" }}>
-                {t("changePassword.save")}
+                <Icon src={lockIcon} size={18} />
+                <span>{t("changePassword.save")}</span>
               </button>
             </div>
           )}

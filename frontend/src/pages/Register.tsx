@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { register as apiRegister } from "../lib/api";
 import aluplaLogo from "../assets/logo_black.svg";
+import Icon from "../components/Icon";
+import userIcon from "../assets/icons/user.svg";
 
 const labelStyle: React.CSSProperties = { display: "grid", gap: 8 };
 
@@ -126,7 +128,8 @@ export default function Register() {
           {ok && <div className="auth-form-message auth-form-message-success">{ok}</div>}
 
           <button disabled={loading} type="submit" className="btn primary auth-form-submit">
-            {loading ? t("common.loading") : t("register.button")}
+            <Icon src={userIcon} size={18} />
+            <span>{loading ? t("common.loading") : t("register.button")}</span>
           </button>
 
           <div className="auth-form-links">

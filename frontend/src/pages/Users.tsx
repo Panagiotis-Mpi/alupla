@@ -2,6 +2,9 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { createUser, deactivateUser, listUsers, updateUser, type AdminUser } from "../lib/api";
 import { compareSortValues, sortIndicator } from "./shared/sorting";
+import Icon from "../components/Icon";
+import userIcon from "../assets/icons/user.svg";
+import shieldIcon from "../assets/icons/shield-half.svg";
 
 type SortDir = "asc" | "desc";
 type SortKey = "id" | "email" | "name" | "role" | "is_online";
@@ -189,7 +192,8 @@ export default function Users() {
         </div>
         <div style={topSpacingStyle}>
           <button className="btn primary" onClick={onCreate}>
-            {t("actions.create")}
+            <Icon src={userIcon} size={18} />
+            <span>{t("actions.create")}</span>
           </button>
         </div>
       </div>
@@ -231,7 +235,8 @@ export default function Users() {
                       className="btn danger"
                       onClick={() => void onDeactivate(user.id)}
                     >
-                      {t("actions.deactivate")}
+                      <Icon src={shieldIcon} size={17} />
+                      <span>{t("actions.deactivate")}</span>
                     </button>
                   </td>
                 </tr>
