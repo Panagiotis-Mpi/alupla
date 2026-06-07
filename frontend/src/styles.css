@@ -3685,7 +3685,7 @@ html.accessibility-high-contrast .public-home-counter span{
     width:min(1120px,100%);
     max-width:1120px;
     max-height:calc(100vh - 102px);
-    padding:clamp(1.45rem,2.4vh,2.1rem) clamp(2rem,3.2vw,2.85rem);
+    padding:clamp(1.45rem,2.4vh,2.1rem) clamp(2rem,3.2vw,2.85rem) clamp(1rem,1.45vh,1.35rem);
     overflow:hidden;
   }
   .public-home-content{
@@ -3708,7 +3708,7 @@ html.accessibility-high-contrast .public-home-counter span{
   .public-home-action{font-size:1.08rem}
   .public-home-visual{
     align-self:start;
-    gap:.7rem;
+    gap:.55rem;
     padding:4.2rem 0 0;
   }
   .public-home-counters-note{
@@ -3723,7 +3723,7 @@ html.accessibility-high-contrast .public-home-counter span{
   .public-home-counter{padding:14px 14px}
   .public-home-counter strong{font-size:1.28rem}
   .public-home-counter span{font-size:.84rem}
-  .public-home-illustration{max-width:min(330px,92%)}
+  .public-home-illustration{max-width:min(270px,88%)}
 }
 
 @media (min-width:821px) and (max-width:1024px){
