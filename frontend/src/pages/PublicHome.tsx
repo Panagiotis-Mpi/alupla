@@ -2,7 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import connectedWorldIllustration from "../assets/undraw_connected-world_anke.svg";
+import greeceMapIllustration from "../assets/home_greece_map.svg";
 import { getPublicStats } from "../lib/api";
 import Icon from "../components/Icon";
 import chartIcon from "../assets/icons/chart-column-big.svg";
@@ -124,7 +124,7 @@ export default function PublicHome() {
                 </div>
               ))}
             </div>
-            <img src={connectedWorldIllustration} alt="" className="public-home-illustration" />
+            <img src={greeceMapIllustration} alt="" className="public-home-illustration" />
           </div>
         </div>
       </div>
