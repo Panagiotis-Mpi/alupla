@@ -585,8 +585,6 @@ export default function Statistics() {
     { key: "abroad", label: t("compare.abroad"), a: `${compareA.abroad} (${compareA.abroadShare})`, b: `${compareB.abroad} (${compareB.abroadShare})`, aValue: compareA.abroad, bValue: compareB.abroad, deltaLabel: t("compare.abroadShareChange"), delta: compareDelta.abroad, direction: compareDelta.abroadAmount },
   ], [compareA, compareB, compareDelta, t]);
 
-  const compareRangeLabel = React.useCallback((range: string) => t("compare.periodRange", { range }), [t]);
-
   const compareSelect = React.useCallback((value: string, onChange: (value: string) => void) => (
     <select value={value} onChange={(event) => onChange(event.target.value)}>
       {compareYearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
@@ -983,13 +981,11 @@ export default function Statistics() {
               {compareRows.map((row) => (
                 <div className="statistics-compare-row" key={row.key}>
                   <div className="statistics-compare-metric statistics-compare-row-metric">
-                    <span className="statistics-compare-row-period">{compareRangeLabel(compareA.range)}</span>
                     <strong>{row.a}</strong>
                     <span>{row.label}</span>
                   </div>
                   <div className="statistics-compare-arrow" aria-hidden="true">→</div>
                   <div className="statistics-compare-metric statistics-compare-row-metric">
-                    <span className="statistics-compare-row-period">{compareRangeLabel(compareB.range)}</span>
                     <strong>{row.b}</strong>
                     <span>{row.label}</span>
                   </div>

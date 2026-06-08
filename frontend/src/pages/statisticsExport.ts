@@ -807,7 +807,7 @@ function buildSheets(args: BuildArgs) {
 
   sheets.set("abroadByYear", {
     chartId: "abroadByYear",
-    name: activeLang === "en" ? "Greece and Abroad by Graduation Year" : "Κατανομή Ελλάδας/εξωτερικού ανά έτος αποφοίτησης",
+    name: activeLang === "en" ? "Greece and abroad graduates distribution by graduation year" : "Κατανομή αποφοίτων Ελλάδας και εξωτερικού ανά έτος αποφοίτησης",
     rows: abroadByYearRows.length
       ? [
           ...abroadByYearRows,
