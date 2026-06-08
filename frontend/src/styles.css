@@ -4696,3 +4696,27 @@ html.accessibility-high-contrast .map-legend-swatch-count-high-contrast{
 html.accessibility-high-contrast .accessibility-trigger{
   box-shadow:none !important;
 }
+html.accessibility-high-contrast .nav-dropdown-menu,
+html.accessibility-high-contrast .nav-account-menu{
+  background:#020f0d !important;
+  color:#9fffe7 !important;
+  border:1px solid #14f5c8 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .nav-dropdown-item{
+  background:#000000 !important;
+  color:#9fffe7 !important;
+  border:0 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .nav-dropdown-item:hover,
+html.accessibility-high-contrast .nav-dropdown-item:focus-visible{
+  background:#ffd400 !important;
+  color:#000000 !important;
+  border-color:#ffd400 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .nav-dropdown-item:hover *,
+html.accessibility-high-contrast .nav-dropdown-item:focus-visible *{
+  color:#000000 !important;
+}
