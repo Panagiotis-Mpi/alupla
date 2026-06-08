@@ -14,6 +14,7 @@ import aluplaLogo from "./assets/logo_black.svg";
 import chartColumnIcon from "./assets/icons/chart-column-big.svg";
 import globeIcon from "./assets/icons/globe.svg";
 import graduationCapIcon from "./assets/icons/graduation-cap.svg";
+import graduatePeopleIcon from "./assets/icons/graduate-people.svg";
 import historyIcon from "./assets/icons/history.svg";
 import usersIcon from "./assets/icons/users.svg";
 
@@ -32,7 +33,7 @@ const COMPACT_WIDTH = 820;
 const navIconByRoute: Record<string, string> = {
   "/map": globeIcon,
   "/statistics": chartColumnIcon,
-  "/graduates": usersIcon,
+  "/graduates": graduatePeopleIcon,
   "/academic-data": graduationCapIcon,
   "/users": usersIcon,
   "/logs": historyIcon,
