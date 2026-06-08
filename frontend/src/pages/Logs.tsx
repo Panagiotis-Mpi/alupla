@@ -122,6 +122,7 @@ export default function Logs() {
   const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
 
+
   React.useEffect(() => {
     const update = () => setIsCompact(window.innerWidth <= 820);
     update();
