@@ -21,7 +21,8 @@
     "deactivate": "Διαγραφή",
     "export": "Εξαγωγή",
     "excel": "Excel",
-    "csv": "CSV"
+    "csv": "CSV",
+    "cancel": "Ακύρωση"
   },
   "table": {
     "id": "ID",
@@ -45,5 +46,8 @@
   "messages": {
     "createdWithEmail": "Ο χρήστης δημιουργήθηκε και στάλθηκε email με τα στοιχεία σύνδεσης.",
     "createdWithoutEmail": "Ο χρήστης δημιουργήθηκε. Δεν στάλθηκε email. Έλεγξε τις ρυθμίσεις Brevo/API αποστολής email στο backend."
+  },
+  "menu": {
+    "title": "Μενού χρηστών"
   }
 }
