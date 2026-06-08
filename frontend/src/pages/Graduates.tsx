@@ -46,7 +46,7 @@ import arrowUpIcon from "../assets/icons/arrow-up-to-line.svg";
 import fileSpreadsheetIcon from "../assets/icons/file-spreadsheet.svg";
 import historyIcon from "../assets/icons/history.svg";
 import listFilterIcon from "../assets/icons/list-filter.svg";
-import userIcon from "../assets/icons/user.svg";
+import graduatePersonIcon from "../assets/icons/graduate-person.svg";
 import {
   toggleMergedVisibleSelection,
   toggleSelectionValue,
@@ -853,7 +853,7 @@ export default function Graduates() {
                     justifyContent: "center",
                   }}
                 >
-                  <Icon src={userIcon} size={18} />
+                  <Icon src={graduatePersonIcon} size={18} />
                   <span>{t("topbar.newGraduate")}</span>
                 </Link>
                 <input
