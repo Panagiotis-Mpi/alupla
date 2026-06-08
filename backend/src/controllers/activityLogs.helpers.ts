@@ -20,6 +20,7 @@ export const actionLabels = {
     upload: "Μεταφόρτωση αρχείου",
     import_graduates: "Εισαγωγή αποφοίτων",
     export_graduates: "Εξαγωγή αποφοίτων",
+    export_users: "Εξαγωγή χρηστών",
     export_users_csv: "Εξαγωγή χρηστών",
     export_users_xlsx: "Εξαγωγή χρηστών",
     export_csv: "Εξαγωγή CSV",
@@ -60,6 +61,7 @@ export const actionLabels = {
     upload: "File upload",
     import_graduates: "Graduate import",
     export_graduates: "Graduate export",
+    export_users: "User export",
     export_users_csv: "User export",
     export_users_xlsx: "User export",
     export_csv: "CSV export",
@@ -223,7 +225,17 @@ export function buildLogFilters(req: Request) {
 
   if (userId !== undefined && userId !== "") where.user_id = Number(userId);
 
-  if (action === "export_logs") {
+  if (action === "export_users") {
+    where[Op.and] = [
+      ...(Array.isArray(where[Op.and]) ? (where[Op.and] as any[]) : []),
+      {
+        [Op.or]: [
+          { action: "export_users_csv" },
+          { action: "export_users_xlsx" },
+        ],
+      },
+    ];
+  } else if (action === "export_logs") {
     where[Op.and] = [
       ...(Array.isArray(where[Op.and]) ? (where[Op.and] as any[]) : []),
       {
