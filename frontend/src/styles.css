@@ -4075,3 +4075,148 @@ html.accessibility-high-contrast .accessibility-trigger-icon{color:#14f5c8 !impo
     max-width:170px;
   }
 }
+
+html.accessibility-high-contrast body.logs-page-active,
+html.accessibility-high-contrast body.logs-page-active .app-shell,
+html.accessibility-high-contrast body.logs-page-active .app-content,
+html.accessibility-high-contrast body.logs-page-active .container,
+html.accessibility-high-contrast body.logs-page-active .nav,
+html.accessibility-high-contrast body.logs-page-active .mobile-drawer,
+html.accessibility-high-contrast body.logs-page-active .app-footer,
+html.accessibility-high-contrast body.logs-page-active .accessibility-panel,
+html.accessibility-high-contrast body.logs-page-active .accessibility-trigger{
+  background:#000000 !important;
+  color:#ffffff !important;
+  border-color:#ffffff !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+}
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .card,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .page-header-card,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .mobile-table-card,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .table-wrap,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .table,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell table,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell thead,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell tbody,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell tr,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell th,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell td,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .input,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell select,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell option,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell input,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell textarea,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .badge,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .chip,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .pill,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .btn,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell button,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell [style*="background"],
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell [style*="background-color"],
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell [style*="box-shadow"]{
+  background:#000000 !important;
+  color:#ffffff !important;
+  border-color:#ffffff !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell *{
+  color:#ffffff !important;
+  text-shadow:none !important;
+}
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .table,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell table,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .table-wrap,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .card,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .input,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .btn,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell button{
+  border:2px solid #ffffff !important;
+}
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .table th,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .table td,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell table th,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell table td{
+  background:#000000 !important;
+  border-color:#ffffff !important;
+  color:#ffffff !important;
+}
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .table tr:hover td{
+  background:#111111 !important;
+  color:#ffffff !important;
+}
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell :is(.btn,button):hover,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell :is(.btn,button)[aria-expanded="true"],
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell :is(.btn,button)[aria-pressed="true"]{
+  background:#000000 !important;
+  color:#ffffff !important;
+  border-color:#ffffff !important;
+  box-shadow:inset 0 0 0 1px #ffffff !important;
+}
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell :is(.btn,button):hover *,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell :is(.btn,button)[aria-expanded="true"] *,
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell :is(.btn,button)[aria-pressed="true"] *{
+  color:#ffffff !important;
+}
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell :is(.btn,button,input,select,textarea):disabled{
+  background:#000000 !important;
+  color:#bdbdbd !important;
+  border-color:#bdbdbd !important;
+  opacity:1 !important;
+}
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell ::placeholder{
+  color:#ffffff !important;
+  opacity:1 !important;
+}
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell .ui-icon{
+  color:currentColor !important;
+  background:currentColor !important;
+}
+html.accessibility-high-contrast body.logs-page-active .logs-page-shell :is(input,select,textarea,button,.btn,a,[role="button"],summary):focus-visible{
+  outline:3px solid #ffffff !important;
+  outline-offset:3px !important;
+}
+html.accessibility-high-contrast body.logs-page-active .nav :is(.btn,button,a),
+html.accessibility-high-contrast body.logs-page-active .mobile-drawer :is(.btn,button,a),
+html.accessibility-high-contrast body.logs-page-active .nav-dropdown-menu,
+html.accessibility-high-contrast body.logs-page-active .nav-dropdown-item,
+html.accessibility-high-contrast body.logs-page-active .accessibility-panel :is(.btn,button),
+html.accessibility-high-contrast body.logs-page-active .accessibility-icon-btn,
+html.accessibility-high-contrast body.logs-page-active .accessibility-toggle-btn{
+  background:#000000 !important;
+  color:#ffffff !important;
+  border-color:#ffffff !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast body.logs-page-active .nav :is(.btn,button,a) *,
+html.accessibility-high-contrast body.logs-page-active .mobile-drawer :is(.btn,button,a) *,
+html.accessibility-high-contrast body.logs-page-active .nav-dropdown-menu *,
+html.accessibility-high-contrast body.logs-page-active .accessibility-panel *,
+html.accessibility-high-contrast body.logs-page-active .brand:not(.brand-compact) span,
+html.accessibility-high-contrast body.logs-page-active .accessibility-trigger-icon{
+  color:#ffffff !important;
+}
+html.accessibility-high-contrast body.logs-page-active .nav :is(.btn,button,a):hover,
+html.accessibility-high-contrast body.logs-page-active .mobile-drawer :is(.btn,button,a):hover,
+html.accessibility-high-contrast body.logs-page-active .nav :is(.nav-link-active,.user-profile-btn.nav-link-active),
+html.accessibility-high-contrast body.logs-page-active .nav-dropdown-item:hover,
+html.accessibility-high-contrast body.logs-page-active .accessibility-panel :is(.btn,button):hover,
+html.accessibility-high-contrast body.logs-page-active .accessibility-toggle-btn.is-active,
+html.accessibility-high-contrast body.logs-page-active .accessibility-icon-btn.is-active,
+html.accessibility-high-contrast body.logs-page-active .accessibility-panel .accessibility-toggle-btn[aria-pressed="true"]{
+  background:#000000 !important;
+  color:#ffffff !important;
+  border-color:#ffffff !important;
+  box-shadow:inset 0 0 0 1px #ffffff !important;
+}
+html.accessibility-high-contrast body.logs-page-active .nav :is(.btn,button,a):hover *,
+html.accessibility-high-contrast body.logs-page-active .mobile-drawer :is(.btn,button,a):hover *,
+html.accessibility-high-contrast body.logs-page-active .nav :is(.nav-link-active,.user-profile-btn.nav-link-active) *,
+html.accessibility-high-contrast body.logs-page-active .nav-dropdown-item:hover *,
+html.accessibility-high-contrast body.logs-page-active .accessibility-panel :is(.btn,button):hover *,
+html.accessibility-high-contrast body.logs-page-active .accessibility-toggle-btn.is-active *,
+html.accessibility-high-contrast body.logs-page-active .accessibility-icon-btn.is-active *,
+html.accessibility-high-contrast body.logs-page-active .accessibility-panel .accessibility-toggle-btn[aria-pressed="true"] *{
+  color:#ffffff !important;
+}

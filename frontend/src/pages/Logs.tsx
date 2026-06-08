@@ -123,6 +123,11 @@ export default function Logs() {
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
+    document.body.classList.add("logs-page-active");
+    return () => document.body.classList.remove("logs-page-active");
+  }, []);
+
+  React.useEffect(() => {
     const update = () => setIsCompact(window.innerWidth <= 820);
     update();
     window.addEventListener("resize", update);
@@ -260,7 +265,7 @@ export default function Logs() {
   }
 
   return (
-    <div className="page-stable-shell">
+    <div className="page-stable-shell logs-page-shell">
       {err && (
         <div
           className="card"
