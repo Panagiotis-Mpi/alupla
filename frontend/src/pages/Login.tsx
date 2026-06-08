@@ -123,7 +123,7 @@ function Login() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 className="input auth-form-input auth-form-input-with-icon auth-form-input-with-action"
-                placeholder="Password"
+                placeholder={t("login.password")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={inputStyle}
