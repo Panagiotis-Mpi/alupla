@@ -4509,3 +4509,49 @@ html.accessibility-high-contrast .statistics-compare-change.is-down .statistics-
   color:#ff6b6b !important;
   border-color:#ff6b6b !important;
 }
+html.accessibility-high-contrast .statistics-compare-card{
+  background:#010a08 !important;
+}
+html.accessibility-high-contrast .statistics-compare-range-control,
+html.accessibility-high-contrast .statistics-compare-metric,
+html.accessibility-high-contrast .statistics-compare-arrow,
+html.accessibility-high-contrast .statistics-compare-change{
+  background:#020f0d !important;
+  color:#9fffe7 !important;
+  border:1px solid #14f5c8 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .statistics-compare-metric strong,
+html.accessibility-high-contrast .statistics-compare-metric span,
+html.accessibility-high-contrast .statistics-compare-change strong,
+html.accessibility-high-contrast .statistics-compare-change span,
+html.accessibility-high-contrast .statistics-compare-title p,
+html.accessibility-high-contrast .statistics-compare-panel-title,
+html.accessibility-high-contrast .statistics-compare-row-period{
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  padding:0 !important;
+  outline:0 !important;
+}
+html.accessibility-high-contrast .statistics-compare-metric strong,
+html.accessibility-high-contrast .statistics-compare-change strong,
+html.accessibility-high-contrast .statistics-compare-arrow{
+  color:#9fffe7 !important;
+}
+html.accessibility-high-contrast .statistics-compare-metric span,
+html.accessibility-high-contrast .statistics-compare-title p{
+  color:#7eead6 !important;
+}
+html.accessibility-high-contrast .statistics-compare-change.is-up{
+  background:#03170c !important;
+  border-color:#39ff14 !important;
+}
+html.accessibility-high-contrast .statistics-compare-change.is-down{
+  background:#190607 !important;
+  border-color:#ff6b6b !important;
+}
+html.accessibility-high-contrast .statistics-compare-change.is-neutral{
+  background:#020f0d !important;
+  border-color:#14f5c8 !important;
+}
