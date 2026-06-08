@@ -4555,3 +4555,144 @@ html.accessibility-high-contrast .statistics-compare-change.is-neutral{
   background:#020f0d !important;
   border-color:#14f5c8 !important;
 }
+
+html.accessibility-high-contrast .card,
+html.accessibility-high-contrast .page-header-card,
+html.accessibility-high-contrast .public-home-card,
+html.accessibility-high-contrast .auth-form-card,
+html.accessibility-high-contrast .auth-subcard,
+html.accessibility-high-contrast .auth-subcard-muted,
+html.accessibility-high-contrast .auth-subcard-white,
+html.accessibility-high-contrast .mobile-table-card,
+html.accessibility-high-contrast .modal-card,
+html.accessibility-high-contrast .drawer-panel,
+html.accessibility-high-contrast .map-menu,
+html.accessibility-high-contrast .map-info-box,
+html.accessibility-high-contrast .map-custom-legend,
+html.accessibility-high-contrast .map-timeline-current,
+html.accessibility-high-contrast .map-loading-overlay-card,
+html.accessibility-high-contrast .chart-data-summary-row,
+html.accessibility-high-contrast .statistics-compare-range-control,
+html.accessibility-high-contrast .statistics-compare-metric,
+html.accessibility-high-contrast .statistics-compare-arrow,
+html.accessibility-high-contrast .statistics-compare-change,
+html.accessibility-high-contrast .statistics-chart-fullscreen-btn{
+  border-width:1px !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .input,
+html.accessibility-high-contrast input,
+html.accessibility-high-contrast select,
+html.accessibility-high-contrast textarea,
+html.accessibility-high-contrast .btn,
+html.accessibility-high-contrast button,
+html.accessibility-high-contrast input[type="button"],
+html.accessibility-high-contrast input[type="submit"],
+html.accessibility-high-contrast input[type="reset"],
+html.accessibility-high-contrast input::file-selector-button,
+html.accessibility-high-contrast .public-home-action,
+html.accessibility-high-contrast .accessibility-icon-btn,
+html.accessibility-high-contrast .accessibility-toggle-btn,
+html.accessibility-high-contrast .map-menu-item{
+  border-width:1px !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .btn.primary,
+html.accessibility-high-contrast button.primary,
+html.accessibility-high-contrast .public-home-action.primary,
+html.accessibility-high-contrast .btn[aria-pressed="true"],
+html.accessibility-high-contrast button[aria-pressed="true"],
+html.accessibility-high-contrast .btn[aria-expanded="true"],
+html.accessibility-high-contrast button[aria-expanded="true"],
+html.accessibility-high-contrast .btn.active,
+html.accessibility-high-contrast button.active,
+html.accessibility-high-contrast .btn:hover,
+html.accessibility-high-contrast button:hover,
+html.accessibility-high-contrast .nav :is(.nav-link-active,.user-profile-btn.nav-link-active),
+html.accessibility-high-contrast .nav-link-with-icon:hover,
+html.accessibility-high-contrast .nav-dropdown-item:hover,
+html.accessibility-high-contrast .nav-dropdown-toggle:hover,
+html.accessibility-high-contrast .map-menu-item:hover,
+html.accessibility-high-contrast .map-menu-item.active,
+html.accessibility-high-contrast .accessibility-toggle-btn.is-active,
+html.accessibility-high-contrast .accessibility-icon-btn.is-active,
+html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn[aria-pressed="true"],
+html.accessibility-high-contrast .lang-switcher .btn[aria-pressed="true"]{
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .table-wrap{
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .table,
+html.accessibility-high-contrast table{
+  border-width:1px !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .table th,
+html.accessibility-high-contrast table th,
+html.accessibility-high-contrast .table td,
+html.accessibility-high-contrast table td{
+  border-left:0 !important;
+  border-right:0 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .statistics-metric-main,
+html.accessibility-high-contrast .statistics-metric-label,
+html.accessibility-high-contrast .statistics-metric-value,
+html.accessibility-high-contrast .statistics-metric-detail,
+html.accessibility-high-contrast .statistics-metric-sub-list,
+html.accessibility-high-contrast .statistics-metric-sub-row,
+html.accessibility-high-contrast .statistics-metric-sub-label,
+html.accessibility-high-contrast .statistics-metric-sub-value,
+html.accessibility-high-contrast .statistics-summary-row,
+html.accessibility-high-contrast .statistics-summary-section,
+html.accessibility-high-contrast .map-summary-label,
+html.accessibility-high-contrast .map-summary-value,
+html.accessibility-high-contrast .map-summary-sub,
+html.accessibility-high-contrast .map-summary-scope-list,
+html.accessibility-high-contrast .map-summary-total-row,
+html.accessibility-high-contrast .map-summary-scope-row,
+html.accessibility-high-contrast .map-summary-total-name,
+html.accessibility-high-contrast .map-summary-total-number,
+html.accessibility-high-contrast .map-summary-scope-name,
+html.accessibility-high-contrast .map-summary-scope-number,
+html.accessibility-high-contrast .map-info-box-header,
+html.accessibility-high-contrast .map-info-group,
+html.accessibility-high-contrast .map-info-groups,
+html.accessibility-high-contrast .map-info-metrics,
+html.accessibility-high-contrast .map-info-metric,
+html.accessibility-high-contrast .map-info-box-title,
+html.accessibility-high-contrast .map-info-total-line,
+html.accessibility-high-contrast .map-info-group-title,
+html.accessibility-high-contrast .map-info-metric-label,
+html.accessibility-high-contrast .map-info-metric-value,
+html.accessibility-high-contrast .chart-data-summary-label-wrap,
+html.accessibility-high-contrast .chart-data-summary-label,
+html.accessibility-high-contrast .chart-data-summary-meta,
+html.accessibility-high-contrast .chart-data-summary-value,
+html.accessibility-high-contrast .chart-data-summary-percent,
+html.accessibility-high-contrast .statistics-compare-title,
+html.accessibility-high-contrast .statistics-compare-title p,
+html.accessibility-high-contrast .statistics-compare-panel-title,
+html.accessibility-high-contrast .statistics-compare-row-period,
+html.accessibility-high-contrast .statistics-compare-metric strong,
+html.accessibility-high-contrast .statistics-compare-metric span,
+html.accessibility-high-contrast .statistics-compare-change strong,
+html.accessibility-high-contrast .statistics-compare-change span{
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  outline:0 !important;
+}
+html.accessibility-high-contrast .statistics-metric-toggle-icon,
+html.accessibility-high-contrast .chart-marker-swatch,
+html.accessibility-high-contrast .chart-data-summary-row .chart-marker-swatch,
+html.accessibility-high-contrast .map-legend-swatch,
+html.accessibility-high-contrast .map-legend-swatch-count-high-contrast{
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .accessibility-trigger{
+  box-shadow:none !important;
+}
