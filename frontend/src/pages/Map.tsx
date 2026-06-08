@@ -34,7 +34,6 @@ import {
 } from "./map/controls";
 import {
   InfoBox,
-  compactNumber,
   detailValue,
   genderColors,
   slugPart,
@@ -51,7 +50,6 @@ import {
   buildCountMarkerScale,
   countMarkerPalette,
   genderLegendPattern,
-  genderMarkerSymbol,
   highContrastMapTileUrl,
   lightMapTileUrl,
   localizedCityRecordName,
@@ -60,10 +58,8 @@ import {
   localizedPeripheryRecordName,
   mapTileAttribution,
   markerDeclutterDistance,
-  metroGroupForPoint,
   projectMarkerToViewport,
   sameMapSelection,
-  shouldCollapseMetroAtZoom,
   type MapMetric,
   type MapScope,
 } from "./map/markers";
@@ -956,48 +952,6 @@ export default function GraduatesMapPage() {
     counterpartTotal,
     counterpartWarmupEnabled,
   ]);
-
-  const weightedAvgAge = useMemo(() => {
-    let weightedSum = 0;
-    let weightedCount = 0;
-    items.forEach((item) => {
-      const avgAge = Number(item.avg_age ?? NaN);
-      const count = Number(item.count ?? 0) || 0;
-      if (!Number.isFinite(avgAge) || count <= 0) return;
-      weightedSum += avgAge * count;
-      weightedCount += count;
-    });
-    return weightedCount
-      ? Math.round((weightedSum / weightedCount) * 10) / 10
-      : null;
-  }, [items]);
-
-  const ageRange = useMemo(() => {
-    let minAge: number | null = null;
-    let maxAge: number | null = null;
-    items.forEach((item) => {
-      const itemMinAge = Number((item as any).min_age ?? NaN);
-      const itemMaxAge = Number((item as any).max_age ?? NaN);
-      if (Number.isFinite(itemMinAge)) {
-        minAge = minAge === null ? itemMinAge : Math.min(minAge, itemMinAge);
-      }
-      if (Number.isFinite(itemMaxAge)) {
-        maxAge = maxAge === null ? itemMaxAge : Math.max(maxAge, itemMaxAge);
-      }
-    });
-    return { minAge, maxAge };
-  }, [items]);
-
-  const comparisonHintText =
-    mapScope === "abroad"
-      ? mt("detailsHintAbroad", {
-          defaultValue:
-            "Μπορείτε να επιλέξετε έως 6 χώρες για να τις συγκρίνετε.",
-        })
-      : mt("detailsHint", {
-          defaultValue:
-            "Μπορείτε να επιλέξετε έως έξι πόλεις για να τις συγκρίνετε.",
-        });
 
   async function waitForExportTarget(
     targetScope: MapScope,

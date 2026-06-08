@@ -54,10 +54,6 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#39;");
 }
 
-function normalizeLanguage(value?: string): EmailLanguage {
-  const language = String(value || "").toLowerCase();
-  return language.startsWith("en") ? "en" : "gr";
-}
 
 function accountRoleLabel(role: NewUserAccountEmailInput["role"], language: EmailLanguage) {
   if (language === "en") return role === "super_admin" ? "Administrator" : "Secretariat";

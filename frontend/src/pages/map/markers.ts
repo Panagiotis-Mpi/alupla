@@ -13,40 +13,6 @@ export const mapTileAttribution =
   "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/attributions\">CARTO</a>";
 
 
-const metroGroups = [
-  {
-    key: "athens",
-    center: { latitude: 37.9838, longitude: 23.7275 },
-    bounds: {
-      minLat: 37.82,
-      maxLat: 38.16,
-      minLng: 23.44,
-      maxLng: 23.98,
-    },
-  },
-  {
-    key: "thessaloniki",
-    center: { latitude: 40.6401, longitude: 22.9444 },
-    bounds: {
-      minLat: 40.50,
-      maxLat: 40.74,
-      minLng: 22.80,
-      maxLng: 23.12,
-    },
-  },
-] as const;
-
-export function metroGroupForPoint(latitude: number, longitude: number) {
-  return (
-    metroGroups.find(
-      (group) =>
-        latitude >= group.bounds.minLat &&
-        latitude <= group.bounds.maxLat &&
-        longitude >= group.bounds.minLng &&
-        longitude <= group.bounds.maxLng,
-    ) || null
-  );
-}
 const escapeHtml = (value: string) =>
   String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -78,13 +44,6 @@ export function localizedCountryKey(value: unknown) {
   return normalizeKey(String(value ?? ""));
 }
 
-export function genderMarkerSymbol(city: any) {
-  const maleCount = Math.max(0, Number(city?.male_count || 0));
-  const femaleCount = Math.max(0, Number(city?.female_count || 0));
-  if (maleCount > femaleCount) return "♂";
-  if (femaleCount > maleCount) return "♀";
-  return "≈";
-}
 
 export function genderLegendPattern(entryKey: string, highContrastEnabled = false) {
   return "";
@@ -231,9 +190,6 @@ export function bubbleLabelIcon(
 
 
 
-export function shouldCollapseMetroAtZoom(zoom: number) {
-  return zoom < 10.2;
-}
 
 
 export function markerDeclutterDistance(scope: MapScope, zoom: number) {

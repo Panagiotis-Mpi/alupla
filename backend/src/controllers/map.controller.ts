@@ -1,7 +1,6 @@
 // Χειρίζεται τα δεδομένα του χάρτη: συγκεντρώσεις, φίλτρα, πόλεις και λεπτομέρειες.
 import type { Request, Response } from "express";
 import { Graduate } from "../models/Graduate";
-import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
 import { col, fn, literal } from "sequelize";
 import { ensureLocalizedRegionNames, resolveMapLocation } from "../services/mapLocation.service";
@@ -170,21 +169,6 @@ type MapScope = "greece" | "abroad";
 type LocalizedNames = { nameEl: string | null; nameEn: string | null };
 type MapBuildOptions = { includeMapItems?: boolean; includeCityItems?: boolean };
 
-const MAP_GRADUATE_ATTRIBUTES = [
-  "origin_country",
-  "origin_foreign_city",
-  "origin_country_region_id",
-  "origin_periphery_region_id",
-  "origin_region_id",
-  "origin_city_region_id",
-  "origin_municipality",
-  "gender",
-  "birth_date",
-  "degree_grade",
-  "entry_year",
-  "graduation_date",
-  "study_program_id",
-] as const;
 
 type AggregatedGraduateRow = {
   origin_country: string | null;

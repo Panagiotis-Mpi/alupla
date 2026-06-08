@@ -1,7 +1,7 @@
 // Δημόσια endpoints για επισκέπτες: ανώνυμα στατιστικά, χάρτης και exports.
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/sequelize";
-import { NextFunction, Request, Response } from "express";
+import { Request, Response } from "express";
 import { StudyProgram } from "../models/StudyProgram";
 import { Region } from "../models/Region";
 import { ensureLocalizedRegionNames } from "../services/mapLocation.service";

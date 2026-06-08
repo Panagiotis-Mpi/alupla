@@ -335,18 +335,6 @@ export async function login(
   });
 }
 
-export async function register(
-  first_name: string,
-  last_name: string,
-  email: string,
-  password: string,
-): Promise<AuthResponse> {
-  return api("/auth/register", {
-    method: "POST",
-    body: { first_name, last_name, email, password },
-  });
-}
-
 export async function me(): Promise<UserResponse> {
   return api("/auth/me", { method: "GET" });
 }

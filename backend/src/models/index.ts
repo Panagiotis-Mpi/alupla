@@ -62,8 +62,6 @@ async function ensureRegionTypeEnum() {
 
 // Κρατά τη βάση συμβατή με την τρέχουσα έκδοση του κώδικα.
 async function ensureSchema() {
-  const qi = sequelize.getQueryInterface();
-
   await ensureColumn("regions", "normalized_name", { type: DataTypes.STRING(255), allowNull: false, defaultValue: "" });
   await ensureColumn("regions", "name_el", { type: DataTypes.STRING(255), allowNull: true });
   await ensureColumn("regions", "name_en", { type: DataTypes.STRING(255), allowNull: true });

@@ -26,7 +26,6 @@ type PublicExportLang = ExportLang;
 
 // Φορτώνει όλα τα aggregated data για τη σελίδα Στατιστικά.
 export async function loadPublicStatsBundle(context: PublicWhereContext) {
-  const birthExpr = context.birthExpr ?? "g.birth_date";
   const birthYearExpr = context.birthYearExpr ?? "CAST(EXTRACT(YEAR FROM g.birth_date) AS INTEGER)";
 
   const [

@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
 import { signToken } from "../utils/jwt";
-import { fail, hashPassword, isAllowedRegistrationEmail, isStrongPassword, isValidEmail, normalizeEmail, normalizeText, toSafeUser } from "../utils/userAccounts";
+import { fail, hashPassword, isStrongPassword, toSafeUser } from "../utils/userAccounts";
 
 type SessionLog = {
   action: string;
@@ -26,45 +26,6 @@ async function openSession(user: User, log: SessionLog) {
 
 function passwordError(password: unknown) {
   return isStrongPassword(String(password)) ? null : "Weak password (min 8, letter+number+symbol)";
-}
-
-export async function register(req: Request, res: Response) {
-  const { first_name, last_name, email, password } = req.body ?? {};
-
-  if (!first_name || !last_name || !email || !password) {
-    return fail(res, 400, "Missing fields");
-  }
-
-  const weakPasswordMessage = passwordError(password);
-  if (weakPasswordMessage) {
-    return fail(res, 400, weakPasswordMessage);
-  }
-
-  const normalizedEmail = normalizeEmail(email);
-  if (!isValidEmail(normalizedEmail)) {
-    return fail(res, 400, "Invalid email");
-  }
-
-  if (!isAllowedRegistrationEmail(normalizedEmail)) {
-    return fail(res, 400, "Για την εγγραφή στην πλατφόρμα πρέπει να χρησιμοποιηθεί ιδρυματικό ή πανεπιστημιακό email.");
-  }
-
-  const existingUser = await User.findOne({ where: { email: normalizedEmail } });
-  if (existingUser) {
-    return fail(res, 409, "Email already exists");
-  }
-
-  const user = await User.create({
-    first_name: normalizeText(first_name),
-    last_name: normalizeText(last_name),
-    email: normalizedEmail,
-    password_hash: await hashPassword(String(password)),
-    role: "secretariat",
-    is_active: true
-  });
-
-  const session = await openSession(user, { action: "register", entity_type: "user", entity_id: user.id });
-  return res.json({ ok: true, ...session });
 }
 
 export async function login(req: Request, res: Response) {

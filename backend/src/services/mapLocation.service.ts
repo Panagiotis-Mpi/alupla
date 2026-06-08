@@ -721,12 +721,6 @@ type LocalizedRegionNames = {
 const localizedNameCache = new Map<string, Promise<LocalizedRegionNames>>();
 
 // Παίρνει localized ονόματα από region record.
-function localizedFromRegion(region: Partial<RegionLite> | null | undefined): LocalizedRegionNames {
-  return {
-    nameEl: region?.name_el || region?.name || null,
-    nameEn: region?.name_en || region?.name || null,
-  };
-}
 
 function localizedPeripheryNames(region: RegionLite): LocalizedRegionNames {
   const nameEl = cleanRegionText(region.name) || cleanRegionText(region.name_el) || null;

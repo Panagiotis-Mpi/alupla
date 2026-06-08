@@ -123,7 +123,7 @@ export async function renderSegmentedElementSnapshots(element: HTMLElement) {
     return [await renderElementSnapshot(element)];
   }
 
-  const { sourceNode, cloneNode } = overflowPair;
+  const { sourceNode } = overflowPair;
   const viewportWidth = Math.ceil(Math.max(sourceNode.clientWidth, 640));
   const fullWidth = Math.ceil(Math.max(sourceNode.scrollWidth, viewportWidth));
 

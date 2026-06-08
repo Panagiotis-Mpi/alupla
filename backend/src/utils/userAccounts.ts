@@ -32,16 +32,7 @@ export function isStrongPassword(value: string) {
   return STRONG_PASSWORD_RULE.test(String(value ?? ""));
 }
 
-export function isValidEmail(value: unknown) {
-  const email = normalizeEmail(value);
-  if (!email || email.length > 254 || email.includes("..")) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
-export function isAllowedRegistrationEmail(value: unknown) {
-  const email = normalizeEmail(value);
-  return REGISTRATION_EMAIL_DOMAINS.some((domain) => email.endsWith(domain));
-}
 
 export function computeIsOnline(lastSeen: Date | null | undefined) {
   if (!lastSeen) return false;
