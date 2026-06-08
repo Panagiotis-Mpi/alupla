@@ -12,6 +12,7 @@ import { compareSortValues, sortIndicator } from "./shared/sorting";
 import Icon from "../components/Icon";
 import { downloadBlob } from "../lib/download";
 import userIcon from "../assets/icons/user.svg";
+import usersIcon from "../assets/icons/users.svg";
 import fileSpreadsheetIcon from "../assets/icons/file-spreadsheet.svg";
 
 type SortDir = "asc" | "desc";
@@ -283,7 +284,7 @@ export default function Users() {
               style={usersMenuButtonStyle}
               onClick={() => setActivePanel("list")}
             >
-              <Icon src={userIcon} size={18} />
+              <Icon src={usersIcon} size={18} />
               <span>{t("title")}</span>
             </button>
             <button
