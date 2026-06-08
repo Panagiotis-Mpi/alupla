@@ -12,7 +12,6 @@ import { compareSortValues, sortIndicator } from "./shared/sorting";
 import Icon from "../components/Icon";
 import { downloadBlob } from "../lib/download";
 import userIcon from "../assets/icons/user.svg";
-import shieldIcon from "../assets/icons/shield-half.svg";
 import fileSpreadsheetIcon from "../assets/icons/file-spreadsheet.svg";
 
 type SortDir = "asc" | "desc";
@@ -402,9 +401,6 @@ export default function Users() {
               <Icon src={userIcon} size={18} />
               <span>{t("actions.create")}</span>
             </button>
-            <button className="btn" onClick={() => setActivePanel("list")}>
-              {t("actions.cancel")}
-            </button>
           </div>
         </div>
       )}
@@ -483,7 +479,6 @@ export default function Users() {
                         className="btn danger"
                         onClick={() => void onDeactivate(user.id)}
                       >
-                        <Icon src={shieldIcon} size={17} />
                         <span>{t("actions.deactivate")}</span>
                       </button>
                     </td>
