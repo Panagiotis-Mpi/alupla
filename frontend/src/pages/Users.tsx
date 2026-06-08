@@ -74,6 +74,130 @@ function nextSortState(state: SortState, key: SortKey): SortState {
 
 function RoleSelect({ value, labelSecretariat, labelSuperAdmin, onChange }: RoleSelectProps) {
   return (
+    <select
+      className="input"
+      style={inlineSelectStyle}
+      value={value}
+      onChange={(event) => void onChange(event.target.value as AdminUser["role"])}
+    >
+      <option value="secretariat">{labelSecretariat}</option>
+      <option value="super_admin">{labelSuperAdmin}</option>
+    </select>
+  );
+}
+
+export default function Users() {
+  const { t, i18n } = useTranslation("users");
+
+  const [items, setItems] = React.useState<AdminUser[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+  const [ok, setOk] = React.useState<string | null>(null);
+  const inFlight = React.useRef(false);
+  const [sortState, setSortState] = React.useState<SortState>({ key: "id", dir: "asc" });
+  const [form, setForm] = React.useState<UserFormState>(emptyForm);
+  const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
+  const [showCreateForm, setShowCreateForm] = React.useState(false);
+  const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
+
+  const roleLabels = React.useMemo(() => ({
+    secretariat: t("roles.secretariat"),
+    superAdmin: t("roles.superAdmin")
+  }), [t]);
+
+  const setFormValue = <K extends keyof UserFormState>(key: K, value: UserFormState[K]) => {
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  async function load() {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setLoading(true);
+    setErr(null);
+    try {
+      const data = await listUsers();
+      setItems(data.items);
+    } catch (e: any) {
+      setErr(e?.message ?? t("error"));
+    } finally {
+      setLoading(false);
+      inFlight.current = false;
+    }
+  }
+
+  React.useEffect(() => {
+    void load();
+  }, []);
+
+  React.useEffect(() => {
+    const id = window.setInterval(() => {
+      void load();
+    }, 10_000);
+
+    return () => window.clearInterval(id);
+  }, []);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!exportMenuRef.current?.contains(event.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  async function onCreate() {
+    try {
+      setOk(null);
+      const response = await createUser({ ...form, language: i18n.language });
+      setOk(response.mail_sent ? t("messages.createdWithEmail") : t("messages.createdWithoutEmail"));
+      setForm(emptyForm);
+      setShowCreateForm(false);
+      await load();
+    } catch (e: any) {
+      alert(e?.message ?? t("error"));
+    }
+  }
+
+  async function onRoleChange(userId: number, role: AdminUser["role"]) {
+    await updateUser(userId, { role });
+    await load();
+  }
+
+  async function onDeactivate(userId: number) {
+    if (!confirm(t("confirm.deactivate", { id: userId }))) return;
+    await deactivateUser(userId);
+    await load();
+  }
+
+  async function onExport(format: "csv" | "xlsx") {
+    setErr(null);
+    try {
+      const lang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
+      const blob = await exportUsersFile(format, lang);
+      await downloadBlob(blob, `alupla_users_export_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${format}`);
+    } catch (e: any) {
+      setErr(e?.message ?? t("error"));
+    } finally {
+      setExportMenuOpen(false);
+    }
+  }
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((left, right) => compareSortValues(sortValue(left, sortState.key), sortValue(right, sortState.key), sortState.dir));
+  }, [items, sortState]);
+
+  function toggleSort(key: SortKey) {
+    setSortState((state) => nextSortState(state, key));
+  }
+
+  function getSortArrow(key: SortKey) {
+    return sortIndicator(sortState.key, key, sortState.dir);
+  }
+
+  return (
     <div className="page-stable-shell users-page">
       <div className="topbar" style={{ alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h2 style={{ margin: 0 }}>{t("title")}</h2>
