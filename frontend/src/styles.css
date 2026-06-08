@@ -95,6 +95,8 @@ textarea[aria-invalid="true"]{
 
 .ui-icon{width:var(--icon-size,18px);height:var(--icon-size,18px);display:inline-block;flex:0 0 auto;background-color:currentColor;-webkit-mask-image:var(--icon-url);-webkit-mask-position:center;-webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;mask-image:var(--icon-url);mask-position:center;mask-size:contain;mask-repeat:no-repeat;vertical-align:-.15em;line-height:0}
 .btn .ui-icon{margin-right:8px}
+.map-gender-icons{display:inline-flex;align-items:center;justify-content:center;gap:2px;flex:0 0 auto;margin-right:8px}
+.map-gender-icons .ui-icon{margin-right:0}
 .icon-only .ui-icon,.btn-dropdown-chevron + .ui-icon{margin-right:0}
 .public-home-action{display:inline-flex;align-items:center;justify-content:center;gap:10px}
 .public-home-action .ui-icon{margin-right:0}

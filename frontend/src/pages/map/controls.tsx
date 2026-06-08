@@ -2,9 +2,10 @@
 import React from "react";
 import Icon from "../../components/Icon";
 import arrowDownIcon from "../../assets/icons/arrow-down-to-line.svg";
-import chartIcon from "../../assets/icons/chart-column-big.svg";
 import globeIcon from "../../assets/icons/globe.svg";
+import marsIcon from "../../assets/icons/mars.svg";
 import usersIcon from "../../assets/icons/users.svg";
+import venusIcon from "../../assets/icons/venus.svg";
 
 type MetricOption = { label: string; legend: string };
 type MapMetric = "count" | "dominant_gender";
@@ -62,7 +63,14 @@ export function MapTopControls(props: {
       <div className="map-top-controls-row">
         {(["count", "dominant_gender"] as MapMetric[]).map((option) => (
           <button key={option} type="button" className={`btn map-metric-button ${props.mapMetric === option ? "active primary" : ""}`} onClick={() => props.onMetricChange(option)}>
-            <Icon src={option === "count" ? usersIcon : chartIcon} size={18} />
+            {option === "count" ? (
+              <Icon src={usersIcon} size={18} />
+            ) : (
+              <span className="map-gender-icons" aria-hidden="true">
+                <Icon src={marsIcon} size={18} />
+                <Icon src={venusIcon} size={18} />
+              </span>
+            )}
             <span>{props.metricOptions[option].label}</span>
           </button>
         ))}
