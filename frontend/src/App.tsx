@@ -57,10 +57,15 @@ function TopNav() {
   const lang: "gr" | "en" = i18n.language?.startsWith("en") ? "en" : "gr";
 
   const visibleLinks = React.useMemo(() => {
+    const home = { to: "/", label: t("nav.homepage", { defaultValue: lang === "en" ? "Homepage" : "Αρχική σελίδα" }) };
     const map = { to: "/map", label: t("nav.map") };
     const statistics = { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) };
 
-    if (authRoute || !user) {
+    if (authRoute) {
+      return [home, map, statistics];
+    }
+
+    if (!user) {
       return [map, statistics];
     }
 
@@ -85,6 +90,8 @@ function TopNav() {
 
     return [map, statistics, graduates, academicData];
   }, [authRoute, lang, role, t, user]);
+
+  const isActiveLink = React.useCallback((to: string) => (to === "/" ? location.pathname === "/" : location.pathname.startsWith(to)), [location.pathname]);
 
   const closeMenu = React.useCallback(() => setMenuOpen(false), []);
   const currentLanguageLabel = lang === "en" ? "EN" : "EL";
@@ -232,7 +239,7 @@ function TopNav() {
 
       <div className="nav-links desktop-only">
         {visibleLinks.map((link) => (
-          <Link key={link.to} className={"btn nav-link-with-icon " + (location.pathname.startsWith(link.to) ? "nav-link-active" : "")} to={link.to}>
+          <Link key={link.to} className={"btn nav-link-with-icon " + (isActiveLink(link.to) ? "nav-link-active" : "")} to={link.to}>
             {navIconByRoute[link.to] && <Icon src={navIconByRoute[link.to]} size={17} className="nav-link-icon" />}
             <span>{link.label}</span>
           </Link>
@@ -296,7 +303,7 @@ function TopNav() {
       <aside id="mobile-drawer" ref={drawerRef} className={`mobile-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
         <div className="mobile-drawer-section">
           {visibleLinks.map((link) => (
-            <Link key={link.to} className={"btn nav-link-with-icon " + (location.pathname.startsWith(link.to) ? "nav-link-active" : "")} to={link.to}>
+            <Link key={link.to} className={"btn nav-link-with-icon " + (isActiveLink(link.to) ? "nav-link-active" : "")} to={link.to}>
               {navIconByRoute[link.to] && <Icon src={navIconByRoute[link.to]} size={17} className="nav-link-icon" />}
               <span>{link.label}</span>
             </Link>

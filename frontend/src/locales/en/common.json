@@ -12,7 +12,8 @@
     "login": "Login",
     "academicPrograms": "Academic programs",
     "myAccount": "My account",
-    "myProfile": "My profile"
+    "myProfile": "My profile",
+    "homepage": "Homepage"
   },
   "login": {
     "title": "Login",
