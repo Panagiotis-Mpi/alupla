@@ -1,10 +1,12 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { createUser, deactivateUser, listUsers, updateUser, type AdminUser } from "../lib/api";
+import { createUser, deactivateUser, exportUsersFile, listUsers, updateUser, type AdminUser } from "../lib/api";
 import { compareSortValues, sortIndicator } from "./shared/sorting";
 import Icon from "../components/Icon";
+import { downloadBlob } from "../lib/download";
 import userIcon from "../assets/icons/user.svg";
 import shieldIcon from "../assets/icons/shield-half.svg";
+import fileSpreadsheetIcon from "../assets/icons/file-spreadsheet.svg";
 
 type SortDir = "asc" | "desc";
 type SortKey = "id" | "email" | "name" | "role" | "is_online";
@@ -79,6 +81,8 @@ export default function Users() {
   const inFlight = React.useRef(false);
   const [sortState, setSortState] = React.useState<SortState>({ key: "id", dir: "asc" });
   const [form, setForm] = React.useState<UserFormState>(emptyForm);
+  const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
+  const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
 
   const roleLabels = React.useMemo(() => ({
     secretariat: t("roles.secretariat"),
@@ -117,6 +121,17 @@ export default function Users() {
     return () => window.clearInterval(id);
   }, []);
 
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!exportMenuRef.current?.contains(event.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   async function onCreate() {
     try {
       setOk(null);
@@ -140,6 +155,19 @@ export default function Users() {
     await load();
   }
 
+  async function onExport(format: "csv" | "xlsx") {
+    setErr(null);
+    try {
+      const lang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
+      const blob = await exportUsersFile(format, lang);
+      await downloadBlob(blob, `alupla_users_export_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${format}`);
+    } catch (e: any) {
+      setErr(e?.message ?? t("error"));
+    } finally {
+      setExportMenuOpen(false);
+    }
+  }
+
   const sortedItems = React.useMemo(() => {
     return [...items].sort((left, right) => compareSortValues(sortValue(left, sortState.key), sortValue(right, sortState.key), sortState.dir));
   }, [items, sortState]);
@@ -154,9 +182,44 @@ export default function Users() {
 
   return (
     <div className="grid" style={{ gap: 14 }}>
-      <div className="topbar">
-        <h2 style={{ margin: 0 }}>{t("title")}</h2>
-        <span className="badge">{loading ? t("badgeLoading") : t("badgeCount", { count: items.length })}</span>
+      <div className="topbar" style={{ alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <h2 style={{ margin: 0 }}>{t("title")}</h2>
+          <span className="badge">{loading ? t("badgeLoading") : t("badgeCount", { count: items.length })}</span>
+        </div>
+        <div ref={exportMenuRef} style={{ position: "relative", marginLeft: "auto" }}>
+          <button className="btn dropdown-like" onClick={() => setExportMenuOpen((current) => !current)}>
+            <Icon src={fileSpreadsheetIcon} size={18} />
+            <span>{t("actions.export")}</span><span className="btn-dropdown-chevron" aria-hidden="true" />
+          </button>
+          {exportMenuOpen && (
+            <div
+              style={{
+                position: "absolute",
+                top: "calc(100% + 8px)",
+                right: 0,
+                width: 170,
+                background: "#fff",
+                border: "1px solid var(--border)",
+                borderRadius: 14,
+                boxShadow: "0 18px 40px rgba(15,23,42,.16)",
+                padding: 8,
+                zIndex: 50,
+                display: "grid",
+                gap: 6
+              }}
+            >
+              <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("xlsx")}>
+                <Icon src={fileSpreadsheetIcon} size={17} />
+                <span>{t("actions.excel")}</span>
+              </button>
+              <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("csv")}>
+                <Icon src={fileSpreadsheetIcon} size={17} />
+                <span>{t("actions.csv")}</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {err && <div className="card" style={errorCardStyle}>{err}</div>}

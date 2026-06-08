@@ -1,7 +1,7 @@
 // Ορίζει routes διαχείρισης χρηστών.
 import { Router } from "express";
 import { allowRoles, authRequired } from "../middleware/auth";
-import { createUser, deactivateUser, listUsers, updateUser } from "../controllers/users.controller";
+import { createUser, deactivateUser, exportUsersCsv, exportUsersXlsx, listUsers, updateUser } from "../controllers/users.controller";
 
 // Δημιουργεί router που ομαδοποιεί τα σχετικά endpoints.
 export const usersRouter = Router();
@@ -11,6 +11,8 @@ usersRouter.use(authRequired, allowRoles(["super_admin"]));
 
 // Δημιουργία χρήστη.
 usersRouter.get("/", listUsers);
+usersRouter.get("/export.csv", exportUsersCsv);
+usersRouter.get("/export.xlsx", exportUsersXlsx);
 usersRouter.post("/", createUser);
 // Ενημέρωση χρήστη/ρόλου.
 usersRouter.put("/:id", updateUser);

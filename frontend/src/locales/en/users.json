@@ -18,7 +18,10 @@
   },
   "actions": {
     "create": "Create",
-    "deactivate": "Delete"
+    "deactivate": "Delete",
+    "export": "Export",
+    "excel": "Excel",
+    "csv": "CSV"
   },
   "table": {
     "id": "ID",

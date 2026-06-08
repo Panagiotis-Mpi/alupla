@@ -302,6 +302,10 @@ export async function listUsers(): Promise<ListResponse<User>> {
   return cachedPrivateApi("users", "/users", USERS_CACHE_MS);
 }
 
+export async function exportUsersFile(format: "csv" | "xlsx", lang?: string): Promise<Blob> {
+  return fetchBlob(`/users/export.${format}`, {}, lang);
+}
+
 export async function createUser(payload: {
   first_name: string;
   last_name: string;

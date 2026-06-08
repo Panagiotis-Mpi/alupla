@@ -18,7 +18,10 @@
   },
   "actions": {
     "create": "Δημιουργία",
-    "deactivate": "Διαγραφή"
+    "deactivate": "Διαγραφή",
+    "export": "Εξαγωγή",
+    "excel": "Excel",
+    "csv": "CSV"
   },
   "table": {
     "id": "ID",

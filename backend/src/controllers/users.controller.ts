@@ -1,8 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
+import XLSX from "xlsx";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
 import { badRequest, hashPassword, isStrongPassword, normalizeEmail, normalizeText, notFound, toSafeUser } from "../utils/userAccounts";
 import { clearRouteCaches } from "../utils/routeCache";
+import { sanitizeExportRows } from "../utils/exportSafety";
+import { applySheetLayout, buildDelimitedText, buildUtf16CsvBuffer } from "./activityLogs.helpers";
 import { sendNewUserAccountEmail } from "../services/userNotification.service";
 
 type AllowedRole = "super_admin" | "secretariat";
@@ -59,6 +62,90 @@ async function writeUserLog(req: Request, action: string, user: User, details?: 
 
 function userDisplayName(user: User) {
   return `${String(user.first_name ?? "").trim()} ${String(user.last_name ?? "").trim()}`.trim() || String(user.email ?? "").trim();
+}
+
+
+function getExportLang(req: Request) {
+  const value = String(req.query.lang ?? "").trim().toLowerCase();
+  return value.startsWith("en") ? "en" : "gr";
+}
+
+function formatDate(value: unknown, lang: "gr" | "en") {
+  if (!value) return "";
+  const date = new Date(value as any);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "el-GR", { year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+}
+
+function roleLabel(role: string, lang: "gr" | "en") {
+  if (role === "super_admin") return lang === "en" ? "Administrator" : "Διαχειριστής";
+  return lang === "en" ? "Secretariat" : "Γραμματεία";
+}
+
+function userExportRows(users: User[], lang: "gr" | "en") {
+  return users.map((user) => {
+    const name = `${String(user.first_name ?? "").trim()} ${String(user.last_name ?? "").trim()}`.trim();
+    return lang === "en"
+      ? {
+          ID: user.id,
+          Email: user.email,
+          Name: name,
+          Role: roleLabel(user.role, lang),
+          "Account creation date": formatDate(user.created_at, lang)
+        }
+      : {
+          ID: user.id,
+          Email: user.email,
+          Όνομα: name,
+          Ρόλος: roleLabel(user.role, lang),
+          "Ημερομηνία δημιουργίας λογαριασμού": formatDate(user.created_at, lang)
+        };
+  });
+}
+
+async function writeUsersExportLog(req: Request, format: "csv" | "xlsx", count: number) {
+  await logAction({
+    user_id: req.auth!.id,
+    action: format === "csv" ? "export_users_csv" : "export_users_xlsx",
+    entity_type: "user",
+    entity_id: null,
+    details: { format, count }
+  });
+}
+
+export async function exportUsersCsv(req: Request, res: Response, next: NextFunction) {
+  try {
+    const lang = getExportLang(req);
+    const users = await User.findAll({ order: [["id", "ASC"]] });
+    await writeUsersExportLog(req, "csv", users.length);
+    const rows = sanitizeExportRows(userExportRows(users, lang));
+    const csv = buildDelimitedText(rows, "\t");
+    const buffer = buildUtf16CsvBuffer(csv);
+    res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
+    res.setHeader("Content-Disposition", "attachment; filename=alupla_users_export.csv");
+    res.send(buffer);
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function exportUsersXlsx(req: Request, res: Response, next: NextFunction) {
+  try {
+    const lang = getExportLang(req);
+    const users = await User.findAll({ order: [["id", "ASC"]] });
+    await writeUsersExportLog(req, "xlsx", users.length);
+    const rows = sanitizeExportRows(userExportRows(users, lang));
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    applySheetLayout(worksheet, rows);
+    XLSX.utils.book_append_sheet(workbook, worksheet, lang === "en" ? "Users" : "Χρήστες");
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=alupla_users_export.xlsx");
+    res.send(buffer);
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function listUsers(_req: Request, res: Response, next: NextFunction) {
