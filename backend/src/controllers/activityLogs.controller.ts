@@ -31,10 +31,23 @@ import {
 type LogWhere = Record<string | symbol, unknown>;
 type LogLanguage = "gr" | "en";
 
-const logUserInclude = [{ model: User, as: "user", attributes: ["id", "email", "first_name", "last_name", "role"], required: false }];
+const logUserInclude = [
+  {
+    model: User,
+    as: "user",
+    attributes: ["id", "email", "first_name", "last_name", "role"],
+    required: false,
+  },
+];
 
-function addAndFilter(where: LogWhere, filter: Record<string | symbol, unknown>) {
-  where[Op.and] = [...(Array.isArray(where[Op.and]) ? where[Op.and] as unknown[] : []), filter];
+function addAndFilter(
+  where: LogWhere,
+  filter: Record<string | symbol, unknown>,
+) {
+  where[Op.and] = [
+    ...(Array.isArray(where[Op.and]) ? (where[Op.and] as unknown[]) : []),
+    filter,
+  ];
 }
 
 function addActorFilter(where: LogWhere, actor: string | undefined) {
@@ -49,8 +62,13 @@ function addActorFilter(where: LogWhere, actor: string | undefined) {
       { "$user.first_name$": { [Op.like]: `%${actor}%` } },
       { "$user.last_name$": { [Op.like]: `%${actor}%` } },
       { "$user.email$": { [Op.like]: `%${actor}%` } },
-      { [Op.and]: [{ "$user.first_name$": { [Op.like]: `%${firstPart}%` } }, { "$user.last_name$": { [Op.like]: `%${rest}%` } }] }
-    ]
+      {
+        [Op.and]: [
+          { "$user.first_name$": { [Op.like]: `%${firstPart}%` } },
+          { "$user.last_name$": { [Op.like]: `%${rest}%` } },
+        ],
+      },
+    ],
   });
 }
 
@@ -69,17 +87,25 @@ function buildActivityLogWhere(req: Request) {
   return where;
 }
 
-export async function listActivityLogs(req: Request, res: Response, next: NextFunction) {
+export async function listActivityLogs(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   try {
     const page = clamp(toInteger(req.query.page, DEFAULT_PAGE), 1, MAX_PAGE);
-    const pageSize = clamp(toInteger(req.query.pageSize, DEFAULT_PAGE_SIZE), 1, MAX_PAGE_SIZE);
+    const pageSize = clamp(
+      toInteger(req.query.pageSize, DEFAULT_PAGE_SIZE),
+      1,
+      MAX_PAGE_SIZE,
+    );
 
     const { rows, count } = await ActivityLog.findAndCountAll({
       where: buildActivityLogWhere(req),
       limit: pageSize,
       offset: (page - 1) * pageSize,
       order: [["created_at", "DESC"]],
-      include: logUserInclude
+      include: logUserInclude,
     });
 
     res.json({ ok: true, page, pageSize, total: count, items: rows });
@@ -88,21 +114,46 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
   }
 }
 
-export async function getActivityLogFileSummary(req: Request, res: Response, next: NextFunction) {
+export async function getActivityLogFileSummary(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   try {
     const rows = await ActivityLog.findAll({
-      attributes: ["id", "user_id", "action", "entity_type", "details", "created_at"],
-      include: [{ model: User, as: "user", attributes: ["id", "role"], required: false }]
+      attributes: [
+        "id",
+        "user_id",
+        "action",
+        "entity_type",
+        "details",
+        "created_at",
+      ],
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "role"],
+          required: false,
+        },
+      ],
     });
 
     const roleFilter = getRoleFilter(req);
-    const pages = ["graduates", "academicData", "statistics", "map", "logs"];
+    const pages = [
+      "graduates",
+      "users",
+      "academicData",
+      "statistics",
+      "map",
+      "logs",
+    ];
     const fileTypes = ["excel", "csv", "pdf", "png"];
     const baseCell = () => ({ excel: 0, csv: 0, pdf: 0, png: 0 });
     const summary = pages.map((page) => ({
       page,
       import: baseCell(),
-      export: baseCell()
+      export: baseCell(),
     }));
     const byPage = new Map(summary.map((entry) => [entry.page, entry]));
 
@@ -145,13 +196,13 @@ function formatDateTime(lang: LogLanguage, value: unknown) {
     ...baseOptions,
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit"
+    second: "2-digit",
   }).format(date);
   const day = new Intl.DateTimeFormat(locale, {
     ...baseOptions,
     year: "numeric",
     month: "2-digit",
-    day: "2-digit"
+    day: "2-digit",
   }).format(date);
   return `${time}, ${day}`;
 }
@@ -161,31 +212,49 @@ async function findLogsForExport(req: Request) {
     where: buildActivityLogWhere(req),
     order: [["created_at", "DESC"]],
     limit: EXPORT_LIMIT,
-    include: logUserInclude
+    include: logUserInclude,
   });
 }
 
 function getExportRows(lang: LogLanguage, rows: any[]) {
   return rows.map((row) => ({
     [lang === "en" ? "#" : "#"]: row.id,
-    [lang === "en" ? "Time, Date" : "Ώρα, Ημερομηνία"]: formatDateTime(lang, row.created_at),
+    [lang === "en" ? "Time, Date" : "Ώρα, Ημερομηνία"]: formatDateTime(
+      lang,
+      row.created_at,
+    ),
     [lang === "en" ? "User" : "Χρήστης"]: getActorLabel(lang, row),
-    [lang === "en" ? "Action" : "Ενέργεια"]: getLocalizedAction(lang, row.action, row),
-    [lang === "en" ? "Details" : "Λεπτομέρειες"]: getLocalizedDetails(lang, row)
+    [lang === "en" ? "Action" : "Ενέργεια"]: getLocalizedAction(
+      lang,
+      row.action,
+      row,
+    ),
+    [lang === "en" ? "Details" : "Λεπτομέρειες"]: getLocalizedDetails(
+      lang,
+      row,
+    ),
   }));
 }
 
-async function writeExportLog(req: Request, action: "export_csv" | "export_xlsx", count: number) {
+async function writeExportLog(
+  req: Request,
+  action: "export_csv" | "export_xlsx",
+  count: number,
+) {
   await logAction({
     user_id: req.user?.id ?? null,
     action,
     entity_type: "logs",
     entity_id: null,
-    details: { format: action === "export_csv" ? "csv" : "xlsx", count }
+    details: { format: action === "export_csv" ? "csv" : "xlsx", count },
   });
 }
 
-export async function exportActivityLogsCsv(req: Request, res: Response, next: NextFunction) {
+export async function exportActivityLogsCsv(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   try {
     const lang = getLanguage(req);
     const rows = await findLogsForExport(req);
@@ -195,15 +264,25 @@ export async function exportActivityLogsCsv(req: Request, res: Response, next: N
     const exportRows = sanitizeExportRows(getExportRows(lang, rows as any[]));
     const csv = buildDelimitedText(exportRows, "\t");
     const buffer = buildUtf16CsvBuffer(csv);
-    res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
-    res.setHeader("Content-Disposition", "attachment; filename=alupla_system_logs_export.csv");
+    res.setHeader(
+      "Content-Type",
+      "text/tab-separated-values; charset=utf-16le",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=alupla_system_logs_export.csv",
+    );
     res.send(buffer);
   } catch (error) {
     next(error);
   }
 }
 
-export async function exportActivityLogsXlsx(req: Request, res: Response, next: NextFunction) {
+export async function exportActivityLogsXlsx(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   try {
     const lang = getLanguage(req);
     const rows = await findLogsForExport(req);
@@ -214,11 +293,21 @@ export async function exportActivityLogsXlsx(req: Request, res: Response, next: 
     const exportRows = sanitizeExportRows(getExportRows(lang, rows as any[]));
     const worksheet = XLSX.utils.json_to_sheet(exportRows);
     applySheetLayout(worksheet, exportRows);
-    XLSX.utils.book_append_sheet(workbook, worksheet, lang === "en" ? "Logs" : "Καταγραφές");
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      lang === "en" ? "Logs" : "Καταγραφές",
+    );
     const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
 
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    res.setHeader("Content-Disposition", "attachment; filename=alupla_system_logs_export.xlsx");
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=alupla_system_logs_export.xlsx",
+    );
     res.send(buffer);
   } catch (error) {
     next(error);

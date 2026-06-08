@@ -11,7 +11,13 @@ export type LogFilters = {
 
 export type FileSummaryRole = "secretariat" | "super_admin" | "visitor";
 export type FileSummaryFileType = "excel" | "csv" | "pdf" | "png";
-export type FileSummaryPage = "graduates" | "academicData" | "statistics" | "map" | "logs";
+export type FileSummaryPage =
+  | "graduates"
+  | "users"
+  | "academicData"
+  | "statistics"
+  | "map"
+  | "logs";
 export type FileSummaryItem = {
   page: FileSummaryPage;
   import: Record<FileSummaryFileType, number>;
@@ -46,6 +52,8 @@ export const actionLabels = {
     upload: "Μεταφόρτωση αρχείου",
     import_graduates: "Εισαγωγή αποφοίτων",
     export_graduates: "Εξαγωγή αποφοίτων",
+    export_users_csv: "Εξαγωγή χρηστών",
+    export_users_xlsx: "Εξαγωγή χρηστών",
     export_csv: "Εξαγωγή CSV",
     export_xlsx: "Εξαγωγή Excel",
     export_pdf: "Εξαγωγή PDF",
@@ -84,6 +92,8 @@ export const actionLabels = {
     upload: "File upload",
     import_graduates: "Graduate import",
     export_graduates: "Graduate export",
+    export_users_csv: "User export",
+    export_users_xlsx: "User export",
     export_csv: "CSV export",
     export_xlsx: "Excel export",
     export_pdf: "PDF export",
@@ -112,7 +122,7 @@ export const actionLabels = {
     update_region_city: "City update",
     delete_region_city: "City deletion",
     import_region_cities: "City import",
-  }
+  },
 } as const;
 
 export const knownActionKeys = [
@@ -129,50 +139,83 @@ export const knownActionKeys = [
   "bulk_delete_graduates",
   "import_graduates",
   "export_graduates",
+  "export_users_csv",
+  "export_users_xlsx",
   "create_study_program",
   "update_study_program",
   "delete_study_program",
   "import_study_programs",
   "export_logs",
   "statistics_export",
-  "map_export"
+  "map_export",
 ] as const;
 
-export const detailFreeActions = new Set(["login", "logout", "register", "change_password"]);
+export const detailFreeActions = new Set([
+  "login",
+  "logout",
+  "register",
+  "change_password",
+]);
 
 type SummaryOperation = "import" | "export";
 
-const summarySupportMatrix: Record<FileSummaryPage, { import: FileSummaryFileType[]; export: FileSummaryFileType[] }> = {
+const summarySupportMatrix: Record<
+  FileSummaryPage,
+  { import: FileSummaryFileType[]; export: FileSummaryFileType[] }
+> = {
   graduates: { import: ["excel"], export: ["excel", "csv", "pdf"] },
+  users: { import: [], export: ["excel", "csv"] },
   academicData: { import: ["excel"], export: [] },
   statistics: { import: [], export: ["excel", "csv", "png"] },
   map: { import: [], export: ["png"] },
-  logs: { import: [], export: ["excel", "csv"] }
+  logs: { import: [], export: ["excel", "csv"] },
 };
 
 export function getSummaryLayout(role: FileSummaryRole): SummaryLayout {
   if (role === "visitor") {
-    return { pages: ["statistics", "map"], importTypes: [], exportTypes: ["excel", "csv", "png"] };
+    return {
+      pages: ["statistics", "map"],
+      importTypes: [],
+      exportTypes: ["excel", "csv", "png"],
+    };
   }
 
   if (role === "secretariat") {
-    return { pages: ["graduates", "academicData", "statistics", "map"], importTypes: ["excel"], exportTypes: ["excel", "csv", "pdf", "png"] };
+    return {
+      pages: ["graduates", "academicData", "statistics", "map"],
+      importTypes: ["excel"],
+      exportTypes: ["excel", "csv", "pdf", "png"],
+    };
   }
 
-  return { pages: ["graduates", "academicData", "statistics", "map", "logs"], importTypes: ["excel"], exportTypes: ["excel", "csv", "pdf", "png"] };
+  return {
+    pages: ["graduates", "users", "academicData", "statistics", "map", "logs"],
+    importTypes: ["excel"],
+    exportTypes: ["excel", "csv", "pdf", "png"],
+  };
 }
 
-export function isSummaryCellSupported(page: FileSummaryPage, operation: SummaryOperation, fileType: FileSummaryFileType) {
+export function isSummaryCellSupported(
+  page: FileSummaryPage,
+  operation: SummaryOperation,
+  fileType: FileSummaryFileType,
+) {
   return summarySupportMatrix[page][operation].includes(fileType);
 }
 
-export function summaryCellValue(row: FileSummaryItem, operation: SummaryOperation, fileType: FileSummaryFileType) {
+export function summaryCellValue(
+  row: FileSummaryItem,
+  operation: SummaryOperation,
+  fileType: FileSummaryFileType,
+) {
   if (!isSummaryCellSupported(row.page, operation, fileType)) return "-";
   return row[operation]?.[fileType] ?? 0;
 }
 
 export function upperFileType(value: string) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   if (normalized === "xlsx" || normalized === "xls") return "Excel";
   if (normalized === "csv") return "CSV";
   if (normalized === "pdf") return "PDF";
@@ -186,129 +229,146 @@ type LocalizerArgs = {
   studyPrograms?: StudyProgram[];
 };
 
-export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: LocalizerArgs) {
+export function createLogsLocalizer({
+  activeLang,
+  t,
+  studyPrograms = [],
+}: LocalizerArgs) {
   const toLocalizedAction = (value: unknown, log?: ActivityLog) => {
     const key = String(value ?? "").trim();
-    if ((key === "export_csv" || key === "export_xlsx" || key === "export_logs") && String(log?.entity_type ?? "logs").trim() === "logs") {
+    if (
+      (key === "export_csv" ||
+        key === "export_xlsx" ||
+        key === "export_logs") &&
+      String(log?.entity_type ?? "logs").trim() === "logs"
+    ) {
       return activeLang === "en" ? "Log export" : "Εξαγωγή καταγραφών";
     }
     if (key === "bulk_delete_graduates") {
       const details = parseDetails(log?.details);
-      const deleted = details && typeof details === "object" ? Number(details.deleted) : NaN;
-      if (Number.isFinite(deleted) && deleted > 0) return activeLang === "en" ? `Deleted ${deleted} graduates` : `Διαγραφή ${deleted} αποφοίτων`;
+      const deleted =
+        details && typeof details === "object" ? Number(details.deleted) : NaN;
+      if (Number.isFinite(deleted) && deleted > 0)
+        return activeLang === "en"
+          ? `Deleted ${deleted} graduates`
+          : `Διαγραφή ${deleted} αποφοίτων`;
       return activeLang === "en" ? "Graduate deletion" : "Διαγραφή αποφοίτων";
     }
-    return actionLabels[activeLang][key as keyof (typeof actionLabels)["gr"]] ?? key.replace(/_/g, " ");
+    return (
+      actionLabels[activeLang][key as keyof (typeof actionLabels)["gr"]] ??
+      key.replace(/_/g, " ")
+    );
   };
 
   const localDetailLabel = (key: string) => {
-    const labels = activeLang === "en"
-      ? {
-          file: "File",
-          format: "Type",
-          count: "Rows",
-          total_rows: "Total rows",
-          inserted: "New",
-          updated: "Updated",
-          skipped: "Skipped",
-          deleted: "Deleted",
-          exported: "Exported",
-          page: "Page",
-          years: "Years",
-          role: "Role",
-          status: "Status",
-          study_program: "Study program",
-          reason: "Reason",
-          changed: "Changed fields",
-          errors: "Errors",
-          selected: "Selected",
-          limit: "Limit",
-          missing: "Missing",
-          name: "Name",
-          name_el: "Name (Greek)",
-          parent_id: "Parent region",
-          study_program_id: "Study program",
-          raw_name: "Raw name",
-          ids: "IDs",
-          student_number: "Student number",
-          ad_code: "Diploma number",
-          first_name: "First name",
-          last_name: "Last name",
-          father_name: "Father name",
-          degree_grade: "Degree grade",
-          graduation_date: "Graduation date",
-          oath_date: "Oath date",
-          entry_year: "Entry year",
-          birth_date: "Birth date",
-          gender: "Gender",
-          origin_country: "Country",
-          origin_country_region_id: "Country",
-          origin_periphery_region_id: "Region",
-          origin_region_id: "Regional unit",
-          origin_city_region_id: "Municipality",
-          origin_municipality: "Municipality",
-          origin_foreign_city: "Foreign city",
-          email: "Email",
-          target_name: "New user",
-          target_role: "Role",
-          role_id: "Role",
-          is_active: "Active",
-          approved: "Approved",
-          code: "Code"
-        }
-      : {
-          file: "Αρχείο",
-          format: "Τύπος",
-          count: "Γραμμές",
-          total_rows: "Σύνολο γραμμών",
-          inserted: "Νέες",
-          updated: "Ενημερωμένες",
-          skipped: "Παραλείφθηκαν",
-          deleted: "Διαγράφηκαν",
-          exported: "Εξήχθησαν",
-          page: "Σελίδα",
-          years: "Έτη",
-          role: "Ρόλος",
-          status: "Κατάσταση",
-          study_program: "Πρόγραμμα σπουδών",
-          reason: "Λόγος",
-          changed: "Αλλαγμένα πεδία",
-          errors: "Σφάλματα",
-          selected: "Επιλεγμένα",
-          limit: "Όριο",
-          missing: "Λείπουν",
-          name: "Όνομα",
-          name_el: "Όνομα (Ελληνικά)",
-          parent_id: "Γονική περιοχή",
-          study_program_id: "Πρόγραμμα σπουδών",
-          raw_name: "Αρχικό όνομα",
-          ids: "IDs",
-          student_number: "Αριθμός μητρώου",
-          ad_code: "Αριθμός διπλώματος",
-          first_name: "Όνομα",
-          last_name: "Επώνυμο",
-          father_name: "Πατρώνυμο",
-          degree_grade: "Βαθμός πτυχίου",
-          graduation_date: "Ημερομηνία λήψης διπλώματος",
-          oath_date: "Ημερομηνία ορκωμοσίας",
-          entry_year: "Έτος εισαγωγής",
-          birth_date: "Ημερομηνία γέννησης",
-          gender: "Φύλο",
-          origin_country: "Χώρα",
-          origin_country_region_id: "Χώρα",
-          origin_periphery_region_id: "Περιφέρεια",
-          origin_region_id: "Νομός",
-          origin_city_region_id: "Δήμος",
-          origin_municipality: "Δήμος",
-          origin_foreign_city: "Πόλη εξωτερικού",
-          email: "Email",
-          target_name: "Νέος χρήστης",
-          target_role: "Ρόλος",
-          role_id: "Ρόλος",
-          is_active: "Ενεργός",
-          approved: "Εγκεκριμένος",
-          code: "Κωδικός"
-        };
+    const labels =
+      activeLang === "en"
+        ? {
+            file: "File",
+            format: "Type",
+            count: "Rows",
+            total_rows: "Total rows",
+            inserted: "New",
+            updated: "Updated",
+            skipped: "Skipped",
+            deleted: "Deleted",
+            exported: "Exported",
+            page: "Page",
+            years: "Years",
+            role: "Role",
+            status: "Status",
+            study_program: "Study program",
+            reason: "Reason",
+            changed: "Changed fields",
+            errors: "Errors",
+            selected: "Selected",
+            limit: "Limit",
+            missing: "Missing",
+            name: "Name",
+            name_el: "Name (Greek)",
+            parent_id: "Parent region",
+            study_program_id: "Study program",
+            raw_name: "Raw name",
+            ids: "IDs",
+            student_number: "Student number",
+            ad_code: "Diploma number",
+            first_name: "First name",
+            last_name: "Last name",
+            father_name: "Father name",
+            degree_grade: "Degree grade",
+            graduation_date: "Graduation date",
+            oath_date: "Oath date",
+            entry_year: "Entry year",
+            birth_date: "Birth date",
+            gender: "Gender",
+            origin_country: "Country",
+            origin_country_region_id: "Country",
+            origin_periphery_region_id: "Region",
+            origin_region_id: "Regional unit",
+            origin_city_region_id: "Municipality",
+            origin_municipality: "Municipality",
+            origin_foreign_city: "Foreign city",
+            email: "Email",
+            target_name: "New user",
+            target_role: "Role",
+            role_id: "Role",
+            is_active: "Active",
+            approved: "Approved",
+            code: "Code",
+          }
+        : {
+            file: "Αρχείο",
+            format: "Τύπος",
+            count: "Γραμμές",
+            total_rows: "Σύνολο γραμμών",
+            inserted: "Νέες",
+            updated: "Ενημερωμένες",
+            skipped: "Παραλείφθηκαν",
+            deleted: "Διαγράφηκαν",
+            exported: "Εξήχθησαν",
+            page: "Σελίδα",
+            years: "Έτη",
+            role: "Ρόλος",
+            status: "Κατάσταση",
+            study_program: "Πρόγραμμα σπουδών",
+            reason: "Λόγος",
+            changed: "Αλλαγμένα πεδία",
+            errors: "Σφάλματα",
+            selected: "Επιλεγμένα",
+            limit: "Όριο",
+            missing: "Λείπουν",
+            name: "Όνομα",
+            name_el: "Όνομα (Ελληνικά)",
+            parent_id: "Γονική περιοχή",
+            study_program_id: "Πρόγραμμα σπουδών",
+            raw_name: "Αρχικό όνομα",
+            ids: "IDs",
+            student_number: "Αριθμός μητρώου",
+            ad_code: "Αριθμός διπλώματος",
+            first_name: "Όνομα",
+            last_name: "Επώνυμο",
+            father_name: "Πατρώνυμο",
+            degree_grade: "Βαθμός πτυχίου",
+            graduation_date: "Ημερομηνία λήψης διπλώματος",
+            oath_date: "Ημερομηνία ορκωμοσίας",
+            entry_year: "Έτος εισαγωγής",
+            birth_date: "Ημερομηνία γέννησης",
+            gender: "Φύλο",
+            origin_country: "Χώρα",
+            origin_country_region_id: "Χώρα",
+            origin_periphery_region_id: "Περιφέρεια",
+            origin_region_id: "Νομός",
+            origin_city_region_id: "Δήμος",
+            origin_municipality: "Δήμος",
+            origin_foreign_city: "Πόλη εξωτερικού",
+            email: "Email",
+            target_name: "Νέος χρήστης",
+            target_role: "Ρόλος",
+            role_id: "Ρόλος",
+            is_active: "Ενεργός",
+            approved: "Εγκεκριμένος",
+            code: "Κωδικός",
+          };
 
     return labels[key as keyof typeof labels] ?? key;
   };
@@ -319,18 +379,30 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
     return localDetailLabel(normalized);
   };
 
-  const joinParts = (parts: Array<string | null | undefined>) => parts.map((part) => String(part ?? "").trim()).filter(Boolean).join(", ");
+  const joinParts = (parts: Array<string | null | undefined>) =>
+    parts
+      .map((part) => String(part ?? "").trim())
+      .filter(Boolean)
+      .join(", ");
 
-  const normalizeLookup = (value: unknown) => String(value ?? "").trim().toLocaleLowerCase("el-GR");
+  const normalizeLookup = (value: unknown) =>
+    String(value ?? "")
+      .trim()
+      .toLocaleLowerCase("el-GR");
 
-  const studyProgramById = new Map(studyPrograms.map((program) => [Number(program.id), program]));
-  const studyProgramByCode = new Map(studyPrograms.map((program) => [normalizeLookup(program.code), program]));
+  const studyProgramById = new Map(
+    studyPrograms.map((program) => [Number(program.id), program]),
+  );
+  const studyProgramByCode = new Map(
+    studyPrograms.map((program) => [normalizeLookup(program.code), program]),
+  );
   const studyProgramByName = new Map<string, StudyProgram>();
 
   for (const program of studyPrograms) {
     for (const value of [program.name_el, program.name_en]) {
       const key = normalizeLookup(value);
-      if (key && !studyProgramByName.has(key)) studyProgramByName.set(key, program);
+      if (key && !studyProgramByName.has(key))
+        studyProgramByName.set(key, program);
     }
   }
 
@@ -341,7 +413,9 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
     const id = Number(details.study_program_id);
     const byId = Number.isFinite(id) ? studyProgramById.get(id) : undefined;
     const byCode = studyProgramByCode.get(normalizeLookup(details.code));
-    const byName = studyProgramByName.get(normalizeLookup(details.name ?? details.name_el ?? details.name_en));
+    const byName = studyProgramByName.get(
+      normalizeLookup(details.name ?? details.name_el ?? details.name_en),
+    );
     const program = byId ?? byCode ?? byName;
 
     if (program) {
@@ -350,14 +424,20 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
       return String(preferred ?? fallback ?? program.code ?? "").trim();
     }
 
-    return String(details.name ?? details.name_el ?? details.name_en ?? "").trim();
+    return String(
+      details.name ?? details.name_el ?? details.name_en ?? "",
+    ).trim();
   };
 
   const formatChangedFields = (value: unknown) => {
     const items = Array.isArray(value) ? value : [value];
-    const names = items.map((item) => localFieldName(String(item ?? ""))).filter(Boolean);
+    const names = items
+      .map((item) => localFieldName(String(item ?? "")))
+      .filter(Boolean);
     if (!names.length) return "";
-    return activeLang === "en" ? `Changed fields: ${names.join(", ")}` : `Αλλαγμένα πεδία: ${names.join(", ")}`;
+    return activeLang === "en"
+      ? `Changed fields: ${names.join(", ")}`
+      : `Αλλαγμένα πεδία: ${names.join(", ")}`;
   };
 
   const localValue = (value: string) => {
@@ -371,12 +451,17 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
     if (normalized === "statistics") return t("summary.pages.statistics");
     if (normalized === "map") return t("summary.pages.map");
     if (normalized === "logs") return t("summary.pages.logs");
-    if (normalized === "pending") return activeLang === "en" ? "Pending" : "Σε εκκρεμότητα";
-    if (normalized === "resolved") return activeLang === "en" ? "Resolved" : "Αντιστοιχισμένη";
-    if (normalized === "dismissed") return activeLang === "en" ? "Dismissed" : "Απορρίφθηκε";
+    if (normalized === "pending")
+      return activeLang === "en" ? "Pending" : "Σε εκκρεμότητα";
+    if (normalized === "resolved")
+      return activeLang === "en" ? "Resolved" : "Αντιστοιχισμένη";
+    if (normalized === "dismissed")
+      return activeLang === "en" ? "Dismissed" : "Απορρίφθηκε";
     if (normalized === "city") return activeLang === "en" ? "City" : "Πόλη";
-    if (normalized === "periphery") return activeLang === "en" ? "Periphery" : "Περιφέρεια";
-    if (["xls", "xlsx", "excel", "csv", "pdf", "png"].includes(normalized)) return upperFileType(normalized);
+    if (normalized === "periphery")
+      return activeLang === "en" ? "Periphery" : "Περιφέρεια";
+    if (["xls", "xlsx", "excel", "csv", "pdf", "png"].includes(normalized))
+      return upperFileType(normalized);
     return toLocalizedAction(normalized) || normalized;
   };
 
@@ -393,18 +478,31 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
   };
 
   const formatExportDetails = (details: Record<string, any>) => {
-    const format = upperFileType(String(details.format ?? details.file_type ?? "").trim());
+    const format = upperFileType(
+      String(details.format ?? details.file_type ?? "").trim(),
+    );
     const count = details.count ?? details.exported;
     const selected = details.selected;
     const page = localValue(String(details.page ?? ""));
     const parts: string[] = [];
 
     if (format) parts.push(format);
-    if (count !== null && count !== undefined && count !== "") parts.push(activeLang === "en" ? `${count} records` : `${count} εγγραφές`);
-    if (selected !== null && selected !== undefined && selected !== "" && Number(selected) > 0) {
-      parts.push(activeLang === "en" ? `${selected} selected` : `${selected} επιλεγμένα`);
+    if (count !== null && count !== undefined && count !== "")
+      parts.push(
+        activeLang === "en" ? `${count} records` : `${count} εγγραφές`,
+      );
+    if (
+      selected !== null &&
+      selected !== undefined &&
+      selected !== "" &&
+      Number(selected) > 0
+    ) {
+      parts.push(
+        activeLang === "en" ? `${selected} selected` : `${selected} επιλεγμένα`,
+      );
     }
-    if (page) parts.push(activeLang === "en" ? `Page: ${page}` : `Σελίδα: ${page}`);
+    if (page)
+      parts.push(activeLang === "en" ? `Page: ${page}` : `Σελίδα: ${page}`);
     return parts.join(", ");
   };
 
@@ -414,19 +512,70 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
     const targetRole = role ? localValue(role) || role : "";
     if (!targetName && !targetRole) return "";
     return activeLang === "en"
-      ? joinParts([targetName ? `New user: ${targetName}` : "", targetRole ? `Role: ${targetRole}` : ""])
-      : joinParts([targetName ? `Νέος χρήστης: ${targetName}` : "", targetRole ? `Ρόλος: ${targetRole}` : ""]);
+      ? joinParts([
+          targetName ? `New user: ${targetName}` : "",
+          targetRole ? `Role: ${targetRole}` : "",
+        ])
+      : joinParts([
+          targetName ? `Νέος χρήστης: ${targetName}` : "",
+          targetRole ? `Ρόλος: ${targetRole}` : "",
+        ]);
   };
 
   const formatImportDetails = (details: Record<string, any>) => {
     const file = String(details.file ?? details.filename ?? "").trim();
     const parts: string[] = [];
     if (file) parts.push(`${localDetailLabel("file")}: ${file}`);
-    if (details.total_rows !== null && details.total_rows !== undefined && details.total_rows !== "") parts.push(activeLang === "en" ? `Total rows: ${details.total_rows}` : `Σύνολο γραμμών: ${details.total_rows}`);
-    if (details.inserted !== null && details.inserted !== undefined && details.inserted !== "") parts.push(activeLang === "en" ? `New: ${details.inserted}` : `Νέες: ${details.inserted}`);
-    if (details.updated !== null && details.updated !== undefined && details.updated !== "") parts.push(activeLang === "en" ? `Updated: ${details.updated}` : `Ενημερωμένες: ${details.updated}`);
-    if (details.skipped !== null && details.skipped !== undefined && details.skipped !== "") parts.push(activeLang === "en" ? `Skipped: ${details.skipped}` : `Παραλείφθηκαν: ${details.skipped}`);
-    if (details.errors !== null && details.errors !== undefined && details.errors !== "") parts.push(activeLang === "en" ? `Errors: ${details.errors}` : `Σφάλματα: ${details.errors}`);
+    if (
+      details.total_rows !== null &&
+      details.total_rows !== undefined &&
+      details.total_rows !== ""
+    )
+      parts.push(
+        activeLang === "en"
+          ? `Total rows: ${details.total_rows}`
+          : `Σύνολο γραμμών: ${details.total_rows}`,
+      );
+    if (
+      details.inserted !== null &&
+      details.inserted !== undefined &&
+      details.inserted !== ""
+    )
+      parts.push(
+        activeLang === "en"
+          ? `New: ${details.inserted}`
+          : `Νέες: ${details.inserted}`,
+      );
+    if (
+      details.updated !== null &&
+      details.updated !== undefined &&
+      details.updated !== ""
+    )
+      parts.push(
+        activeLang === "en"
+          ? `Updated: ${details.updated}`
+          : `Ενημερωμένες: ${details.updated}`,
+      );
+    if (
+      details.skipped !== null &&
+      details.skipped !== undefined &&
+      details.skipped !== ""
+    )
+      parts.push(
+        activeLang === "en"
+          ? `Skipped: ${details.skipped}`
+          : `Παραλείφθηκαν: ${details.skipped}`,
+      );
+    if (
+      details.errors !== null &&
+      details.errors !== undefined &&
+      details.errors !== ""
+    )
+      parts.push(
+        activeLang === "en"
+          ? `Errors: ${details.errors}`
+          : `Σφάλματα: ${details.errors}`,
+      );
     return parts.join(", ");
   };
 
@@ -438,7 +587,9 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
     if (!details) return "";
     if (typeof details === "string") return localValue(details);
 
-    if (["διαγραφή χρήστη", "delete_user", "deactivate_user"].includes(action)) {
+    if (
+      ["διαγραφή χρήστη", "delete_user", "deactivate_user"].includes(action)
+    ) {
       return String(details.target_name ?? "").trim();
     }
 
@@ -447,15 +598,31 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
     if (action === "bulk_delete_graduates") return "";
 
     const studentNumber = String(details.student_number ?? "").trim();
-    if (studentNumber) return `${localDetailLabel("student_number")}: ${studentNumber}`;
+    if (studentNumber)
+      return `${localDetailLabel("student_number")}: ${studentNumber}`;
     if (action === "import_graduates") return formatImportDetails(details);
 
-    if (["export_graduates", "export_csv", "export_xlsx", "export_pdf", "statistics_export", "map_export"].includes(action)) {
+    if (
+      [
+        "export_graduates",
+        "export_users_csv",
+        "export_users_xlsx",
+        "export_csv",
+        "export_xlsx",
+        "export_pdf",
+        "statistics_export",
+        "map_export",
+      ].includes(action)
+    ) {
       const exportText = formatExportDetails(details);
       if (exportText) return exportText;
     }
 
-    if (details.changed !== null && details.changed !== undefined && details.changed !== "") {
+    if (
+      details.changed !== null &&
+      details.changed !== undefined &&
+      details.changed !== ""
+    ) {
       const changedText = formatChangedFields(details.changed);
       if (changedText) return changedText;
     }
@@ -465,7 +632,10 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
     if (details.code || details.name || details.name_el || details.name_en) {
       const code = String(details.code ?? "").trim();
       const name = localizedStudyProgramName(details);
-      return joinParts([code ? `${localDetailLabel("code")}: ${code}` : "", name ? `${localDetailLabel("name")}: ${name}` : ""]);
+      return joinParts([
+        code ? `${localDetailLabel("code")}: ${code}` : "",
+        name ? `${localDetailLabel("name")}: ${name}` : "",
+      ]);
     }
 
     const plainPairs: Array<[string, any]> = [
@@ -478,7 +648,7 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
       ["reason", details.reason],
       ["parent_id", details.parent_id],
       ["raw_name", details.raw_name],
-      ["missing", details.missing]
+      ["missing", details.missing],
     ];
 
     const counterPairs: Array<[string, any]> = [
@@ -491,7 +661,7 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
       ["exported", details.exported],
       ["errors", details.errors],
       ["selected", details.selected],
-      ["limit", details.limit]
+      ["limit", details.limit],
     ];
 
     const parts: string[] = [];
@@ -499,7 +669,10 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
     for (const [key, value] of plainPairs) {
       if (value === null || value === undefined || value === "") continue;
       const rendered = Array.isArray(value)
-        ? value.map((item) => localValue(String(item))).filter(Boolean).join(", ")
+        ? value
+            .map((item) => localValue(String(item)))
+            .filter(Boolean)
+            .join(", ")
         : localValue(String(value)) || String(value);
       if (rendered) parts.push(`${localDetailLabel(key)}: ${rendered}`);
     }
@@ -509,21 +682,35 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
       parts.push(`${localDetailLabel(key)}: ${value}`);
     }
 
-    if (details.ids !== null && details.ids !== undefined && details.ids !== "") {
-      const rendered = Array.isArray(details.ids) ? details.ids.map((item: any) => String(item ?? "").trim()).filter(Boolean).join(", ") : String(details.ids);
+    if (
+      details.ids !== null &&
+      details.ids !== undefined &&
+      details.ids !== ""
+    ) {
+      const rendered = Array.isArray(details.ids)
+        ? details.ids
+            .map((item: any) => String(item ?? "").trim())
+            .filter(Boolean)
+            .join(", ")
+        : String(details.ids);
       if (rendered) parts.push(`${localDetailLabel("ids")}: ${rendered}`);
     }
 
     if (parts.length) return parts.join(", ");
 
     return Object.entries(details)
-      .filter(([, value]) => value !== null && value !== undefined && value !== "")
+      .filter(
+        ([, value]) => value !== null && value !== undefined && value !== "",
+      )
       .slice(0, 5)
       .map(([key, value]) => {
         if (Array.isArray(value)) {
-          return `${localDetailLabel(key)}: ${value.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ")}`;
+          return `${localDetailLabel(key)}: ${value
+            .map((item) => String(item ?? "").trim())
+            .filter(Boolean)
+            .join(", ")}`;
         }
-        return `${localDetailLabel(key)}: ${typeof value === "string" ? (localValue(value) || value) : String(value)}`;
+        return `${localDetailLabel(key)}: ${typeof value === "string" ? localValue(value) || value : String(value)}`;
       })
       .join(", ");
   };
@@ -533,21 +720,39 @@ export function createLogsLocalizer({ activeLang, t, studyPrograms = [] }: Local
     if (Number.isNaN(date.getTime())) return value;
     const locale = activeLang === "en" ? "en-GB" : "el-GR";
     const baseOptions = { timeZone: "Europe/Athens" } as const;
-    const time = new Intl.DateTimeFormat(locale, { ...baseOptions, hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(date);
-    const day = new Intl.DateTimeFormat(locale, { ...baseOptions, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+    const time = new Intl.DateTimeFormat(locale, {
+      ...baseOptions,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }).format(date);
+    const day = new Intl.DateTimeFormat(locale, {
+      ...baseOptions,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
     return `${time}, ${day}`;
   };
 
-  return { formatDateTime, formatLogDetails, localValue, pageLabel: (pageKey: FileSummaryPage) => {
-    if (pageKey === "graduates") return t("summary.pages.graduates");
-    if (pageKey === "academicData") return t("summary.pages.academicData");
-    if (pageKey === "statistics") return t("summary.pages.statistics");
-    if (pageKey === "map") return t("summary.pages.map");
-    return t("summary.pages.logs");
-  }, fileTypeLabel: (fileType: FileSummaryFileType) => {
-    if (fileType === "excel") return t("summary.fileTypes.excel");
-    if (fileType === "csv") return t("summary.fileTypes.csv");
-    if (fileType === "pdf") return t("summary.fileTypes.pdf");
-    return t("summary.fileTypes.png");
-  }, toLocalizedAction };
+  return {
+    formatDateTime,
+    formatLogDetails,
+    localValue,
+    pageLabel: (pageKey: FileSummaryPage) => {
+      if (pageKey === "graduates") return t("summary.pages.graduates");
+      if (pageKey === "users") return t("summary.pages.users");
+      if (pageKey === "academicData") return t("summary.pages.academicData");
+      if (pageKey === "statistics") return t("summary.pages.statistics");
+      if (pageKey === "map") return t("summary.pages.map");
+      return t("summary.pages.logs");
+    },
+    fileTypeLabel: (fileType: FileSummaryFileType) => {
+      if (fileType === "excel") return t("summary.fileTypes.excel");
+      if (fileType === "csv") return t("summary.fileTypes.csv");
+      if (fileType === "pdf") return t("summary.fileTypes.pdf");
+      return t("summary.fileTypes.png");
+    },
+    toLocalizedAction,
+  };
 }

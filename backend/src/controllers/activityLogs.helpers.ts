@@ -20,6 +20,8 @@ export const actionLabels = {
     upload: "Μεταφόρτωση αρχείου",
     import_graduates: "Εισαγωγή αποφοίτων",
     export_graduates: "Εξαγωγή αποφοίτων",
+    export_users_csv: "Εξαγωγή χρηστών",
+    export_users_xlsx: "Εξαγωγή χρηστών",
     export_csv: "Εξαγωγή CSV",
     export_xlsx: "Εξαγωγή Excel",
     export_pdf: "Εξαγωγή PDF",
@@ -47,7 +49,7 @@ export const actionLabels = {
     create_region_city: "Δημιουργία πόλης",
     update_region_city: "Ενημέρωση πόλης",
     delete_region_city: "Διαγραφή πόλης",
-    import_region_cities: "Εισαγωγή πόλεων"
+    import_region_cities: "Εισαγωγή πόλεων",
   },
   en: {
     login: "Login",
@@ -58,6 +60,8 @@ export const actionLabels = {
     upload: "File upload",
     import_graduates: "Graduate import",
     export_graduates: "Graduate export",
+    export_users_csv: "User export",
+    export_users_xlsx: "User export",
     export_csv: "CSV export",
     export_xlsx: "Excel export",
     export_pdf: "PDF export",
@@ -85,8 +89,8 @@ export const actionLabels = {
     create_region_city: "City creation",
     update_region_city: "City update",
     delete_region_city: "City deletion",
-    import_region_cities: "City import"
-  }
+    import_region_cities: "City import",
+  },
 } as const;
 
 // Περιορίζει έναν αριθμό μέσα σε ασφαλές min/max.
@@ -108,7 +112,8 @@ export function nonEmptyString(value: unknown) {
 
 // Διαβάζει details log είτε είναι JSON string είτε object.
 export function parseLogDetails(value: unknown) {
-  if (value && typeof value === "object") return value as Record<string, unknown>;
+  if (value && typeof value === "object")
+    return value as Record<string, unknown>;
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -121,29 +126,51 @@ export function parseLogDetails(value: unknown) {
 
 // Κάνει ασφαλή τιμή CSV για να μη χαλάσει η γραμμή export.
 export function csvEscape(value: unknown, delimiter = ",") {
-  const text = value === null || value === undefined ? "" : String(sanitizeExportCell(value));
-  const shouldQuote = text.includes('"') || text.includes("\n") || text.includes("\r") || text.includes(delimiter);
+  const text =
+    value === null || value === undefined
+      ? ""
+      : String(sanitizeExportCell(value));
+  const shouldQuote =
+    text.includes('"') ||
+    text.includes("\n") ||
+    text.includes("\r") ||
+    text.includes(delimiter);
   return shouldQuote ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
 
 // Φτιάχνει CSV/TSV text από rows και delimiter.
-export function buildDelimitedText(rows: Array<Record<string, unknown>>, delimiter = "\t") {
+export function buildDelimitedText(
+  rows: Array<Record<string, unknown>>,
+  delimiter = "\t",
+) {
   if (!rows.length) return "";
   const headers = Object.keys(rows[0] ?? {});
-  const lines = [headers.map((header) => csvEscape(header, delimiter)).join(delimiter)];
+  const lines = [
+    headers.map((header) => csvEscape(header, delimiter)).join(delimiter),
+  ];
   for (const row of rows) {
-    lines.push(headers.map((header) => csvEscape(row?.[header], delimiter)).join(delimiter));
+    lines.push(
+      headers
+        .map((header) => csvEscape(row?.[header], delimiter))
+        .join(delimiter),
+    );
   }
   return lines.join("\r\n");
 }
 
 // Μετατρέπει CSV text σε UTF-16 buffer για σωστά ελληνικά στο Excel.
 export function buildUtf16CsvBuffer(text: string) {
-  return Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]);
+  return Buffer.concat([
+    Buffer.from([0xff, 0xfe]),
+    Buffer.from(text, "utf16le"),
+  ]);
 }
 
 // Ρυθμίζει πλάτη στηλών στο Excel export.
-export function applySheetLayout(ws: XLSX.WorkSheet, rows: Array<Record<string, unknown>>) {
+export function applySheetLayout(
+  ws: XLSX.WorkSheet,
+  rows: Array<Record<string, unknown>>,
+) {
   const headers = rows.length ? Object.keys(rows[0] ?? {}) : [];
   ws["!cols"] = headers.map((header) => {
     let width = String(header ?? "").length;
@@ -152,7 +179,9 @@ export function applySheetLayout(ws: XLSX.WorkSheet, rows: Array<Record<string, 
       const cellText = value == null ? "" : String(value);
       if (cellText.length > width) width = cellText.length;
     }
-    const isDetails = String(header).toLowerCase().includes("details") || String(header).includes("Λεπτομέρειες");
+    const isDetails =
+      String(header).toLowerCase().includes("details") ||
+      String(header).includes("Λεπτομέρειες");
     return { wch: Math.min(Math.max(width + 2, 12), isDetails ? 90 : 42) };
   });
 
@@ -160,13 +189,27 @@ export function applySheetLayout(ws: XLSX.WorkSheet, rows: Array<Record<string, 
 
   const range = XLSX.utils.decode_range(ws["!ref"]);
   ws["!autofilter"] = { ref: ws["!ref"] };
-  ws["!freeze"] = { xSplit: 0, ySplit: 1, topLeftCell: XLSX.utils.encode_cell({ r: 1, c: 0 }), activePane: "bottomLeft", state: "frozen" } as any;
+  ws["!freeze"] = {
+    xSplit: 0,
+    ySplit: 1,
+    topLeftCell: XLSX.utils.encode_cell({ r: 1, c: 0 }),
+    activePane: "bottomLeft",
+    state: "frozen",
+  } as any;
 
   for (let c = range.s.c; c <= range.e.c; c += 1) {
     const cellRef = XLSX.utils.encode_cell({ r: 0, c });
     const cell = ws[cellRef];
     if (!cell) continue;
-    cell.s = { ...(cell.s || {}), font: { ...(cell.s?.font || {}), bold: true }, alignment: { ...(cell.s?.alignment || {}), vertical: "center", wrapText: true } } as any;
+    cell.s = {
+      ...(cell.s || {}),
+      font: { ...(cell.s?.font || {}), bold: true },
+      alignment: {
+        ...(cell.s?.alignment || {}),
+        vertical: "center",
+        wrapText: true,
+      },
+    } as any;
   }
 }
 
@@ -182,8 +225,13 @@ export function buildLogFilters(req: Request) {
 
   if (action === "export_logs") {
     where[Op.and] = [
-      ...(Array.isArray(where[Op.and]) ? where[Op.and] as any[] : []),
-      { [Op.or]: [{ action: "export_csv", entity_type: "logs" }, { action: "export_xlsx", entity_type: "logs" }] }
+      ...(Array.isArray(where[Op.and]) ? (where[Op.and] as any[]) : []),
+      {
+        [Op.or]: [
+          { action: "export_csv", entity_type: "logs" },
+          { action: "export_xlsx", entity_type: "logs" },
+        ],
+      },
     ];
   } else if (action) {
     where.action = { [Op.like]: `%${action}%` };
@@ -191,36 +239,53 @@ export function buildLogFilters(req: Request) {
 
   if (entityType) where.entity_type = entityType;
   if (keyword) {
-    where[Op.or] = [{ action: { [Op.like]: `%${keyword}%` } }, { entity_type: { [Op.like]: `%${keyword}%` } }];
+    where[Op.or] = [
+      { action: { [Op.like]: `%${keyword}%` } },
+      { entity_type: { [Op.like]: `%${keyword}%` } },
+    ];
   }
-
 
   return where;
 }
 
 // Μετατρέπει log σε απλή γραμμή CSV.
 export function toCsvRow(row: any) {
-  return [row.id, row.created_at, row.user_id ?? "", row.action ?? "", row.entity_type ?? "", row.entity_id ?? "", JSON.stringify(row.details ?? null)]
+  return [
+    row.id,
+    row.created_at,
+    row.user_id ?? "",
+    row.action ?? "",
+    row.entity_type ?? "",
+    row.entity_id ?? "",
+    JSON.stringify(row.details ?? null),
+  ]
     .map((value) => csvEscape(value))
     .join(",");
 }
 
 // Διαβάζει φίλτρο ρόλου από το request.
 export function getRoleFilter(req: Request) {
-  const role = String(req.query.role ?? "all").trim().toLowerCase();
-  if (role === "secretariat" || role === "super_admin" || role === "visitor") return role;
+  const role = String(req.query.role ?? "all")
+    .trim()
+    .toLowerCase();
+  if (role === "secretariat" || role === "super_admin" || role === "visitor")
+    return role;
   return "all";
 }
 
 // Ομαδοποιεί log ανά ρόλο actor για φίλτρα/προβολή.
 export function getRoleBucket(row: any) {
   const details = parseLogDetails(row?.details);
-  const detailRole = String((details as any)?.actor_role ?? "").trim().toLowerCase();
+  const detailRole = String((details as any)?.actor_role ?? "")
+    .trim()
+    .toLowerCase();
   if (detailRole === "secretariat") return "secretariat";
   if (detailRole === "super_admin") return "super_admin";
   if (detailRole === "visitor") return "visitor";
 
-  const role = String(row?.user?.role ?? "").trim().toLowerCase();
+  const role = String(row?.user?.role ?? "")
+    .trim()
+    .toLowerCase();
   if (role === "secretariat") return "secretariat";
   if (role === "super_admin") return "super_admin";
   if (row?.user_id == null) return "visitor";
@@ -237,9 +302,25 @@ export function getLogPage(row: any) {
   const action = String(row?.action ?? "").trim();
   const entityType = String(row?.entity_type ?? "").trim();
 
-  if (action === "import_graduates" || action === "export_graduates" || entityType === "graduate") return "graduates";
-  if (["import_study_programs", "import_region_peripheries", "import_region_cities"].includes(action) || ["study_program", "region", "regions"].includes(entityType)) return "academicData";
-  if (action === "statistics_export" || entityType === "statistics") return "statistics";
+  if (
+    action === "import_graduates" ||
+    action === "export_graduates" ||
+    entityType === "graduate"
+  )
+    return "graduates";
+  if (action === "export_users_csv" || action === "export_users_xlsx")
+    return "users";
+  if (
+    [
+      "import_study_programs",
+      "import_region_peripheries",
+      "import_region_cities",
+    ].includes(action) ||
+    ["study_program", "region", "regions"].includes(entityType)
+  )
+    return "academicData";
+  if (action === "statistics_export" || entityType === "statistics")
+    return "statistics";
   if (action === "map_export" || entityType === "map") return "map";
   if (entityType === "logs") return "logs";
   return null;
@@ -249,13 +330,20 @@ export function getLogPage(row: any) {
 export function getOperation(row: any) {
   const action = String(row?.action ?? "").trim();
   if (action.startsWith("import_") || action === "upload") return "import";
-  if (action.includes("export") || action === "map_export" || action === "statistics_export") return "export";
+  if (
+    action.includes("export") ||
+    action === "map_export" ||
+    action === "statistics_export"
+  )
+    return "export";
   return null;
 }
 
 // Βρίσκει format αρχείου από filename.
 export function getFormatFromFilename(name: string) {
-  const normalized = String(name ?? "").trim().toLowerCase();
+  const normalized = String(name ?? "")
+    .trim()
+    .toLowerCase();
   if (!normalized.includes(".")) return null;
   const ext = normalized.split(".").pop() || "";
   if (ext === "xls" || ext === "xlsx") return "excel";
@@ -268,9 +356,14 @@ export function getFormatFromFilename(name: string) {
 // Επιστρέφει τύπο αρχείου που θα εμφανιστεί στα logs.
 export function getFileType(row: any) {
   const action = String(row?.action ?? "").trim();
-  const details = row?.details && typeof row.details === "object" ? row.details : {};
-  const detailFormat = String((details as any)?.format ?? "").trim().toLowerCase();
-  const detailFile = String((details as any)?.file ?? (details as any)?.filename ?? "").trim();
+  const details =
+    row?.details && typeof row.details === "object" ? row.details : {};
+  const detailFormat = String((details as any)?.format ?? "")
+    .trim()
+    .toLowerCase();
+  const detailFile = String(
+    (details as any)?.file ?? (details as any)?.filename ?? "",
+  ).trim();
 
   if (["xls", "xlsx", "excel"].includes(detailFormat)) return "excel";
   if (["csv", "tsv"].includes(detailFormat)) return "csv";
@@ -279,7 +372,17 @@ export function getFileType(row: any) {
 
   const byFile = getFormatFromFilename(detailFile);
   if (byFile) return byFile;
-  if (["import_graduates", "import_study_programs", "import_region_peripheries", "import_region_cities"].includes(action)) return "excel";
+  if (
+    [
+      "import_graduates",
+      "import_study_programs",
+      "import_region_peripheries",
+      "import_region_cities",
+    ].includes(action)
+  )
+    return "excel";
+  if (action === "export_users_xlsx") return "excel";
+  if (action === "export_users_csv") return "csv";
   if (action === "export_xlsx") return "excel";
   if (action === "export_csv") return "csv";
   if (action === "export_pdf") return "pdf";
@@ -288,125 +391,130 @@ export function getFileType(row: any) {
 
 // Διαβάζει γλώσσα εμφάνισης από query/body.
 export function getLanguage(req: Request) {
-  const lang = String(req.query.lang ?? "gr").trim().toLowerCase();
+  const lang = String(req.query.lang ?? "gr")
+    .trim()
+    .toLowerCase();
   return lang.startsWith("en") ? "en" : "gr";
 }
 
 // Μεταφράζει labels details log στη σωστή γλώσσα.
 export function localDetailLabel(lang: "gr" | "en", key: string) {
-  const labels = lang === "en"
-    ? {
-        file: "File",
-        format: "Type",
-        count: "Rows",
-        total_rows: "Total rows",
-        inserted: "New",
-        updated: "Updated",
-        skipped: "Skipped",
-        deleted: "Deleted",
-        exported: "Exported",
-        page: "Page",
-        years: "Years",
-        role: "Role",
-        status: "Status",
-        study_program: "Study program",
-        study_program_id: "Study program",
-        reason: "Reason",
-        changed: "Changed fields",
-        errors: "Errors",
-        selected: "Selected",
-        limit: "Limit",
-        missing: "Missing",
-        name: "Name",
-        name_el: "Name (Greek)",
-        parent_id: "Parent region",
-        raw_name: "Original name",
-        ids: "IDs",
-        student_number: "Student number",
-        ad_code: "Diploma number",
-        first_name: "First name",
-        last_name: "Last name",
-        father_name: "Father name",
-        degree_grade: "Degree grade",
-        graduation_date: "Graduation date",
-        oath_date: "Oath date",
-        entry_year: "Entry year",
-        birth_date: "Birth date",
-        gender: "Gender",
-        origin_country: "Country",
-        origin_country_region_id: "Country",
-        origin_periphery_region_id: "Region",
-        origin_region_id: "Regional unit",
-        origin_city_region_id: "Municipality",
-        origin_municipality: "Municipality",
-        origin_foreign_city: "Foreign city",
-        email: "Email",
-        target_name: "New user",
-        target_role: "Role",
-        role_id: "Role",
-        is_active: "Active",
-        approved: "Approved",
-        code: "Code"
-      }
-    : {
-        file: "Αρχείο",
-        format: "Τύπος",
-        count: "Γραμμές",
-        total_rows: "Σύνολο γραμμών",
-        inserted: "Νέες",
-        updated: "Ενημερωμένες",
-        skipped: "Παραλείφθηκαν",
-        deleted: "Διαγράφηκαν",
-        exported: "Εξήχθησαν",
-        page: "Σελίδα",
-        years: "Έτη",
-        role: "Ρόλος",
-        status: "Κατάσταση",
-        study_program: "Πρόγραμμα σπουδών",
-        study_program_id: "Πρόγραμμα σπουδών",
-        reason: "Λόγος",
-        changed: "Αλλαγμένα πεδία",
-        errors: "Σφάλματα",
-        selected: "Επιλεγμένα",
-        limit: "Όριο",
-        missing: "Λείπουν",
-        name: "Όνομα",
-        name_el: "Όνομα (Ελληνικά)",
-        parent_id: "Γονική περιοχή",
-        raw_name: "Αρχικό όνομα",
-        ids: "IDs",
-        student_number: "Αριθμός μητρώου",
-        ad_code: "Αριθμός διπλώματος",
-        first_name: "Όνομα",
-        last_name: "Επώνυμο",
-        father_name: "Πατρώνυμο",
-        degree_grade: "Βαθμός πτυχίου",
-        graduation_date: "Ημερομηνία λήψης διπλώματος",
-        oath_date: "Ημερομηνία ορκωμοσίας",
-        entry_year: "Έτος εισαγωγής",
-        birth_date: "Ημερομηνία γέννησης",
-        gender: "Φύλο",
-        origin_country: "Χώρα",
-        origin_country_region_id: "Χώρα",
-        origin_periphery_region_id: "Περιφέρεια",
-        origin_region_id: "Νομός",
-        origin_city_region_id: "Δήμος",
-        origin_municipality: "Δήμος",
-        origin_foreign_city: "Πόλη εξωτερικού",
-        email: "Email",
-        target_name: "Νέος χρήστης",
-        target_role: "Ρόλος",
-        role_id: "Ρόλος",
-        is_active: "Ενεργός",
-        approved: "Εγκεκριμένος",
-        code: "Κωδικός"
-      };
+  const labels =
+    lang === "en"
+      ? {
+          file: "File",
+          format: "Type",
+          count: "Rows",
+          total_rows: "Total rows",
+          inserted: "New",
+          updated: "Updated",
+          skipped: "Skipped",
+          deleted: "Deleted",
+          exported: "Exported",
+          page: "Page",
+          years: "Years",
+          role: "Role",
+          status: "Status",
+          study_program: "Study program",
+          study_program_id: "Study program",
+          reason: "Reason",
+          changed: "Changed fields",
+          errors: "Errors",
+          selected: "Selected",
+          limit: "Limit",
+          missing: "Missing",
+          name: "Name",
+          name_el: "Name (Greek)",
+          parent_id: "Parent region",
+          raw_name: "Original name",
+          ids: "IDs",
+          student_number: "Student number",
+          ad_code: "Diploma number",
+          first_name: "First name",
+          last_name: "Last name",
+          father_name: "Father name",
+          degree_grade: "Degree grade",
+          graduation_date: "Graduation date",
+          oath_date: "Oath date",
+          entry_year: "Entry year",
+          birth_date: "Birth date",
+          gender: "Gender",
+          origin_country: "Country",
+          origin_country_region_id: "Country",
+          origin_periphery_region_id: "Region",
+          origin_region_id: "Regional unit",
+          origin_city_region_id: "Municipality",
+          origin_municipality: "Municipality",
+          origin_foreign_city: "Foreign city",
+          email: "Email",
+          target_name: "New user",
+          target_role: "Role",
+          role_id: "Role",
+          is_active: "Active",
+          approved: "Approved",
+          code: "Code",
+        }
+      : {
+          file: "Αρχείο",
+          format: "Τύπος",
+          count: "Γραμμές",
+          total_rows: "Σύνολο γραμμών",
+          inserted: "Νέες",
+          updated: "Ενημερωμένες",
+          skipped: "Παραλείφθηκαν",
+          deleted: "Διαγράφηκαν",
+          exported: "Εξήχθησαν",
+          page: "Σελίδα",
+          years: "Έτη",
+          role: "Ρόλος",
+          status: "Κατάσταση",
+          study_program: "Πρόγραμμα σπουδών",
+          study_program_id: "Πρόγραμμα σπουδών",
+          reason: "Λόγος",
+          changed: "Αλλαγμένα πεδία",
+          errors: "Σφάλματα",
+          selected: "Επιλεγμένα",
+          limit: "Όριο",
+          missing: "Λείπουν",
+          name: "Όνομα",
+          name_el: "Όνομα (Ελληνικά)",
+          parent_id: "Γονική περιοχή",
+          raw_name: "Αρχικό όνομα",
+          ids: "IDs",
+          student_number: "Αριθμός μητρώου",
+          ad_code: "Αριθμός διπλώματος",
+          first_name: "Όνομα",
+          last_name: "Επώνυμο",
+          father_name: "Πατρώνυμο",
+          degree_grade: "Βαθμός πτυχίου",
+          graduation_date: "Ημερομηνία λήψης διπλώματος",
+          oath_date: "Ημερομηνία ορκωμοσίας",
+          entry_year: "Έτος εισαγωγής",
+          birth_date: "Ημερομηνία γέννησης",
+          gender: "Φύλο",
+          origin_country: "Χώρα",
+          origin_country_region_id: "Χώρα",
+          origin_periphery_region_id: "Περιφέρεια",
+          origin_region_id: "Νομός",
+          origin_city_region_id: "Δήμος",
+          origin_municipality: "Δήμος",
+          origin_foreign_city: "Πόλη εξωτερικού",
+          email: "Email",
+          target_name: "Νέος χρήστης",
+          target_role: "Ρόλος",
+          role_id: "Ρόλος",
+          is_active: "Ενεργός",
+          approved: "Εγκεκριμένος",
+          code: "Κωδικός",
+        };
   return labels[key as keyof typeof labels] ?? key;
 }
 
 // Επιστρέφει τύπο αρχείου με κεφαλαία για εμφάνιση.
 export function upperFileType(value: string) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   if (normalized === "xlsx" || normalized === "xls") return "Excel";
   if (normalized === "csv") return "CSV";
   if (normalized === "pdf") return "PDF";
@@ -419,19 +527,25 @@ export function localValue(lang: "gr" | "en", value: string) {
   const normalized = String(value ?? "").trim();
   if (!normalized) return "";
   if (normalized === "visitor") return lang === "en" ? "Visitor" : "Επισκέπτης";
-  if (normalized === "secretariat") return lang === "en" ? "Secretariat" : "Γραμματεία";
-  if (normalized === "super_admin") return lang === "en" ? "Administrator" : "Διαχειριστής";
-  if (normalized === "graduates") return lang === "en" ? "Graduates" : "Απόφοιτοι";
-  if (normalized === "academicData") return lang === "en" ? "Academic data" : "Ακαδημαϊκά δεδομένα";
+  if (normalized === "secretariat")
+    return lang === "en" ? "Secretariat" : "Γραμματεία";
+  if (normalized === "super_admin")
+    return lang === "en" ? "Administrator" : "Διαχειριστής";
+  if (normalized === "graduates")
+    return lang === "en" ? "Graduates" : "Απόφοιτοι";
+  if (normalized === "academicData")
+    return lang === "en" ? "Academic data" : "Ακαδημαϊκά δεδομένα";
   if (normalized === "regions") return lang === "en" ? "Regions" : "Περιοχές";
-  if (normalized === "statistics") return lang === "en" ? "Statistics" : "Στατιστικά";
+  if (normalized === "statistics")
+    return lang === "en" ? "Statistics" : "Στατιστικά";
   if (normalized === "map") return lang === "en" ? "Map" : "Χάρτης";
   if (normalized === "logs") return lang === "en" ? "Logs" : "Καταγραφές";
   return normalized;
 }
 
 export function parseDetails(value: unknown) {
-  if (value && typeof value === "object") return value as Record<string, unknown>;
+  if (value && typeof value === "object")
+    return value as Record<string, unknown>;
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -443,34 +557,65 @@ export function parseDetails(value: unknown) {
 }
 
 // Παίρνει action code και το μετατρέπει σε κατανοητό μήνυμα για τον χρήστη.
-export function getLocalizedAction(lang: "gr" | "en", value: unknown, log?: any) {
+export function getLocalizedAction(
+  lang: "gr" | "en",
+  value: unknown,
+  log?: any,
+) {
   const key = String(value ?? "").trim();
-  if ((key === "export_csv" || key === "export_xlsx") && String(log?.entity_type ?? "").trim() === "logs") {
+  if (
+    (key === "export_csv" || key === "export_xlsx") &&
+    String(log?.entity_type ?? "").trim() === "logs"
+  ) {
     return lang === "en" ? "Log export" : "Εξαγωγή καταγραφών";
   }
   if (key === "bulk_delete_graduates") {
     const details = parseDetails(log?.details);
-    const deleted = details && typeof details === "object" ? Number((details as any).deleted) : NaN;
-    if (Number.isFinite(deleted) && deleted > 0) return lang === "en" ? `Deleted ${deleted} graduates` : `Διαγραφή ${deleted} αποφοίτων`;
+    const deleted =
+      details && typeof details === "object"
+        ? Number((details as any).deleted)
+        : NaN;
+    if (Number.isFinite(deleted) && deleted > 0)
+      return lang === "en"
+        ? `Deleted ${deleted} graduates`
+        : `Διαγραφή ${deleted} αποφοίτων`;
     return lang === "en" ? "Graduate deletion" : "Διαγραφή αποφοίτων";
   }
-  return actionLabels[lang][key as keyof typeof actionLabels.gr] ?? key.replace(/_/g, " ");
+  return (
+    actionLabels[lang][key as keyof typeof actionLabels.gr] ??
+    key.replace(/_/g, " ")
+  );
 }
 
-function formatCreateUserDetails(lang: "gr" | "en", details: Record<string, unknown>) {
-  const targetName = String((details as any).target_name ?? (details as any).name ?? "").trim();
-  const role = String((details as any).target_role ?? (details as any).role ?? "").trim();
+function formatCreateUserDetails(
+  lang: "gr" | "en",
+  details: Record<string, unknown>,
+) {
+  const targetName = String(
+    (details as any).target_name ?? (details as any).name ?? "",
+  ).trim();
+  const role = String(
+    (details as any).target_role ?? (details as any).role ?? "",
+  ).trim();
   const targetRole = role ? localValue(lang, role) || role : "";
-  const parts = lang === "en"
-    ? [targetName ? `New user: ${targetName}` : "", targetRole ? `Role: ${targetRole}` : ""]
-    : [targetName ? `Νέος χρήστης: ${targetName}` : "", targetRole ? `Ρόλος: ${targetRole}` : ""];
+  const parts =
+    lang === "en"
+      ? [
+          targetName ? `New user: ${targetName}` : "",
+          targetRole ? `Role: ${targetRole}` : "",
+        ]
+      : [
+          targetName ? `Νέος χρήστης: ${targetName}` : "",
+          targetRole ? `Ρόλος: ${targetRole}` : "",
+        ];
   return parts.filter(Boolean).join(", ");
 }
 
 // Μετατρέπει τα details log σε σύντομο κείμενο για πίνακα/export.
 export function getLocalizedDetails(lang: "gr" | "en", log: any) {
   const action = String(log?.action ?? "").trim();
-  if (["login", "logout", "register", "change_password"].includes(action)) return "";
+  if (["login", "logout", "register", "change_password"].includes(action))
+    return "";
 
   const details = parseDetails(log?.details);
   if (!details) return "";
@@ -480,33 +625,68 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
     return String((details as any).target_name ?? "").trim();
   }
 
-  if (action === "create_user") return formatCreateUserDetails(lang, details as Record<string, unknown>);
+  if (action === "create_user")
+    return formatCreateUserDetails(lang, details as Record<string, unknown>);
 
   if (action === "bulk_delete_graduates") return "";
 
   const studentNumber = String((details as any).student_number ?? "").trim();
-  if (studentNumber) return `${localDetailLabel(lang, "student_number")}: ${studentNumber}`;
+  if (studentNumber)
+    return `${localDetailLabel(lang, "student_number")}: ${studentNumber}`;
 
   if (action === "import_graduates") {
-    const file = String((details as any).file ?? (details as any).filename ?? "").trim();
+    const file = String(
+      (details as any).file ?? (details as any).filename ?? "",
+    ).trim();
     const parts: string[] = [];
     if (file) parts.push(`${localDetailLabel(lang, "file")}: ${file}`);
-    for (const key of ["total_rows", "inserted", "updated", "skipped", "errors"]) {
+    for (const key of [
+      "total_rows",
+      "inserted",
+      "updated",
+      "skipped",
+      "errors",
+    ]) {
       const value = (details as any)[key];
-      if (value !== null && value !== undefined && value !== "") parts.push(`${localDetailLabel(lang, key)}: ${value}`);
+      if (value !== null && value !== undefined && value !== "")
+        parts.push(`${localDetailLabel(lang, key)}: ${value}`);
     }
     return parts.join(", ");
   }
 
-  if (["export_graduates", "export_csv", "export_xlsx", "export_pdf", "statistics_export", "map_export"].includes(action)) {
-    const format = upperFileType(String((details as any).format ?? (details as any).file_type ?? "").trim());
+  if (
+    [
+      "export_graduates",
+      "export_users_csv",
+      "export_users_xlsx",
+      "export_csv",
+      "export_xlsx",
+      "export_pdf",
+      "statistics_export",
+      "map_export",
+    ].includes(action)
+  ) {
+    const format = upperFileType(
+      String(
+        (details as any).format ?? (details as any).file_type ?? "",
+      ).trim(),
+    );
     const count = (details as any).count ?? (details as any).exported;
     const selected = (details as any).selected;
     const page = localValue(lang, String((details as any).page ?? ""));
     const parts: string[] = [];
     if (format) parts.push(format);
-    if (count !== null && count !== undefined && count !== "") parts.push(lang === "en" ? `${count} records` : `${count} εγγραφές`);
-    if (selected !== null && selected !== undefined && selected !== "" && Number(selected) > 0) parts.push(lang === "en" ? `${selected} selected` : `${selected} επιλεγμένα`);
+    if (count !== null && count !== undefined && count !== "")
+      parts.push(lang === "en" ? `${count} records` : `${count} εγγραφές`);
+    if (
+      selected !== null &&
+      selected !== undefined &&
+      selected !== "" &&
+      Number(selected) > 0
+    )
+      parts.push(
+        lang === "en" ? `${selected} selected` : `${selected} επιλεγμένα`,
+      );
     if (page) parts.push(lang === "en" ? `Page: ${page}` : `Σελίδα: ${page}`);
     if (parts.length) return parts.join(", ");
   }
@@ -514,16 +694,40 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
   const changed = (details as any).changed;
   if (changed !== null && changed !== undefined && changed !== "") {
     const items = Array.isArray(changed) ? changed : [changed];
-    const names = items.map((item) => localDetailLabel(lang, String(item ?? "").trim())).filter(Boolean);
-    if (names.length) return lang === "en" ? `Changed fields: ${names.join(", ")}` : `Αλλαγμένα πεδία: ${names.join(", ")}`;
+    const names = items
+      .map((item) => localDetailLabel(lang, String(item ?? "").trim()))
+      .filter(Boolean);
+    if (names.length)
+      return lang === "en"
+        ? `Changed fields: ${names.join(", ")}`
+        : `Αλλαγμένα πεδία: ${names.join(", ")}`;
   }
 
   if (action === "update_graduate") return "";
 
-  if ((details as any).code || (details as any).name || (details as any).name_el || (details as any).name_en) {
+  if (
+    (details as any).code ||
+    (details as any).name ||
+    (details as any).name_el ||
+    (details as any).name_en
+  ) {
     const code = String((details as any).code ?? "").trim();
-    const name = String(lang === "en" ? (details as any).name_en ?? (details as any).name ?? (details as any).name_el : (details as any).name_el ?? (details as any).name ?? (details as any).name_en ?? "").trim();
-    return [code ? `${localDetailLabel(lang, "code")}: ${code}` : "", name ? `${localDetailLabel(lang, "name")}: ${name}` : ""].filter(Boolean).join(", ");
+    const name = String(
+      lang === "en"
+        ? ((details as any).name_en ??
+            (details as any).name ??
+            (details as any).name_el)
+        : ((details as any).name_el ??
+            (details as any).name ??
+            (details as any).name_en ??
+            ""),
+    ).trim();
+    return [
+      code ? `${localDetailLabel(lang, "code")}: ${code}` : "",
+      name ? `${localDetailLabel(lang, "name")}: ${name}` : "",
+    ]
+      .filter(Boolean)
+      .join(", ");
   }
 
   const plainPairs: Array<[string, any]> = [
@@ -536,7 +740,7 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
     ["reason", (details as any).reason],
     ["parent_id", (details as any).parent_id],
     ["raw_name", (details as any).raw_name],
-    ["missing", (details as any).missing]
+    ["missing", (details as any).missing],
   ];
 
   const counterPairs: Array<[string, any]> = [
@@ -549,7 +753,7 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
     ["exported", (details as any).exported],
     ["errors", (details as any).errors],
     ["selected", (details as any).selected],
-    ["limit", (details as any).limit]
+    ["limit", (details as any).limit],
   ];
 
   const parts: string[] = [];
@@ -557,7 +761,10 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
   for (const [key, value] of plainPairs) {
     if (value === null || value === undefined || value === "") continue;
     const rendered = Array.isArray(value)
-      ? value.map((item) => localValue(lang, String(item))).filter(Boolean).join(", ")
+      ? value
+          .map((item) => localValue(lang, String(item)))
+          .filter(Boolean)
+          .join(", ")
       : localValue(lang, String(value)) || String(value);
     if (rendered) parts.push(`${localDetailLabel(lang, key)}: ${rendered}`);
   }
@@ -569,18 +776,32 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
 
   const ids = (details as any).ids;
   if (ids !== null && ids !== undefined && ids !== "") {
-    const rendered = Array.isArray(ids) ? ids.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ") : String(ids);
+    const rendered = Array.isArray(ids)
+      ? ids
+          .map((item) => String(item ?? "").trim())
+          .filter(Boolean)
+          .join(", ")
+      : String(ids);
     if (rendered) parts.push(`${localDetailLabel(lang, "ids")}: ${rendered}`);
   }
 
   if (parts.length) return parts.join(", ");
 
   return Object.entries(details)
-    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .filter(
+      ([, value]) => value !== null && value !== undefined && value !== "",
+    )
     .slice(0, 5)
     .map(([key, value]) => {
-      if (Array.isArray(value)) return `${localDetailLabel(lang, key)}: ${value.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ")}`;
-      const rendered = typeof value === "string" ? (localValue(lang, value) || value) : String(value);
+      if (Array.isArray(value))
+        return `${localDetailLabel(lang, key)}: ${value
+          .map((item) => String(item ?? "").trim())
+          .filter(Boolean)
+          .join(", ")}`;
+      const rendered =
+        typeof value === "string"
+          ? localValue(lang, value) || value
+          : String(value);
       return `${localDetailLabel(lang, key)}: ${rendered}`;
     })
     .join(", ");
@@ -601,24 +822,55 @@ export function formatDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   const locale = "en-GB";
-  const time = new Intl.DateTimeFormat(locale, { timeZone: "Europe/Athens", hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(date);
-  const day = new Intl.DateTimeFormat(locale, { timeZone: "Europe/Athens", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+  const time = new Intl.DateTimeFormat(locale, {
+    timeZone: "Europe/Athens",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date);
+  const day = new Intl.DateTimeFormat(locale, {
+    timeZone: "Europe/Athens",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
   return `${day} ${time}`;
 }
 
 // Φέρνει όλα τα logs που θα μπουν σε CSV/XLSX export.
 export function findLogsForExport(rows: any[], roleFilter: string) {
-  return rows.filter((row) => matchesRole(row, roleFilter)).slice(0, EXPORT_LIMIT);
+  return rows
+    .filter((row) => matchesRole(row, roleFilter))
+    .slice(0, EXPORT_LIMIT);
 }
 
 // Μετατρέπει logs βάσης σε γραμμές αρχείου export.
 export function getExportRows(rows: any[], lang: "gr" | "en") {
   return rows.map((row) => ({
-    [lang === "en" ? "Date" : "Ημερομηνία"]: formatDateTime(String(row.created_at ?? "")),
+    [lang === "en" ? "Date" : "Ημερομηνία"]: formatDateTime(
+      String(row.created_at ?? ""),
+    ),
     [lang === "en" ? "User" : "Χρήστης"]: getActorLabel(row),
-    [lang === "en" ? "Role" : "Ρόλος"]: localValue(lang, String(row?.user?.role ?? row?.details?.actor_role ?? row?.user_id == null ? "visitor" : "")),
-    [lang === "en" ? "Action" : "Ενέργεια"]: getLocalizedAction(lang, row.action, row),
-    [lang === "en" ? "Entity" : "Αντικείμενο"]: localValue(lang, String(row.entity_type ?? "")),
-    [lang === "en" ? "Details" : "Λεπτομέρειες"]: getLocalizedDetails(lang, row),
+    [lang === "en" ? "Role" : "Ρόλος"]: localValue(
+      lang,
+      String(
+        (row?.user?.role ?? row?.details?.actor_role ?? row?.user_id == null)
+          ? "visitor"
+          : "",
+      ),
+    ),
+    [lang === "en" ? "Action" : "Ενέργεια"]: getLocalizedAction(
+      lang,
+      row.action,
+      row,
+    ),
+    [lang === "en" ? "Entity" : "Αντικείμενο"]: localValue(
+      lang,
+      String(row.entity_type ?? ""),
+    ),
+    [lang === "en" ? "Details" : "Λεπτομέρειες"]: getLocalizedDetails(
+      lang,
+      row,
+    ),
   }));
 }

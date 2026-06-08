@@ -53,7 +53,8 @@
       "regions": "Regions",
       "statistics": "Statistics",
       "map": "Map",
-      "logs": "Logs"
+      "logs": "Logs",
+      "users": "Users"
     }
   },
   "errorDefault": "Something went wrong",

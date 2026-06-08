@@ -1,6 +1,13 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { createUser, deactivateUser, exportUsersFile, listUsers, updateUser, type AdminUser } from "../lib/api";
+import {
+  createUser,
+  deactivateUser,
+  exportUsersFile,
+  listUsers,
+  updateUser,
+  type AdminUser,
+} from "../lib/api";
 import { compareSortValues, sortIndicator } from "./shared/sorting";
 import Icon from "../components/Icon";
 import { downloadBlob } from "../lib/download";
@@ -24,18 +31,31 @@ const emptyForm: UserFormState = {
   last_name: "",
   email: "",
   role: "secretariat",
-  password: ""
+  password: "",
 };
 
-const clickableHeaderStyle: React.CSSProperties = { cursor: "pointer", userSelect: "none", fontWeight: 500 };
+const clickableHeaderStyle: React.CSSProperties = {
+  cursor: "pointer",
+  userSelect: "none",
+  fontWeight: 500,
+};
 const inlineSelectStyle: React.CSSProperties = { padding: 6, minWidth: 130 };
 const monospaceBadgeStyle: React.CSSProperties = { fontFamily: "monospace" };
 const passwordFieldStyle: React.CSSProperties = { gridColumn: "span 2" };
 const passwordHintStyle: React.CSSProperties = { whiteSpace: "pre-line" };
 const topSpacingStyle: React.CSSProperties = { marginTop: 12 };
-const errorCardStyle: React.CSSProperties = { borderColor: "#b00020", color: "#b00020" };
-const successCardStyle: React.CSSProperties = { borderColor: "#bfdbfe", color: "#1d4ed8" };
-const usersMenuButtonStyle: React.CSSProperties = { minHeight: 46, justifyContent: "center" };
+const errorCardStyle: React.CSSProperties = {
+  borderColor: "#b00020",
+  color: "#b00020",
+};
+const successCardStyle: React.CSSProperties = {
+  borderColor: "#bfdbfe",
+  color: "#1d4ed8",
+};
+const usersMenuButtonStyle: React.CSSProperties = {
+  minHeight: 46,
+  justifyContent: "center",
+};
 const exportDropdownStyle: React.CSSProperties = {
   position: "absolute",
   top: "calc(100% + 8px)",
@@ -48,7 +68,7 @@ const exportDropdownStyle: React.CSSProperties = {
   padding: 8,
   zIndex: 50,
   display: "grid",
-  gap: 6
+  gap: 6,
 };
 
 type SortState = { key: SortKey; dir: SortDir };
@@ -69,16 +89,25 @@ function sortValue(user: AdminUser, key: SortKey) {
 }
 
 function nextSortState(state: SortState, key: SortKey): SortState {
-  return state.key === key ? { key, dir: state.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" };
+  return state.key === key
+    ? { key, dir: state.dir === "asc" ? "desc" : "asc" }
+    : { key, dir: "asc" };
 }
 
-function RoleSelect({ value, labelSecretariat, labelSuperAdmin, onChange }: RoleSelectProps) {
+function RoleSelect({
+  value,
+  labelSecretariat,
+  labelSuperAdmin,
+  onChange,
+}: RoleSelectProps) {
   return (
     <select
       className="input"
       style={inlineSelectStyle}
       value={value}
-      onChange={(event) => void onChange(event.target.value as AdminUser["role"])}
+      onChange={(event) =>
+        void onChange(event.target.value as AdminUser["role"])
+      }
     >
       <option value="secretariat">{labelSecretariat}</option>
       <option value="super_admin">{labelSuperAdmin}</option>
@@ -94,18 +123,29 @@ export default function Users() {
   const [err, setErr] = React.useState<string | null>(null);
   const [ok, setOk] = React.useState<string | null>(null);
   const inFlight = React.useRef(false);
-  const [sortState, setSortState] = React.useState<SortState>({ key: "id", dir: "asc" });
+  const [sortState, setSortState] = React.useState<SortState>({
+    key: "id",
+    dir: "asc",
+  });
   const [form, setForm] = React.useState<UserFormState>(emptyForm);
   const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
-  const [showCreateForm, setShowCreateForm] = React.useState(false);
+  const [activePanel, setActivePanel] = React.useState<"list" | "create">(
+    "list",
+  );
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
 
-  const roleLabels = React.useMemo(() => ({
-    secretariat: t("roles.secretariat"),
-    superAdmin: t("roles.superAdmin")
-  }), [t]);
+  const roleLabels = React.useMemo(
+    () => ({
+      secretariat: t("roles.secretariat"),
+      superAdmin: t("roles.superAdmin"),
+    }),
+    [t],
+  );
 
-  const setFormValue = <K extends keyof UserFormState>(key: K, value: UserFormState[K]) => {
+  const setFormValue = <K extends keyof UserFormState>(
+    key: K,
+    value: UserFormState[K],
+  ) => {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
@@ -152,9 +192,13 @@ export default function Users() {
     try {
       setOk(null);
       const response = await createUser({ ...form, language: i18n.language });
-      setOk(response.mail_sent ? t("messages.createdWithEmail") : t("messages.createdWithoutEmail"));
+      setOk(
+        response.mail_sent
+          ? t("messages.createdWithEmail")
+          : t("messages.createdWithoutEmail"),
+      );
       setForm(emptyForm);
-      setShowCreateForm(false);
+      setActivePanel("list");
       await load();
     } catch (e: any) {
       alert(e?.message ?? t("error"));
@@ -175,9 +219,16 @@ export default function Users() {
   async function onExport(format: "csv" | "xlsx") {
     setErr(null);
     try {
-      const lang = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en" : "gr";
+      const lang = (i18n.resolvedLanguage || i18n.language || "gr")
+        .toLowerCase()
+        .startsWith("en")
+        ? "en"
+        : "gr";
       const blob = await exportUsersFile(format, lang);
-      await downloadBlob(blob, `alupla_users_export_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${format}`);
+      await downloadBlob(
+        blob,
+        `alupla_users_export_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${format}`,
+      );
     } catch (e: any) {
       setErr(e?.message ?? t("error"));
     } finally {
@@ -186,7 +237,13 @@ export default function Users() {
   }
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((left, right) => compareSortValues(sortValue(left, sortState.key), sortValue(right, sortState.key), sortState.dir));
+    return [...items].sort((left, right) =>
+      compareSortValues(
+        sortValue(left, sortState.key),
+        sortValue(right, sortState.key),
+        sortState.dir,
+      ),
+    );
   }, [items, sortState]);
 
   function toggleSort(key: SortKey) {
@@ -199,22 +256,42 @@ export default function Users() {
 
   return (
     <div className="page-stable-shell users-page">
-      <div className="topbar" style={{ alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0 }}>{t("title")}</h2>
-        <span className="badge">{loading ? t("badgeLoading") : t("badgeCount", { count: items.length })}</span>
-      </div>
-
       <div className="card page-header-card" style={{ padding: 14 }}>
         <div style={{ display: "grid", gap: 14 }}>
-          <div className="mobile-summary-title-row">
-            <h3 style={{ margin: 0 }}>{t("menu.title")}</h3>
+          <div
+            className="mobile-summary-title-row"
+            style={{ alignItems: "center", gap: 12, flexWrap: "wrap" }}
+          >
+            <h2 style={{ margin: 0 }}>{t("title")}</h2>
+            <span className="badge">
+              {loading
+                ? t("badgeLoading")
+                : t("badgeCount", { count: items.length })}
+            </span>
           </div>
-          <div className="page-header-actions-grid users-actions-grid" style={{ display: "grid", gap: 12, width: "100%", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+          <div
+            className="page-header-actions-grid users-actions-grid"
+            style={{
+              display: "grid",
+              gap: 12,
+              width: "100%",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            }}
+          >
             <button
               type="button"
-              className={showCreateForm ? "btn primary" : "btn"}
+              className={activePanel === "list" ? "btn primary" : "btn"}
               style={usersMenuButtonStyle}
-              onClick={() => setShowCreateForm((current) => !current)}
+              onClick={() => setActivePanel("list")}
+            >
+              <Icon src={userIcon} size={18} />
+              <span>{t("title")}</span>
+            </button>
+            <button
+              type="button"
+              className={activePanel === "create" ? "btn primary" : "btn"}
+              style={usersMenuButtonStyle}
+              onClick={() => setActivePanel("create")}
             >
               <Icon src={userIcon} size={18} />
               <span>{t("newUser")}</span>
@@ -227,15 +304,24 @@ export default function Users() {
                 onClick={() => setExportMenuOpen((current) => !current)}
               >
                 <Icon src={fileSpreadsheetIcon} size={18} />
-                <span>{t("actions.export")}</span><span className="btn-dropdown-chevron" aria-hidden="true" />
+                <span>{t("actions.export")}</span>
+                <span className="btn-dropdown-chevron" aria-hidden="true" />
               </button>
               {exportMenuOpen && (
                 <div style={exportDropdownStyle}>
-                  <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("xlsx")}>
+                  <button
+                    className="btn"
+                    style={{ width: "100%", justifyContent: "flex-start" }}
+                    onClick={() => void onExport("xlsx")}
+                  >
                     <Icon src={fileSpreadsheetIcon} size={17} />
                     <span>{t("actions.excel")}</span>
                   </button>
-                  <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("csv")}>
+                  <button
+                    className="btn"
+                    style={{ width: "100%", justifyContent: "flex-start" }}
+                    onClick={() => void onExport("csv")}
+                  >
                     <Icon src={fileSpreadsheetIcon} size={17} />
                     <span>{t("actions.csv")}</span>
                   </button>
@@ -246,36 +332,69 @@ export default function Users() {
         </div>
       </div>
 
-      {err && <div className="card page-header-card" style={errorCardStyle}>{err}</div>}
-      {ok && <div className="card page-header-card" style={successCardStyle}>{ok}</div>}
+      {err && (
+        <div className="card page-header-card" style={errorCardStyle}>
+          {err}
+        </div>
+      )}
+      {ok && (
+        <div className="card page-header-card" style={successCardStyle}>
+          {ok}
+        </div>
+      )}
 
-      {showCreateForm && (
+      {activePanel === "create" && (
         <div className="card page-header-card">
           <h3 style={{ marginTop: 0 }}>{t("newUser")}</h3>
           <div className="grid cols3">
             <div>
               <label className="label">{t("labels.firstName")}</label>
-              <input className="input" value={form.first_name} onChange={(e) => setFormValue("first_name", e.target.value)} />
+              <input
+                className="input"
+                value={form.first_name}
+                onChange={(e) => setFormValue("first_name", e.target.value)}
+              />
             </div>
             <div>
               <label className="label">{t("labels.lastName")}</label>
-              <input className="input" value={form.last_name} onChange={(e) => setFormValue("last_name", e.target.value)} />
+              <input
+                className="input"
+                value={form.last_name}
+                onChange={(e) => setFormValue("last_name", e.target.value)}
+              />
             </div>
             <div>
               <label className="label">{t("labels.email")}</label>
-              <input className="input" value={form.email} onChange={(e) => setFormValue("email", e.target.value)} />
+              <input
+                className="input"
+                value={form.email}
+                onChange={(e) => setFormValue("email", e.target.value)}
+              />
             </div>
             <div>
               <label className="label">{t("labels.role")}</label>
-              <select className="input" value={form.role} onChange={(e) => setFormValue("role", e.target.value as AdminUser["role"])}>
+              <select
+                className="input"
+                value={form.role}
+                onChange={(e) =>
+                  setFormValue("role", e.target.value as AdminUser["role"])
+                }
+              >
                 <option value="secretariat">{roleLabels.secretariat}</option>
                 <option value="super_admin">{roleLabels.superAdmin}</option>
               </select>
             </div>
             <div className="users-password-field" style={passwordFieldStyle}>
               <label className="label">{t("labels.passwordStrong")}</label>
-              <input className="input" type="password" value={form.password} onChange={(e) => setFormValue("password", e.target.value)} />
-              <div className="muted" style={passwordHintStyle}>{t("labels.passwordHint")}</div>
+              <input
+                className="input"
+                type="password"
+                value={form.password}
+                onChange={(e) => setFormValue("password", e.target.value)}
+              />
+              <div className="muted" style={passwordHintStyle}>
+                {t("labels.passwordHint")}
+              </div>
             </div>
           </div>
           <div className="row-actions" style={topSpacingStyle}>
@@ -283,67 +402,105 @@ export default function Users() {
               <Icon src={userIcon} size={18} />
               <span>{t("actions.create")}</span>
             </button>
-            <button className="btn" onClick={() => setShowCreateForm(false)}>
+            <button className="btn" onClick={() => setActivePanel("list")}>
               {t("actions.cancel")}
             </button>
           </div>
         </div>
       )}
 
-      <div className="card page-header-card mobile-table-card">
-        <div className="table-wrap">
-          <table className="table" style={{ minWidth: 780 }}>
-            <thead>
-              <tr>
-                <th style={clickableHeaderStyle} onClick={() => toggleSort("id")}>{t("table.id")}{getSortArrow("id")}</th>
-                <th style={clickableHeaderStyle} onClick={() => toggleSort("email")}>{t("table.email")}{getSortArrow("email")}</th>
-                <th style={clickableHeaderStyle} onClick={() => toggleSort("name")}>{t("table.name")}{getSortArrow("name")}</th>
-                <th style={clickableHeaderStyle} onClick={() => toggleSort("role")}>{t("table.role")}{getSortArrow("role")}</th>
-                <th style={clickableHeaderStyle} onClick={() => toggleSort("is_online")}>{t("table.online")}{getSortArrow("is_online")}</th>
-                <th>{t("table.deactivate")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedItems.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.id}</td>
-                  <td>{user.email}</td>
-                  <td>{userFullName(user)}</td>
-                  <td>
-                    <RoleSelect
-                      value={user.role}
-                      labelSecretariat={roleLabels.secretariat}
-                      labelSuperAdmin={roleLabels.superAdmin}
-                      onChange={(role) => onRoleChange(user.id, role)}
-                    />
-                  </td>
-                  <td>
-                    <span className="badge" title={user.last_seen_at ?? ""} style={monospaceBadgeStyle}>
-                      {user.is_online ? t("status.online") : t("status.offline")}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      className="btn danger"
-                      onClick={() => void onDeactivate(user.id)}
-                    >
-                      <Icon src={shieldIcon} size={17} />
-                      <span>{t("actions.deactivate")}</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {!items.length && (
+      {activePanel === "list" && (
+        <div className="card page-header-card mobile-table-card">
+          <div className="table-wrap">
+            <table className="table" style={{ minWidth: 780 }}>
+              <thead>
                 <tr>
-                  <td colSpan={6} className="muted">
-                    {loading ? t("table.loading") : t("table.none")}
-                  </td>
+                  <th
+                    style={clickableHeaderStyle}
+                    onClick={() => toggleSort("id")}
+                  >
+                    {t("table.id")}
+                    {getSortArrow("id")}
+                  </th>
+                  <th
+                    style={clickableHeaderStyle}
+                    onClick={() => toggleSort("email")}
+                  >
+                    {t("table.email")}
+                    {getSortArrow("email")}
+                  </th>
+                  <th
+                    style={clickableHeaderStyle}
+                    onClick={() => toggleSort("name")}
+                  >
+                    {t("table.name")}
+                    {getSortArrow("name")}
+                  </th>
+                  <th
+                    style={clickableHeaderStyle}
+                    onClick={() => toggleSort("role")}
+                  >
+                    {t("table.role")}
+                    {getSortArrow("role")}
+                  </th>
+                  <th
+                    style={clickableHeaderStyle}
+                    onClick={() => toggleSort("is_online")}
+                  >
+                    {t("table.online")}
+                    {getSortArrow("is_online")}
+                  </th>
+                  <th>{t("table.deactivate")}</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sortedItems.map((user) => (
+                  <tr key={user.id}>
+                    <td>{user.id}</td>
+                    <td>{user.email}</td>
+                    <td>{userFullName(user)}</td>
+                    <td>
+                      <RoleSelect
+                        value={user.role}
+                        labelSecretariat={roleLabels.secretariat}
+                        labelSuperAdmin={roleLabels.superAdmin}
+                        onChange={(role) => onRoleChange(user.id, role)}
+                      />
+                    </td>
+                    <td>
+                      <span
+                        className="badge"
+                        title={user.last_seen_at ?? ""}
+                        style={monospaceBadgeStyle}
+                      >
+                        {user.is_online
+                          ? t("status.online")
+                          : t("status.offline")}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        className="btn danger"
+                        onClick={() => void onDeactivate(user.id)}
+                      >
+                        <Icon src={shieldIcon} size={17} />
+                        <span>{t("actions.deactivate")}</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {!items.length && (
+                  <tr>
+                    <td colSpan={6} className="muted">
+                      {loading ? t("table.loading") : t("table.none")}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
