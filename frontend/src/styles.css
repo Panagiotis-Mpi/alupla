@@ -4720,3 +4720,12 @@ html.accessibility-high-contrast .nav-dropdown-item:hover *,
 html.accessibility-high-contrast .nav-dropdown-item:focus-visible *{
   color:#000000 !important;
 }
+
+html.accessibility-high-contrast .public-home-visual .public-home-illustration{
+  background:#c3ccd2 !important;
+  border:2px solid #14f5c8 !important;
+  border-radius:18px !important;
+  padding:10px !important;
+  box-shadow:none !important;
+  filter:brightness(.72) contrast(1.08) saturate(.92) !important;
+}
