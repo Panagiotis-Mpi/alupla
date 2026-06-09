@@ -2,8 +2,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import Icon from "../components/Icon";
-import graduationCapIcon from "../assets/icons/graduation-cap.svg";
 import {
   createGraduate,
   getGraduate,
@@ -550,7 +548,7 @@ useEffect(() => {
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap", paddingTop: 6 }}>
             <Link className="btn" to="/graduates" style={{ textDecoration: "none" }}>{t("back")}</Link>
-            <button className="btn primary" disabled={saving} onClick={onSave}><Icon src={graduationCapIcon} size={18} /><span>{saving ? t("saving") : t("save")}</span></button>
+            <button className="btn primary" disabled={saving} onClick={onSave}><span>{saving ? t("saving") : t("save")}</span></button>
           </div>
         </div>
         )}

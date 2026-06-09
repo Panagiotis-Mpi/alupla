@@ -3,8 +3,6 @@ import React from "react";
 import { Link } from "react-router-dom";
 import type { Graduate } from "../../lib/api";
 import { formatValue, getGraduateOriginCountryDisplay, getGraduateOriginMunicipalityDisplay, getGraduateOriginNomosDisplay, getGraduateOriginRegionDisplay, type SortKey } from "./shared";
-import Icon from "../../components/Icon";
-import userIcon from "../../assets/icons/user.svg";
 
 const graduateSortColumns: Array<{ sortKey: SortKey; labelKey: string }> = [
   { sortKey: "ad_code", labelKey: "table.ad" },
@@ -108,7 +106,6 @@ export function GraduatesTable(props: {
                   <td>
                     <div className="row-actions">
                       <Link className="btn" to={`/graduates/${graduate.id}`} style={{ textDecoration: "none" }}>
-                        <Icon src={userIcon} size={17} />
                         <span>{t("table.edit")}</span>
                       </Link>
                       <button className="btn danger" onClick={() => void onDelete(graduate)}>
