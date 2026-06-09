@@ -108,6 +108,39 @@ async function loadRegionChildren(type: Region["type"], parentId: number) {
   return response.items || [];
 }
 
+function isProgramActive(program: StudyProgram) {
+  return program.is_active === true || program.is_active === 1;
+}
+
+function getStudyProgramRanges(program: StudyProgram) {
+  const text = normalizeLookupText([program.code, program.name_el, program.name_en].filter(Boolean).join(" "));
+  const ranges: Array<{ start: number; end: number }> = [];
+  const pattern = /(\d{4})\s*(?:-|–|—|εως|ως|to)\s*(\d{4}|σημερα|today|present|current|now)/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    const start = Number(match[1]);
+    const end = /^\d{4}$/.test(match[2]) ? Number(match[2]) : Number.POSITIVE_INFINITY;
+    if (Number.isFinite(start) && start <= end) ranges.push({ start, end });
+  }
+
+  return ranges;
+}
+
+function findStudyProgramByEntryYear(programs: StudyProgram[], value: unknown) {
+  const entryYear = Number(value);
+  if (!Number.isInteger(entryYear) || entryYear < 1800 || entryYear > 2300) return null;
+
+  return programs
+    .flatMap((program) => getStudyProgramRanges(program).map((range) => ({ program, ...range })))
+    .filter((item) => entryYear >= item.start && entryYear <= item.end)
+    .sort((a, b) => {
+      if (b.start !== a.start) return b.start - a.start;
+      if (a.end !== b.end) return a.end - b.end;
+      return Number(isProgramActive(b.program)) - Number(isProgramActive(a.program));
+    })[0]?.program ?? null;
+}
+
 export default function GraduateForm(props: { mode: Mode }) {
   const { t, i18n } = useTranslation("graduateForm");
   const nav = useNavigate();
@@ -129,6 +162,16 @@ export default function GraduateForm(props: { mode: Mode }) {
   const greeceCountry = useMemo(() => getGreeceCountry(countries), [countries]);
   const selectedCountryId = getResolvedCountryId(form, countries, greeceCountry);
   const greeceSelected = Number.isFinite(selectedCountryId) && selectedCountryId === Number(greeceCountry?.id ?? null);
+
+  const onEntryYearChange = (value: string) => {
+    const nextEntryYear = value ? Number(value) : ("" as any);
+    const matchedProgram = findStudyProgramByEntryYear(programs, nextEntryYear);
+    setForm((current) => ({
+      ...current,
+      entry_year: nextEntryYear,
+      ...(matchedProgram ? { study_program_id: matchedProgram.id } : {})
+    }));
+  };
 
     // Όταν υπάρχει id, φορτώνει τα στοιχεία για edit.
 useEffect(() => {
@@ -417,7 +460,7 @@ useEffect(() => {
             </div>
             <div style={fieldStyle(t("labels.entryYearReq"))}>
               <label style={labelStyle}>{t("labels.entryYearReq")}</label>
-              <input className="input" inputMode="numeric" value={form.entry_year ?? ""} onChange={(e) => setForm((f) => ({ ...f, entry_year: e.target.value ? Number(e.target.value) : ("" as any) }))} />
+              <input className="input" inputMode="numeric" value={form.entry_year ?? ""} onChange={(e) => onEntryYearChange(e.target.value)} />
             </div>
             <div style={fieldStyle(t("labels.degreeGrade"))}>
               <label style={labelStyle}>{t("labels.degreeGrade")}</label>
