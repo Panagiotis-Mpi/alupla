@@ -112,8 +112,11 @@ export function StatisticsExportSelectionModal(props: {
         style={{
           width: "min(640px, 100%)",
           maxHeight: "min(68vh, 620px)",
+          minHeight: 0,
+          height: "auto",
           display: "grid",
-          gridTemplateRows: "auto auto auto",
+          gridTemplateRows: "auto minmax(0, 1fr) auto",
+          alignContent: "start",
           gap: 10,
           padding: 12,
           overflow: "hidden",
@@ -242,7 +245,7 @@ export function StatisticsExportSelectionModal(props: {
           })}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap", paddingTop: 0 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, flexWrap: "wrap", paddingTop: 0 }}>
           <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={props.onClose}>
             <Icon src={xIcon} size={17} />
             <span>{props.t("actions.cancel", { defaultValue: "Ακύρωση" })}</span>

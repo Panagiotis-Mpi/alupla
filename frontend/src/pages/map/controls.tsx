@@ -292,8 +292,11 @@ export function MapExportSelectionModal(props: {
         style={{
           width: isCompactExportModal ? "min(520px, 100%)" : "min(560px, 100%)",
           maxHeight: isCompactExportModal ? "min(82dvh, 680px)" : "min(68vh, 680px)",
+          minHeight: 0,
+          height: "auto",
           display: "grid",
-          gridTemplateRows: "auto auto auto",
+          gridTemplateRows: "auto minmax(0, 1fr) auto",
+          alignContent: "start",
           gap: isCompactExportModal ? 8 : 10,
           padding: isCompactExportModal ? 12 : 14,
           overflow: "hidden",
