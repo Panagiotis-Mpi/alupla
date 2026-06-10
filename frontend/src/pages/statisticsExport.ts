@@ -27,6 +27,7 @@ export type StatisticsChartId =
   | "timeToDegreeDistribution"
   | "timeToDegreeByRegion"
   | "timeToDegreeByNomos"
+  | "compare"
   | "compareDemographics"
   | "compareAcademic"
   | "compareGeography"
@@ -95,7 +96,7 @@ export type BuildArgs = {
     rangeALabel: string;
     rangeBLabel: string;
     changeLabel: string;
-    sections: Partial<Record<"compareDemographics" | "compareAcademic" | "compareGeography", {
+    sections: Partial<Record<"compare" | "compareDemographics" | "compareAcademic" | "compareGeography", {
       name: string;
       rows: Array<{ metric: string; a: string | number; b: string | number; delta: string | number }>;
     }>>;
@@ -117,7 +118,6 @@ const statisticsChartOrder: StatisticsChartId[] = [
   "genderTotal",
   "genderByEntryYear",
   "gender",
-  "compareDemographics",
   "gradeDistribution",
   "gradeDistributionByGender",
   "timeToDegreeDistribution",
@@ -125,7 +125,6 @@ const statisticsChartOrder: StatisticsChartId[] = [
   "gradeByRegion",
   "timeToDegreeByEntryYear",
   "timeToDegreeByRegion",
-  "compareAcademic",
   "originRegion",
   "genderByRegion",
   "originMunicipality",
@@ -134,7 +133,7 @@ const statisticsChartOrder: StatisticsChartId[] = [
   "abroadShare",
   "abroadByYear",
   "timeToDegreeByNomos",
-  "compareGeography",
+  "compare",
 ];
 
 function text(v: unknown) {
@@ -972,8 +971,8 @@ function buildSheets(args: BuildArgs) {
   if (args.compare) {
     Object.entries(args.compare.sections).forEach(([chartId, section]) => {
       if (!section?.rows.length) return;
-      sheets.set(chartId as "compareDemographics" | "compareAcademic" | "compareGeography", {
-        chartId: chartId as "compareDemographics" | "compareAcademic" | "compareGeography",
+      sheets.set(chartId as "compare" | "compareDemographics" | "compareAcademic" | "compareGeography", {
+        chartId: chartId as "compare" | "compareDemographics" | "compareAcademic" | "compareGeography",
         name: section.name,
         rows: section.rows.map((row) => ({
           [l.category]: row.metric,
@@ -1099,9 +1098,10 @@ export function buildStatisticsExportFilename(args: BuildArgs, format: Statistic
   const chartCount = selected.length;
   const allSelected = chartCount === 0;
   const groupChartIds = {
-    demographics: ["byYear", "countByEntryYear", "birthYear", "genderTotal", "genderByEntryYear", "gender", "compareDemographics"],
-    academic: ["gradeDistribution", "gradeDistributionByGender", "timeToDegreeDistribution", "gradeByYear", "gradeByRegion", "timeToDegreeByEntryYear", "timeToDegreeByRegion", "compareAcademic"],
-    geography: ["originRegion", "genderByRegion", "originMunicipality", "genderByMunicipality", "originCountry", "abroadShare", "abroadByYear", "timeToDegreeByNomos", "compareGeography"],
+    demographics: ["byYear", "countByEntryYear", "birthYear", "genderTotal", "genderByEntryYear", "gender"],
+    academic: ["gradeDistribution", "gradeDistributionByGender", "timeToDegreeDistribution", "gradeByYear", "gradeByRegion", "timeToDegreeByEntryYear", "timeToDegreeByRegion"],
+    geography: ["originRegion", "genderByRegion", "originMunicipality", "genderByMunicipality", "originCountry", "abroadShare", "abroadByYear", "timeToDegreeByNomos"],
+    compare: ["compare"],
   } as const;
 
   const selectedSet = new Set(selected);

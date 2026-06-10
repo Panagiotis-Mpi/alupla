@@ -81,11 +81,10 @@ export default function Statistics() {
 
   const activeLang = i18n.language?.toLowerCase().startsWith("en") ? "en" : "el";
 
-  const compareExportLabels = React.useMemo(() => ({
-    demographics: t("compare.exportDemographics", { defaultValue: activeLang === "en" ? "Time range comparison — Count and gender" : "Σύγκριση χρονικών διαστημάτων — Πλήθος και φύλο" }),
-    academic: t("compare.exportAcademic", { defaultValue: activeLang === "en" ? "Time range comparison — Academic data" : "Σύγκριση χρονικών διαστημάτων — Ακαδημαϊκά στοιχεία" }),
-    geography: t("compare.exportGeography", { defaultValue: activeLang === "en" ? "Time range comparison — Geographic distribution" : "Σύγκριση χρονικών διαστημάτων — Γεωγραφική κατανομή" }),
-  }), [activeLang, t]);
+  const compareExportLabel = React.useMemo(
+    () => t("compare.title", { defaultValue: activeLang === "en" ? "Time range comparison" : "Σύγκριση χρονικών διαστημάτων" }),
+    [activeLang, t]
+  );
 
   const chartGroups = React.useMemo(
     () => [
@@ -99,7 +98,6 @@ export default function Statistics() {
           { id: "genderTotal" as StatisticsChartId, label: t("sections.genderTotal") },
           { id: "genderByEntryYear" as StatisticsChartId, label: t("sections.genderByEntryYear") },
           { id: "gender" as StatisticsChartId, label: t("sections.gender") },
-          { id: "compareDemographics" as StatisticsChartId, label: compareExportLabels.demographics },
         ],
       },
       {
@@ -113,7 +111,6 @@ export default function Statistics() {
           { id: "gradeByRegion" as StatisticsChartId, label: t("sections.gradeByRegion") },
           { id: "timeToDegreeByEntryYear" as StatisticsChartId, label: t("sections.timeToDegreeByEntryYear") },
           { id: "timeToDegreeByRegion" as StatisticsChartId, label: t("sections.timeToDegreeByRegion") },
-          { id: "compareAcademic" as StatisticsChartId, label: compareExportLabels.academic },
         ],
       },
       {
@@ -128,11 +125,17 @@ export default function Statistics() {
           { id: "abroadShare" as StatisticsChartId, label: t("sections.abroadShare") },
           { id: "abroadByYear" as StatisticsChartId, label: t("sections.abroadByYear") },
           { id: "timeToDegreeByNomos" as StatisticsChartId, label: t("sections.timeToDegreeByNomos") },
-          { id: "compareGeography" as StatisticsChartId, label: compareExportLabels.geography },
+        ],
+      },
+      {
+        key: "compare" as const,
+        label: t("groups.compare"),
+        charts: [
+          { id: "compare" as StatisticsChartId, label: compareExportLabel },
         ],
       },
     ],
-    [compareExportLabels, t]
+    [compareExportLabel, t]
   );
 
   const allChartIds = React.useMemo(
@@ -594,10 +597,6 @@ export default function Statistics() {
     { key: "abroad", label: t("compare.abroad"), a: `${compareA.abroad} (${compareA.abroadShare})`, b: `${compareB.abroad} (${compareB.abroadShare})`, aValue: compareA.abroad, bValue: compareB.abroad, deltaLabel: t("compare.abroadShareChange"), delta: compareDelta.abroad, direction: compareDelta.abroadAmount },
   ], [compareA, compareB, compareDelta, t]);
 
-  const compareDemographicsRows = React.useMemo(() => compareRows.filter((row) => ["total", "annualAverage", "male", "female", "maleShare", "femaleShare"].includes(row.key)), [compareRows]);
-  const compareAcademicRows = React.useMemo(() => compareRows.filter((row) => ["avgGrade"].includes(row.key)), [compareRows]);
-  const compareGeographyRows = React.useMemo(() => compareRows.filter((row) => ["greece", "abroad"].includes(row.key)), [compareRows]);
-
   const compareSelect = React.useCallback((value: string, onChange: (value: string) => void) => (
     <select value={value} onChange={(event) => onChange(event.target.value)}>
       {compareYearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
@@ -768,21 +767,13 @@ export default function Statistics() {
       rangeBLabel: t("compare.periodRange", { range: compareB.range }),
       changeLabel: activeLang === "en" ? "Change" : "Μεταβολή",
       sections: {
-        compareDemographics: {
-          name: compareExportLabels.demographics,
-          rows: compareDemographicsRows.map((row) => ({ metric: row.label, a: row.a, b: row.b, delta: row.delta })),
-        },
-        compareAcademic: {
-          name: compareExportLabels.academic,
-          rows: compareAcademicRows.map((row) => ({ metric: row.label, a: row.a, b: row.b, delta: row.delta })),
-        },
-        compareGeography: {
-          name: compareExportLabels.geography,
-          rows: compareGeographyRows.map((row) => ({ metric: row.label, a: row.a, b: row.b, delta: row.delta })),
+        compare: {
+          name: compareExportLabel,
+          rows: compareRows.map((row) => ({ metric: row.label, a: row.a, b: row.b, delta: row.delta })),
         },
       },
     },
-  }), [activeLang, avgAge, avgGrade, avgStudyYears, busiestCity, busiestYear, compareA.range, compareB.range, compareAcademicRows, compareDemographicsRows, compareExportLabels, compareGeographyRows, data, selectedChartIds, t, total]);
+  }), [activeLang, avgAge, avgGrade, avgStudyYears, busiestCity, busiestYear, compareA.range, compareB.range, compareExportLabel, compareRows, data, selectedChartIds, t, total]);
 
   async function exportSelectedChartsAsPng() {
     if (!selectedChartIds.length) return;
@@ -1257,9 +1248,7 @@ export default function Statistics() {
           abroadCount={abroadCount}
           exportMode
         />
-        {renderCompareExportCard("compareDemographics", compareExportLabels.demographics, compareDemographicsRows)}
-        {renderCompareExportCard("compareAcademic", compareExportLabels.academic, compareAcademicRows)}
-        {renderCompareExportCard("compareGeography", compareExportLabels.geography, compareGeographyRows)}
+        {renderCompareExportCard("compare", compareExportLabel, compareRows)}
         </div>
       ) : null}
     </>

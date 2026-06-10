@@ -10,7 +10,7 @@ import type { StatisticsChartId } from "../statisticsExport";
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 type ChartGroup = {
-  key: "demographics" | "academic" | "geography";
+  key: "demographics" | "academic" | "geography" | "compare";
   label: string;
   charts: Array<{ id: StatisticsChartId; label: string }>;
 };
@@ -78,6 +78,7 @@ export function StatisticsExportSelectionModal(props: {
     demographics: false,
     academic: false,
     geography: false,
+    compare: false,
   });
   const confirmDisabled = !props.selectedChartIds.length || !!(props.isPngExport && props.selectedChartIds.includes("genderByEntryYear") && !props.selectedGenderEntryYears?.length);
 
