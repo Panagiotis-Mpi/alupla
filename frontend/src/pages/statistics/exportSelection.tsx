@@ -4,12 +4,13 @@ import Icon from "../../components/Icon";
 import fileSpreadsheetIcon from "../../assets/icons/file-spreadsheet.svg";
 import chartIcon from "../../assets/icons/chart-column-big.svg";
 import arrowDownIcon from "../../assets/icons/arrow-down-to-line.svg";
+import xIcon from "../../assets/icons/x.svg";
 import type { StatisticsChartId } from "../statisticsExport";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 type ChartGroup = {
-  key: "demographics" | "academic" | "geography" | "compare";
+  key: "demographics" | "academic" | "geography";
   label: string;
   charts: Array<{ id: StatisticsChartId; label: string }>;
 };
@@ -73,6 +74,11 @@ export function StatisticsExportSelectionModal(props: {
   onToggleAllGenderEntryYears?: () => void;
 }) {
   const [openYearPicker, setOpenYearPicker] = React.useState(false);
+  const [openGroups, setOpenGroups] = React.useState<Record<ChartGroup["key"], boolean>>({
+    demographics: false,
+    academic: false,
+    geography: false,
+  });
   const confirmDisabled = !props.selectedChartIds.length || !!(props.isPngExport && props.selectedChartIds.includes("genderByEntryYear") && !props.selectedGenderEntryYears?.length);
 
   React.useEffect(() => {
@@ -80,6 +86,10 @@ export function StatisticsExportSelectionModal(props: {
       setOpenYearPicker(false);
     }
   }, [props.isPngExport, props.selectedChartIds]);
+
+  function toggleGroupOpen(groupKey: ChartGroup["key"]) {
+    setOpenGroups((current) => ({ ...current, [groupKey]: !current[groupKey] }));
+  }
 
   return (
     <div
@@ -102,8 +112,11 @@ export function StatisticsExportSelectionModal(props: {
         style={{
           width: "min(640px, 100%)",
           maxHeight: "min(68vh, 620px)",
+          minHeight: 0,
+          height: "auto",
           display: "grid",
           gridTemplateRows: "auto minmax(0, 1fr) auto",
+          alignContent: "start",
           gap: 10,
           padding: 12,
           overflow: "hidden",
@@ -118,22 +131,43 @@ export function StatisticsExportSelectionModal(props: {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 8, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
-          <label style={{ ...props.selectionRowStyle, fontWeight: 700 }}>
-            <input type="checkbox" style={props.selectionCheckboxStyle} checked={props.allChartsSelected} onChange={props.onToggleAll} />
-            <span>{props.t("actions.selectAll", { defaultValue: "Όλα" })}</span>
-          </label>
-
+        <div style={{ display: "grid", gap: 8, alignContent: "start", overflowY: "auto", maxHeight: "min(52vh, 500px)", minHeight: 0, paddingRight: 4 }}>
           {props.chartGroups.map((group) => {
             const groupChartIds = group.charts.map((chart) => chart.id);
             const groupChecked = groupChartIds.every((id) => props.selectedChartIds.includes(id));
+            const groupOpen = openGroups[group.key];
 
             return (
-              <div key={group.key} style={{ display: "grid", gap: 6, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 8, background: "rgba(248, 250, 252, 0.76)" }}>
-                <label style={{ ...props.selectionRowStyle, fontWeight: 700 }}>
+              <div key={group.key} style={{ display: "grid", gap: groupOpen ? 6 : 0, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 8, background: "rgba(248, 250, 252, 0.76)" }}>
+                <div style={{ ...props.selectionRowStyle, fontWeight: 700, padding: "0 10px" }}>
                   <input type="checkbox" style={props.selectionCheckboxStyle} checked={groupChecked} onChange={() => props.onToggleGroup(groupChartIds)} />
-                  <span>{group.label}</span>
-                </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleGroupOpen(group.key)}
+                    aria-expanded={groupOpen}
+                    style={{
+                      flex: "1 1 auto",
+                      minHeight: 40,
+                      minWidth: 0,
+                      border: 0,
+                      background: "transparent",
+                      color: "inherit",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      padding: 0,
+                      font: "inherit",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span>{group.label}</span>
+                    <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>{groupOpen ? "⌃" : "⌄"}</span>
+                  </button>
+                </div>
+                {groupOpen ? (
                 <div style={{ display: "grid", gap: 6 }}>
                   {group.charts.map((chart) => {
                     const showYearOptions = props.isPngExport && chart.id === "genderByEntryYear" && props.selectedChartIds.includes(chart.id) && (props.genderEntryYearOptions?.length ?? 0) > 0;
@@ -205,14 +239,16 @@ export function StatisticsExportSelectionModal(props: {
                     );
                   })}
                 </div>
+                ) : null}
               </div>
             );
           })}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap", paddingTop: 0 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, flexWrap: "wrap", paddingTop: 0 }}>
           <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={props.onClose}>
-            {props.t("actions.cancel", { defaultValue: "Ακύρωση" })}
+            <Icon src={xIcon} size={17} />
+            <span>{props.t("actions.cancel", { defaultValue: "Ακύρωση" })}</span>
           </button>
           <button type="button" className="btn primary" disabled={confirmDisabled} style={{ opacity: confirmDisabled ? 0.55 : 1 }} onClick={props.onConfirm}>
             <Icon src={arrowDownIcon} size={17} />

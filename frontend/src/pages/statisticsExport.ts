@@ -27,7 +27,9 @@ export type StatisticsChartId =
   | "timeToDegreeDistribution"
   | "timeToDegreeByRegion"
   | "timeToDegreeByNomos"
-  | "compare"
+  | "compareDemographics"
+  | "compareAcademic"
+  | "compareGeography"
 ;
 
 type NamedCountRow = {
@@ -90,11 +92,13 @@ export type BuildArgs = {
   busiestCity: string | number;
   selectedChartIds?: StatisticsChartId[];
   compare?: {
-    name: string;
     rangeALabel: string;
     rangeBLabel: string;
     changeLabel: string;
-    rows: Array<{ metric: string; a: string | number; b: string | number; delta: string | number }>;
+    sections: Partial<Record<"compareDemographics" | "compareAcademic" | "compareGeography", {
+      name: string;
+      rows: Array<{ metric: string; a: string | number; b: string | number; delta: string | number }>;
+    }>>;
   };
 };
 
@@ -113,6 +117,7 @@ const statisticsChartOrder: StatisticsChartId[] = [
   "genderTotal",
   "genderByEntryYear",
   "gender",
+  "compareDemographics",
   "gradeDistribution",
   "gradeDistributionByGender",
   "timeToDegreeDistribution",
@@ -120,6 +125,7 @@ const statisticsChartOrder: StatisticsChartId[] = [
   "gradeByRegion",
   "timeToDegreeByEntryYear",
   "timeToDegreeByRegion",
+  "compareAcademic",
   "originRegion",
   "genderByRegion",
   "originMunicipality",
@@ -128,7 +134,7 @@ const statisticsChartOrder: StatisticsChartId[] = [
   "abroadShare",
   "abroadByYear",
   "timeToDegreeByNomos",
-  "compare",
+  "compareGeography",
 ];
 
 function text(v: unknown) {
@@ -963,22 +969,25 @@ function buildSheets(args: BuildArgs) {
     },
   });
 
-  if (args.compare?.rows.length) {
-    sheets.set("compare", {
-      chartId: "compare",
-      name: args.compare.name,
-      rows: args.compare.rows.map((row) => ({
-        [l.category]: row.metric,
-        [args.compare?.rangeALabel ?? "A"]: row.a,
-        [args.compare?.rangeBLabel ?? "B"]: row.b,
-        [args.compare?.changeLabel ?? "Change"]: row.delta,
-      })),
-      columnKinds: {
-        [l.category]: "text",
-        [args.compare.rangeALabel]: "text",
-        [args.compare.rangeBLabel]: "text",
-        [args.compare.changeLabel]: "text",
-      },
+  if (args.compare) {
+    Object.entries(args.compare.sections).forEach(([chartId, section]) => {
+      if (!section?.rows.length) return;
+      sheets.set(chartId as "compareDemographics" | "compareAcademic" | "compareGeography", {
+        chartId: chartId as "compareDemographics" | "compareAcademic" | "compareGeography",
+        name: section.name,
+        rows: section.rows.map((row) => ({
+          [l.category]: row.metric,
+          [args.compare?.rangeALabel ?? "A"]: row.a,
+          [args.compare?.rangeBLabel ?? "B"]: row.b,
+          [args.compare?.changeLabel ?? "Change"]: row.delta,
+        })),
+        columnKinds: {
+          [l.category]: "text",
+          [args.compare?.rangeALabel ?? "A"]: "text",
+          [args.compare?.rangeBLabel ?? "B"]: "text",
+          [args.compare?.changeLabel ?? "Change"]: "text",
+        },
+      });
     });
   }
 
@@ -1090,10 +1099,9 @@ export function buildStatisticsExportFilename(args: BuildArgs, format: Statistic
   const chartCount = selected.length;
   const allSelected = chartCount === 0;
   const groupChartIds = {
-    demographics: ["byYear", "countByEntryYear", "birthYear", "genderTotal", "genderByEntryYear", "gender"],
-    academic: ["gradeDistribution", "gradeDistributionByGender", "timeToDegreeDistribution", "gradeByYear", "gradeByRegion", "timeToDegreeByEntryYear", "timeToDegreeByRegion"],
-    geography: ["originRegion", "genderByRegion", "originMunicipality", "genderByMunicipality", "originCountry", "abroadShare", "abroadByYear", "timeToDegreeByNomos"],
-    compare: ["compare"],
+    demographics: ["byYear", "countByEntryYear", "birthYear", "genderTotal", "genderByEntryYear", "gender", "compareDemographics"],
+    academic: ["gradeDistribution", "gradeDistributionByGender", "timeToDegreeDistribution", "gradeByYear", "gradeByRegion", "timeToDegreeByEntryYear", "timeToDegreeByRegion", "compareAcademic"],
+    geography: ["originRegion", "genderByRegion", "originMunicipality", "genderByMunicipality", "originCountry", "abroadShare", "abroadByYear", "timeToDegreeByNomos", "compareGeography"],
   } as const;
 
   const selectedSet = new Set(selected);
