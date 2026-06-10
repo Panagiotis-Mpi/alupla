@@ -3168,11 +3168,13 @@ html.accessibility-high-contrast .auth-page-shell .auth-password-help-bubble{
 }
 .nav-dropdown{position:relative;display:inline-flex;min-width:0}
 .nav-dropdown-toggle{gap:7px;white-space:nowrap}
+.nav-dropdown-toggle .ui-icon{margin-right:0}
 .nav-dropdown-chevron{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);display:inline-block;flex:0 0 auto;margin-left:2px}
 .nav-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:1300;min-width:190px;border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:var(--shadowHover);padding:8px;display:grid;gap:4px}
 .nav-right > .nav-dropdown:first-child > .nav-dropdown-menu{width:100%;min-width:100%;box-sizing:border-box}
 .nav-dropdown-item{border:none;background:transparent;color:#334155;text-align:left;padding:10px 12px;border-radius:10px;font:inherit;font-weight:700;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:flex-start;white-space:nowrap}
 .nav-dropdown-item:hover{background:#eff6ff;color:#1d4ed8}
+.nav-dropdown-item .ui-icon{margin-right:8px}
 .nav-dropdown-danger{color:#b00020}
 .nav-dropdown-danger:hover{background:#fef2f2;color:#b00020}
 .nav-account-menu{min-width:180px}
@@ -4695,37 +4697,4 @@ html.accessibility-high-contrast .map-legend-swatch-count-high-contrast{
 }
 html.accessibility-high-contrast .accessibility-trigger{
   box-shadow:none !important;
-}
-html.accessibility-high-contrast .nav-dropdown-menu,
-html.accessibility-high-contrast .nav-account-menu{
-  background:#020f0d !important;
-  color:#9fffe7 !important;
-  border:1px solid #14f5c8 !important;
-  box-shadow:none !important;
-}
-html.accessibility-high-contrast .nav-dropdown-item{
-  background:#000000 !important;
-  color:#9fffe7 !important;
-  border:0 !important;
-  box-shadow:none !important;
-}
-html.accessibility-high-contrast .nav-dropdown-item:hover,
-html.accessibility-high-contrast .nav-dropdown-item:focus-visible{
-  background:#ffd400 !important;
-  color:#000000 !important;
-  border-color:#ffd400 !important;
-  box-shadow:none !important;
-}
-html.accessibility-high-contrast .nav-dropdown-item:hover *,
-html.accessibility-high-contrast .nav-dropdown-item:focus-visible *{
-  color:#000000 !important;
-}
-
-html.accessibility-high-contrast .public-home-visual .public-home-illustration{
-  background:#c3ccd2 !important;
-  border:2px solid #14f5c8 !important;
-  border-radius:18px !important;
-  padding:10px !important;
-  box-shadow:none !important;
-  filter:brightness(.72) contrast(1.08) saturate(.92) !important;
 }

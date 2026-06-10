@@ -15,6 +15,7 @@ import Icon from "../components/Icon";
 import arrowDownIcon from "../assets/icons/arrow-down-to-line.svg";
 import arrowUpIcon from "../assets/icons/arrow-up-to-line.svg";
 import graduationCapIcon from "../assets/icons/graduation-cap.svg";
+import xIcon from "../assets/icons/x.svg";
 
 type StudyProgramForm = {
   name_el: string;
@@ -292,7 +293,8 @@ export default function AcademicData() {
           </button>
           {hasProgramDraft && (
             <button className="btn" onClick={clearProgramForm}>
-              {t("actions.cancel")}
+              <Icon src={xIcon} size={17} />
+              <span>{t("actions.cancel")}</span>
             </button>
           )}
         </div>

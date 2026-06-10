@@ -9,6 +9,7 @@ import Icon from "../components/Icon";
 import lockIcon from "../assets/icons/lock.svg";
 import mailIcon from "../assets/icons/mail.svg";
 import eyeIcon from "../assets/icons/eye.svg";
+import logInIcon from "../assets/icons/log-in.svg";
 
 const labelStyle: React.CSSProperties = { display: "grid", gap: 8 };
 const labelTextStyle: React.CSSProperties = {
@@ -167,9 +168,14 @@ function Login() {
               fontWeight: 800,
               fontSize: "1.02rem",
               boxShadow: "0 10px 22px rgba(37,99,235,0.22)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
             }}
           >
-            {loading ? t("common.loading") : t("login.button")}
+            {!loading && <Icon src={logInIcon} size={18} />}
+            <span>{loading ? t("common.loading") : t("login.button")}</span>
           </button>
 
         </form>

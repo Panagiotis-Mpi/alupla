@@ -17,6 +17,10 @@ import graduationCapIcon from "./assets/icons/graduation-cap.svg";
 import graduatePeopleIcon from "./assets/icons/graduate-people.svg";
 import historyIcon from "./assets/icons/history.svg";
 import usersIcon from "./assets/icons/users.svg";
+import languagesIcon from "./assets/icons/languages.svg";
+import logInIcon from "./assets/icons/log-in.svg";
+import logOutIcon from "./assets/icons/log-out.svg";
+import userPenIcon from "./assets/icons/user-pen.svg";
 
 const Login = React.lazy(() => import("./pages/Login"));
 const Graduates = React.lazy(() => import("./pages/Graduates"));
@@ -257,6 +261,7 @@ function TopNav() {
             aria-expanded={languageOpen}
             title={lang === "en" ? t("aria.languageEnglish") : t("aria.languageGreek")}
           >
+            <Icon src={languagesIcon} size={17} />
             <span>{currentLanguageLabel}</span>
             <span className="nav-dropdown-chevron" aria-hidden="true" />
           </button>
@@ -284,17 +289,20 @@ function TopNav() {
                 {accountOpen && (
                   <div className="nav-dropdown-menu nav-account-menu">
                     <button className="nav-dropdown-item" type="button" onClick={handleProfileClick}>
-                      {t("nav.myProfile")}
+                      <Icon src={userPenIcon} size={17} />
+                      <span>{t("nav.myProfile")}</span>
                     </button>
                     <button className="nav-dropdown-item nav-dropdown-danger" type="button" onClick={handleLogout}>
-                      {t("nav.logout")}
+                      <Icon src={logOutIcon} size={17} />
+                      <span>{t("nav.logout")}</span>
                     </button>
                   </div>
                 )}
               </div>
             ) : (
               <button className="btn nav-login-btn" onClick={() => navigate("/login")}>
-                {t("nav.login", { defaultValue: "Σύνδεση" })}
+                <Icon src={logInIcon} size={17} />
+                <span>{t("nav.login", { defaultValue: "Σύνδεση" })}</span>
               </button>
             )}
           </div>

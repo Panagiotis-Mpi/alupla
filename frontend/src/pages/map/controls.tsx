@@ -6,6 +6,7 @@ import globeIcon from "../../assets/icons/globe.svg";
 import marsIcon from "../../assets/icons/mars.svg";
 import usersIcon from "../../assets/icons/users.svg";
 import venusIcon from "../../assets/icons/venus.svg";
+import xIcon from "../../assets/icons/x.svg";
 
 type MetricOption = { label: string; legend: string };
 type MapMetric = "count" | "dominant_gender";
@@ -355,7 +356,8 @@ export function MapExportSelectionModal(props: {
             {props.exportingSelection ? props.ct("loading", { defaultValue: "Φόρτωση..." }) : props.mt("export.exportSelected", { defaultValue: "Εξαγωγή επιλεγμένων" })}
           </button>
           <button type="button" className="btn" style={{ minHeight: isCompactExportModal ? 44 : 40, padding: "0 16px", width: 210 }} onClick={props.onClose}>
-            {props.ct("cancel", { defaultValue: "Ακύρωση" })}
+            <Icon src={xIcon} size={17} />
+            <span>{props.ct("cancel", { defaultValue: "Ακύρωση" })}</span>
           </button>
         </div>
       </div>

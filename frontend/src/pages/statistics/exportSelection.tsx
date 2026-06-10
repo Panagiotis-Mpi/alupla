@@ -4,6 +4,7 @@ import Icon from "../../components/Icon";
 import fileSpreadsheetIcon from "../../assets/icons/file-spreadsheet.svg";
 import chartIcon from "../../assets/icons/chart-column-big.svg";
 import arrowDownIcon from "../../assets/icons/arrow-down-to-line.svg";
+import xIcon from "../../assets/icons/x.svg";
 import type { StatisticsChartId } from "../statisticsExport";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -212,7 +213,8 @@ export function StatisticsExportSelectionModal(props: {
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap", paddingTop: 0 }}>
           <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={props.onClose}>
-            {props.t("actions.cancel", { defaultValue: "Ακύρωση" })}
+            <Icon src={xIcon} size={17} />
+            <span>{props.t("actions.cancel", { defaultValue: "Ακύρωση" })}</span>
           </button>
           <button type="button" className="btn primary" disabled={confirmDisabled} style={{ opacity: confirmDisabled ? 0.55 : 1 }} onClick={props.onConfirm}>
             <Icon src={arrowDownIcon} size={17} />
