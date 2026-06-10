@@ -74,6 +74,11 @@ export function StatisticsExportSelectionModal(props: {
   onToggleAllGenderEntryYears?: () => void;
 }) {
   const [openYearPicker, setOpenYearPicker] = React.useState(false);
+  const [openGroups, setOpenGroups] = React.useState<Record<ChartGroup["key"], boolean>>({
+    demographics: false,
+    academic: false,
+    geography: false,
+  });
   const confirmDisabled = !props.selectedChartIds.length || !!(props.isPngExport && props.selectedChartIds.includes("genderByEntryYear") && !props.selectedGenderEntryYears?.length);
 
   React.useEffect(() => {
@@ -81,6 +86,10 @@ export function StatisticsExportSelectionModal(props: {
       setOpenYearPicker(false);
     }
   }, [props.isPngExport, props.selectedChartIds]);
+
+  function toggleGroupOpen(groupKey: ChartGroup["key"]) {
+    setOpenGroups((current) => ({ ...current, [groupKey]: !current[groupKey] }));
+  }
 
   return (
     <div
@@ -120,21 +129,42 @@ export function StatisticsExportSelectionModal(props: {
         </div>
 
         <div style={{ display: "grid", gap: 8, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
-          <label style={{ ...props.selectionRowStyle, fontWeight: 700 }}>
-            <input type="checkbox" style={props.selectionCheckboxStyle} checked={props.allChartsSelected} onChange={props.onToggleAll} />
-            <span>{props.t("actions.selectAll", { defaultValue: "Όλα" })}</span>
-          </label>
-
           {props.chartGroups.map((group) => {
             const groupChartIds = group.charts.map((chart) => chart.id);
             const groupChecked = groupChartIds.every((id) => props.selectedChartIds.includes(id));
+            const groupOpen = openGroups[group.key];
 
             return (
-              <div key={group.key} style={{ display: "grid", gap: 6, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 8, background: "rgba(248, 250, 252, 0.76)" }}>
-                <label style={{ ...props.selectionRowStyle, fontWeight: 700 }}>
+              <div key={group.key} style={{ display: "grid", gap: groupOpen ? 6 : 0, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 8, background: "rgba(248, 250, 252, 0.76)" }}>
+                <div style={{ ...props.selectionRowStyle, fontWeight: 700, padding: "0 10px" }}>
                   <input type="checkbox" style={props.selectionCheckboxStyle} checked={groupChecked} onChange={() => props.onToggleGroup(groupChartIds)} />
-                  <span>{group.label}</span>
-                </label>
+                  <button
+                    type="button"
+                    onClick={() => toggleGroupOpen(group.key)}
+                    aria-expanded={groupOpen}
+                    style={{
+                      flex: "1 1 auto",
+                      minHeight: 40,
+                      minWidth: 0,
+                      border: 0,
+                      background: "transparent",
+                      color: "inherit",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      padding: 0,
+                      font: "inherit",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span>{group.label}</span>
+                    <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>{groupOpen ? "⌃" : "⌄"}</span>
+                  </button>
+                </div>
+                {groupOpen ? (
                 <div style={{ display: "grid", gap: 6 }}>
                   {group.charts.map((chart) => {
                     const showYearOptions = props.isPngExport && chart.id === "genderByEntryYear" && props.selectedChartIds.includes(chart.id) && (props.genderEntryYearOptions?.length ?? 0) > 0;
@@ -206,6 +236,7 @@ export function StatisticsExportSelectionModal(props: {
                     );
                   })}
                 </div>
+                ) : null}
               </div>
             );
           })}
