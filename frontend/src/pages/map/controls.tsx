@@ -293,7 +293,7 @@ export function MapExportSelectionModal(props: {
           width: isCompactExportModal ? "min(520px, 100%)" : "min(560px, 100%)",
           maxHeight: isCompactExportModal ? "min(82dvh, 680px)" : "min(68vh, 680px)",
           display: "grid",
-          gridTemplateRows: "auto minmax(0, 1fr) auto",
+          gridTemplateRows: "auto auto auto",
           gap: isCompactExportModal ? 8 : 10,
           padding: isCompactExportModal ? 12 : 14,
           overflow: "hidden",
@@ -310,7 +310,7 @@ export function MapExportSelectionModal(props: {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: isCompactExportModal ? 10 : 10, overflowY: "auto", minHeight: 0, paddingRight: isCompactExportModal ? 2 : 4, paddingBottom: 2 }}>
+        <div style={{ display: "grid", gap: isCompactExportModal ? 10 : 10, alignContent: "start", overflowY: "auto", maxHeight: isCompactExportModal ? "min(60dvh, 520px)" : "min(50vh, 520px)", minHeight: 0, paddingRight: isCompactExportModal ? 2 : 4, paddingBottom: 2 }}>
           <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700, minHeight: isCompactExportModal ? 42 : undefined }}>
             <input type="checkbox" checked={props.selectedExportSelections.length === totalSelectionCount && totalSelectionCount > 0} onChange={props.onToggleAllSelections} />
             <span>{props.ct("all", { defaultValue: "Όλα" })}</span>

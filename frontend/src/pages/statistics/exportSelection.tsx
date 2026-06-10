@@ -113,7 +113,7 @@ export function StatisticsExportSelectionModal(props: {
           width: "min(640px, 100%)",
           maxHeight: "min(68vh, 620px)",
           display: "grid",
-          gridTemplateRows: "auto minmax(0, 1fr) auto",
+          gridTemplateRows: "auto auto auto",
           gap: 10,
           padding: 12,
           overflow: "hidden",
@@ -128,7 +128,7 @@ export function StatisticsExportSelectionModal(props: {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 8, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
+        <div style={{ display: "grid", gap: 8, alignContent: "start", overflowY: "auto", maxHeight: "min(52vh, 500px)", minHeight: 0, paddingRight: 4 }}>
           {props.chartGroups.map((group) => {
             const groupChartIds = group.charts.map((chart) => chart.id);
             const groupChecked = groupChartIds.every((id) => props.selectedChartIds.includes(id));
