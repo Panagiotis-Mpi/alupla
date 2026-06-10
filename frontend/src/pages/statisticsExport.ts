@@ -27,6 +27,7 @@ export type StatisticsChartId =
   | "timeToDegreeDistribution"
   | "timeToDegreeByRegion"
   | "timeToDegreeByNomos"
+  | "compare"
 ;
 
 type NamedCountRow = {
@@ -88,6 +89,13 @@ export type BuildArgs = {
   busiestYear: string | number;
   busiestCity: string | number;
   selectedChartIds?: StatisticsChartId[];
+  compare?: {
+    name: string;
+    rangeALabel: string;
+    rangeBLabel: string;
+    changeLabel: string;
+    rows: Array<{ metric: string; a: string | number; b: string | number; delta: string | number }>;
+  };
 };
 
 type SheetBlock = {
@@ -120,6 +128,7 @@ const statisticsChartOrder: StatisticsChartId[] = [
   "abroadShare",
   "abroadByYear",
   "timeToDegreeByNomos",
+  "compare",
 ];
 
 function text(v: unknown) {
@@ -189,7 +198,8 @@ function exportLabels(activeLang: "el" | "en") {
         femaleCount: "Female Count",
         malePercentage: "Male Percentage",
         femalePercentage: "Female Percentage",
-        percentage: "Percentage of Total",
+        percentage: "Percentage of all graduates",
+        abroadPercentageByYear: "Abroad percentage within graduation year",
         averageGraduationGrade: "Average Graduation Grade",
         graduationGradeRange: "Graduation Grade Range",
         regionOfOrigin: "Region of Origin",
@@ -212,7 +222,8 @@ function exportLabels(activeLang: "el" | "en") {
         femaleCount: "Πλήθος γυναικών",
         malePercentage: "Ποσοστό ανδρών",
         femalePercentage: "Ποσοστό γυναικών",
-        percentage: "Ποσοστό επί του συνόλου",
+        percentage: "Ποσοστό επί του συνολικού πλήθους αποφοίτων",
+        abroadPercentageByYear: "Ποσοστό εξωτερικού μέσα στο έτος αποφοίτησης",
         averageGraduationGrade: "Μέση βαθμολογία αποφοίτησης",
         graduationGradeRange: "Εύρος βαθμολογίας αποφοίτησης",
         regionOfOrigin: "Περιφέρεια καταγωγής",
@@ -798,7 +809,7 @@ function buildSheets(args: BuildArgs) {
       [l.greece]: greece,
       [l.abroad]: abroad,
       [l.graduateCount]: count,
-      [l.percentage]: percentOf(abroad, count),
+      [l.abroadPercentageByYear]: percentOf(abroad, count),
     };
   });
   const abroadByYearGreeceTotal = sumValues(data.abroad_by_year, (row) => row.greece);
@@ -816,7 +827,7 @@ function buildSheets(args: BuildArgs) {
             [l.greece]: abroadByYearGreeceTotal,
             [l.abroad]: abroadByYearAbroadTotal,
             [l.graduateCount]: abroadByYearTotal,
-            [l.percentage]: percentOf(abroadByYearAbroadTotal, abroadByYearTotal),
+            [l.abroadPercentageByYear]: percentOf(abroadByYearAbroadTotal, abroadByYearTotal),
           },
         ]
       : abroadByYearRows,
@@ -825,7 +836,7 @@ function buildSheets(args: BuildArgs) {
       [l.greece]: "count",
       [l.abroad]: "count",
       [l.graduateCount]: "count",
-      [l.percentage]: "percentage",
+      [l.abroadPercentageByYear]: "percentage",
     },
   });
 
@@ -952,6 +963,25 @@ function buildSheets(args: BuildArgs) {
     },
   });
 
+  if (args.compare?.rows.length) {
+    sheets.set("compare", {
+      chartId: "compare",
+      name: args.compare.name,
+      rows: args.compare.rows.map((row) => ({
+        [l.category]: row.metric,
+        [args.compare?.rangeALabel ?? "A"]: row.a,
+        [args.compare?.rangeBLabel ?? "B"]: row.b,
+        [args.compare?.changeLabel ?? "Change"]: row.delta,
+      })),
+      columnKinds: {
+        [l.category]: "text",
+        [args.compare.rangeALabel]: "text",
+        [args.compare.rangeBLabel]: "text",
+        [args.compare.changeLabel]: "text",
+      },
+    });
+  }
+
   const selectedSet = new Set(Array.isArray(args.selectedChartIds) ? args.selectedChartIds : []);
   const blocks: SheetBlock[] = [];
   const usedChartIds = new Set<StatisticsChartId>();
@@ -1063,6 +1093,7 @@ export function buildStatisticsExportFilename(args: BuildArgs, format: Statistic
     demographics: ["byYear", "countByEntryYear", "birthYear", "genderTotal", "genderByEntryYear", "gender"],
     academic: ["gradeDistribution", "gradeDistributionByGender", "timeToDegreeDistribution", "gradeByYear", "gradeByRegion", "timeToDegreeByEntryYear", "timeToDegreeByRegion"],
     geography: ["originRegion", "genderByRegion", "originMunicipality", "genderByMunicipality", "originCountry", "abroadShare", "abroadByYear", "timeToDegreeByNomos"],
+    compare: ["compare"],
   } as const;
 
   const selectedSet = new Set(selected);
