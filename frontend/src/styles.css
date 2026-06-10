@@ -2849,6 +2849,21 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
   font-weight:800;
   box-shadow:0 10px 22px rgba(37,99,235,.22);
 }
+.auth-back-home-button{
+  min-height:42px;
+  border:1px solid #bfdbfe;
+  border-radius:12px;
+  background:#f8fbff;
+  color:#1d4ed8;
+  font:inherit;
+  font-size:.95rem;
+  font-weight:800;
+  cursor:pointer;
+}
+.auth-back-home-button:hover{
+  background:#eff6ff;
+  border-color:#93c5fd;
+}
 .auth-form-links{
   display:flex;
   gap:10px;
@@ -3149,6 +3164,16 @@ html.accessibility-high-contrast .auth-page-shell .auth-form-submit{
   color:#000000 !important;
   border-color:#14f5c8 !important;
   box-shadow:none !important;
+}
+html.accessibility-high-contrast .auth-page-shell .auth-back-home-button{
+  background:#000000 !important;
+  color:#7fffd4 !important;
+  border-color:#14f5c8 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .auth-page-shell .auth-back-home-button:hover{
+  color:#ffd400 !important;
+  border-color:#ffd400 !important;
 }
 html.accessibility-high-contrast .auth-page-shell .auth-form-link{
   color:#7fffd4 !important;

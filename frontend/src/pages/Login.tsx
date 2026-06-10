@@ -178,6 +178,14 @@ function Login() {
             <span>{loading ? t("common.loading") : t("login.button")}</span>
           </button>
 
+          <button
+            type="button"
+            className="auth-back-home-button"
+            onClick={() => navigate("/")}
+          >
+            {t("login.backHome")}
+          </button>
+
         </form>
       </div>
     </div>

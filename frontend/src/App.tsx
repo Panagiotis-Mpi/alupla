@@ -62,12 +62,11 @@ function TopNav() {
   const lang: "gr" | "en" = i18n.language?.startsWith("en") ? "en" : "gr";
 
   const visibleLinks = React.useMemo(() => {
-    const home = { to: "/", label: t("nav.homepage", { defaultValue: lang === "en" ? "Homepage" : "Αρχική σελίδα" }) };
     const map = { to: "/map", label: t("nav.map") };
     const statistics = { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) };
 
     if (authRoute) {
-      return [home, map, statistics];
+      return [map, statistics];
     }
 
     if (!user) {
