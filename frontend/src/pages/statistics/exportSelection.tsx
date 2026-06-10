@@ -132,6 +132,10 @@ export function StatisticsExportSelectionModal(props: {
         </div>
 
         <div style={{ display: "grid", gap: 8, alignContent: "start", overflowY: "auto", maxHeight: "min(52vh, 500px)", minHeight: 0, paddingRight: 4 }}>
+          <label style={{ ...props.selectionRowStyle, fontWeight: 700 }}>
+            <input type="checkbox" style={props.selectionCheckboxStyle} checked={props.allChartsSelected} onChange={props.onToggleAll} />
+            <span>{props.t("actions.selectAll", { defaultValue: "Όλα" })}</span>
+          </label>
           {props.chartGroups.map((group) => {
             const groupChartIds = group.charts.map((chart) => chart.id);
             const groupChecked = groupChartIds.every((id) => props.selectedChartIds.includes(id));
