@@ -147,6 +147,8 @@ export async function buildWhere(req: Request) {
   const repl: Record<string, any> = {};
 
   const graduationYear = num(req.query.graduation_year);
+  const graduationYearFrom = num(req.query.graduation_year_from);
+  const graduationYearTo = num(req.query.graduation_year_to);
   const studyProgramId = num(req.query.study_program_id);
   const gender = typeof req.query.gender === "string" ? req.query.gender : "";
   const ageGroup = typeof req.query.age_group === "string" ? req.query.age_group : "";
@@ -155,6 +157,16 @@ export async function buildWhere(req: Request) {
     where.push("g.graduation_date >= :graduationDateFrom AND g.graduation_date <= :graduationDateTo");
     repl.graduationDateFrom = `${graduationYear}-01-01`;
     repl.graduationDateTo = `${graduationYear}-12-31`;
+  } else if (graduationYearFrom || graduationYearTo) {
+    const firstYear = graduationYearFrom ?? graduationYearTo;
+    const lastYear = graduationYearTo ?? graduationYearFrom;
+    if (firstYear && lastYear) {
+      const from = Math.min(firstYear, lastYear);
+      const to = Math.max(firstYear, lastYear);
+      where.push("g.graduation_date >= :graduationDateFrom AND g.graduation_date <= :graduationDateTo");
+      repl.graduationDateFrom = `${from}-01-01`;
+      repl.graduationDateTo = `${to}-12-31`;
+    }
   }
   if (studyProgramId) {
     where.push("g.study_program_id = :studyProgramId");

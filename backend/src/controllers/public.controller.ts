@@ -152,13 +152,16 @@ export async function publicStats(req: Request, res: Response) {
 
     if (section === "academic") {
       const context = { sqlWhere, repl, birthExpr, birthYearExpr };
-      const [avgGradeByYear, degreeGradeBins, degreeGradeBinsByGender, avgYearsToDegreeByEntryYear, yearsToDegreeDistribution] = await Promise.all([
+      const [totalRow, avgRow, avgGradeByYear, degreeGradeBins, degreeGradeBinsByGender, avgYearsToDegreeByEntryYear, yearsToDegreeDistribution] = await Promise.all([
+        getTotalGraduates(context),
+        getOverviewSummary(context),
         getAverageGradeByGraduationYear(context),
         getDegreeGradeBins(context),
         getDegreeGradeBinsByGender(context),
         getAverageYearsToDegreeByEntryYear(context),
         getYearsToDegreeDistribution(context),
       ]);
+      const total = Number(totalRow?.[0]?.total ?? 0);
       const originRegionJoin = `LEFT JOIN regions origin_region ON origin_region.id = g.origin_region_id
          LEFT JOIN regions origin_parent_region ON origin_parent_region.id = origin_region.parent_id
          LEFT JOIN regions r ON r.id = COALESCE(
@@ -205,6 +208,16 @@ export async function publicStats(req: Request, res: Response) {
       }));
       const body = {
         ok: true,
+        total,
+        avg_age: avgRow?.[0]?.avg_age ?? null,
+        min_age: avgRow?.[0]?.min_age ?? null,
+        max_age: avgRow?.[0]?.max_age ?? null,
+        avg_degree_grade: avgRow?.[0]?.avg_degree_grade ?? null,
+        min_degree_grade: avgRow?.[0]?.min_degree_grade ?? null,
+        max_degree_grade: avgRow?.[0]?.max_degree_grade ?? null,
+        avg_years_to_degree: avgRow?.[0]?.avg_years_to_degree ?? null,
+        min_years_to_degree: avgRow?.[0]?.min_years_to_degree ?? null,
+        max_years_to_degree: avgRow?.[0]?.max_years_to_degree ?? null,
         avg_grade_by_year: avgGradeByYear,
         avg_grade_by_term: [],
         degree_grade_bins: degreeGradeBins,
@@ -430,6 +443,7 @@ export async function publicStats(req: Request, res: Response) {
       const abroadCount = Number(abroadSummaryRow?.[0]?.abroad_count ?? 0);
       const body = {
         ok: true,
+        total,
         origin_region_distribution: localizedOriginRegionDistribution,
         gender_by_region: localizedGenderByRegion,
         origin_country_distribution: originCountryDistribution,

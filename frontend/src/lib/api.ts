@@ -710,6 +710,8 @@ export async function importGraduatesFile(
 export async function getPublicStats(
   params: {
     graduation_year?: string;
+    graduation_year_from?: string;
+    graduation_year_to?: string;
     study_program_id?: string;
     gender?: string;
     age_group?: string;

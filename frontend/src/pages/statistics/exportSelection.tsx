@@ -9,11 +9,15 @@ import type { StatisticsChartId } from "../statisticsExport";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
+type ChartGroupKey = "demographics" | "academic" | "geography" | "compare";
+
 type ChartGroup = {
-  key: "demographics" | "academic" | "geography" | "compare";
+  key: ChartGroupKey;
   label: string;
   charts: Array<{ id: StatisticsChartId; label: string }>;
 };
+
+type ExportYearRange = { from: string; to: string };
 
 export function StatisticsExportMenu(props: {
   t: Translate;
@@ -60,12 +64,15 @@ export function StatisticsExportSelectionModal(props: {
   chartGroups: ChartGroup[];
   selectedChartIds: StatisticsChartId[];
   allChartsSelected: boolean;
+  yearOptions: string[];
+  groupRanges: Record<ChartGroupKey, ExportYearRange>;
   selectionRowStyle: React.CSSProperties;
   selectionCheckboxStyle: React.CSSProperties;
   onClose: () => void;
   onToggleAll: () => void;
   onToggleGroup: (chartIds: StatisticsChartId[]) => void;
   onToggleChart: (chartId: StatisticsChartId) => void;
+  onChangeGroupRange: (groupKey: ChartGroupKey, field: keyof ExportYearRange, value: string) => void;
   onConfirm: () => void;
   isPngExport?: boolean;
   genderEntryYearOptions?: Array<{ value: string; label: string }>;
@@ -81,6 +88,19 @@ export function StatisticsExportSelectionModal(props: {
     compare: false,
   });
   const confirmDisabled = !props.selectedChartIds.length || !!(props.isPngExport && props.selectedChartIds.includes("genderByEntryYear") && !props.selectedGenderEntryYears?.length);
+  const rangeLabelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: "#64748b", lineHeight: 1 };
+  const rangeSelectStyle: React.CSSProperties = {
+    minHeight: 30,
+    width: 78,
+    borderRadius: 9,
+    border: "1px solid rgba(148, 163, 184, 0.34)",
+    background: "#fff",
+    color: "#0f172a",
+    fontSize: 12,
+    fontWeight: 700,
+    padding: "0 7px",
+    outline: "none",
+  };
 
   React.useEffect(() => {
     if (!props.isPngExport || !props.selectedChartIds.includes("genderByEntryYear")) {
@@ -140,18 +160,21 @@ export function StatisticsExportSelectionModal(props: {
           {props.chartGroups.map((group) => {
             const groupChartIds = group.charts.map((chart) => chart.id);
             const groupChecked = groupChartIds.every((id) => props.selectedChartIds.includes(id));
-            const groupOpen = openGroups[group.key];
+            const canExpand = group.key !== "compare" && group.charts.length > 0;
+            const groupOpen = canExpand && openGroups[group.key];
+            const range = props.groupRanges[group.key];
 
             return (
               <div key={group.key} style={{ display: "grid", gap: groupOpen ? 6 : 0, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 8, background: "rgba(248, 250, 252, 0.76)" }}>
-                <div style={{ ...props.selectionRowStyle, fontWeight: 700, padding: "0 10px" }}>
+                <div style={{ ...props.selectionRowStyle, fontWeight: 700, padding: "0 10px", flexWrap: "wrap", gap: 10 }}>
                   <input type="checkbox" style={props.selectionCheckboxStyle} checked={groupChecked} onChange={() => props.onToggleGroup(groupChartIds)} />
+                  {canExpand ? (
                   <button
                     type="button"
                     onClick={() => toggleGroupOpen(group.key)}
                     aria-expanded={groupOpen}
                     style={{
-                      flex: "1 1 auto",
+                      flex: "1 1 180px",
                       minHeight: 40,
                       minWidth: 0,
                       border: 0,
@@ -171,6 +194,37 @@ export function StatisticsExportSelectionModal(props: {
                     <span>{group.label}</span>
                     <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>{groupOpen ? "⌃" : "⌄"}</span>
                   </button>
+                  ) : (
+                    <div style={{ flex: "1 1 180px", minHeight: 40, minWidth: 0, display: "flex", alignItems: "center", fontWeight: 700 }}>
+                      <span>{group.label}</span>
+                    </div>
+                  )}
+                  {props.yearOptions.length ? (
+                    <div onClick={(event) => event.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, flex: "0 0 auto", marginLeft: "auto" }}>
+                      <label style={{ display: "grid", gap: 3 }}>
+                        <span style={rangeLabelStyle}>{props.t("actions.from", { defaultValue: "Από" })}</span>
+                        <select
+                          value={range.from}
+                          onChange={(event) => props.onChangeGroupRange(group.key, "from", event.target.value)}
+                          style={rangeSelectStyle}
+                          aria-label={`${group.label} ${props.t("actions.from", { defaultValue: "Από" })}`}
+                        >
+                          {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+                        </select>
+                      </label>
+                      <label style={{ display: "grid", gap: 3 }}>
+                        <span style={rangeLabelStyle}>{props.t("actions.to", { defaultValue: "Έως" })}</span>
+                        <select
+                          value={range.to}
+                          onChange={(event) => props.onChangeGroupRange(group.key, "to", event.target.value)}
+                          style={rangeSelectStyle}
+                          aria-label={`${group.label} ${props.t("actions.to", { defaultValue: "Έως" })}`}
+                        >
+                          {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+                        </select>
+                      </label>
+                    </div>
+                  ) : null}
                 </div>
                 {groupOpen ? (
                 <div style={{ display: "grid", gap: 6 }}>

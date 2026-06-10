@@ -55,6 +55,8 @@ const sectionButtonsStyle: React.CSSProperties = { display: "grid", gap: 12, wid
 const cardInnerStyle = { minWidth: 0 };
 type StatisticsDataGroupKey = "demographics" | "academic" | "geography";
 type StatisticsGroupKey = StatisticsDataGroupKey | "compare";
+type ExportGroupRange = { from: string; to: string };
+type ExportGroupRanges = Record<StatisticsGroupKey, ExportGroupRange>;
 const compactTopbarStyle: React.CSSProperties = { marginBottom: 12, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 };
 
 export default function Statistics() {
@@ -79,7 +81,7 @@ export default function Statistics() {
   const exportSurfaceRef = React.useRef<HTMLDivElement | null>(null);
   const statsRequestsRef = React.useRef<Partial<Record<StatisticsDataGroupKey, Promise<any>>>>({});
 
-  const activeLang = i18n.language?.toLowerCase().startsWith("en") ? "en" : "el";
+  const activeLang: "el" | "en" = i18n.language?.toLowerCase().startsWith("en") ? "en" : "el";
 
   const compareExportLabel = React.useMemo(
     () => t("compare.title", { defaultValue: activeLang === "en" ? "Time range comparison" : "Σύγκριση χρονικών διαστημάτων" }),
@@ -144,6 +146,13 @@ export default function Statistics() {
   );
   const [selectedChartIds, setSelectedChartIds] = React.useState<StatisticsChartId[]>([]);
   const [selectedExportGenderEntryYears, setSelectedExportGenderEntryYears] = React.useState<string[]>([]);
+  const [exportGroupRanges, setExportGroupRanges] = React.useState<ExportGroupRanges>({
+    demographics: { from: "", to: "" },
+    academic: { from: "", to: "" },
+    geography: { from: "", to: "" },
+    compare: { from: "", to: "" },
+  });
+  const [exportPreviewData, setExportPreviewData] = React.useState<any | null>(null);
 
   React.useEffect(() => {
     setSelectedChartIds((prev) => prev.filter((id) => allChartIds.includes(id)));
@@ -215,6 +224,7 @@ export default function Statistics() {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setExportOpen(false);
+        setExportPreviewData(null);
         setSelectedExportFormat(null);
       }
     }
@@ -737,43 +747,242 @@ export default function Statistics() {
     return "";
   }, [selectedExportFormat]);
 
+  const defaultExportRanges = React.useCallback((): ExportGroupRanges => {
+    const first = compareYearOptions[0] ?? "";
+    const last = compareYearOptions[compareYearOptions.length - 1] ?? first;
+    return {
+      demographics: { from: first, to: last },
+      academic: { from: first, to: last },
+      geography: { from: first, to: last },
+      compare: { from: first, to: last },
+    };
+  }, [compareYearOptions]);
+
+  React.useEffect(() => {
+    if (!compareYearOptions.length) return;
+    setExportGroupRanges((current) => {
+      const defaults = defaultExportRanges();
+      const valid = new Set(compareYearOptions);
+      const next = { ...current };
+      (Object.keys(defaults) as StatisticsGroupKey[]).forEach((key) => {
+        const range = next[key];
+        next[key] = {
+          from: valid.has(range.from) ? range.from : defaults[key].from,
+          to: valid.has(range.to) ? range.to : defaults[key].to,
+        };
+      });
+      return next;
+    });
+  }, [compareYearOptions, defaultExportRanges]);
+
+  function changeExportGroupRange(groupKey: StatisticsGroupKey, field: keyof ExportGroupRange, value: string) {
+    setExportGroupRanges((current) => ({
+      ...current,
+      [groupKey]: {
+        ...current[groupKey],
+        [field]: value,
+      },
+    }));
+  }
+
+  function normalizedExportRange(groupKey: StatisticsGroupKey) {
+    const range = exportGroupRanges[groupKey] ?? defaultExportRanges()[groupKey];
+    const from = Number(range.from);
+    const to = Number(range.to);
+    if (!Number.isFinite(from) || !Number.isFinite(to)) return { from: range.from, to: range.to };
+    return { from: String(Math.min(from, to)), to: String(Math.max(from, to)) };
+  }
+
   function openExportSelection(format: "xlsx" | "csv" | "png") {
     void loadStatsGroup("academic").catch(() => {});
     void loadStatsGroup("geography").catch(() => {});
     const visibleYears = [selectedGenderEntryYearLeft, selectedGenderEntryYearRight].filter((year, index, items) => year !== "all" && items.indexOf(year) === index);
     setSelectedExportGenderEntryYears(format === "png" ? visibleYears : []);
     setSelectedChartIds([]);
+    setExportPreviewData(null);
+    setExportGroupRanges(defaultExportRanges());
     setSelectedExportFormat(format);
     setExportOpen(false);
   }
 
   function closeExportSelection() {
+    setExportPreviewData(null);
     setSelectedExportFormat(null);
   }
 
-  const exportArgs = React.useMemo(() => ({
-    data,
-    t,
-    activeLang,
-    total,
-    avgAge,
-    avgGrade,
-    earliestYear: avgStudyYears,
-    busiestYear,
-    busiestCity,
-    selectedChartIds,
-    compare: {
-      rangeALabel: t("compare.periodRange", { range: compareA.range }),
-      rangeBLabel: t("compare.periodRange", { range: compareB.range }),
-      changeLabel: activeLang === "en" ? "Change" : "Μεταβολή",
-      sections: {
-        compare: {
-          name: compareExportLabel,
-          rows: compareRows.map((row) => ({ metric: row.label, a: row.a, b: row.b, delta: row.delta })),
+  function buildStatisticsExportArgs(sourceData: any) {
+    const sourceTotal = Number(sourceData?.total ?? total ?? 0);
+    const sourceByYearRows = ((sourceData?.by_year ?? []) as any[]).map((row) => ({ label: String(row.year ?? "-"), value: Number(row.count ?? 0) }));
+    const sourceBusiestYearIndex = sourceByYearRows.length ? sourceByYearRows.findIndex((row) => row.value === Math.max(...sourceByYearRows.map((item) => item.value))) : -1;
+    const sourceBusiestYear = sourceBusiestYearIndex >= 0 ? sourceByYearRows[sourceBusiestYearIndex].label : busiestYear;
+    const sourceMunicipalities = sortSeriesDescending(seriesFromRows(sourceData?.origin_municipality_distribution, { labelKey: "name" }));
+    const sourceBusiestCityIndex = sourceMunicipalities.values.length ? sourceMunicipalities.values.findIndex((value) => value === Math.max(...sourceMunicipalities.values)) : -1;
+    const sourceBusiestCity = sourceBusiestCityIndex >= 0 ? sourceMunicipalities.labels[sourceBusiestCityIndex] : busiestCity;
+
+    return {
+      data: sourceData,
+      t,
+      activeLang,
+      total: sourceTotal,
+      avgAge: numberValue(sourceData?.avg_age, 1),
+      avgGrade: numberValue(sourceData?.avg_degree_grade, 2),
+      earliestYear: numberValue(sourceData?.avg_years_to_degree, 1),
+      busiestYear: sourceBusiestYear,
+      busiestCity: sourceBusiestCity,
+      selectedChartIds,
+      compare: {
+        rangeALabel: t("compare.periodRange", { range: compareA.range }),
+        rangeBLabel: t("compare.periodRange", { range: compareB.range }),
+        changeLabel: activeLang === "en" ? "Change" : "Μεταβολή",
+        sections: {
+          compare: {
+            name: compareExportLabel,
+            rows: compareRows.map((row) => ({ metric: row.label, a: row.a, b: row.b, delta: row.delta })),
+          },
         },
       },
-    },
-  }), [activeLang, avgAge, avgGrade, avgStudyYears, busiestCity, busiestYear, compareA.range, compareB.range, compareExportLabel, compareRows, data, selectedChartIds, t, total]);
+    };
+  }
+
+  async function buildRangedExportSourceData() {
+    const selectedGroups = chartGroups.filter((group) => group.charts.some((chart) => selectedChartIds.includes(chart.id)));
+    const defaults = defaultExportRanges();
+    let mergedData = { ...(data ?? {}) };
+
+    for (const group of selectedGroups) {
+      if (group.key === "compare") continue;
+      const range = normalizedExportRange(group.key);
+      const defaultRange = defaults[group.key];
+      const usesDefaultRange = range.from === defaultRange.from && range.to === defaultRange.to;
+      const groupData = usesDefaultRange
+        ? data
+        : await getPublicStats({ section: group.key, graduation_year_from: range.from, graduation_year_to: range.to });
+      mergedData = { ...mergedData, ...(groupData ?? {}) };
+    }
+
+    return mergedData;
+  }
+
+  async function preparePngExportPreview(sourceData: any) {
+    setExportPreviewData(sourceData);
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 120));
+  }
+
+  const exportViewData = React.useMemo(() => {
+    const sourceData = exportPreviewData ?? data;
+    const sourceByYearRows = ((sourceData?.by_year ?? []) as any[]).map((r) => ({ label: String(r.year), value: Number(r.count) || 0 }));
+    const sourceCountChartData = {
+      labels: sourceByYearRows.map((r) => r.label),
+      datasets: [
+        buildLineDataset(
+          t("sections.byYear", { defaultValue: "Πλήθος αποφοίτων ανά έτος" }),
+          sourceByYearRows.map((r) => r.value),
+          "#2563eb",
+          "rgba(37, 99, 235, 0.28)"
+        ),
+      ],
+    };
+    const sourceGenderRows = ((sourceData?.gender_by_year ?? []) as any[]).map((r) => ({
+      label: String(r.year),
+      male: Number(r.male) || 0,
+      female: Number(r.female) || 0,
+    }));
+    const sourceGenderChartData = {
+      labels: sourceGenderRows.map((r) => r.label),
+      datasets: [
+        buildLineDataset(t("table.male", { defaultValue: "Άνδρες" }), sourceGenderRows.map((r) => r.male), "#3b82f6", "rgba(59, 130, 246, 0.22)", true, "male"),
+        buildLineDataset(t("table.female", { defaultValue: "Γυναίκες" }), sourceGenderRows.map((r) => r.female), "#db2777", "rgba(219, 39, 119, 0.22)", true, "female"),
+      ],
+    };
+    const sourceGenderEntryRows = ((sourceData?.gender_by_entry_year ?? []) as NamedCountRow[]);
+    const sourceGenderEntryMap = new Map<string, NamedCountRow>();
+    sourceGenderEntryRows.forEach((row) => {
+      const value = String(row.entry_year ?? row.year ?? "");
+      if (value) sourceGenderEntryMap.set(value, row);
+    });
+    const sourceGenderEntryYears = selectedExportGenderEntryYears.length
+      ? selectedExportGenderEntryYears
+      : [selectedGenderEntryYearLeft, selectedGenderEntryYearRight].filter((year, index, items) => year !== "all" && items.indexOf(year) === index);
+    const makeSourceGenderPie = (year: string) => {
+      const row = sourceGenderEntryMap.get(year) ?? sourceGenderEntryRows[0] ?? null;
+      return {
+        key: year,
+        title: year,
+        labels: [t("table.male"), t("table.female")],
+        values: [Number(row?.male ?? 0), Number(row?.female ?? 0)],
+        control: null,
+      };
+    };
+    const rawYearsToDegreeDistribution = seriesFromRows(sourceData?.years_to_degree_distribution);
+    const numericDurationLabels = rawYearsToDegreeDistribution.labels.map((label) => Number(label)).filter((value) => Number.isFinite(value));
+    const sourceYearsToDegreeDistribution = numericDurationLabels.length
+      ? (() => {
+          const minYear = Math.min(...numericDurationLabels);
+          const maxYear = Math.max(...numericDurationLabels);
+          const valueMap = new Map<string, number>();
+          rawYearsToDegreeDistribution.labels.forEach((label, index) => {
+            valueMap.set(String(label), Number(rawYearsToDegreeDistribution.values[index] ?? 0));
+          });
+          const labels: string[] = [];
+          const values: number[] = [];
+          for (let year = minYear; year <= maxYear; year += 1) {
+            labels.push(String(year));
+            values.push(Number(valueMap.get(String(year)) ?? 0));
+          }
+          return { labels, values };
+        })()
+      : rawYearsToDegreeDistribution;
+    const sourceGenderByRegionRows = Array.isArray(sourceData?.gender_by_region) ? sourceData.gender_by_region as NamedCountRow[] : [];
+    const sourceGenderByMunicipalityRows = Array.isArray(sourceData?.gender_by_municipality) ? sourceData.gender_by_municipality as NamedCountRow[] : [];
+    const sourceGenderByRegion = sortGenderByRegionDescending({
+      labels: sourceGenderByRegionRows.map((row) => String(activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name ?? "-")),
+      male: sourceGenderByRegionRows.map((row) => Number(row.male ?? 0)),
+      female: sourceGenderByRegionRows.map((row) => Number(row.female ?? 0)),
+    });
+    const sourceGenderByMunicipality = sortGenderByRegionDescending({
+      labels: sourceGenderByMunicipalityRows.map((row) => String(activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name ?? "-")),
+      male: sourceGenderByMunicipalityRows.map((row) => Number(row.male ?? 0)),
+      female: sourceGenderByMunicipalityRows.map((row) => Number(row.female ?? 0)),
+    });
+    const sourceAbroadByYearRows = Array.isArray(sourceData?.abroad_by_year) ? sourceData.abroad_by_year as NamedCountRow[] : [];
+    return {
+      countChartData: sourceCountChartData,
+      genderChartData: sourceGenderChartData,
+      entryYears: seriesFromRows(sourceData?.count_by_entry_year, { labelKey: "entry_year" }),
+      birthYears: seriesFromRows(sourceData?.birth_year_distribution, { labelKey: "year" }),
+      genderByEntryYearPies: sourceGenderEntryYears.map(makeSourceGenderPie),
+      genderTotal: {
+        labels: [t("table.male"), t("table.female")],
+        values: [Number(sourceData?.gender?.M ?? 0), Number(sourceData?.gender?.F ?? 0)],
+      },
+      gradeBinsByGender: {
+        labels: (Array.isArray(sourceData?.degree_grade_bins_by_gender) ? sourceData.degree_grade_bins_by_gender as NamedCountRow[] : []).map((row) => String(row.label ?? "-")),
+        male: (Array.isArray(sourceData?.degree_grade_bins_by_gender) ? sourceData.degree_grade_bins_by_gender as NamedCountRow[] : []).map((row) => Number(row.male ?? 0)),
+        female: (Array.isArray(sourceData?.degree_grade_bins_by_gender) ? sourceData.degree_grade_bins_by_gender as NamedCountRow[] : []).map((row) => Number(row.female ?? 0)),
+      },
+      abroadByYear: {
+        labels: sourceAbroadByYearRows.map((row) => String(row.year ?? "-")),
+        greece: sourceAbroadByYearRows.map((row: any) => Number(row.greece ?? 0)),
+        abroad: sourceAbroadByYearRows.map((row: any) => Number(row.abroad ?? 0)),
+      },
+      yearsToDegreeByNomos: sortSeriesDescending(seriesFromRows(sourceData?.avg_years_to_degree_by_nomos, { labelKey: "name", valueKey: "avg_years" })),
+      avgGradesByYear: seriesFromRows(sourceData?.avg_grade_by_year, { labelKey: "year", valueKey: "avg" }),
+      avgGradesByRegion: sortSeriesDescending(seriesFromRows(sourceData?.avg_grade_by_region, { labelKey: "name", valueKey: "avg" })),
+      gradeBins: seriesFromRows(sourceData?.degree_grade_bins),
+      yearsToDegree: seriesFromRows(sourceData?.avg_years_to_degree_by_entry_year, { labelKey: "entry_year", valueKey: "avg_years" }),
+      yearsToDegreeDistribution: sourceYearsToDegreeDistribution,
+      yearsToDegreeByRegion: sortSeriesDescending(seriesFromRows(sourceData?.avg_years_to_degree_by_region, { labelKey: "name", valueKey: "avg_years" })),
+      regions: sortSeriesDescending(seriesFromRows(sourceData?.origin_region_distribution, { labelKey: "name" })),
+      genderByRegion: sourceGenderByRegion,
+      genderByMunicipality: sourceGenderByMunicipality,
+      municipalities: sortSeriesDescending(seriesFromRows(sourceData?.origin_municipality_distribution, { labelKey: "name" })),
+      countries: sortSeriesDescending(seriesFromRows(sourceData?.origin_country_distribution, { labelKey: "name" })),
+      total: Number(sourceData?.total ?? 0),
+      abroadCount: Number(sourceData?.abroad_count ?? 0),
+    };
+  }, [activeLang, data, exportPreviewData, selectedExportGenderEntryYears, selectedGenderEntryYearLeft, selectedGenderEntryYearRight, seriesFromRows, sortGenderByRegionDescending, sortSeriesDescending, t]);
 
   async function exportSelectedChartsAsPng() {
     if (!selectedChartIds.length) return;
@@ -786,8 +995,8 @@ export default function Statistics() {
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
     await new Promise<void>((resolve) => window.setTimeout(resolve, 260));
 
-    const chartMeta = new Map(
-      chartGroups.flatMap((group) => group.charts.map((chart) => [chart.id, { groupKey: group.key, groupLabel: group.label, chartLabel: chart.label }] as const))
+    const chartMeta = new Map<StatisticsChartId, { groupKey: StatisticsGroupKey; groupLabel: string; chartLabel: string }>(
+      chartGroups.flatMap((group) => group.charts.map((chart) => [chart.id, { groupKey: group.key, groupLabel: group.label, chartLabel: chart.label }] as [StatisticsChartId, { groupKey: StatisticsGroupKey; groupLabel: string; chartLabel: string }]))
     );
 
     const orderedGroupSelections = chartGroups
@@ -900,15 +1109,20 @@ export default function Statistics() {
 
     try {
       await Promise.all([loadStatsGroup("academic"), loadStatsGroup("geography")]);
+      const rangedSourceData = await buildRangedExportSourceData();
+      const rangedExportArgs = buildStatisticsExportArgs(rangedSourceData);
+
       if (selectedExportFormat === "xlsx") {
-        exportStatisticsWorkbookFile(exportArgs, buildStatisticsExportFilename(exportArgs, "xlsx"));
+        exportStatisticsWorkbookFile(rangedExportArgs, buildStatisticsExportFilename(rangedExportArgs, "xlsx"));
       } else if (selectedExportFormat === "csv") {
-        exportStatisticsCsvFile(exportArgs, buildStatisticsExportFilename(exportArgs, "csv"));
+        exportStatisticsCsvFile(rangedExportArgs, buildStatisticsExportFilename(rangedExportArgs, "csv"));
       } else {
+        await preparePngExportPreview(rangedSourceData);
         await exportSelectedChartsAsPng();
       }
     } finally {
       const exportType = selectedExportFormat;
+      setExportPreviewData(null);
       setSelectedExportFormat(null);
       setExportOpen(false);
 
@@ -1187,12 +1401,15 @@ export default function Statistics() {
           chartGroups={chartGroups}
           selectedChartIds={selectedChartIds}
           allChartsSelected={allChartsSelected}
+          yearOptions={compareYearOptions}
+          groupRanges={exportGroupRanges}
           selectionRowStyle={selectionRowStyle}
           selectionCheckboxStyle={selectionCheckboxStyle}
           onClose={closeExportSelection}
           onToggleAll={toggleAllCharts}
           onToggleGroup={toggleGroupCharts}
           onToggleChart={toggleSingleChart}
+          onChangeGroupRange={changeExportGroupRange}
           onConfirm={() => void handleExportAction()}
           isPngExport={selectedExportFormat === "png"}
           genderEntryYearOptions={entryYearOptions}
@@ -1222,30 +1439,30 @@ export default function Statistics() {
           t={t}
           cardInnerStyle={cardInnerStyle}
           compactTopbarStyle={compactTopbarStyle}
-          genderChartData={genderChartData}
+          genderChartData={exportViewData.genderChartData}
           genderChartOptions={genderChartOptions}
-          countChartData={countChartData}
+          countChartData={exportViewData.countChartData}
           countChartOptions={countChartOptions}
-          entryYears={entryYears}
-          birthYears={birthYears}
-          genderByEntryYearPies={exportGenderByEntryYearPies}
-          genderTotal={genderTotal}
-          gradeBinsByGender={gradeBinsByGender}
-          abroadByYear={abroadByYear}
-          yearsToDegreeByNomos={yearsToDegreeByNomos}
-          avgGradesByYear={avgGradesByYear}
-          avgGradesByRegion={avgGradesByRegion}
-          gradeBins={gradeBins}
-          yearsToDegree={yearsToDegree}
-          yearsToDegreeDistribution={yearsToDegreeDistribution}
-          yearsToDegreeByRegion={yearsToDegreeByRegion}
-          regions={regions}
-          genderByRegion={genderByRegion}
-          genderByMunicipality={genderByMunicipality}
-          municipalities={municipalities}
-          countries={countries}
-          total={total}
-          abroadCount={abroadCount}
+          entryYears={exportViewData.entryYears}
+          birthYears={exportViewData.birthYears}
+          genderByEntryYearPies={exportViewData.genderByEntryYearPies}
+          genderTotal={exportViewData.genderTotal}
+          gradeBinsByGender={exportViewData.gradeBinsByGender}
+          abroadByYear={exportViewData.abroadByYear}
+          yearsToDegreeByNomos={exportViewData.yearsToDegreeByNomos}
+          avgGradesByYear={exportViewData.avgGradesByYear}
+          avgGradesByRegion={exportViewData.avgGradesByRegion}
+          gradeBins={exportViewData.gradeBins}
+          yearsToDegree={exportViewData.yearsToDegree}
+          yearsToDegreeDistribution={exportViewData.yearsToDegreeDistribution}
+          yearsToDegreeByRegion={exportViewData.yearsToDegreeByRegion}
+          regions={exportViewData.regions}
+          genderByRegion={exportViewData.genderByRegion}
+          genderByMunicipality={exportViewData.genderByMunicipality}
+          municipalities={exportViewData.municipalities}
+          countries={exportViewData.countries}
+          total={exportViewData.total}
+          abroadCount={exportViewData.abroadCount}
           exportMode
         />
         {renderCompareExportCard("compare", compareExportLabel, compareRows)}
