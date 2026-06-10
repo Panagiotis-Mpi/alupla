@@ -268,9 +268,10 @@ export async function exportActivityLogsCsv(
       "Content-Type",
       "text/tab-separated-values; charset=utf-16le",
     );
+    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=alupla_system_logs_export.csv",
+      `attachment; filename="alupla_system_logs_${rows.length}_logs_${ts}.csv"`,
     );
     res.send(buffer);
   } catch (error) {
@@ -304,9 +305,10 @@ export async function exportActivityLogsXlsx(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
+    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=alupla_system_logs_export.xlsx",
+      `attachment; filename="alupla_system_logs_${rows.length}_logs_${ts}.xlsx"`,
     );
     res.send(buffer);
   } catch (error) {

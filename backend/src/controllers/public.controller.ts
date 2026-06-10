@@ -1096,8 +1096,14 @@ export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
     rows: rowCount,
   });
 
+  const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  const startYear = String(req.query.graduation_year_from ?? req.query.graduation_year ?? "all").trim() || "all";
+  const endYear = String(req.query.graduation_year_to ?? req.query.graduation_year ?? "years").trim() || "years";
+  const rangeLabel = startYear === endYear ? `year_${startYear}` : `years_${startYear}-${endYear}`;
+  const safeRangeLabel = rangeLabel.toLowerCase().replace(/[^a-z0-9-]+/g, "_").replace(/^_+|_+$/g, "");
+
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-  res.setHeader("Content-Disposition", 'attachment; filename="statistics-export.xlsx"');
+  res.setHeader("Content-Disposition", `attachment; filename="alupla_statistics_anonymous_${safeRangeLabel}_${ts}.xlsx"`);
   res.send(buffer);
 }
 

@@ -225,9 +225,10 @@ export default function Users() {
         ? "en"
         : "gr";
       const blob = await exportUsersFile(format, lang);
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
       await downloadBlob(
         blob,
-        `alupla_users_export_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${format}`,
+        `alupla_users_all_${items.length}_users_${timestamp}.${format}`,
       );
     } catch (e: any) {
       setErr(e?.message ?? t("error"));

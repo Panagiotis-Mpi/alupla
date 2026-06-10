@@ -2,7 +2,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { getPublicStats, logPublicExport } from "../lib/api";
-import { buildStatisticsExportFilename, exportStatisticsCsvFile, exportStatisticsWorkbookFile, type StatisticsChartId } from "./statisticsExport";
+import { buildStatisticsExportFilename, buildStatisticsPngFilename, exportStatisticsCsvFile, exportStatisticsWorkbookFile, type StatisticsChartId } from "./statisticsExport";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -15,7 +15,7 @@ import {
   BarElement,
   ArcElement,
 } from "chart.js";
-import { downloadCanvasAsPng, downloadCombinedSnapshotsAsPng, fileSlug, renderSegmentedElementSnapshots } from "./statistics/snapshot";
+import { downloadCanvasAsPng, downloadCombinedSnapshotsAsPng, renderSegmentedElementSnapshots } from "./statistics/snapshot";
 import { waitForRenderableImages } from "../lib/domSnapshot";
 import { buildLineDataset } from "./statistics/ui";
 import {
@@ -793,6 +793,21 @@ export default function Statistics() {
     return { from: String(Math.min(from, to)), to: String(Math.max(from, to)) };
   }
 
+  function selectedExportRanges() {
+    return {
+      demographics: normalizedExportRange("demographics"),
+      academic: normalizedExportRange("academic"),
+      geography: normalizedExportRange("geography"),
+      compare: normalizedExportRange("compare"),
+    };
+  }
+
+  function compareFileRange() {
+    const left = String(compareA.range || "").replace(/\s+/g, "");
+    const right = String(compareB.range || "").replace(/\s+/g, "");
+    return left && right ? `${left}_vs_${right}` : left || right || undefined;
+  }
+
   function openExportSelection(format: "xlsx" | "csv" | "png") {
     void loadStatsGroup("academic").catch(() => {});
     void loadStatsGroup("geography").catch(() => {});
@@ -830,6 +845,8 @@ export default function Statistics() {
       busiestYear: sourceBusiestYear,
       busiestCity: sourceBusiestCity,
       selectedChartIds,
+      exportRanges: selectedExportRanges(),
+      compareFilenameRange: compareFileRange(),
       compare: {
         rangeALabel: t("compare.periodRange", { range: compareA.range }),
         rangeBLabel: t("compare.periodRange", { range: compareB.range }),
@@ -1012,7 +1029,6 @@ export default function Statistics() {
       return exportRoot?.querySelector<HTMLElement>(selector) ?? visibleRoot?.querySelector<HTMLElement>(selector) ?? null;
     };
 
-    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     const downloaded: string[] = [];
     const maxChartsPerPage = 4;
 
@@ -1071,11 +1087,12 @@ export default function Statistics() {
         ctx.drawImage(snapshot.image, padding, padding, snapshot.width, snapshot.height);
 
         const meta = chartMeta.get(snapshot.chartId);
-        const baseName = ["alupla", "statistics", meta?.groupLabel ?? group.label, meta?.chartLabel ?? snapshot.chartId, stamp]
-          .map((part) => fileSlug(String(part)))
-          .filter(Boolean)
-          .join("_");
-        const filename = `${baseName || `alupla_statistics_${snapshot.chartId}_${stamp}`}.png`;
+        const filename = buildStatisticsPngFilename(
+          buildStatisticsExportArgs(exportPreviewData ?? data),
+          snapshot.chartId,
+          ["alupla", "statistics", meta?.groupLabel ?? group.label, meta?.chartLabel ?? snapshot.chartId],
+          group.key,
+        );
         const didDownload = await downloadCanvasAsPng(out, filename);
         if (!didDownload) continue;
         downloaded.push(filename);
@@ -1088,12 +1105,12 @@ export default function Statistics() {
         const pageNumber = Math.floor(pageIndex / maxChartsPerPage) + 1;
         const totalPages = Math.ceil(snapshots.length / maxChartsPerPage);
         const title = totalPages > 1 ? `${group.label} ${pageNumber}/${totalPages}` : group.label;
-        const baseName = ["alupla", "statistics", group.label, totalPages > 1 ? `page_${pageNumber}` : null, stamp]
-          .filter(Boolean)
-          .map((part) => fileSlug(String(part)))
-          .filter(Boolean)
-          .join("_");
-        const filename = `${baseName || `alupla_statistics_${group.key}_${pageNumber}_${stamp}`}.png`;
+        const filename = buildStatisticsPngFilename(
+          buildStatisticsExportArgs(exportPreviewData ?? data),
+          null,
+          ["alupla", "statistics", group.label, totalPages > 1 ? `page_${pageNumber}` : null],
+          group.key,
+        );
         const didDownload = await downloadCombinedSnapshotsAsPng(filename, title, pageSnapshots);
         if (!didDownload) continue;
         downloaded.push(filename);

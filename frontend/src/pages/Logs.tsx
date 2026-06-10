@@ -252,7 +252,9 @@ export default function Logs() {
         },
         activeLang
       );
-      await downloadBlob(blob, `alupla_system_logs_export_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${format}`);
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      const scope = Object.values(requestFilters).some((value) => value !== undefined && value !== null && value !== "") ? `filtered_${totalItems}_logs` : `all_${totalItems}_logs`;
+      await downloadBlob(blob, `alupla_system_logs_${scope}_${timestamp}.${format}`);
     } catch (e: any) {
       setErr(e?.message ?? t("errorDefault", { ns: "common", defaultValue: "Κάτι πήγε στραβά" }));
     } finally {

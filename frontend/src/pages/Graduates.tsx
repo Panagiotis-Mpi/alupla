@@ -398,6 +398,8 @@ export default function Graduates() {
         .toISOString()
         .slice(0, 19)
         .replace(/[:T]/g, "-");
+      const selectedCount = ids?.length ?? 0;
+      const fileScope = selectedCount ? `selected_${selectedCount}_graduates` : Object.keys(exportParams).length ? `filtered_${total}_graduates` : `all_${total}_graduates`;
       if (format === "pdf") {
         const exportItems = ids?.length
           ? items.filter((item) => ids.includes(Number(item.id)))
@@ -408,7 +410,7 @@ export default function Graduates() {
           programNameById: programDisplayNameById,
           regionNameById,
         });
-        const fileName = `alupla_graduates_export_${timestamp}.pdf`;
+        const fileName = `alupla_graduates_${fileScope}_${timestamp}.pdf`;
         downloadBlob(blob, fileName);
         await rememberDownload({
           blob,
@@ -452,7 +454,7 @@ export default function Graduates() {
         lang: activeLang,
       } satisfies RecentGraduateRequest;
       const blob = await exportGraduatesFile(exportParams, format, activeLang);
-      const fileName = `alupla_graduates_export_${timestamp}.${format}`;
+      const fileName = `alupla_graduates_${fileScope}_${timestamp}.${format}`;
       downloadBlob(blob, fileName);
       await rememberDownload({ blob, format, fileName, ids, request });
     } catch (error: any) {

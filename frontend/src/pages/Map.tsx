@@ -977,17 +977,17 @@ export default function GraduatesMapPage() {
   }
 
   function metricFilenameBase(metric: MapMetric, scope = mapScope) {
-    const parts = ["alupla_map_export", slugPart(scope), slugPart(metric)];
+    const metricName = metric === "dominant_gender" ? "gender_geo_distribution" : "graduate_count";
+    const scopeName = scope === "abroad" ? "abroad" : "greece";
+    const parts = ["alupla", "map", scopeName, metricName];
     if (selectedGraduationYearStart && selectedGraduationYearEnd) {
       parts.push(
-        slugPart(
-          selectedGraduationYearStart === selectedGraduationYearEnd
-            ? selectedGraduationYearStart
-            : selectedGraduationYearStart + "-" + selectedGraduationYearEnd,
-        ),
+        selectedGraduationYearStart === selectedGraduationYearEnd
+          ? `year_${selectedGraduationYearStart}`
+          : `years_${selectedGraduationYearStart}-${selectedGraduationYearEnd}`,
       );
     }
-    return parts.join("_");
+    return parts.map((part) => slugPart(part)).filter(Boolean).join("_");
   }
 
   function openExportSelection(format: ExportFormat = "png") {

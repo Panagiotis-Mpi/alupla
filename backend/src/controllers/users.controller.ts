@@ -121,8 +121,9 @@ export async function exportUsersCsv(req: Request, res: Response, next: NextFunc
     const rows = sanitizeExportRows(userExportRows(users, lang));
     const csv = buildDelimitedText(rows, "\t");
     const buffer = buildUtf16CsvBuffer(csv);
+    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
-    res.setHeader("Content-Disposition", "attachment; filename=alupla_users_export.csv");
+    res.setHeader("Content-Disposition", `attachment; filename="alupla_users_all_${users.length}_users_${ts}.csv"`);
     res.send(buffer);
   } catch (e) {
     next(e);
@@ -140,8 +141,9 @@ export async function exportUsersXlsx(req: Request, res: Response, next: NextFun
     applySheetLayout(worksheet, rows);
     XLSX.utils.book_append_sheet(workbook, worksheet, lang === "en" ? "Users" : "Χρήστες");
     const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    res.setHeader("Content-Disposition", "attachment; filename=alupla_users_export.xlsx");
+    res.setHeader("Content-Disposition", `attachment; filename="alupla_users_all_${users.length}_users_${ts}.xlsx"`);
     res.send(buffer);
   } catch (e) {
     next(e);
