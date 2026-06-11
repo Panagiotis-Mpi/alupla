@@ -618,7 +618,7 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
     const periphery = getPeripheryFromRegionId(existing.id, lookups.byId);
     return {
       cityId: existing.id,
-      cityName: existing.name,
+      cityName: rawCityName || existing.name,
       peripheryId: periphery ? periphery.id : null,
       peripheryName: periphery ? periphery.name : null,
       countryId: null,
@@ -634,7 +634,7 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
     const periphery = getPeripheryFromRegionId(existing.id, lookups.byId);
     return {
       cityId: existing.id,
-      cityName: existing.name,
+      cityName: rawCityName || existing.name,
       peripheryId: periphery ? periphery.id : null,
       peripheryName: periphery ? periphery.name : null,
       countryId: null,
@@ -869,7 +869,7 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
     const country = await resolveCountry(rawCountryName || explicitCountry?.name, explicitCountryId);
     return withCountryFields({
       cityId: explicitCity.id,
-      cityName: explicitCity.name,
+      cityName: rawCityName || explicitCity.name,
       peripheryId: null,
       peripheryName: null,
       latitude: explicitCity.latitude ?? country?.latitude ?? null,
@@ -887,7 +887,7 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
     if (country) {
       return withCountryFields({
         cityId: explicitCity?.id ?? null,
-        cityName: explicitCity?.name ?? rawCityName ?? rawCountryName,
+        cityName: rawCityName || explicitCity?.name || rawCountryName,
         peripheryId: null,
         peripheryName: null,
         latitude: explicitCity?.latitude ?? country.latitude,
@@ -900,7 +900,7 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
     const country = await resolveCountry(rawCountryName || explicitCountry.name, explicitCountryId);
     return withCountryFields({
       cityId: explicitCity?.id ?? null,
-      cityName: explicitCity?.name ?? rawCityName ?? rawCountryName ?? explicitCountry.name,
+      cityName: rawCityName || explicitCity?.name || rawCountryName || explicitCountry.name,
       peripheryId: null,
       peripheryName: null,
       latitude: explicitCity?.latitude ?? country?.latitude ?? null,
@@ -914,7 +914,7 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
     if ((explicitCity.latitude !== null && explicitCity.longitude !== null) || !rawCityName) {
       return withCountryFields({
         cityId: explicitCity.id,
-        cityName: explicitCity.name,
+        cityName: rawCityName || explicitCity.name,
         peripheryId: periphery ? periphery.id : null,
         peripheryName: periphery ? periphery.name : null,
         latitude: explicitCity.latitude,
@@ -930,7 +930,7 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
   if (!rawCityName) {
     return withCountryFields({
       cityId: explicitCity?.id ?? null,
-      cityName: explicitCity?.name ?? null,
+      cityName: rawCityName || explicitCity?.name || null,
       peripheryId: periphery ? periphery.id : null,
       peripheryName: periphery ? periphery.name : null,
       latitude: explicitCity?.latitude ?? null,
@@ -942,7 +942,7 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
   if (!normalized) {
     return withCountryFields({
       cityId: explicitCity?.id ?? null,
-      cityName: explicitCity?.name ?? rawCityName,
+      cityName: rawCityName || explicitCity?.name || null,
       peripheryId: periphery ? periphery.id : null,
       peripheryName: periphery ? periphery.name : null,
       latitude: explicitCity?.latitude ?? null,
@@ -955,7 +955,7 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
     const existingPeriphery = getPeripheryFromRegionId(existing.id, lookups.byId);
     return withCountryFields({
       cityId: existing.id,
-      cityName: existing.name,
+      cityName: rawCityName || existing.name,
       peripheryId: existingPeriphery ? existingPeriphery.id : null,
       peripheryName: existingPeriphery ? existingPeriphery.name : null,
       latitude: existing.latitude,
@@ -975,7 +975,7 @@ export async function resolveMapLocation(input: GraduateOriginInput): Promise<Re
 
   return withCountryFields({
     cityId: existing?.id ?? explicitCity?.id ?? null,
-    cityName: existing?.name || explicitCity?.name || rawCityName,
+    cityName: rawCityName || existing?.name || explicitCity?.name || null,
     peripheryId: periphery ? periphery.id : null,
     peripheryName: periphery ? periphery.name : null,
     latitude: existing?.latitude ?? explicitCity?.latitude ?? null,

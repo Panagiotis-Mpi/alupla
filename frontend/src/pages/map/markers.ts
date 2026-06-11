@@ -21,11 +21,61 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+const hasGreek = (value: string) => /[\u0370-\u03ff]/.test(value);
+
+const greekLetters: Record<string, string> = {
+  α: "a", β: "v", γ: "g", δ: "d", ε: "e", ζ: "z", η: "i", θ: "th", ι: "i", κ: "k", λ: "l", μ: "m", ν: "n", ξ: "x", ο: "o", π: "p", ρ: "r", σ: "s", ς: "s", τ: "t", υ: "y", φ: "f", χ: "ch", ψ: "ps", ω: "o",
+};
+
+function titleCaseLatin(value: string) {
+  return value.replace(/\S+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1));
+}
+
+function transliterateGreek(value: string) {
+  const normalized = value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+  const latin = Array.from(normalized).map((char) => greekLetters[char] ?? char).join("");
+  return titleCaseLatin(latin.replace(/\s+/g, " ").trim());
+}
+
+function removeAdministrativeTerms(value: string, lang: "gr" | "en") {
+  let text = value.replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  if (lang === "en") {
+    text = text
+      .replace(/^municipal unit of\s+/i, "")
+      .replace(/\s+municipal unit$/i, "")
+      .replace(/^municipality of\s+/i, "")
+      .replace(/\s+municipality$/i, "")
+      .replace(/^regional unit of\s+/i, "")
+      .replace(/\s+regional unit$/i, "");
+    return text.replace(/\s+/g, " ").trim();
+  }
+  text = text
+    .replace(/^δημοτική\s+ενότητα\s+/i, "")
+    .replace(/^δημοτικη\s+ενοτητα\s+/i, "")
+    .replace(/^δήμος\s+/i, "")
+    .replace(/^δημος\s+/i, "")
+    .replace(/^περιφερειακή\s+ενότητα\s+/i, "")
+    .replace(/^περιφερειακη\s+ενοτητα\s+/i, "");
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function isAdministrativeName(value: string) {
+  return /municipal unit|municipality|regional unit|δημοτική\s+ενότητα|δημοτικη\s+ενοτητα|δήμος|δημος|περιφερειακή\s+ενότητα|περιφερειακη\s+ενοτητα/i.test(value);
+}
+
 function localizedRecordName(item: any, field: string, lang: "gr" | "en") {
   const key = lang === "en" ? field + "_en" : field + "_el";
+  const raw = String(item?.[field] ?? "").trim();
   const localized = String(item?.[key] ?? "").trim();
-  if (localized) return localized;
-  return String(item?.[field] ?? "").trim();
+  if (lang === "en" && raw && hasGreek(raw) && (!localized || isAdministrativeName(localized))) {
+    return transliterateGreek(removeAdministrativeTerms(raw, "gr") || raw);
+  }
+  const cleanedLocalized = removeAdministrativeTerms(localized, lang);
+  if (cleanedLocalized) return cleanedLocalized;
+  const cleanedRaw = removeAdministrativeTerms(raw, lang === "en" ? "gr" : lang);
+  if (lang === "en" && cleanedRaw && hasGreek(cleanedRaw)) return transliterateGreek(cleanedRaw);
+  return cleanedRaw;
 }
 
 export function localizedCityRecordName(item: any, lang: "gr" | "en") {
