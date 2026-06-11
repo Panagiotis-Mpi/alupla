@@ -300,6 +300,36 @@ export default function Statistics() {
       }, { labels: [] as string[], values: [] as number[] });
   }, []);
 
+  const reorderRegionMetricSeries = React.useCallback((series: { labels: string[]; values: number[] }) => {
+    const sorted = series.labels
+      .map((label, index) => ({ label, value: Number(series.values[index] ?? 0), index }))
+      .sort((a, b) => b.value - a.value || a.index - b.index);
+    const lowStart = Math.ceil(sorted.length / 2);
+    const lowOrder: number[] = [];
+    let middle = lowStart;
+    let end = sorted.length - 1;
+    while (middle <= end) {
+      lowOrder.push(middle);
+      if (end !== middle) lowOrder.push(end);
+      middle += 1;
+      end -= 1;
+    }
+    const order: number[] = [];
+    for (let index = 0; index < lowStart; index += 1) {
+      order.push(index);
+      const lowIndex = lowOrder[index];
+      if (lowIndex !== undefined) order.push(lowIndex);
+    }
+    return order.reduce((acc, index) => {
+      const item = sorted[index];
+      if (item) {
+        acc.labels.push(item.label);
+        acc.values.push(item.value);
+      }
+      return acc;
+    }, { labels: [] as string[], values: [] as number[] });
+  }, []);
+
   const sortGenderByRegionDescending = React.useCallback((series: { labels: string[]; male: number[]; female: number[] }) => {
     return series.labels
       .map((label, index) => ({
@@ -396,7 +426,7 @@ export default function Statistics() {
   const entryYears = seriesFromRows(data?.count_by_entry_year, { labelKey: "entry_year" });
   const birthYears = seriesFromRows(data?.birth_year_distribution, { labelKey: "year" });
   const avgGradesByYear = seriesFromRows(data?.avg_grade_by_year, { labelKey: "year", valueKey: "avg" });
-  const avgGradesByRegion = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.avg_grade_by_region, { labelKey: "name", valueKey: "avg" })), [data, seriesFromRows, sortSeriesDescending]);
+  const avgGradesByRegion = React.useMemo(() => reorderRegionMetricSeries(seriesFromRows(data?.avg_grade_by_region, { labelKey: "name", valueKey: "avg" })), [data, reorderRegionMetricSeries, seriesFromRows]);
   const gradeBins = seriesFromRows(data?.degree_grade_bins);
   const regions = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.origin_region_distribution, { labelKey: "name" })), [data, seriesFromRows, sortSeriesDescending]);
   const municipalities = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.origin_municipality_distribution, { labelKey: "name" })), [data, seriesFromRows, sortSeriesDescending]);
@@ -412,7 +442,7 @@ export default function Statistics() {
   const yearsToDegreeByNomos = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.avg_years_to_degree_by_nomos, { labelKey: "name", valueKey: "avg_years" })), [data, seriesFromRows, sortSeriesDescending]);
 
   const yearsToDegree = seriesFromRows(data?.avg_years_to_degree_by_entry_year, { labelKey: "entry_year", valueKey: "avg_years" });
-  const yearsToDegreeByRegion = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.avg_years_to_degree_by_region, { labelKey: "name", valueKey: "avg_years" })), [data, seriesFromRows, sortSeriesDescending]);
+  const yearsToDegreeByRegion = React.useMemo(() => reorderRegionMetricSeries(seriesFromRows(data?.avg_years_to_degree_by_region, { labelKey: "name", valueKey: "avg_years" })), [data, reorderRegionMetricSeries, seriesFromRows]);
   const yearsToDegreeDistributionRaw = seriesFromRows(data?.years_to_degree_distribution);
 
   const yearsToDegreeDistribution = React.useMemo(() => {
@@ -1009,11 +1039,11 @@ export default function Statistics() {
       },
       yearsToDegreeByNomos: sortSeriesDescending(seriesFromRows(sourceData?.avg_years_to_degree_by_nomos, { labelKey: "name", valueKey: "avg_years" })),
       avgGradesByYear: seriesFromRows(sourceData?.avg_grade_by_year, { labelKey: "year", valueKey: "avg" }),
-      avgGradesByRegion: sortSeriesDescending(seriesFromRows(sourceData?.avg_grade_by_region, { labelKey: "name", valueKey: "avg" })),
+      avgGradesByRegion: reorderRegionMetricSeries(seriesFromRows(sourceData?.avg_grade_by_region, { labelKey: "name", valueKey: "avg" })),
       gradeBins: seriesFromRows(sourceData?.degree_grade_bins),
       yearsToDegree: seriesFromRows(sourceData?.avg_years_to_degree_by_entry_year, { labelKey: "entry_year", valueKey: "avg_years" }),
       yearsToDegreeDistribution: sourceYearsToDegreeDistribution,
-      yearsToDegreeByRegion: sortSeriesDescending(seriesFromRows(sourceData?.avg_years_to_degree_by_region, { labelKey: "name", valueKey: "avg_years" })),
+      yearsToDegreeByRegion: reorderRegionMetricSeries(seriesFromRows(sourceData?.avg_years_to_degree_by_region, { labelKey: "name", valueKey: "avg_years" })),
       regions: sortSeriesDescending(seriesFromRows(sourceData?.origin_region_distribution, { labelKey: "name" })),
       genderByRegion: sourceGenderByRegion,
       genderByMunicipality: sourceGenderByMunicipality,
@@ -1022,7 +1052,7 @@ export default function Statistics() {
       total: Number(sourceData?.total ?? 0),
       abroadCount: Number(sourceData?.abroad_count ?? 0),
     };
-  }, [activeLang, data, exportPreviewData, selectedExportGenderEntryYears, selectedGenderDistributionYear, seriesFromRows, sortGenderByRegionDescending, sortSeriesDescending, t]);
+  }, [activeLang, data, exportPreviewData, reorderRegionMetricSeries, selectedExportGenderEntryYears, selectedGenderDistributionYear, seriesFromRows, sortGenderByRegionDescending, sortSeriesDescending, t]);
 
   async function exportSelectedChartsAsPng() {
     if (!selectedChartIds.length) return;
