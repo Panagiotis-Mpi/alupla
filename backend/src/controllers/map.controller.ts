@@ -589,7 +589,7 @@ export async function getMapCities(req: Request, res: Response) {
 }
 
 // Βρίσκει ελάχιστο/μέγιστο έτος αποφοίτησης για τον slider χάρτη.
-export async function getMapYearRange(req: Request, res: Response) {
+export async function getMapYearRange(_req: Request, res: Response) {
   try {
     const years = await getGraduationYears();
     return res.json({ ok: true, years, min_year: years[0] ?? null, max_year: years.length ? years[years.length - 1] : null });

@@ -83,14 +83,6 @@ async function renderSnapshotClone(clone: HTMLElement, width: number, height: nu
   return { image, width, height };
 }
 
-export function fileSlug(value: string) {
-  return String(value ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "") || "chart";
-}
 
 export async function renderElementSnapshot(element: HTMLElement) {
   const rect = element.getBoundingClientRect();

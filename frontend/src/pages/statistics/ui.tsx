@@ -946,54 +946,6 @@ export function PieChartCard(props: {
   );
 }
 
-export function DualPieChartCard(props: {
-  title: string;
-  chartId?: string;
-  pies: Array<{ key: string; title: string; labels: string[]; values: number[]; control?: React.ReactNode }>;
-  height?: number;
-  colors?: string[];
-  exportMode?: boolean;
-}) {
-  return (
-    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
-      <div className="topbar" style={compactTopbarStyle}>
-        <h3 style={{ margin: 0 }}>{props.title}</h3>
-        {!props.exportMode ? <ChartFullscreenButton label="Fullscreen" title="Fullscreen" /> : null}
-      </div>
-      <div className="statistics-dual-pie-grid">
-        {props.pies.map((pie) => (
-          <div className="statistics-dual-pie-panel" key={pie.key}>
-            {pie.control ? <div className="statistics-dual-pie-topbar">{pie.control}</div> : pie.title ? <div className="statistics-dual-pie-topbar"><strong>{pie.title}</strong></div> : null}
-            <PieChartFigure title={`${props.title} ${pie.title}`} labels={pie.labels} values={pie.values} height={props.height ?? 320} colors={props.colors} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function MultiPieChartRow(props: {
-  title: string;
-  pies: Array<{ title: string; labels: string[]; values: number[] }>;
-  compact?: boolean;
-  chartId?: string;
-  exportMode?: boolean;
-}) {
-  return (
-    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
-      <div className="topbar" style={compactTopbarStyle}>
-        <h3 style={{ margin: 0 }}>{props.title}</h3>
-        {!props.exportMode ? <ChartFullscreenButton label="Fullscreen" title="Fullscreen" /> : null}
-      </div>
-      <div style={{ display: "grid", gap: 14, gridTemplateColumns: props.compact ? "repeat(2, minmax(0, 1fr))" : "repeat(auto-fit, minmax(240px, 1fr))" }}>
-        {props.pies.map((pie) => (
-          <PieChartCard key={pie.title} title={pie.title} labels={pie.labels} values={pie.values} height={props.compact ? 280 : 320} exportMode={props.exportMode} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function ChartCard(props: {
   title: string;
   labels: string[];
@@ -1051,52 +1003,3 @@ export function ChartCard(props: {
   );
 }
 
-export function VerticalBarChartCard(props: {
-  title: string;
-  labels: string[];
-  values: number[];
-  minValue?: number;
-  maxValue?: number;
-  height?: number;
-  chartId?: string;
-  minLabelWidth?: number;
-  maxLabelWidth?: number;
-  forceScrollable?: boolean;
-  xTickRotation?: number;
-  xTickFormatter?: (label: string) => string | string[];
-  exportMode?: boolean;
-}) {
-  const highContrast = useHighContrastEnabled();
-  const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
-  const legendItems = React.useMemo(() => [{ label: props.title, color: highContrast ? "#ffd400" : solidBlueFill, borderColor: highContrast ? "#000000" : "#2563eb" }], [highContrast, props.title]);
-
-  return (
-    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
-      <div className="topbar" style={compactTopbarStyle}>
-        <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.title}</h3>
-        {!props.exportMode ? <ChartFullscreenButton label="Fullscreen" title="Fullscreen" /> : null}
-        <ChartLegendInset items={legendItems} />
-      </div>
-      <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
-        <ScrollableBarChart
-          height={props.height ?? 320}
-          labels={props.labels}
-          minLabelWidth={props.minLabelWidth ?? 92}
-          maxLabelWidth={props.maxLabelWidth ?? 152}
-          forceScrollable={props.forceScrollable}
-          exportMode={props.exportMode}
-          data={{ labels: props.labels, datasets: [buildBarDataset(props.title, props.values, { highContrast, exportMode: props.exportMode })] }}
-          options={buildBarChartOptions({
-            labels: props.labels,
-            beginAtZero: false,
-            min: props.minValue ?? 0,
-            max: props.maxValue,
-            xTickRotation: props.xTickRotation,
-            xTickFormatter: props.xTickFormatter,
-            exportMode: props.exportMode,
-          })}
-        />
-      </div>
-    </div>
-  );
-}

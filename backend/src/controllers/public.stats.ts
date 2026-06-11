@@ -4,110 +4,16 @@ import { sanitizeExportRows } from "../utils/exportSafety";
 import {
   AnalyticsWhereContext,
   ExportLang,
-  getAgeGroups,
-  getAverageGradeByGraduationYear,
-  getCityRows,
-  getCountByBirthYear,
   getCountByGraduationTerm,
   getCountByGraduationYear,
   getGenderByGraduationTerm,
   getGenderByGraduationYear,
-  getGenderCounts,
-  getOriginRows,
-  getOverviewSummary,
-  getTotalGraduates,
-  genderRowsToCounts,
   queryAnalyticsRows,
   termLabel,
 } from "../services/analyticsAggregations.service";
 
 export type PublicWhereContext = AnalyticsWhereContext;
 type PublicExportLang = ExportLang;
-
-// Φορτώνει όλα τα aggregated data για τη σελίδα Στατιστικά.
-export async function loadPublicStatsBundle(context: PublicWhereContext) {
-  const birthYearExpr = context.birthYearExpr ?? "CAST(EXTRACT(YEAR FROM g.birth_date) AS INTEGER)";
-
-  const [
-    totalRow,
-    avgRow,
-    byYear,
-    byTerm,
-    genderRows,
-    genderByYear,
-    genderByTerm,
-    birthYearRows,
-    ageRows,
-    avgGradeByYear,
-    gradeDist,
-    durationRows,
-    originRows,
-    cityRows,
-  ] = await Promise.all([
-    getTotalGraduates(context),
-    getOverviewSummary(context),
-    getCountByGraduationYear(context),
-    getCountByGraduationTerm(context),
-    getGenderCounts(context),
-    getGenderByGraduationYear(context),
-    getGenderByGraduationTerm(context),
-    getCountByBirthYear(context, birthYearExpr),
-    getAgeGroups(context),
-    getAverageGradeByGraduationYear(context),
-    queryAnalyticsRows<{ bucket: string; count: number }>(
-      `SELECT CASE
-                WHEN g.degree_grade < 5 THEN '<5'
-                WHEN g.degree_grade >= 5 AND g.degree_grade < 6 THEN '5-5.99'
-                WHEN g.degree_grade >= 6 AND g.degree_grade < 7 THEN '6-6.99'
-                WHEN g.degree_grade >= 7 AND g.degree_grade < 8 THEN '7-7.99'
-                WHEN g.degree_grade >= 8 THEN '8+'
-                ELSE 'unknown'
-              END as bucket,
-              CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY bucket
-       ORDER BY CASE bucket
-         WHEN '<5' THEN 1
-         WHEN '5-5.99' THEN 2
-         WHEN '6-6.99' THEN 3
-         WHEN '7-7.99' THEN 4
-         WHEN '8+' THEN 5
-         ELSE 99
-       END`,
-      context,
-    ),
-    queryAnalyticsRows<{ entry_year: number; avg_years: number }>(
-      `SELECT g.entry_year,
-              ROUND(CAST(AVG(EXTRACT(YEAR FROM age(g.graduation_date, make_date(g.entry_year, 1, 1)))) AS NUMERIC), 2) as avg_years
-       FROM graduates g ${context.sqlWhere}
-       GROUP BY g.entry_year
-       ORDER BY g.entry_year ASC`,
-      context,
-    ),
-    getOriginRows(context),
-    getCityRows(context),
-  ]);
-
-  const gender = genderRowsToCounts(genderRows);
-
-  return {
-    total: Number(totalRow[0]?.total ?? 0),
-    avg_age: avgRow[0]?.avg_age != null ? Number(avgRow[0].avg_age) : null,
-    avg_degree_grade: avgRow[0]?.avg_degree_grade != null ? Number(avgRow[0].avg_degree_grade) : null,
-    byYear,
-    byTerm,
-    gender,
-    genderByYear,
-    genderByTerm,
-    birthYearRows,
-    ageRows,
-    avgGradeByYear,
-    gradeDist,
-    durationRows,
-    originRows,
-    cityRows,
-  };
-}
 
 type PublicMapRow = {
   region_id: number | null;

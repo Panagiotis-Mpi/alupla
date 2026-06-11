@@ -260,20 +260,6 @@ export function buildLogFilters(req: Request) {
   return where;
 }
 
-// Μετατρέπει log σε απλή γραμμή CSV.
-export function toCsvRow(row: any) {
-  return [
-    row.id,
-    row.created_at,
-    row.user_id ?? "",
-    row.action ?? "",
-    row.entity_type ?? "",
-    row.entity_id ?? "",
-    JSON.stringify(row.details ?? null),
-  ]
-    .map((value) => csvEscape(value))
-    .join(",");
-}
 
 // Διαβάζει φίλτρο ρόλου από το request.
 export function getRoleFilter(req: Request) {

@@ -5,7 +5,6 @@ import { normalizeRegionText } from "../utils/regionText";
 import { sanitizeExportCell } from "../utils/exportSafety";
 
 // Κοινά βοηθητικά για exports, imports, validation και μορφοποίηση δεδομένων αποφοίτων.
-export const EXPORT_LANGS = new Set(["gr", "en"]);
 export type ExportLang = "gr" | "en";
 export type GraduateFileFormat = "xlsx" | "csv";
 
@@ -101,29 +100,6 @@ export function getMatchedTemplateHeaderKeys(headers: string[]) {
   return null;
 }
 
-// Παλαιότερα/εναλλακτικά ονόματα στηλών που αναγνωρίζονται από import helpers.
-export const IMPORT_HEADER_ALIASES = {
-  student_number: ["student_number","student number","student_number_(required)","am","a_m","a.m","αμ","α.μ","student no.","student no","α.μ.","Α.Μ.","αριθμός μητρώου"],
-  ad_code: ["ad_code","diploma number","diploma_number","diploma_number_(required)","αριθμός διπλώματος","aa","a_a","a.a","αα","α.α","a.d.","a.d","α.δ.","α.δ","A.D.","Α.Δ."],
-  last_name: ["last_name","επωνυμο","επώνυμο","surname","last name"],
-  first_name: ["first_name","ονομα","όνομα","name","first name"],
-  father_name: ["father_name","πατρωνυμο","πατρώνυμο","father","father name"],
-  gender: ["gender","φυλο","φύλο","sex"],
-  entry_year: ["entry_year","ετος_εισαγωγης","έτος_εισαγωγής","entryyear","έτος εισαγωγής","entry year"],
-  graduation_date: ["graduation_date","ημ_αποφοιτησης","ημ._αποφοίτησης","graduation","ημ. αποφοίτησης","graduation date","Ημ. αποφοίτησης","ημερομηνία αποφοίτησης","ημερομηνια αποφοίτησης","ημερομηνία_αποφοίτησης","ημερομηνια_αποφοίτησης"],
-  oath_date: ["oath_date","ημ_ορκωμοσιας","ημ._ορκωμοσίας","oath","ημ. ορκωμοσίας","oath date","Ημ. ορκωμοσίας","ημερομηνία ορκωμοσίας","ημερομηνια ορκωμοσίας","ημερομηνία_ορκωμοσίας","ημερομηνια_ορκωμοσίας"],
-  degree_grade: ["degree_grade","βαθμος","βαθμός","grade","βαθμός πτυχίου","degree grade"],
-  birth_year: ["birth_year","ετος_γεννησης","έτος_γεννησης","year_of_birth","yob","έτος γέννησης","birth year"],
-  birth_date: ["birth_date","ημερομηνια_γεννησης","ημερομηνία_γέννησης","ημ_γεννησης","ημ._γέννησης","birthdate","dob","birth date","ημερομηνία γέννησης","ημερομηνια γεννησης"],
-  study_program: ["study_program","study_program_id","study_prog","program_id","προγραμμα","πρόγραμμα","program","πρόγραμμα σπουδών","study program"],
-  study_program_id: ["study_program_id","study_prog","program_id","προγραμμα","πρόγραμμα","program"],
-  origin_country: ["origin_country","origin_country_region_id","country","χώρα","χωρα"],
-  origin_country_region_id: ["origin_country_region_id","origin_country","country_id","country","χώρα","χωρα"],
-  origin_region: ["origin_region","origin_periphery_region_id","origin_regio","periphery_id","περιφερεια","περιφέρεια","region","periphery"],
-  origin_region_id: ["origin_periphery_region_id","origin_regio","periphery_id","περιφερεια","περιφέρεια","region","periphery"],
-  origin_nomos: ["origin_nomos","origin_nomos_region_id","origin_region_id","nomos","regional_unit","regional unit","νομος","νομός","περιφερειακή ενότητα","περιφερειακη ενοτητα"],
-  origin_municipality: ["origin_municipality","δήμος","δημος","municipality","dimos","πόλη","city","foreign_city","city of origin"],
-} as const;
 
 const GRADUATE_SORT_FIELDS = new Set(["id", "last_name", "first_name", "entry_year", "graduation_date", "oath_date", "degree_grade", "birth_date", "study_program_id", "origin_region_id", "origin_city_region_id", "gender", "student_number", "ad_code"]);
 
@@ -209,17 +185,11 @@ export function notFound(res: Response) {
   return res.status(404).json({ ok: false, error: { message: "Not found" } });
 }
 
-export function requireNumberField(res: Response, value: number, field: string) {
-  return Number.isFinite(value) ? null : bad(res, `${field} is required (number)`);
-}
 
 export function requireNonEmptyString(res: Response, value: string, field: string) {
   return value ? null : bad(res, `${field} is required`);
 }
 
-export function requireDateOnly(res: Response, value: string, field: string) {
-  return DATE_ONLY_RE.test(value) ? null : bad(res, `${field} must be YYYY-MM-DD`);
-}
 
 export function parseStoredGender(value: unknown) {
   const raw = String(value ?? "").trim();

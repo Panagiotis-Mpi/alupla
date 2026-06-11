@@ -624,11 +624,6 @@ export async function getMapYearRange(): Promise<MapYearRangeResponse> {
   return cachedMapApi(`/map/years`);
 }
 
-export async function getMapCities(
-  params: QueryParams = {},
-): Promise<{ ok: true; items: MapCityPoint[] }> {
-  return cachedMapApi(`/map/cities${toQueryString(params)}`);
-}
 
 export async function getMapCityDetail(
   params: QueryParams = {},
