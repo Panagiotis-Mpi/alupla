@@ -196,7 +196,7 @@ export default function Logs() {
   async function loadFileSummary(role: FileSummaryRole) {
     try {
       const data = await getActivityLogFileSummary({ role });
-      setFileSummary(data.items ?? []);
+      setFileSummary((data.items ?? []) as FileSummaryItem[]);
     } catch (e: any) {
       setErr((current) => current ?? e?.message ?? t("error"));
     }

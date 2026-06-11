@@ -185,6 +185,20 @@ type ActivityLogFileSummaryResponse = ApiOk & {
   total?: number;
 };
 type PublicStatsResponse = ApiOk & Record<string, unknown>;
+export type ImportReport = ApiOk & {
+  summary?: {
+    inserted?: number;
+    updated?: number;
+    skipped?: number;
+    errors?: number;
+    total_rows?: number;
+  };
+  errors?: Array<Record<string, unknown>>;
+  total_rows?: number;
+  inserted?: number;
+  updated?: number;
+  skipped?: number;
+};
 
 function isOkResponse(value: unknown): value is ApiOk {
   return (
@@ -323,6 +337,9 @@ export type MapCityDetailResponse = {
   female_count?: number;
   male_pct?: number;
   female_pct?: number;
+  avg_age?: number | null;
+  avg_grade?: number | null;
+  avg_graduation_years?: number | null;
 };
 
 export async function login(
@@ -668,7 +685,7 @@ export async function logGraduatesPdfExport(
 export async function importGraduatesFile(
   file: File,
   lang?: string,
-): Promise<ApiOk & Record<string, unknown>> {
+): Promise<ImportReport> {
   const token = getToken();
   const fd = new FormData();
   fd.append("file", file);
@@ -699,7 +716,7 @@ export async function importGraduatesFile(
     throw new Error("Invalid server response");
   }
   clearGraduateRelatedCaches();
-  return data;
+  return data as ImportReport;
 }
 
 export async function getPublicStats(

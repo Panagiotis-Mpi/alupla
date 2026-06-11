@@ -317,7 +317,7 @@ export default function Statistics() {
       }, { labels: [] as string[], male: [] as number[], female: [] as number[] });
   }, []);
 
-  const byYearRows = React.useMemo(
+  const byYearRows = React.useMemo<Array<{ label: string; value: number }>>(
     () => (data?.by_year ?? []).map((r: any) => ({ label: String(r.year), value: Number(r.count) || 0 })),
     [data]
   );

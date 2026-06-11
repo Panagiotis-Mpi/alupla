@@ -1,9 +1,9 @@
 // Κρατά πρόσφατα downloads για να μπορεί ο χρήστης να τα ξανακατεβάσει.
-import type { Graduate } from "../../lib/api";
+import type { Graduate, QueryParams } from "../../lib/api";
 import type { GraduatesFiltersState } from "./shared";
 
 export type RecentGraduateRequest = {
-  params: Record<string, unknown>;
+  params: QueryParams;
   ids?: number[];
   lang: "gr" | "en";
 };
@@ -63,9 +63,9 @@ export function normalizeRecentGraduateDownload(item: any): RecentGraduateDownlo
 
   const request = item.request && typeof item.request === "object"
     ? {
-        params: item.request.params && typeof item.request.params === "object" ? item.request.params as Record<string, unknown> : {},
+        params: item.request.params && typeof item.request.params === "object" ? item.request.params as QueryParams : {},
         ids: Array.isArray(item.request.ids) ? item.request.ids.map((value: unknown) => Number(value)).filter((value: number) => Number.isInteger(value) && value > 0) : undefined,
-        lang: String(item.request.lang || "").toLowerCase().startsWith("en") ? "en" : "gr",
+        lang: String(item.request.lang || "").toLowerCase().startsWith("en") ? "en" as const : "gr" as const,
       }
     : undefined;
 
@@ -98,7 +98,7 @@ export function normalizeRecentGraduateDownload(item: any): RecentGraduateDownlo
           origin_municipality: entry.origin_municipality == null ? null : String(entry.origin_municipality),
           origin_foreign_city: entry.origin_foreign_city == null ? null : String(entry.origin_foreign_city),
         }))
-        .filter((entry) => entry.id > 0)
+        .filter((entry: RecentGraduatePdfItem) => entry.id > 0)
     : undefined;
 
   return {
@@ -164,18 +164,22 @@ export function formatRecentGraduateDownloadDate(value: string, lang: "gr" | "en
 export function buildRecentDownloadFiltersLabel(filters: GraduatesFiltersState, lang: "gr" | "en", selectedCount: number, totalCount: number) {
   const parts: string[] = [];
 
-  const years = Array.isArray(filters.years) ? filters.years.filter(Boolean) : [];
-  if (years.length) parts.push((lang === "en" ? "Years" : "Έτη") + `: ${years.join(", ")}`);
+  const entryYears = [filters.entry_year_min, filters.entry_year_max].map((value) => String(value || "").trim()).filter(Boolean);
+  if (entryYears.length) parts.push((lang === "en" ? "Entry year" : "Έτος εισαγωγής") + `: ${entryYears.join(" - ")}`);
 
-  const studyPrograms = Array.isArray(filters.studyProgramIds) ? filters.studyProgramIds.filter(Boolean) : [];
-  if (studyPrograms.length) parts.push((lang === "en" ? "Programs" : "Προγράμματα") + `: ${studyPrograms.join(", ")}`);
+  const graduationYears = [filters.graduation_date_from, filters.graduation_date_to].map((value) => String(value || "").slice(0, 4).trim()).filter(Boolean);
+  if (graduationYears.length) parts.push((lang === "en" ? "Graduation" : "Αποφοίτηση") + `: ${graduationYears.join(" - ")}`);
 
+  const studyProgram = String(filters.study_program_id || "").trim();
+  if (studyProgram) parts.push((lang === "en" ? "Program" : "Πρόγραμμα") + `: ${studyProgram}`);
 
-  const genders = Array.isArray(filters.genders) ? filters.genders.filter(Boolean) : [];
-  if (genders.length) parts.push((lang === "en" ? "Gender" : "Φύλο") + `: ${genders.join(", ")}`);
+  const gender = String(filters.gender || "").trim();
+  if (gender) parts.push((lang === "en" ? "Gender" : "Φύλο") + `: ${gender}`);
 
-  const quick = String(filters.quickSearch ?? "").trim();
-  if (quick) parts.push((lang === "en" ? "Search" : "Αναζήτηση") + `: ${quick}`);
+  const searchParts = [filters.ad_code_like, filters.student_number_like, filters.last_name_like, filters.first_name_like, filters.father_name_like]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+  if (searchParts.length) parts.push((lang === "en" ? "Search" : "Αναζήτηση") + `: ${searchParts.join(", ")}`);
 
   const counts = lang === "en"
     ? `${selectedCount || totalCount} / ${totalCount} selected`

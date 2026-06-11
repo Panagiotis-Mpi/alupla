@@ -159,7 +159,7 @@ function GenderLineCard(props: Pick<ChartBlockProps, "t" | "cardInnerStyle" | "c
   );
 }
 
-function GraduationLineCard(props: Pick<ChartBlockProps, "t" | "cardInnerStyle" | "compactTopbarStyle" | "countChartData" | "countChartOptions">) {
+function GraduationLineCard(props: Pick<ChartBlockProps, "t" | "cardInnerStyle" | "compactTopbarStyle" | "countChartData" | "countChartOptions" | "exportMode">) {
   return (
     <div className="card" style={props.cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="byYear">
       <div className="topbar" style={props.compactTopbarStyle}>

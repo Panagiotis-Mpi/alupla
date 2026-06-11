@@ -53,9 +53,21 @@ export function clearToken() {
 }
 
 type JsonRecord = Record<string, unknown>;
-type ApiError = { message?: string } | string | null;
 export type QueryValue = string | number | boolean | null | undefined | Array<string | number | boolean>;
 export type QueryParams = Record<string, QueryValue>;
+export type ApiRequestInit = Omit<RequestInit, "body"> & { body?: unknown };
+
+function apiErrorMessage(data: unknown, fallback: string) {
+  if (data && typeof data === "object") {
+    const record = data as { error?: unknown; message?: unknown };
+    if (record.error && typeof record.error === "object") {
+      const message = (record.error as { message?: unknown }).message;
+      if (typeof message === "string" && message.trim()) return message;
+    }
+    if (typeof record.message === "string" && record.message.trim()) return record.message;
+  }
+  return fallback;
+}
 
 export async function parseJsonSafe<T = JsonRecord>(res: Response): Promise<T | null> {
   const contentType = res.headers.get("content-type") || "";
@@ -86,10 +98,10 @@ export function toQueryString(params: QueryParams = {}) {
   return value ? `?${value}` : "";
 }
 
-function normalizeRequestInit(init: RequestInit) {
+function normalizeRequestInit(init: ApiRequestInit) {
   const headers = new Headers(init.headers || {});
   const hasBody = init.body !== undefined && init.body !== null;
-  let nextInit = init;
+  let nextInit: ApiRequestInit = init;
 
   headers.set("Accept", "application/json");
 
@@ -138,8 +150,7 @@ export async function fetchBlob(path: string, params: QueryParams = {}, lang?: s
 
   if (!res.ok) {
     const data = await parseJsonSafe(res);
-    const message = data?.error?.message || data?.message || res.statusText;
-    throw new Error(message);
+    throw new Error(apiErrorMessage(data, res.statusText));
   }
 
   return res.blob();
@@ -159,24 +170,25 @@ export async function postBlob(path: string, body: QueryParams = {}, lang?: stri
 
   if (!res.ok) {
     const data = await parseJsonSafe(res);
-    const message = data?.error?.message || data?.message || res.statusText;
-    throw new Error(message);
+    throw new Error(apiErrorMessage(data, res.statusText));
   }
 
   return res.blob();
 }
 
-export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function api<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
   const token = getToken();
   const normalized = normalizeRequestInit(init);
 
   if (token) normalized.headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...normalized.init,
+  const requestInit: RequestInit = {
+    ...(normalized.init as RequestInit),
     headers: normalized.headers,
     credentials: "omit",
-  });
+  };
+
+  const res = await fetch(`${API_URL}${path}`, requestInit);
 
   const data = await parseJsonSafe(res);
 
@@ -185,8 +197,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    const error: ApiError = data?.error?.message || data?.message || res.statusText;
-    throw new Error(typeof error === "string" ? error : error?.message || "Request failed");
+    throw new Error(apiErrorMessage(data, res.statusText));
   }
 
   return data as T;

@@ -376,18 +376,22 @@ function dataUrlToUint8Array(dataUrl: string) {
 
 function createPdfFromJpegs(images: Uint8Array[]) {
   const encoder = new TextEncoder();
-  const parts: Uint8Array[] = [];
+  const parts: BlobPart[] = [];
   let offset = 0;
   const offsets: number[] = [0];
 
   const pushText = (value: string) => {
     const bytes = encoder.encode(value);
-    parts.push(bytes);
+    const copy = new Uint8Array(bytes.length);
+    copy.set(bytes);
+    parts.push(copy);
     offset += bytes.length;
   };
 
   const pushBinary = (value: Uint8Array) => {
-    parts.push(value);
+    const copy = new Uint8Array(value.length);
+    copy.set(value);
+    parts.push(copy);
     offset += value.length;
   };
 

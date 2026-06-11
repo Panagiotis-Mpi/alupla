@@ -64,6 +64,8 @@ import {
   type MapScope,
 } from "./map/markers";
 
+const MapContainerAny = MapContainer as any;
+
 type ExportFormat = "png";
 type ExportCategoryKey = MapMetric;
 type ExportScopeSelection = { category: ExportCategoryKey; scope: MapScope };
@@ -1652,7 +1654,7 @@ export default function GraduatesMapPage() {
       <div className="card alupla-map-card map-main-card">
         <div className="map-map-wrap">
           <div className="alupla-map map-canvas" ref={mapCanvasRef}>
-            <MapContainer
+            <MapContainerAny
               key={`map-${mapScope}`}
               center={
                 mapScope === "abroad"
@@ -1669,7 +1671,7 @@ export default function GraduatesMapPage() {
               }
               maxBoundsViscosity={mapScope === "abroad" ? 1 : undefined}
               worldCopyJump={mapScope === "abroad"}
-              whenCreated={(map) => {
+              whenCreated={(map: L.Map) => {
                 mapRef.current = map;
                 if (activeBounds)
                   map.fitBounds(activeBounds, {
@@ -1764,7 +1766,7 @@ export default function GraduatesMapPage() {
                   </Marker>
                 );
               })}
-            </MapContainer>
+            </MapContainerAny>
           </div>
 
           {inlineMapLoading ? (

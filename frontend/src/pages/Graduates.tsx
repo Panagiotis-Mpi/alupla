@@ -10,6 +10,8 @@ import {
   importGraduatesFile,
   logGraduatesPdfExport,
   type Graduate,
+  type ImportReport,
+  type QueryParams,
   type StudyProgram,
 } from "../lib/api";
 import { GraduatesTable } from "./graduates/GraduatesTable";
@@ -63,6 +65,12 @@ import {
   type RecentGraduatePdfItem,
   type RecentGraduateRequest,
 } from "./graduates/recentDownloads";
+
+type ToastState = {
+  type: "success" | "error";
+  title: string;
+  detail?: string;
+};
 
 export default function Graduates() {
   const { t, i18n } = useTranslation("graduates");
@@ -387,7 +395,7 @@ export default function Graduates() {
   }
 
   async function onExport(format: "xlsx" | "csv" | "pdf", ids?: number[]) {
-    const exportParams = { ...params } as Record<string, unknown>;
+    const exportParams: QueryParams = { ...params };
     delete exportParams.page;
     delete exportParams.pageSize;
     if (ids?.length) {
