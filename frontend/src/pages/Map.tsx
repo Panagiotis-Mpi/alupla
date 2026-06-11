@@ -36,7 +36,6 @@ import {
   InfoBox,
   detailValue,
   genderColors,
-  slugPart,
   useCompactMapViewport,
 } from "./map/viewHelpers";
 import {
@@ -44,6 +43,7 @@ import {
   renderMapSnapshot,
   waitForMapFrame,
 } from "./map/exportSelection";
+import { buildExportFilename, yearRangeFilenamePart } from "../lib/exportFilenames";
 
 import {
   bubbleLabelIcon,
@@ -1065,20 +1065,12 @@ export default function GraduatesMapPage() {
     return range.from === range.to ? range.from : `${range.from} - ${range.to}`;
   }
 
-  function metricFilenameBase(metric: MapMetric, scope = mapScope, range?: ExportYearRange) {
+  function metricFilenameParts(metric: MapMetric, scope = mapScope, range?: ExportYearRange) {
     const metricName = metric === "dominant_gender" ? "gender_geo_distribution" : "graduate_count";
     const scopeName = scope === "abroad" ? "abroad" : "greece";
-    const parts = ["alupla", "map", scopeName, metricName];
     const startYear = range?.from ?? selectedGraduationYearStart;
     const endYear = range?.to ?? selectedGraduationYearEnd;
-    if (startYear && endYear) {
-      parts.push(
-        startYear === endYear
-          ? `year_${startYear}`
-          : `years_${startYear}-${endYear}`,
-      );
-    }
-    return parts.map((part) => slugPart(part)).filter(Boolean).join("_");
+    return [scopeName, metricName, yearRangeFilenamePart(startYear, endYear)];
   }
 
   function openExportSelection(format: ExportFormat = "png") {
@@ -1248,7 +1240,7 @@ export default function GraduatesMapPage() {
         );
         const selectedRangeLabel = exportRangeLabel(range);
         await exportCombinedSnapshots(
-          `${metricFilenameBase(selection.category, selection.scope, range)}.png`,
+          buildExportFilename("map", metricFilenameParts(selection.category, selection.scope, range), "png"),
           `${option?.label || selection.category} · ${scopeLabel} · ${selectedRangeLabel}`,
           [{ ...snapshot, caption: `${scopeLabel} · ${selectedRangeLabel}` }],
         );

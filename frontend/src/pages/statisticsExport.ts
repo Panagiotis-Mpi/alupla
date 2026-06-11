@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { downloadBlob } from "../lib/download";
 import { sanitizeExportCell, sanitizeExportRows } from "../lib/exportSafety";
 import { exportWorkbook } from "./map/mapExport";
+import { buildExportFilename, exportFilenamePart, exportTimestamp, yearRangeFilenamePart } from "../lib/exportFilenames";
 
 export type StatisticsChartId =
   | "byYear"
@@ -1152,26 +1153,12 @@ function csvLines(block: SheetBlock, activeLang: "el" | "en") {
   return lines;
 }
 
-function exportStamp() {
-  return new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-}
-
 function filenamePart(value: unknown) {
-  return String(value ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
+  return exportFilenamePart(value);
 }
 
 function rangeValue(range?: StatisticsExportRange) {
-  const left = Number(range?.from);
-  const right = Number(range?.to);
-  if (!Number.isFinite(left) || !Number.isFinite(right)) return "all_years";
-  const start = Math.min(left, right);
-  const end = Math.max(left, right);
-  return start === end ? String(start) : `${start}-${end}`;
+  return yearRangeFilenamePart(range?.from, range?.to);
 }
 
 function groupRangeParts(args: BuildArgs, groups: StatisticsExportGroupKey[]) {
@@ -1186,7 +1173,7 @@ function groupRangeParts(args: BuildArgs, groups: StatisticsExportGroupKey[]) {
     return { group, range };
   });
   const sameRange = items.length > 0 && items.every((item) => item.range === items[0].range);
-  if (sameRange && items[0]?.range) return [`years_${items[0].range}`];
+  if (sameRange && items[0]?.range) return [items[0].range];
   return items.map((item) => `${labels[item.group]}_${item.range}`);
 }
 
@@ -1228,18 +1215,15 @@ export function buildStatisticsExportFilename(args: BuildArgs, format: Statistic
     .filter((group) => selected.some((id) => statisticsExportGroupForChart(id) === group));
   const allSelected = chartCount === allChartIds.length && allChartIds.every((id) => selectedSet.has(id));
   const scope = allSelected ? "all_categories" : groups.length === 1 ? groups[0] : groups.length > 1 ? "mixed_categories" : "selected_charts";
-  const selection = allSelected ? "full_export" : `${chartCount}_charts`;
-  const parts = ["alupla", "statistics", scope, selection, ...groupRangeParts(args, groups.length ? groups : ["demographics", "academic", "geography", "compare"]), exportStamp()]
-    .map(filenamePart)
-    .filter(Boolean);
-  return `${parts.join("_")}.${format}`;
+  const selectionParts = allSelected ? ["all", "charts"] : ["selected", chartCount, "charts"];
+  return buildExportFilename("statistics", [scope, ...selectionParts, ...groupRangeParts(args, groups.length ? groups : ["demographics", "academic", "geography", "compare"])], format);
 }
 
 export function buildStatisticsPngFilename(args: BuildArgs, chartId: StatisticsChartId | null, fallbackParts: Array<string | number | null | undefined>, groupKey?: StatisticsExportGroupKey) {
   const group = groupKey ?? (chartId ? statisticsExportGroupForChart(chartId) : null);
   const rangeParts = group ? groupRangeParts(args, [group]) : [];
-  const parts = [...fallbackParts, group, chartId, ...rangeParts, exportStamp()].map(filenamePart).filter(Boolean);
-  return `${parts.join("_") || `alupla_statistics_${exportStamp()}`}.png`;
+  const parts = [...fallbackParts, group, chartId, ...rangeParts, exportTimestamp()].map(filenamePart).filter(Boolean);
+  return `${parts.join("_") || `alupla_statistics_${exportTimestamp()}`}.png`;
 }
 
 export function exportStatisticsWorkbookFile(args: BuildArgs, filename = buildStatisticsExportFilename(args, "xlsx")) {

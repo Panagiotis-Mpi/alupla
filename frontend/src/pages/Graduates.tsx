@@ -42,6 +42,7 @@ import {
   normalizeImportErrorMessage,
 } from "./graduates/importFeedback";
 import { downloadBlob } from "../lib/download";
+import { buildExportFilename } from "../lib/exportFilenames";
 import Icon from "../components/Icon";
 import arrowDownIcon from "../assets/icons/arrow-down-to-line.svg";
 import arrowUpIcon from "../assets/icons/arrow-up-to-line.svg";
@@ -398,12 +399,12 @@ export default function Graduates() {
       exportParams.ids = ids;
     }
     try {
-      const timestamp = new Date()
-        .toISOString()
-        .slice(0, 19)
-        .replace(/[:T]/g, "-");
       const selectedCount = ids?.length ?? 0;
-      const fileScope = selectedCount ? `selected_${selectedCount}_graduates` : Object.keys(exportParams).length ? `filtered_${total}_graduates` : `all_${total}_graduates`;
+      const scopeParts = selectedCount
+        ? ["selected", selectedCount, "records"]
+        : Object.keys(exportParams).length
+          ? ["filtered", total, "records"]
+          : ["all", total, "records"];
       if (format === "pdf") {
         const exportItems = ids?.length
           ? items.filter((item) => ids.includes(Number(item.id)))
@@ -414,7 +415,7 @@ export default function Graduates() {
           programNameById,
           regionNameById,
         });
-        const fileName = `alupla_graduates_${fileScope}_${timestamp}.pdf`;
+        const fileName = buildExportFilename("graduates", scopeParts, "pdf");
         downloadBlob(blob, fileName);
         await rememberDownload({
           blob,
@@ -459,7 +460,7 @@ export default function Graduates() {
         lang: activeLang,
       } satisfies RecentGraduateRequest;
       const blob = await exportGraduatesFile(exportParams, format, activeLang);
-      const fileName = `alupla_graduates_${fileScope}_${timestamp}.${format}`;
+      const fileName = buildExportFilename("graduates", scopeParts, format);
       downloadBlob(blob, fileName);
       await rememberDownload({ blob, format, fileName, ids, request });
     } catch (error: any) {
@@ -473,7 +474,7 @@ export default function Graduates() {
         format,
         i18n.resolvedLanguage || i18n.language,
       );
-      downloadBlob(blob, `alupla_graduates_import_template.${format}`);
+      downloadBlob(blob, buildExportFilename("graduates", ["import", "template"], format, { timestamp: false }));
     } catch (error: any) {
       alert(error?.message ?? t("export.failed"));
     }

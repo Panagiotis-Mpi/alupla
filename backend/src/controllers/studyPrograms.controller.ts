@@ -7,6 +7,7 @@ import { StudyProgram } from "../models/StudyProgram";
 import { logAction } from "../services/log.service";
 import { normHeader } from "../utils/importUtils";
 import { hasPatchChanges, invalid, missing, parseId, readText } from "../utils/academicDataCrud";
+import { buildExportFilename } from "../utils/exportFilename";
 import {
   encodeUtf16WithBom,
   escapeDelimitedCell,
@@ -150,7 +151,7 @@ export async function downloadStudyProgramsTemplate(req: Request, res: Response,
       const csv = headers.map((row) => row.map((cell) => escapeDelimitedCell(cell)).join("\t")).join("\r\n");
       const buffer = encodeUtf16WithBom(csv);
       res.setHeader("Content-Type", "text/tab-separated-values; charset=utf-16le");
-      res.setHeader("Content-Disposition", 'attachment; filename="alupla_study_programs_import_template.csv"');
+      res.setHeader("Content-Disposition", `attachment; filename="${buildExportFilename("study_programs", ["import", "template"], "csv", { timestamp: false })}"`);
       return res.send(buffer);
     }
 
@@ -159,7 +160,7 @@ export async function downloadStudyProgramsTemplate(req: Request, res: Response,
     XLSX.utils.book_append_sheet(wb, ws, "study_programs_template");
     const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    res.setHeader("Content-Disposition", 'attachment; filename="alupla_study_programs_import_template.xlsx"');
+    res.setHeader("Content-Disposition", `attachment; filename="${buildExportFilename("study_programs", ["import", "template"], "xlsx", { timestamp: false })}"`);
     return res.send(buffer);
   } catch (error) {
     next(error);

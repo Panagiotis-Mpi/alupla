@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { downloadBlob } from "../lib/download";
+import { buildExportFilename } from "../lib/exportFilenames";
 import Icon from "../components/Icon";
 import fileSpreadsheetIcon from "../assets/icons/file-spreadsheet.svg";
 import historyIcon from "../assets/icons/history.svg";
@@ -252,9 +253,8 @@ export default function Logs() {
         },
         activeLang
       );
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-      const scope = Object.values(requestFilters).some((value) => value !== undefined && value !== null && value !== "") ? `filtered_${totalItems}_logs` : `all_${totalItems}_logs`;
-      await downloadBlob(blob, `alupla_system_logs_${scope}_${timestamp}.${format}`);
+      const scope = Object.values(requestFilters).some((value) => value !== undefined && value !== null && value !== "") ? "filtered" : "all";
+      await downloadBlob(blob, buildExportFilename("logs", [scope, totalItems, "records"], format));
     } catch (e: any) {
       setErr(e?.message ?? t("errorDefault", { ns: "common", defaultValue: "Κάτι πήγε στραβά" }));
     } finally {

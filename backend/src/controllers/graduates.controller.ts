@@ -35,6 +35,7 @@ import {
 import { clearRouteCaches } from "../utils/routeCache";
 import { clearPublicStatsCache } from "./public.controller";
 import { sanitizeExportRows } from "../utils/exportSafety";
+import { buildExportFilename } from "../utils/exportFilename";
 import {
   getLocalizedNamesForGraduates,
   serializeGraduateRows,
@@ -51,6 +52,11 @@ import {
   prepareGraduateImportRows,
   savePreparedGraduateImportRows,
 } from "../services/graduateImport.service";
+
+function hasGraduateExportFilters(source: Record<string, unknown>) {
+  const ignored = new Set(["format", "lang", "limit", "page", "pageSize", "sort", "ids"]);
+  return Object.entries(source).some(([key, value]) => !ignored.has(key) && value !== undefined && value !== null && String(value).trim() !== "");
+}
 
 // GET /graduates: επιστρέφει λίστα αποφοίτων, με φίλτρα, ταξινόμηση και προαιρετικό pagination.
 export async function listGraduates(
@@ -160,7 +166,12 @@ export async function exportGraduates(
       },
     });
 
-    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    const sourceFilters = source as Record<string, unknown>;
+    const scopeParts = ids.length
+      ? ["selected", data.length, "records"]
+      : hasGraduateExportFilters(sourceFilters)
+        ? ["filtered", data.length, "records"]
+        : ["all", data.length, "records"];
     if (format === "csv") {
       const csv = buildDelimitedText(data, "\t");
       const buf = buildUtf16CsvBuffer(csv);
@@ -170,7 +181,7 @@ export async function exportGraduates(
       );
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="alupla_graduates_export_${ts}.csv"`,
+        `attachment; filename="${buildExportFilename("graduates", scopeParts, "csv")}"`,
       );
       return res.send(buf);
     }
@@ -187,7 +198,7 @@ export async function exportGraduates(
     );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="alupla_graduates_export_${ts}.xlsx"`,
+      `attachment; filename="${buildExportFilename("graduates", scopeParts, "xlsx")}"`,
     );
     return res.send(buf);
   } catch (err) {
@@ -247,7 +258,7 @@ export async function exportGraduatesImportTemplate(
       );
       res.setHeader(
         "Content-Disposition",
-        'attachment; filename="alupla_graduates_import_template.csv"',
+        `attachment; filename="${buildExportFilename("graduates", ["import", "template"], "csv", { timestamp: false })}"`,
       );
       return res.send(buf);
     }
@@ -264,7 +275,7 @@ export async function exportGraduatesImportTemplate(
     );
     res.setHeader(
       "Content-Disposition",
-      'attachment; filename="alupla_graduates_import_template.xlsx"',
+      `attachment; filename="${buildExportFilename("graduates", ["import", "template"], "xlsx", { timestamp: false })}"`,
     );
     return res.send(buf);
   } catch (err) {

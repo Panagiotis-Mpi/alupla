@@ -11,6 +11,7 @@ import {
 import { compareSortValues, sortIndicator } from "./shared/sorting";
 import Icon from "../components/Icon";
 import { downloadBlob } from "../lib/download";
+import { buildExportFilename } from "../lib/exportFilenames";
 import userIcon from "../assets/icons/user.svg";
 import usersIcon from "../assets/icons/users.svg";
 import fileSpreadsheetIcon from "../assets/icons/file-spreadsheet.svg";
@@ -225,10 +226,9 @@ export default function Users() {
         ? "en"
         : "gr";
       const blob = await exportUsersFile(format, lang);
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
       await downloadBlob(
         blob,
-        `alupla_users_all_${items.length}_users_${timestamp}.${format}`,
+        buildExportFilename("users", ["all", items.length, "records"], format),
       );
     } catch (e: any) {
       setErr(e?.message ?? t("error"));

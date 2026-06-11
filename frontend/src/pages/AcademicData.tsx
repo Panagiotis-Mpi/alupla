@@ -10,6 +10,7 @@ import {
   type StudyProgram,
 } from "../lib/api";
 import { downloadBlob } from "../lib/download";
+import { buildExportFilename } from "../lib/exportFilenames";
 import { compareSortText } from "./shared/sorting";
 import Icon from "../components/Icon";
 import arrowDownIcon from "../assets/icons/arrow-down-to-line.svg";
@@ -188,7 +189,7 @@ export default function AcademicData() {
   async function downloadTemplate() {
     try {
       const blob = await downloadStudyProgramsTemplateXlsx(lang);
-      downloadBlob(blob, "alupla_study_programs_import_template.xlsx");
+      downloadBlob(blob, buildExportFilename("study_programs", ["import", "template"], "xlsx", { timestamp: false }));
     } catch (error) {
       alert(errorText(error));
     }

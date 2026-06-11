@@ -27,6 +27,7 @@ import {
   nonEmptyString,
   toInteger,
 } from "./activityLogs.helpers";
+import { buildExportFilename } from "../utils/exportFilename";
 
 type LogWhere = Record<string | symbol, unknown>;
 type LogLanguage = "gr" | "en";
@@ -216,6 +217,13 @@ async function findLogsForExport(req: Request) {
   });
 }
 
+function hasLogExportFilters(req: Request) {
+  return ["user_id", "actor", "role", "action", "entity_type", "q"].some((key) => {
+    const value = req.query[key];
+    return value !== undefined && value !== null && String(value).trim() !== "" && !(key === "role" && String(value).trim().toLowerCase() === "all");
+  });
+}
+
 function getExportRows(lang: LogLanguage, rows: any[]) {
   return rows.map((row) => ({
     [lang === "en" ? "#" : "#"]: row.id,
@@ -268,10 +276,10 @@ export async function exportActivityLogsCsv(
       "Content-Type",
       "text/tab-separated-values; charset=utf-16le",
     );
-    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    const scope = hasLogExportFilters(req) ? "filtered" : "all";
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="alupla_system_logs_${rows.length}_logs_${ts}.csv"`,
+      `attachment; filename="${buildExportFilename("logs", [scope, rows.length, "records"], "csv")}"`,
     );
     res.send(buffer);
   } catch (error) {
@@ -305,10 +313,10 @@ export async function exportActivityLogsXlsx(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
-    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    const scope = hasLogExportFilters(req) ? "filtered" : "all";
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="alupla_system_logs_${rows.length}_logs_${ts}.xlsx"`,
+      `attachment; filename="${buildExportFilename("logs", [scope, rows.length, "records"], "xlsx")}"`,
     );
     res.send(buffer);
   } catch (error) {
