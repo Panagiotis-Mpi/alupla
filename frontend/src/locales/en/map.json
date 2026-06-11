@@ -48,7 +48,9 @@
     "selectionTitle": "Export category selection",
     "selectionSubtitle": "Choose which categories you want to download",
     "exportSelected": "Export selected",
-    "categoryColumn": "Category"
+    "categoryColumn": "Category",
+    "from": "From",
+    "to": "To"
   },
   "map": {
     "total": "Total: {{total}}"

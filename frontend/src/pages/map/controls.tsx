@@ -18,6 +18,8 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 type ExportCategoryOption = { id: ExportCategoryKey; label: string };
 type ExportScopeSelection = { category: ExportCategoryKey; scope: ExportScopeOption };
+type ExportYearRange = { from: string; to: string };
+type ExportCategoryRanges = Record<ExportCategoryKey, ExportYearRange>;
 
 export function MapTopControls(props: {
   mt: Translate;
@@ -255,10 +257,13 @@ export function MapExportSelectionModal(props: {
   exportCategoryOptions: ExportCategoryOption[];
   selectedExportSelections: ExportScopeSelection[];
   exportingSelection: boolean;
+  yearOptions: string[];
+  categoryRanges: ExportCategoryRanges;
   onClose: () => void;
   onToggleAllSelections: () => void;
   onToggleScopeSelection: (category: ExportCategoryKey, scope: ExportScopeOption) => void;
   onToggleCategorySelections: (category: ExportCategoryKey) => void;
+  onChangeCategoryRange: (category: ExportCategoryKey, field: keyof ExportYearRange, value: string) => void;
   onConfirm: () => void;
 }) {
   const scopeOptions: ExportScopeOption[] = ["greece", "abroad"];
@@ -294,6 +299,19 @@ export function MapExportSelectionModal(props: {
     margin: 0,
     flex: "0 0 auto",
     accentColor: "#2563eb",
+  };
+  const rangeLabelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: "#64748b", lineHeight: 1 };
+  const rangeSelectStyle: React.CSSProperties = {
+    minHeight: 30,
+    width: 78,
+    borderRadius: 9,
+    border: "1px solid rgba(148, 163, 184, 0.34)",
+    background: "#fff",
+    color: "#0f172a",
+    fontSize: 12,
+    fontWeight: 700,
+    padding: "0 7px",
+    outline: "none",
   };
 
   return (
@@ -348,17 +366,18 @@ export function MapExportSelectionModal(props: {
             const categorySelections = props.selectedExportSelections.filter((entry) => entry.category === category.id);
             const categoryChecked = categorySelections.length === scopeOptions.length;
             const categoryOpen = openCategories[category.id];
+            const range = props.categoryRanges[category.id];
 
             return (
               <div key={category.id} style={{ display: "grid", gap: categoryOpen ? 6 : 0, border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: 14, padding: 8, background: "rgba(248, 250, 252, 0.76)" }}>
-                <div style={{ ...selectionRowStyle, fontWeight: 700, padding: "0 10px" }}>
+                <div style={{ ...selectionRowStyle, fontWeight: 700, padding: "0 10px", flexWrap: "wrap", gap: 10 }}>
                   <input type="checkbox" style={selectionCheckboxStyle} checked={categoryChecked} onChange={() => props.onToggleCategorySelections(category.id)} />
                   <button
                     type="button"
                     onClick={() => toggleCategoryOpen(category.id)}
                     aria-expanded={categoryOpen}
                     style={{
-                      flex: "1 1 auto",
+                      flex: "1 1 180px",
                       minHeight: 40,
                       minWidth: 0,
                       border: 0,
@@ -378,6 +397,32 @@ export function MapExportSelectionModal(props: {
                     <span>{category.label}</span>
                     <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>{categoryOpen ? "⌃" : "⌄"}</span>
                   </button>
+                  {props.yearOptions.length ? (
+                    <div onClick={(event) => event.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, flex: "0 0 auto", marginLeft: "auto" }}>
+                      <label style={{ display: "grid", gap: 3 }}>
+                        <span style={rangeLabelStyle}>{props.mt("export.from", { defaultValue: "Από" })}</span>
+                        <select
+                          value={range.from}
+                          onChange={(event) => props.onChangeCategoryRange(category.id, "from", event.target.value)}
+                          style={rangeSelectStyle}
+                          aria-label={`${category.label} ${props.mt("export.from", { defaultValue: "Από" })}`}
+                        >
+                          {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+                        </select>
+                      </label>
+                      <label style={{ display: "grid", gap: 3 }}>
+                        <span style={rangeLabelStyle}>{props.mt("export.to", { defaultValue: "Έως" })}</span>
+                        <select
+                          value={range.to}
+                          onChange={(event) => props.onChangeCategoryRange(category.id, "to", event.target.value)}
+                          style={rangeSelectStyle}
+                          aria-label={`${category.label} ${props.mt("export.to", { defaultValue: "Έως" })}`}
+                        >
+                          {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+                        </select>
+                      </label>
+                    </div>
+                  ) : null}
                 </div>
                 {categoryOpen ? (
                   <div style={{ display: "grid", gap: 6 }}>

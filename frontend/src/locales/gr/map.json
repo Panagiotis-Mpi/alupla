@@ -48,7 +48,9 @@
     "selectionTitle": "Επιλογή κατηγοριών εξαγωγής",
     "selectionSubtitle": "Επίλεξε ποιες κατηγορίες θέλεις να κατεβάσεις",
     "exportSelected": "Εξαγωγή επιλεγμένων",
-    "categoryColumn": "Κατηγορία"
+    "categoryColumn": "Κατηγορία",
+    "from": "Από",
+    "to": "Έως"
   },
   "map": {
     "total": "Σύνολο: {{total}}"

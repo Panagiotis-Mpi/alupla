@@ -67,6 +67,8 @@ import {
 type ExportFormat = "png";
 type ExportCategoryKey = MapMetric;
 type ExportScopeSelection = { category: ExportCategoryKey; scope: MapScope };
+type ExportYearRange = { from: string; to: string };
+type ExportCategoryRanges = Record<ExportCategoryKey, ExportYearRange>;
 
 export default function GraduatesMapPage() {
   const { t, i18n } = useTranslation(["map", "common"]);
@@ -89,6 +91,8 @@ export default function GraduatesMapPage() {
   const scopeTransitionLoadingRef = useRef(false);
   const metricTransitionLoadingRef = useRef(false);
   const mapViewSettleTimerRef = useRef<number | null>(null);
+  const selectedGraduationYearStartRef = useRef("");
+  const selectedGraduationYearEndRef = useRef("");
 
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
   const [mapScope, setMapScope] = useState<MapScope>("greece");
@@ -99,6 +103,11 @@ export default function GraduatesMapPage() {
   const [selectedExportSelections, setSelectedExportSelections] = useState<
     ExportScopeSelection[]
   >([]);
+  const [exportCategoryRanges, setExportCategoryRanges] =
+    useState<ExportCategoryRanges>({
+      count: { from: "", to: "" },
+      dominant_gender: { from: "", to: "" },
+    });
   const [exportingSelection, setExportingSelection] = useState(false);
   const [mapZoom, setMapZoom] = useState(6.5);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
@@ -244,6 +253,14 @@ export default function GraduatesMapPage() {
   useEffect(() => {
     loadingRef.current = loading;
   }, [loading]);
+
+  useEffect(() => {
+    selectedGraduationYearStartRef.current = selectedGraduationYearStart;
+  }, [selectedGraduationYearStart]);
+
+  useEffect(() => {
+    selectedGraduationYearEndRef.current = selectedGraduationYearEnd;
+  }, [selectedGraduationYearEnd]);
 
   useEffect(() => {
     scopeTransitionLoadingRef.current = scopeTransitionLoading;
@@ -956,16 +973,22 @@ export default function GraduatesMapPage() {
   async function waitForExportTarget(
     targetScope: MapScope,
     targetMetric: MapMetric,
+    targetRange?: ExportYearRange,
   ) {
     const startedAt = Date.now();
     while (Date.now() - startedAt < 12000) {
       const scopeReady = mapScopeRef.current === targetScope;
       const metricReady = mapMetricRef.current === targetMetric;
+      const rangeReady =
+        !targetRange?.from ||
+        !targetRange?.to ||
+        (selectedGraduationYearStartRef.current === targetRange.from &&
+          selectedGraduationYearEndRef.current === targetRange.to);
       const loadingReady =
         !loadingRef.current &&
         !scopeTransitionLoadingRef.current &&
         !metricTransitionLoadingRef.current;
-      if (scopeReady && metricReady && loadingReady) {
+      if (scopeReady && metricReady && rangeReady && loadingReady) {
         await waitForMapFrame(mapRef);
         await new Promise((resolve) => window.setTimeout(resolve, 220));
         await waitForMapFrame(mapRef);
@@ -976,15 +999,77 @@ export default function GraduatesMapPage() {
     await waitForMapFrame(mapRef);
   }
 
-  function metricFilenameBase(metric: MapMetric, scope = mapScope) {
+  const exportYearOptions = useMemo(
+    () =>
+      Array.from(new Set(availableYears))
+        .sort((left, right) => left - right)
+        .map((year) => String(year)),
+    [availableYears],
+  );
+
+  const defaultExportCategoryRanges = useCallback((): ExportCategoryRanges => {
+    const first = exportYearOptions[0] ?? "";
+    const last = exportYearOptions[exportYearOptions.length - 1] ?? first;
+    return {
+      count: { from: first, to: last },
+      dominant_gender: { from: first, to: last },
+    };
+  }, [exportYearOptions]);
+
+  useEffect(() => {
+    if (!exportYearOptions.length) return;
+    setExportCategoryRanges((current) => {
+      const defaults = defaultExportCategoryRanges();
+      const valid = new Set(exportYearOptions);
+      return {
+        count: {
+          from: valid.has(current.count.from) ? current.count.from : defaults.count.from,
+          to: valid.has(current.count.to) ? current.count.to : defaults.count.to,
+        },
+        dominant_gender: {
+          from: valid.has(current.dominant_gender.from) ? current.dominant_gender.from : defaults.dominant_gender.from,
+          to: valid.has(current.dominant_gender.to) ? current.dominant_gender.to : defaults.dominant_gender.to,
+        },
+      };
+    });
+  }, [defaultExportCategoryRanges, exportYearOptions]);
+
+  function normalizedExportCategoryRange(category: ExportCategoryKey) {
+    const range = exportCategoryRanges[category] ?? defaultExportCategoryRanges()[category];
+    const from = Number(range.from);
+    const to = Number(range.to);
+    if (!Number.isFinite(from) || !Number.isFinite(to)) return { from: range.from, to: range.to };
+    return { from: String(Math.min(from, to)), to: String(Math.max(from, to)) };
+  }
+
+  function changeExportCategoryRange(category: ExportCategoryKey, field: keyof ExportYearRange, value: string) {
+    setExportCategoryRanges((current) => ({
+      ...current,
+      [category]: {
+        ...current[category],
+        [field]: value,
+      },
+    }));
+  }
+
+  function exportRangeLabel(range: ExportYearRange) {
+    if (!range.from || !range.to) {
+      return mt("timeline.allYears", { defaultValue: "Όλες οι χρονιές" });
+    }
+    return range.from === range.to ? range.from : `${range.from} - ${range.to}`;
+  }
+
+  function metricFilenameBase(metric: MapMetric, scope = mapScope, range?: ExportYearRange) {
     const metricName = metric === "dominant_gender" ? "gender_geo_distribution" : "graduate_count";
     const scopeName = scope === "abroad" ? "abroad" : "greece";
     const parts = ["alupla", "map", scopeName, metricName];
-    if (selectedGraduationYearStart && selectedGraduationYearEnd) {
+    const startYear = range?.from ?? selectedGraduationYearStart;
+    const endYear = range?.to ?? selectedGraduationYearEnd;
+    if (startYear && endYear) {
       parts.push(
-        selectedGraduationYearStart === selectedGraduationYearEnd
-          ? `year_${selectedGraduationYearStart}`
-          : `years_${selectedGraduationYearStart}-${selectedGraduationYearEnd}`,
+        startYear === endYear
+          ? `year_${startYear}`
+          : `years_${startYear}-${endYear}`,
       );
     }
     return parts.map((part) => slugPart(part)).filter(Boolean).join("_");
@@ -992,6 +1077,7 @@ export default function GraduatesMapPage() {
 
   function openExportSelection(format: ExportFormat = "png") {
     setSelectedExportSelections([]);
+    setExportCategoryRanges(defaultExportCategoryRanges());
     setSelectedExportFormat(format);
   }
 
@@ -1128,6 +1214,8 @@ export default function GraduatesMapPage() {
     const previousScope = mapScope;
     const previousSelected = selected;
     const previousSelectedCityCards = selectedCityCards;
+    const previousStartYear = selectedGraduationYearStartRef.current;
+    const previousEndYear = selectedGraduationYearEndRef.current;
 
     setSelected(null);
     setSelectedCityCards([]);
@@ -1135,9 +1223,14 @@ export default function GraduatesMapPage() {
 
     try {
       for (const selection of selectedExportSelections) {
+        const range = normalizedExportCategoryRange(selection.category);
+        if (range.from && range.to) {
+          setSelectedGraduationYearStart(range.from);
+          setSelectedGraduationYearEnd(range.to);
+        }
         setMapScope(selection.scope);
         setMapMetric(selection.category);
-        await waitForExportTarget(selection.scope, selection.category);
+        await waitForExportTarget(selection.scope, selection.category, range);
         if (!mapCanvasRef.current) continue;
         const snapshot = await renderMapSnapshot(mapCanvasRef.current);
         const scopeLabel =
@@ -1147,15 +1240,18 @@ export default function GraduatesMapPage() {
         const option = exportCategoryOptions.find(
           (item) => item.id === selection.category,
         );
+        const selectedRangeLabel = exportRangeLabel(range);
         await exportCombinedSnapshots(
-          `${metricFilenameBase(selection.category, selection.scope)}.png`,
-          `${option?.label || selection.category} · ${scopeLabel}`,
-          [{ ...snapshot, caption: scopeLabel }],
+          `${metricFilenameBase(selection.category, selection.scope, range)}.png`,
+          `${option?.label || selection.category} · ${scopeLabel} · ${selectedRangeLabel}`,
+          [{ ...snapshot, caption: `${scopeLabel} · ${selectedRangeLabel}` }],
         );
       }
     } finally {
       setMapScope(previousScope);
       setMapMetric(previousMetric);
+      setSelectedGraduationYearStart(previousStartYear);
+      setSelectedGraduationYearEnd(previousEndYear);
       setSelected(previousSelected);
       setSelectedCityCards(previousSelectedCityCards);
       await waitForMapFrame(mapRef);
@@ -1777,10 +1873,13 @@ export default function GraduatesMapPage() {
           exportCategoryOptions={exportCategoryOptions}
           selectedExportSelections={selectedExportSelections}
           exportingSelection={exportingSelection}
+          yearOptions={exportYearOptions}
+          categoryRanges={exportCategoryRanges}
           onClose={closeExportSelection}
           onToggleAllSelections={toggleAllExportSelections}
           onToggleScopeSelection={toggleExportScopeSelection}
           onToggleCategorySelections={toggleExportCategorySelections}
+          onChangeCategoryRange={changeExportCategoryRange}
           onConfirm={() => void handleExportSelection()}
         />
       ) : null}
