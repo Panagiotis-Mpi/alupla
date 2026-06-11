@@ -333,7 +333,9 @@ export function MapExportSelectionModal(props: {
         className="card"
         onClick={(event) => event.stopPropagation()}
         style={{
-          width: "min(640px, 100%)",
+          width: "fit-content",
+          maxWidth: "calc(100vw - 32px)",
+          minWidth: "min(400px, calc(100vw - 32px))",
           maxHeight: "min(68vh, 620px)",
           minHeight: 0,
           height: "auto",
@@ -356,7 +358,7 @@ export function MapExportSelectionModal(props: {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 8, alignContent: "start", overflowY: "auto", maxHeight: "min(52vh, 500px)", minHeight: 0, paddingRight: 4 }}>
+        <div style={{ display: "grid", gap: 8, alignContent: "start", overflowY: "auto", maxHeight: "min(52vh, 500px)", minHeight: 0, paddingRight: 4, minWidth: 0 }}>
           <label style={{ ...selectionRowStyle, fontWeight: 700 }}>
             <input type="checkbox" style={selectionCheckboxStyle} checked={allSelected} onChange={props.onToggleAllSelections} />
             <span>{props.ct("all", { defaultValue: "Όλα" })}</span>
@@ -377,7 +379,7 @@ export function MapExportSelectionModal(props: {
                     onClick={() => toggleCategoryOpen(category.id)}
                     aria-expanded={categoryOpen}
                     style={{
-                      flex: "1 1 180px",
+                      flex: "0 1 auto",
                       minHeight: 40,
                       minWidth: 0,
                       border: 0,
@@ -385,7 +387,7 @@ export function MapExportSelectionModal(props: {
                       color: "inherit",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "space-between",
+                      justifyContent: "flex-start",
                       gap: 10,
                       padding: 0,
                       font: "inherit",
@@ -395,10 +397,10 @@ export function MapExportSelectionModal(props: {
                     }}
                   >
                     <span>{category.label}</span>
-                    <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>{categoryOpen ? "⌃" : "⌄"}</span>
+                    <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1, marginLeft: 4 }}>{categoryOpen ? "⌃" : "⌄"}</span>
                   </button>
                   {props.yearOptions.length ? (
-                    <div onClick={(event) => event.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, flex: "0 0 auto", marginLeft: "auto" }}>
+                    <div onClick={(event) => event.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, flex: "0 0 auto", marginLeft: 4, flexWrap: "wrap" }}>
                       <label style={{ display: "grid", gap: 3 }}>
                         <span style={rangeLabelStyle}>{props.mt("export.from", { defaultValue: "Από" })}</span>
                         <select

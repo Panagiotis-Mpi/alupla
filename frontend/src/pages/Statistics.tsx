@@ -56,6 +56,7 @@ const cardInnerStyle = { minWidth: 0 };
 type StatisticsDataGroupKey = "demographics" | "academic" | "geography";
 type StatisticsGroupKey = StatisticsDataGroupKey | "compare";
 type ExportGroupRange = { from: string; to: string };
+type ExportCompareRanges = { a: ExportGroupRange; b: ExportGroupRange };
 type ExportGroupRanges = Record<StatisticsGroupKey, ExportGroupRange>;
 const compactTopbarStyle: React.CSSProperties = { marginBottom: 12, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 };
 
@@ -149,6 +150,10 @@ export default function Statistics() {
     academic: { from: "", to: "" },
     geography: { from: "", to: "" },
     compare: { from: "", to: "" },
+  });
+  const [exportCompareRanges, setExportCompareRanges] = React.useState<ExportCompareRanges>({
+    a: { from: "", to: "" },
+    b: { from: "", to: "" },
   });
   const [exportPreviewData, setExportPreviewData] = React.useState<any | null>(null);
 
@@ -517,23 +522,24 @@ export default function Statistics() {
     setCompareBEnd((current) => compareYearOptions.includes(current) ? current : last);
   }, [compareYearOptions]);
 
-  const compareStats = React.useCallback((startValue: string, endValue: string) => {
+  const compareStatsFromData = React.useCallback((sourceData: any, startValue: string, endValue: string) => {
     const start = Number(startValue);
     const end = Number(endValue);
     const min = Math.min(start, end);
     const max = Math.max(start, end);
-    const yearRows = byYearRows.filter((row) => {
+    const sourceByYearRows = ((sourceData?.by_year ?? []) as NamedCountRow[]).map((row) => ({ label: String(row.year ?? "-"), value: Number(row.count ?? 0) }));
+    const yearRows = sourceByYearRows.filter((row) => {
       const year = Number(row.label);
       return Number.isFinite(year) && year >= min && year <= max;
     });
     const totalValue = yearRows.reduce((sum, row) => sum + Number(row.value ?? 0), 0);
     const yearSet = new Set(yearRows.map((row) => row.label));
-    const genderRows = ((data?.gender_by_year ?? []) as NamedCountRow[]).filter((row) => yearSet.has(String(row.year ?? "")));
+    const genderRows = ((sourceData?.gender_by_year ?? []) as NamedCountRow[]).filter((row) => yearSet.has(String(row.year ?? "")));
     const maleValue = genderRows.reduce((sum, row) => sum + Number(row.male ?? 0), 0);
     const femaleValue = genderRows.reduce((sum, row) => sum + Number(row.female ?? 0), 0);
-    const abroadRows = ((data?.abroad_by_year ?? []) as any[]).filter((row) => yearSet.has(String(row.year ?? "")));
+    const abroadRows = ((sourceData?.abroad_by_year ?? []) as any[]).filter((row) => yearSet.has(String(row.year ?? "")));
     const abroadValue = abroadRows.reduce((sum, row) => sum + Number(row.abroad ?? 0), 0);
-    const avgGradeRows = ((data?.avg_grade_by_year ?? []) as NamedCountRow[]).filter((row) => yearSet.has(String(row.year ?? "")));
+    const avgGradeRows = ((sourceData?.avg_grade_by_year ?? []) as NamedCountRow[]).filter((row) => yearSet.has(String(row.year ?? "")));
     const avgGradeWeighted = avgGradeRows.reduce((sum, row) => {
       const count = Number(yearRows.find((item) => item.label === String(row.year ?? ""))?.value ?? 0);
       return sum + Number(row.avg ?? 0) * count;
@@ -558,11 +564,14 @@ export default function Statistics() {
       femaleShare: share(femaleValue),
       abroadShare: share(abroadValue),
     };
-  }, [byYearRows, data]);
+  }, []);
+
+  const compareStats = React.useCallback((startValue: string, endValue: string) => compareStatsFromData(data, startValue, endValue), [compareStatsFromData, data]);
 
   const compareA = React.useMemo(() => compareStats(compareAStart, compareAEnd), [compareAEnd, compareAStart, compareStats]);
   const compareB = React.useMemo(() => compareStats(compareBStart, compareBEnd), [compareBEnd, compareBStart, compareStats]);
-  const compareDelta = React.useMemo(() => {
+
+  const buildCompareRows = React.useCallback((firstRange: any, secondRange: any) => {
     const percent = (value: number, base: number) => base > 0 ? `${(((value - base) / base) * 100).toFixed(1)}%` : "-";
     const plainDelta = (nextValue: number | string, previousValue: number | string, digits = 1) => {
       const nextNumber = Number(nextValue);
@@ -572,40 +581,41 @@ export default function Statistics() {
       return { value: `${difference >= 0 ? "+" : ""}${difference.toFixed(digits)}`, amount: difference };
     };
     const genderPercent = (value: number, totalValue: number) => totalValue > 0 ? (value / totalValue) * 100 : 0;
-    const maleShareDifference = genderPercent(compareB.male, compareB.total) - genderPercent(compareA.male, compareA.total);
-    const femaleShareDifference = genderPercent(compareB.female, compareB.total) - genderPercent(compareA.female, compareA.total);
-    const abroadShareDifference = genderPercent(compareB.abroad, compareB.total) - genderPercent(compareA.abroad, compareA.total);
-    return {
-      total: compareB.total - compareA.total,
-      totalPercent: percent(compareB.total, compareA.total),
-      annualAverage: plainDelta(compareB.annualAverage, compareA.annualAverage),
-      avgGrade: plainDelta(compareB.avgGrade, compareA.avgGrade, 2),
-      gender: `${compareB.male - compareA.male >= 0 ? "+" : ""}${compareB.male - compareA.male} / ${compareB.female - compareA.female >= 0 ? "+" : ""}${compareB.female - compareA.female}`,
-      genderAmount: compareB.total - compareA.total,
-      greece: `${compareB.greece - compareA.greece >= 0 ? "+" : ""}${compareB.greece - compareA.greece} (${percent(compareB.greece, compareA.greece)})`,
-      greeceAmount: compareB.greece - compareA.greece,
+    const maleShareDifference = genderPercent(secondRange.male, secondRange.total) - genderPercent(firstRange.male, firstRange.total);
+    const femaleShareDifference = genderPercent(secondRange.female, secondRange.total) - genderPercent(firstRange.female, firstRange.total);
+    const abroadShareDifference = genderPercent(secondRange.abroad, secondRange.total) - genderPercent(firstRange.abroad, firstRange.total);
+    const delta = {
+      total: secondRange.total - firstRange.total,
+      totalPercent: percent(secondRange.total, firstRange.total),
+      annualAverage: plainDelta(secondRange.annualAverage, firstRange.annualAverage),
+      avgGrade: plainDelta(secondRange.avgGrade, firstRange.avgGrade, 2),
+      greece: `${secondRange.greece - firstRange.greece >= 0 ? "+" : ""}${secondRange.greece - firstRange.greece} (${percent(secondRange.greece, firstRange.greece)})`,
+      greeceAmount: secondRange.greece - firstRange.greece,
       male: `${maleShareDifference >= 0 ? "+" : ""}${maleShareDifference.toFixed(1)}%`,
       maleAmount: maleShareDifference,
       female: `${femaleShareDifference >= 0 ? "+" : ""}${femaleShareDifference.toFixed(1)}%`,
       femaleAmount: femaleShareDifference,
       abroad: `${abroadShareDifference >= 0 ? "+" : ""}${abroadShareDifference.toFixed(1)}%`,
       abroadAmount: abroadShareDifference,
-      topYear: plainDelta(compareB.topYear, compareA.topYear, 0),
-      yearsCount: plainDelta(compareB.yearsCount, compareA.yearsCount, 0),
     };
-  }, [compareA, compareB]);
 
-  const compareRows = React.useMemo(() => [
-    { key: "total", label: t("compare.total"), a: String(compareA.total), b: String(compareB.total), aValue: compareA.total, bValue: compareB.total, deltaLabel: t("compare.totalChange"), delta: `${compareDelta.total >= 0 ? "+" : ""}${compareDelta.total} (${compareDelta.totalPercent})`, direction: compareDelta.total },
-    { key: "annualAverage", label: t("compare.annualAverage"), a: String(compareA.annualAverage), b: String(compareB.annualAverage), aValue: Number(compareA.annualAverage), bValue: Number(compareB.annualAverage), deltaLabel: t("compare.annualAverageChange"), delta: compareDelta.annualAverage.value, direction: compareDelta.annualAverage.amount },
-    { key: "avgGrade", label: t("compare.avgGrade"), a: String(compareA.avgGrade), b: String(compareB.avgGrade), aValue: Number(compareA.avgGrade), bValue: Number(compareB.avgGrade), deltaLabel: t("compare.avgGradeChange"), delta: compareDelta.avgGrade.value, direction: compareDelta.avgGrade.amount },
-    { key: "male", label: t("compare.male"), a: String(compareA.male), b: String(compareB.male), aValue: compareA.male, bValue: compareB.male, deltaLabel: t("compare.maleChange"), delta: `${compareB.male - compareA.male >= 0 ? "+" : ""}${compareB.male - compareA.male}`, direction: compareB.male - compareA.male },
-    { key: "female", label: t("compare.female"), a: String(compareA.female), b: String(compareB.female), aValue: compareA.female, bValue: compareB.female, deltaLabel: t("compare.femaleChange"), delta: `${compareB.female - compareA.female >= 0 ? "+" : ""}${compareB.female - compareA.female}`, direction: compareB.female - compareA.female },
-    { key: "maleShare", label: t("compare.maleShare"), a: compareA.maleShare, b: compareB.maleShare, aValue: Number(String(compareA.maleShare).replace("%", "")), bValue: Number(String(compareB.maleShare).replace("%", "")), deltaLabel: t("compare.maleShareChange"), delta: compareDelta.male, direction: compareDelta.maleAmount },
-    { key: "femaleShare", label: t("compare.femaleShare"), a: compareA.femaleShare, b: compareB.femaleShare, aValue: Number(String(compareA.femaleShare).replace("%", "")), bValue: Number(String(compareB.femaleShare).replace("%", "")), deltaLabel: t("compare.femaleShareChange"), delta: compareDelta.female, direction: compareDelta.femaleAmount },
-    { key: "greece", label: t("compare.greece"), a: String(compareA.greece), b: String(compareB.greece), aValue: compareA.greece, bValue: compareB.greece, deltaLabel: t("compare.greeceChange"), delta: compareDelta.greece, direction: compareDelta.greeceAmount },
-    { key: "abroad", label: t("compare.abroad"), a: `${compareA.abroad} (${compareA.abroadShare})`, b: `${compareB.abroad} (${compareB.abroadShare})`, aValue: compareA.abroad, bValue: compareB.abroad, deltaLabel: t("compare.abroadShareChange"), delta: compareDelta.abroad, direction: compareDelta.abroadAmount },
-  ], [compareA, compareB, compareDelta, t]);
+    return [
+      { key: "total", label: t("compare.total"), a: String(firstRange.total), b: String(secondRange.total), aValue: firstRange.total, bValue: secondRange.total, deltaLabel: t("compare.totalChange"), delta: `${delta.total >= 0 ? "+" : ""}${delta.total} (${delta.totalPercent})`, direction: delta.total },
+      { key: "annualAverage", label: t("compare.annualAverage"), a: String(firstRange.annualAverage), b: String(secondRange.annualAverage), aValue: Number(firstRange.annualAverage), bValue: Number(secondRange.annualAverage), deltaLabel: t("compare.annualAverageChange"), delta: delta.annualAverage.value, direction: delta.annualAverage.amount },
+      { key: "avgGrade", label: t("compare.avgGrade"), a: String(firstRange.avgGrade), b: String(secondRange.avgGrade), aValue: Number(firstRange.avgGrade), bValue: Number(secondRange.avgGrade), deltaLabel: t("compare.avgGradeChange"), delta: delta.avgGrade.value, direction: delta.avgGrade.amount },
+      { key: "male", label: t("compare.male"), a: String(firstRange.male), b: String(secondRange.male), aValue: firstRange.male, bValue: secondRange.male, deltaLabel: t("compare.maleChange"), delta: `${secondRange.male - firstRange.male >= 0 ? "+" : ""}${secondRange.male - firstRange.male}`, direction: secondRange.male - firstRange.male },
+      { key: "female", label: t("compare.female"), a: String(firstRange.female), b: String(secondRange.female), aValue: firstRange.female, bValue: secondRange.female, deltaLabel: t("compare.femaleChange"), delta: `${secondRange.female - firstRange.female >= 0 ? "+" : ""}${secondRange.female - firstRange.female}`, direction: secondRange.female - firstRange.female },
+      { key: "maleShare", label: t("compare.maleShare"), a: firstRange.maleShare, b: secondRange.maleShare, aValue: Number(String(firstRange.maleShare).replace("%", "")), bValue: Number(String(secondRange.maleShare).replace("%", "")), deltaLabel: t("compare.maleShareChange"), delta: delta.male, direction: delta.maleAmount },
+      { key: "femaleShare", label: t("compare.femaleShare"), a: firstRange.femaleShare, b: secondRange.femaleShare, aValue: Number(String(firstRange.femaleShare).replace("%", "")), bValue: Number(String(secondRange.femaleShare).replace("%", "")), deltaLabel: t("compare.femaleShareChange"), delta: delta.female, direction: delta.femaleAmount },
+      { key: "greece", label: t("compare.greece"), a: String(firstRange.greece), b: String(secondRange.greece), aValue: firstRange.greece, bValue: secondRange.greece, deltaLabel: t("compare.greeceChange"), delta: delta.greece, direction: delta.greeceAmount },
+      { key: "abroad", label: t("compare.abroad"), a: `${firstRange.abroad} (${firstRange.abroadShare})`, b: `${secondRange.abroad} (${secondRange.abroadShare})`, aValue: firstRange.abroad, bValue: secondRange.abroad, deltaLabel: t("compare.abroadShareChange"), delta: delta.abroad, direction: delta.abroadAmount },
+    ];
+  }, [t]);
+
+  const compareRows = React.useMemo(() => buildCompareRows(compareA, compareB), [buildCompareRows, compareA, compareB]);
+  const exportCompareA = React.useMemo(() => compareStats(exportCompareRanges.a.from, exportCompareRanges.a.to), [compareStats, exportCompareRanges.a.from, exportCompareRanges.a.to]);
+  const exportCompareB = React.useMemo(() => compareStats(exportCompareRanges.b.from, exportCompareRanges.b.to), [compareStats, exportCompareRanges.b.from, exportCompareRanges.b.to]);
+  const exportCompareRows = React.useMemo(() => buildCompareRows(exportCompareA, exportCompareB), [buildCompareRows, exportCompareA, exportCompareB]);
 
   const compareSelect = React.useCallback((value: string, onChange: (value: string) => void) => (
     <select value={value} onChange={(event) => onChange(event.target.value)}>
@@ -737,6 +747,18 @@ export default function Statistics() {
     };
   }, [compareYearOptions]);
 
+  const defaultExportCompareRanges = React.useCallback((): ExportCompareRanges => {
+    const first = compareYearOptions[0] ?? "";
+    const last = compareYearOptions[compareYearOptions.length - 1] ?? first;
+    const middleIndex = Math.max(0, Math.floor((compareYearOptions.length - 1) / 2));
+    const middle = compareYearOptions[middleIndex] ?? first;
+    const afterMiddle = compareYearOptions[Math.min(compareYearOptions.length - 1, middleIndex + 1)] ?? middle;
+    return {
+      a: { from: first, to: middle },
+      b: { from: afterMiddle, to: last },
+    };
+  }, [compareYearOptions]);
+
   React.useEffect(() => {
     if (!compareYearOptions.length) return;
     setExportGroupRanges((current) => {
@@ -752,13 +774,37 @@ export default function Statistics() {
       });
       return next;
     });
-  }, [compareYearOptions, defaultExportRanges]);
+    setExportCompareRanges((current) => {
+      const defaults = defaultExportCompareRanges();
+      const valid = new Set(compareYearOptions);
+      return {
+        a: {
+          from: valid.has(current.a.from) ? current.a.from : defaults.a.from,
+          to: valid.has(current.a.to) ? current.a.to : defaults.a.to,
+        },
+        b: {
+          from: valid.has(current.b.from) ? current.b.from : defaults.b.from,
+          to: valid.has(current.b.to) ? current.b.to : defaults.b.to,
+        },
+      };
+    });
+  }, [compareYearOptions, defaultExportCompareRanges, defaultExportRanges]);
 
   function changeExportGroupRange(groupKey: StatisticsGroupKey, field: keyof ExportGroupRange, value: string) {
     setExportGroupRanges((current) => ({
       ...current,
       [groupKey]: {
         ...current[groupKey],
+        [field]: value,
+      },
+    }));
+  }
+
+  function changeExportCompareRange(period: keyof ExportCompareRanges, field: keyof ExportGroupRange, value: string) {
+    setExportCompareRanges((current) => ({
+      ...current,
+      [period]: {
+        ...current[period],
         [field]: value,
       },
     }));
@@ -781,9 +827,9 @@ export default function Statistics() {
     };
   }
 
-  function compareFileRange() {
-    const left = String(compareA.range || "").replace(/\s+/g, "");
-    const right = String(compareB.range || "").replace(/\s+/g, "");
+  function compareFileRange(firstRange = exportCompareA, secondRange = exportCompareB) {
+    const left = String(firstRange.range || "").replace(/\s+/g, "");
+    const right = String(secondRange.range || "").replace(/\s+/g, "");
     return left && right ? `${left}_vs_${right}` : left || right || undefined;
   }
 
@@ -795,6 +841,7 @@ export default function Statistics() {
     setSelectedChartIds([]);
     setExportPreviewData(null);
     setExportGroupRanges(defaultExportRanges());
+    setExportCompareRanges(defaultExportCompareRanges());
     setSelectedExportFormat(format);
     setExportOpen(false);
   }
@@ -825,18 +872,23 @@ export default function Statistics() {
       busiestCity: sourceBusiestCity,
       selectedChartIds,
       exportRanges: selectedExportRanges(),
-      compareFilenameRange: compareFileRange(),
-      compare: {
-        rangeALabel: t("compare.periodRange", { range: compareA.range }),
-        rangeBLabel: t("compare.periodRange", { range: compareB.range }),
-        changeLabel: activeLang === "en" ? "Change" : "Μεταβολή",
-        sections: {
-          compare: {
-            name: compareExportLabel,
-            rows: compareRows.map((row) => ({ metric: row.label, a: row.a, b: row.b, delta: row.delta })),
+      compareFilenameRange: compareFileRange(compareStatsFromData(sourceData, exportCompareRanges.a.from, exportCompareRanges.a.to), compareStatsFromData(sourceData, exportCompareRanges.b.from, exportCompareRanges.b.to)),
+      compare: (() => {
+        const sourceCompareA = compareStatsFromData(sourceData, exportCompareRanges.a.from, exportCompareRanges.a.to);
+        const sourceCompareB = compareStatsFromData(sourceData, exportCompareRanges.b.from, exportCompareRanges.b.to);
+        const sourceCompareRows = buildCompareRows(sourceCompareA, sourceCompareB);
+        return {
+          rangeALabel: t("compare.periodRange", { range: sourceCompareA.range }),
+          rangeBLabel: t("compare.periodRange", { range: sourceCompareB.range }),
+          changeLabel: activeLang === "en" ? "Change" : "Μεταβολή",
+          sections: {
+            compare: {
+              name: compareExportLabel,
+              rows: sourceCompareRows.map((row) => ({ metric: row.label, a: row.a, b: row.b, delta: row.delta })),
+            },
           },
-        },
-      },
+        };
+      })(),
     };
   }
 
@@ -1121,12 +1173,12 @@ export default function Statistics() {
   }
 
 
-  const renderCompareExportCard = (chartId: StatisticsChartId, title: string, rows: typeof compareRows) => (
+  const renderCompareExportCard = (chartId: StatisticsChartId, title: string, rows: typeof compareRows, firstRange = compareA, secondRange = compareB) => (
     <div className="card statistics-compare-card" data-stat-chart-card="true" data-export-chart-id={chartId}>
       <div className="statistics-compare-head">
         <div className="statistics-compare-title">
           <h3>{title}</h3>
-          <p>{t("compare.periodRange", { range: compareA.range })} · {t("compare.periodRange", { range: compareB.range })}</p>
+          <p>{t("compare.periodRange", { range: firstRange.range })} · {t("compare.periodRange", { range: secondRange.range })}</p>
         </div>
       </div>
       <div className="statistics-compare-rows">
@@ -1388,6 +1440,7 @@ export default function Statistics() {
           allChartsSelected={allChartsSelected}
           yearOptions={compareYearOptions}
           groupRanges={exportGroupRanges}
+          compareRanges={exportCompareRanges}
           selectionRowStyle={selectionRowStyle}
           selectionCheckboxStyle={selectionCheckboxStyle}
           onClose={closeExportSelection}
@@ -1395,6 +1448,7 @@ export default function Statistics() {
           onToggleGroup={toggleGroupCharts}
           onToggleChart={toggleSingleChart}
           onChangeGroupRange={changeExportGroupRange}
+          onChangeCompareRange={changeExportCompareRange}
           onConfirm={() => void handleExportAction()}
           isPngExport={selectedExportFormat === "png"}
           genderEntryYearOptions={entryYearOptions}
@@ -1449,7 +1503,7 @@ export default function Statistics() {
           abroadCount={exportViewData.abroadCount}
           exportMode
         />
-        {renderCompareExportCard("compare", compareExportLabel, compareRows)}
+        {renderCompareExportCard("compare", compareExportLabel, exportCompareRows, exportCompareA, exportCompareB)}
         </div>
       ) : null}
     </>

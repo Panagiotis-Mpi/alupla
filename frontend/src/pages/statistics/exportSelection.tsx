@@ -18,6 +18,7 @@ type ChartGroup = {
 };
 
 type ExportYearRange = { from: string; to: string };
+type ExportCompareRanges = { a: ExportYearRange; b: ExportYearRange };
 
 export function StatisticsExportMenu(props: {
   t: Translate;
@@ -66,6 +67,7 @@ export function StatisticsExportSelectionModal(props: {
   allChartsSelected: boolean;
   yearOptions: string[];
   groupRanges: Record<ChartGroupKey, ExportYearRange>;
+  compareRanges: ExportCompareRanges;
   selectionRowStyle: React.CSSProperties;
   selectionCheckboxStyle: React.CSSProperties;
   onClose: () => void;
@@ -73,6 +75,7 @@ export function StatisticsExportSelectionModal(props: {
   onToggleGroup: (chartIds: StatisticsChartId[]) => void;
   onToggleChart: (chartId: StatisticsChartId) => void;
   onChangeGroupRange: (groupKey: ChartGroupKey, field: keyof ExportYearRange, value: string) => void;
+  onChangeCompareRange: (period: keyof ExportCompareRanges, field: keyof ExportYearRange, value: string) => void;
   onConfirm: () => void;
   isPngExport?: boolean;
   genderEntryYearOptions?: Array<{ value: string; label: string }>;
@@ -131,7 +134,9 @@ export function StatisticsExportSelectionModal(props: {
         className="card"
         onClick={(event) => event.stopPropagation()}
         style={{
-          width: "min(640px, 100%)",
+          width: "fit-content",
+          maxWidth: "calc(100vw - 32px)",
+          minWidth: "min(420px, calc(100vw - 32px))",
           maxHeight: "min(68vh, 620px)",
           minHeight: 0,
           height: "auto",
@@ -152,7 +157,7 @@ export function StatisticsExportSelectionModal(props: {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 8, alignContent: "start", overflowY: "auto", maxHeight: "min(52vh, 500px)", minHeight: 0, paddingRight: 4 }}>
+        <div style={{ display: "grid", gap: 8, alignContent: "start", overflowY: "auto", maxHeight: "min(52vh, 500px)", minHeight: 0, paddingRight: 4, minWidth: 0 }}>
           <label style={{ ...props.selectionRowStyle, fontWeight: 700 }}>
             <input type="checkbox" style={props.selectionCheckboxStyle} checked={props.allChartsSelected} onChange={props.onToggleAll} />
             <span>{props.t("actions.selectAll", { defaultValue: "Όλα" })}</span>
@@ -174,7 +179,7 @@ export function StatisticsExportSelectionModal(props: {
                     onClick={() => toggleGroupOpen(group.key)}
                     aria-expanded={groupOpen}
                     style={{
-                      flex: "1 1 180px",
+                      flex: "0 1 auto",
                       minHeight: 40,
                       minWidth: 0,
                       border: 0,
@@ -182,7 +187,7 @@ export function StatisticsExportSelectionModal(props: {
                       color: "inherit",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "space-between",
+                      justifyContent: "flex-start",
                       gap: 10,
                       padding: 0,
                       font: "inherit",
@@ -192,38 +197,78 @@ export function StatisticsExportSelectionModal(props: {
                     }}
                   >
                     <span>{group.label}</span>
-                    <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>{groupOpen ? "⌃" : "⌄"}</span>
+                    <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1, marginLeft: 4 }}>{groupOpen ? "⌃" : "⌄"}</span>
                   </button>
                   ) : (
-                    <div style={{ flex: "1 1 180px", minHeight: 40, minWidth: 0, display: "flex", alignItems: "center", fontWeight: 700 }}>
+                    <div style={{ flex: "0 1 auto", minHeight: 40, minWidth: 0, display: "flex", alignItems: "center", fontWeight: 700 }}>
                       <span>{group.label}</span>
                     </div>
                   )}
                   {props.yearOptions.length ? (
-                    <div onClick={(event) => event.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, flex: "0 0 auto", marginLeft: "auto" }}>
-                      <label style={{ display: "grid", gap: 3 }}>
-                        <span style={rangeLabelStyle}>{props.t("actions.from", { defaultValue: "Από" })}</span>
-                        <select
-                          value={range.from}
-                          onChange={(event) => props.onChangeGroupRange(group.key, "from", event.target.value)}
-                          style={rangeSelectStyle}
-                          aria-label={`${group.label} ${props.t("actions.from", { defaultValue: "Από" })}`}
-                        >
-                          {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
-                        </select>
-                      </label>
-                      <label style={{ display: "grid", gap: 3 }}>
-                        <span style={rangeLabelStyle}>{props.t("actions.to", { defaultValue: "Έως" })}</span>
-                        <select
-                          value={range.to}
-                          onChange={(event) => props.onChangeGroupRange(group.key, "to", event.target.value)}
-                          style={rangeSelectStyle}
-                          aria-label={`${group.label} ${props.t("actions.to", { defaultValue: "Έως" })}`}
-                        >
-                          {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
-                        </select>
-                      </label>
-                    </div>
+                    group.key === "compare" ? (
+                      <div onClick={(event) => event.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, flex: "0 0 auto", marginLeft: 4, flexWrap: "wrap" }}>
+                        {(["a", "b"] as const).map((period) => {
+                          const compareRange = props.compareRanges[period];
+                          const periodLabel = period === "a"
+                            ? props.t("compare.periodA", { defaultValue: "Διάστημα Α" })
+                            : props.t("compare.periodB", { defaultValue: "Διάστημα Β" });
+                          return (
+                            <div key={period} style={{ display: "grid", gap: 4 }}>
+                              <span style={{ ...rangeLabelStyle, color: "#334155" }}>{periodLabel}</span>
+                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                <label style={{ display: "grid", gap: 3 }}>
+                                  <span style={rangeLabelStyle}>{props.t("actions.from", { defaultValue: "Από" })}</span>
+                                  <select
+                                    value={compareRange.from}
+                                    onChange={(event) => props.onChangeCompareRange(period, "from", event.target.value)}
+                                    style={rangeSelectStyle}
+                                    aria-label={`${group.label} ${periodLabel} ${props.t("actions.from", { defaultValue: "Από" })}`}
+                                  >
+                                    {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+                                  </select>
+                                </label>
+                                <label style={{ display: "grid", gap: 3 }}>
+                                  <span style={rangeLabelStyle}>{props.t("actions.to", { defaultValue: "Έως" })}</span>
+                                  <select
+                                    value={compareRange.to}
+                                    onChange={(event) => props.onChangeCompareRange(period, "to", event.target.value)}
+                                    style={rangeSelectStyle}
+                                    aria-label={`${group.label} ${periodLabel} ${props.t("actions.to", { defaultValue: "Έως" })}`}
+                                  >
+                                    {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+                                  </select>
+                                </label>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div onClick={(event) => event.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, flex: "0 0 auto", marginLeft: 4, flexWrap: "wrap" }}>
+                        <label style={{ display: "grid", gap: 3 }}>
+                          <span style={rangeLabelStyle}>{props.t("actions.from", { defaultValue: "Από" })}</span>
+                          <select
+                            value={range.from}
+                            onChange={(event) => props.onChangeGroupRange(group.key, "from", event.target.value)}
+                            style={rangeSelectStyle}
+                            aria-label={`${group.label} ${props.t("actions.from", { defaultValue: "Από" })}`}
+                          >
+                            {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+                          </select>
+                        </label>
+                        <label style={{ display: "grid", gap: 3 }}>
+                          <span style={rangeLabelStyle}>{props.t("actions.to", { defaultValue: "Έως" })}</span>
+                          <select
+                            value={range.to}
+                            onChange={(event) => props.onChangeGroupRange(group.key, "to", event.target.value)}
+                            style={rangeSelectStyle}
+                            aria-label={`${group.label} ${props.t("actions.to", { defaultValue: "Έως" })}`}
+                          >
+                            {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+                          </select>
+                        </label>
+                      </div>
+                    )
                   ) : null}
                 </div>
                 {groupOpen ? (
@@ -250,7 +295,7 @@ export function StatisticsExportSelectionModal(props: {
                               style={{
                                 width: 132,
                                 minHeight: 32,
-                                justifyContent: "space-between",
+                                justifyContent: "flex-start",
                                 padding: "0 9px",
                                 fontSize: 12,
                                 fontWeight: 600,
