@@ -162,12 +162,20 @@ export function normalizeValue(value: unknown) {
   return String(value).toLocaleLowerCase("el-GR");
 }
 
+function firstText(...values: unknown[]) {
+  for (const value of values) {
+    const text = String(value ?? "").trim();
+    if (text) return text;
+  }
+  return "";
+}
+
 export function createNameMap(items: Array<Record<string, unknown>>, activeLang: "gr" | "en") {
   const map = new Map<number, string>();
   for (const item of items || []) {
     const name = activeLang === "en"
-      ? String(item.name_en ?? item.name_el ?? item.code ?? item.id)
-      : String(item.name_el ?? item.name_en ?? item.code ?? item.id);
+      ? firstText(item.name_en, item.name_el, item.code, item.id)
+      : firstText(item.name_el, item.name_en, item.code, item.id);
     map.set(Number(item.id), name);
   }
   return map;
@@ -185,8 +193,8 @@ export function createRegionMap(items: Array<Record<string, unknown>>, activeLan
   const map = new Map<number, string>();
   for (const item of items || []) {
     const name = activeLang === "en"
-      ? String(item.name_en ?? item.name_el ?? item.name ?? item.id)
-      : String(item.name_el ?? item.name ?? item.name_en ?? item.id);
+      ? firstText(item.name_en, item.name_el, item.name, item.id)
+      : firstText(item.name_el, item.name, item.name_en, item.id);
     map.set(Number(item.id), name);
   }
   return map;
@@ -214,6 +222,8 @@ export function getGraduateOriginCountryDisplay(graduate: Graduate, regionNameBy
   if (activeLang === "en") {
     const localized = String((graduate as any).origin_country_name_en ?? "").trim();
     if (localized) return isGreeceDisplayValue(localized) ? greeceLabel : localized;
+    const countryName = regionNameById.get(Number(graduate.origin_country_region_id)) ?? "";
+    if (countryName) return isGreeceDisplayValue(countryName) ? greeceLabel : countryName;
   }
   const explicitCountry = String(graduate.origin_country ?? "").trim();
   if (explicitCountry) {
@@ -241,6 +251,10 @@ export function getGraduateOriginMunicipalityDisplay(graduate: Graduate, regionN
   if (activeLang === "en") {
     const localized = String((graduate as any).origin_city_name_en ?? "").trim();
     if (localized) return localized;
+    if (regionNameById && graduate.origin_city_region_id != null) {
+      const cityName = regionNameById.get(Number(graduate.origin_city_region_id)) ?? "";
+      if (cityName) return cityName;
+    }
   }
   const foreignCity = String(graduate.origin_foreign_city ?? "").trim();
   if (foreignCity) {
@@ -370,11 +384,12 @@ export function GraduatesFilters(props: {
   programs: StudyProgram[];
   regions: any[];
   programNameById: Map<number, string>;
+  regionNameById: Map<number, string>;
   setFilters: React.Dispatch<React.SetStateAction<GraduatesFiltersState>>;
   onSearch: () => void;
   onReset: () => void;
 }) {
-  const { t, filters, programs, regions, programNameById, setFilters, onSearch, onReset } = props;
+  const { t, filters, programs, regions, programNameById, regionNameById, setFilters, onSearch, onReset } = props;
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14, alignItems: "stretch" }}>
@@ -461,7 +476,7 @@ export function GraduatesFilters(props: {
           <option value="">{t("filters.all")}</option>
           {regions.filter((region) => String(region.type) === "PERIPHERY").map((region) => (
             <option key={Number(region.id)} value={Number(region.id)}>
-              {region.name}
+              {regionNameById.get(Number(region.id)) ?? String(region.name ?? "")}
             </option>
           ))}
         </select>
@@ -471,7 +486,7 @@ export function GraduatesFilters(props: {
           <option value="">{t("filters.all")}</option>
           {regions.filter((region) => String(region.type) === "NOMOS").map((region) => (
             <option key={Number(region.id)} value={Number(region.id)}>
-              {region.name}
+              {regionNameById.get(Number(region.id)) ?? String(region.name ?? "")}
             </option>
           ))}
         </select>

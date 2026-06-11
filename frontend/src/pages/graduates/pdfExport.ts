@@ -1,5 +1,11 @@
 // Φτιάχνει PDF export της λίστας αποφοίτων από το frontend.
 import type { Graduate } from "../../lib/api";
+import {
+  getGraduateOriginCountryDisplay,
+  getGraduateOriginMunicipalityDisplay,
+  getGraduateOriginNomosDisplay,
+  getGraduateOriginRegionDisplay,
+} from "./shared";
 
 type ExportLang = "gr" | "en";
 
@@ -27,20 +33,6 @@ function formatGenderValue(value: unknown, lang: ExportLang) {
   if (["m", "male", "man", "άνδρας", "ανδρας"].includes(normalized)) return lang === "en" ? "Male" : "Άνδρας";
   if (["f", "female", "woman", "γυναίκα", "γυναικα"].includes(normalized)) return lang === "en" ? "Female" : "Γυναίκα";
   return String(value ?? "").trim();
-}
-
-function localizedText(item: Graduate, key: string) {
-  return String((item as any)[key] ?? "").trim();
-}
-
-function formatCountryValue(value: unknown, lang: ExportLang) {
-  const text = String(value ?? "").trim();
-  if (!text) return "";
-  const normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-  if (normalized === "ελλαδα" || normalized === "greece") {
-    return lang === "en" ? "Greece" : "Ελλάδα";
-  }
-  return text;
 }
 
 function formatDateValue(value: unknown) {
@@ -77,8 +69,8 @@ function compareDiplomaNumber(a: Graduate, b: Graduate) {
 function getLabels(lang: ExportLang) {
   if (lang === "en") {
     return {
-      ad_code: "Diploma Number",
-      student_number: "Student Number",
+      ad_code: "Diploma number",
+      student_number: "Student number",
       last_name: "Last name",
       first_name: "First name",
       father_name: "Father name",
@@ -86,13 +78,13 @@ function getLabels(lang: ExportLang) {
       entry_year: "Entry year",
       birth_date: "Birth date",
       degree_grade: "Degree grade",
-      graduation_date: "Diploma award date",
+      graduation_date: "Graduation date",
       oath_date: "Oath date",
       study_program: "Study program",
       origin_country: "Country",
       origin_region: "Region",
       origin_nomos: "Regional unit",
-      origin_municipality: "Municipality"
+      origin_municipality: "City"
     } as const;
   }
 
@@ -112,7 +104,7 @@ function getLabels(lang: ExportLang) {
     origin_country: "Χώρα",
     origin_region: "Περιφέρεια",
     origin_nomos: "Νομός",
-    origin_municipality: "Δήμος"
+    origin_municipality: "Πόλη"
   } as const;
 }
 
@@ -127,20 +119,10 @@ function buildRows(args: {
 
   return [...items].sort(compareDiplomaNumber).map((item) => {
     const studyProgramName = programNameById.get(Number(item.study_program_id)) ?? "";
-    const explicitCountry = String((item as any).origin_country ?? "").trim();
-    const countryName = lang === "en" && localizedText(item, "origin_country_name_en")
-      ? formatCountryValue(localizedText(item, "origin_country_name_en"), lang)
-      : formatCountryValue(explicitCountry || String(regionNameById.get(Number(item.origin_country_region_id)) ?? ""), lang);
-    const normalizedCountry = countryName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-    const isGreece = normalizedCountry === "greece" || normalizedCountry === "ελλαδα";
-    const regionName = isGreece ? (lang === "en" && localizedText(item, "origin_region_name_en") ? localizedText(item, "origin_region_name_en") : regionNameById.get(Number(item.origin_periphery_region_id)) ?? "") : "";
-    const nomosName = isGreece ? (lang === "en" && localizedText(item, "origin_nomos_name_en") ? localizedText(item, "origin_nomos_name_en") : regionNameById.get(Number(item.origin_region_id)) ?? "") : "";
-    const municipalityName = lang === "en" && localizedText(item, "origin_city_name_en")
-      ? localizedText(item, "origin_city_name_en")
-      : String(item.origin_foreign_city ?? "").trim()
-      || String(item.origin_municipality ?? "").trim()
-      || String(regionNameById.get(Number(item.origin_city_region_id)) ?? "")
-      || String(regionNameById.get(Number(item.origin_region_id)) ?? "");
+    const countryName = getGraduateOriginCountryDisplay(item, regionNameById, undefined, lang);
+    const regionName = getGraduateOriginRegionDisplay(item, regionNameById, lang);
+    const nomosName = getGraduateOriginNomosDisplay(item, regionNameById, lang);
+    const municipalityName = getGraduateOriginMunicipalityDisplay(item, regionNameById, lang);
 
     return {
       [labels.ad_code]: item.ad_code ?? "",

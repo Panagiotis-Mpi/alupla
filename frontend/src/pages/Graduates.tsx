@@ -125,10 +125,6 @@ export default function Graduates() {
     () => createNameMap(programs as Array<Record<string, unknown>>, activeLang),
     [programs, activeLang],
   );
-  const programDisplayNameById = useMemo(
-    () => createNameMap(programs as Array<Record<string, unknown>>, "gr"),
-    [programs],
-  );
   const regionNameById = useMemo(
     () => createRegionMap(regions, activeLang),
     [regions, activeLang],
@@ -141,7 +137,7 @@ export default function Graduates() {
         items,
         sortState,
         searchTerm,
-        programNameById: programDisplayNameById,
+        programNameById,
         regionNameById,
         renderGender,
         activeLang,
@@ -150,7 +146,7 @@ export default function Graduates() {
       items,
       sortState,
       searchTerm,
-      programDisplayNameById,
+      programNameById,
       regionNameById,
       activeLang,
     ],
@@ -303,7 +299,7 @@ export default function Graduates() {
         const blob = await exportGraduatesPdf({
           items: item.pdfItems as Graduate[],
           lang: activeLang,
-          programNameById: programDisplayNameById,
+          programNameById,
           regionNameById,
         });
         recentGraduateSessionDownloads.set(item.signature, {
@@ -415,7 +411,7 @@ export default function Graduates() {
         const blob = await exportGraduatesPdf({
           items: exportItems,
           lang: activeLang,
-          programNameById: programDisplayNameById,
+          programNameById,
           regionNameById,
         });
         const fileName = `alupla_graduates_${fileScope}_${timestamp}.pdf`;
@@ -448,6 +444,7 @@ export default function Graduates() {
             origin_country_name_en:
               (item as any).origin_country_name_en ?? null,
             origin_region_name_en: (item as any).origin_region_name_en ?? null,
+            origin_nomos_name_en: (item as any).origin_nomos_name_en ?? null,
             origin_city_name_en: (item as any).origin_city_name_en ?? null,
           })),
         });
@@ -1233,6 +1230,7 @@ export default function Graduates() {
               programs={programs}
               regions={regions}
               programNameById={programNameById}
+              regionNameById={regionNameById}
               setFilters={setFilters}
               onSearch={() => void load()}
               onReset={() => {
@@ -1268,7 +1266,7 @@ export default function Graduates() {
         toggleSort={toggleSort}
         getSortIndicator={getSortIndicator}
         renderGender={renderGender}
-        programNameById={programDisplayNameById}
+        programNameById={programNameById}
         regionNameById={regionNameById}
         activeLang={activeLang}
         t={t}

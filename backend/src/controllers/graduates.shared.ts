@@ -153,6 +153,14 @@ function resolveGraduatePeripheryId(
   return getRegionAncestor(regionsById, row.origin_city_region_id, "PERIPHERY")?.id ?? null;
 }
 
+function firstText(...values: unknown[]) {
+  for (const value of values) {
+    const text = String(value ?? "").trim();
+    if (text) return text;
+  }
+  return "";
+}
+
 function getRegionNameById(
   regionsById: Map<number, RegionLookup>,
   value: unknown,
@@ -165,12 +173,8 @@ function getRegionNameById(
   if (!region) return "";
   const localized = localizedNamesById?.get(id);
   if (lang === "en")
-    return String(
-      localized?.nameEn || region.name_en || region.name || "",
-    ).trim();
-  return String(
-    localized?.nameEl || region.name_el || region.name || "",
-  ).trim();
+    return firstText(localized?.nameEn, region.name_en, localized?.nameEl, region.name_el, region.name);
+  return firstText(localized?.nameEl, region.name_el, region.name, localized?.nameEn, region.name_en);
 }
 
 function getCountryExportName(
@@ -315,17 +319,9 @@ export function buildExportRows(
       [labels.graduation_date]: formatDateDisplay(row.graduation_date),
       [labels.oath_date]: formatDateDisplay(row.oath_date),
       [labels.study_program]: studyProgram
-        ? String(
-            lang === "en"
-              ? (studyProgram.name_en ??
-                  studyProgram.name_el ??
-                  studyProgram.code ??
-                  studyProgram.id)
-              : (studyProgram.name_el ??
-                  studyProgram.name_en ??
-                  studyProgram.code ??
-                  studyProgram.id),
-          )
+        ? lang === "en"
+          ? firstText(studyProgram.name_en, studyProgram.name_el, studyProgram.code, studyProgram.id)
+          : firstText(studyProgram.name_el, studyProgram.name_en, studyProgram.code, studyProgram.id)
         : "",
       [labels.origin_country]: countryExportName,
       [labels.origin_region]: isGreece
