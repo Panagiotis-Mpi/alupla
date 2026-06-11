@@ -149,8 +149,10 @@ export function MapYearTimeline(props: {
   }, []);
 
   const sortedYears = Array.from(new Set(props.years)).sort((left, right) => left - right);
-  const minYear = sortedYears[0] || new Date().getFullYear();
-  const maxYear = sortedYears[sortedYears.length - 1] || minYear;
+  const currentYear = new Date().getFullYear();
+  const timelineYears = sortedYears.length ? sortedYears : props.loading ? [currentYear - 10, currentYear] : [];
+  const minYear = timelineYears[0] || currentYear;
+  const maxYear = timelineYears[timelineYears.length - 1] || minYear;
   const startValue = props.selectedStartYear ? Number(props.selectedStartYear) : minYear;
   const endValue = props.selectedEndYear ? Number(props.selectedEndYear) : maxYear;
   const safeStart = Math.min(Math.max(Number.isFinite(startValue) ? startValue : minYear, minYear), maxYear);
@@ -169,11 +171,13 @@ export function MapYearTimeline(props: {
   }
   if (!ticks.includes(maxYear)) ticks.push(maxYear);
   const isAllYears = leftYear === minYear && rightYear === maxYear;
-  const selectedLabel = isAllYears
-    ? props.mt("timeline.allYears", { defaultValue: "Όλες οι χρονιές" })
-    : leftYear === rightYear
-      ? String(leftYear)
-      : `${leftYear} - ${rightYear}`;
+  const selectedLabel = props.loading
+    ? props.mt("loading", { defaultValue: "Φόρτωση..." })
+    : isAllYears
+      ? props.mt("timeline.allYears", { defaultValue: "Όλες οι χρονιές" })
+      : leftYear === rightYear
+        ? String(leftYear)
+        : `${leftYear} - ${rightYear}`;
 
   const emitRange = (start: number, end: number) => {
     const nextStart = Math.min(start, end);
@@ -186,7 +190,7 @@ export function MapYearTimeline(props: {
   };
 
   return (
-    <div className="card map-timeline-card">
+    <div className={`card map-timeline-card${props.loading ? " is-loading" : ""}`}>
       <div className="map-timeline-header">
         <div>
           <div className="map-timeline-title">{props.mt("timeline.title", { defaultValue: "Φίλτρο χρονιάς" })}</div>
@@ -197,7 +201,7 @@ export function MapYearTimeline(props: {
         </div>
       </div>
 
-      {sortedYears.length ? (
+      {timelineYears.length ? (
         <div className="map-timeline-slider-wrap">
           <div className="map-year-ruler" style={{ "--range-left": `${leftPercent}%`, "--range-right": `${100 - rightPercent}%` } as React.CSSProperties}>
             <div className="map-year-ruler-track" />

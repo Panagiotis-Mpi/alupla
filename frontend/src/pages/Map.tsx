@@ -596,8 +596,12 @@ export default function GraduatesMapPage() {
   const inlineMapLoading =
     pageLoading || activeDataLoading || metricTransitionLoading || scopeTransitionLoading;
   const summaryLoading =
-    !pageLoading &&
-    (activeDataLoading || metricTransitionLoading || scopeTransitionLoading);
+    pageLoading || activeDataLoading || metricTransitionLoading || scopeTransitionLoading;
+  const timelineLoading =
+    pageLoading ||
+    yearRangeLoading ||
+    activeDataLoading ||
+    scopeTransitionLoading;
 
   const exportCategoryOptions = useMemo(
     () => [
@@ -1512,7 +1516,7 @@ export default function GraduatesMapPage() {
       />
 
       <div
-        className={`map-summary-shell mobile-summary-panel${mobileSummaryOpen ? " open" : ""}`}
+        className={`map-summary-shell mobile-summary-panel${mobileSummaryOpen ? " open" : ""}${summaryLoading ? " is-loading" : ""}`}
       >
         <div className="map-summary-grid">
           <div className="card map-summary-card">
@@ -1634,14 +1638,14 @@ export default function GraduatesMapPage() {
       </div>
 
       <div
-        className={`map-timeline-shell mobile-timeline-panel${mobileTimelineOpen ? " open" : ""}`}
+        className={`map-timeline-shell mobile-timeline-panel${mobileTimelineOpen ? " open" : ""}${timelineLoading ? " is-loading" : ""}`}
       >
         <MapYearTimeline
           mt={mt}
           years={availableYears}
           selectedStartYear={selectedGraduationYearStart}
           selectedEndYear={selectedGraduationYearEnd}
-          loading={yearRangeLoading}
+          loading={timelineLoading}
           onRangeChange={(startYear, endYear) => {
             resetComparedSelections();
             setScopeTotals({});
