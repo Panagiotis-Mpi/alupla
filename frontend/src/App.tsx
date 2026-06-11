@@ -98,8 +98,8 @@ function TopNav() {
   const isActiveLink = React.useCallback((to: string) => (to === "/" ? location.pathname === "/" : location.pathname.startsWith(to)), [location.pathname]);
 
   const closeMenu = React.useCallback(() => setMenuOpen(false), []);
-  const currentLanguageLabel = lang === "en" ? "EN" : "EL";
-  const nextLanguageLabel = lang === "en" ? "EL" : "EN";
+  const currentLanguageLabel = lang === "en" ? "EN" : "ΕΛ";
+  const nextLanguageLabel = lang === "en" ? "ΕΛ" : "EN";
   const nextLanguage = lang === "en" ? "gr" : "en";
 
   const handleLanguageChange = React.useCallback((language: "gr" | "en") => {
