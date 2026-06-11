@@ -95,7 +95,9 @@
     "cancel": "Ακύρωση",
     "close": "Κλείσιμο",
     "compare": "Σύγκριση",
-    "fullscreen": "Πλήρης οθόνη"
+    "fullscreen": "Πλήρης οθόνη",
+    "from": "Από",
+    "to": "Έως"
   },
   "groups": {
     "overview": "Γενική εικόνα",

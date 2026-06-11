@@ -95,7 +95,9 @@
     "cancel": "Cancel",
     "close": "Close",
     "compare": "Compare",
-    "fullscreen": "Fullscreen"
+    "fullscreen": "Fullscreen",
+    "from": "From",
+    "to": "To"
   },
   "groups": {
     "overview": "Overview",
