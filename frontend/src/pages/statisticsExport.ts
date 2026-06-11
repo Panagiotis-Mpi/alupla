@@ -997,43 +997,70 @@ function buildSheets(args: BuildArgs) {
   const selectedSet = new Set(Array.isArray(args.selectedChartIds) ? args.selectedChartIds : []);
   const blocks: SheetBlock[] = [];
   const usedChartIds = new Set<StatisticsChartId>();
-  const graduationYearBlocks = selectedBlocksFor(["byYear", "gender", "gradeByYear", "abroadByYear"], sheets, selectedSet);
-  const entryYearBlocks = selectedBlocksFor(["countByEntryYear", "genderByEntryYear", "timeToDegreeByEntryYear"], sheets, selectedSet);
-  const regionBlocks = selectedBlocksFor(["originRegion", "genderByRegion", "gradeByRegion", "timeToDegreeByRegion"], sheets, selectedSet);
+  const mergeGroups = [
+    {
+      chartId: "byYear" as StatisticsChartId,
+      chartIds: ["byYear", "gender"] as StatisticsChartId[],
+      name: activeLang === "en" ? "Graduate Count and Gender by Graduation Year" : "Πλήθος και φύλο ανά έτος αποφοίτησης",
+    },
+    {
+      chartId: "countByEntryYear" as StatisticsChartId,
+      chartIds: ["countByEntryYear", "genderByEntryYear"] as StatisticsChartId[],
+      name: activeLang === "en" ? "Graduate Count and Gender by Entry Year" : "Πλήθος και φύλο ανά έτος εισαγωγής",
+    },
+    {
+      chartId: "gradeDistribution" as StatisticsChartId,
+      chartIds: ["gradeDistribution", "gradeDistributionByGender"] as StatisticsChartId[],
+      name: activeLang === "en" ? "Graduation Grade Distribution" : "Κατανομή βαθμολογίας αποφοίτησης",
+    },
+    {
+      chartId: "gradeByRegion" as StatisticsChartId,
+      chartIds: ["gradeByRegion", "timeToDegreeByRegion"] as StatisticsChartId[],
+      name: activeLang === "en" ? "Academic Data by Region of Origin" : "Ακαδημαϊκά στοιχεία ανά περιφέρεια καταγωγής",
+    },
+    {
+      chartId: "originRegion" as StatisticsChartId,
+      chartIds: ["originRegion", "genderByRegion"] as StatisticsChartId[],
+      name: activeLang === "en" ? "Geographic Distribution by Region" : "Γεωγραφική κατανομή ανά περιφέρεια",
+    },
+    {
+      chartId: "originMunicipality" as StatisticsChartId,
+      chartIds: ["originMunicipality", "genderByMunicipality"] as StatisticsChartId[],
+      name: activeLang === "en" ? "Geographic Distribution by City" : "Γεωγραφική κατανομή ανά πόλη",
+    },
+  ];
+  const mergeGroupByChartId = new Map<StatisticsChartId, (typeof mergeGroups)[number]>();
 
-  const graduationYearBlock = graduationYearBlocks.length > 1
-    ? mergeBlocksByFirstColumn(activeLang === "en" ? "Graduation Year Statistics" : "Στατιστικά ανά έτος αποφοίτησης", "byYear", graduationYearBlocks)
-    : graduationYearBlocks[0];
-
-  const entryYearBlock = entryYearBlocks.length > 1
-    ? mergeBlocksByFirstColumn(activeLang === "en" ? "Entry Year Statistics" : "Στατιστικά ανά έτος εισαγωγής", "genderByEntryYear", entryYearBlocks)
-    : entryYearBlocks[0];
-
-  if (graduationYearBlock) {
-    blocks.push(graduationYearBlock);
-    blockChartIds(graduationYearBlock).forEach((chartId) => usedChartIds.add(chartId));
-  }
-
-  if (entryYearBlock) {
-    blocks.push(entryYearBlock);
-    blockChartIds(entryYearBlock).forEach((chartId) => usedChartIds.add(chartId));
-  }
-
-  const regionBlock = regionBlocks.length > 1
-    ? mergeBlocksByFirstColumn(activeLang === "en" ? "Region Statistics" : "Στατιστικά ανά περιφέρεια καταγωγής", "originRegion", regionBlocks)
-    : regionBlocks[0];
-
-  if (regionBlock) {
-    blocks.push(regionBlock);
-    blockChartIds(regionBlock).forEach((chartId) => usedChartIds.add(chartId));
-  }
+  mergeGroups.forEach((group) => {
+    group.chartIds.forEach((chartId) => mergeGroupByChartId.set(chartId, group));
+  });
 
   statisticsChartOrder.forEach((chartId) => {
     if (usedChartIds.has(chartId)) return;
+
+    const mergeGroup = mergeGroupByChartId.get(chartId);
+    if (mergeGroup) {
+      if (selectedSet.size && !mergeGroup.chartIds.some((id) => selectedSet.has(id))) return;
+
+      const groupBlocks = selectedBlocksFor(mergeGroup.chartIds, sheets, selectedSet);
+      const block = groupBlocks.length > 1
+        ? mergeBlocksByFirstColumn(mergeGroup.name, mergeGroup.chartId, groupBlocks)
+        : groupBlocks[0];
+
+      if (block?.rows.length) {
+        blocks.push(block);
+        blockChartIds(block).forEach((id) => usedChartIds.add(id));
+      }
+      return;
+    }
+
     if (selectedSet.size && !selectedSet.has(chartId)) return;
 
     const block = sheets.get(chartId);
-    if (block?.rows.length) blocks.push(block);
+    if (block?.rows.length) {
+      blocks.push(block);
+      blockChartIds(block).forEach((id) => usedChartIds.add(id));
+    }
   });
 
   return blocks;
