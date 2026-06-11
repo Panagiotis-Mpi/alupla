@@ -1242,7 +1242,7 @@ export default function GraduatesMapPage() {
         await exportCombinedSnapshots(
           buildExportFilename("map", metricFilenameParts(selection.category, selection.scope, range), "png"),
           `${option?.label || selection.category} · ${scopeLabel} · ${selectedRangeLabel}`,
-          [{ ...snapshot, caption: `${scopeLabel} · ${selectedRangeLabel}` }],
+          [{ ...snapshot }],
         );
       }
     } finally {
