@@ -313,6 +313,15 @@ export function MapExportSelectionModal(props: {
     padding: "0 7px",
     outline: "none",
   };
+  const categoryRangeStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "end",
+    justifyContent: "flex-end",
+    gap: 6,
+    flex: "0 0 auto",
+    marginLeft: "auto",
+    flexWrap: "nowrap",
+  };
 
   return (
     <div
@@ -400,7 +409,7 @@ export function MapExportSelectionModal(props: {
                     <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1, marginLeft: 4 }}>{categoryOpen ? "⌃" : "⌄"}</span>
                   </button>
                   {props.yearOptions.length ? (
-                    <div onClick={(event) => event.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, flex: "0 0 auto", marginLeft: 4, flexWrap: "wrap" }}>
+                    <div onClick={(event) => event.stopPropagation()} style={categoryRangeStyle}>
                       <label style={{ display: "grid", gap: 3 }}>
                         <span style={rangeLabelStyle}>{props.mt("export.from", { defaultValue: "Από" })}</span>
                         <select

@@ -104,6 +104,31 @@ export function StatisticsExportSelectionModal(props: {
     padding: "0 7px",
     outline: "none",
   };
+  const exportRangeShellStyle: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "166px 166px",
+    alignItems: "end",
+    gap: 10,
+    flex: "0 0 auto",
+    marginLeft: "auto",
+  };
+  const exportSingleRangeStyle: React.CSSProperties = {
+    gridColumn: "2",
+    display: "flex",
+    alignItems: "end",
+    justifyContent: "flex-end",
+    gap: 6,
+    flexWrap: "nowrap",
+  };
+  const exportComparePeriodStyle: React.CSSProperties = {
+    display: "grid",
+    gap: 4,
+  };
+  const exportCompareFieldsStyle: React.CSSProperties = {
+    display: "flex",
+    gap: 6,
+    flexWrap: "nowrap",
+  };
 
   React.useEffect(() => {
     if (!props.isPngExport || !props.selectedChartIds.includes("genderByEntryYear")) {
@@ -206,16 +231,16 @@ export function StatisticsExportSelectionModal(props: {
                   )}
                   {props.yearOptions.length ? (
                     group.key === "compare" ? (
-                      <div onClick={(event) => event.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, flex: "0 0 auto", marginLeft: 4, flexWrap: "wrap" }}>
+                      <div onClick={(event) => event.stopPropagation()} style={exportRangeShellStyle}>
                         {(["a", "b"] as const).map((period) => {
                           const compareRange = props.compareRanges[period];
                           const periodLabel = period === "a"
                             ? props.t("compare.periodA", { defaultValue: "Διάστημα Α" })
                             : props.t("compare.periodB", { defaultValue: "Διάστημα Β" });
                           return (
-                            <div key={period} style={{ display: "grid", gap: 4 }}>
+                            <div key={period} style={exportComparePeriodStyle}>
                               <span style={{ ...rangeLabelStyle, color: "#334155" }}>{periodLabel}</span>
-                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                              <div style={exportCompareFieldsStyle}>
                                 <label style={{ display: "grid", gap: 3 }}>
                                   <span style={rangeLabelStyle}>{props.t("actions.from", { defaultValue: "Από" })}</span>
                                   <select
@@ -244,29 +269,31 @@ export function StatisticsExportSelectionModal(props: {
                         })}
                       </div>
                     ) : (
-                      <div onClick={(event) => event.stopPropagation()} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, flex: "0 0 auto", marginLeft: 4, flexWrap: "wrap" }}>
-                        <label style={{ display: "grid", gap: 3 }}>
-                          <span style={rangeLabelStyle}>{props.t("actions.from", { defaultValue: "Από" })}</span>
-                          <select
-                            value={range.from}
-                            onChange={(event) => props.onChangeGroupRange(group.key, "from", event.target.value)}
-                            style={rangeSelectStyle}
-                            aria-label={`${group.label} ${props.t("actions.from", { defaultValue: "Από" })}`}
-                          >
-                            {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
-                          </select>
-                        </label>
-                        <label style={{ display: "grid", gap: 3 }}>
-                          <span style={rangeLabelStyle}>{props.t("actions.to", { defaultValue: "Έως" })}</span>
-                          <select
-                            value={range.to}
-                            onChange={(event) => props.onChangeGroupRange(group.key, "to", event.target.value)}
-                            style={rangeSelectStyle}
-                            aria-label={`${group.label} ${props.t("actions.to", { defaultValue: "Έως" })}`}
-                          >
-                            {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
-                          </select>
-                        </label>
+                      <div onClick={(event) => event.stopPropagation()} style={exportRangeShellStyle}>
+                        <div style={exportSingleRangeStyle}>
+                          <label style={{ display: "grid", gap: 3 }}>
+                            <span style={rangeLabelStyle}>{props.t("actions.from", { defaultValue: "Από" })}</span>
+                            <select
+                              value={range.from}
+                              onChange={(event) => props.onChangeGroupRange(group.key, "from", event.target.value)}
+                              style={rangeSelectStyle}
+                              aria-label={`${group.label} ${props.t("actions.from", { defaultValue: "Από" })}`}
+                            >
+                              {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+                            </select>
+                          </label>
+                          <label style={{ display: "grid", gap: 3 }}>
+                            <span style={rangeLabelStyle}>{props.t("actions.to", { defaultValue: "Έως" })}</span>
+                            <select
+                              value={range.to}
+                              onChange={(event) => props.onChangeGroupRange(group.key, "to", event.target.value)}
+                              style={rangeSelectStyle}
+                              aria-label={`${group.label} ${props.t("actions.to", { defaultValue: "Έως" })}`}
+                            >
+                              {props.yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+                            </select>
+                          </label>
+                        </div>
                       </div>
                     )
                   ) : null}
