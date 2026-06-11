@@ -84,7 +84,7 @@
   },
   "actions": {
     "exportExcel": "Export Excel",
-    "export": "Export",
+    "export": "Export statistics",
     "selectAll": "All",
     "selectAllYears": "All years",
     "allYearsSelected": "All years",

@@ -19,7 +19,7 @@
   "actions": {
     "create": "Create",
     "deactivate": "Delete",
-    "export": "Export",
+    "export": "Export users",
     "excel": "Excel",
     "csv": "CSV",
     "cancel": "Cancel"

@@ -19,7 +19,7 @@
   "actions": {
     "create": "Δημιουργία",
     "deactivate": "Διαγραφή",
-    "export": "Εξαγωγή",
+    "export": "Εξαγωγή χρηστών",
     "excel": "Excel",
     "csv": "CSV",
     "cancel": "Ακύρωση"

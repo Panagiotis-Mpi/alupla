@@ -84,7 +84,7 @@
   },
   "actions": {
     "exportExcel": "Εξαγωγή Excel",
-    "export": "Εξαγωγή",
+    "export": "Εξαγωγή στατιστικών",
     "selectAll": "Όλα",
     "selectAllYears": "Όλα τα έτη",
     "allYearsSelected": "Όλα τα έτη",

@@ -8,7 +8,7 @@
   "menu": {
     "programs": "Study Programs",
     "import": "Import study programs",
-    "template": "Download form"
+    "template": "Download template"
   },
   "actions": {
     "add": "Add",

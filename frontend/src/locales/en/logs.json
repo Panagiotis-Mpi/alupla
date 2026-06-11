@@ -14,7 +14,7 @@
     "resource": "Resource"
   },
   "actions": {
-    "export": "Export"
+    "export": "Export logs"
   },
   "table": {
     "id": "#",
