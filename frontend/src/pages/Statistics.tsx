@@ -67,8 +67,7 @@ export default function Statistics() {
   const [data, setData] = React.useState<any | null>(null);
   const [activeGroup, setActiveGroup] = React.useState<StatisticsGroupKey>("demographics");
   const [loadedGroups, setLoadedGroups] = React.useState<Record<StatisticsDataGroupKey, boolean>>({ demographics: false, academic: false, geography: false });
-  const [selectedGenderEntryYearLeft, setSelectedGenderEntryYearLeft] = React.useState<string>("all");
-  const [selectedGenderEntryYearRight, setSelectedGenderEntryYearRight] = React.useState<string>("all");
+  const [selectedGenderDistributionYear, setSelectedGenderDistributionYear] = React.useState<string>("all");
   const [exportOpen, setExportOpen] = React.useState(false);
   const [mobileSummaryOpen, setMobileSummaryOpen] = React.useState(false);
     const [compareAStart, setCompareAStart] = React.useState<string>("");
@@ -98,7 +97,6 @@ export default function Statistics() {
           { id: "countByEntryYear" as StatisticsChartId, label: t("sections.countByEntryYear") },
           { id: "birthYear" as StatisticsChartId, label: t("sections.birthYear") },
           { id: "genderTotal" as StatisticsChartId, label: t("sections.genderTotal") },
-          { id: "genderByEntryYear" as StatisticsChartId, label: t("sections.genderByEntryYear") },
           { id: "gender" as StatisticsChartId, label: t("sections.gender") },
         ],
       },
@@ -381,11 +379,6 @@ export default function Statistics() {
   );
 
 
-  const genderTotal = React.useMemo(() => ({
-    labels: [t("table.male"), t("table.female")],
-    values: [Number(data?.gender?.M ?? 0), Number(data?.gender?.F ?? 0)],
-  }), [data, t]);
-
   const gradeBinsByGender = React.useMemo(() => {
     const safeRows = Array.isArray(data?.degree_grade_bins_by_gender) ? data.degree_grade_bins_by_gender as NamedCountRow[] : [];
     return {
@@ -478,13 +471,20 @@ export default function Statistics() {
     return map;
   }, [genderByEntryYearRows]);
 
-  const makeGenderByEntryYearPie = React.useCallback((selectedYear: string) => {
-    const row = genderByEntryYearByValue.get(selectedYear) ?? genderByEntryYearRows[0] ?? null;
+  const makeGenderDistributionPie = React.useCallback((selectedYear: string) => {
+    if (selectedYear === "all") {
+      return {
+        labels: [t("table.male"), t("table.female")],
+        values: [Number(data?.gender?.M ?? 0), Number(data?.gender?.F ?? 0)],
+      };
+    }
+
+    const row = genderByEntryYearByValue.get(selectedYear) ?? null;
     return {
       labels: [t("table.male"), t("table.female")],
       values: [Number(row?.male ?? 0), Number(row?.female ?? 0)],
     };
-  }, [genderByEntryYearByValue, genderByEntryYearRows, t]);
+  }, [data, genderByEntryYearByValue, t]);
 
   const busiestYearIndex = byYearRows.length ? byYearRows.findIndex((row) => row.value === Math.max(...byYearRows.map((item) => item.value))) : -1;
   const busiestYear = busiestYearIndex >= 0 ? byYearRows[busiestYearIndex].label : "-";
@@ -614,20 +614,19 @@ export default function Statistics() {
   ), [compareYearOptions]);
 
   const entryYearOptions = React.useMemo(() => {
-    return genderByEntryYearRows
+    const yearOptions = genderByEntryYearRows
       .filter((row) => row.entry_year !== null && row.entry_year !== undefined)
       .map((row) => ({
         value: String(row.entry_year),
         label: String(row.entry_year),
       }));
-  }, [genderByEntryYearRows]);
+
+    return [{ value: "all", label: t("actions.selectAllYears", { defaultValue: activeLang === "en" ? "All years" : "Όλα τα έτη" }) }, ...yearOptions];
+  }, [activeLang, genderByEntryYearRows, t]);
 
   React.useEffect(() => {
     if (!entryYearOptions.length) return;
-    const first = entryYearOptions[0]?.value ?? "all";
-    const second = entryYearOptions[1]?.value ?? first;
-    setSelectedGenderEntryYearLeft((current) => current === "all" || !entryYearOptions.some((option) => option.value === current) ? first : current);
-    setSelectedGenderEntryYearRight((current) => current === "all" || !entryYearOptions.some((option) => option.value === current) ? second : current);
+    setSelectedGenderDistributionYear((current) => entryYearOptions.some((option) => option.value === current) ? current : "all");
   }, [entryYearOptions]);
 
   const topButtonStyle: React.CSSProperties = {
@@ -667,30 +666,10 @@ export default function Statistics() {
     </select>
   ) : null, [entryYearOptions, selectStyle]);
 
-  const genderByEntryYearPies = React.useMemo(() => [
-    {
-      key: "left",
-      title: selectedGenderEntryYearLeft === "all" ? "-" : selectedGenderEntryYearLeft,
-      ...makeGenderByEntryYearPie(selectedGenderEntryYearLeft),
-      control: makeGenderEntryYearSelect(selectedGenderEntryYearLeft, setSelectedGenderEntryYearLeft),
-    },
-    {
-      key: "right",
-      title: selectedGenderEntryYearRight === "all" ? "-" : selectedGenderEntryYearRight,
-      ...makeGenderByEntryYearPie(selectedGenderEntryYearRight),
-      control: makeGenderEntryYearSelect(selectedGenderEntryYearRight, setSelectedGenderEntryYearRight),
-    },
-  ], [makeGenderByEntryYearPie, makeGenderEntryYearSelect, selectedGenderEntryYearLeft, selectedGenderEntryYearRight]);
-
-  const exportGenderByEntryYearPies = React.useMemo(() => {
-    const years = selectedExportGenderEntryYears.length ? selectedExportGenderEntryYears : [selectedGenderEntryYearLeft, selectedGenderEntryYearRight].filter((year, index, items) => year !== "all" && items.indexOf(year) === index);
-    return years.map((year) => ({
-      key: year,
-      title: year,
-      ...makeGenderByEntryYearPie(year),
-      control: null,
-    }));
-  }, [makeGenderByEntryYearPie, selectedExportGenderEntryYears, selectedGenderEntryYearLeft, selectedGenderEntryYearRight]);
+  const genderDistributionPie = React.useMemo(() => ({
+    ...makeGenderDistributionPie(selectedGenderDistributionYear),
+    control: makeGenderEntryYearSelect(selectedGenderDistributionYear, setSelectedGenderDistributionYear),
+  }), [makeGenderDistributionPie, makeGenderEntryYearSelect, selectedGenderDistributionYear]);
 
   React.useEffect(() => {
     setSelectedExportGenderEntryYears((prev) => prev.filter((year) => entryYearOptions.some((option) => option.value === year)));
@@ -811,7 +790,7 @@ export default function Statistics() {
   function openExportSelection(format: "xlsx" | "csv" | "png") {
     void loadStatsGroup("academic").catch(() => {});
     void loadStatsGroup("geography").catch(() => {});
-    const visibleYears = [selectedGenderEntryYearLeft, selectedGenderEntryYearRight].filter((year, index, items) => year !== "all" && items.indexOf(year) === index);
+    const visibleYears = selectedGenderDistributionYear === "all" ? [] : [selectedGenderDistributionYear];
     setSelectedExportGenderEntryYears(format === "png" ? visibleYears : []);
     setSelectedChartIds([]);
     setExportPreviewData(null);
@@ -919,19 +898,11 @@ export default function Statistics() {
       const value = String(row.entry_year ?? row.year ?? "");
       if (value) sourceGenderEntryMap.set(value, row);
     });
-    const sourceGenderEntryYears = selectedExportGenderEntryYears.length
-      ? selectedExportGenderEntryYears
-      : [selectedGenderEntryYearLeft, selectedGenderEntryYearRight].filter((year, index, items) => year !== "all" && items.indexOf(year) === index);
-    const makeSourceGenderPie = (year: string) => {
-      const row = sourceGenderEntryMap.get(year) ?? sourceGenderEntryRows[0] ?? null;
-      return {
-        key: year,
-        title: year,
-        labels: [t("table.male"), t("table.female")],
-        values: [Number(row?.male ?? 0), Number(row?.female ?? 0)],
-        control: null,
-      };
-    };
+    const sourceGenderDistributionYear = selectedExportGenderEntryYears[0] ?? selectedGenderDistributionYear;
+    const sourceGenderDistributionRow = sourceGenderDistributionYear === "all" ? null : sourceGenderEntryMap.get(sourceGenderDistributionYear) ?? null;
+    const sourceGenderDistributionValues = sourceGenderDistributionRow
+      ? [Number(sourceGenderDistributionRow.male ?? 0), Number(sourceGenderDistributionRow.female ?? 0)]
+      : [Number(sourceData?.gender?.M ?? 0), Number(sourceData?.gender?.F ?? 0)];
     const rawYearsToDegreeDistribution = seriesFromRows(sourceData?.years_to_degree_distribution);
     const numericDurationLabels = rawYearsToDegreeDistribution.labels.map((label) => Number(label)).filter((value) => Number.isFinite(value));
     const sourceYearsToDegreeDistribution = numericDurationLabels.length
@@ -969,10 +940,10 @@ export default function Statistics() {
       genderChartData: sourceGenderChartData,
       entryYears: seriesFromRows(sourceData?.count_by_entry_year, { labelKey: "entry_year" }),
       birthYears: seriesFromRows(sourceData?.birth_year_distribution, { labelKey: "year" }),
-      genderByEntryYearPies: sourceGenderEntryYears.map(makeSourceGenderPie),
-      genderTotal: {
+      genderDistributionPie: {
         labels: [t("table.male"), t("table.female")],
-        values: [Number(sourceData?.gender?.M ?? 0), Number(sourceData?.gender?.F ?? 0)],
+        values: sourceGenderDistributionValues,
+        control: null,
       },
       gradeBinsByGender: {
         labels: (Array.isArray(sourceData?.degree_grade_bins_by_gender) ? sourceData.degree_grade_bins_by_gender as NamedCountRow[] : []).map((row) => String(row.label ?? "-")),
@@ -999,7 +970,7 @@ export default function Statistics() {
       total: Number(sourceData?.total ?? 0),
       abroadCount: Number(sourceData?.abroad_count ?? 0),
     };
-  }, [activeLang, data, exportPreviewData, selectedExportGenderEntryYears, selectedGenderEntryYearLeft, selectedGenderEntryYearRight, seriesFromRows, sortGenderByRegionDescending, sortSeriesDescending, t]);
+  }, [activeLang, data, exportPreviewData, selectedExportGenderEntryYears, selectedGenderDistributionYear, seriesFromRows, sortGenderByRegionDescending, sortSeriesDescending, t]);
 
   async function exportSelectedChartsAsPng() {
     if (!selectedChartIds.length) return;
@@ -1323,8 +1294,7 @@ export default function Statistics() {
             countChartOptions={countChartOptions}
             entryYears={entryYears}
             birthYears={birthYears}
-            genderByEntryYearPies={genderByEntryYearPies}
-            genderTotal={genderTotal}
+            genderDistributionPie={genderDistributionPie}
             gradeBinsByGender={gradeBinsByGender}
             abroadByYear={abroadByYear}
             yearsToDegreeByNomos={yearsToDegreeByNomos}
@@ -1355,8 +1325,7 @@ export default function Statistics() {
             countChartOptions={countChartOptions}
             entryYears={entryYears}
             birthYears={birthYears}
-            genderByEntryYearPies={genderByEntryYearPies}
-            genderTotal={genderTotal}
+            genderDistributionPie={genderDistributionPie}
             gradeBinsByGender={gradeBinsByGender}
             abroadByYear={abroadByYear}
             yearsToDegreeByNomos={yearsToDegreeByNomos}
@@ -1387,8 +1356,7 @@ export default function Statistics() {
             countChartOptions={countChartOptions}
             entryYears={entryYears}
             birthYears={birthYears}
-            genderByEntryYearPies={genderByEntryYearPies}
-            genderTotal={genderTotal}
+            genderDistributionPie={genderDistributionPie}
             gradeBinsByGender={gradeBinsByGender}
             abroadByYear={abroadByYear}
             yearsToDegreeByNomos={yearsToDegreeByNomos}
@@ -1462,8 +1430,7 @@ export default function Statistics() {
           countChartOptions={countChartOptions}
           entryYears={exportViewData.entryYears}
           birthYears={exportViewData.birthYears}
-          genderByEntryYearPies={exportViewData.genderByEntryYearPies}
-          genderTotal={exportViewData.genderTotal}
+          genderDistributionPie={exportViewData.genderDistributionPie}
           gradeBinsByGender={exportViewData.gradeBinsByGender}
           abroadByYear={exportViewData.abroadByYear}
           yearsToDegreeByNomos={exportViewData.yearsToDegreeByNomos}

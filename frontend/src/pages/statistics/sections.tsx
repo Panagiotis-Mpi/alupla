@@ -10,7 +10,6 @@ import {
   ChartCard,
   ChartFullscreenButton,
   ChartLegendInset,
-  DualPieChartCard,
   MetricCard,
   MultiBarChartCard,
   PieChartCard,
@@ -20,7 +19,7 @@ import {
 
 type ChartSeries = { labels: string[]; values: number[] };
 type PieSeries = { labels: string[]; values: number[] };
-type GenderEntryYearPie = PieSeries & { key: string; title: string; control: React.ReactNode };
+type GenderDistributionPie = PieSeries & { control: React.ReactNode };
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 type MenuGroup = "demographics" | "academic" | "geography" | "compare";
@@ -43,8 +42,7 @@ type ChartBlockProps = {
   countChartOptions: any;
   entryYears: ChartSeries;
   birthYears: ChartSeries;
-  genderByEntryYearPies: GenderEntryYearPie[];
-  genderTotal: PieSeries;
+  genderDistributionPie: GenderDistributionPie;
   gradeBinsByGender: { labels: string[]; male: number[]; female: number[] };
   abroadByYear: { labels: string[]; greece: number[]; abroad: number[] };
   yearsToDegreeByNomos: ChartSeries;
@@ -191,8 +189,7 @@ export function DemographicsCharts(props: ChartBlockProps) {
         <GraduationLineCard {...props} />
         <ChartCard chartId="countByEntryYear" title={props.t("sections.countByEntryYear")} labels={props.entryYears.labels} values={props.entryYears.values} height={320} exportMode={props.exportMode} />
         <ChartCard chartId="birthYear" title={props.t("sections.birthYear")} labels={props.birthYears.labels} values={props.birthYears.values} height={320} exportMode={props.exportMode} />
-        <PieChartCard chartId="genderTotal" title={props.t("sections.genderTotal")} labels={props.genderTotal.labels} values={props.genderTotal.values} height={320} colors={["#3b82f6", "#db2777"]} exportMode={props.exportMode} />
-        <DualPieChartCard chartId="genderByEntryYear" title={props.t("sections.genderByEntryYear")} pies={props.genderByEntryYearPies} height={300} colors={["#3b82f6", "#db2777"]} exportMode={props.exportMode} />
+        <PieChartCard chartId="genderTotal" title={props.t("sections.genderTotal")} labels={props.genderDistributionPie.labels} values={props.genderDistributionPie.values} height={320} control={props.genderDistributionPie.control} colors={["#3b82f6", "#db2777"]} exportMode={props.exportMode} />
         <GenderLineCard {...props} exportMode={props.exportMode} />
       </div>
     </div>
@@ -291,8 +288,7 @@ export function ExportChartsSurface(props: ChartBlockProps) {
       <GraduationLineCard {...props} exportMode />
       <ChartCard chartId="countByEntryYear" title={props.t("sections.countByEntryYear")} labels={props.entryYears.labels} values={props.entryYears.values} height={320} exportMode={props.exportMode} />
       <ChartCard chartId="birthYear" title={props.t("sections.birthYear")} labels={props.birthYears.labels} values={props.birthYears.values} height={320} exportMode={props.exportMode} />
-      <PieChartCard chartId="genderTotal" title={props.t("sections.genderTotal")} labels={props.genderTotal.labels} values={props.genderTotal.values} height={320} colors={["#3b82f6", "#db2777"]} exportMode={props.exportMode} />
-      <DualPieChartCard chartId="genderByEntryYear" title={props.t("sections.genderByEntryYear")} pies={props.genderByEntryYearPies} height={300} colors={["#3b82f6", "#db2777"]} exportMode={props.exportMode} />
+      <PieChartCard chartId="genderTotal" title={props.t("sections.genderTotal")} labels={props.genderDistributionPie.labels} values={props.genderDistributionPie.values} height={320} control={props.genderDistributionPie.control} colors={["#3b82f6", "#db2777"]} exportMode={props.exportMode} />
       <GenderLineCard {...props} exportMode />
       <BarChartCard chartId="gradeDistribution" title={props.t("sections.gradeDistribution")} labels={props.gradeBins.labels} values={props.gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} exportMode={props.exportMode} />
       <MultiBarChartCard

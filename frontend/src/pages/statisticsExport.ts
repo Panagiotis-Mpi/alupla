@@ -121,7 +121,6 @@ const statisticsChartOrder: StatisticsChartId[] = [
   "countByEntryYear",
   "birthYear",
   "genderTotal",
-  "genderByEntryYear",
   "gender",
   "gradeDistribution",
   "gradeDistributionByGender",
@@ -414,7 +413,7 @@ function buildSheets(args: BuildArgs) {
 
   sheets.set("genderTotal", {
     chartId: "genderTotal",
-    name: activeLang === "en" ? "Total Gender Distribution" : "Συνολική κατανομή φύλου",
+    name: activeLang === "en" ? "Gender Distribution" : "Κατανομή φύλου",
     rows: [
       {
         [l.category]: activeLang === "en" ? "Male" : "Άνδρες",
@@ -1206,7 +1205,6 @@ export function buildStatisticsExportFilename(args: BuildArgs, format: Statistic
     "countByEntryYear",
     "birthYear",
     "genderTotal",
-    "genderByEntryYear",
     "gender",
     "gradeDistribution",
     "gradeDistributionByGender",
