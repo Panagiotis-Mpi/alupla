@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import greeceMapIllustration from "../assets/home_greece_map.svg";
+import greeceMapHighContrastIllustration from "../assets/home_greece_map_high_contrast.svg";
 import { getPublicStats } from "../lib/api";
 import Icon from "../components/Icon";
 import chartIcon from "../assets/icons/chart-column-big.svg";
@@ -141,7 +142,21 @@ export default function PublicHome() {
               <img
                 src={greeceMapIllustration}
                 alt={t("home.map")}
-                className="public-home-illustration public-home-illustration-clickable"
+                className="public-home-illustration public-home-illustration-normal public-home-illustration-clickable"
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate("/map")}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate("/map");
+                  }
+                }}
+              />
+              <img
+                src={greeceMapHighContrastIllustration}
+                alt={t("home.map")}
+                className="public-home-illustration public-home-illustration-high-contrast public-home-illustration-clickable"
                 role="button"
                 tabIndex={0}
                 onClick={() => navigate("/map")}
