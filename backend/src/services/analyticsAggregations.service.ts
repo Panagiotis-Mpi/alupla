@@ -185,6 +185,19 @@ export async function getCountByBirthYear(context: AnalyticsWhereContext, birthY
   );
 }
 
+export async function getGenderByBirthYear(context: AnalyticsWhereContext, birthYearExpr?: string) {
+  const expr = birthYearExpr ?? context.birthYearExpr ?? "CAST(EXTRACT(YEAR FROM g.birth_date) AS INTEGER)";
+  return queryAnalyticsRows<{ year: number; male: number; female: number }>(
+    `SELECT ${expr} as year,
+            CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
+            CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
+     FROM graduates g ${context.sqlWhere}
+     GROUP BY ${expr}
+     ORDER BY year ASC`,
+    context,
+  );
+}
+
 export async function getAgeGroups(context: AnalyticsWhereContext) {
   const birthExpr = context.birthExpr ?? "g.birth_date";
   return queryAnalyticsRows<{ label: string; count: number }>(

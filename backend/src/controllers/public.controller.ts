@@ -22,6 +22,7 @@ import {
   getCountByGraduationYear,
   getDegreeGradeBins,
   getDegreeGradeBinsByGender,
+  getGenderByBirthYear,
   getGenderByEntryYear,
   getGenderByGraduationYear,
   getGenderCounts,
@@ -109,7 +110,7 @@ export async function publicStats(req: Request, res: Response) {
 
     if (section === "demographics") {
       const context = { sqlWhere, repl, birthExpr, birthYearExpr };
-      const [totalRow, avgRow, byYear, byTerm, genderRows, genderByYear, birthYearRows, countByEntryYear, genderByEntryYear] = await Promise.all([
+      const [totalRow, avgRow, byYear, byTerm, genderRows, genderByYear, birthYearRows, genderByBirthYear, countByEntryYear, genderByEntryYear] = await Promise.all([
         getTotalGraduates(context),
         getOverviewSummary(context),
         getCountByGraduationYear(context),
@@ -117,6 +118,7 @@ export async function publicStats(req: Request, res: Response) {
         getGenderCounts(context),
         getGenderByGraduationYear(context),
         getCountByBirthYear(context, birthYearExpr),
+        getGenderByBirthYear(context, birthYearExpr),
         getCountByEntryYear(context),
         getGenderByEntryYear(context),
       ]);
@@ -141,6 +143,7 @@ export async function publicStats(req: Request, res: Response) {
         gender_by_term: [],
         birth_years: birthYearRows,
         birth_year_distribution: birthYearRows,
+        gender_by_birth_year: genderByBirthYear,
         age_groups: [],
         count_by_entry_year: countByEntryYear,
         gender_by_entry_year: genderByEntryYear,
@@ -614,6 +617,16 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
+    const genderByBirthYear = await sequelize.query<{ year: number; male: number; female: number }>(
+      `SELECT ${birthYearExpr} as year,
+              CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
+              CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
+       FROM graduates g ${sqlWhere}
+       GROUP BY ${birthYearExpr}
+       ORDER BY year ASC`,
+      { replacements: repl, type: QueryTypes.SELECT }
+    );
+
     const ageRows = await sequelize.query<{ label: string; count: number }>(
       `SELECT CASE
                 WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
@@ -1020,6 +1033,7 @@ export async function publicStats(req: Request, res: Response) {
       gender_by_term: genderByTerm.filter((r) => r.term !== 'other'),
       birth_years: birthYearRows,
       birth_year_distribution: birthYearRows,
+      gender_by_birth_year: genderByBirthYear,
       age_groups: ageRows.filter((r) => r.label !== 'unknown'),
       avg_grade_by_year: avgGradeByYear,
       avg_grade_by_term: [],

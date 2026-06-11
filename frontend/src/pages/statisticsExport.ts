@@ -55,6 +55,7 @@ type StatisticsData = Partial<Record<
   | "count_by_entry_year"
   | "gender_by_year"
   | "birth_year_distribution"
+  | "gender_by_birth_year"
   | "avg_grade_by_year"
   | "avg_grade_by_region"
   | "degree_grade_bins"
@@ -438,23 +439,52 @@ function buildSheets(args: BuildArgs) {
     },
   });
 
+  const genderByBirthYearMap = new Map(rowsOf(data.gender_by_birth_year).map((row) => [num(row.year), row]));
   const birthYearRows = rowsOf(data.birth_year_distribution).map((row) => {
+    const year = num(row.year);
     const count = num(row.count);
+    const genderRow = genderByBirthYearMap.get(year);
+    const male = num(genderRow?.male);
+    const female = num(genderRow?.female);
     return {
-      [l.birthYear]: num(row.year),
+      [l.birthYear]: year,
       [l.graduateCount]: count,
       [l.percentage]: percentOf(count, totalGraduates),
+      [l.maleCount]: male,
+      [l.femaleCount]: female,
+      [l.malePercentage]: percentOf(male, count),
+      [l.femalePercentage]: percentOf(female, count),
     };
   });
+  const birthYearMaleTotal = birthYearRows.reduce((sum, row) => sum + num(row[l.maleCount]), 0);
+  const birthYearFemaleTotal = birthYearRows.reduce((sum, row) => sum + num(row[l.femaleCount]), 0);
+  const birthYearCountTotal = birthYearRows.reduce((sum, row) => sum + num(row[l.graduateCount]), 0);
 
   sheets.set("birthYear", {
     chartId: "birthYear",
     name: activeLang === "en" ? "Graduates by Birth Year" : "Πλήθος αποφοίτων ανά έτος γέννησης",
-    rows: appendDistributionTotal(birthYearRows, l.birthYear, l.graduateCount, l.percentage, l.total),
+    rows: birthYearRows.length
+      ? [
+          ...birthYearRows,
+          {
+            [l.birthYear]: l.total,
+            [l.graduateCount]: birthYearCountTotal,
+            [l.percentage]: birthYearCountTotal > 0 ? 100 : 0,
+            [l.maleCount]: birthYearMaleTotal,
+            [l.femaleCount]: birthYearFemaleTotal,
+            [l.malePercentage]: percentOf(birthYearMaleTotal, birthYearCountTotal),
+            [l.femalePercentage]: percentOf(birthYearFemaleTotal, birthYearCountTotal),
+          },
+        ]
+      : birthYearRows,
     columnKinds: {
       [l.birthYear]: "year",
       [l.graduateCount]: "count",
       [l.percentage]: "percentage",
+      [l.maleCount]: "count",
+      [l.femaleCount]: "count",
+      [l.malePercentage]: "percentage",
+      [l.femalePercentage]: "percentage",
     },
   });
 
