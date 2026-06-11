@@ -1,5 +1,10 @@
 // Χτίζει τις ενότητες KPIs και charts της σελίδας Στατιστικά.
 import React from "react";
+import Icon from "../../components/Icon";
+import usersRoundIcon from "../../assets/icons/users-round.svg";
+import bookOpenCheckIcon from "../../assets/icons/book-open-check.svg";
+import mapPinnedIcon from "../../assets/icons/map-pinned.svg";
+import arrowLeftRightIcon from "../../assets/icons/arrow-left-right.svg";
 import {
   BarChartCard,
   ChartCard,
@@ -21,6 +26,12 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
 type MenuGroup = "demographics" | "academic" | "geography" | "compare";
 
 const greeceAbroadColors = { greece: "rgba(37, 99, 235, 0.72)", abroad: "#f59e0b" };
+const groupIcons: Record<MenuGroup, string> = {
+  demographics: usersRoundIcon,
+  academic: bookOpenCheckIcon,
+  geography: mapPinnedIcon,
+  compare: arrowLeftRightIcon,
+};
 
 type ChartBlockProps = {
   t: Translate;
@@ -73,7 +84,8 @@ export function StatisticsGroupMenu(props: {
             style={props.topButtonStyle}
             onClick={() => props.setActiveGroup(groupKey)}
           >
-            {props.t(`groups.${groupKey}`)}
+            <Icon src={groupIcons[groupKey]} size={18} />
+            <span>{props.t(`groups.${groupKey}`)}</span>
           </button>
         ))}
         {props.exportButton}
