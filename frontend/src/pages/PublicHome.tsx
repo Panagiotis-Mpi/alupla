@@ -124,7 +124,20 @@ export default function PublicHome() {
                 </div>
               ))}
             </div>
-            <img src={greeceMapIllustration} alt="" className="public-home-illustration" />
+            <img
+              src={greeceMapIllustration}
+              alt={t("home.map")}
+              className="public-home-illustration public-home-illustration-clickable"
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate("/map")}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  navigate("/map");
+                }
+              }}
+            />
           </div>
         </div>
       </div>

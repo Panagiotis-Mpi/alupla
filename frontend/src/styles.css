@@ -4723,3 +4723,6 @@ html.accessibility-high-contrast .map-legend-swatch-count-high-contrast{
 html.accessibility-high-contrast .accessibility-trigger{
   box-shadow:none !important;
 }
+.public-home-illustration-clickable{cursor:pointer}
+.public-home-illustration-clickable:focus-visible{outline:3px solid var(--primary);outline-offset:8px;border-radius:12px}
+html.accessibility-high-contrast .public-home-illustration-clickable:focus-visible{outline-color:#ffd400}
