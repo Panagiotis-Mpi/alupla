@@ -194,41 +194,39 @@ export function bubbleLabelIcon(
   const wrapperHeight = labelHeight + size + 6;
   const wrapperWidth = Math.max(labelWidth, size + 10);
   const activeRing = active ? '0 0 0 3px rgba(15,23,42,.14)' : 'none';
-  const isBalancedGender = total > 0 && maleCount === femaleCount;
   const hasBothGenders = maleCount > 0 && femaleCount > 0;
   const highContrastMaleFill = "#ffd400";
   const highContrastFemaleFill = "#7fffd4";
+  const highContrastBoundaryFill = "#000000";
+  const maleAngle = Math.max(0, Math.min(360, malePct * 3.6));
+  const genderBoundaryWidth = hasBothGenders
+    ? Math.max(0.8, Math.min(3, maleAngle / 4, (360 - maleAngle) / 4))
+    : 0;
   const genderBubbleBackground = highContrastEnabled
     ? hasBothGenders
-      ? `conic-gradient(from -90deg, ${highContrastMaleFill} 0 ${malePct}%, ${highContrastFemaleFill} ${malePct}% 100%)`
+      ? `conic-gradient(from -90deg, ${highContrastBoundaryFill} 0deg ${genderBoundaryWidth.toFixed(2)}deg, ${highContrastMaleFill} ${genderBoundaryWidth.toFixed(2)}deg ${Math.max(genderBoundaryWidth, maleAngle - genderBoundaryWidth).toFixed(2)}deg, ${highContrastBoundaryFill} ${Math.max(genderBoundaryWidth, maleAngle - genderBoundaryWidth).toFixed(2)}deg ${Math.min(360 - genderBoundaryWidth, maleAngle + genderBoundaryWidth).toFixed(2)}deg, ${highContrastFemaleFill} ${Math.min(360 - genderBoundaryWidth, maleAngle + genderBoundaryWidth).toFixed(2)}deg ${(360 - genderBoundaryWidth).toFixed(2)}deg, ${highContrastBoundaryFill} ${(360 - genderBoundaryWidth).toFixed(2)}deg 360deg)`
       : maleCount > 0
         ? highContrastMaleFill
         : femaleCount > 0
           ? highContrastFemaleFill
           : highContrastMaleFill
     : `conic-gradient(${genderColors.male} 0 ${malePct}%, ${genderColors.female} ${malePct}% 100%)`;
-  const genderSegmentFontSize = size >= 58 ? 22 : size >= 46 ? 19 : size >= 34 ? 16 : 13;
-  const highContrastGenderSymbolSize = hasBothGenders ? Math.max(12, genderSegmentFontSize - 1) : genderSegmentFontSize;
-  const buildHighContrastGenderLines = () => {
-    if (!highContrastEnabled || !hasBothGenders || total <= 0) return "";
+  const genderSegmentFontSize = size >= 58 ? 21 : size >= 46 ? 18 : size >= 34 ? 15 : 12;
+  const genderSegmentDistance = hasBothGenders ? Math.max(3, Math.min(size * 0.28, radius - genderSegmentFontSize * 0.44)) : 0;
+  const genderSegmentPoint = (angle: number) => {
+    const radians = (angle * Math.PI) / 180;
     const center = size / 2;
-    const lineRadius = Math.max(0, center - 1);
-    const boundaryAngles = [-90, -90 + malePct * 3.6];
-    const lines = boundaryAngles
-      .map((angle) => {
-        const radians = (angle * Math.PI) / 180;
-        const x = center + Math.cos(radians) * lineRadius;
-        const y = center + Math.sin(radians) * lineRadius;
-        return `<line x1="${center.toFixed(2)}" y1="${center.toFixed(2)}" x2="${x.toFixed(2)}" y2="${y.toFixed(2)}"></line>`;
-      })
-      .join("");
-    return `<svg class="alupla-city-gender-lines" viewBox="0 0 ${size} ${size}" aria-hidden="true" focusable="false">${lines}</svg>`;
+    return {
+      x: center + Math.cos(radians) * genderSegmentDistance,
+      y: center + Math.sin(radians) * genderSegmentDistance,
+    };
   };
-  const highContrastGenderLines = buildHighContrastGenderLines();
+  const maleSegmentPoint = genderSegmentPoint(-90 + maleAngle / 2);
+  const femaleSegmentPoint = genderSegmentPoint(-90 + maleAngle + (360 - maleAngle) / 2);
   const highContrastGenderDetails = highContrastEnabled
-    ? isBalancedGender
-      ? `${highContrastGenderLines}<span class="alupla-city-gender-icons alupla-city-gender-icons-balanced" style="font-size:${Math.max(14, genderSegmentFontSize + 2)}px;"><span class="alupla-city-gender-balance-symbol">≈</span></span>`
-      : `${highContrastGenderLines}<span class="alupla-city-gender-icons" style="font-size:${highContrastGenderSymbolSize}px;">${maleCount > 0 ? `<span class="alupla-city-gender-icon alupla-city-gender-icon-male">♂</span>` : ""}${femaleCount > 0 ? `<span class="alupla-city-gender-icon alupla-city-gender-icon-female">♀</span>` : ""}</span>`
+    ? hasBothGenders
+      ? `${maleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-male" style="left:${maleSegmentPoint.x.toFixed(2)}px;top:${maleSegmentPoint.y.toFixed(2)}px;font-size:${genderSegmentFontSize}px;">♂</span>` : ""}${femaleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-female" style="left:${femaleSegmentPoint.x.toFixed(2)}px;top:${femaleSegmentPoint.y.toFixed(2)}px;font-size:${genderSegmentFontSize}px;">♀</span>` : ""}`
+      : `<span class="alupla-city-gender-icons" style="font-size:${genderSegmentFontSize}px;">${maleCount > 0 ? `<span class="alupla-city-gender-icon alupla-city-gender-icon-male">♂</span>` : ""}${femaleCount > 0 ? `<span class="alupla-city-gender-icon alupla-city-gender-icon-female">♀</span>` : ""}</span>`
     : `<span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span>`;
   const bubbleHtml =
     mapMetric === "count"
