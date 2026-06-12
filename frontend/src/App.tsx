@@ -59,11 +59,16 @@ function TopNav() {
   const accountRef = React.useRef<HTMLDivElement | null>(null);
 
   const authRoute = React.useMemo(() => location.pathname.startsWith("/login"), [location.pathname]);
+  const homeRoute = React.useMemo(() => location.pathname === "/", [location.pathname]);
   const lang: "gr" | "en" = i18n.language?.startsWith("en") ? "en" : "gr";
 
   const visibleLinks = React.useMemo(() => {
     const map = { to: "/map", label: t("nav.map") };
     const statistics = { to: "/statistics", label: t("nav.statistics", { defaultValue: "Στατιστικά" }) };
+
+    if (homeRoute) {
+      return [];
+    }
 
     if (authRoute) {
       return [map, statistics];
@@ -93,7 +98,7 @@ function TopNav() {
     }
 
     return [map, statistics, graduates, academicData];
-  }, [authRoute, lang, role, t, user]);
+  }, [authRoute, homeRoute, lang, role, t, user]);
 
   const isActiveLink = React.useCallback((to: string) => (to === "/" ? location.pathname === "/" : location.pathname.startsWith(to)), [location.pathname]);
 
