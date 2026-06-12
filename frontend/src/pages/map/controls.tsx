@@ -329,6 +329,7 @@ export function MapExportSelectionModal(props: {
 
   return (
     <div
+      className="export-selection-backdrop"
       onClick={props.onClose}
       style={{
         position: "fixed",
@@ -343,7 +344,7 @@ export function MapExportSelectionModal(props: {
       }}
     >
       <div
-        className="card"
+        className="card export-selection-card"
         onClick={(event) => event.stopPropagation()}
         style={{
           width: "fit-content",

@@ -4875,3 +4875,82 @@ html.accessibility-high-contrast .public-home-illustration-high-contrast{display
 html.accessibility-high-contrast .public-home-map-bubble{display:none}
 @media (max-width:820px){.public-home-illustration-frame{max-width:320px}}
 @media (max-width:640px){.public-home-illustration-frame{max-width:250px}}
+
+html.accessibility-high-contrast .app-shell .export-selection-backdrop{
+  background:rgba(0,0,0,.46) !important;
+  backdrop-filter:none !important;
+}
+html.accessibility-high-contrast .app-shell .export-selection-card{
+  background:#020f0d !important;
+  color:#9fffe7 !important;
+  border:1px solid #14f5c8 !important;
+  box-shadow:0 0 0 1px rgba(20,245,200,.22) !important;
+}
+html.accessibility-high-contrast .app-shell .export-selection-card [style*="background"],
+html.accessibility-high-contrast .app-shell .export-selection-card [style*="background-color"],
+html.accessibility-high-contrast .app-shell .export-selection-card [style*="box-shadow"]{
+  background:#020f0d !important;
+  color:#9fffe7 !important;
+  border-color:#14f5c8 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .app-shell .export-selection-card label,
+html.accessibility-high-contrast .app-shell .export-selection-card button:not(.primary),
+html.accessibility-high-contrast .app-shell .export-selection-card select,
+html.accessibility-high-contrast .app-shell .export-selection-card input{
+  background:#001c17 !important;
+  color:#9fffe7 !important;
+  border-color:#14f5c8 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .app-shell .export-selection-card select option{
+  background:#000000 !important;
+  color:#9fffe7 !important;
+}
+html.accessibility-high-contrast .app-shell .export-selection-card .primary{
+  background:#ffd400 !important;
+  color:#000000 !important;
+  border-color:#ffd400 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .app-shell .export-selection-card .muted,
+html.accessibility-high-contrast .app-shell .export-selection-card h3,
+html.accessibility-high-contrast .app-shell .export-selection-card span,
+html.accessibility-high-contrast .app-shell .export-selection-card div{
+  color:#9fffe7 !important;
+}
+html.accessibility-high-contrast .app-shell .export-selection-card .primary span{
+  color:#000000 !important;
+}
+html.accessibility-high-contrast .alupla-city-bubble-gender .alupla-city-gender-icons,
+html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-icons{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:.08em;
+  color:#000000 !important;
+  font-family:Arial, Helvetica, sans-serif;
+  font-weight:950;
+  line-height:1;
+  text-shadow:none !important;
+  -webkit-text-stroke:0;
+  pointer-events:none;
+}
+html.accessibility-high-contrast .alupla-city-bubble-gender .alupla-city-gender-icon,
+html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-icon,
+html.accessibility-high-contrast .alupla-city-bubble-gender .alupla-city-gender-balance-symbol,
+html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-balance-symbol{
+  position:static !important;
+  transform:none !important;
+  display:block;
+  color:#000000 !important;
+  background:transparent !important;
+  border:0 !important;
+  padding:0 !important;
+  font-weight:950 !important;
+  line-height:1 !important;
+  text-shadow:none !important;
+  -webkit-text-stroke:0;
+}
