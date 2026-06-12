@@ -211,22 +211,35 @@ export function bubbleLabelIcon(
           ? highContrastFemaleFill
           : highContrastMaleFill
     : `conic-gradient(${genderColors.male} 0 ${malePct}%, ${genderColors.female} ${malePct}% 100%)`;
-  const genderSegmentFontSize = size >= 58 ? 21 : size >= 46 ? 18 : size >= 34 ? 15 : 12;
-  const genderSegmentDistance = hasBothGenders ? Math.max(3, Math.min(size * 0.28, radius - genderSegmentFontSize * 0.44)) : 0;
-  const genderSegmentPoint = (angle: number) => {
-    const radians = (angle * Math.PI) / 180;
+  const genderSymbolSize = Math.max(9, Math.min(size * 0.34, active ? 19 : 17));
+  const genderSymbol = (type: "male" | "female", x: number, y: number) => {
+    const shape = type === "male"
+      ? `<circle cx="9" cy="15" r="4.6" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M12.3 11.7 19 5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M14.8 5H19v4.2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`
+      : `<circle cx="12" cy="7.5" r="4.6" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M12 12.1v8.2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M8.1 16.4h7.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>`;
+    return `<span class="alupla-city-gender-symbol alupla-city-gender-symbol-${type}" style="position:absolute;left:${x.toFixed(2)}px;top:${y.toFixed(2)}px;width:${genderSymbolSize.toFixed(2)}px;height:${genderSymbolSize.toFixed(2)}px;transform:translate(-50%,-50%);display:block;color:#000000;z-index:2;pointer-events:none;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="display:block;width:100%;height:100%;overflow:visible;">${shape}</svg></span>`;
+  };
+  const genderSegmentPoint = (startAngle: number, segmentAngle: number) => {
     const center = size / 2;
+    if (!hasBothGenders) return { x: center, y: center };
+    const safeSegmentAngle = Math.max(0.01, Math.min(359.99, segmentAngle));
+    const radians = ((startAngle + safeSegmentAngle / 2) * Math.PI) / 180;
+    const segmentRadians = (safeSegmentAngle * Math.PI) / 180;
+    const sectorDistance = (4 * radius * Math.sin(segmentRadians / 2)) / (3 * segmentRadians);
+    const minDistance = Math.min(radius - 1, genderSymbolSize * 0.45 + 1);
+    const maxDistance = Math.max(0, radius - genderSymbolSize * 0.52 - 1);
+    const distance = Math.min(maxDistance, Math.max(minDistance, sectorDistance));
     return {
-      x: center + Math.cos(radians) * genderSegmentDistance,
-      y: center + Math.sin(radians) * genderSegmentDistance,
+      x: center + Math.cos(radians) * distance,
+      y: center + Math.sin(radians) * distance,
     };
   };
-  const maleSegmentPoint = genderSegmentPoint(-90 + maleAngle / 2);
-  const femaleSegmentPoint = genderSegmentPoint(-90 + maleAngle + (360 - maleAngle) / 2);
+  const maleSegmentPoint = genderSegmentPoint(-90, maleAngle);
+  const femaleSegmentPoint = genderSegmentPoint(-90 + maleAngle, 360 - maleAngle);
+  const singleGenderPoint = { x: size / 2, y: size / 2 };
   const highContrastGenderDetails = highContrastEnabled
     ? hasBothGenders
-      ? `${maleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-male" style="left:${maleSegmentPoint.x.toFixed(2)}px;top:${maleSegmentPoint.y.toFixed(2)}px;font-size:${genderSegmentFontSize}px;">♂</span>` : ""}${femaleCount > 0 ? `<span class="alupla-city-gender-segment alupla-city-gender-segment-female" style="left:${femaleSegmentPoint.x.toFixed(2)}px;top:${femaleSegmentPoint.y.toFixed(2)}px;font-size:${genderSegmentFontSize}px;">♀</span>` : ""}`
-      : `<span class="alupla-city-gender-icons" style="font-size:${genderSegmentFontSize}px;">${maleCount > 0 ? `<span class="alupla-city-gender-icon alupla-city-gender-icon-male">♂</span>` : ""}${femaleCount > 0 ? `<span class="alupla-city-gender-icon alupla-city-gender-icon-female">♀</span>` : ""}</span>`
+      ? `${maleCount > 0 ? genderSymbol("male", maleSegmentPoint.x, maleSegmentPoint.y) : ""}${femaleCount > 0 ? genderSymbol("female", femaleSegmentPoint.x, femaleSegmentPoint.y) : ""}`
+      : `<span class="alupla-city-gender-icons" style="font-size:${genderSymbolSize}px;">${maleCount > 0 ? genderSymbol("male", singleGenderPoint.x, singleGenderPoint.y) : ""}${femaleCount > 0 ? genderSymbol("female", singleGenderPoint.x, singleGenderPoint.y) : ""}</span>`
     : `<span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span>`;
   const bubbleHtml =
     mapMetric === "count"
