@@ -214,9 +214,9 @@ export function bubbleLabelIcon(
   const genderSymbolSize = Math.max(9, Math.min(size * 0.34, active ? 19 : 17));
   const genderSymbol = (type: "male" | "female", x: number, y: number) => {
     const shape = type === "male"
-      ? `<circle cx="9" cy="15" r="4.6" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M12.3 11.7 19 5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M14.8 5H19v4.2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`
-      : `<circle cx="12" cy="7.5" r="4.6" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M12 12.1v8.2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M8.1 16.4h7.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>`;
-    return `<span class="alupla-city-gender-symbol alupla-city-gender-symbol-${type}" style="position:absolute;left:${x.toFixed(2)}px;top:${y.toFixed(2)}px;width:${genderSymbolSize.toFixed(2)}px;height:${genderSymbolSize.toFixed(2)}px;transform:translate(-50%,-50%);display:block;color:#000000;z-index:2;pointer-events:none;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="display:block;width:100%;height:100%;overflow:visible;">${shape}</svg></span>`;
+      ? `<circle cx="9" cy="15" r="4.6" fill="none" stroke="#000000" stroke-width="2.6"/><path d="M12.3 11.7 19 5" fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round"/><path d="M14.8 5H19v4.2" fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`
+      : `<circle cx="12" cy="7.5" r="4.6" fill="none" stroke="#000000" stroke-width="2.6"/><path d="M12 12.1v8.2" fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round"/><path d="M8.1 16.4h7.8" fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round"/>`;
+    return `<span class="alupla-city-gender-symbol alupla-city-gender-symbol-${type}" style="position:absolute;left:${x.toFixed(2)}px;top:${y.toFixed(2)}px;width:${genderSymbolSize.toFixed(2)}px;height:${genderSymbolSize.toFixed(2)}px;transform:translate(-50%,-50%);display:block;color:#000000;z-index:2;pointer-events:none;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="display:block;width:100%;height:100%;overflow:visible;color:#000000;">${shape}</svg></span>`;
   };
   const genderSegmentPoint = (startAngle: number, segmentAngle: number) => {
     const center = size / 2;
@@ -229,8 +229,8 @@ export function bubbleLabelIcon(
     const maxDistance = Math.max(0, radius - genderSymbolSize * 0.52 - 1);
     const distance = Math.min(maxDistance, Math.max(minDistance, sectorDistance));
     return {
-      x: center + Math.cos(radians) * distance,
-      y: center + Math.sin(radians) * distance,
+      x: center + Math.sin(radians) * distance,
+      y: center - Math.cos(radians) * distance,
     };
   };
   const maleSegmentPoint = genderSegmentPoint(-90, maleAngle);
