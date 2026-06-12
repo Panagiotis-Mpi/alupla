@@ -4954,3 +4954,30 @@ html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast .al
   text-shadow:none !important;
   -webkit-text-stroke:0;
 }
+html.accessibility-high-contrast .alupla-map .alupla-city-bubble-gender.is-high-contrast,
+html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast{
+  background:var(--alupla-bubble-background, #ffd400) !important;
+  border-color:#000000 !important;
+  overflow:hidden !important;
+}
+html.accessibility-high-contrast .alupla-map .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-lines,
+html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-lines{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  border-radius:999px !important;
+  z-index:1 !important;
+  pointer-events:none !important;
+}
+html.accessibility-high-contrast .alupla-map .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-lines line,
+html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-lines line{
+  stroke:#000000 !important;
+  stroke-width:3.6 !important;
+  stroke-linecap:round !important;
+  vector-effect:non-scaling-stroke !important;
+}
+html.accessibility-high-contrast .alupla-map .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-icons,
+html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-icons{
+  z-index:2 !important;
+}
