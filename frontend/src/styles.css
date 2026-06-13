@@ -5112,16 +5112,6 @@ body.public-home-scroll-lock .app-content{overflow:visible}
   max-width:490px;
   isolation:isolate;
 }
-.public-home-illustration-frame::before{
-  content:"";
-  position:absolute;
-  inset:5% 1% 2%;
-  border-radius:999px;
-  background:radial-gradient(circle,rgba(191,219,254,.54) 0%,rgba(219,234,254,.34) 38%,rgba(255,255,255,0) 72%);
-  filter:blur(18px);
-  pointer-events:none;
-  z-index:0;
-}
 .public-home-map-stage .public-home-illustration{
   max-height:365px;
   position:relative;
@@ -5157,7 +5147,4 @@ body.public-home-scroll-lock .app-content{overflow:visible}
   .public-home-map-stage .public-home-illustration{
     max-height:255px;
   }
-}
-html.accessibility-high-contrast .public-home-illustration-frame::before{
-  display:none;
 }
