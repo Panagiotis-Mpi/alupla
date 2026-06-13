@@ -5079,3 +5079,85 @@ body.public-home-scroll-lock .app-content{overflow:visible}
 @media (min-width:1025px){.public-home-shell{padding:.2rem 1.5rem .85rem}.public-home-card-centered{padding:clamp(.75rem,1.35vh,1.05rem) clamp(1.5rem,3.2vw,2.85rem) clamp(.75rem,1.35vh,1.05rem)}.public-home-card-centered .public-home-illustration-frame{max-width:450px}.public-home-card-centered .public-home-illustration{max-height:335px}}
 @media (max-width:900px){.public-home-card-centered .public-home-title{font-size:clamp(1.75rem,6vw,2.2rem)}.public-home-card-centered .public-home-counters{max-width:420px}.public-home-map-stage .public-home-illustration-frame{max-width:400px}}
 @media (max-width:640px){.public-home-card-centered .public-home-title{font-size:clamp(1.65rem,9vw,2rem)}.public-home-map-stage .public-home-illustration-frame{max-width:315px}.public-home-map-stage .public-home-illustration{max-height:250px}.public-home-card-centered .public-home-counter{min-height:66px}}
+.public-home-card-centered{
+  gap:.34rem;
+}
+.public-home-card-centered .public-home-counters{
+  max-width:410px;
+  gap:8px;
+  margin:0 auto -.1rem;
+}
+.public-home-card-centered .public-home-counter{
+  min-height:64px;
+  padding:6px 10px;
+}
+.public-home-card-centered .public-home-counter-icon{
+  width:24px;
+  height:24px;
+}
+.public-home-card-centered .public-home-counter-icon .ui-icon{
+  width:18px !important;
+  height:18px !important;
+}
+.public-home-card-centered .public-home-counter strong{
+  font-size:1.08rem;
+}
+.public-home-card-centered .public-home-counter span{
+  font-size:.7rem;
+}
+.public-home-map-stage{
+  gap:.35rem;
+}
+.public-home-map-stage .public-home-illustration-frame{
+  max-width:490px;
+  isolation:isolate;
+}
+.public-home-illustration-frame::before{
+  content:"";
+  position:absolute;
+  inset:5% 1% 2%;
+  border-radius:999px;
+  background:radial-gradient(circle,rgba(191,219,254,.54) 0%,rgba(219,234,254,.34) 38%,rgba(255,255,255,0) 72%);
+  filter:blur(18px);
+  pointer-events:none;
+  z-index:0;
+}
+.public-home-map-stage .public-home-illustration{
+  max-height:365px;
+  position:relative;
+  z-index:1;
+}
+@media (min-width:1025px){
+  .public-home-card-centered{
+    padding:clamp(.62rem,1.05vh,.9rem) clamp(1.5rem,3.2vw,2.85rem) clamp(.62rem,1.1vh,.95rem);
+  }
+  .public-home-card-centered .public-home-illustration-frame{
+    max-width:490px;
+  }
+  .public-home-card-centered .public-home-illustration{
+    max-height:365px;
+  }
+}
+@media (max-width:900px){
+  .public-home-card-centered .public-home-counters{
+    max-width:400px;
+  }
+  .public-home-map-stage .public-home-illustration-frame{
+    max-width:420px;
+  }
+}
+@media (max-width:640px){
+  .public-home-card-centered .public-home-counters{
+    max-width:260px;
+    margin:0 auto;
+  }
+  .public-home-map-stage .public-home-illustration-frame{
+    max-width:325px;
+  }
+  .public-home-map-stage .public-home-illustration{
+    max-height:255px;
+  }
+}
+html.accessibility-high-contrast .public-home-illustration-frame::before{
+  display:none;
+}
