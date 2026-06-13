@@ -107,15 +107,6 @@ export default function PublicHome() {
         </div>
 
         <div className="public-home-map-stage">
-          <button
-            type="button"
-            onClick={() => navigate(actions[0].to)}
-            className={actions[0].className}
-          >
-            <Icon src={actions[0].icon} size={20} />
-            <span>{actions[0].label}</span>
-          </button>
-
           <div className="public-home-illustration-frame">
             <img
               src={greeceMapIllustration}
@@ -147,14 +138,19 @@ export default function PublicHome() {
             />
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate(actions[1].to)}
-            className={actions[1].className}
-          >
-            <Icon src={actions[1].icon} size={20} />
-            <span>{actions[1].label}</span>
-          </button>
+          <div className="public-home-actions public-home-map-actions">
+            {actions.map((action) => (
+              <button
+                type="button"
+                key={action.to}
+                onClick={() => navigate(action.to)}
+                className={action.className}
+              >
+                <Icon src={action.icon} size={20} />
+                <span>{action.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
