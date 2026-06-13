@@ -94,7 +94,6 @@ export default function PublicHome() {
     <div className="public-home-shell">
       <div className="public-home-card public-home-card-centered">
         <h1 className="public-home-title">{t("home.heroTitle")}</h1>
-        <p className="public-home-kicker">{t("home.heroLead")}</p>
 
         <div className="public-home-counters" aria-label={t("home.counters.label")}>
           {counters.map((counter) => (
