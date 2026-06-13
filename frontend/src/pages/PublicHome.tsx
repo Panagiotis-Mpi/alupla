@@ -92,67 +92,64 @@ export default function PublicHome() {
 
   return (
     <div className="public-home-shell">
-      <div className="public-home-card public-home-card-split">
-        <h1 className="public-home-title public-home-wide-title">{t("home.heroTitle")}</h1>
+      <div className="public-home-card public-home-card-centered">
+        <h1 className="public-home-title">{t("home.heroTitle")}</h1>
+        <p className="public-home-kicker">{t("home.heroLead")}</p>
 
-        <div className="public-home-main-grid">
-          <div className="public-home-left-column">
-            <div className="public-home-counters" aria-label={t("home.counters.label")}>
-              {counters.map((counter) => (
-                <div className="public-home-counter" key={counter.label}>
-                  <span className="public-home-counter-icon"><Icon src={counter.icon} size={20} /></span>
-                  <strong>{counter.value}</strong>
-                  <span>{counter.label}</span>
-                </div>
-              ))}
+        <div className="public-home-counters" aria-label={t("home.counters.label")}>
+          {counters.map((counter) => (
+            <div className="public-home-counter" key={counter.label}>
+              <span className="public-home-counter-icon"><Icon src={counter.icon} size={20} /></span>
+              <strong>{counter.value}</strong>
+              <span>{counter.label}</span>
             </div>
+          ))}
+        </div>
 
-            <div className="public-home-actions public-home-left-actions">
-              {actions.map((action) => (
-                <button
-                  type="button"
-                  key={action.to}
-                  onClick={() => navigate(action.to)}
-                  className={action.className}
-                >
-                  <Icon src={action.icon} size={20} />
-                  <span>{action.label}</span>
-                </button>
-              ))}
-            </div>
+        <div className="public-home-map-stage">
+          <div className="public-home-illustration-frame">
+            <img
+              src={greeceMapIllustration}
+              alt={t("home.map")}
+              className="public-home-illustration public-home-illustration-normal public-home-illustration-clickable"
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate("/map")}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  navigate("/map");
+                }
+              }}
+            />
+            <img
+              src={greeceMapHighContrastIllustration}
+              alt={t("home.map")}
+              className="public-home-illustration public-home-illustration-high-contrast public-home-illustration-clickable"
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate("/map")}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  navigate("/map");
+                }
+              }}
+            />
           </div>
 
-          <div className="public-home-right-map">
-            <div className="public-home-illustration-frame">
-              <img
-                src={greeceMapIllustration}
-                alt={t("home.map")}
-                className="public-home-illustration public-home-illustration-normal public-home-illustration-clickable"
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate("/map")}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    navigate("/map");
-                  }
-                }}
-              />
-              <img
-                src={greeceMapHighContrastIllustration}
-                alt={t("home.map")}
-                className="public-home-illustration public-home-illustration-high-contrast public-home-illustration-clickable"
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate("/map")}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    navigate("/map");
-                  }
-                }}
-              />
-            </div>
+          <div className="public-home-actions public-home-map-actions">
+            {actions.map((action) => (
+              <button
+                type="button"
+                key={action.to}
+                onClick={() => navigate(action.to)}
+                className={action.className}
+              >
+                <Icon src={action.icon} size={20} />
+                <span>{action.label}</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>
