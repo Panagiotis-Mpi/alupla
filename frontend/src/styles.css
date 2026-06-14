@@ -5525,7 +5525,7 @@ html.accessibility-high-contrast .public-home-card-split .public-home-side-actio
   }
 
   .public-home-side-actions{
-    order:2;
+    order:3;
     justify-self:center;
     width:min(100%,420px);
     max-width:420px;
@@ -5546,9 +5546,9 @@ html.accessibility-high-contrast .public-home-card-split .public-home-side-actio
   }
 
   .public-home-right{
-    order:3;
+    order:2;
     width:100%;
-    padding:.45rem 1rem .85rem;
+    padding:.45rem 1rem .55rem;
     box-sizing:border-box;
   }
 
@@ -5627,7 +5627,7 @@ html.accessibility-high-contrast .public-home-card-split .public-home-side-actio
   }
 
   .public-home-right{
-    padding:.35rem .75rem .75rem;
+    padding:.35rem .75rem .55rem;
   }
 
   .public-home-card-split .public-home-illustration-frame{
