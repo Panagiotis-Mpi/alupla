@@ -5154,3 +5154,12 @@ body.public-home-scroll-lock .app-content{overflow:visible}
     max-height:255px;
   }
 }
+html:not(.accessibility-high-contrast) body.public-home-scroll-lock .app-content,
+html:not(.accessibility-high-contrast) .public-home-shell{
+  background:#f1f4fa;
+}
+html:not(.accessibility-high-contrast) .public-home-card{
+  background:transparent;
+  border-color:transparent;
+  box-shadow:none;
+}
