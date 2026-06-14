@@ -5273,7 +5273,8 @@ body.public-home-scroll-lock .accessibility-trigger{
   justify-content:start;
 }
 
-.public-home-side-actions .public-home-action{
+.public-home-card-split .public-home-side-actions .public-home-action.primary,
+.public-home-card-split .public-home-side-actions .public-home-action.secondary{
   width:100%;
   min-width:0;
   min-height:54px;
@@ -5285,7 +5286,8 @@ body.public-home-scroll-lock .accessibility-trigger{
   box-shadow:0 10px 22px rgba(37,99,235,.18);
 }
 
-.public-home-side-actions .public-home-action:hover{
+.public-home-card-split .public-home-side-actions .public-home-action.primary:hover,
+.public-home-card-split .public-home-side-actions .public-home-action.secondary:hover{
   background:#1d4ed8;
   border-color:#1d4ed8;
   color:#fff;
