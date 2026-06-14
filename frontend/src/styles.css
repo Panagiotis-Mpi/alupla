@@ -5644,3 +5644,13 @@ html.accessibility-high-contrast .public-home-card-split .public-home-side-actio
     padding:0 .85rem 1.25rem;
   }
 }
+@media (max-width:1024px){
+  .public-home-card-split .public-home-counters{
+    margin:14px auto 0;
+  }
+}
+@media (max-width:640px){
+  .public-home-card-split .public-home-counters{
+    margin:12px auto 0;
+  }
+}
