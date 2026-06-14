@@ -4046,6 +4046,24 @@ html.accessibility-high-contrast .auth-page-shell .auth-password-visibility:hove
 html.accessibility-high-contrast .public-home-counter-icon{color:#7fffd4 !important;background:transparent !important}
 html.accessibility-high-contrast .accessibility-trigger{border-color:#14f5c8 !important;box-shadow:0 0 0 2px #000000, inset 0 0 0 1px #14f5c8 !important}
 html.accessibility-high-contrast .accessibility-trigger-icon{color:#14f5c8 !important}
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.primary,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.secondary{
+  background:#000000 !important;
+  border-color:#14f5c8 !important;
+  color:#7fffd4 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.primary:hover,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.secondary:hover,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.primary:active,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.secondary:active,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.primary:focus-visible,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.secondary:focus-visible{
+  background:#ffd400 !important;
+  border-color:#ffd400 !important;
+  color:#000000 !important;
+  box-shadow:none !important;
+}
 
 @media (min-width: 821px){
   .nav{
@@ -5231,6 +5249,14 @@ body.public-home-scroll-lock .accessibility-trigger{
   text-align:left !important;
   border-radius:18px;
   background:#fff;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+  transform-origin:center;
+}
+
+.public-home-card-split .public-home-counter:hover{
+  transform:scale(1.025);
+  border-color:#bfdbfe;
+  box-shadow:0 12px 26px rgba(37,99,235,.12);
 }
 
 .public-home-card-split .public-home-counter-icon{
@@ -5446,4 +5472,34 @@ body.public-home-scroll-lock .accessibility-trigger{
     min-height:100%;
     height:100%;
   }
+}
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.primary,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.secondary{
+  background:#000000 !important;
+  border-color:#14f5c8 !important;
+  color:#7fffd4 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.primary *,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.secondary *{
+  color:#7fffd4 !important;
+}
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.primary:hover,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.secondary:hover,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.primary:active,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.secondary:active,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.primary:focus-visible,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.secondary:focus-visible{
+  background:#ffd400 !important;
+  border-color:#ffd400 !important;
+  color:#000000 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.primary:hover *,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.secondary:hover *,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.primary:active *,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.secondary:active *,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.primary:focus-visible *,
+html.accessibility-high-contrast .public-home-card-split .public-home-side-actions .public-home-action.secondary:focus-visible *{
+  color:#000000 !important;
 }
