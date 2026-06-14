@@ -61,6 +61,7 @@ function TopNav() {
   const authRoute = React.useMemo(() => location.pathname.startsWith("/login"), [location.pathname]);
   const homeRoute = React.useMemo(() => location.pathname === "/", [location.pathname]);
   const lang: "gr" | "en" = i18n.language?.startsWith("en") ? "en" : "gr";
+  const compactMenuAvailable = isCompact && !homeRoute;
 
   const visibleLinks = React.useMemo(() => {
     const map = { to: "/map", label: t("nav.map") };
@@ -124,13 +125,13 @@ function TopNav() {
   }, [navigate]);
 
   const handleBrandClick = React.useCallback(() => {
-    if (isCompact) {
+    if (compactMenuAvailable) {
       setMenuOpen((open) => !open);
       return;
     }
 
     navigate(user ? "/graduates" : "/");
-  }, [isCompact, navigate, user]);
+  }, [compactMenuAvailable, navigate, user]);
 
   const handleResize = React.useCallback(() => {
     const compact = typeof window !== "undefined" ? window.innerWidth <= COMPACT_WIDTH : false;
@@ -237,11 +238,11 @@ function TopNav() {
         className={`brand ${isCompact ? "brand-compact" : ""}`}
         type="button"
         onClick={handleBrandClick}
-        aria-label={isCompact ? t("aria.brandMenu") : t("aria.brandHome")}
-        aria-expanded={isCompact ? menuOpen : undefined}
-        aria-controls={isCompact ? "mobile-drawer" : undefined}
+        aria-label={compactMenuAvailable ? t("aria.brandMenu") : t("aria.brandHome")}
+        aria-expanded={compactMenuAvailable ? menuOpen : undefined}
+        aria-controls={compactMenuAvailable ? "mobile-drawer" : undefined}
       >
-        {isCompact && <span className="brand-burger" aria-hidden="true">☰</span>}
+        {compactMenuAvailable && <span className="brand-burger" aria-hidden="true">☰</span>}
         <img src={aluplaLogo} alt="" className="brand-logo" aria-hidden="true" />
         <span>ALUPLA</span>
       </button>
