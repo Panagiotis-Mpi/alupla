@@ -1,9 +1,11 @@
 // Δημόσια αρχική σελίδα για επισκέπτες χωρίς login.
 import { useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import greeceMapIllustration from "../assets/home_greece_map.svg";
 import greeceMapHighContrastIllustration from "../assets/home_greece_map_high_contrast.svg";
+import worldMapIllustration from "../assets/home_world_map.svg";
+import worldMapHighContrastIllustration from "../assets/home_world_map_high_contrast.svg";
 import { getPublicStats } from "../lib/api";
 import Icon from "../components/Icon";
 import chartIcon from "../assets/icons/chart-column-big.svg";
@@ -17,6 +19,13 @@ type HomeStats = {
   yearRange: string;
 };
 
+type HomeMapSlide = {
+  scope: "greece" | "abroad";
+  normalSrc: string;
+  highContrastSrc: string;
+  alt: string;
+};
+
 function formatCounter(value: number | null, language: string) {
   if (value === null) return "—";
   return new Intl.NumberFormat(language?.startsWith("en") ? "en-US" : "el-GR").format(value);
@@ -26,11 +35,37 @@ export default function PublicHome() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation("common");
   const [homeStats, setHomeStats] = useState<HomeStats | null>(null);
+  const [mapSlideStep, setMapSlideStep] = useState(0);
+  const [mapSlideTransition, setMapSlideTransition] = useState(true);
 
   const actions = [
     { to: "/map", label: t("home.map"), className: "public-home-action primary", icon: globeIcon },
     { to: "/statistics", label: t("home.stats"), className: "public-home-action secondary", icon: chartIcon },
   ];
+
+  const homeMapSlides = useMemo<HomeMapSlide[]>(
+    () => [
+      {
+        scope: "greece",
+        normalSrc: greeceMapIllustration,
+        highContrastSrc: greeceMapHighContrastIllustration,
+        alt: t("home.map"),
+      },
+      {
+        scope: "abroad",
+        normalSrc: worldMapIllustration,
+        highContrastSrc: worldMapHighContrastIllustration,
+        alt: i18n.language?.startsWith("en") ? "World map" : "Παγκόσμιος χάρτης",
+      },
+    ],
+    [i18n.language, t]
+  );
+
+  const carouselMapSlides = useMemo(
+    () => (homeMapSlides.length ? [...homeMapSlides, homeMapSlides[0]] : homeMapSlides),
+    [homeMapSlides]
+  );
+  const activeCarouselMapIndex = Math.min(mapSlideStep, Math.max(carouselMapSlides.length - 1, 0));
 
   useEffect(() => {
     document.body.classList.add("public-home-scroll-lock");
@@ -38,6 +73,26 @@ export default function PublicHome() {
       document.body.classList.remove("public-home-scroll-lock");
     };
   }, []);
+
+  useEffect(() => {
+    homeMapSlides.forEach((slide) => {
+      [slide.normalSrc, slide.highContrastSrc].forEach((src) => {
+        const image = new Image();
+        image.src = src;
+      });
+    });
+  }, [homeMapSlides]);
+
+  useEffect(() => {
+    if (homeMapSlides.length <= 1) return undefined;
+
+    const timer = window.setInterval(() => {
+      setMapSlideTransition(true);
+      setMapSlideStep((current) => current + 1);
+    }, 4000);
+
+    return () => window.clearInterval(timer);
+  }, [homeMapSlides.length]);
 
   useEffect(() => {
     let active = true;
@@ -90,6 +145,27 @@ export default function PublicHome() {
     [homeStats, i18n.language, t]
   );
 
+  const openMapScope = (scope: HomeMapSlide["scope"]) => {
+    navigate(`/map?scope=${scope}`);
+  };
+
+  const handleMapSlideTransitionEnd = () => {
+    if (mapSlideStep >= homeMapSlides.length) {
+      setMapSlideTransition(false);
+      setMapSlideStep(0);
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => setMapSlideTransition(true));
+      });
+    }
+  };
+
+  const handleMapSlideKeyDown = (event: KeyboardEvent<HTMLButtonElement>, scope: HomeMapSlide["scope"]) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openMapScope(scope);
+    }
+  };
+
   return (
     <div className="public-home-shell">
       <div className="public-home-card public-home-card-split">
@@ -123,35 +199,42 @@ export default function PublicHome() {
 
         <section className="public-home-right" aria-label={t("home.map")}>
           <div className="public-home-map-stage">
-            <div className="public-home-illustration-frame">
-              <img
-                src={greeceMapIllustration}
-                alt={t("home.map")}
-                className="public-home-illustration public-home-illustration-normal public-home-illustration-clickable"
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate("/map")}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    navigate("/map");
-                  }
-                }}
-              />
-              <img
-                src={greeceMapHighContrastIllustration}
-                alt={t("home.map")}
-                className="public-home-illustration public-home-illustration-high-contrast public-home-illustration-clickable"
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate("/map")}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    navigate("/map");
-                  }
-                }}
-              />
+            <div className="public-home-illustration-frame public-home-illustration-carousel">
+              <div
+                className={`public-home-illustration-track${mapSlideTransition ? "" : " no-transition"}`}
+                style={{ transform: `translateX(-${mapSlideStep * 100}%)` }}
+                onTransitionEnd={handleMapSlideTransitionEnd}
+              >
+                {carouselMapSlides.map((slide, index) => {
+                  const isActive = index === activeCarouselMapIndex;
+
+                  return (
+                    <button
+                      type="button"
+                      key={`${slide.scope}-${index}`}
+                      className="public-home-illustration-slide public-home-illustration-clickable"
+                      onClick={() => openMapScope(slide.scope)}
+                      onKeyDown={(event) => handleMapSlideKeyDown(event, slide.scope)}
+                      tabIndex={isActive ? 0 : -1}
+                      aria-hidden={!isActive}
+                      aria-label={slide.alt}
+                    >
+                      <img
+                        src={slide.normalSrc}
+                        alt=""
+                        className="public-home-illustration public-home-illustration-normal"
+                        draggable={false}
+                      />
+                      <img
+                        src={slide.highContrastSrc}
+                        alt=""
+                        className="public-home-illustration public-home-illustration-high-contrast"
+                        draggable={false}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>

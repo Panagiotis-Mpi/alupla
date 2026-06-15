@@ -5654,3 +5654,46 @@ html.accessibility-high-contrast .public-home-card-split .public-home-side-actio
     margin:12px auto 0;
   }
 }
+
+.public-home-illustration-carousel{
+  overflow:hidden;
+}
+.public-home-illustration-track{
+  display:flex;
+  width:100%;
+  height:100%;
+  transition:transform .68s cubic-bezier(.4,0,.2,1);
+  will-change:transform;
+}
+.public-home-illustration-track.no-transition{
+  transition:none;
+}
+.public-home-illustration-slide{
+  flex:0 0 100%;
+  width:100%;
+  height:100%;
+  border:0;
+  background:transparent;
+  padding:0;
+  margin:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.public-home-illustration-slide .public-home-illustration{
+  pointer-events:none;
+}
+.public-home-illustration-slide:focus-visible{
+  outline:3px solid var(--primary);
+  outline-offset:-3px;
+  border-radius:16px;
+}
+html.accessibility-high-contrast .public-home-illustration-slide:focus-visible{
+  outline-color:#ffd400;
+}
+@media (prefers-reduced-motion:reduce){
+  .public-home-illustration-track{
+    transition:none;
+  }
+}

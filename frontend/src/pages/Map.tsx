@@ -72,6 +72,12 @@ type ExportScopeSelection = { category: ExportCategoryKey; scope: MapScope };
 type ExportYearRange = { from: string; to: string };
 type ExportCategoryRanges = Record<ExportCategoryKey, ExportYearRange>;
 
+function getInitialMapScope(): MapScope {
+  if (typeof window === "undefined") return "greece";
+  const scope = new URLSearchParams(window.location.search).get("scope");
+  return scope === "abroad" || scope === "world" ? "abroad" : "greece";
+}
+
 export default function GraduatesMapPage() {
   const { t, i18n } = useTranslation(["map", "common"]);
   const mt = useCallback(
@@ -84,10 +90,11 @@ export default function GraduatesMapPage() {
       t(`common.${key}`, { ns: "common", ...(options || {}) }),
     [t],
   );
+  const initialMapScope = useMemo(() => getInitialMapScope(), []);
 
   const mapRef = useRef<L.Map | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
-  const mapScopeRef = useRef<MapScope>("greece");
+  const mapScopeRef = useRef<MapScope>(initialMapScope);
   const mapMetricRef = useRef<MapMetric>("count");
   const loadingRef = useRef(false);
   const scopeTransitionLoadingRef = useRef(false);
@@ -97,7 +104,7 @@ export default function GraduatesMapPage() {
   const selectedGraduationYearEndRef = useRef("");
 
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
-  const [mapScope, setMapScope] = useState<MapScope>("greece");
+  const [mapScope, setMapScope] = useState<MapScope>(initialMapScope);
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [mobileTimelineOpen, setMobileTimelineOpen] = useState(false);
   const [selectedExportFormat, setSelectedExportFormat] =
