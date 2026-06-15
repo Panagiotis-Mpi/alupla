@@ -5697,3 +5697,38 @@ html.accessibility-high-contrast .public-home-illustration-slide:focus-visible{
     transition:none;
   }
 }
+
+html.accessibility-high-contrast .public-home-card.public-home-card-split{
+  border:0 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .public-home-card-split .public-home-map-stage,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-frame,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-carousel,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-track,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-slide,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-clickable{
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+}
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-slide:hover,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-slide:active,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-slide:focus-visible,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-clickable:hover,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-clickable:active,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-clickable:focus-visible{
+  background:transparent !important;
+  color:inherit !important;
+  border:0 !important;
+  box-shadow:none !important;
+  outline:0 !important;
+}
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-slide:hover *,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-slide:active *,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-slide:focus-visible *,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-clickable:hover *,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-clickable:active *,
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-clickable:focus-visible *{
+  color:inherit !important;
+}
