@@ -170,7 +170,20 @@ export default function PublicHome() {
     <div className="public-home-shell">
       <div className="public-home-card public-home-card-split">
         <section className="public-home-left" aria-labelledby="public-home-title">
-          <h1 id="public-home-title" className="public-home-title">{t("home.heroTitle")}</h1>
+          <h1 id="public-home-title" className="public-home-title">
+            {t("home.heroTitle")
+              .split("|")
+              .map((part) => part.trim())
+              .filter(Boolean)
+              .map((part, index) => (
+                <span
+                  key={`${part}-${index}`}
+                  className={index === 0 ? "public-home-title-main" : "public-home-title-sub"}
+                >
+                  {part}
+                </span>
+              ))}
+          </h1>
 
           <div className="public-home-counters" aria-label={t("home.counters.label")}>
             {counters.map((counter) => (

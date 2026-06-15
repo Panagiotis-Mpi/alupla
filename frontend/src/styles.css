@@ -5214,18 +5214,30 @@ body.public-home-scroll-lock .accessibility-trigger{
   display:flex;
   flex-direction:column;
   justify-content:flex-start;
-  align-items:stretch;
+  align-items:center;
+  text-align:center;
   gap:1.35rem;
   padding:clamp(2.1rem,6vh,4.7rem) clamp(2rem,4vw,4.3rem) clamp(2rem,5vh,3.6rem);
 }
 
 .public-home-card-split .public-home-title{
   max-width:620px;
-  margin:0;
-  text-align:left;
+  margin:0 auto;
+  text-align:center;
   font-size:clamp(2.15rem,3.55vw,4rem);
   line-height:1.03;
   letter-spacing:-.04em;
+}
+
+.public-home-title-main,
+.public-home-title-sub{
+  display:block;
+}
+
+.public-home-title-main{
+  text-decoration:underline;
+  text-decoration-thickness:.08em;
+  text-underline-offset:.12em;
 }
 
 .public-home-card-split .public-home-counters{
@@ -5234,7 +5246,7 @@ body.public-home-scroll-lock .accessibility-trigger{
   display:grid;
   grid-template-columns:1fr;
   gap:12px;
-  margin:.35rem 0 0;
+  margin:.35rem auto 0;
 }
 
 .public-home-card-split .public-home-counter{
@@ -5295,8 +5307,8 @@ body.public-home-scroll-lock .accessibility-trigger{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:12px;
-  margin-top:.2rem;
-  justify-content:start;
+  margin:.2rem auto 0;
+  justify-content:center;
 }
 
 .public-home-card-split .public-home-side-actions .public-home-action.primary,
