@@ -4805,9 +4805,134 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
   text-align:center !important;
 }
 
-@media (max-width:640px){
+.public-home-card-split .public-home-counters{
+  width:min(100%,340px);
+  max-width:340px;
+}
+
+.public-home-card-split .public-home-counter,
+.public-home-card-split .public-home-counter:last-child{
+  min-height:72px;
+  padding:11px 14px;
+}
+
+@media (max-width:1024px){
+  .public-home-card-split{
+    min-height:calc(100svh - 70px);
+    grid-template-rows:auto minmax(0,1fr) auto auto;
+  }
+
+  .public-home-card-split .public-home-title{
+    padding:1.35rem 1.25rem .15rem;
+  }
+
+  .public-home-right{
+    padding:.15rem 1rem .2rem;
+  }
+
+  .public-home-card-split .public-home-map-stage{
+    min-height:0;
+  }
+
+  .public-home-card-split .public-home-illustration-frame{
+    max-width:min(640px,100%);
+  }
+
+  .public-home-card-split .public-home-illustration{
+    max-height:min(52svh,500px);
+  }
+
+  .public-home-side-actions{
+    margin:0 auto;
+  }
+
   .public-home-card-split .public-home-counters{
-    margin-top:8.5rem;
-    margin-top:clamp(7.5rem,22svh,13rem);
+    width:min(100%,340px);
+    max-width:340px;
+    margin:.75rem auto 0;
+    padding:0 .85rem 1.25rem;
+  }
+}
+
+@media (max-width:640px){
+  .public-home-card-split{
+    min-height:calc(100svh - 72px);
+    grid-template-rows:auto minmax(0,1fr) auto auto;
+  }
+
+  .public-home-card-split .public-home-title{
+    padding:.95rem .9rem 0;
+    font-size:clamp(1.72rem,9.4vw,2.18rem);
+    line-height:1.02;
+  }
+
+  .public-home-right{
+    padding:.05rem .45rem .15rem;
+  }
+
+  .public-home-card-split .public-home-illustration-frame{
+    max-width:min(390px,100%);
+  }
+
+  .public-home-card-split .public-home-illustration{
+    max-height:min(48svh,370px);
+  }
+
+  .public-home-side-actions{
+    width:min(100%,360px);
+    margin:0 auto;
+    padding:0 .8rem;
+  }
+
+  .public-home-card-split .public-home-side-actions .public-home-action.primary,
+  .public-home-card-split .public-home-side-actions .public-home-action.secondary{
+    min-height:43px;
+  }
+
+  .public-home-card-split .public-home-counters{
+    width:min(100%,300px);
+    max-width:300px;
+    gap:9px;
+    margin:.65rem auto 0;
+    padding:0 .75rem 1.2rem;
+  }
+
+  .public-home-card-split .public-home-counter,
+  .public-home-card-split .public-home-counter:last-child{
+    min-height:64px;
+    padding:10px 12px;
+  }
+
+  .public-home-card-split .public-home-counter-icon{
+    width:30px;
+    height:30px;
+  }
+
+  .public-home-card-split .public-home-counter-icon .ui-icon{
+    width:19px !important;
+    height:19px !important;
+  }
+
+  .public-home-card-split .public-home-counter strong{
+    font-size:1.17rem;
+  }
+
+  .public-home-card-split .public-home-counter > span:not(.public-home-counter-icon){
+    font-size:.76rem;
+  }
+}
+
+@media (max-width:420px){
+  .public-home-card-split .public-home-title{
+    padding-top:.85rem;
+  }
+
+  .public-home-card-split .public-home-illustration{
+    max-height:min(46svh,345px);
+  }
+
+  .public-home-card-split .public-home-counters{
+    width:min(100%,286px);
+    max-width:286px;
   }
 }
