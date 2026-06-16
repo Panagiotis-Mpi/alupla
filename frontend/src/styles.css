@@ -3328,8 +3328,13 @@ html.accessibility-high-contrast .statistics-compare-change strong,
 html.accessibility-high-contrast .statistics-compare-selects select{background:#000000 !important;color:#7fffd4 !important;border:2px solid #14f5c8 !important}
 @media (max-width: 900px){
   .statistics-compare-ranges{grid-template-columns:1fr}
+  .statistics-compare-range-control{align-items:flex-start;flex-direction:column;padding:14px;gap:10px}
+  .statistics-compare-selects{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px}
+  .statistics-compare-selects select{width:100%;min-width:0;padding:0 12px}
   .statistics-compare-row{grid-template-columns:1fr;gap:8px}
-  .statistics-compare-arrow{min-height:34px;transform:rotate(90deg)}
+  .statistics-compare-arrow{min-height:34px;transform:none;font-size:0}
+  .statistics-compare-arrow::before{content:"↓";font-size:22px;line-height:1}
+  .statistics-compare-change{min-height:64px}
 }
 html.accessibility-high-contrast .statistics-compare-change-arrow{background:#000000 !important;color:#7fffd4 !important;border:2px solid #14f5c8 !important;box-shadow:none !important}
 html.accessibility-high-contrast .statistics-compare-change.is-up .statistics-compare-change-arrow{color:#39ff14 !important;border-color:#39ff14 !important}
