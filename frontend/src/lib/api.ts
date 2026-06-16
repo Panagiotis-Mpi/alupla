@@ -356,10 +356,10 @@ export async function me(): Promise<UserResponse> {
   return api("/auth/me", { method: "GET" });
 }
 
-export async function requestPasswordReset(email: string): Promise<ApiOk & { mail_sent?: boolean }> {
+export async function requestPasswordReset(email: string, language?: string): Promise<ApiOk & { mail_sent?: boolean }> {
   return api("/auth/forgot-password", {
     method: "POST",
-    body: { email },
+    body: { email, language },
   });
 }
 

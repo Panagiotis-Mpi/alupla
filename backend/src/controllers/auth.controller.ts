@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { User } from "../models/User";
@@ -70,42 +70,53 @@ export async function login(req: Request, res: Response) {
   return res.json({ ok: true, ...session });
 }
 
-export async function requestPasswordReset(req: Request, res: Response) {
-  const email = normalizeEmail(req.body?.email);
-
-  if (!email) {
-    return fail(res, 400, "Missing fields");
-  }
-
-  const user = await findActiveUserByEmail(email);
-  if (!user) {
-    return res.json({ ok: true, mail_sent: false });
-  }
-
-  const token = createResetToken();
-  user.password_reset_token_hash = hashResetToken(token);
-  user.password_reset_expires_at = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
-  await user.save();
-
-  let mailSent = false;
-  let mailError = "";
-
+export async function requestPasswordReset(req: Request, res: Response, next: NextFunction) {
   try {
-    mailSent = await sendPasswordResetEmail({ email: user.email, resetUrl: passwordResetUrl(token) });
+    const email = normalizeEmail(req.body?.email);
+    const language = String(req.body?.language ?? req.body?.lang ?? "").trim();
+
+    if (!email) {
+      return fail(res, 400, "Missing fields");
+    }
+
+    const user = await findActiveUserByEmail(email);
+    if (!user) {
+      return res.json({ ok: true, mail_sent: true });
+    }
+
+    const token = createResetToken();
+    user.password_reset_token_hash = hashResetToken(token);
+    user.password_reset_expires_at = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
+    await user.save();
+
+    let mailSent = false;
+    let mailError = "";
+
+    try {
+      mailSent = await sendPasswordResetEmail({
+        firstName: user.first_name,
+        lastName: user.last_name,
+        email: user.email,
+        resetUrl: passwordResetUrl(token),
+        language
+      });
+    } catch (error) {
+      mailError = error instanceof Error ? error.message : "Password reset email failed";
+      console.error("ALUPLA password reset email failed:", mailError);
+    }
+
+    await logAction({
+      user_id: user.id,
+      action: "request_password_reset",
+      entity_type: "user",
+      entity_id: user.id,
+      details: { mail_sent: mailSent, ...(mailError ? { mail_error: mailError } : {}) }
+    });
+
+    return res.json({ ok: true, mail_sent: mailSent });
   } catch (error) {
-    mailError = error instanceof Error ? error.message : "Password reset email failed";
-    console.error("ALUPLA password reset email failed:", mailError);
+    next(error);
   }
-
-  await logAction({
-    user_id: user.id,
-    action: "request_password_reset",
-    entity_type: "user",
-    entity_id: user.id,
-    details: { mail_sent: mailSent, ...(mailError ? { mail_error: mailError } : {}) }
-  });
-
-  return res.json({ ok: true, mail_sent: mailSent });
 }
 
 export async function resetPassword(req: Request, res: Response) {

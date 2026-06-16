@@ -32,7 +32,7 @@ function messageStyle(kind: "success" | "error"): React.CSSProperties {
 }
 
 export default function ForgotPassword() {
-  const { t } = useTranslation("auth");
+  const { t, i18n } = useTranslation("auth");
   const navigate = useNavigate();
   const [email, setEmail] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -45,7 +45,10 @@ export default function ForgotPassword() {
     setSuccess(false);
     setLoading(true);
     try {
-      await requestPasswordReset(email.trim());
+      const response = await requestPasswordReset(email.trim(), i18n.language?.startsWith("en") ? "en" : "gr");
+      if (response.mail_sent === false) {
+        throw new Error(t("forgot.failed"));
+      }
       setSuccess(true);
     } catch (error) {
       setErr(error instanceof Error && error.message ? error.message : t("forgot.failed"));

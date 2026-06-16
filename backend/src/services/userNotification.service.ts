@@ -10,9 +10,19 @@ type NewUserAccountEmailInput = {
 };
 
 type PasswordResetEmailInput = {
+  firstName?: string;
+  lastName?: string;
   email: string;
   resetUrl: string;
   language?: string;
+};
+
+type EmailPayload = {
+  to: string;
+  toName?: string;
+  subject: string;
+  textContent: string;
+  htmlContent: string;
 };
 
 function readEnv(...names: string[]) {
@@ -28,27 +38,27 @@ function brevoApiKey() {
 }
 
 function mailFrom() {
-  return readEnv("MAIL_FROM", "BREVO_FROM", "SMTP_FROM", "SMTP_USER", "MAIL_USER");
+  return readEnv("MAIL_FROM", "BREVO_FROM", "BREVO_FROM_EMAIL", "SMTP_FROM", "SMTP_USER", "MAIL_USER", "EMAIL_FROM", "EMAIL_USER") || "alupla.platform@gmail.com";
 }
 
 function mailFromName() {
-  return readEnv("MAIL_FROM_NAME", "BREVO_FROM_NAME") || "ALUPLA";
+  return readEnv("MAIL_FROM_NAME", "BREVO_FROM_NAME", "BREVO_SENDER_NAME") || "ALUPLA";
 }
 
-function appUrl() {
-  return readEnv("APP_URL", "FRONTEND_URL", "PUBLIC_APP_URL") || "https://alupla.vercel.app";
+function frontendUrl() {
+  return readEnv("FRONTEND_URL", "PUBLIC_APP_URL", "CLIENT_URL", "VITE_APP_URL", "APP_URL") || "https://alupla.vercel.app";
 }
 
-function normalizedAppUrl() {
-  return appUrl().replace(/\/+$/, "");
+function normalizedFrontendUrl() {
+  return frontendUrl().replace(/\/+$/, "");
 }
 
 function loginUrl() {
-  return `${normalizedAppUrl()}/login`;
+  return `${normalizedFrontendUrl()}/login`;
 }
 
 export function passwordResetUrl(token: string) {
-  return `${normalizedAppUrl()}/reset-password?token=${encodeURIComponent(token)}`;
+  return `${normalizedFrontendUrl()}/reset-password?token=${encodeURIComponent(token)}`;
 }
 
 function isMailConfigured() {
@@ -73,8 +83,8 @@ function bilingualRoleLabel(role: NewUserAccountEmailInput["role"]) {
   return `${accountRoleLabel(role, "gr")} / ${accountRoleLabel(role, "en")}`;
 }
 
-function fullName(input: NewUserAccountEmailInput) {
-  return `${input.firstName} ${input.lastName}`.trim();
+function fullName(input: { firstName?: string; lastName?: string; email: string }) {
+  return `${String(input.firstName ?? "").trim()} ${String(input.lastName ?? "").trim()}`.trim() || input.email;
 }
 
 function buildText(input: NewUserAccountEmailInput) {
@@ -129,6 +139,9 @@ function buildPasswordResetText(input: PasswordResetEmailInput) {
     "Use the link below to set a new password:",
     input.resetUrl,
     "",
+    "Ο σύνδεσμος ισχύει για 1 ώρα.",
+    "The link is valid for 1 hour.",
+    "",
     "Αν δεν ζητήσατε εσείς αυτήν την αλλαγή, αγνοήστε αυτό το email.",
     "If you did not request this change, ignore this email."
   ].join("\n");
@@ -136,20 +149,37 @@ function buildPasswordResetText(input: PasswordResetEmailInput) {
 
 function buildPasswordResetHtml(input: PasswordResetEmailInput) {
   const url = escapeHtml(input.resetUrl);
+  const email = escapeHtml(input.email);
+  const name = escapeHtml(fullName(input));
 
   return [
     "<div style=\"font-family:Arial,sans-serif;line-height:1.55;color:#1f2937\">",
     "<h2 style=\"color:#1e3a8a;margin:0 0 14px\">ALUPLA</h2>",
     "<p style=\"margin:0 0 6px\">Ζητήθηκε αλλαγή κωδικού για τον λογαριασμό σας στην πλατφόρμα ALUPLA.</p>",
-    "<p style=\"margin:0 0 16px\">A password reset was requested for your ALUPLA account.</p>",
-    `<p style=\"margin:18px 0 16px\"><a href=\"${url}\" style=\"display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:10px;font-weight:700\">Αλλαγή κωδικού / Reset password</a></p>`,
+    "<p style=\"margin:0 0 14px\">A password reset was requested for your ALUPLA account.</p>",
+    "<table style=\"border-collapse:collapse;margin:14px 0\">",
+    `<tr><td style=\"padding:6px 18px 6px 0;font-weight:700\">Ονοματεπώνυμο / Full name</td><td style=\"padding:6px 0\">${name}</td></tr>`,
+    `<tr><td style=\"padding:6px 18px 6px 0;font-weight:700\">Email λογαριασμού / Account email</td><td style=\"padding:6px 0\">${email}</td></tr>`,
+    "</table>",
+    `<p style=\"margin:18px 0 14px\"><a href=\"${url}\" style=\"display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:10px;font-weight:700\">Αλλαγή κωδικού / Reset password</a></p>`,
+    "<p style=\"margin:0 0 6px\">Ο σύνδεσμος ισχύει για 1 ώρα.</p>",
+    "<p style=\"margin:0 0 14px\">The link is valid for 1 hour.</p>",
     "<p style=\"margin:0 0 6px\">Αν δεν ζητήσατε εσείς αυτήν την αλλαγή, αγνοήστε αυτό το email.</p>",
     "<p style=\"margin:0\">If you did not request this change, ignore this email.</p>",
     "</div>"
   ].join("");
 }
 
-async function sendBrevoEmail(payload: { to: string; toName?: string; subject: string; textContent: string; htmlContent: string }) {
+async function sendBrevoEmail(payload: EmailPayload) {
+  const senderEmail = mailFrom();
+  const body: Record<string, unknown> = {
+    sender: { email: senderEmail, name: mailFromName() },
+    to: [payload.toName ? { email: payload.to, name: payload.toName } : { email: payload.to }],
+    subject: payload.subject,
+    textContent: payload.textContent,
+    htmlContent: payload.htmlContent
+  };
+
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
@@ -157,18 +187,12 @@ async function sendBrevoEmail(payload: { to: string; toName?: string; subject: s
       "api-key": brevoApiKey(),
       "content-type": "application/json"
     },
-    body: JSON.stringify({
-      sender: { email: mailFrom(), name: mailFromName() },
-      to: [{ email: payload.to, name: payload.toName || payload.to }],
-      subject: payload.subject,
-      textContent: payload.textContent,
-      htmlContent: payload.htmlContent
-    })
+    body: JSON.stringify(body)
   });
 
   if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`Brevo email failed (${response.status}) ${body}`.trim());
+    const responseBody = await response.text().catch(() => "");
+    throw new Error(`Brevo email failed (${response.status}) ${responseBody}`.trim());
   }
 
   return true;
@@ -177,7 +201,7 @@ async function sendBrevoEmail(payload: { to: string; toName?: string; subject: s
 async function sendWithBrevo(input: NewUserAccountEmailInput) {
   return sendBrevoEmail({
     to: input.email,
-    toName: fullName(input) || input.email,
+    toName: fullName(input),
     subject: "ALUPLA - Δημιουργία λογαριασμού / Account created",
     textContent: buildText(input),
     htmlContent: buildHtml(input)
@@ -187,6 +211,7 @@ async function sendWithBrevo(input: NewUserAccountEmailInput) {
 async function sendPasswordResetWithBrevo(input: PasswordResetEmailInput) {
   return sendBrevoEmail({
     to: input.email,
+    toName: fullName(input),
     subject: "ALUPLA - Αλλαγή κωδικού / Password reset",
     textContent: buildPasswordResetText(input),
     htmlContent: buildPasswordResetHtml(input)
