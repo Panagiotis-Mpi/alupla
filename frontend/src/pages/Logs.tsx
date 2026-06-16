@@ -25,6 +25,7 @@ import {
   summaryCellValue,
   type ActivityLogListResponse,
   type FileSummaryItem,
+  type FileSummaryPage,
   type FileSummaryRole,
   type LogFilters,
 } from "./logs/shared";
@@ -93,6 +94,14 @@ function actorLabel(log: any, visitorLabel: string) {
   return userLabel(log?.user as Partial<User> | undefined) || visitorLabel;
 }
 
+function emptySummaryRow(page: FileSummaryPage): FileSummaryItem {
+  return {
+    page,
+    import: { excel: 0, csv: 0, pdf: 0, png: 0 },
+    export: { excel: 0, csv: 0, pdf: 0, png: 0 },
+  };
+}
+
 function apiFilters(filters: LogFilters) {
   const action = filters.action.trim();
   const selectedActor = filters.actor;
@@ -118,7 +127,7 @@ export default function Logs() {
   const [filters, setFilters] = React.useState<LogFilters>(emptyFilters);
   const [summaryRole, setSummaryRole] = React.useState<FileSummaryRole>("secretariat");
   const [fileSummary, setFileSummary] = React.useState<FileSummaryItem[]>([]);
-  const [summaryLoading, setSummaryLoading] = React.useState(false);
+  const [summaryLoading, setSummaryLoading] = React.useState(true);
   const [userOptions, setUserOptions] = React.useState<UserOption[]>([]);
   const [studyPrograms, setStudyPrograms] = React.useState<StudyProgram[]>([]);
   const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
@@ -147,7 +156,7 @@ export default function Logs() {
 
   const summaryLayout = React.useMemo(() => getSummaryLayout(summaryRole), [summaryRole]);
   const visibleSummaryRows = React.useMemo(
-    () => summaryLayout.pages.map((pageKey) => fileSummary.find((entry) => entry.page === pageKey)).filter(Boolean) as FileSummaryItem[],
+    () => summaryLayout.pages.map((pageKey) => fileSummary.find((entry) => entry.page === pageKey) ?? emptySummaryRow(pageKey)),
     [fileSummary, summaryLayout.pages]
   );
 
@@ -201,6 +210,7 @@ export default function Logs() {
     const requestId = summaryRequestRef.current + 1;
     summaryRequestRef.current = requestId;
     setSummaryLoading(true);
+    setFileSummary([]);
     try {
       const data = await getActivityLogFileSummary({ role });
       if (summaryRequestRef.current === requestId) {
@@ -330,7 +340,11 @@ export default function Logs() {
           <select
             className="input"
             value={summaryRole}
-            onChange={(e) => setSummaryRole(e.target.value as FileSummaryRole)}
+            onChange={(e) => {
+              setSummaryLoading(true);
+              setFileSummary([]);
+              setSummaryRole(e.target.value as FileSummaryRole);
+            }}
             style={{ width: "100%", minWidth: 0, maxWidth: 280, flex: "1 1 220px" }}
           >
             <option value="secretariat">{t("summary.roles.secretariat")}</option>

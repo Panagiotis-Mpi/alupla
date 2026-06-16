@@ -2270,7 +2270,7 @@ html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
 .logs-summary-loading-region{
   position:relative;
 }
-.logs-summary-loading-region.is-loading .logs-summary-table{
+.logs-summary-loading-region.is-loading .logs-summary-table tbody{
   filter:blur(3px);
   opacity:.72;
   pointer-events:none;
