@@ -63,6 +63,12 @@ function getTemplateHeaders(lang: string) {
   ]];
 }
 
+function importedFileFormat(file: Express.Multer.File | undefined) {
+  const name = String(file?.originalname ?? "").trim().toLowerCase();
+  if (/\.(csv|tsv|txt)$/.test(name)) return "csv";
+  return "xlsx";
+}
+
 // Μετατρέπει row import σε καθαρά πεδία προγράμματος σπουδών.
 function normalizeProgramRow(input: Record<string, unknown>) {
   const row = Object.fromEntries(Object.entries(input).map(([key, value]) => {
@@ -214,7 +220,14 @@ export async function importStudyPrograms(req: Request, res: Response, next: Nex
       action: "import_study_programs",
       entity_type: "study_program",
       entity_id: null,
-      details: { inserted, updated, skipped }
+      details: {
+        file: req.file?.originalname ?? null,
+        format: importedFileFormat(req.file),
+        total_rows: rows.length,
+        inserted,
+        updated,
+        skipped
+      }
     });
 
     res.json({ ok: true, summary: { inserted, updated, skipped } });

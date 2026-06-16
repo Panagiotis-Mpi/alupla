@@ -311,10 +311,11 @@ export function getLogPage(row: any) {
   if (
     [
       "import_study_programs",
+      "import_program_directions",
       "import_region_peripheries",
       "import_region_cities",
     ].includes(action) ||
-    ["study_program", "region", "regions"].includes(entityType)
+    ["study_program", "program_direction", "region", "regions", "region_periphery", "region_city"].includes(entityType)
   )
     return "academicData";
   if (action === "statistics_export" || entityType === "statistics")
@@ -345,7 +346,7 @@ export function getFormatFromFilename(name: string) {
   if (!normalized.includes(".")) return null;
   const ext = normalized.split(".").pop() || "";
   if (ext === "xls" || ext === "xlsx") return "excel";
-  if (ext === "csv" || ext === "tsv") return "csv";
+  if (ext === "csv" || ext === "tsv" || ext === "txt") return "csv";
   if (ext === "pdf") return "pdf";
   if (ext === "png") return "png";
   return null;
@@ -374,6 +375,7 @@ export function getFileType(row: any) {
     [
       "import_graduates",
       "import_study_programs",
+      "import_program_directions",
       "import_region_peripheries",
       "import_region_cities",
     ].includes(action)

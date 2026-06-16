@@ -164,11 +164,11 @@ const summarySupportMatrix: Record<
   FileSummaryPage,
   { import: FileSummaryFileType[]; export: FileSummaryFileType[] }
 > = {
-  graduates: { import: ["excel"], export: ["excel", "csv", "pdf"] },
+  graduates: { import: ["excel", "csv"], export: ["excel", "csv", "pdf"] },
   users: { import: [], export: ["excel", "csv"] },
-  academicData: { import: ["excel"], export: [] },
+  academicData: { import: ["excel", "csv"], export: [] },
   statistics: { import: [], export: ["excel", "csv", "png"] },
-  map: { import: [], export: ["png"] },
+  map: { import: [], export: ["excel", "csv", "png"] },
   logs: { import: [], export: ["excel", "csv"] },
 };
 
@@ -184,14 +184,14 @@ export function getSummaryLayout(role: FileSummaryRole): SummaryLayout {
   if (role === "secretariat") {
     return {
       pages: ["graduates", "academicData", "statistics", "map"],
-      importTypes: ["excel"],
+      importTypes: ["excel", "csv"],
       exportTypes: ["excel", "csv", "pdf", "png"],
     };
   }
 
   return {
     pages: ["graduates", "users", "academicData", "statistics", "map", "logs"],
-    importTypes: ["excel"],
+    importTypes: ["excel", "csv"],
     exportTypes: ["excel", "csv", "pdf", "png"],
   };
 }
