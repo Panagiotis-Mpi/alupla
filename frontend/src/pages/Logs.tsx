@@ -118,10 +118,12 @@ export default function Logs() {
   const [filters, setFilters] = React.useState<LogFilters>(emptyFilters);
   const [summaryRole, setSummaryRole] = React.useState<FileSummaryRole>("secretariat");
   const [fileSummary, setFileSummary] = React.useState<FileSummaryItem[]>([]);
+  const [summaryLoading, setSummaryLoading] = React.useState(false);
   const [userOptions, setUserOptions] = React.useState<UserOption[]>([]);
   const [studyPrograms, setStudyPrograms] = React.useState<StudyProgram[]>([]);
   const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const summaryRequestRef = React.useRef(0);
 
 
   React.useEffect(() => {
@@ -141,6 +143,7 @@ export default function Logs() {
   const requestFilters = React.useMemo(() => apiFilters(filters), [filters]);
   const locale = localeForLanguage(activeLang);
   const visitorLabel = t("summary.roles.visitor");
+  const summaryLoadingStyle = { "--logs-summary-loading-label": JSON.stringify(t("table.loading")) } as React.CSSProperties;
 
   const summaryLayout = React.useMemo(() => getSummaryLayout(summaryRole), [summaryRole]);
   const visibleSummaryRows = React.useMemo(
@@ -195,11 +198,22 @@ export default function Logs() {
 
 
   async function loadFileSummary(role: FileSummaryRole) {
+    const requestId = summaryRequestRef.current + 1;
+    summaryRequestRef.current = requestId;
+    setSummaryLoading(true);
     try {
       const data = await getActivityLogFileSummary({ role });
-      setFileSummary((data.items ?? []) as FileSummaryItem[]);
+      if (summaryRequestRef.current === requestId) {
+        setFileSummary((data.items ?? []) as FileSummaryItem[]);
+      }
     } catch (e: any) {
-      setErr((current) => current ?? e?.message ?? t("error"));
+      if (summaryRequestRef.current === requestId) {
+        setErr((current) => current ?? e?.message ?? t("error"));
+      }
+    } finally {
+      if (summaryRequestRef.current === requestId) {
+        setSummaryLoading(false);
+      }
     }
   }
 
@@ -325,7 +339,7 @@ export default function Logs() {
           </select>
         </div>
 
-        <div className="table-wrap">
+        <div className={`table-wrap logs-summary-loading-region${summaryLoading ? " is-loading" : ""}`} style={summaryLoading ? summaryLoadingStyle : undefined}>
           <table className="table logs-summary-table" style={{ width: "100%", minWidth: 720, tableLayout: "fixed" }}>
             <thead>
               <tr>
