@@ -4986,3 +4986,85 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
     overflow:visible;
   }
 }
+.public-home-card-split .public-home-illustration-carousel{
+  overflow:hidden;
+  max-width:100%;
+  contain:paint;
+}
+
+.public-home-card-split .public-home-illustration-track{
+  flex-wrap:nowrap;
+  max-width:100%;
+}
+
+.public-home-card-split .public-home-illustration-slide{
+  min-width:100%;
+  max-width:100%;
+  overflow:hidden;
+  box-sizing:border-box;
+}
+
+.public-home-card-split .public-home-illustration-slide .public-home-illustration{
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:100%;
+  max-height:100%;
+  margin:0 auto;
+  transform:none;
+}
+
+@media (max-width:1024px){
+  .public-home-card-split .public-home-illustration-frame{
+    width:min(100%,640px);
+    height:min(52svh,440px);
+  }
+
+  .public-home-card-split .public-home-illustration-slide{
+    height:100%;
+    align-items:center;
+  }
+
+  .public-home-card-split .public-home-illustration-slide-greece .public-home-illustration{
+    max-width:92%;
+  }
+
+  .public-home-card-split .public-home-illustration-slide-abroad .public-home-illustration{
+    max-width:100%;
+  }
+}
+
+@media (max-width:640px){
+  .public-home-card-split .public-home-illustration-frame{
+    width:min(100%,390px);
+    height:clamp(230px,30svh,260px);
+  }
+
+  .public-home-card-split .public-home-illustration-slide-greece .public-home-illustration{
+    max-width:94%;
+  }
+
+  .public-home-card-split .public-home-illustration-slide-abroad .public-home-illustration{
+    max-width:100%;
+  }
+}
+
+@media (max-width:420px){
+  .public-home-card-split .public-home-illustration-frame{
+    width:min(100%,360px);
+    height:clamp(220px,29svh,250px);
+  }
+}
+
+html:not(.accessibility-high-contrast) .public-home-card-split .public-home-illustration-slide .public-home-illustration-normal{
+  display:block !important;
+}
+html:not(.accessibility-high-contrast) .public-home-card-split .public-home-illustration-slide .public-home-illustration-high-contrast{
+  display:none !important;
+}
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-slide .public-home-illustration-normal{
+  display:none !important;
+}
+html.accessibility-high-contrast .public-home-card-split .public-home-illustration-slide .public-home-illustration-high-contrast{
+  display:block !important;
+}

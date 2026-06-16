@@ -225,7 +225,7 @@ export default function PublicHome() {
                     <button
                       type="button"
                       key={`${slide.scope}-${index}`}
-                      className="public-home-illustration-slide public-home-illustration-clickable"
+                      className={`public-home-illustration-slide public-home-illustration-clickable public-home-illustration-slide-${slide.scope}`}
                       onClick={() => openMapScope(slide.scope)}
                       onKeyDown={(event) => handleMapSlideKeyDown(event, slide.scope)}
                       tabIndex={isActive ? 0 : -1}
