@@ -4936,3 +4936,53 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
     max-width:286px;
   }
 }
+
+@media (min-width:1025px){
+  html.accessibility-font-scale-1 body.public-home-scroll-lock,
+  html.accessibility-font-scale-2 body.public-home-scroll-lock,
+  html.accessibility-font-scale-3 body.public-home-scroll-lock,
+  html.accessibility-font-scale-4 body.public-home-scroll-lock,
+  html.accessibility-font-scale-5 body.public-home-scroll-lock{
+    overflow:auto;
+  }
+
+  html.accessibility-font-scale-1 body.public-home-scroll-lock .app-shell,
+  html.accessibility-font-scale-2 body.public-home-scroll-lock .app-shell,
+  html.accessibility-font-scale-3 body.public-home-scroll-lock .app-shell,
+  html.accessibility-font-scale-4 body.public-home-scroll-lock .app-shell,
+  html.accessibility-font-scale-5 body.public-home-scroll-lock .app-shell{
+    height:auto;
+    min-height:100vh;
+    overflow:visible;
+  }
+
+  html.accessibility-font-scale-1 body.public-home-scroll-lock .app-content.container,
+  html.accessibility-font-scale-2 body.public-home-scroll-lock .app-content.container,
+  html.accessibility-font-scale-3 body.public-home-scroll-lock .app-content.container,
+  html.accessibility-font-scale-4 body.public-home-scroll-lock .app-content.container,
+  html.accessibility-font-scale-5 body.public-home-scroll-lock .app-content.container{
+    height:auto;
+    min-height:calc(100vh - 70px);
+    overflow:visible;
+  }
+
+  html.accessibility-font-scale-1 .public-home-shell,
+  html.accessibility-font-scale-2 .public-home-shell,
+  html.accessibility-font-scale-3 .public-home-shell,
+  html.accessibility-font-scale-4 .public-home-shell,
+  html.accessibility-font-scale-5 .public-home-shell{
+    height:auto;
+    min-height:calc(100vh - 70px);
+    overflow:visible;
+  }
+
+  html.accessibility-font-scale-1 .public-home-card-split,
+  html.accessibility-font-scale-2 .public-home-card-split,
+  html.accessibility-font-scale-3 .public-home-card-split,
+  html.accessibility-font-scale-4 .public-home-card-split,
+  html.accessibility-font-scale-5 .public-home-card-split{
+    height:auto;
+    min-height:calc(100vh - 70px);
+    overflow:visible;
+  }
+}
