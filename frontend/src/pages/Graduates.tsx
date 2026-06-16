@@ -877,6 +877,54 @@ export default function Graduates() {
                     e.currentTarget.value = "";
                   }}
                 />
+                <div ref={templateMenuRef} style={{ position: "relative" }}>
+                  <button
+                    className="btn dropdown-like"
+                    type="button"
+                    style={{
+                      ...topButtonStyle,
+                      width: "100%",
+                      justifyContent: "center",
+                    }}
+                    onClick={() => toggleMenu("template")}
+                  >
+                    <Icon src={arrowDownIcon} size={18} />
+                    <span>{t("topbar.downloadTemplate")}</span>
+                    <span className="btn-dropdown-chevron" aria-hidden="true" />
+                  </button>
+                  {templateMenuOpen ? (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 8px)",
+                        left: 0,
+                        minWidth: 170,
+                        width: "max-content",
+                        maxWidth: "calc(100vw - 32px)",
+                        background: "#fff",
+                        border: "1px solid rgba(15,23,42,.12)",
+                        borderRadius: 12,
+                        boxShadow: "0 12px 30px rgba(15,23,42,.12)",
+                        padding: 8,
+                        display: "grid",
+                        gap: 8,
+                        zIndex: 30,
+                      }}
+                    >
+                      {templateActions.map((action) => (
+                        <button
+                          key={action.key}
+                          className="btn"
+                          type="button"
+                          onClick={action.onClick}
+                        >
+                          <Icon src={action.key === "xlsx" || action.key === "csv" ? fileSpreadsheetIcon : arrowDownIcon} size={17} />
+                          <span>{action.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
                 <div ref={importMenuRef} style={{ position: "relative" }}>
                   <button
                     className="btn dropdown-like"
@@ -920,54 +968,6 @@ export default function Graduates() {
                           onClick={action.onClick}
                         >
                           <Icon src={arrowUpIcon} size={17} />
-                          <span>{action.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-                <div ref={templateMenuRef} style={{ position: "relative" }}>
-                  <button
-                    className="btn dropdown-like"
-                    type="button"
-                    style={{
-                      ...topButtonStyle,
-                      width: "100%",
-                      justifyContent: "center",
-                    }}
-                    onClick={() => toggleMenu("template")}
-                  >
-                    <Icon src={arrowDownIcon} size={18} />
-                    <span>{t("topbar.downloadTemplate")}</span>
-                    <span className="btn-dropdown-chevron" aria-hidden="true" />
-                  </button>
-                  {templateMenuOpen ? (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "calc(100% + 8px)",
-                        left: 0,
-                        minWidth: 170,
-                        width: "max-content",
-                        maxWidth: "calc(100vw - 32px)",
-                        background: "#fff",
-                        border: "1px solid rgba(15,23,42,.12)",
-                        borderRadius: 12,
-                        boxShadow: "0 12px 30px rgba(15,23,42,.12)",
-                        padding: 8,
-                        display: "grid",
-                        gap: 8,
-                        zIndex: 30,
-                      }}
-                    >
-                      {templateActions.map((action) => (
-                        <button
-                          key={action.key}
-                          className="btn"
-                          type="button"
-                          onClick={action.onClick}
-                        >
-                          <Icon src={action.key === "xlsx" || action.key === "csv" ? fileSpreadsheetIcon : arrowDownIcon} size={17} />
                           <span>{action.label}</span>
                         </button>
                       ))}
