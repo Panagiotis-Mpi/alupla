@@ -279,22 +279,15 @@ html.accessibility-high-contrast .statistics-metric-card{
   border-width:2px !important;
 }
 html.accessibility-high-contrast .statistics-metric-label{
-  color:#000000 !important;
   font-size:17px !important;
   line-height:1.32 !important;
   font-weight:500 !important;
 }
 html.accessibility-high-contrast .statistics-metric-value,
 html.accessibility-high-contrast .statistics-metric-sub-value{
-  color:#000000 !important;
   font-size:28px !important;
   line-height:1.1 !important;
   font-weight:800 !important;
-}
-html.accessibility-high-contrast .statistics-metric-toggle{
-  border-color:#000000 !important;
-  background:#ffffff !important;
-  color:#000000 !important;
 }
 
 .map-page-container{max-width:none;width:100%;padding-left:0;padding-right:0}
@@ -628,228 +621,10 @@ html.accessibility-font-scale-2{font-size:18px}
 html.accessibility-font-scale-3{font-size:19px}
 html.accessibility-font-scale-4{font-size:20px}
 html.accessibility-font-scale-5{font-size:21px}
-html.accessibility-high-contrast{
-  --bg:#ffffff;
-  --surface:#ffffff;
-  --text:#000000;
-  --muted:#111111;
-  --border:#000000;
-  --shadow:none;
-  --primary:#000000;
-  --primaryHover:#000000;
-  --danger:#000000;
-  color-scheme:light !important;
-  background:#ffffff !important;
-}
-html.accessibility-high-contrast,
-html.accessibility-high-contrast body{
-  background:#ffffff !important;
-  color:#000000 !important;
-}
-html.accessibility-high-contrast body, html.accessibility-high-contrast .app-shell, html.accessibility-high-contrast .app-content, html.accessibility-high-contrast .container, html.accessibility-high-contrast .page-stable-shell{
-  background:#ffffff !important;
-  color:#000000 !important;
-}
-html.accessibility-high-contrast .nav,
-html.accessibility-high-contrast .mobile-drawer,
-html.accessibility-high-contrast .public-home-shell,
-html.accessibility-high-contrast .public-home-card,
-html.accessibility-high-contrast .app-footer{
-  background:#ffffff !important;
-  color:#000000 !important;
-  border-color:#000000 !important;
-  box-shadow:none !important;
-  backdrop-filter:none !important;
-}
-
 html.accessibility-high-contrast .brand:not(.brand-compact) .brand-logo{
   background:transparent !important;
   border-color:transparent !important;
   box-shadow:none !important;
-}
-html.accessibility-high-contrast *{
-  text-shadow:none !important;
-}
-html.accessibility-high-contrast a{
-  color:#0037ff !important;
-}
-html.accessibility-high-contrast .brand, html.accessibility-high-contrast .nav a, html.accessibility-high-contrast .nav strong, html.accessibility-high-contrast .public-home-title, html.accessibility-high-contrast .muted, html.accessibility-high-contrast .label, html.accessibility-high-contrast .badge{
-  color:#000000 !important;
-}
-html.accessibility-high-contrast .app-shell :is(div,section,article,aside,header,footer,main,nav,form,fieldset,legend,table,thead,tbody,tfoot,tr,th,td,caption,ul,ol,li,dl,dt,dd,p,span,label,strong,small,h1,h2,h3,h4,h5,h6){
-  color:#000000;
-  border-color:#000000;
-}
-html.accessibility-high-contrast .card, html.accessibility-high-contrast .input, html.accessibility-high-contrast .table-wrap, html.accessibility-high-contrast .table, html.accessibility-high-contrast .mobile-table-card, html.accessibility-high-contrast .page-header-card, html.accessibility-high-contrast .badge, html.accessibility-high-contrast .leaflet-control, html.accessibility-high-contrast .leaflet-bar a, html.accessibility-high-contrast .leaflet-popup-content-wrapper, html.accessibility-high-contrast .leaflet-popup-tip, html.accessibility-high-contrast select, html.accessibility-high-contrast textarea, html.accessibility-high-contrast input{
-  background:#ffffff !important;
-  color:#000000 !important;
-  border:2px solid #000000 !important;
-  box-shadow:none !important;
-}
-html.accessibility-high-contrast .app-shell [style*="background"],
-html.accessibility-high-contrast .app-shell [style*="background-color"],
-html.accessibility-high-contrast .app-shell [style*="box-shadow"]{
-  background:#ffffff !important;
-  color:#000000 !important;
-  border-color:#000000 !important;
-  box-shadow:none !important;
-}
-html.accessibility-high-contrast .table,
-html.accessibility-high-contrast table{
-  border:2px solid #000000 !important;
-}
-html.accessibility-high-contrast .table th,
-html.accessibility-high-contrast .table td,
-html.accessibility-high-contrast table th,
-html.accessibility-high-contrast table td{
-  background:#ffffff !important;
-  border-color:#000000 !important;
-  color:#000000 !important;
-}
-html.accessibility-high-contrast .table th{
-  background:#e5e5e5 !important;
-  font-weight:800 !important;
-}
-html.accessibility-high-contrast .table tr:hover td{
-  background:#f1f1f1 !important;
-}
-html.accessibility-high-contrast .btn,
-html.accessibility-high-contrast button,
-html.accessibility-high-contrast input[type="button"],
-html.accessibility-high-contrast input[type="submit"],
-html.accessibility-high-contrast input[type="reset"],
-html.accessibility-high-contrast input::file-selector-button{
-  background:#ffffff !important;
-  color:#000000 !important;
-  border:2px solid #000000 !important;
-  box-shadow:none !important;
-}
-html.accessibility-high-contrast .btn.primary,
-html.accessibility-high-contrast button.primary,
-html.accessibility-high-contrast .btn[aria-pressed="true"],
-html.accessibility-high-contrast button[aria-pressed="true"],
-html.accessibility-high-contrast .btn[aria-expanded="true"],
-html.accessibility-high-contrast button[aria-expanded="true"],
-html.accessibility-high-contrast .btn.active,
-html.accessibility-high-contrast button.active,
-html.accessibility-high-contrast .btn:hover,
-html.accessibility-high-contrast button:hover{
-  background:#000000 !important;
-  color:#ffffff !important;
-  border-color:#000000 !important;
-}
-html.accessibility-high-contrast .btn.danger,
-html.accessibility-high-contrast button.danger{
-  background:#000000 !important;
-  color:#ffffff !important;
-  border-color:#000000 !important;
-}
-html.accessibility-high-contrast :is(button,.btn,input,select,textarea):disabled{
-  background:#e5e5e5 !important;
-  color:#555555 !important;
-  border-color:#555555 !important;
-  opacity:1 !important;
-}
-html.accessibility-high-contrast ::placeholder{
-  color:#222222 !important;
-  opacity:1 !important;
-}
-html.accessibility-high-contrast option{
-  background:#ffffff !important;
-  color:#000000 !important;
-}
-html.accessibility-high-contrast input[type="checkbox"],
-html.accessibility-high-contrast input[type="radio"]{
-  accent-color:#000000;
-}
-html.accessibility-high-contrast :is(input,select,textarea,button,.btn,a,[role="button"],summary):focus-visible{
-  outline:3px solid #0037ff !important;
-  outline-offset:2px !important;
-}
-
-html.accessibility-high-contrast .accessibility-trigger,
-html.accessibility-high-contrast .accessibility-panel,
-html.accessibility-high-contrast .accessibility-icon-btn,
-html.accessibility-high-contrast .accessibility-toggle-btn{
-  background:#ffffff !important;
-  color:#000000 !important;
-  border:2px solid #000000 !important;
-  box-shadow:none !important;
-}
-html.accessibility-high-contrast .accessibility-toggle-btn.is-active,
-html.accessibility-high-contrast .accessibility-icon-btn.is-active,
-html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn[aria-pressed="true"]{
-  background:#000000 !important;
-  color:#ffffff !important;
-  border-color:#000000 !important;
-}
-html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn.is-active *,
-html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn.is-active *,
-html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn[aria-pressed="true"] *{
-  color:#ffffff !important;
-}
-html.accessibility-high-contrast .accessibility-panel .accessibility-icon-btn:disabled,
-html.accessibility-high-contrast .accessibility-panel .accessibility-toggle-btn:disabled{
-  background:#e5e5e5 !important;
-  color:#555555 !important;
-  border-color:#555555 !important;
-}
-
-html.accessibility-high-contrast .leaflet-container,
-html.accessibility-high-contrast .leaflet-control,
-html.accessibility-high-contrast .leaflet-popup-content-wrapper,
-html.accessibility-high-contrast .leaflet-popup-tip{
-  background:#ffffff !important;
-  color:#000000 !important;
-  border-color:#000000 !important;
-}
-html.accessibility-high-contrast .leaflet-container{
-  border:2px solid #000000 !important;
-  background:#0b1117 !important;
-}
-html.accessibility-high-contrast .leaflet-bar a{
-  color:#000000 !important;
-}
-html.accessibility-high-contrast .leaflet-bar a:hover{
-  background:#000000 !important;
-  color:#ffffff !important;
-}
-html.accessibility-high-contrast .leaflet-tile{
-  filter:none;
-}
-html.accessibility-high-contrast img:not(.leaflet-tile),
-html.accessibility-high-contrast video,
-html.accessibility-high-contrast canvas{
-  filter:grayscale(100%) contrast(140%);
-}
-html.accessibility-high-contrast canvas{
-  background:#ffffff !important;
-  border:2px solid #000000 !important;
-  border-radius:12px;
-}
-html.accessibility-high-contrast [role="img"] canvas{
-  border:none !important;
-  border-radius:0 !important;
-}
-html.accessibility-high-contrast .recharts-text,
-html.accessibility-high-contrast .recharts-label,
-html.accessibility-high-contrast .recharts-cartesian-axis-tick-value,
-html.accessibility-high-contrast .recharts-legend-item-text,
-html.accessibility-high-contrast .recharts-tooltip-label,
-html.accessibility-high-contrast .recharts-tooltip-item-name,
-html.accessibility-high-contrast .recharts-tooltip-item-value{
-  fill:#000000 !important;
-  color:#000000 !important;
-}
-html.accessibility-high-contrast .recharts-cartesian-axis-line,
-html.accessibility-high-contrast .recharts-cartesian-axis-tick-line,
-html.accessibility-high-contrast .recharts-cartesian-grid line,
-html.accessibility-high-contrast .recharts-reference-line line,
-html.accessibility-high-contrast .recharts-polar-grid-angle line,
-html.accessibility-high-contrast .recharts-polar-grid-concentric polygon,
-html.accessibility-high-contrast .recharts-polar-grid-concentric circle{
-  stroke:#000000 !important;
-  opacity:.5;
 }
 @media (forced-colors: active){
   html.accessibility-high-contrast,
@@ -1118,21 +893,6 @@ html.accessibility-large-text h2{
 html.accessibility-large-text h3{
   font-size:1.5rem;
 }
-html.accessibility-high-contrast{
-  --bg:#ffffff;
-  --surface:#ffffff;
-  --text:#000000;
-  --muted:#111827;
-  --border:#000000;
-  --shadow:none;
-  --primary:#000000;
-  --primaryHover:#000000;
-  --danger:#7f1d1d;
-  color-scheme:light !important;
-}
-html.accessibility-high-contrast .table th, html.accessibility-high-contrast .table td, html.accessibility-high-contrast .card, html.accessibility-high-contrast .btn, html.accessibility-high-contrast .input, html.accessibility-high-contrast .nav, html.accessibility-high-contrast .mobile-drawer, html.accessibility-high-contrast .public-home-card, html.accessibility-high-contrast .accessibility-trigger, html.accessibility-high-contrast .accessibility-panel{
-  border-color:#000000;
-}
 html.accessibility-reduce-motion *,
 html.accessibility-reduce-motion *::before,
 html.accessibility-reduce-motion *::after{
@@ -1162,56 +922,6 @@ html.accessibility-underline-links .btn{text-underline-offset:3px}
 @media (max-width: 820px){
   .table-wrap{overflow-x:auto;overflow-y:hidden;max-width:100%;-webkit-overflow-scrolling:touch}
   .table-wrap .table{width:max-content;min-width:100%}
-}
-
-html.accessibility-high-contrast .leaflet-container,
-html.accessibility-high-contrast .alupla-map .leaflet-container{
-  background:#dbe4ea !important;
-  color:#0f172a !important;
-  border-color:#000000 !important;
-}
-html.accessibility-high-contrast .leaflet-control,
-html.accessibility-high-contrast .leaflet-popup-content-wrapper,
-html.accessibility-high-contrast .leaflet-popup-tip{
-  background:#ffffff !important;
-  color:#000000 !important;
-  border-color:#000000 !important;
-}
-html.accessibility-high-contrast .leaflet-bar a{
-  background:#ffffff !important;
-  color:#000000 !important;
-  border-color:#000000 !important;
-}
-html.accessibility-high-contrast .leaflet-bar a:hover{
-  background:#000000 !important;
-  color:#ffffff !important;
-}
-html.accessibility-high-contrast .leaflet-pane,
-html.accessibility-high-contrast .leaflet-map-pane,
-html.accessibility-high-contrast .leaflet-tile-pane,
-html.accessibility-high-contrast .leaflet-overlay-pane,
-html.accessibility-high-contrast .leaflet-shadow-pane,
-html.accessibility-high-contrast .leaflet-marker-pane,
-html.accessibility-high-contrast .leaflet-tooltip-pane,
-html.accessibility-high-contrast .leaflet-popup-pane{
-  background:transparent !important;
-}
-html.accessibility-high-contrast .leaflet-tile,
-html.accessibility-high-contrast .leaflet-container img,
-html.accessibility-high-contrast .leaflet-container canvas{
-  filter:none !important;
-}
-html.accessibility-high-contrast .leaflet-container canvas{
-  background:transparent !important;
-  border:none !important;
-  border-radius:0 !important;
-}
-html.accessibility-high-contrast .alupla-city-bubble-label,
-html.accessibility-high-contrast .alupla-city-label-text,
-html.accessibility-high-contrast .alupla-city-bubble-number,
-html.accessibility-high-contrast .alupla-city-bubble-number-gender{
-  color:#f8fafc !important;
-  text-shadow:0 1px 2px rgba(0,0,0,.9) !important;
 }
 
 html.accessibility-high-contrast .alupla-map .leaflet-container{
@@ -1330,41 +1040,6 @@ html.accessibility-high-contrast .alupla-map .alupla-city-label-text{
   line-height:1;
 }
 
-html.accessibility-high-contrast .table tbody tr.is-selected-row td,
-html.accessibility-high-contrast .table tbody tr:focus-within td{
-  background:#e5e5e5 !important;
-}
-html.accessibility-high-contrast .badge,
-html.accessibility-high-contrast .map-timeline-current,
-html.accessibility-high-contrast .map-loading-overlay-card,
-html.accessibility-high-contrast .map-menu,
-html.accessibility-high-contrast .map-menu-item,
-html.accessibility-high-contrast .chart-data-summary-row{
-  background:#ffffff !important;
-  color:#000000 !important;
-  border-color:#000000 !important;
-  box-shadow:none !important;
-}
-html.accessibility-high-contrast .chart-data-summary-label,
-html.accessibility-high-contrast .chart-data-summary-value,
-html.accessibility-high-contrast .chart-data-summary-percent,
-html.accessibility-high-contrast .chart-data-summary-empty,
-html.accessibility-high-contrast .map-legend-swatch{
-  color:#000000 !important;
-}
-html.accessibility-high-contrast .map-legend-swatch::after{
-  border-color:#000000 !important;
-}
-
-html.accessibility-high-contrast .map-timeline-slider,
-html.accessibility-high-contrast input[type="range"]{
-  accent-color:#000000;
-}
-html.accessibility-high-contrast .recharts-text,
-html.accessibility-high-contrast .chartjs-render-monitor,
-html.accessibility-high-contrast canvas{
-  forced-color-adjust:auto;
-}
 
 .page-loading{
   min-height: 220px;
