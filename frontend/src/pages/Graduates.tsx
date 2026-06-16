@@ -974,19 +974,57 @@ export default function Graduates() {
                     </div>
                   ) : null}
                 </div>
-                <button
-                  className="btn"
-                  type="button"
-                  style={{
-                    ...topButtonStyle,
-                    width: "100%",
-                    justifyContent: "center",
-                  }}
-                  onClick={() => setShowFilters((current) => !current)}
-                >
-                  <Icon src={listFilterIcon} size={18} />
-                  <span>{t("topbar.filters")}</span>
-                </button>
+                <div ref={exportMenuRef} style={{ position: "relative" }}>
+                  <button
+                    className="btn dropdown-like"
+                    type="button"
+                    style={{
+                      ...topButtonStyle,
+                      width: "100%",
+                      justifyContent: "center",
+                    }}
+                    onClick={() => toggleMenu("export")}
+                  >
+                    <Icon src={fileSpreadsheetIcon} size={18} />
+                    <span>{t("topbar.export")}</span>
+                    <span
+                      className="btn-dropdown-chevron"
+                      aria-hidden="true"
+                    />
+                  </button>
+                  {exportMenuOpen ? (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 8px)",
+                        left: 0,
+                        minWidth: 170,
+                        width: "max-content",
+                        maxWidth: "calc(100vw - 32px)",
+                        background: "#fff",
+                        border: "1px solid rgba(15,23,42,.12)",
+                        borderRadius: 12,
+                        boxShadow: "0 12px 30px rgba(15,23,42,.12)",
+                        padding: 8,
+                        display: "grid",
+                        gap: 8,
+                        zIndex: 30,
+                      }}
+                    >
+                      {exportActions.map((action) => (
+                        <button
+                          key={action.key}
+                          className="btn"
+                          type="button"
+                          onClick={action.onClick}
+                        >
+                          <Icon src={fileSpreadsheetIcon} size={17} />
+                          <span>{action.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
                 <div
                   className="graduates-actions-secondary"
                   style={{
@@ -1000,57 +1038,19 @@ export default function Graduates() {
                     className="graduates-actions-grid"
                     style={{ gap: 10, width: "100%", alignItems: "stretch" }}
                   >
-                    <div ref={exportMenuRef} style={{ position: "relative" }}>
-                      <button
-                        className="btn dropdown-like"
-                        type="button"
-                        style={{
-                          ...topButtonStyle,
-                          width: "100%",
-                          justifyContent: "center",
-                        }}
-                        onClick={() => toggleMenu("export")}
-                      >
-                        <Icon src={fileSpreadsheetIcon} size={18} />
-                        <span>{t("topbar.export")}</span>
-                        <span
-                          className="btn-dropdown-chevron"
-                          aria-hidden="true"
-                        />
-                      </button>
-                      {exportMenuOpen ? (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: "calc(100% + 8px)",
-                            left: 0,
-                            minWidth: 170,
-                            width: "max-content",
-                            maxWidth: "calc(100vw - 32px)",
-                            background: "#fff",
-                            border: "1px solid rgba(15,23,42,.12)",
-                            borderRadius: 12,
-                            boxShadow: "0 12px 30px rgba(15,23,42,.12)",
-                            padding: 8,
-                            display: "grid",
-                            gap: 8,
-                            zIndex: 30,
-                          }}
-                        >
-                          {exportActions.map((action) => (
-                            <button
-                              key={action.key}
-                              className="btn"
-                              type="button"
-                              onClick={action.onClick}
-                            >
-                              <Icon src={fileSpreadsheetIcon} size={17} />
-                              <span>{action.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
+                    <button
+                      className="btn"
+                      type="button"
+                      style={{
+                        ...topButtonStyle,
+                        width: "100%",
+                        justifyContent: "center",
+                      }}
+                      onClick={() => setShowFilters((current) => !current)}
+                    >
+                      <Icon src={listFilterIcon} size={18} />
+                      <span>{t("topbar.filters")}</span>
+                    </button>
                     <div
                       ref={recentDownloadsRef}
                       style={{ position: "relative" }}
