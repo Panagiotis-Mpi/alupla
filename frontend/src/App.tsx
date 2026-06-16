@@ -62,6 +62,7 @@ function TopNav() {
   const homeRoute = React.useMemo(() => location.pathname === "/", [location.pathname]);
   const lang: "gr" | "en" = i18n.language?.startsWith("en") ? "en" : "gr";
   const compactMenuAvailable = isCompact && !homeRoute;
+  const showPublicHomeMobileLink = !user && !authRoute && (location.pathname.startsWith("/map") || location.pathname.startsWith("/statistics"));
 
   const visibleLinks = React.useMemo(() => {
     const map = { to: "/map", label: t("nav.map") };
@@ -316,6 +317,12 @@ function TopNav() {
 
       <aside id="mobile-drawer" ref={drawerRef} className={`mobile-drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
         <div className="mobile-drawer-section">
+          {showPublicHomeMobileLink && (
+            <Link className="btn nav-link-with-icon" to="/">
+              <Icon src={aluplaLogo} size={17} className="nav-link-icon" />
+              <span>{t("nav.homepage", { defaultValue: lang === "en" ? "Homepage" : "Αρχική σελίδα" })}</span>
+            </Link>
+          )}
           {visibleLinks.map((link) => (
             <Link key={link.to} className={"btn nav-link-with-icon " + (isActiveLink(link.to) ? "nav-link-active" : "")} to={link.to}>
               {navIconByRoute[link.to] && <Icon src={navIconByRoute[link.to]} size={17} className="nav-link-icon" />}
