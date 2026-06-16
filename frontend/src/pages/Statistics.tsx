@@ -1261,28 +1261,29 @@ export default function Statistics() {
                 sectionMenuStyle={sectionMenuStyle}
                 sectionButtonsStyle={sectionButtonsStyle}
                 exportButton={(
-                  <div ref={exportMenuRef}>
-                    <StatisticsExportMenu
-                      t={t}
-                      open={exportOpen}
-                      topButtonStyle={topButtonStyle}
-                      onToggle={() => setExportOpen((open) => !open)}
-                      onPick={openExportSelection}
-                    />
-                  </div>
+                  <>
+                    <div ref={exportMenuRef}>
+                      <StatisticsExportMenu
+                        t={t}
+                        open={exportOpen}
+                        topButtonStyle={topButtonStyle}
+                        onToggle={() => setExportOpen((open) => !open)}
+                        onPick={openExportSelection}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="btn mobile-summary-toggle statistics-mobile-summary-grid-button"
+                      style={topButtonStyle}
+                      onClick={() => setMobileSummaryOpen((open) => !open)}
+                    >
+                      {mobileSummaryOpen
+                        ? t("summary.hide", { defaultValue: i18n.language?.startsWith("en") ? "Hide summary" : "Απόκρυψη" })
+                        : t("summary.show", { defaultValue: i18n.language?.startsWith("en") ? "Brief info" : "Σύντομες πληροφορίες" })}
+                    </button>
+                  </>
                 )}
               />
-              <div className="mobile-submenu-toggle-row">
-                <button
-                  type="button"
-                  className="btn mobile-summary-toggle"
-                  onClick={() => setMobileSummaryOpen((open) => !open)}
-                >
-                  {mobileSummaryOpen
-                    ? t("summary.hide", { defaultValue: i18n.language?.startsWith("en") ? "Hide summary" : "Απόκρυψη" })
-                    : t("summary.show", { defaultValue: i18n.language?.startsWith("en") ? "Brief info" : "Σύντομες πληροφορίες" })}
-                </button>
-              </div>
             </div>
           </div>
         </div>
