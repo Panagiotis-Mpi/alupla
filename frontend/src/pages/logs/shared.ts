@@ -168,7 +168,7 @@ const summarySupportMatrix: Record<
   users: { import: [], export: ["excel", "csv"] },
   academicData: { import: ["excel", "csv"], export: [] },
   statistics: { import: [], export: ["excel", "csv", "png"] },
-  map: { import: [], export: ["excel", "csv", "png"] },
+  map: { import: [], export: ["png"] },
   logs: { import: [], export: ["excel", "csv"] },
 };
 

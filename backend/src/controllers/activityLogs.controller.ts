@@ -41,6 +41,20 @@ const logUserInclude = [
   },
 ];
 
+const fileSummarySupport: Record<string, { import: string[]; export: string[] }> = {
+  graduates: { import: ["excel", "csv"], export: ["excel", "csv", "pdf"] },
+  users: { import: [], export: ["excel", "csv"] },
+  academicData: { import: ["excel", "csv"], export: [] },
+  statistics: { import: [], export: ["excel", "csv", "png"] },
+  map: { import: [], export: ["png"] },
+  logs: { import: [], export: ["excel", "csv"] },
+};
+
+function supportsFileSummaryCell(page: string, operation: string, fileType: string) {
+  const support = fileSummarySupport[page]?.[operation as "import" | "export"] ?? [];
+  return support.includes(fileType);
+}
+
 function addAndFilter(
   where: LogWhere,
   filter: Record<string | symbol, unknown>,
@@ -169,6 +183,7 @@ export async function getActivityLogFileSummary(
 
       const pageEntry = byPage.get(page);
       if (!pageEntry || !fileTypes.includes(fileType)) continue;
+      if (!supportsFileSummaryCell(page, operation, fileType)) continue;
 
       pageEntry[operation][fileType] += 1;
     }
