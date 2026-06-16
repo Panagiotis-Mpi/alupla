@@ -69,6 +69,8 @@ async function ensureSchema() {
   await ensureColumn("graduates", "origin_country_region_id", { type: DataTypes.INTEGER, allowNull: true });
   await ensureColumn("graduates", "origin_periphery_region_id", { type: DataTypes.INTEGER, allowNull: true });
   await ensureColumn("graduates", "origin_city_region_id", { type: DataTypes.INTEGER, allowNull: true });
+  await ensureColumn("users", "password_reset_token_hash", { type: DataTypes.STRING(128), allowNull: true });
+  await ensureColumn("users", "password_reset_expires_at", { type: DataTypes.DATE, allowNull: true });
 }
 
 async function ensureAppIndexes() {

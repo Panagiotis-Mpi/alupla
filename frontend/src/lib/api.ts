@@ -356,6 +356,30 @@ export async function me(): Promise<UserResponse> {
   return api("/auth/me", { method: "GET" });
 }
 
+export async function requestPasswordReset(email: string): Promise<ApiOk & { mail_sent?: boolean }> {
+  return api("/auth/forgot-password", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export async function resetPassword(payload: {
+  email: string;
+  token: string;
+  newPassword: string;
+  repeatNewPassword: string;
+}): Promise<ApiOk> {
+  return api("/auth/reset-password", {
+    method: "POST",
+    body: {
+      email: payload.email,
+      token: payload.token,
+      new_password: payload.newPassword,
+      repeat_new_password: payload.repeatNewPassword,
+    },
+  });
+}
+
 export async function changePassword(
   currentPasswordOrPayload:
     | string

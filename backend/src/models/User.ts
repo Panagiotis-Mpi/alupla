@@ -14,6 +14,8 @@ export class User extends Model {
   declare role: UserRole;
   declare is_active: boolean;
   declare last_seen_at: Date | null;
+  declare password_reset_token_hash: string | null;
+  declare password_reset_expires_at: Date | null;
   declare created_at: Date;
   declare updated_at: Date;
 }
@@ -28,7 +30,9 @@ User.init(
     password_hash: { type: DataTypes.STRING(255), allowNull: false },
     role: { type: DataTypes.ENUM("super_admin", "secretariat"), allowNull: false },
     is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    last_seen_at: { type: DataTypes.DATE, allowNull: true }
+    last_seen_at: { type: DataTypes.DATE, allowNull: true },
+    password_reset_token_hash: { type: DataTypes.STRING(128), allowNull: true },
+    password_reset_expires_at: { type: DataTypes.DATE, allowNull: true }
   },
   {
     sequelize,

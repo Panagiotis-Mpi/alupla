@@ -23,6 +23,8 @@ import logOutIcon from "./assets/icons/log-out.svg";
 import userPenIcon from "./assets/icons/user-pen.svg";
 
 const Login = React.lazy(() => import("./pages/Login"));
+const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const Graduates = React.lazy(() => import("./pages/Graduates"));
 const GraduateForm = React.lazy(() => import("./pages/GraduateForm"));
 const Profile = React.lazy(() => import("./pages/Profile"));
@@ -58,7 +60,7 @@ function TopNav() {
   const languageRef = React.useRef<HTMLDivElement | null>(null);
   const accountRef = React.useRef<HTMLDivElement | null>(null);
 
-  const authRoute = React.useMemo(() => location.pathname.startsWith("/login"), [location.pathname]);
+  const authRoute = React.useMemo(() => ["/login", "/forgot-password", "/reset-password"].some((path) => location.pathname.startsWith(path)), [location.pathname]);
   const homeRoute = React.useMemo(() => location.pathname === "/", [location.pathname]);
   const lang: "gr" | "en" = i18n.language?.startsWith("en") ? "en" : "gr";
   const compactMenuAvailable = isCompact && !homeRoute;
@@ -380,6 +382,8 @@ function App() {
 <Routes>
           <Route path="/" element={<PublicHome />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/register" element={<Navigate to="/login" replace />} />
           <Route path="/map" element={<Map />} />
           <Route path="/statistics" element={<Statistics />} />

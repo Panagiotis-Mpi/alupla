@@ -1,9 +1,11 @@
 import type { Request, Response } from "express";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
+import { passwordResetUrl, sendPasswordResetEmail } from "../services/userNotification.service";
 import { signToken } from "../utils/jwt";
-import { fail, hashPassword, isStrongPassword, toSafeUser } from "../utils/userAccounts";
+import { fail, hashPassword, isStrongPassword, normalizeEmail, toSafeUser } from "../utils/userAccounts";
 
 type SessionLog = {
   action: string;
@@ -11,8 +13,13 @@ type SessionLog = {
   entity_id: number | null;
 };
 
+const PASSWORD_RESET_TOKEN_BYTES = 32;
+const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+
 async function findActiveUserByEmail(email: unknown) {
-  const user = await User.findOne({ where: { email } });
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return null;
+  const user = await User.findOne({ where: { email: normalizedEmail } });
   return user?.is_active ? user : null;
 }
 
@@ -26,6 +33,20 @@ async function openSession(user: User, log: SessionLog) {
 
 function passwordError(password: unknown) {
   return isStrongPassword(String(password)) ? null : "Weak password (min 8, letter+number+symbol)";
+}
+
+function createResetToken() {
+  return crypto.randomBytes(PASSWORD_RESET_TOKEN_BYTES).toString("hex");
+}
+
+function hashResetToken(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function resetTokensMatch(inputHash: string, storedHash: string) {
+  const inputBuffer = Buffer.from(inputHash, "hex");
+  const storedBuffer = Buffer.from(storedHash, "hex");
+  return inputBuffer.length === storedBuffer.length && crypto.timingSafeEqual(inputBuffer, storedBuffer);
 }
 
 export async function login(req: Request, res: Response) {
@@ -47,6 +68,89 @@ export async function login(req: Request, res: Response) {
 
   const session = await openSession(user, { action: "login", entity_type: "system", entity_id: null });
   return res.json({ ok: true, ...session });
+}
+
+export async function requestPasswordReset(req: Request, res: Response) {
+  const email = normalizeEmail(req.body?.email);
+
+  if (!email) {
+    return fail(res, 400, "Missing fields");
+  }
+
+  const user = await findActiveUserByEmail(email);
+  if (!user) {
+    return res.json({ ok: true, mail_sent: false });
+  }
+
+  const token = createResetToken();
+  user.password_reset_token_hash = hashResetToken(token);
+  user.password_reset_expires_at = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
+  await user.save();
+
+  let mailSent = false;
+  let mailError = "";
+
+  try {
+    mailSent = await sendPasswordResetEmail({ email: user.email, resetUrl: passwordResetUrl(token) });
+  } catch (error) {
+    mailError = error instanceof Error ? error.message : "Password reset email failed";
+    console.error("ALUPLA password reset email failed:", mailError);
+  }
+
+  await logAction({
+    user_id: user.id,
+    action: "request_password_reset",
+    entity_type: "user",
+    entity_id: user.id,
+    details: { mail_sent: mailSent, ...(mailError ? { mail_error: mailError } : {}) }
+  });
+
+  return res.json({ ok: true, mail_sent: mailSent });
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  const email = normalizeEmail(req.body?.email);
+  const token = String(req.body?.token ?? "").trim();
+  const newPassword = String(req.body?.new_password ?? "");
+  const repeatPassword = req.body?.repeat_new_password !== undefined ? String(req.body.repeat_new_password) : newPassword;
+
+  if (!email || !token || !newPassword || !repeatPassword) {
+    return fail(res, 400, "Missing fields");
+  }
+
+  if (newPassword !== repeatPassword) {
+    return fail(res, 400, "Passwords do not match");
+  }
+
+  const weakPasswordMessage = passwordError(newPassword);
+  if (weakPasswordMessage) {
+    return fail(res, 400, weakPasswordMessage);
+  }
+
+  const user = await findActiveUserByEmail(email);
+  if (!user || !user.password_reset_token_hash || !user.password_reset_expires_at) {
+    return fail(res, 400, "Invalid or expired reset link");
+  }
+
+  if (new Date(user.password_reset_expires_at).getTime() < Date.now()) {
+    user.password_reset_token_hash = null;
+    user.password_reset_expires_at = null;
+    await user.save();
+    return fail(res, 400, "Invalid or expired reset link");
+  }
+
+  const tokenHash = hashResetToken(token);
+  if (!resetTokensMatch(tokenHash, user.password_reset_token_hash)) {
+    return fail(res, 400, "Invalid or expired reset link");
+  }
+
+  user.password_hash = await hashPassword(newPassword);
+  user.password_reset_token_hash = null;
+  user.password_reset_expires_at = null;
+  await user.save();
+  await logAction({ user_id: user.id, action: "reset_password", entity_type: "user", entity_id: user.id });
+
+  return res.json({ ok: true });
 }
 
 export async function changePassword(req: Request, res: Response) {

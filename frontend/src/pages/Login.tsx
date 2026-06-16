@@ -140,6 +140,14 @@ function Login() {
             </span>
           </label>
 
+          <button
+            type="button"
+            className="auth-forgot-password-button"
+            onClick={() => navigate("/forgot-password")}
+          >
+            {t("login.forgotPassword")}
+          </button>
+
           {err && (
             <div
               style={{

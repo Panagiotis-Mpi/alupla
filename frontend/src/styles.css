@@ -2047,6 +2047,22 @@ html.accessibility-high-contrast .logs-summary-loading-region.is-loading::after{
   flex:0 0 auto;
 }
 
+.auth-form-title-block{
+  display:grid;
+  gap:.25rem;
+}
+.auth-form-title-block h2{
+  margin:.15rem 0 0;
+  color:#1e3a8a;
+  font-size:1.35rem;
+}
+.auth-form-title-block p{
+  margin:0;
+  color:#64748b;
+  font-size:.94rem;
+  line-height:1.45;
+}
+
 .auth-form-grid{
   display:grid;
   gap:.95rem;
@@ -2092,6 +2108,21 @@ html.accessibility-high-contrast .logs-summary-loading-region.is-loading::after{
 .auth-back-home-button:hover{
   background:#eff6ff;
   border-color:#93c5fd;
+}
+.auth-forgot-password-button{
+  justify-self:end;
+  border:0;
+  background:transparent;
+  color:#1d4ed8;
+  font:inherit;
+  font-size:.93rem;
+  font-weight:800;
+  cursor:pointer;
+  padding:0 2px;
+}
+.auth-forgot-password-button:hover{
+  color:#2563eb;
+  text-decoration:underline;
 }
 
 @media (max-width:640px){
@@ -2355,6 +2386,14 @@ html.accessibility-high-contrast .auth-page-shell .auth-form-card{
 }
 html.accessibility-high-contrast .auth-page-shell .auth-form-label{
   color:#7fffd4 !important;
+}
+html.accessibility-high-contrast .auth-page-shell .auth-form-title-block h2,
+html.accessibility-high-contrast .auth-page-shell .auth-form-title-block p,
+html.accessibility-high-contrast .auth-page-shell .auth-forgot-password-button{
+  color:#7fffd4 !important;
+}
+html.accessibility-high-contrast .auth-page-shell .auth-forgot-password-button:hover{
+  color:#ffd400 !important;
 }
 html.accessibility-high-contrast .auth-page-shell .auth-form-input{
   background:#000000 !important;
