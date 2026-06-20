@@ -39,6 +39,7 @@ type NamedCountRow = {
   count?: number | null;
   avg?: number | null;
   avg_years?: number | null;
+  avg_age?: number | null;
   year?: number | null;
   entry_year?: number | null;
   male?: number | null;
@@ -575,6 +576,15 @@ export default function Statistics() {
       return sum + Number(row.avg ?? 0) * count;
     }, 0);
     const avgGradeCount = avgGradeRows.reduce((sum, row) => sum + Number(yearRows.find((item) => item.label === String(row.year ?? ""))?.value ?? 0), 0);
+    const weightedAverage = (rows: NamedCountRow[], valueKey: "avg_age" | "avg_years", digits: number) => {
+      const filteredRows = rows.filter((row) => yearSet.has(String(row.year ?? "")));
+      const weight = filteredRows.reduce((sum, row) => sum + Number(row.count ?? 0), 0);
+      if (weight <= 0) return "-";
+      const totalValue = filteredRows.reduce((sum, row) => sum + Number(row[valueKey] ?? 0) * Number(row.count ?? 0), 0);
+      return (totalValue / weight).toFixed(digits);
+    };
+    const avgAgeByYearRows = (sourceData?.avg_age_by_year ?? []) as NamedCountRow[];
+    const avgStudyYearsByYearRows = (sourceData?.avg_years_to_degree_by_graduation_year ?? []) as NamedCountRow[];
     const topYear = yearRows.length ? yearRows.reduce((best, row) => Number(row.value) > Number(best.value) ? row : best, yearRows[0]) : null;
     const yearsCount = Number.isFinite(min) && Number.isFinite(max) ? Math.max(0, max - min + 1) : 0;
     const share = (value: number) => totalValue > 0 ? `${((value / totalValue) * 100).toFixed(1)}%` : "-";
@@ -586,8 +596,11 @@ export default function Statistics() {
       abroad: abroadValue,
       greece: Math.max(0, totalValue - abroadValue),
       avgGrade: avgGradeCount > 0 ? (avgGradeWeighted / avgGradeCount).toFixed(2) : "-",
+      avgStudyYears: weightedAverage(avgStudyYearsByYearRows, "avg_years", 1),
+      avgGraduationAge: weightedAverage(avgAgeByYearRows, "avg_age", 1),
       topYear: topYear?.label ?? "-",
       topYearCount: topYear ? Number(topYear.value ?? 0) : 0,
+      topYearDisplay: topYear ? `${topYear.label} (${Number(topYear.value ?? 0)})` : "-",
       yearsCount,
       annualAverage: yearsCount > 0 ? (totalValue / yearsCount).toFixed(1) : "-",
       maleShare: share(maleValue),
@@ -619,6 +632,9 @@ export default function Statistics() {
       totalPercent: percent(secondRange.total, firstRange.total),
       annualAverage: plainDelta(secondRange.annualAverage, firstRange.annualAverage),
       avgGrade: plainDelta(secondRange.avgGrade, firstRange.avgGrade, 2),
+      avgStudyYears: plainDelta(secondRange.avgStudyYears, firstRange.avgStudyYears),
+      avgGraduationAge: plainDelta(secondRange.avgGraduationAge, firstRange.avgGraduationAge),
+      topYearCount: plainDelta(secondRange.topYearCount, firstRange.topYearCount, 0),
       greece: `${secondRange.greece - firstRange.greece >= 0 ? "+" : ""}${secondRange.greece - firstRange.greece} (${percent(secondRange.greece, firstRange.greece)})`,
       greeceAmount: secondRange.greece - firstRange.greece,
       male: `${maleShareDifference >= 0 ? "+" : ""}${maleShareDifference.toFixed(1)}%`,
@@ -632,7 +648,10 @@ export default function Statistics() {
     return [
       { key: "total", label: t("compare.total"), a: String(firstRange.total), b: String(secondRange.total), aValue: firstRange.total, bValue: secondRange.total, deltaLabel: t("compare.totalChange"), delta: `${delta.total >= 0 ? "+" : ""}${delta.total} (${delta.totalPercent})`, direction: delta.total },
       { key: "annualAverage", label: t("compare.annualAverage"), a: String(firstRange.annualAverage), b: String(secondRange.annualAverage), aValue: Number(firstRange.annualAverage), bValue: Number(secondRange.annualAverage), deltaLabel: t("compare.annualAverageChange"), delta: delta.annualAverage.value, direction: delta.annualAverage.amount },
+      { key: "avgStudyYears", label: t("compare.avgStudyYears"), a: String(firstRange.avgStudyYears), b: String(secondRange.avgStudyYears), aValue: Number(firstRange.avgStudyYears), bValue: Number(secondRange.avgStudyYears), deltaLabel: t("compare.avgStudyYearsChange"), delta: delta.avgStudyYears.value, direction: delta.avgStudyYears.amount },
+      { key: "avgGraduationAge", label: t("compare.avgGraduationAge"), a: String(firstRange.avgGraduationAge), b: String(secondRange.avgGraduationAge), aValue: Number(firstRange.avgGraduationAge), bValue: Number(secondRange.avgGraduationAge), deltaLabel: t("compare.avgGraduationAgeChange"), delta: delta.avgGraduationAge.value, direction: delta.avgGraduationAge.amount },
       { key: "avgGrade", label: t("compare.avgGrade"), a: String(firstRange.avgGrade), b: String(secondRange.avgGrade), aValue: Number(firstRange.avgGrade), bValue: Number(secondRange.avgGrade), deltaLabel: t("compare.avgGradeChange"), delta: delta.avgGrade.value, direction: delta.avgGrade.amount },
+      { key: "topYear", label: t("compare.topYear"), a: firstRange.topYearDisplay, b: secondRange.topYearDisplay, aValue: firstRange.topYearCount, bValue: secondRange.topYearCount, deltaLabel: t("compare.topYearChange"), delta: delta.topYearCount.value, direction: delta.topYearCount.amount },
       { key: "male", label: t("compare.male"), a: String(firstRange.male), b: String(secondRange.male), aValue: firstRange.male, bValue: secondRange.male, deltaLabel: t("compare.maleChange"), delta: `${secondRange.male - firstRange.male >= 0 ? "+" : ""}${secondRange.male - firstRange.male}`, direction: secondRange.male - firstRange.male },
       { key: "female", label: t("compare.female"), a: String(firstRange.female), b: String(secondRange.female), aValue: firstRange.female, bValue: secondRange.female, deltaLabel: t("compare.femaleChange"), delta: `${secondRange.female - firstRange.female >= 0 ? "+" : ""}${secondRange.female - firstRange.female}`, direction: secondRange.female - firstRange.female },
       { key: "maleShare", label: t("compare.maleShare"), a: firstRange.maleShare, b: secondRange.maleShare, aValue: Number(String(firstRange.maleShare).replace("%", "")), bValue: Number(String(secondRange.maleShare).replace("%", "")), deltaLabel: t("compare.maleShareChange"), delta: delta.male, direction: delta.maleAmount },

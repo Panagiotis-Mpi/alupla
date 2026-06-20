@@ -15,8 +15,10 @@ import {
 import { buildAnonymousStatisticsWorkbook, loadPublicMapRows } from "./public.stats";
 import { buildExportFilename, yearRangeFilenamePart } from "../utils/exportFilename";
 import {
+  getAverageAgeByGraduationYear,
   getAverageGradeByGraduationYear,
   getAverageYearsToDegreeByEntryYear,
+  getAverageYearsToDegreeByGraduationYear,
   getCountByBirthYear,
   getCountByEntryYear,
   getCountByGraduationTerm,
@@ -111,7 +113,7 @@ export async function publicStats(req: Request, res: Response) {
 
     if (section === "demographics") {
       const context = { sqlWhere, repl, birthExpr, birthYearExpr };
-      const [totalRow, avgRow, byYear, byTerm, genderRows, genderByYear, birthYearRows, genderByBirthYear, countByEntryYear, genderByEntryYear] = await Promise.all([
+      const [totalRow, avgRow, byYear, byTerm, genderRows, genderByYear, birthYearRows, genderByBirthYear, countByEntryYear, genderByEntryYear, avgAgeByYear] = await Promise.all([
         getTotalGraduates(context),
         getOverviewSummary(context),
         getCountByGraduationYear(context),
@@ -122,6 +124,7 @@ export async function publicStats(req: Request, res: Response) {
         getGenderByBirthYear(context, birthYearExpr),
         getCountByEntryYear(context),
         getGenderByEntryYear(context),
+        getAverageAgeByGraduationYear(context),
       ]);
       const total = Number(totalRow?.[0]?.total ?? 0);
       const gender = genderRowsToCounts(genderRows);
@@ -148,6 +151,7 @@ export async function publicStats(req: Request, res: Response) {
         age_groups: [],
         count_by_entry_year: countByEntryYear,
         gender_by_entry_year: genderByEntryYear,
+        avg_age_by_year: avgAgeByYear,
       };
       setPublicStatsCache(cacheKey, body);
       res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
@@ -156,7 +160,7 @@ export async function publicStats(req: Request, res: Response) {
 
     if (section === "academic") {
       const context = { sqlWhere, repl, birthExpr, birthYearExpr };
-      const [totalRow, avgRow, avgGradeByYear, degreeGradeBins, degreeGradeBinsByGender, avgYearsToDegreeByEntryYear, yearsToDegreeDistribution] = await Promise.all([
+      const [totalRow, avgRow, avgGradeByYear, degreeGradeBins, degreeGradeBinsByGender, avgYearsToDegreeByEntryYear, yearsToDegreeDistribution, avgYearsToDegreeByGraduationYear] = await Promise.all([
         getTotalGraduates(context),
         getOverviewSummary(context),
         getAverageGradeByGraduationYear(context),
@@ -164,6 +168,7 @@ export async function publicStats(req: Request, res: Response) {
         getDegreeGradeBinsByGender(context),
         getAverageYearsToDegreeByEntryYear(context),
         getYearsToDegreeDistribution(context),
+        getAverageYearsToDegreeByGraduationYear(context),
       ]);
       const total = Number(totalRow?.[0]?.total ?? 0);
       const originRegionJoin = `LEFT JOIN regions origin_region ON origin_region.id = g.origin_region_id
@@ -229,6 +234,7 @@ export async function publicStats(req: Request, res: Response) {
         avg_grade_by_region: localizedAvgGradeByRegion,
         avg_years_to_degree_by_region: localizedAvgYearsToDegreeByRegion,
         avg_years_to_degree_by_entry_year: avgYearsToDegreeByEntryYear,
+        avg_years_to_degree_by_graduation_year: avgYearsToDegreeByGraduationYear,
         years_to_degree_distribution: yearsToDegreeDistribution,
       };
       setPublicStatsCache(cacheKey, body);
@@ -676,6 +682,12 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
+    const fullContext = { sqlWhere, repl, birthExpr, birthYearExpr };
+    const [avgAgeByYear, avgYearsToDegreeByGraduationYear] = await Promise.all([
+      getAverageAgeByGraduationYear(fullContext),
+      getAverageYearsToDegreeByGraduationYear(fullContext),
+    ]);
+
     const genderByEntryYear = await sequelize.query<{ entry_year: number; male: number; female: number }>(
       `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
               CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
@@ -1037,6 +1049,8 @@ export async function publicStats(req: Request, res: Response) {
       gender_by_birth_year: genderByBirthYear,
       age_groups: ageRows.filter((r) => r.label !== 'unknown'),
       avg_grade_by_year: avgGradeByYear,
+      avg_age_by_year: avgAgeByYear,
+      avg_years_to_degree_by_graduation_year: avgYearsToDegreeByGraduationYear,
       avg_grade_by_term: [],
       degree_grade_bins: degreeGradeBins,
       count_by_entry_year: countByEntryYear,

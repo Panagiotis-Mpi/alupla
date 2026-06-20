@@ -249,6 +249,31 @@ export async function getAverageGradeByGraduationYear(context: AnalyticsWhereCon
   );
 }
 
+export async function getAverageAgeByGraduationYear(context: AnalyticsWhereContext) {
+  const birthExpr = context.birthExpr ?? "g.birth_date";
+  return queryAnalyticsRows<{ year: number; count: number; avg_age: number }>(
+    `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+            CAST(COUNT(*) AS INTEGER) as count,
+            ROUND(CAST(AVG(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) AS NUMERIC), 2) as avg_age
+     FROM graduates g ${context.sqlWhere}
+     GROUP BY EXTRACT(YEAR FROM g.graduation_date)
+     ORDER BY year ASC`,
+    context,
+  );
+}
+
+export async function getAverageYearsToDegreeByGraduationYear(context: AnalyticsWhereContext) {
+  return queryAnalyticsRows<{ year: number; count: number; avg_years: number }>(
+    `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+            CAST(COUNT(*) AS INTEGER) as count,
+            ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
+     FROM graduates g ${context.sqlWhere}
+     GROUP BY EXTRACT(YEAR FROM g.graduation_date)
+     ORDER BY year ASC`,
+    context,
+  );
+}
+
 export async function getDegreeGradeBins(context: AnalyticsWhereContext) {
   return queryAnalyticsRows<{ label: string; count: number }>(
     `SELECT ${gradeBucketSql} as label,
