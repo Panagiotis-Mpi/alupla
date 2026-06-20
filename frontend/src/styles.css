@@ -4045,7 +4045,7 @@ body.public-home-scroll-lock .accessibility-trigger{
 }
 
 .public-home-title-main{
-  font-family:"Trebuchet MS","Segoe UI",sans-serif;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
   text-decoration:none;
 }
 
