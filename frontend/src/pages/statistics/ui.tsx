@@ -11,6 +11,8 @@ const sectionTextStyle: React.CSSProperties = { margin: 0, color: "#64748b", fon
 const solidBlueFill = "rgba(37, 99, 235, 0.72)";
 const chartGridColor = "rgba(148, 163, 184, 0.22)";
 const chartTickColor = "#475569";
+const chartTickFont = { family: 'system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif', size: 13, weight: "500" };
+const chartTickPadding = 8;
 const contrastPiePalette = ["#ffd400", "#7fffd4", "#ffffff", "#ff8a00", "#66f2d5", "#ff5f5f", "#c4ff00", "#d6b4ff"];
 
 const piePalette = [
@@ -213,7 +215,9 @@ function applyAccessibleChartOptions(options: any, highContrast: boolean, overri
               ...axisValue,
               ticks: {
                 ...(axisValue?.ticks ?? {}),
-                color: highContrast ? "#7fffd4" : axisValue?.ticks?.color ?? chartTickColor,
+                color: highContrast ? "#7fffd4" : chartTickColor,
+                font: chartTickFont,
+                padding: chartTickPadding,
               },
               grid: {
                 ...(axisValue?.grid ?? {}),
