@@ -663,6 +663,38 @@ export default function Graduates() {
 
   return (
     <div className="grid" style={{ gap: 14 }}>
+      {importBusy && importProgress && !toast ? (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "fixed",
+            top: 16,
+            right: 16,
+            zIndex: 9999,
+            width: 360,
+            minHeight: 128,
+            maxWidth: "calc(100vw - 32px)",
+            boxSizing: "border-box",
+            display: "flex",
+            alignItems: "center",
+            background: "#fff",
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderLeft: "6px solid #16a34a",
+            borderRadius: 12,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+            padding: 12,
+          }}
+        >
+          <div style={{ fontWeight: 700 }}>
+            {t("topbar.importSavingRemaining", {
+              count: importProgress.remaining,
+              total: importProgress.total,
+            })}
+          </div>
+        </div>
+      ) : null}
+
       {toast ? (
         <div
           style={{
@@ -1227,66 +1259,6 @@ export default function Graduates() {
                   </div>
                 </div>
               </div>
-              {importBusy ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  style={{
-                    border: "1px solid rgba(37,99,235,.22)",
-                    background: "rgba(37,99,235,.06)",
-                    borderRadius: 12,
-                    padding: "10px 12px",
-                    display: "grid",
-                    gap: 8,
-                    fontWeight: 700,
-                    color: "#1e3a8a",
-                  }}
-                >
-                  <span>
-                    {!importProgress
-                      ? t("topbar.importPreparing")
-                      : t(
-                          importProgress.phase === "processing"
-                            ? "topbar.importCheckingRemaining"
-                            : "topbar.importSavingRemaining",
-                          {
-                            count: importProgress.remaining,
-                            total: importProgress.total,
-                          },
-                        )}
-                  </span>
-                  {importProgress?.total ? (
-                    <div
-                      aria-hidden="true"
-                      style={{
-                        height: 7,
-                        borderRadius: 999,
-                        background: "rgba(37,99,235,.14)",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: "100%",
-                          width: `${Math.min(
-                            100,
-                            Math.max(
-                              0,
-                              ((importProgress.total -
-                                importProgress.remaining) /
-                                importProgress.total) *
-                                100,
-                            ),
-                          )}%`,
-                          background: "#2563eb",
-                          borderRadius: 999,
-                          transition: "width .2s ease",
-                        }}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
             </div>
           </div>
 

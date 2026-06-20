@@ -7,7 +7,7 @@
     "importing": "Εισαγωγή...",
     "importPreparing": "Προετοιμασία αρχείου...",
     "importCheckingRemaining": "Έλεγχος αρχείου: απομένουν {{count}} από {{total}} εγγραφές",
-    "importSavingRemaining": "Εισαγωγή εγγραφών: απομένουν {{count}} από {{total}} εγγραφές",
+    "importSavingRemaining": "Απομένουν {{count}} από {{total}} εγγραφές μέχρι την ολοκλήρωση",
     "exportExcel": "Excel",
     "newGraduate": "Νέος Απόφοιτος",
     "importTemplateHelp": "Η μορφή των πεδίων του αρχείου για την εισαγωγή αποφοίτων είναι η εξής:",
