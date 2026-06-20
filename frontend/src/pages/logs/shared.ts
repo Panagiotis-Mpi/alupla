@@ -42,21 +42,26 @@ export const emptyFilters: LogFilters = {
   action: "",
 };
 
+const hiddenDetailKeys = new Set(["actor_role", "actor_name", "actor_email"]);
+
 export const actionLabels = {
   gr: {
     login: "Σύνδεση",
     logout: "Αποσύνδεση",
     register: "Εγγραφή",
     change_password: "Αλλαγή κωδικού",
+    request_password_reset: "Αίτημα αλλαγής κωδικού",
+    reset_password: "Επαναφορά κωδικού",
     update_profile: "Ενημέρωση προφίλ",
     upload: "Μεταφόρτωση αρχείου",
     import_graduates: "Εισαγωγή αποφοίτων",
     export_graduates: "Εξαγωγή αποφοίτων",
     export_users: "Εξαγωγή χρηστών",
-    export_users_csv: "Εξαγωγή χρηστών",
-    export_users_xlsx: "Εξαγωγή χρηστών",
-    export_csv: "Εξαγωγή CSV",
-    export_xlsx: "Εξαγωγή Excel",
+    export_users_csv: "Εξαγωγή χρηστών CSV",
+    export_users_xlsx: "Εξαγωγή χρηστών Excel",
+    export_csv: "Εξαγωγή καταγραφών CSV",
+    export_xlsx: "Εξαγωγή καταγραφών Excel",
+    export_logs: "Εξαγωγή καταγραφών",
     export_pdf: "Εξαγωγή PDF",
     map_export: "Εξαγωγή χάρτη",
     statistics_export: "Εξαγωγή στατιστικών",
@@ -89,15 +94,18 @@ export const actionLabels = {
     logout: "Logout",
     register: "Registration",
     change_password: "Password change",
+    request_password_reset: "Password reset request",
+    reset_password: "Password reset",
     update_profile: "Profile update",
     upload: "File upload",
     import_graduates: "Graduate import",
     export_graduates: "Graduate export",
     export_users: "User export",
-    export_users_csv: "User export",
-    export_users_xlsx: "User export",
-    export_csv: "CSV export",
-    export_xlsx: "Excel export",
+    export_users_csv: "User CSV export",
+    export_users_xlsx: "User Excel export",
+    export_csv: "Log CSV export",
+    export_xlsx: "Log Excel export",
+    export_logs: "Log export",
     export_pdf: "PDF export",
     map_export: "Map export",
     statistics_export: "Statistics export",
@@ -129,11 +137,18 @@ export const actionLabels = {
 
 export const knownActionKeys = [
   "login",
+  "logout",
   "register",
   "change_password",
+  "request_password_reset",
+  "reset_password",
   "update_profile",
   "create_user",
   "update_user",
+  "approve_user",
+  "reject_user",
+  "deactivate_user",
+  "delete_user",
   "διαγραφή χρήστη",
   "create_graduate",
   "update_graduate",
@@ -142,13 +157,27 @@ export const knownActionKeys = [
   "import_graduates",
   "export_graduates",
   "export_users",
+  "export_users_csv",
+  "export_users_xlsx",
   "create_study_program",
   "update_study_program",
   "delete_study_program",
   "import_study_programs",
+  "export_csv",
+  "export_xlsx",
   "export_logs",
+  "export_pdf",
   "statistics_export",
   "map_export",
+  "create_region_periphery",
+  "update_region_periphery",
+  "delete_region_periphery",
+  "import_region_peripheries",
+  "create_region_city",
+  "update_region_city",
+  "delete_region_city",
+  "import_region_cities",
+  "upload",
 ] as const;
 
 export const detailFreeActions = new Set([
@@ -156,6 +185,7 @@ export const detailFreeActions = new Set([
   "logout",
   "register",
   "change_password",
+  "reset_password",
 ]);
 
 type SummaryOperation = "import" | "export";
@@ -267,6 +297,11 @@ export function createLogsLocalizer({
         ? {
             file: "File",
             format: "Type",
+            mail_sent: "Email sent",
+            mail_error: "Email error",
+            actor_role: "User role",
+            actor_name: "User name",
+            actor_email: "User email",
             count: "Rows",
             total_rows: "Total rows",
             inserted: "New",
@@ -320,6 +355,11 @@ export function createLogsLocalizer({
         : {
             file: "Αρχείο",
             format: "Τύπος",
+            mail_sent: "Στάλθηκε email",
+            mail_error: "Σφάλμα email",
+            actor_role: "Ρόλος χρήστη",
+            actor_name: "Όνομα χρήστη",
+            actor_email: "Email χρήστη",
             count: "Γραμμές",
             total_rows: "Σύνολο γραμμών",
             inserted: "Νέες",
@@ -444,6 +484,9 @@ export function createLogsLocalizer({
   const localValue = (value: string) => {
     const normalized = String(value ?? "").trim();
     if (!normalized) return "";
+    const lower = normalized.toLowerCase();
+    if (lower === "true") return activeLang === "en" ? "Yes" : "Ναι";
+    if (lower === "false") return activeLang === "en" ? "No" : "Όχι";
     if (normalized === "visitor") return t("summary.roles.visitor");
     if (normalized === "secretariat") return t("summary.roles.secretariat");
     if (normalized === "super_admin") return t("summary.roles.admin");
@@ -596,6 +639,17 @@ export function createLogsLocalizer({
 
     if (action === "create_user") return formatCreateUserDetails(details);
 
+    if (action === "request_password_reset") {
+      const parts: string[] = [];
+      if (details.mail_sent !== null && details.mail_sent !== undefined && details.mail_sent !== "") {
+        parts.push(`${localDetailLabel("mail_sent")}: ${localValue(String(details.mail_sent))}`);
+      }
+      if (details.mail_error !== null && details.mail_error !== undefined && details.mail_error !== "") {
+        parts.push(`${localDetailLabel("mail_error")}: ${String(details.mail_error)}`);
+      }
+      return parts.join(", ");
+    }
+
     if (action === "bulk_delete_graduates") return "";
 
     const studentNumber = String(details.student_number ?? "").trim();
@@ -641,6 +695,8 @@ export function createLogsLocalizer({
 
     const plainPairs: Array<[string, any]> = [
       ["file", details.file ?? details.filename],
+      ["mail_sent", details.mail_sent],
+      ["mail_error", details.mail_error],
       ["role", details.role],
       ["status", details.status],
       ["page", details.page],
@@ -701,7 +757,7 @@ export function createLogsLocalizer({
 
     return Object.entries(details)
       .filter(
-        ([, value]) => value !== null && value !== undefined && value !== "",
+        ([key, value]) => !hiddenDetailKeys.has(key) && value !== null && value !== undefined && value !== "",
       )
       .slice(0, 5)
       .map(([key, value]) => {

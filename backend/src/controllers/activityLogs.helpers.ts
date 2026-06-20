@@ -10,21 +10,26 @@ export const DEFAULT_PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 200;
 export const EXPORT_LIMIT = 5000;
 
+const hiddenDetailKeys = new Set(["actor_role", "actor_name", "actor_email"]);
+
 export const actionLabels = {
   gr: {
     login: "Σύνδεση",
     logout: "Αποσύνδεση",
     register: "Εγγραφή",
     change_password: "Αλλαγή κωδικού",
+    request_password_reset: "Αίτημα αλλαγής κωδικού",
+    reset_password: "Επαναφορά κωδικού",
     update_profile: "Ενημέρωση προφίλ",
     upload: "Μεταφόρτωση αρχείου",
     import_graduates: "Εισαγωγή αποφοίτων",
     export_graduates: "Εξαγωγή αποφοίτων",
     export_users: "Εξαγωγή χρηστών",
-    export_users_csv: "Εξαγωγή χρηστών",
-    export_users_xlsx: "Εξαγωγή χρηστών",
-    export_csv: "Εξαγωγή CSV",
-    export_xlsx: "Εξαγωγή Excel",
+    export_users_csv: "Εξαγωγή χρηστών CSV",
+    export_users_xlsx: "Εξαγωγή χρηστών Excel",
+    export_csv: "Εξαγωγή καταγραφών CSV",
+    export_xlsx: "Εξαγωγή καταγραφών Excel",
+    export_logs: "Εξαγωγή καταγραφών",
     export_pdf: "Εξαγωγή PDF",
     map_export: "Εξαγωγή χάρτη",
     statistics_export: "Εξαγωγή στατιστικών",
@@ -57,15 +62,18 @@ export const actionLabels = {
     logout: "Logout",
     register: "Registration",
     change_password: "Password change",
+    request_password_reset: "Password reset request",
+    reset_password: "Password reset",
     update_profile: "Profile update",
     upload: "File upload",
     import_graduates: "Graduate import",
     export_graduates: "Graduate export",
     export_users: "User export",
-    export_users_csv: "User export",
-    export_users_xlsx: "User export",
-    export_csv: "CSV export",
-    export_xlsx: "Excel export",
+    export_users_csv: "User CSV export",
+    export_users_xlsx: "User Excel export",
+    export_csv: "Log CSV export",
+    export_xlsx: "Log Excel export",
+    export_logs: "Log export",
     export_pdf: "PDF export",
     map_export: "Map export",
     statistics_export: "Statistics export",
@@ -404,6 +412,11 @@ export function localDetailLabel(lang: "gr" | "en", key: string) {
       ? {
           file: "File",
           format: "Type",
+          mail_sent: "Email sent",
+          mail_error: "Email error",
+          actor_role: "User role",
+          actor_name: "User name",
+          actor_email: "User email",
           count: "Rows",
           total_rows: "Total rows",
           inserted: "New",
@@ -457,6 +470,11 @@ export function localDetailLabel(lang: "gr" | "en", key: string) {
       : {
           file: "Αρχείο",
           format: "Τύπος",
+          mail_sent: "Στάλθηκε email",
+          mail_error: "Σφάλμα email",
+          actor_role: "Ρόλος χρήστη",
+          actor_name: "Όνομα χρήστη",
+          actor_email: "Email χρήστη",
           count: "Γραμμές",
           total_rows: "Σύνολο γραμμών",
           inserted: "Νέες",
@@ -540,7 +558,10 @@ export function localValue(lang: "gr" | "en", value: string) {
     return lang === "en" ? "Statistics" : "Στατιστικά";
   if (normalized === "map") return lang === "en" ? "Map" : "Χάρτης";
   if (normalized === "logs") return lang === "en" ? "Logs" : "Καταγραφές";
-  return normalized;
+  const lower = normalized.toLowerCase();
+  if (lower === "true") return lang === "en" ? "Yes" : "Ναι";
+  if (lower === "false") return lang === "en" ? "No" : "Όχι";
+  return getLocalizedAction(lang, normalized) || normalized;
 }
 
 export function parseDetails(value: unknown) {
@@ -732,6 +753,8 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
 
   const plainPairs: Array<[string, any]> = [
     ["file", (details as any).file ?? (details as any).filename],
+    ["mail_sent", (details as any).mail_sent],
+    ["mail_error", (details as any).mail_error],
     ["role", (details as any).role],
     ["status", (details as any).status],
     ["page", (details as any).page],
@@ -789,7 +812,7 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
 
   return Object.entries(details)
     .filter(
-      ([, value]) => value !== null && value !== undefined && value !== "",
+      ([key, value]) => !hiddenDetailKeys.has(key) && value !== null && value !== undefined && value !== "",
     )
     .slice(0, 5)
     .map(([key, value]) => {
