@@ -52,6 +52,14 @@ import {
   prepareGraduateImportRows,
   savePreparedGraduateImportRows,
 } from "../services/graduateImport.service";
+import {
+  completeGraduateImportProgressRow,
+  failGraduateImportProgress,
+  finishGraduateImportProgress,
+  getGraduateImportProgress as readGraduateImportProgress,
+  setGraduateImportProgressPhase,
+  startGraduateImportProgress,
+} from "../services/graduateImportProgress.service";
 
 function hasGraduateExportFilters(source: Record<string, unknown>) {
   const ignored = new Set(["format", "lang", "limit", "page", "pageSize", "sort", "ids"]);
@@ -283,12 +291,26 @@ export async function exportGraduatesImportTemplate(
   }
 }
 
+export function getGraduateImportProgressStatus(req: Request, res: Response) {
+  const progress = readGraduateImportProgress(
+    String(req.params.progressId ?? ""),
+    Number(req.user?.id ?? 0),
+  );
+  if (!progress) {
+    return res.status(404).json({ error: { message: "Import progress not found" } });
+  }
+  return res.json({ ok: true, progress });
+}
+
 // POST /graduates/import: διαβάζει αρχείο CSV/XLSX, ελέγχει κάθε γραμμή και κάνει insert ή update.
 export async function importGraduates(
   req: Request,
   res: Response,
   next: NextFunction,
 ) {
+  const userId = Number(req.user?.id ?? 0);
+  let progressId = "";
+  let progressActive = false;
   try {
     const file = (req as any).file as
       | { buffer: Buffer; originalname: string; mimetype: string }
@@ -368,6 +390,20 @@ export async function importGraduates(
       origin_municipality: matchedHeaderKeys.origin_municipality,
     };
 
+    progressId = String((req.body as any)?.progress_id ?? "").trim();
+    const importTotal = rows
+      .slice(1)
+      .filter((row) => !row.every((value) => String(value ?? "").trim() === ""))
+      .length;
+    progressActive = startGraduateImportProgress(
+      progressId,
+      userId,
+      importTotal,
+    );
+    const completeProgressRow = progressActive
+      ? () => completeGraduateImportProgressRow(progressId, userId)
+      : undefined;
+
     const importLang = getRuleLang((req.body as any)?.lang);
     const { errors, preparedRows, studentNumbers, skipped } =
       await prepareGraduateImportRows({
@@ -376,11 +412,17 @@ export async function importGraduates(
         importLang,
         programsById,
         regionsById,
+        onSkippedRow: completeProgressRow,
       });
+    if (progressActive) {
+      setGraduateImportProgressPhase(progressId, userId, "saving");
+    }
     const { inserted, updated } = await savePreparedGraduateImportRows(
       preparedRows,
       studentNumbers,
+      completeProgressRow,
     );
+    if (progressActive) finishGraduateImportProgress(progressId, userId);
 
     try {
       await logAction({
@@ -417,6 +459,7 @@ export async function importGraduates(
       errors: errors.slice(0, 500),
     });
   } catch (err: any) {
+    if (progressActive) failGraduateImportProgress(progressId, userId);
     if (err?.name === "SequelizeUniqueConstraintError") {
       return res.status(400).json({
         ok: false,

@@ -191,6 +191,7 @@ export type ImportReport = ApiOk & {
     updated?: number;
     skipped?: number;
     errors?: number;
+    total?: number;
     total_rows?: number;
   };
   errors?: Array<Record<string, unknown>>;
@@ -198,6 +199,11 @@ export type ImportReport = ApiOk & {
   inserted?: number;
   updated?: number;
   skipped?: number;
+};
+export type GraduateImportProgress = {
+  total: number;
+  remaining: number;
+  phase: "processing" | "saving" | "completed" | "failed";
 };
 
 function isOkResponse(value: unknown): value is ApiOk {
@@ -717,14 +723,75 @@ export async function logGraduatesPdfExport(
   return response;
 }
 
+function createImportProgressId() {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+async function readGraduateImportProgress(
+  progressId: string,
+): Promise<GraduateImportProgress | null> {
+  const token = getToken();
+  try {
+    const response = await fetch(
+      `${API_URL}/graduates/import-progress/${encodeURIComponent(progressId)}`,
+      {
+        method: "GET",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        cache: "no-store",
+      },
+    );
+    if (response.status === 404) return null;
+    if (!response.ok) return null;
+    const data = await parseJsonSafe(response);
+    const progress = (data as any)?.progress;
+    if (!progress) return null;
+    const phase = String(progress.phase ?? "");
+    if (!["processing", "saving", "completed", "failed"].includes(phase)) {
+      return null;
+    }
+    return {
+      total: Math.max(0, Number(progress.total ?? 0)),
+      remaining: Math.max(0, Number(progress.remaining ?? 0)),
+      phase: phase as GraduateImportProgress["phase"],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function importGraduatesFile(
   file: File,
   lang?: string,
+  onProgress?: (progress: GraduateImportProgress) => void,
 ): Promise<ImportReport> {
   const token = getToken();
+  const progressId = createImportProgressId();
   const fd = new FormData();
+  fd.append("progress_id", progressId);
   fd.append("file", file);
   if (lang) fd.append("lang", lang);
+
+  let stopped = false;
+  let polling = false;
+  const pollProgress = async () => {
+    if (stopped || polling) return;
+    polling = true;
+    try {
+      const progress = await readGraduateImportProgress(progressId);
+      if (!stopped && progress) onProgress?.(progress);
+    } finally {
+      polling = false;
+    }
+  };
+  const pollTimer = globalThis.setInterval(() => {
+    void pollProgress();
+  }, 300);
+  void pollProgress();
 
   let res: Response;
   try {
@@ -736,9 +803,14 @@ export async function importGraduatesFile(
       body: fd,
     });
   } catch (error) {
+    stopped = true;
+    globalThis.clearInterval(pollTimer);
     const message = error instanceof Error ? error.message.trim() : "";
     throw new Error(message);
   }
+
+  stopped = true;
+  globalThis.clearInterval(pollTimer);
 
   if (!res.ok) {
     const j = await parseJsonSafe(res);
@@ -750,6 +822,8 @@ export async function importGraduatesFile(
   if (!data) {
     throw new Error("Invalid server response");
   }
+  const total = Math.max(0, Number((data as any)?.summary?.total ?? 0));
+  onProgress?.({ total, remaining: 0, phase: "completed" });
   clearGraduateRelatedCaches();
   return data as ImportReport;
 }

@@ -10,6 +10,7 @@ import {
   importGraduatesFile,
   logGraduatesPdfExport,
   type Graduate,
+  type GraduateImportProgress,
   type ImportReport,
   type QueryParams,
   type StudyProgram,
@@ -76,6 +77,8 @@ type ToastState = {
 export default function Graduates() {
   const { t, i18n } = useTranslation("graduates");
   const [importBusy, setImportBusy] = useState(false);
+  const [importProgress, setImportProgress] =
+    useState<GraduateImportProgress | null>(null);
   const [importReport, setImportReport] = useState<ImportReport | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [showImportDetails, setShowImportDetails] = useState(false);
@@ -482,11 +485,13 @@ export default function Graduates() {
 
   async function onImportFile(file: File) {
     setImportReport(null);
+    setImportProgress(null);
     setImportBusy(true);
     try {
       const report = await importGraduatesFile(
         file,
         i18n.resolvedLanguage || i18n.language,
+        setImportProgress,
       );
       setImportReport(report);
       const inserted = Number(report?.summary?.inserted ?? 0);
@@ -517,6 +522,7 @@ export default function Graduates() {
       });
     } finally {
       setImportBusy(false);
+      setImportProgress(null);
     }
   }
 
@@ -1221,6 +1227,66 @@ export default function Graduates() {
                   </div>
                 </div>
               </div>
+              {importBusy ? (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  style={{
+                    border: "1px solid rgba(37,99,235,.22)",
+                    background: "rgba(37,99,235,.06)",
+                    borderRadius: 12,
+                    padding: "10px 12px",
+                    display: "grid",
+                    gap: 8,
+                    fontWeight: 700,
+                    color: "#1e3a8a",
+                  }}
+                >
+                  <span>
+                    {!importProgress
+                      ? t("topbar.importPreparing")
+                      : t(
+                          importProgress.phase === "processing"
+                            ? "topbar.importCheckingRemaining"
+                            : "topbar.importSavingRemaining",
+                          {
+                            count: importProgress.remaining,
+                            total: importProgress.total,
+                          },
+                        )}
+                  </span>
+                  {importProgress?.total ? (
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        height: 7,
+                        borderRadius: 999,
+                        background: "rgba(37,99,235,.14)",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${Math.min(
+                            100,
+                            Math.max(
+                              0,
+                              ((importProgress.total -
+                                importProgress.remaining) /
+                                importProgress.total) *
+                                100,
+                            ),
+                          )}%`,
+                          background: "#2563eb",
+                          borderRadius: 999,
+                          transition: "width .2s ease",
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
 
