@@ -2110,7 +2110,7 @@ html.accessibility-high-contrast .logs-summary-loading-region.is-loading::after{
   border-color:#93c5fd;
 }
 .auth-forgot-password-button{
-  justify-self:end;
+  justify-self:center;
   border:0;
   background:transparent;
   color:#1d4ed8;
@@ -4042,12 +4042,15 @@ body.public-home-scroll-lock .accessibility-trigger{
 .public-home-title-main,
 .public-home-title-sub{
   display:block;
-  font-family:"Trebuchet MS","Segoe UI",sans-serif;
 }
 
 .public-home-title-main{
-  font-family:Georgia,"Times New Roman",serif;
+  font-family:"Trebuchet MS","Segoe UI",sans-serif;
   text-decoration:none;
+}
+
+.public-home-title-sub{
+  font-family:Georgia,"Times New Roman",serif;
 }
 
 .public-home-card-split .public-home-counters{

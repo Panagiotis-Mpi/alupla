@@ -43,10 +43,24 @@ function hashResetToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-function resetTokensMatch(inputHash: string, storedHash: string) {
-  const inputBuffer = Buffer.from(inputHash, "hex");
-  const storedBuffer = Buffer.from(storedHash, "hex");
-  return inputBuffer.length === storedBuffer.length && crypto.timingSafeEqual(inputBuffer, storedBuffer);
+async function findResetUser(token: unknown) {
+  const normalizedToken = String(token ?? "").trim();
+  if (!normalizedToken) return null;
+
+  const user = await User.findOne({
+    where: { password_reset_token_hash: hashResetToken(normalizedToken) }
+  });
+
+  if (!user?.is_active || !user.password_reset_expires_at) return null;
+
+  if (new Date(user.password_reset_expires_at).getTime() < Date.now()) {
+    user.password_reset_token_hash = null;
+    user.password_reset_expires_at = null;
+    await user.save();
+    return null;
+  }
+
+  return user;
 }
 
 export async function login(req: Request, res: Response) {
@@ -119,13 +133,28 @@ export async function requestPasswordReset(req: Request, res: Response, next: Ne
   }
 }
 
+export async function passwordResetAccount(req: Request, res: Response) {
+  const user = await findResetUser(req.body?.token);
+  if (!user) {
+    return fail(res, 400, "Invalid or expired reset link");
+  }
+
+  return res.json({
+    ok: true,
+    account: {
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email
+    }
+  });
+}
+
 export async function resetPassword(req: Request, res: Response) {
-  const email = normalizeEmail(req.body?.email);
   const token = String(req.body?.token ?? "").trim();
   const newPassword = String(req.body?.new_password ?? "");
   const repeatPassword = req.body?.repeat_new_password !== undefined ? String(req.body.repeat_new_password) : newPassword;
 
-  if (!email || !token || !newPassword || !repeatPassword) {
+  if (!token || !newPassword || !repeatPassword) {
     return fail(res, 400, "Missing fields");
   }
 
@@ -138,20 +167,8 @@ export async function resetPassword(req: Request, res: Response) {
     return fail(res, 400, weakPasswordMessage);
   }
 
-  const user = await findActiveUserByEmail(email);
-  if (!user || !user.password_reset_token_hash || !user.password_reset_expires_at) {
-    return fail(res, 400, "Invalid or expired reset link");
-  }
-
-  if (new Date(user.password_reset_expires_at).getTime() < Date.now()) {
-    user.password_reset_token_hash = null;
-    user.password_reset_expires_at = null;
-    await user.save();
-    return fail(res, 400, "Invalid or expired reset link");
-  }
-
-  const tokenHash = hashResetToken(token);
-  if (!resetTokensMatch(tokenHash, user.password_reset_token_hash)) {
+  const user = await findResetUser(token);
+  if (!user) {
     return fail(res, 400, "Invalid or expired reset link");
   }
 

@@ -363,8 +363,20 @@ export async function requestPasswordReset(email: string, language?: string): Pr
   });
 }
 
-export async function resetPassword(payload: {
+export type PasswordResetAccount = {
+  first_name: string;
+  last_name: string;
   email: string;
+};
+
+export async function getPasswordResetAccount(token: string): Promise<ApiOk & { account: PasswordResetAccount }> {
+  return api("/auth/reset-password/account", {
+    method: "POST",
+    body: { token },
+  });
+}
+
+export async function resetPassword(payload: {
   token: string;
   newPassword: string;
   repeatNewPassword: string;
@@ -372,7 +384,6 @@ export async function resetPassword(payload: {
   return api("/auth/reset-password", {
     method: "POST",
     body: {
-      email: payload.email,
       token: payload.token,
       new_password: payload.newPassword,
       repeat_new_password: payload.repeatNewPassword,
