@@ -561,7 +561,8 @@ export function ScrollableLineChart(props: {
   const isCompact = useCompactStatisticsLayout();
   const highContrast = useHighContrastEnabled();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 68, props.maxLabelWidth ?? 128);
-  const shouldScroll = !props.exportMode && (props.labels.length > 6 || (props.datasetCount ?? 1) > 1);
+  const hasLongLabels = props.labels.some((label) => String(label ?? "").trim().length > 12);
+  const shouldScroll = !props.exportMode && (props.labels.length > 6 || (props.datasetCount ?? 1) > 1 || (isCompact && (props.labels.length > 3 || hasLongLabels)));
   const exportWidth = props.exportMode ? Math.max(contentWidth, 960) : 0;
   const minWidth = props.exportMode ? exportWidth : shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
   const normalizedData = React.useMemo(
@@ -593,7 +594,7 @@ export function ScrollableLineChart(props: {
 
   return (
     <div data-stat-chart-plot="true" style={{ width: props.exportMode ? minWidth || "100%" : "100%", maxWidth: props.exportMode ? "none" : "100%", overflowX: shouldScroll ? "auto" : props.exportMode ? "visible" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
-      <div style={{ minWidth: props.exportMode ? minWidth : shouldScroll ? minWidth : "100%", width: props.exportMode ? minWidth : shouldScroll ? "max-content" : "100%", height: props.height ?? 280 }}>
+      <div style={{ minWidth: props.exportMode ? minWidth : shouldScroll ? minWidth : "100%", width: props.exportMode || shouldScroll ? minWidth : "100%", height: props.height ?? 280 }}>
         <Line data={normalizedData} options={normalizedOptions} />
       </div>
     </div>
@@ -615,14 +616,15 @@ function ScrollableBarChart(props: {
   const isCompact = useCompactStatisticsLayout();
   const highContrast = useHighContrastEnabled();
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
-  const shouldScroll = !props.exportMode && (!!props.forceScrollable || props.labels.length > (props.scrollThreshold ?? 7));
+  const hasLongLabels = props.labels.some((label) => String(label ?? "").trim().length > 12);
+  const shouldScroll = !props.exportMode && (!!props.forceScrollable || props.labels.length > (props.scrollThreshold ?? 7) || (isCompact && (props.labels.length > 3 || hasLongLabels)));
   const exportWidth = props.exportMode ? Math.max(contentWidth, 960) : 0;
   const minWidth = props.exportMode ? exportWidth : shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
   const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
 
   return (
     <div data-stat-chart-plot="true" style={{ width: props.exportMode ? minWidth || "100%" : "100%", maxWidth: props.exportMode ? "none" : "100%", overflowX: shouldScroll ? "auto" : props.exportMode ? "visible" : "hidden", overflowY: "hidden", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
-      <div style={{ minWidth: props.exportMode ? minWidth : shouldScroll ? minWidth : "100%", width: props.exportMode ? minWidth : shouldScroll ? "max-content" : "100%", height: props.height ?? 280 }}>
+      <div style={{ minWidth: props.exportMode ? minWidth : shouldScroll ? minWidth : "100%", width: props.exportMode || shouldScroll ? minWidth : "100%", height: props.height ?? 280 }}>
         <Bar data={props.data} options={normalizedOptions} />
       </div>
     </div>
