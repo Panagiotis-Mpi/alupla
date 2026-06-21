@@ -1,14 +1,15 @@
 // Controls του χάρτη: φίλτρα, mode, κουμπιά και επιλογές export.
 import React from "react";
+import ExportSelectionDialog from "../../components/ExportSelectionDialog";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import Icon from "../../components/Icon";
 import arrowDownIcon from "../../assets/icons/arrow-down-to-line.svg";
 import globeIcon from "../../assets/icons/globe.svg";
 import marsIcon from "../../assets/icons/mars.svg";
 import usersIcon from "../../assets/icons/users.svg";
 import venusIcon from "../../assets/icons/venus.svg";
-import xIcon from "../../assets/icons/x.svg";
 
-type MetricOption = { label: string; legend: string };
+type MetricOption = { label: string };
 type MapMetric = "count" | "dominant_gender";
 type MapScope = "greece" | "abroad";
 type ExportCategoryKey = MapMetric;
@@ -139,14 +140,7 @@ export function MapYearTimeline(props: {
   loading: boolean;
   onRangeChange: (startYear: string, endYear: string) => void;
 }) {
-  const [isCompactTimeline, setIsCompactTimeline] = React.useState(() => typeof window !== "undefined" ? window.innerWidth <= 520 : false);
-
-  React.useEffect(() => {
-    const update = () => setIsCompactTimeline(window.innerWidth <= 520);
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
+  const isCompactTimeline = useMediaQuery("(max-width: 520px)");
 
   const sortedYears = Array.from(new Set(props.years)).sort((left, right) => left - right);
   const currentYear = new Date().getFullYear();
@@ -328,51 +322,18 @@ export function MapExportSelectionModal(props: {
   };
 
   return (
-    <div
-      className="export-selection-backdrop"
-      onClick={props.onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15, 23, 42, 0.34)",
-        display: "grid",
-        placeItems: "center",
-        alignItems: "flex-start",
-        justifyItems: "center",
-        padding: "84px 16px 16px",
-        zIndex: 1000,
-      }}
+    <ExportSelectionDialog
+      title={props.mt("export.selectionTitle", { defaultValue: "Επιλογή κατηγοριών εξαγωγής" })}
+      subtitle={`${props.mt("export.selectionSubtitle", { defaultValue: "Επίλεξε ποιες κατηγορίες θέλεις να κατεβάσεις" })} · ${props.selectedExportFormat.toUpperCase()}`}
+      cancelLabel={props.ct("cancel", { defaultValue: "Ακύρωση" })}
+      confirmLabel={props.exportingSelection ? props.ct("loading", { defaultValue: "Φόρτωση..." }) : props.mt("export.exportSelected", { defaultValue: "Εξαγωγή επιλεγμένων" })}
+      confirmDisabled={!canSubmit}
+      onClose={props.onClose}
+      onConfirm={props.onConfirm}
+      zIndex={1000}
+      minWidth="min(400px, calc(100vw - 32px))"
+      cardStyle={{ background: "#ffffff", opacity: 1 }}
     >
-      <div
-        className="card export-selection-card"
-        onClick={(event) => event.stopPropagation()}
-        style={{
-          width: "fit-content",
-          maxWidth: "calc(100vw - 32px)",
-          minWidth: "min(400px, calc(100vw - 32px))",
-          maxHeight: "min(68vh, 620px)",
-          minHeight: 0,
-          height: "auto",
-          display: "grid",
-          gridTemplateRows: "auto minmax(0, 1fr) auto",
-          alignContent: "start",
-          gap: 10,
-          padding: 12,
-          overflow: "hidden",
-          background: "#ffffff",
-          opacity: 1,
-        }}
-      >
-        <div className="topbar" style={{ marginBottom: 0, gap: 8, alignItems: "flex-start" }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 17 }}>{props.mt("export.selectionTitle", { defaultValue: "Επιλογή κατηγοριών εξαγωγής" })}</h3>
-            <div className="muted" style={{ marginTop: 3, fontSize: 12 }}>
-              {props.mt("export.selectionSubtitle", { defaultValue: "Επίλεξε ποιες κατηγορίες θέλεις να κατεβάσεις" })} · {props.selectedExportFormat.toUpperCase()}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gap: 8, alignContent: "start", overflowY: "auto", maxHeight: "min(52vh, 500px)", minHeight: 0, paddingRight: 4, minWidth: 0 }}>
           <label style={{ ...selectionRowStyle, fontWeight: 700 }}>
             <input type="checkbox" style={selectionCheckboxStyle} checked={allSelected} onChange={props.onToggleAllSelections} />
             <span>{props.ct("all", { defaultValue: "Όλα" })}</span>
@@ -459,19 +420,6 @@ export function MapExportSelectionModal(props: {
               </div>
             );
           })}
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, flexWrap: "wrap", paddingTop: 0 }}>
-          <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={props.onClose}>
-            <Icon src={xIcon} size={17} />
-            <span>{props.ct("cancel", { defaultValue: "Ακύρωση" })}</span>
-          </button>
-          <button type="button" className="btn primary" disabled={!canSubmit} style={{ opacity: canSubmit ? 1 : 0.55 }} onClick={props.onConfirm}>
-            <Icon src={arrowDownIcon} size={17} />
-            <span>{props.exportingSelection ? props.ct("loading", { defaultValue: "Φόρτωση..." }) : props.mt("export.exportSelected", { defaultValue: "Εξαγωγή επιλεγμένων" })}</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    </ExportSelectionDialog>
   );
 }

@@ -4,19 +4,9 @@ import path from "path";
 import { Region } from "../models/Region";
 import { cleanRegionText, normalizeRegionText } from "../utils/regionText";
 import { getGreekNomosNormalizedName } from "./greekNomosLookup.service";
+import { clearRegionLookupIndex, getRegionAncestor, loadRegionLookupIndex, type RegionLookupIndex, type RegionLookupItem } from "./regionLookup.service";
 
-type RegionLite = {
-  id: number;
-  name: string;
-  name_el: string | null;
-  name_en: string | null;
-  normalized_name: string;
-  type: string;
-  parent_id: number | null;
-  latitude: number | null;
-  longitude: number | null;
-  external_ref_id: string | null;
-};
+type RegionLite = RegionLookupItem;
 
 type ResolvedMapLocation = {
   cityId: number | null;
@@ -67,20 +57,10 @@ type CountryResolution = {
   longitude: number | null;
 };
 
-type RegionLookups = {
-  byId: Map<number, RegionLite>;
-  cityByNormalized: Map<string, RegionLite[]>;
-  peripheryByNormalized: Map<string, RegionLite>;
-  countryByNormalized: Map<string, RegionLite>;
-  nomosByNormalized: Map<string, RegionLite[]>;
-};
-
-const MAX_PARENT_STEPS = 25;
 // Κρατά προσωρινά δεδομένα για πιο γρήγορη απόκριση.
 const geocodeCache = new Map<string, Promise<ResolvedMapLocation | null>>();
 // Κρατά προσωρινά δεδομένα για πιο γρήγορη απόκριση.
 const countryCache = new Map<string, Promise<CountryResolution | null>>();
-let regionLookupPromise: Promise<RegionLookups> | null = null;
 let boundaryPromise: Promise<BoundaryFeature[]> | null = null;
 
 const COUNTRY_QUERY_ALIASES: Record<string, string> = {
@@ -128,12 +108,6 @@ const GREECE_PERIPHERY_NAMES_EN: Record<string, string> = {
   [normalizeRegionText("Νότιο Αιγαίο")]: "South Aegean",
   [normalizeRegionText("Κρήτη")]: "Crete",
 };
-
-// Μετατρέπει συντεταγμένη/τιμή σε αριθμό.
-function toNumber(value: unknown) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 // Ελέγχει αν κείμενο περιέχει ελληνικούς χαρακτήρες.
 function hasGreekText(value: unknown) {
@@ -185,72 +159,13 @@ function pickScopedCity(candidates: RegionLite[], preferredPeripheryId: number |
   return candidates[0] ?? null;
 }
 
-// Βρίσκει την περιφέρεια στην οποία ανήκει ένα region id.
 function getPeripheryFromRegionId(regionId: number | null | undefined, byId: Map<number, RegionLite>) {
-  if (!regionId) return null;
-  let current = byId.get(Number(regionId)) ?? null;
-  let steps = 0;
-  while (current && steps < MAX_PARENT_STEPS) {
-    steps += 1;
-    if (current.type === "PERIPHERY") return current;
-    current = current.parent_id ? byId.get(Number(current.parent_id)) ?? null : null;
-  }
-  return null;
-}
-
-// Φορτώνει και cache-άρει lookups περιοχών για γρήγορο matching.
-async function loadRegionLookups() {
-  if (!regionLookupPromise) {
-    regionLookupPromise = Region.findAll({
-      attributes: ["id", "name", "name_el", "name_en", "normalized_name", "type", "parent_id", "latitude", "longitude", "external_ref_id"],
-    }).then((rows) => {
-      const byId = new Map<number, RegionLite>();
-      const cityByNormalized = new Map<string, RegionLite[]>();
-      const peripheryByNormalized = new Map<string, RegionLite>();
-      const countryByNormalized = new Map<string, RegionLite>();
-      const nomosByNormalized = new Map<string, RegionLite[]>();
-
-      for (const row of rows as any[]) {
-        const item: RegionLite = {
-          id: Number(row.id),
-          name: String(row.name || ""),
-          name_el: row.name_el != null ? String(row.name_el) : null,
-          name_en: row.name_en != null ? String(row.name_en) : null,
-          normalized_name: String(row.normalized_name || normalizeRegionText(row.name)),
-          type: String(row.type || ""),
-          parent_id: row.parent_id != null ? Number(row.parent_id) : null,
-          latitude: toNumber(row.latitude),
-          longitude: toNumber(row.longitude),
-          external_ref_id: row.external_ref_id != null ? String(row.external_ref_id) : null,
-        };
-        byId.set(item.id, item);
-        if (item.type === "CITY" && item.normalized_name) {
-          const current = cityByNormalized.get(item.normalized_name) || [];
-          current.push(item);
-          cityByNormalized.set(item.normalized_name, current);
-        }
-        if (item.type === "PERIPHERY" && item.normalized_name && !peripheryByNormalized.has(item.normalized_name)) {
-          peripheryByNormalized.set(item.normalized_name, item);
-        }
-        if (item.type === "NOMOS" && item.normalized_name) {
-          const current = nomosByNormalized.get(item.normalized_name) || [];
-          current.push(item);
-          nomosByNormalized.set(item.normalized_name, current);
-        }
-        if (item.type === "COUNTRY" && item.normalized_name && !countryByNormalized.has(item.normalized_name)) {
-          countryByNormalized.set(item.normalized_name, item);
-        }
-      }
-
-      return { byId, cityByNormalized, peripheryByNormalized, countryByNormalized, nomosByNormalized };
-    });
-  }
-  return regionLookupPromise;
+  return getRegionAncestor(regionId, "PERIPHERY", byId);
 }
 
 // Καθαρίζει caches γεωγραφικής επίλυσης.
 function clearLocationCaches() {
-  regionLookupPromise = null;
+  clearRegionLookupIndex();
 }
 
 // Φορτώνει γεωγραφικά όρια περιφερειών για εύρεση από συντεταγμένες.
@@ -308,7 +223,7 @@ function isPointInRing(lon: number, lat: number, ring: number[][]) {
 
 // Βρίσκει περιφέρεια από γεωγραφικές συντεταγμένες.
 async function findPeripheryByCoords(latitude: number, longitude: number) {
-  const [boundaries, lookups] = await Promise.all([loadBoundaries(), loadRegionLookups()]);
+  const [boundaries, lookups] = await Promise.all([loadBoundaries(), loadRegionLookupIndex()]);
   for (const feature of boundaries) {
     if (!feature.polygons.some((ring) => isPointInRing(longitude, latitude, ring))) continue;
     const hit = lookups.peripheryByNormalized.get(feature.normalizedName);
@@ -319,7 +234,7 @@ async function findPeripheryByCoords(latitude: number, longitude: number) {
 
 // Προσπαθεί να βρει περιφέρεια από address/geocoding response.
 
-function getNomosFromCityName(cityName: string | null | undefined, preferredPeripheryId: number | null, lookups: RegionLookups) {
+function getNomosFromCityName(cityName: string | null | undefined, preferredPeripheryId: number | null, lookups: RegionLookupIndex) {
   const nomosKey = getGreekNomosNormalizedName(cityName);
   if (!nomosKey) return null;
   const candidates = lookups.nomosByNormalized.get(nomosKey) || [];
@@ -401,7 +316,7 @@ async function geocodeCity(rawCityName: string, preferredPeripheryId: number | n
     const items = await response.json() as NominatimItem[];
     if (!Array.isArray(items) || !items.length) return null;
 
-    const lookups = await loadRegionLookups();
+    const lookups = await loadRegionLookupIndex();
     const preferredPeriphery = preferredPeripheryId ? lookups.byId.get(preferredPeripheryId) ?? null : null;
 
     const ranked: Array<{ item: NominatimItem; lat: number; lng: number; score: number; peripheryId: number | null; peripheryName: string | null; cityName: string | null; externalRefId: string | null }> = [];
@@ -508,7 +423,7 @@ async function geocodeCountry(rawCountryName: string) {
 
 // Βρίσκει ή δημιουργεί χώρα στη βάση για καταγωγή εξωτερικού.
 async function resolveCountry(rawCountryName: string | null | undefined, explicitCountryId: number | null) {
-  const lookups = await loadRegionLookups();
+  const lookups = await loadRegionLookupIndex();
   const explicitCountry = explicitCountryId ? lookups.byId.get(explicitCountryId) ?? null : null;
   const countryInput = normalizeCountryQuery(rawCountryName);
 
@@ -557,7 +472,7 @@ async function resolveCountry(rawCountryName: string | null | undefined, explici
         } satisfies CountryResolution;
       }
 
-      const currentLookups = await loadRegionLookups();
+      const currentLookups = await loadRegionLookupIndex();
       const existing = explicitCountry && explicitCountry.type === "COUNTRY"
         ? explicitCountry
         : (directMatch || queryMatch || (countryInput.normalized ? currentLookups.countryByNormalized.get(countryInput.normalized) ?? null : null));
@@ -611,7 +526,7 @@ async function persistCityFromGeocode(rawCityName: string, preferredPeripheryId:
   const rawResolved = resolveNormalizedCityName(rawCityName);
   if (!rawResolved.normalized) return null;
 
-  const lookups = await loadRegionLookups();
+  const lookups = await loadRegionLookupIndex();
   const existing = pickScopedCity(lookups.cityByNormalized.get(rawResolved.normalized) || [], preferredPeripheryId, lookups.byId);
 
   if (existing && existing.latitude !== null && existing.longitude !== null) {
@@ -807,7 +722,7 @@ async function fetchLocalizedNameForRegion(region: RegionLite, lang: "el" | "en"
 // Εξασφαλίζει ότι region έχει localized ονόματα για EN προβολή/export.
 export async function ensureLocalizedRegionNames(regionId: number | null | undefined) {
   if (!regionId) return { nameEl: null, nameEn: null };
-  const lookups = await loadRegionLookups();
+  const lookups = await loadRegionLookupIndex();
   const region = lookups.byId.get(Number(regionId));
   if (!region) return { nameEl: null, nameEn: null };
 
@@ -855,7 +770,7 @@ export async function ensureLocalizedRegionNames(regionId: number | null | undef
 }
 // Λύνει χώρα/πόλη σε region data για χρήση στον χάρτη.
 export async function resolveMapLocation(input: GraduateOriginInput): Promise<ResolvedMapLocation | null> {
-  const lookups = await loadRegionLookups();
+  const lookups = await loadRegionLookupIndex();
   const explicitCityId = input.origin_city_region_id ? Number(input.origin_city_region_id) : null;
   const explicitRegionId = input.origin_region_id ? Number(input.origin_region_id) : null;
   const explicitCountryId = input.origin_country_region_id ? Number(input.origin_country_region_id) : null;

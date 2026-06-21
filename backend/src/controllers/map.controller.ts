@@ -4,8 +4,9 @@ import { Graduate } from "../models/Graduate";
 import { StudyProgram } from "../models/StudyProgram";
 import { col, fn, literal } from "sequelize";
 import { ensureLocalizedRegionNames, resolveMapLocation } from "../services/mapLocation.service";
-import { buildMapWhere, calculateAgeAtDate, isAbroadMapGraduate, isGreeceOriginValue, isGreekMapGraduate, loadRegions, normalizeKey, pickTopName, toInt } from "./map.helpers";
+import { buildMapWhere, isAbroadMapGraduate, isGreeceOriginValue, isGreekMapGraduate, loadRegions, normalizeKey, pickTopName, toInt } from "./map.helpers";
 import { getGraduationYears } from "../services/analyticsAggregations.service";
+import { applyAggregatedMetrics, applyGraduateMetrics, createMetricsBucket, serializeMapMetrics, type AggregatedMapMetricsRow } from "./map.metrics";
 
 const ATHENS_GROUP_KEY = "athens";
 const ATHENS_GROUP = {
@@ -170,7 +171,7 @@ type LocalizedNames = { nameEl: string | null; nameEn: string | null };
 type MapBuildOptions = { includeMapItems?: boolean; includeCityItems?: boolean };
 
 
-type AggregatedGraduateRow = {
+type AggregatedGraduateRow = AggregatedMapMetricsRow & {
   origin_country: string | null;
   origin_foreign_city: string | null;
   origin_country_region_id: number | null;
@@ -178,17 +179,6 @@ type AggregatedGraduateRow = {
   origin_region_id: number | null;
   origin_city_region_id: number | null;
   origin_municipality: string | null;
-  gender: "M" | "F" | null;
-  study_program_id: number | null;
-  graduate_count: number | string | null;
-  grade_sum: number | string | null;
-  grade_count: number | string | null;
-  age_sum: number | string | null;
-  age_count: number | string | null;
-  min_age: number | string | null;
-  max_age: number | string | null;
-  graduation_duration_sum: number | string | null;
-  graduation_duration_count: number | string | null;
 };
 
 const MAP_LOCATION_GROUP_FIELDS = [
@@ -304,15 +294,6 @@ export async function resolveMapCountryPresentation(input: any) {
   return { key: countryId ? `country:${countryId}` : `country:${normalizeKey(fallbackName)}`, id: countryId, name: nameEl, name_el: nameEl, name_en: nameEn };
 }
 
-function isSelectedProgram(graduate: any, selectedStudyProgramId: number | null) {
-  return !selectedStudyProgramId || Number(graduate.study_program_id) === selectedStudyProgramId;
-}
-
-function metricNumber(value: unknown) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : 0;
-}
-
 async function loadAggregatedMapRows(where: Record<string | symbol, unknown>) {
   const rows = await Graduate.findAll({
     where,
@@ -350,17 +331,7 @@ function finishCityBuckets(groups: Map<string, any>) {
       country_name_en: item.country_name_en || item.country_name,
       latitude: item.latitude,
       longitude: item.longitude,
-      count: item.count,
-      male_count: item.male,
-      female_count: item.female,
-      male_pct: item.count ? Math.round((item.male / item.count) * 1000) / 10 : 0,
-      female_pct: item.count ? Math.round((item.female / item.count) * 1000) / 10 : 0,
-      avg_age: item.ageCount ? Math.round((item.ageSum / item.ageCount) * 10) / 10 : null,
-      min_age: item.minAge === null ? null : Math.round(Number(item.minAge) * 10) / 10,
-      max_age: item.maxAge === null ? null : Math.round(Number(item.maxAge) * 10) / 10,
-      avg_grade: item.gradeCount ? Math.round((item.gradeSum / item.gradeCount) * 100) / 100 : null,
-      avg_graduation_years: item.graduationDurationCount ? Math.round((item.graduationDurationSum / item.graduationDurationCount) * 10) / 10 : null,
-      dominant_gender: !item.count ? null : item.male > item.female ? "M" : item.female > item.male ? "F" : "balanced",
+      ...serializeMapMetrics(item),
     }))
     .sort((left, right) => {
       if (right.count !== left.count) return right.count - left.count;
@@ -387,91 +358,6 @@ async function loadProgramMetadata() {
   return { studyProgramLabels };
 }
 
-// Δημιουργεί άδειο bucket μετρήσεων για μία περιοχή/πόλη χάρτη.
-function createMetricsBucket(seed: Record<string, unknown>) {
-  return {
-    ...seed,
-    count: 0,
-    male: 0,
-    female: 0,
-    ageSum: 0,
-    ageCount: 0,
-    minAge: null,
-    maxAge: null,
-    gradeSum: 0,
-    gradeCount: 0,
-    graduationDurationSum: 0,
-    graduationDurationCount: 0,
-    programCounts: new Map<number, number>(),
-  };
-}
-
-// Προσθέτει έναν απόφοιτο στις μετρήσεις χάρτη του σωστού bucket.
-function applyGraduateMetrics(bucket: any, graduate: any, selectedStudyProgramId: number | null) {
-  const studyProgramId = Number(graduate.study_program_id) || 0;
-  if (selectedStudyProgramId && studyProgramId !== selectedStudyProgramId) return false;
-
-  bucket.count += 1;
-  if (graduate.gender === "M") bucket.male += 1;
-  if (graduate.gender === "F") bucket.female += 1;
-
-  if (studyProgramId > 0) {
-    bucket.programCounts.set(studyProgramId, (bucket.programCounts.get(studyProgramId) || 0) + 1);
-  }
-
-  const graduationAge = calculateAgeAtDate(graduate.birth_date, graduate.graduation_date);
-  if (graduationAge !== null) {
-    bucket.ageSum += graduationAge;
-    bucket.ageCount += 1;
-    bucket.minAge = bucket.minAge === null ? graduationAge : Math.min(bucket.minAge, graduationAge);
-    bucket.maxAge = bucket.maxAge === null ? graduationAge : Math.max(bucket.maxAge, graduationAge);
-  }
-
-  const degreeGrade = Number(graduate.degree_grade);
-  if (Number.isFinite(degreeGrade) && degreeGrade >= 0) {
-    bucket.gradeSum += degreeGrade;
-    bucket.gradeCount += 1;
-  }
-
-  const entryYear = Number(graduate.entry_year);
-  const graduationYear = Number(String(graduate.graduation_date ?? "").slice(0, 4));
-  if (Number.isFinite(entryYear) && Number.isFinite(graduationYear) && entryYear > 1900 && graduationYear >= entryYear) {
-    bucket.graduationDurationSum += graduationYear - entryYear;
-    bucket.graduationDurationCount += 1;
-  }
-
-  return true;
-}
-
-function applyAggregatedMetrics(bucket: any, row: AggregatedGraduateRow, selectedStudyProgramId: number | null) {
-  const studyProgramId = Number(row.study_program_id) || 0;
-  if (selectedStudyProgramId && studyProgramId !== selectedStudyProgramId) return false;
-
-  const count = metricNumber(row.graduate_count);
-  if (count <= 0) return false;
-
-  bucket.count += count;
-  if (row.gender === "M") bucket.male += count;
-  if (row.gender === "F") bucket.female += count;
-
-  if (studyProgramId > 0) {
-    bucket.programCounts.set(studyProgramId, (bucket.programCounts.get(studyProgramId) || 0) + count);
-  }
-
-  bucket.ageSum += metricNumber(row.age_sum);
-  bucket.ageCount += metricNumber(row.age_count);
-  const minAge = Number(row.min_age);
-  const maxAge = Number(row.max_age);
-  if (Number.isFinite(minAge)) bucket.minAge = bucket.minAge === null ? minAge : Math.min(bucket.minAge, minAge);
-  if (Number.isFinite(maxAge)) bucket.maxAge = bucket.maxAge === null ? maxAge : Math.max(bucket.maxAge, maxAge);
-  bucket.gradeSum += metricNumber(row.grade_sum);
-  bucket.gradeCount += metricNumber(row.grade_count);
-  bucket.graduationDurationSum += metricNumber(row.graduation_duration_sum);
-  bucket.graduationDurationCount += metricNumber(row.graduation_duration_count);
-
-  return true;
-}
-
 // Μετατρέπει bucket μετρήσεων σε item που καταλαβαίνει το frontend map.
 function bucketToMapItem(bucket: any, labels: { studyProgramLabels: Map<number, string> }, nameKeys: { idKey: string; nameKey: string; latitudeKey?: string; longitudeKey?: string }) {
   const baseName = String(nameKeys.nameKey || "");
@@ -482,17 +368,7 @@ function bucketToMapItem(bucket: any, labels: { studyProgramLabels: Map<number, 
     [`${baseName}_en`]: bucket[`${baseName}_en`] ?? bucket[nameKeys.nameKey],
     ...(nameKeys.latitudeKey ? { [nameKeys.latitudeKey]: bucket[nameKeys.latitudeKey] ?? null } : {}),
     ...(nameKeys.longitudeKey ? { [nameKeys.longitudeKey]: bucket[nameKeys.longitudeKey] ?? null } : {}),
-    count: bucket.count,
-    male_count: bucket.male,
-    female_count: bucket.female,
-    male_pct: bucket.count ? Math.round((bucket.male / bucket.count) * 1000) / 10 : 0,
-    female_pct: bucket.count ? Math.round((bucket.female / bucket.count) * 1000) / 10 : 0,
-    avg_age: bucket.ageCount ? Math.round((bucket.ageSum / bucket.ageCount) * 10) / 10 : null,
-    min_age: bucket.minAge === null ? null : Math.round(Number(bucket.minAge) * 10) / 10,
-    max_age: bucket.maxAge === null ? null : Math.round(Number(bucket.maxAge) * 10) / 10,
-    avg_grade: bucket.gradeCount ? Math.round((bucket.gradeSum / bucket.gradeCount) * 100) / 100 : null,
-    avg_graduation_years: bucket.graduationDurationCount ? Math.round((bucket.graduationDurationSum / bucket.graduationDurationCount) * 10) / 10 : null,
-    dominant_gender: !bucket.count ? null : bucket.male > bucket.female ? "M" : bucket.female > bucket.male ? "F" : "balanced",
+    ...serializeMapMetrics(bucket),
     dominant_study_program: pickTopName(bucket.programCounts, labels.studyProgramLabels),
   };
 }
@@ -501,7 +377,6 @@ function bucketToMapItem(bucket: any, labels: { studyProgramLabels: Map<number, 
 async function buildMapData(req: Request, options: MapBuildOptions = {}) {
   const scope = mapScopeFromRequest(req) as MapScope;
   const { where } = buildMapWhere(req);
-  const selectedStudyProgramId = toInt(req.query.study_program_id);
   const includeMapItems = options.includeMapItems !== false;
   const includeCityItems = options.includeCityItems === true;
   const { regions, findPeriphery, findRegion } = await loadRegions();
@@ -530,7 +405,6 @@ async function buildMapData(req: Request, options: MapBuildOptions = {}) {
   }
 
   for (const graduate of grads) {
-    if (!isSelectedProgram(graduate, selectedStudyProgramId)) continue;
     if (scope === "abroad" && !isAbroadMapGraduate(graduate)) continue;
     if (scope === "greece" && !isGreekMapGraduate(graduate)) continue;
 
@@ -550,7 +424,7 @@ async function buildMapData(req: Request, options: MapBuildOptions = {}) {
             latitude: resolvedLocation?.latitude ?? (country as any).latitude ?? null,
             longitude: resolvedLocation?.longitude ?? (country as any).longitude ?? null,
           });
-          applyAggregatedMetrics(bucket, graduate, selectedStudyProgramId);
+          applyAggregatedMetrics(bucket, graduate);
           mapGroups.set(countryId, bucket);
         }
       } else {
@@ -565,7 +439,7 @@ async function buildMapData(req: Request, options: MapBuildOptions = {}) {
             latitude: (periphery as any).latitude ?? null,
             longitude: (periphery as any).longitude ?? null,
           });
-          applyAggregatedMetrics(bucket, graduate, selectedStudyProgramId);
+          applyAggregatedMetrics(bucket, graduate);
           mapGroups.set(Number(periphery.id), bucket);
         }
       }
@@ -605,7 +479,7 @@ async function buildMapData(req: Request, options: MapBuildOptions = {}) {
       longitude: cityGroup ? cityGroup.longitude : resolvedLocation.longitude,
     });
 
-    applyAggregatedMetrics(bucket, graduate, selectedStudyProgramId);
+    applyAggregatedMetrics(bucket, graduate);
     cityGroups.set(key, bucket);
   }
 
@@ -644,42 +518,61 @@ export async function getMapYearRange(_req: Request, res: Response) {
 
 // Επιστρέφει αναλυτικά στατιστικά για μία πόλη του χάρτη.
 export async function getMapCityDetail(req: Request, res: Response) {
-  const scope = mapScopeFromRequest(req);
+  const scope = mapScopeFromRequest(req) as MapScope;
   const cityId = toInt(req.query.city_id);
   const cityNameQuery = String(req.query.city_name || "").trim();
-  const cityGroup = scope === "greece" ? (greekCityGroupForKey(req.query.map_group_key) || greekCityGroupForName(cityNameQuery)) : null;
+  const cityGroup = scope === "greece"
+    ? greekCityGroupForKey(req.query.map_group_key) || greekCityGroupForName(cityNameQuery)
+    : null;
   const countryRegionId = toInt(req.query.country_region_id) || toInt(req.query.periphery_id);
   const mode = String(req.query.mode || "count");
-  const selectedStudyProgramId = toInt(req.query.study_program_id);
   const { where, currentYear } = buildMapWhere(req);
   const { findRegion } = await loadRegions();
+  const country = scope === "abroad" && countryRegionId ? findRegion(countryRegionId) : null;
+  const city = scope === "greece" && !cityGroup && cityId ? findRegion(cityId) : null;
 
+  if (scope === "greece" && !cityGroup && (!cityId || !city || String(city.type) !== "CITY")) {
+    return res.status(404).json({ ok: false, error: "city not found" });
+  }
 
   const grads = await Graduate.findAll({
     where,
-    attributes: ["origin_country", "origin_foreign_city", "origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id"],
+    attributes: [
+      "origin_country",
+      "origin_foreign_city",
+      "origin_country_region_id",
+      "origin_periphery_region_id",
+      "origin_region_id",
+      "origin_city_region_id",
+      "origin_municipality",
+      "gender",
+      "birth_date",
+      "degree_grade",
+      "entry_year",
+      "graduation_date",
+      "study_program_id",
+    ],
   });
 
+  const hasAbroadCityFilter = scope === "abroad" && Boolean(cityId || cityNameQuery);
   const matching: any[] = [];
-  let cityLabel = cityNameQuery;
+  const locationCache = new Map<string, Promise<any>>();
+  let cityLabel = cityGroup?.nameEl || String(city?.name || cityNameQuery || "");
+  if (scope === "abroad" && !hasAbroadCityFilter && country) {
+    cityLabel = String(country.name || cityNameQuery || "");
+  }
 
-  if (scope === "abroad") {
-    const hasCityFilter = Boolean(cityId || cityNameQuery);
-    const country = countryRegionId ? findRegion(countryRegionId) : null;
-    if (!hasCityFilter && country) cityLabel = String((country as any).name || cityNameQuery || "");
-    for (const graduate of grads as any[]) {
-      if (!isAbroadMapGraduate(graduate)) continue;
-      const resolvedLocation = await resolveMapLocation({
-        origin_country: graduate.origin_country || null,
-        origin_country_region_id: Number(graduate.origin_country_region_id) || null,
-        origin_periphery_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
-        origin_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
-        origin_city_region_id: Number(graduate.origin_city_region_id) || null,
-        origin_municipality: graduate.origin_foreign_city || graduate.origin_municipality || null,
-      });
-      const sameCountry = countryRegionId ? Number(resolvedLocation?.countryId || graduate.origin_country_region_id || 0) === countryRegionId : true;
+  for (const graduate of grads as any[]) {
+    if (scope === "abroad" && !isAbroadMapGraduate(graduate)) continue;
+    if (scope === "greece" && !isGreekMapGraduate(graduate)) continue;
+    const resolvedLocation = await resolveGraduateLocation(graduate, scope, locationCache);
+
+    if (scope === "abroad") {
+      const sameCountry = countryRegionId
+        ? Number(resolvedLocation?.countryId || graduate.origin_country_region_id || 0) === countryRegionId
+        : true;
       if (!sameCountry) continue;
-      if (hasCityFilter) {
+      if (hasAbroadCityFilter) {
         const sameCity = cityId
           ? Number(resolvedLocation?.cityId || 0) === cityId
           : normalizeKey(String(resolvedLocation?.cityName || "")) === normalizeKey(cityNameQuery);
@@ -688,96 +581,31 @@ export async function getMapCityDetail(req: Request, res: Response) {
       } else if (!cityLabel) {
         cityLabel = String(resolvedLocation?.countryName || graduate.origin_country || cityNameQuery || "");
       }
-      matching.push(graduate);
+    } else if (cityGroup) {
+      if (greekCityGroupForLocation(resolvedLocation, graduate.origin_municipality)?.key !== cityGroup.key) continue;
+    } else if (Number(resolvedLocation?.cityId || 0) !== cityId) {
+      continue;
     }
-  } else if (cityGroup) {
-    cityLabel = cityGroup.nameEl;
-    for (const graduate of grads as any[]) {
-      if (!isGreekMapGraduate(graduate)) continue;
-      const resolvedLocation = await resolveMapLocation({
-        origin_country: graduate.origin_country || null,
-        origin_country_region_id: Number(graduate.origin_country_region_id) || null,
-        origin_periphery_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
-        origin_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
-        origin_city_region_id: Number(graduate.origin_city_region_id) || null,
-        origin_municipality: graduate.origin_municipality || null,
-      });
-      if (greekCityGroupForLocation(resolvedLocation, graduate.origin_municipality)?.key === cityGroup.key) matching.push(graduate);
-    }
-  } else {
-    const city = cityId ? findRegion(cityId) : null;
-    if (!cityId || !city || String((city as any).type) !== "CITY") {
-      return res.status(404).json({ ok: false, error: "city not found" });
-    }
-    cityLabel = String((city as any).name || cityNameQuery || "");
-    for (const graduate of grads as any[]) {
-      if (!isGreekMapGraduate(graduate)) continue;
-      const resolvedLocation = await resolveMapLocation({
-        origin_country: graduate.origin_country || null,
-        origin_country_region_id: Number(graduate.origin_country_region_id) || null,
-        origin_periphery_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
-        origin_region_id: Number(graduate.origin_periphery_region_id) || Number(graduate.origin_region_id) || null,
-        origin_city_region_id: Number(graduate.origin_city_region_id) || null,
-        origin_municipality: graduate.origin_municipality || null,
-      });
-      if (Number(resolvedLocation?.cityId || 0) === cityId) matching.push(graduate);
-    }
+
+    matching.push(graduate);
   }
 
   const metricBucket = createMetricsBucket({});
-  for (const graduate of matching) {
-    applyGraduateMetrics(metricBucket, graduate, selectedStudyProgramId);
-  }
-
-  const detailCityNames = cityGroup ? { nameEl: cityGroup.nameEl, nameEn: cityGroup.nameEn } : cityId ? await ensureLocalizedRegionNames(cityId) : { nameEl: null, nameEn: null };
-  const detailCountryNames = countryRegionId ? await ensureLocalizedRegionNames(countryRegionId) : { nameEl: null, nameEn: null };
+  for (const graduate of matching) applyGraduateMetrics(metricBucket, graduate);
+  const detailMetrics = serializeMapMetrics(metricBucket);
+  const detailCityNames = cityGroup
+    ? { nameEl: cityGroup.nameEl, nameEn: cityGroup.nameEn }
+    : cityId
+      ? await ensureLocalizedRegionNames(cityId)
+      : { nameEl: null, nameEn: null };
+  const detailCountryNames = countryRegionId
+    ? await ensureLocalizedRegionNames(countryRegionId)
+    : { nameEl: null, nameEn: null };
   const detailNameEl = detailCityNames.nameEl || detailCountryNames.nameEl || cityLabel;
   const detailNameEn = detailCityNames.nameEn || detailCountryNames.nameEn || cityLabel;
   const detailCountryNameEl = detailCountryNames.nameEl || null;
   const detailCountryNameEn = detailCountryNames.nameEn || null;
-
-  if (mode === "dominant_gender") {
-    const male = matching.filter((graduate) => graduate.gender === "M").length;
-    const female = matching.filter((graduate) => graduate.gender === "F").length;
-    const totalGender = male + female;
-    return res.json({
-      ok: true,
-      city_id: cityGroup ? 0 : cityId || 0,
-      city_name: cityLabel,
-      city_name_el: detailNameEl,
-      city_name_en: detailNameEn,
-      map_group_key: cityGroup?.key || null,
-      country_name: detailCountryNameEl || detailCountryNameEn || null,
-      country_name_el: detailCountryNameEl,
-      country_name_en: detailCountryNameEn,
-      mode,
-      total: matching.length,
-      avg_age: metricBucket.ageCount ? Math.round((metricBucket.ageSum / metricBucket.ageCount) * 10) / 10 : null,
-      avg_grade: metricBucket.gradeCount ? Math.round((metricBucket.gradeSum / metricBucket.gradeCount) * 100) / 100 : null,
-      avg_graduation_years: metricBucket.graduationDurationCount ? Math.round((metricBucket.graduationDurationSum / metricBucket.graduationDurationCount) * 10) / 10 : null,
-      male_count: male,
-      female_count: female,
-      male_pct: totalGender ? Math.round((male / totalGender) * 1000) / 10 : 0,
-      female_pct: totalGender ? Math.round((female / totalGender) * 1000) / 10 : 0,
-    });
-  }
-
-  const lang = String(req.query.lang ?? "").toLowerCase().startsWith("en") ? "en" : "gr";
-
-  const startYear = 2010;
-  const endYear = Math.max(currentYear, startYear);
-  const labels = Array.from({ length: endYear - startYear + 1 }, (_, index) => String(startYear + index));
-  const yearIndex = new Map(labels.map((label, index) => [Number(label), index]));
-  const counts = labels.map(() => 0);
-
-  for (const graduate of matching) {
-    const year = Number(String(graduate.graduation_date || "").slice(0, 4));
-    const index = yearIndex.get(year);
-    if (index === undefined) continue;
-    counts[index] += 1;
-  }
-
-  return res.json({
+  const baseResponse = {
     ok: true,
     city_id: cityGroup ? 0 : cityId || 0,
     city_name: cityLabel,
@@ -787,15 +615,36 @@ export async function getMapCityDetail(req: Request, res: Response) {
     country_name: detailCountryNameEl || detailCountryNameEn || null,
     country_name_el: detailCountryNameEl,
     country_name_en: detailCountryNameEn,
+    total: detailMetrics.count,
+    avg_age: detailMetrics.avg_age,
+    avg_grade: detailMetrics.avg_grade,
+    avg_graduation_years: detailMetrics.avg_graduation_years,
+    male_count: detailMetrics.male_count,
+    female_count: detailMetrics.female_count,
+    male_pct: detailMetrics.male_pct,
+    female_pct: detailMetrics.female_pct,
+  };
+
+  if (mode === "dominant_gender") {
+    return res.json({ ...baseResponse, mode });
+  }
+
+  const lang = String(req.query.lang ?? "").toLowerCase().startsWith("en") ? "en" : "gr";
+  const startYear = 2010;
+  const endYear = Math.max(currentYear, startYear);
+  const labels = Array.from({ length: endYear - startYear + 1 }, (_, index) => String(startYear + index));
+  const yearIndex = new Map(labels.map((label, index) => [Number(label), index]));
+  const counts = labels.map(() => 0);
+
+  for (const graduate of matching) {
+    const year = Number(String(graduate.graduation_date || "").slice(0, 4));
+    const index = yearIndex.get(year);
+    if (index !== undefined) counts[index] += 1;
+  }
+
+  return res.json({
+    ...baseResponse,
     mode: "count",
-    total: matching.length,
-    avg_age: metricBucket.ageCount ? Math.round((metricBucket.ageSum / metricBucket.ageCount) * 10) / 10 : null,
-    avg_grade: metricBucket.gradeCount ? Math.round((metricBucket.gradeSum / metricBucket.gradeCount) * 100) / 100 : null,
-    avg_graduation_years: metricBucket.graduationDurationCount ? Math.round((metricBucket.graduationDurationSum / metricBucket.graduationDurationCount) * 10) / 10 : null,
-    male_count: metricBucket.male,
-    female_count: metricBucket.female,
-    male_pct: metricBucket.count ? Math.round((metricBucket.male / metricBucket.count) * 1000) / 10 : 0,
-    female_pct: metricBucket.count ? Math.round((metricBucket.female / metricBucket.count) * 1000) / 10 : 0,
     labels,
     datasets: [{ key: "count", label: lang === "en" ? "Graduates" : "Απόφοιτοι", values: counts }],
   });

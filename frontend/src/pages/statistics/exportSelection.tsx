@@ -1,10 +1,9 @@
 // Modal επιλογής ενοτήτων που θα μπουν στο export στατιστικών.
 import React from "react";
+import ExportSelectionDialog from "../../components/ExportSelectionDialog";
 import Icon from "../../components/Icon";
 import fileSpreadsheetIcon from "../../assets/icons/file-spreadsheet.svg";
 import chartIcon from "../../assets/icons/chart-column-big.svg";
-import arrowDownIcon from "../../assets/icons/arrow-down-to-line.svg";
-import xIcon from "../../assets/icons/x.svg";
 import type { StatisticsChartId } from "../statisticsExport";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -141,49 +140,15 @@ export function StatisticsExportSelectionModal(props: {
   }
 
   return (
-    <div
-      className="export-selection-backdrop"
-      onClick={props.onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15, 23, 42, 0.34)",
-        display: "grid",
-        placeItems: "center",
-        alignItems: "flex-start",
-        justifyItems: "center",
-        padding: "84px 16px 16px",
-        zIndex: 60,
-      }}
+    <ExportSelectionDialog
+      title={props.t("actions.exportSelectionTitle", { defaultValue: "Επιλογή διαγραμμάτων" })}
+      subtitle={`${props.t("actions.exportSelectionSubtitle", { defaultValue: "Επίλεξε ποια διαγράμματα θέλεις να κατεβάσεις" })} · ${props.exportFormatLabel}`}
+      cancelLabel={props.t("actions.cancel", { defaultValue: "Ακύρωση" })}
+      confirmLabel={props.t("actions.exportSelected", { defaultValue: "Εξαγωγή επιλεγμένων" })}
+      confirmDisabled={confirmDisabled}
+      onClose={props.onClose}
+      onConfirm={props.onConfirm}
     >
-      <div
-        className="card export-selection-card"
-        onClick={(event) => event.stopPropagation()}
-        style={{
-          width: "fit-content",
-          maxWidth: "calc(100vw - 32px)",
-          minWidth: "min(420px, calc(100vw - 32px))",
-          maxHeight: "min(68vh, 620px)",
-          minHeight: 0,
-          height: "auto",
-          display: "grid",
-          gridTemplateRows: "auto minmax(0, 1fr) auto",
-          alignContent: "start",
-          gap: 10,
-          padding: 12,
-          overflow: "hidden",
-        }}
-      >
-        <div className="topbar" style={{ marginBottom: 0, gap: 8, alignItems: "flex-start" }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 17 }}>{props.t("actions.exportSelectionTitle", { defaultValue: "Επιλογή διαγραμμάτων" })}</h3>
-            <div className="muted" style={{ marginTop: 3, fontSize: 12 }}>
-              {props.t("actions.exportSelectionSubtitle", { defaultValue: "Επίλεξε ποια διαγράμματα θέλεις να κατεβάσεις" })} · {props.exportFormatLabel}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gap: 8, alignContent: "start", overflowY: "auto", maxHeight: "min(52vh, 500px)", minHeight: 0, paddingRight: 4, minWidth: 0 }}>
           <label style={{ ...props.selectionRowStyle, fontWeight: 700 }}>
             <input type="checkbox" style={props.selectionCheckboxStyle} checked={props.allChartsSelected} onChange={props.onToggleAll} />
             <span>{props.t("actions.selectAll", { defaultValue: "Όλα" })}</span>
@@ -375,20 +340,7 @@ export function StatisticsExportSelectionModal(props: {
               </div>
             );
           })}
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, flexWrap: "wrap", paddingTop: 0 }}>
-          <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={props.onClose}>
-            <Icon src={xIcon} size={17} />
-            <span>{props.t("actions.cancel", { defaultValue: "Ακύρωση" })}</span>
-          </button>
-          <button type="button" className="btn primary" disabled={confirmDisabled} style={{ opacity: confirmDisabled ? 0.55 : 1 }} onClick={props.onConfirm}>
-            <Icon src={arrowDownIcon} size={17} />
-            <span>{props.t("actions.exportSelected", { defaultValue: "Εξαγωγή επιλεγμένων" })}</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    </ExportSelectionDialog>
   );
 }
 

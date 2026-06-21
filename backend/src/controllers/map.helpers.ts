@@ -3,39 +3,23 @@ import type { Request } from "express";
 import type { Graduate } from "../models/Graduate";
 import { Op } from "sequelize";
 import { buildGraduateWhere } from "../utils/buildGraduateWhere";
-import { Region } from "../models/Region";
+import { getRegionAncestor, loadRegionLookupIndex } from "../services/regionLookup.service";
 
 export type AgeGroup = "23-26" | "27-30" | "31+";
 
-type RegionNode = Pick<Region, "id" | "name" | "name_el" | "name_en" | "type" | "parent_id" | "latitude" | "longitude">;
 type MapGraduateSource = Pick<Graduate, "origin_country" | "origin_foreign_city" | "origin_country_region_id">;
 type GraduateWhere = ReturnType<typeof buildGraduateWhere> & { [Op.and]?: unknown[] };
 
 // Φορτώνει regions που χρειάζονται για mapping χάρτη.
 export async function loadRegions() {
-  const regions = await Region.findAll({
-    attributes: ["id", "name", "name_el", "name_en", "type", "parent_id", "latitude", "longitude"],
-    order: [["name", "ASC"]],
-  });
-
-  const byId = new Map<number, RegionNode>();
-  for (const region of regions) {
-    byId.set(Number(region.id), region as RegionNode);
-  }
-
+  const lookups = await loadRegionLookupIndex();
   return {
-    regions,
+    regions: lookups.rows,
     findRegion(regionId: number | null | undefined) {
-      return regionId ? byId.get(Number(regionId)) || null : null;
+      return regionId ? lookups.byId.get(Number(regionId)) || null : null;
     },
     findPeriphery(regionId: number | null | undefined) {
-      let current = regionId ? byId.get(Number(regionId)) || null : null;
-      while (current) {
-        if (String(current.type) === "PERIPHERY") return current;
-        const parentId = Number(current.parent_id) || 0;
-        current = parentId ? byId.get(parentId) || null : null;
-      }
-      return null;
+      return getRegionAncestor(regionId, "PERIPHERY", lookups.byId);
     },
   };
 }

@@ -8,7 +8,6 @@ export type MapScope = "greece" | "abroad";
 export const countMarkerPalette = ["#eff6ff", "#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#3b82f6"];
 
 export const lightMapTileUrl = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
-export const highContrastMapTileUrl = lightMapTileUrl;
 export const mapTileAttribution =
   "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/attributions\">CARTO</a>";
 
@@ -166,12 +165,11 @@ export function sameMapSelection(scope: MapScope, left: any, right: any) {
 export function bubbleLabelIcon(
   city: any,
   mapMetric: MapMetric,
-  active: boolean,
   showLabel: boolean,
   highContrastEnabled: boolean,
 ) {
   const baseRadius = Math.max(10, Number(city?.markerRadius || 10));
-  const radius = active ? Math.round(baseRadius * 1.12) : baseRadius;
+  const radius = baseRadius;
   const size = radius * 2;
   const label = escapeHtml(String(city?.city_name || ""));
   const count = Math.max(0, Number(city?.count || 0));
@@ -182,12 +180,12 @@ export function bubbleLabelIcon(
   const countBubbleFill = highContrastEnabled ? "#ffd400" : String(city?.markerFill || "#60a5fa");
   const countBubbleStroke = highContrastEnabled ? "#000000" : String(city?.markerStroke || "#3b82f6");
   const countBubbleOpacity = highContrastEnabled ? 1 : Math.max(0.45, Number(city?.markerOpacity || 0.85));
-  const fontSize = active ? (size >= 34 ? 13 : size >= 28 ? 12 : 11) : (size >= 34 ? 12 : size >= 28 ? 11 : 10);
+  const fontSize = size >= 34 ? 12 : size >= 28 ? 11 : 10;
   const labelWidth = showLabel ? Math.max(size + 10, Math.min(170, Math.max(64, label.length * 7))) : size + 10;
   const labelHeight = showLabel ? 18 : 0;
   const wrapperHeight = labelHeight + size + 6;
   const wrapperWidth = Math.max(labelWidth, size + 10);
-  const activeRing = active ? '0 0 0 3px rgba(15,23,42,.14)' : 'none';
+  const bubbleShadow = 'none';
   const hasBothGenders = maleCount > 0 && femaleCount > 0;
   const highContrastMaleFill = "#ffd400";
   const highContrastFemaleFill = "#7fffd4";
@@ -205,7 +203,7 @@ export function bubbleLabelIcon(
           ? highContrastFemaleFill
           : highContrastMaleFill
     : `conic-gradient(${genderColors.male} 0 ${malePct}%, ${genderColors.female} ${malePct}% 100%)`;
-  const genderSymbolSize = Math.max(9, Math.min(size * 0.34, active ? 19 : 17));
+  const genderSymbolSize = Math.max(9, Math.min(size * 0.34, 17));
   const genderSymbol = (type: "male" | "female", x: number, y: number) => {
     const shape = type === "male"
       ? `<circle cx="9" cy="15" r="4.6" fill="none" stroke="#000000" stroke-width="2.6"/><path d="M12.3 11.7 19 5" fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round"/><path d="M14.8 5H19v4.2" fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`
@@ -237,12 +235,11 @@ export function bubbleLabelIcon(
     : `<span class="alupla-city-bubble-number alupla-city-bubble-number-gender" style="font-size:${fontSize}px;">${count}</span>`;
   const bubbleHtml =
     mapMetric === "count"
-      ? `<div class="alupla-city-bubble alupla-city-bubble-count${highContrastEnabled ? " is-high-contrast" : ""}" style="width:${size}px;height:${size}px;--alupla-bubble-border:${countBubbleStroke};--alupla-bubble-background:${countBubbleFill};--alupla-bubble-opacity:${countBubbleOpacity};--alupla-bubble-shadow:${activeRing};"><span class="alupla-city-bubble-number" style="font-size:${fontSize}px;">${count}</span></div>`
-      : `<div class="alupla-city-bubble alupla-city-bubble-gender${highContrastEnabled ? " is-high-contrast" : ""}" style="width:${size}px;height:${size}px;--alupla-bubble-border:rgba(51,65,85,.72);--alupla-bubble-background:${genderBubbleBackground};--alupla-bubble-opacity:1;--alupla-bubble-shadow:${activeRing};">${highContrastGenderDetails}</div>`;
-  const summary = "";
+      ? `<div class="alupla-city-bubble alupla-city-bubble-count${highContrastEnabled ? " is-high-contrast" : ""}" style="width:${size}px;height:${size}px;--alupla-bubble-border:${countBubbleStroke};--alupla-bubble-background:${countBubbleFill};--alupla-bubble-opacity:${countBubbleOpacity};--alupla-bubble-shadow:${bubbleShadow};"><span class="alupla-city-bubble-number" style="font-size:${fontSize}px;">${count}</span></div>`
+      : `<div class="alupla-city-bubble alupla-city-bubble-gender${highContrastEnabled ? " is-high-contrast" : ""}" style="width:${size}px;height:${size}px;--alupla-bubble-border:rgba(51,65,85,.72);--alupla-bubble-background:${genderBubbleBackground};--alupla-bubble-opacity:1;--alupla-bubble-shadow:${bubbleShadow};">${highContrastGenderDetails}</div>`;
   return L.divIcon({
     className: "alupla-city-bubble-icon",
-    html: `<div class="alupla-city-bubble-wrap" style="width:${wrapperWidth}px;height:${wrapperHeight}px;">${showLabel ? `<div class="alupla-city-bubble-label${active ? " active" : ""}" style="width:${labelWidth}px;">${label}</div>` : ""}${bubbleHtml}${summary}</div>`,
+    html: `<div class="alupla-city-bubble-wrap" style="width:${wrapperWidth}px;height:${wrapperHeight}px;">${showLabel ? `<div class="alupla-city-bubble-label" style="width:${labelWidth}px;">${label}</div>` : ""}${bubbleHtml}</div>`,
     iconSize: [wrapperWidth, wrapperHeight],
     iconAnchor: [wrapperWidth / 2, labelHeight + size / 2],
     popupAnchor: [0, -(size / 2 + 16)],
