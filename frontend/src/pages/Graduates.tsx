@@ -10,7 +10,6 @@ import {
   importGraduatesFile,
   logGraduatesPdfExport,
   type Graduate,
-  type GraduateImportProgress,
   type ImportReport,
   type QueryParams,
   type StudyProgram,
@@ -77,8 +76,6 @@ type ToastState = {
 export default function Graduates() {
   const { t, i18n } = useTranslation("graduates");
   const [importBusy, setImportBusy] = useState(false);
-  const [importProgress, setImportProgress] =
-    useState<GraduateImportProgress | null>(null);
   const [importReport, setImportReport] = useState<ImportReport | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [showImportDetails, setShowImportDetails] = useState(false);
@@ -485,13 +482,11 @@ export default function Graduates() {
 
   async function onImportFile(file: File) {
     setImportReport(null);
-    setImportProgress(null);
     setImportBusy(true);
     try {
       const report = await importGraduatesFile(
         file,
         i18n.resolvedLanguage || i18n.language,
-        setImportProgress,
       );
       setImportReport(report);
       const inserted = Number(report?.summary?.inserted ?? 0);
@@ -522,7 +517,6 @@ export default function Graduates() {
       });
     } finally {
       setImportBusy(false);
-      setImportProgress(null);
     }
   }
 
@@ -663,38 +657,6 @@ export default function Graduates() {
 
   return (
     <div className="grid" style={{ gap: 14 }}>
-      {importBusy && importProgress && !toast ? (
-        <div
-          role="status"
-          aria-live="polite"
-          style={{
-            position: "fixed",
-            top: 16,
-            right: 16,
-            zIndex: 9999,
-            width: 360,
-            minHeight: 128,
-            maxWidth: "calc(100vw - 32px)",
-            boxSizing: "border-box",
-            display: "flex",
-            alignItems: "center",
-            background: "#fff",
-            border: "1px solid rgba(0,0,0,0.12)",
-            borderLeft: "6px solid #16a34a",
-            borderRadius: 12,
-            boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
-            padding: 12,
-          }}
-        >
-          <div style={{ fontWeight: 700 }}>
-            {t("topbar.importSavingRemaining", {
-              count: importProgress.remaining,
-              total: importProgress.total,
-            })}
-          </div>
-        </div>
-      ) : null}
-
       {toast ? (
         <div
           style={{

@@ -62,7 +62,6 @@ type PrepareGraduateImportRowsParams = {
   importLang: "gr" | "en";
   programsById: Map<number, ProgramLookup>;
   regionsById: Map<number, RegionLookup>;
-  onSkippedRow?: () => void;
 };
 
 function readCell(
@@ -91,7 +90,6 @@ export async function prepareGraduateImportRows(
     importLang,
     programsById,
     regionsById,
-    onSkippedRow,
   } = params;
   const errors: ImportRowError[] = [];
   const preparedRows: PreparedGraduateImportRow[] = [];
@@ -262,7 +260,6 @@ export async function prepareGraduateImportRows(
     if (rowProblems.length) {
       errors.push(...rowProblems);
       skipped++;
-      onSkippedRow?.();
       continue;
     }
 
@@ -291,7 +288,6 @@ export async function prepareGraduateImportRows(
           value: origin_municipality,
         });
         skipped++;
-        onSkippedRow?.();
         continue;
       }
     }
@@ -313,7 +309,6 @@ export async function prepareGraduateImportRows(
         violation_codes: ruleViolations.map((item) => item.code),
       });
       skipped++;
-      onSkippedRow?.();
       continue;
     }
 
@@ -361,7 +356,6 @@ export async function prepareGraduateImportRows(
 export async function savePreparedGraduateImportRows(
   preparedRows: PreparedGraduateImportRow[],
   studentNumbers: string[],
-  onSavedRow?: () => void,
 ) {
   let inserted = 0;
   let updated = 0;
@@ -388,12 +382,10 @@ export async function savePreparedGraduateImportRows(
           transaction,
         });
         updated++;
-        onSavedRow?.();
         continue;
       }
       await Graduate.create(item.payload, { transaction });
       inserted++;
-      onSavedRow?.();
     }
   });
 

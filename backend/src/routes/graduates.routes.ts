@@ -8,7 +8,6 @@ import {
   updateGraduate,
   exportGraduates,
   exportGraduatesImportTemplate,
-  getGraduateImportProgressStatus,
   logGraduatesPdfExport,
   importGraduates,
 } from "../controllers/graduates.controller";
@@ -36,7 +35,6 @@ graduatesRouter.post("/export-pdf-log", logGraduatesPdfExport);
 
 // Μαζική εισαγωγή αποφοίτων από αρχείο που ανεβαίνει με πεδίο ονόματος "file".
 graduatesRouter.post("/import", upload.single("file"), importGraduates);
-graduatesRouter.get("/import-progress/:progressId", getGraduateImportProgressStatus);
 graduatesRouter.delete("/bulk", deleteGraduates);
 
 // Ενέργειες πάνω σε συγκεκριμένο απόφοιτο, με βάση το id του URL.
