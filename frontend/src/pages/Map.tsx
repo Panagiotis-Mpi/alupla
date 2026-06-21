@@ -49,7 +49,6 @@ import {
   bubbleLabelIcon,
   buildCountMarkerScale,
   countMarkerPalette,
-  genderLegendPattern,
   highContrastMapTileUrl,
   lightMapTileUrl,
   localizedCityRecordName,
@@ -1738,7 +1737,6 @@ export default function GraduatesMapPage() {
                       mapMetric,
                       activeCity,
                       shouldShowMarkerLabel(city),
-                      mt,
                       highContrastEnabled,
                     )}
                     eventHandlers={{
@@ -1826,7 +1824,7 @@ export default function GraduatesMapPage() {
                       }}
                     >
                       <span
-                        className={`map-legend-swatch ${isCountLegendItem && highContrastEnabled ? "map-legend-swatch-count-high-contrast" : genderLegendPattern(entry.key, highContrastEnabled)}`}
+                        className={isCountLegendItem && highContrastEnabled ? "map-legend-swatch map-legend-swatch-count-high-contrast" : "map-legend-swatch"}
                         style={{
                           width: swatchSize,
                           height: swatchSize,

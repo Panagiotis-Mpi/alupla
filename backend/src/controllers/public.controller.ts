@@ -3,7 +3,6 @@ import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/sequelize";
 import { Request, Response } from "express";
 import { StudyProgram } from "../models/StudyProgram";
-import { Region } from "../models/Region";
 import { ensureLocalizedRegionNames } from "../services/mapLocation.service";
 import { resolveMapCityPresentation, resolveMapCountryPresentation } from "./map.controller";
 import { isGreeceOriginValue } from "./map.helpers";
@@ -12,7 +11,6 @@ import {
   buildWhere,
   getBirthYearExpr,
   logPublicExportAction,
-  normalizePlaceName,
 } from "./public.helpers";
 import { buildAnonymousStatisticsWorkbook, loadPublicMapRows } from "./public.stats";
 import { buildExportFilename, yearRangeFilenamePart } from "../utils/exportFilename";

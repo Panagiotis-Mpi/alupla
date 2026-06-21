@@ -152,7 +152,7 @@ function createCanvas() {
   return canvas;
 }
 
-function wrapText(ctx: CanvasRenderingContext2D, value: string, maxWidth: number, maxLines: number, lineHeight: number) {
+function wrapText(ctx: CanvasRenderingContext2D, value: string, maxWidth: number, maxLines: number) {
   const words = String(value ?? "").split(/\s+/).filter(Boolean);
   if (!words.length) return [""];
 
@@ -227,19 +227,19 @@ function getRowHeight(ctx: CanvasRenderingContext2D, values: string[], isHeader:
 
   let lines = 1;
   values.forEach((value, index) => {
-    const wrapped = wrapText(ctx, value, COLUMN_WIDTHS[index] - CELL_PADDING_X * 2, maxLines, lineHeight);
+    const wrapped = wrapText(ctx, value, COLUMN_WIDTHS[index] - CELL_PADDING_X * 2, maxLines);
     lines = Math.max(lines, wrapped.length);
   });
 
   return Math.max(lineHeight + CELL_PADDING_Y * 2, lines * lineHeight + CELL_PADDING_Y * 2);
 }
 
-function drawWrappedCell(ctx: CanvasRenderingContext2D, value: string, x: number, y: number, width: number, height: number, isHeader: boolean) {
+function drawWrappedCell(ctx: CanvasRenderingContext2D, value: string, x: number, y: number, width: number, isHeader: boolean) {
   ctx.font = isHeader ? TABLE_HEADER_FONT : TABLE_FONT;
   ctx.fillStyle = "#111827";
   const lineHeight = isHeader ? TABLE_HEADER_LINE_HEIGHT : TABLE_LINE_HEIGHT;
   const maxLines = isHeader ? 3 : 3;
-  const lines = wrapText(ctx, value, width - CELL_PADDING_X * 2, maxLines, lineHeight);
+  const lines = wrapText(ctx, value, width - CELL_PADDING_X * 2, maxLines);
   const textTop = y + CELL_PADDING_Y + 1;
   lines.forEach((line, index) => {
     ctx.fillText(line, x + CELL_PADDING_X, textTop + lineHeight * (index + 1) - 3, width - CELL_PADDING_X * 2);
@@ -284,7 +284,7 @@ function drawPage(args: {
     ctx.strokeStyle = "#d1d5db";
     ctx.lineWidth = 1;
     ctx.strokeRect(currentX, currentY, COLUMN_WIDTHS[index], headerHeight);
-    drawWrappedCell(ctx, header, currentX, currentY, COLUMN_WIDTHS[index], headerHeight, true);
+    drawWrappedCell(ctx, header, currentX, currentY, COLUMN_WIDTHS[index], true);
     currentX += COLUMN_WIDTHS[index];
   });
 
@@ -302,7 +302,7 @@ function drawPage(args: {
       ctx.strokeStyle = "#e5e7eb";
       ctx.lineWidth = 1;
       ctx.strokeRect(x, currentY, COLUMN_WIDTHS[index], rowHeight);
-      drawWrappedCell(ctx, value, x, currentY, COLUMN_WIDTHS[index], rowHeight, false);
+      drawWrappedCell(ctx, value, x, currentY, COLUMN_WIDTHS[index], false);
       x += COLUMN_WIDTHS[index];
     });
     currentY += rowHeight;

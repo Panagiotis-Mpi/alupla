@@ -95,10 +95,6 @@ export function localizedCountryKey(value: unknown) {
 }
 
 
-export function genderLegendPattern(entryKey: string, highContrastEnabled = false) {
-  return "";
-}
-
 function roundLegendBreak(value: number, max: number) {
   if (value >= max) return max;
   if (value <= 12) return Math.max(1, Math.ceil(value));
@@ -172,7 +168,6 @@ export function bubbleLabelIcon(
   mapMetric: MapMetric,
   active: boolean,
   showLabel: boolean,
-  mt: (key: string, options?: Record<string, unknown>) => string,
   highContrastEnabled: boolean,
 ) {
   const baseRadius = Math.max(10, Number(city?.markerRadius || 10));
@@ -184,7 +179,6 @@ export function bubbleLabelIcon(
   const femaleCount = Math.max(0, Number(city?.female_count || 0));
   const total = Math.max(0, maleCount + femaleCount);
   const malePct = total > 0 ? (maleCount / total) * 100 : 50;
-  const femalePct = 100 - malePct;
   const countBubbleFill = highContrastEnabled ? "#ffd400" : String(city?.markerFill || "#60a5fa");
   const countBubbleStroke = highContrastEnabled ? "#000000" : String(city?.markerStroke || "#3b82f6");
   const countBubbleOpacity = highContrastEnabled ? 1 : Math.max(0.45, Number(city?.markerOpacity || 0.85));
