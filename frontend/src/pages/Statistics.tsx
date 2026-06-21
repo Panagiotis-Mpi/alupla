@@ -1231,7 +1231,6 @@ export default function Statistics() {
       try {
         await logPublicExport("statistics_export", exportType, {
           statistics_groups: exportedGroupKeys,
-          statistics_charts: exportedChartIds,
         });
       } catch {}
     }

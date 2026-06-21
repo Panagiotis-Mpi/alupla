@@ -1148,34 +1148,7 @@ export async function publicExportActivity(req: Request, res: Response) {
       (rawDetails as any).statistics_groups,
       new Set(["demographics", "academic", "geography", "compare"]),
     );
-    const charts = readAllowedValues(
-      (rawDetails as any).statistics_charts,
-      new Set([
-        "byYear",
-        "countByEntryYear",
-        "birthYear",
-        "genderTotal",
-        "gender",
-        "gradeDistribution",
-        "gradeDistributionByGender",
-        "timeToDegreeDistribution",
-        "gradeByYear",
-        "gradeByRegion",
-        "timeToDegreeByEntryYear",
-        "timeToDegreeByRegion",
-        "originRegion",
-        "genderByRegion",
-        "originMunicipality",
-        "genderByMunicipality",
-        "originCountry",
-        "abroadShare",
-        "abroadByYear",
-        "timeToDegreeByNomos",
-        "compare",
-      ]),
-    );
     if (groups.length) details.statistics_groups = groups;
-    if (charts.length) details.statistics_charts = charts;
   } else {
     const mapExports = readAllowedValues(
       (rawDetails as any).map_exports,

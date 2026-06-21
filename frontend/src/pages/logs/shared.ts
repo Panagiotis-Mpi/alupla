@@ -514,10 +514,10 @@ export function createLogsLocalizer({
           abroadShare: "Greece and abroad graduate distribution",
           abroadByYear: "Greece and abroad graduates distribution by graduation year",
           timeToDegreeByNomos: "Average study duration by regional unit of origin",
-          "greece:count": "Greece — Graduate count",
-          "abroad:count": "Abroad — Graduate count",
-          "greece:dominant_gender": "Greece — Gender geo distribution",
-          "abroad:dominant_gender": "Abroad — Gender geo distribution",
+          "greece:count": "Greece, Graduate count",
+          "abroad:count": "Abroad, Graduate count",
+          "greece:dominant_gender": "Greece, Gender geo distribution",
+          "abroad:dominant_gender": "Abroad, Gender geo distribution",
         }
       : {
           demographics: "Πλήθος και φύλο",
@@ -544,10 +544,10 @@ export function createLogsLocalizer({
           abroadShare: "Κατανομή αποφοίτων Ελλάδας και εξωτερικού",
           abroadByYear: "Κατανομή αποφοίτων Ελλάδας και εξωτερικού ανά έτος αποφοίτησης",
           timeToDegreeByNomos: "Μέση διάρκεια σπουδών ανά νομό καταγωγής",
-          "greece:count": "Ελλάδα — Πλήθος αποφοίτων",
-          "abroad:count": "Εξωτερικό — Πλήθος αποφοίτων",
-          "greece:dominant_gender": "Ελλάδα — Γεωκατανομή φύλου",
-          "abroad:dominant_gender": "Εξωτερικό — Γεωκατανομή φύλου",
+          "greece:count": "Ελλάδα, Πλήθος αποφοίτων",
+          "abroad:count": "Εξωτερικό, Πλήθος αποφοίτων",
+          "greece:dominant_gender": "Ελλάδα, Γεωκατανομή φύλου",
+          "abroad:dominant_gender": "Εξωτερικό, Γεωκατανομή φύλου",
         };
 
   const localValue = (value: string) => {
@@ -606,21 +606,14 @@ export function createLogsLocalizer({
         .filter(Boolean)
         .join(", ");
 
-    if (format)
-      parts.push(
-        action === "statistics_export" || action === "map_export"
-          ? `${localDetailLabel("format")}: ${format}`
-          : format,
-      );
+    if (format) parts.push(format);
     if (action === "statistics_export") {
       const groups = detailList(details.statistics_groups);
-      const charts = detailList(details.statistics_charts);
-      if (groups) parts.push(`${localDetailLabel("statistics_groups")}: ${groups}`);
-      if (charts) parts.push(`${localDetailLabel("statistics_charts")}: ${charts}`);
+      if (groups) parts.push(groups);
     }
     if (action === "map_export") {
       const mapExports = detailList(details.map_exports);
-      if (mapExports) parts.push(`${localDetailLabel("map_exports")}: ${mapExports}`);
+      if (mapExports) parts.push(mapExports);
     }
     if (count !== null && count !== undefined && count !== "")
       parts.push(

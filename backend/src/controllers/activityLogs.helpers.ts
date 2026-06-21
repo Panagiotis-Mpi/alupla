@@ -129,10 +129,10 @@ const exportDetailValueLabels = {
     abroadShare: "Κατανομή αποφοίτων Ελλάδας και εξωτερικού",
     abroadByYear: "Κατανομή αποφοίτων Ελλάδας και εξωτερικού ανά έτος αποφοίτησης",
     timeToDegreeByNomos: "Μέση διάρκεια σπουδών ανά νομό καταγωγής",
-    "greece:count": "Ελλάδα — Πλήθος αποφοίτων",
-    "abroad:count": "Εξωτερικό — Πλήθος αποφοίτων",
-    "greece:dominant_gender": "Ελλάδα — Γεωκατανομή φύλου",
-    "abroad:dominant_gender": "Εξωτερικό — Γεωκατανομή φύλου",
+    "greece:count": "Ελλάδα, Πλήθος αποφοίτων",
+    "abroad:count": "Εξωτερικό, Πλήθος αποφοίτων",
+    "greece:dominant_gender": "Ελλάδα, Γεωκατανομή φύλου",
+    "abroad:dominant_gender": "Εξωτερικό, Γεωκατανομή φύλου",
   },
   en: {
     demographics: "Counts and gender",
@@ -159,10 +159,10 @@ const exportDetailValueLabels = {
     abroadShare: "Greece and abroad graduate distribution",
     abroadByYear: "Greece and abroad graduates distribution by graduation year",
     timeToDegreeByNomos: "Average study duration by regional unit of origin",
-    "greece:count": "Greece — Graduate count",
-    "abroad:count": "Abroad — Graduate count",
-    "greece:dominant_gender": "Greece — Gender geo distribution",
-    "abroad:dominant_gender": "Abroad — Gender geo distribution",
+    "greece:count": "Greece, Graduate count",
+    "abroad:count": "Abroad, Graduate count",
+    "greece:dominant_gender": "Greece, Gender geo distribution",
+    "abroad:dominant_gender": "Abroad, Gender geo distribution",
   },
 } as const;
 
@@ -773,21 +773,14 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
         .map((item) => localValue(lang, String(item ?? "")))
         .filter(Boolean)
         .join(", ");
-    if (format)
-      parts.push(
-        action === "statistics_export" || action === "map_export"
-          ? `${localDetailLabel(lang, "format")}: ${format}`
-          : format,
-      );
+    if (format) parts.push(format);
     if (action === "statistics_export") {
       const groups = detailList((details as any).statistics_groups);
-      const charts = detailList((details as any).statistics_charts);
-      if (groups) parts.push(`${localDetailLabel(lang, "statistics_groups")}: ${groups}`);
-      if (charts) parts.push(`${localDetailLabel(lang, "statistics_charts")}: ${charts}`);
+      if (groups) parts.push(groups);
     }
     if (action === "map_export") {
       const mapExports = detailList((details as any).map_exports);
-      if (mapExports) parts.push(`${localDetailLabel(lang, "map_exports")}: ${mapExports}`);
+      if (mapExports) parts.push(mapExports);
     }
     if (count !== null && count !== undefined && count !== "")
       parts.push(lang === "en" ? `${count} records` : `${count} εγγραφές`);
