@@ -5,6 +5,8 @@ import { Request, Response } from "express";
 import { StudyProgram } from "../models/StudyProgram";
 import { Region } from "../models/Region";
 import { ensureLocalizedRegionNames } from "../services/mapLocation.service";
+import { resolveMapCityPresentation, resolveMapCountryPresentation } from "./map.controller";
+import { isGreeceOriginValue } from "./map.helpers";
 import {
   buildRegionLookup,
   buildWhere,
@@ -64,6 +66,78 @@ function mergeLocalizedCount(
     return;
   }
   map.set(key, item);
+}
+
+type StatisticsMunicipalityRow = {
+  city_id?: number | null;
+  country_id?: number | null;
+  periphery_id?: number | null;
+  region_id?: number | null;
+  country_name?: string | null;
+  name: string;
+  count: number;
+  male?: number;
+  female?: number;
+};
+
+type StatisticsCountryRow = {
+  id?: number | null;
+  name: string;
+  count: number;
+};
+
+async function groupStatisticsMunicipalities(rows: StatisticsMunicipalityRow[], forcedScope?: "greece" | "abroad") {
+  const groups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number; male: number; female: number }>();
+  for (const row of rows) {
+    const rawName = String(row.name ?? "").trim();
+    if (!rawName) continue;
+    const countryName = String(row.country_name ?? "").trim();
+    const scope = forcedScope || (countryName && !isGreeceOriginValue(countryName) ? "abroad" : "greece");
+    const presentation = await resolveMapCityPresentation({
+      origin_country: countryName || null,
+      origin_country_region_id: Number(row.country_id) || null,
+      origin_periphery_region_id: Number(row.periphery_id) || null,
+      origin_region_id: Number(row.region_id) || null,
+      origin_city_region_id: Number(row.city_id) || null,
+      origin_municipality: scope === "greece" ? rawName : null,
+      origin_foreign_city: scope === "abroad" ? rawName : null,
+    }, scope);
+    const current = groups.get(presentation.key);
+    if (current) {
+      current.count += Number(row.count) || 0;
+      current.male += Number(row.male) || 0;
+      current.female += Number(row.female) || 0;
+      continue;
+    }
+    groups.set(presentation.key, {
+      id: presentation.id,
+      name: presentation.name,
+      name_el: presentation.name_el,
+      name_en: presentation.name_en,
+      count: Number(row.count) || 0,
+      male: Number(row.male) || 0,
+      female: Number(row.female) || 0,
+    });
+  }
+  return groups;
+}
+
+async function groupStatisticsCountries(rows: StatisticsCountryRow[]) {
+  const groups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number }>();
+  for (const row of rows) {
+    const presentation = await resolveMapCountryPresentation({
+      origin_country: String(row.name ?? "").trim(),
+      origin_country_region_id: Number(row.id) || null,
+    });
+    mergeLocalizedCount(groups, presentation.key, {
+      id: presentation.id,
+      name: presentation.name,
+      name_el: presentation.name_el,
+      name_en: presentation.name_en,
+      count: Number(row.count) || 0,
+    });
+  }
+  return groups;
 }
 
 // Διαβάζει cached δημόσια στατιστικά αν είναι ακόμα φρέσκα.
@@ -316,67 +390,37 @@ export async function publicStats(req: Request, res: Response) {
       const municipalityWhere = sqlWhere
         ? `${sqlWhere} AND g.origin_municipality IS NOT NULL AND btrim(g.origin_municipality) <> ''`
         : `WHERE g.origin_municipality IS NOT NULL AND btrim(g.origin_municipality) <> ''`;
-      const rawOriginMunicipalityDistribution = await sequelize.query<{ name: string; count: number }>(
-        `SELECT g.origin_municipality as name,
+      const rawOriginMunicipalityDistribution = await sequelize.query<StatisticsMunicipalityRow>(
+        `SELECT g.origin_city_region_id as city_id,
+                g.origin_country_region_id as country_id,
+                g.origin_periphery_region_id as periphery_id,
+                g.origin_region_id as region_id,
+                g.origin_country as country_name,
+                g.origin_municipality as name,
                 CAST(COUNT(*) AS INTEGER) as count
          FROM graduates g ${municipalityWhere}
-         GROUP BY g.origin_municipality
+         GROUP BY g.origin_city_region_id, g.origin_country_region_id, g.origin_periphery_region_id, g.origin_region_id, g.origin_country, g.origin_municipality
          ORDER BY count DESC, g.origin_municipality ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
-      const rawGenderByMunicipality = await sequelize.query<{ name: string; count: number; male: number; female: number }>(
-        `SELECT g.origin_municipality as name,
+      const rawGenderByMunicipality = await sequelize.query<StatisticsMunicipalityRow>(
+        `SELECT g.origin_city_region_id as city_id,
+                g.origin_country_region_id as country_id,
+                g.origin_periphery_region_id as periphery_id,
+                g.origin_region_id as region_id,
+                g.origin_country as country_name,
+                g.origin_municipality as name,
                 CAST(COUNT(*) AS INTEGER) as count,
                 CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
                 CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
          FROM graduates g ${municipalityWhere}
-         GROUP BY g.origin_municipality
+         GROUP BY g.origin_city_region_id, g.origin_country_region_id, g.origin_periphery_region_id, g.origin_region_id, g.origin_country, g.origin_municipality
          ORDER BY count DESC, g.origin_municipality ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
-      const { cityByName } = await buildRegionLookup();
-      const municipalityGroups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number }>();
-      for (const row of rawOriginMunicipalityDistribution) {
-        const rawName = String(row.name ?? "").trim();
-        if (!rawName) continue;
-        const canonical = cityByName.get(normalizePlaceName(rawName));
-        const baseName = canonical ? String(canonical.name) : rawName;
-        const names = await localizedNamesForRegion(canonical?.id, baseName);
-        const key = canonical?.id ? `city:${Number(canonical.id)}` : `name:${normalizePlaceName(names.name_el || baseName)}`;
-        mergeLocalizedCount(municipalityGroups, key, {
-          id: canonical?.id ?? null,
-          name: names.name_el || baseName,
-          name_el: names.name_el || baseName,
-          name_en: names.name_en || names.name_el || baseName,
-          count: Number(row.count) || 0,
-        });
-      }
-      const genderMunicipalityGroups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number; male: number; female: number }>();
-      for (const row of rawGenderByMunicipality) {
-        const rawName = String(row.name ?? "").trim();
-        if (!rawName) continue;
-        const canonical = cityByName.get(normalizePlaceName(rawName));
-        const baseName = canonical ? String(canonical.name) : rawName;
-        const names = await localizedNamesForRegion(canonical?.id, baseName);
-        const key = canonical?.id ? `city:${Number(canonical.id)}` : `name:${normalizePlaceName(names.name_el || baseName)}`;
-        const current = genderMunicipalityGroups.get(key);
-        if (current) {
-          current.count += Number(row.count) || 0;
-          current.male += Number(row.male) || 0;
-          current.female += Number(row.female) || 0;
-        } else {
-          genderMunicipalityGroups.set(key, {
-            id: canonical?.id ?? null,
-            name: names.name_el || baseName,
-            name_el: names.name_el || baseName,
-            name_en: names.name_en || names.name_el || baseName,
-            count: Number(row.count) || 0,
-            male: Number(row.male) || 0,
-            female: Number(row.female) || 0,
-          });
-        }
-      }
-      const rawOriginCountryDistribution = await sequelize.query<{ id: number | null; name: string; count: number }>(
+      const municipalityGroups = await groupStatisticsMunicipalities(rawOriginMunicipalityDistribution);
+      const genderMunicipalityGroups = await groupStatisticsMunicipalities(rawGenderByMunicipality);
+      const rawOriginCountryDistribution = await sequelize.query<StatisticsCountryRow>(
         `SELECT g.origin_country_region_id as id,
                 CASE
                   WHEN COALESCE(NULLIF(TRIM(g.origin_country), ''), '') = '' THEN 'Άγνωστη χώρα'
@@ -389,31 +433,7 @@ export async function publicStats(req: Request, res: Response) {
          ORDER BY count DESC, name ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
-      const countryRows = await Region.findAll({ attributes: ["id", "name"], where: { type: "COUNTRY" } });
-      const countryByName = new Map<string, any>();
-      for (const country of countryRows as any[]) {
-        const key = normalizePlaceName(country.name);
-        if (key && !countryByName.has(key)) countryByName.set(key, country);
-      }
-      const countryGroups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number }>();
-      for (const row of rawOriginCountryDistribution) {
-        const rawName = String(row.name ?? "").trim();
-        if (!rawName) continue;
-        const matchedCountry = Number(row.id) ? { id: Number(row.id), name: rawName } : countryByName.get(normalizePlaceName(rawName));
-        const names = rawName === "Άγνωστη χώρα"
-          ? { name_el: "Άγνωστη χώρα", name_en: "Unknown country" }
-          : rawName === "Ελλάδα"
-            ? { name_el: "Ελλάδα", name_en: "Greece" }
-            : await localizedNamesForRegion(matchedCountry?.id, rawName);
-        const key = matchedCountry?.id ? `country:${Number(matchedCountry.id)}` : `name:${normalizePlaceName(names.name_el || rawName)}`;
-        mergeLocalizedCount(countryGroups, key, {
-          id: matchedCountry?.id ?? null,
-          name: names.name_el || rawName,
-          name_el: names.name_el || rawName,
-          name_en: names.name_en || names.name_el || rawName,
-          count: Number(row.count) || 0,
-        });
-      }
+      const countryGroups = await groupStatisticsCountries(rawOriginCountryDistribution);
       const abroadSummaryRow = await sequelize.query<{ abroad_count: number }>(
         `SELECT CAST(COUNT(*) AS INTEGER) as abroad_count
          FROM graduates g
@@ -843,60 +863,50 @@ export async function publicStats(req: Request, res: Response) {
       ? `${sqlWhere} AND g.origin_municipality IS NOT NULL AND btrim(g.origin_municipality) <> ''`
       : `WHERE g.origin_municipality IS NOT NULL AND btrim(g.origin_municipality) <> ''`;
 
-    const rawOriginMunicipalityDistribution = await sequelize.query<{ name: string; count: number }>(
-      `SELECT g.origin_municipality as name,
+    const rawOriginMunicipalityDistribution = await sequelize.query<StatisticsMunicipalityRow>(
+      `SELECT g.origin_city_region_id as city_id,
+              g.origin_country_region_id as country_id,
+              g.origin_periphery_region_id as periphery_id,
+              g.origin_region_id as region_id,
+              g.origin_country as country_name,
+              g.origin_municipality as name,
               CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${municipalityWhere}
-       GROUP BY g.origin_municipality
+       GROUP BY g.origin_city_region_id, g.origin_country_region_id, g.origin_periphery_region_id, g.origin_region_id, g.origin_country, g.origin_municipality
        ORDER BY count DESC, g.origin_municipality ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
-    const { cityByName } = await buildRegionLookup();
-    const municipalityGroups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number }>();
-    for (const row of rawOriginMunicipalityDistribution) {
-      const rawName = String(row.name ?? "").trim();
-      if (!rawName) continue;
-      const canonical = cityByName.get(normalizePlaceName(rawName));
-      const baseName = canonical ? String(canonical.name) : rawName;
-      const names = await localizedNamesForRegion(canonical?.id, baseName);
-      const key = canonical?.id ? `city:${Number(canonical.id)}` : `name:${normalizePlaceName(names.name_el || baseName)}`;
-      mergeLocalizedCount(municipalityGroups, key, {
-        id: canonical?.id ?? null,
-        name: names.name_el || baseName,
-        name_el: names.name_el || baseName,
-        name_en: names.name_en || names.name_el || baseName,
-        count: Number(row.count) || 0,
-      });
-    }
+    const municipalityGroups = await groupStatisticsMunicipalities(rawOriginMunicipalityDistribution);
 
     const foreignCityWhere = sqlWhere
       ? `${sqlWhere} AND g.origin_foreign_city IS NOT NULL AND btrim(g.origin_foreign_city) <> ''`
       : `WHERE g.origin_foreign_city IS NOT NULL AND btrim(g.origin_foreign_city) <> ''`;
 
-    const rawForeignCityDistribution = await sequelize.query<{ name: string; count: number }>(
-      `SELECT g.origin_foreign_city as name,
+    const rawForeignCityDistribution = await sequelize.query<StatisticsMunicipalityRow>(
+      `SELECT g.origin_city_region_id as city_id,
+              g.origin_country_region_id as country_id,
+              g.origin_periphery_region_id as periphery_id,
+              g.origin_region_id as region_id,
+              g.origin_country as country_name,
+              g.origin_foreign_city as name,
               CAST(COUNT(*) AS INTEGER) as count
        FROM graduates g ${foreignCityWhere}
-       GROUP BY g.origin_foreign_city
+       GROUP BY g.origin_city_region_id, g.origin_country_region_id, g.origin_periphery_region_id, g.origin_region_id, g.origin_country, g.origin_foreign_city
        ORDER BY count DESC, g.origin_foreign_city ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
-    for (const row of rawForeignCityDistribution) {
-      const rawName = String(row.name ?? "").trim();
-      if (!rawName) continue;
-      const canonical = cityByName.get(normalizePlaceName(rawName));
-      const baseName = canonical ? String(canonical.name) : rawName;
-      const names = await localizedNamesForRegion(canonical?.id, baseName);
-      const key = canonical?.id ? `city:${Number(canonical.id)}` : `name:${normalizePlaceName(names.name_el || baseName)}`;
-      mergeLocalizedCount(municipalityGroups, key, {
-        id: canonical?.id ?? null,
-        name: names.name_el || baseName,
-        name_el: names.name_el || baseName,
-        name_en: names.name_en || names.name_el || baseName,
-        count: Number(row.count) || 0,
-      });
+    const foreignMunicipalityGroups = await groupStatisticsMunicipalities(rawForeignCityDistribution, "abroad");
+    for (const [key, item] of foreignMunicipalityGroups.entries()) {
+      const current = municipalityGroups.get(key);
+      if (current) {
+        current.count += item.count;
+        current.male += item.male;
+        current.female += item.female;
+      } else {
+        municipalityGroups.set(key, item);
+      }
     }
 
     const originMunicipalityDistribution = Array.from(municipalityGroups.values())
@@ -905,7 +915,7 @@ export async function publicStats(req: Request, res: Response) {
         return a.name.localeCompare(b.name, "el");
       });
 
-    const rawOriginCountryDistribution = await sequelize.query<{ id: number | null; name: string; count: number }>(
+    const rawOriginCountryDistribution = await sequelize.query<StatisticsCountryRow>(
       `SELECT g.origin_country_region_id as id,
               CASE
                 WHEN COALESCE(NULLIF(TRIM(g.origin_country), ''), '') = '' THEN 'Άγνωστη χώρα'
@@ -919,33 +929,7 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
-    const countryRows = await Region.findAll({ attributes: ["id", "name"], where: { type: "COUNTRY" } });
-    const countryByName = new Map<string, any>();
-    for (const country of countryRows as any[]) {
-      const key = normalizePlaceName(country.name);
-      if (key && !countryByName.has(key)) countryByName.set(key, country);
-    }
-
-    const countryGroups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number }>();
-    for (const row of rawOriginCountryDistribution) {
-      const rawName = String(row.name ?? "").trim();
-      if (!rawName) continue;
-      const matchedCountry = Number(row.id) ? { id: Number(row.id), name: rawName } : countryByName.get(normalizePlaceName(rawName));
-      const names = rawName === "Άγνωστη χώρα"
-        ? { name_el: "Άγνωστη χώρα", name_en: "Unknown country" }
-        : rawName === "Ελλάδα"
-          ? { name_el: "Ελλάδα", name_en: "Greece" }
-          : await localizedNamesForRegion(matchedCountry?.id, rawName);
-      const key = matchedCountry?.id ? `country:${Number(matchedCountry.id)}` : `name:${normalizePlaceName(names.name_el || rawName)}`;
-      mergeLocalizedCount(countryGroups, key, {
-        id: matchedCountry?.id ?? null,
-        name: names.name_el || rawName,
-        name_el: names.name_el || rawName,
-        name_en: names.name_en || names.name_el || rawName,
-        count: Number(row.count) || 0,
-      });
-    }
-
+    const countryGroups = await groupStatisticsCountries(rawOriginCountryDistribution);
     const originCountryDistribution = Array.from(countryGroups.values())
       .sort((a, b) => {
         if (b.count !== a.count) return b.count - a.count;

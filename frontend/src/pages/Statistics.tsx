@@ -27,6 +27,7 @@ import {
   StatisticsSummaryCards,
 } from "./statistics/sections";
 import { StatisticsExportMenu, StatisticsExportSelectionModal, toggleAllChartsSelection, toggleChartGroupSelection, toggleChartSelection } from "./statistics/exportSelection";
+import { localizedCityRecordName, localizedCountryRecordName } from "./map/markers";
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, BarElement, ArcElement, Filler, Tooltip, Legend);
 
@@ -83,6 +84,14 @@ export default function Statistics() {
   const statsRequestsRef = React.useRef<Partial<Record<StatisticsDataGroupKey, Promise<any>>>>({});
 
   const activeLang: "el" | "en" = i18n.language?.toLowerCase().startsWith("en") ? "en" : "el";
+
+  const statisticsPlaceName = React.useCallback((row: NamedCountRow, placeKind: "city" | "country") => {
+    const language = activeLang === "en" ? "en" : "gr";
+    if (placeKind === "city") {
+      return localizedCityRecordName({ city_name: row.name, city_name_el: row.name_el, city_name_en: row.name_en }, language) || "-";
+    }
+    return localizedCountryRecordName({ country_name: row.name, country_name_el: row.name_el, country_name_en: row.name_en }, language) || "-";
+  }, [activeLang]);
 
   const compareExportLabel = React.useMemo(
     () => t("compare.title", { defaultValue: activeLang === "en" ? "Time range comparison" : "Σύγκριση χρονικών διαστημάτων" }),
@@ -268,6 +277,7 @@ export default function Statistics() {
       options?: {
         valueKey?: "count" | "avg" | "avg_years";
         labelKey?: "label" | "name" | "year" | "entry_year";
+        placeKind?: "city" | "country";
       }
     ) => {
       const valueKey = options?.valueKey ?? "count";
@@ -278,6 +288,7 @@ export default function Statistics() {
           if (labelKey === "year") return String(row.year ?? "-");
           if (labelKey === "entry_year") return String(row.entry_year ?? "-");
           if (labelKey === "name") {
+            if (options?.placeKind) return statisticsPlaceName(row, options.placeKind);
             const value = activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name;
             return String(value ?? "-");
           }
@@ -286,7 +297,7 @@ export default function Statistics() {
         values: safeRows.map((row) => Number(row[valueKey] ?? 0)),
       };
     },
-    [activeLang]
+    [activeLang, statisticsPlaceName]
   );
 
 
@@ -430,8 +441,8 @@ export default function Statistics() {
   const avgGradesByRegion = React.useMemo(() => reorderRegionMetricSeries(seriesFromRows(data?.avg_grade_by_region, { labelKey: "name", valueKey: "avg" })), [data, reorderRegionMetricSeries, seriesFromRows]);
   const gradeBins = seriesFromRows(data?.degree_grade_bins);
   const regions = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.origin_region_distribution, { labelKey: "name" })), [data, seriesFromRows, sortSeriesDescending]);
-  const municipalities = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.origin_municipality_distribution, { labelKey: "name" })), [data, seriesFromRows, sortSeriesDescending]);
-  const countries = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.origin_country_distribution, { labelKey: "name" })), [data, seriesFromRows, sortSeriesDescending]);
+  const municipalities = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.origin_municipality_distribution, { labelKey: "name", placeKind: "city" })), [data, seriesFromRows, sortSeriesDescending]);
+  const countries = React.useMemo(() => sortSeriesDescending(seriesFromRows(data?.origin_country_distribution, { labelKey: "name", placeKind: "country" })), [data, seriesFromRows, sortSeriesDescending]);
   const abroadByYear = React.useMemo(() => {
     const safeRows = Array.isArray(data?.abroad_by_year) ? data.abroad_by_year as NamedCountRow[] : [];
     return {
@@ -487,14 +498,11 @@ export default function Statistics() {
   const genderByMunicipality = React.useMemo(() => {
     const safeRows = Array.isArray(data?.gender_by_municipality) ? data.gender_by_municipality as NamedCountRow[] : [];
     return sortGenderByRegionDescending({
-      labels: safeRows.map((row) => {
-        const value = activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name;
-        return String(value ?? "-");
-      }),
+      labels: safeRows.map((row) => statisticsPlaceName(row, "city")),
       male: safeRows.map((row) => Number(row.male ?? 0)),
       female: safeRows.map((row) => Number(row.female ?? 0)),
     });
-  }, [activeLang, data, sortGenderByRegionDescending]);
+  }, [data, sortGenderByRegionDescending, statisticsPlaceName]);
 
   const genderByEntryYearRows = React.useMemo(() => ((data?.gender_by_entry_year ?? []) as NamedCountRow[]), [data]);
 
@@ -905,7 +913,7 @@ export default function Statistics() {
     const sourceByYearRows = ((sourceData?.by_year ?? []) as any[]).map((row) => ({ label: String(row.year ?? "-"), value: Number(row.count ?? 0) }));
     const sourceBusiestYearIndex = sourceByYearRows.length ? sourceByYearRows.findIndex((row) => row.value === Math.max(...sourceByYearRows.map((item) => item.value))) : -1;
     const sourceBusiestYear = sourceBusiestYearIndex >= 0 ? sourceByYearRows[sourceBusiestYearIndex].label : busiestYear;
-    const sourceMunicipalities = sortSeriesDescending(seriesFromRows(sourceData?.origin_municipality_distribution, { labelKey: "name" }));
+    const sourceMunicipalities = sortSeriesDescending(seriesFromRows(sourceData?.origin_municipality_distribution, { labelKey: "name", placeKind: "city" }));
     const sourceBusiestCityIndex = sourceMunicipalities.values.length ? sourceMunicipalities.values.findIndex((value) => value === Math.max(...sourceMunicipalities.values)) : -1;
     const sourceBusiestCity = sourceBusiestCityIndex >= 0 ? sourceMunicipalities.labels[sourceBusiestCityIndex] : busiestCity;
 
@@ -1031,7 +1039,7 @@ export default function Statistics() {
       female: sourceGenderByRegionRows.map((row) => Number(row.female ?? 0)),
     });
     const sourceGenderByMunicipality = sortGenderByRegionDescending({
-      labels: sourceGenderByMunicipalityRows.map((row) => String(activeLang === "en" ? row.name_en ?? row.name_el ?? row.name : row.name_el ?? row.name_en ?? row.name ?? "-")),
+      labels: sourceGenderByMunicipalityRows.map((row) => statisticsPlaceName(row, "city")),
       male: sourceGenderByMunicipalityRows.map((row) => Number(row.male ?? 0)),
       female: sourceGenderByMunicipalityRows.map((row) => Number(row.female ?? 0)),
     });
@@ -1066,12 +1074,12 @@ export default function Statistics() {
       regions: sortSeriesDescending(seriesFromRows(sourceData?.origin_region_distribution, { labelKey: "name" })),
       genderByRegion: sourceGenderByRegion,
       genderByMunicipality: sourceGenderByMunicipality,
-      municipalities: sortSeriesDescending(seriesFromRows(sourceData?.origin_municipality_distribution, { labelKey: "name" })),
-      countries: sortSeriesDescending(seriesFromRows(sourceData?.origin_country_distribution, { labelKey: "name" })),
+      municipalities: sortSeriesDescending(seriesFromRows(sourceData?.origin_municipality_distribution, { labelKey: "name", placeKind: "city" })),
+      countries: sortSeriesDescending(seriesFromRows(sourceData?.origin_country_distribution, { labelKey: "name", placeKind: "country" })),
       total: Number(sourceData?.total ?? 0),
       abroadCount: Number(sourceData?.abroad_count ?? 0),
     };
-  }, [activeLang, data, exportPreviewData, reorderRegionMetricSeries, selectedExportGenderEntryYears, selectedGenderDistributionYear, seriesFromRows, sortGenderByRegionDescending, sortSeriesDescending, t]);
+  }, [activeLang, data, exportPreviewData, reorderRegionMetricSeries, selectedExportGenderEntryYears, selectedGenderDistributionYear, seriesFromRows, sortGenderByRegionDescending, sortSeriesDescending, statisticsPlaceName, t]);
 
   async function exportSelectedChartsAsPng() {
     if (!selectedChartIds.length) return;

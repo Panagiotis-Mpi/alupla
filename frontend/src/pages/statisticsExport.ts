@@ -5,6 +5,7 @@ import { downloadBlob } from "../lib/download";
 import { sanitizeExportCell, sanitizeExportRows } from "../lib/exportSafety";
 import { exportWorkbook } from "./map/mapExport";
 import { buildExportFilename, exportFilenamePart, exportTimestamp, yearRangeFilenamePart } from "../lib/exportFilenames";
+import { localizedCityRecordName, localizedCountryRecordName } from "./map/markers";
 
 export type StatisticsChartId =
   | "byYear"
@@ -157,6 +158,16 @@ function rowsOf(rows: NamedCountRow[] | undefined) {
 function localizedName(row: NamedCountRow, activeLang: "el" | "en") {
   if (activeLang === "en") return text(row.name_en ?? row.name_el ?? row.name ?? row.label);
   return text(row.name_el ?? row.name_en ?? row.name ?? row.label);
+}
+
+function localizedCityName(row: NamedCountRow, activeLang: "el" | "en") {
+  const language = activeLang === "en" ? "en" : "gr";
+  return localizedCityRecordName({ city_name: row.name, city_name_el: row.name_el, city_name_en: row.name_en }, language) || localizedName(row, activeLang);
+}
+
+function localizedCountryName(row: NamedCountRow, activeLang: "el" | "en") {
+  const language = activeLang === "en" ? "en" : "gr";
+  return localizedCountryRecordName({ country_name: row.name, country_name_el: row.name_el, country_name_en: row.name_en }, language) || localizedName(row, activeLang);
 }
 
 function csvCell(value: unknown) {
@@ -727,7 +738,7 @@ function buildSheets(args: BuildArgs) {
   const originMunicipalityRows = rowsOf(data.origin_municipality_distribution).map((row) => {
     const count = num(row.count);
     return {
-      [l.cityOfOrigin]: localizedName(row, activeLang),
+      [l.cityOfOrigin]: localizedCityName(row, activeLang),
       [l.graduateCount]: count,
       [l.percentage]: percentOf(count, totalGraduates),
     };
@@ -749,7 +760,7 @@ function buildSheets(args: BuildArgs) {
     const female = num(row.female);
     const count = male + female;
     return {
-      [l.cityOfOrigin]: localizedName(row, activeLang),
+      [l.cityOfOrigin]: localizedCityName(row, activeLang),
       [l.maleCount]: male,
       [l.femaleCount]: female,
       [l.graduateCount]: count,
@@ -790,7 +801,7 @@ function buildSheets(args: BuildArgs) {
   const originCountryRows = rowsOf(data.origin_country_distribution).map((row) => {
     const count = num(row.count);
     return {
-      [l.countryOfOrigin]: localizedName(row, activeLang),
+      [l.countryOfOrigin]: localizedCountryName(row, activeLang),
       [l.graduateCount]: count,
       [l.percentage]: percentOf(count, totalGraduates),
     };

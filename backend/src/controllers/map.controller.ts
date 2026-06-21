@@ -4,7 +4,7 @@ import { Graduate } from "../models/Graduate";
 import { StudyProgram } from "../models/StudyProgram";
 import { col, fn, literal } from "sequelize";
 import { ensureLocalizedRegionNames, resolveMapLocation } from "../services/mapLocation.service";
-import { buildMapWhere, calculateAgeAtDate, isAbroadMapGraduate, isGreekMapGraduate, loadRegions, normalizeKey, pickTopName, toInt } from "./map.helpers";
+import { buildMapWhere, calculateAgeAtDate, isAbroadMapGraduate, isGreeceOriginValue, isGreekMapGraduate, loadRegions, normalizeKey, pickTopName, toInt } from "./map.helpers";
 import { getGraduationYears } from "../services/analyticsAggregations.service";
 
 const ATHENS_GROUP_KEY = "athens";
@@ -259,6 +259,49 @@ async function getLocalizedNames(regionId: number | null | undefined, cache: Map
     cache.set(id, pending);
   }
   return pending;
+}
+
+export async function resolveMapCityPresentation(input: any, scope: MapScope) {
+  const rawName = String(scope === "abroad" ? input?.origin_foreign_city || input?.origin_municipality || "" : input?.origin_municipality || "").trim();
+  const resolvedLocation = await resolveMapLocation(mapLocationInput(input, scope));
+  const fallbackName = String(resolvedLocation?.cityName || rawName || "").trim();
+  const cityGroup = scope === "greece" ? greekCityGroupForLocation(resolvedLocation, rawName) : null;
+  const cityId = cityGroup ? null : Number(resolvedLocation?.cityId || input?.origin_city_region_id || 0) || null;
+  const names = cityGroup
+    ? { nameEl: cityGroup.nameEl, nameEn: cityGroup.nameEn }
+    : cityId
+      ? await ensureLocalizedRegionNames(cityId)
+      : { nameEl: null, nameEn: null };
+  const nameEl = String(names.nameEl || fallbackName).trim() || fallbackName;
+  const nameEn = String(names.nameEn || nameEl || fallbackName).trim() || nameEl || fallbackName;
+  const countryName = String(resolvedLocation?.countryName || input?.origin_country || "").trim();
+  const key = scope === "abroad"
+    ? `${normalizeKey(countryName)}::${cityId || normalizeKey(fallbackName)}`
+    : cityGroup
+      ? `group:${cityGroup.key}`
+      : `${cityId || normalizeKey(fallbackName)}::${resolvedLocation?.peripheryId || input?.origin_periphery_region_id || "none"}`;
+  return { key, id: cityId, name: nameEl, name_el: nameEl, name_en: nameEn };
+}
+
+export async function resolveMapCountryPresentation(input: any) {
+  const rawName = String(input?.origin_country || "").trim();
+  if (!rawName || rawName === "Άγνωστη χώρα") {
+    return { key: "country:unknown", id: null, name: "Άγνωστη χώρα", name_el: "Άγνωστη χώρα", name_en: "Unknown country" };
+  }
+  const explicitCountryId = Number(input?.origin_country_region_id || 0) || null;
+  if (isGreeceOriginValue(rawName)) {
+    const names = explicitCountryId ? await ensureLocalizedRegionNames(explicitCountryId) : { nameEl: null, nameEn: null };
+    const nameEl = String(names.nameEl || "Ελλάδα").trim() || "Ελλάδα";
+    const nameEn = String(names.nameEn || "Greece").trim() || "Greece";
+    return { key: explicitCountryId ? `country:${explicitCountryId}` : "country:greece", id: explicitCountryId, name: nameEl, name_el: nameEl, name_en: nameEn };
+  }
+  const resolvedLocation = await resolveMapLocation(mapLocationInput(input, "abroad"));
+  const countryId = Number(resolvedLocation?.countryId || explicitCountryId || 0) || null;
+  const names = countryId ? await ensureLocalizedRegionNames(countryId) : { nameEl: null, nameEn: null };
+  const fallbackName = String(resolvedLocation?.countryName || rawName).trim() || rawName;
+  const nameEl = String(names.nameEl || fallbackName).trim() || fallbackName;
+  const nameEn = String(names.nameEn || nameEl || fallbackName).trim() || nameEl || fallbackName;
+  return { key: countryId ? `country:${countryId}` : `country:${normalizeKey(fallbackName)}`, id: countryId, name: nameEl, name_el: nameEl, name_en: nameEn };
 }
 
 function isSelectedProgram(graduate: any, selectedStudyProgramId: number | null) {
