@@ -240,7 +240,7 @@ export function applyAccessibilitySettings(settings: AccessibilitySettings) {
     "accessibility-font-scale-4",
     "accessibility-font-scale-5",
   );
-  root.classList.add(`accessibility-font-scale-${settings.fontScale}`.replace("--", "--"));
+  root.classList.add(`accessibility-font-scale-${settings.fontScale}`);
   root.classList.toggle("accessibility-high-contrast", settings.highContrast);
   root.classList.toggle("accessibility-underline-links", settings.underlineLinks);
   root.style.setProperty("--accessibility-font-multiplier", String(multiplier));

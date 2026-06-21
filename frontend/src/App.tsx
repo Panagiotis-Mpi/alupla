@@ -373,10 +373,13 @@ function ScrollToTopButton() {
 
 export default // Κρατά το global state χρήστη και στήνει τις σελίδες της εφαρμογής.
 function App() {
+  const { t } = useTranslation();
+
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">{t("accessibility.skipToContent")}</a>
       <TopNav />
-      <div className="container app-content">
+      <main id="main-content" className="container app-content" tabIndex={-1}>
         <React.Suspense fallback={<div className="page-loading">{i18n.language?.startsWith("en") ? "Loading" : "Φόρτωση"}</div>}>
                   {/* Κάθε Route συνδέει URL με τη σελίδα που θα εμφανιστεί. */}
 <Routes>
@@ -447,7 +450,7 @@ function App() {
           <Route path="*" element={<Login />} />
           </Routes>
         </React.Suspense>
-      </div>
+      </main>
       <Footer />
       <ScrollToTopButton />
       <AccessibilityMenu />

@@ -117,6 +117,10 @@ export default function AccessibilityMenu() {
       return;
     }
 
+    const frameId = window.requestAnimationFrame(() => {
+      panelRef.current?.querySelector<HTMLElement>("button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex='-1'])")?.focus();
+    });
+
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node | null;
       if (!target) {
@@ -141,6 +145,7 @@ export default function AccessibilityMenu() {
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      window.cancelAnimationFrame(frameId);
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
@@ -221,7 +226,14 @@ export default function AccessibilityMenu() {
             <button type="button" className="btn" onClick={handleReset}>
               {t("accessibility.reset", { defaultValue: "Επαναφορά" })}
             </button>
-            <button type="button" className="btn" onClick={() => setOpen(false)}>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                setOpen(false);
+                window.requestAnimationFrame(() => buttonRef.current?.focus());
+              }}
+            >
               {t("common.close", { defaultValue: "Κλείσιμο" })}
             </button>
           </div>

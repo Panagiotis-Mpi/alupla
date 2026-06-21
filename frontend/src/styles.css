@@ -16,6 +16,9 @@
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);overflow-x:hidden;font-size:16px;line-height:1.5}
+.skip-link{position:fixed;left:12px;top:12px;z-index:5000;padding:10px 14px;border:2px solid var(--primary);border-radius:10px;background:var(--surface);color:var(--text);font-weight:800;text-decoration:none;transform:translateY(calc(-100% - 24px));transition:transform .15s ease}
+.skip-link:focus{transform:translateY(0);outline:3px solid var(--primary);outline-offset:2px}
+.app-content:focus-visible{outline:3px solid var(--primary);outline-offset:4px}
 a{color:inherit}
 .container{max-width:1120px;margin:0 auto;padding:var(--space-2)}
 .nav{display:flex;gap:var(--space-2);align-items:center;padding:12px var(--space-2);border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(255,255,255,.94);backdrop-filter:saturate(160%) blur(10px);z-index:1000;min-height:64px;overflow:visible}
@@ -770,35 +773,6 @@ html.accessibility-underline-links .mobile-table-card :is(button, .btn, a){
   gap:10px;
 }
 
-html.accessibility-large-text{font-size:18px}
-html.accessibility-large-text body, html.accessibility-large-text button, html.accessibility-large-text input, html.accessibility-large-text select, html.accessibility-large-text textarea, html.accessibility-large-text .btn, html.accessibility-large-text .input, html.accessibility-large-text .label, html.accessibility-large-text .muted, html.accessibility-large-text .table, html.accessibility-large-text .table th, html.accessibility-large-text .table td, html.accessibility-large-text li, html.accessibility-large-text dt, html.accessibility-large-text dd, html.accessibility-large-text p, html.accessibility-large-text span, html.accessibility-large-text strong, html.accessibility-large-text small, html.accessibility-large-text .card, html.accessibility-large-text .nav, html.accessibility-large-text .topbar, html.accessibility-large-text .public-home-card, html.accessibility-large-text .accessibility-panel{
-  font-size:1rem;
-}
-html.accessibility-large-text .table th,
-html.accessibility-large-text .table td,
-html.accessibility-large-text li,
-html.accessibility-large-text .label,
-html.accessibility-large-text .muted,
-html.accessibility-large-text small{
-  font-size:.95rem;
-}
-html.accessibility-large-text .public-home-title,
-html.accessibility-large-text h1{
-  font-size:2.85rem;
-}
-html.accessibility-large-text h2{
-  font-size:2rem;
-}
-html.accessibility-large-text h3{
-  font-size:1.5rem;
-}
-html.accessibility-reduce-motion *,
-html.accessibility-reduce-motion *::before,
-html.accessibility-reduce-motion *::after{
-  animation:none !important;
-  transition:none !important;
-  scroll-behavior:auto !important;
-}
 html.accessibility-underline-links a{text-decoration:underline}
 html.accessibility-underline-links .nav a,
 html.accessibility-underline-links .btn{text-underline-offset:3px}
@@ -1319,18 +1293,6 @@ html.accessibility-high-contrast :is(button,.btn,input,select,textarea):disabled
   border-color:#317c70 !important;
   opacity:1 !important;
 }
-html.accessibility-high-contrast ::placeholder{
-  color:#b8fff3 !important;
-  opacity:1 !important;
-}
-html.accessibility-high-contrast option{
-  background:#000000 !important;
-  color:#7fffd4 !important;
-}
-html.accessibility-high-contrast input[type="checkbox"],
-html.accessibility-high-contrast input[type="radio"]{
-  accent-color:#ffd400;
-}
 html.accessibility-high-contrast .table,
 html.accessibility-high-contrast table{
   border:3px solid #14f5c8 !important;
@@ -1358,12 +1320,6 @@ html.accessibility-high-contrast .table tbody tr.is-selected-row td,
 html.accessibility-high-contrast .table tbody tr:focus-within td{
   background:#061b17 !important;
   color:#b8fff3 !important;
-}
-html.accessibility-high-contrast canvas{
-  filter:none !important;
-  background:#000000 !important;
-  border:none !important;
-  border-radius:12px;
 }
 html.accessibility-high-contrast img:not(.leaflet-tile),
 html.accessibility-high-contrast video{
@@ -1501,10 +1457,7 @@ html.accessibility-high-contrast .leaflet-bar a{
 }
 html.accessibility-high-contrast .leaflet-container{border:2px solid #14f5c8 !important;background:#000000 !important}
 html.accessibility-high-contrast .leaflet-tile{filter:grayscale(100%) invert(92%) contrast(150%) brightness(54%) sepia(25%) saturate(85%) hue-rotate(115deg) !important}
-html.accessibility-high-contrast .leaflet-bar a:hover{background:#ffd400 !important;color:#000000 !important}
 html.accessibility-high-contrast canvas{filter:none !important;background:#000000 !important;border:none !important;border-radius:12px}
-html.accessibility-high-contrast img:not(.leaflet-tile),
-html.accessibility-high-contrast video{filter:contrast(120%)}
 html.accessibility-high-contrast .chart-marker-swatch{
   background:var(--chart-marker-color) !important;
   border-color:var(--chart-marker-border) !important;
@@ -2924,7 +2877,6 @@ html.accessibility-high-contrast .statistics-compare-selects select{background:#
   .statistics-compare-change-arrow{width:26px;height:26px;font-size:18px !important}
 }
 html.accessibility-high-contrast .statistics-compare-change-arrow{background:#000000 !important;color:#7fffd4 !important;border:2px solid #14f5c8 !important;box-shadow:none !important}
-html.accessibility-high-contrast .statistics-compare-change.is-up .statistics-compare-change-arrow{color:#39ff14 !important;border-color:#39ff14 !important}
 html.accessibility-high-contrast .statistics-compare-change.is-down .statistics-compare-change-arrow{color:#ff5c5c !important;border-color:#ff5c5c !important}
 html.accessibility-high-contrast .brand:not(.brand-compact),
 html.accessibility-high-contrast .brand:not(.brand-compact):hover,
@@ -2998,7 +2950,6 @@ html.accessibility-high-contrast .auth-page-shell .auth-password-visibility{colo
 html.accessibility-high-contrast .auth-page-shell .auth-password-visibility:hover{background:#000000 !important;color:#ffd400 !important}
 html.accessibility-high-contrast .public-home-counter-icon{color:#7fffd4 !important;background:transparent !important}
 html.accessibility-high-contrast .accessibility-trigger{border-color:#14f5c8 !important;box-shadow:0 0 0 2px #000000, inset 0 0 0 1px #14f5c8 !important}
-html.accessibility-high-contrast .accessibility-trigger-icon{color:#14f5c8 !important}
 @media (min-width: 821px){
   .nav{
     flex-wrap:nowrap;
@@ -4321,6 +4272,7 @@ html.accessibility-high-contrast .public-home-illustration-slide:focus-visible{
   outline-color:#ffd400;
 }
 @media (prefers-reduced-motion:reduce){
+  .skip-link,
   .public-home-illustration-track{
     transition:none;
   }

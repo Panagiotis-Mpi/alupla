@@ -121,6 +121,7 @@
     "underlineLinks": "Link highlighting",
     "enabled": "Enabled",
     "disabled": "Disabled",
+    "skipToContent": "Skip to main content",
     "fontLevel": "Level {{current}} of {{total}}"
   }
 }
