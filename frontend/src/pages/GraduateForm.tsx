@@ -189,7 +189,6 @@ useEffect(() => {
         if (
           current.origin_periphery_region_id == null &&
           current.origin_region_id == null &&
-          current.origin_region_id == null &&
           current.origin_city_region_id == null &&
           current.origin_municipality == null
         ) {
@@ -301,7 +300,6 @@ useEffect(() => {
       if (nomoi.length) required.push(["origin_region_id", form.origin_region_id, t("labels.nomos")]);
       required.push(["origin_city_region_id", form.origin_city_region_id, t("labels.originText")]);
     } else {
-      required.push(["origin_country_region_id", form.origin_country_region_id, t("labels.country")]);
       required.push(["origin_foreign_city", form.origin_foreign_city, t("labels.originText")]);
     }
 

@@ -32,8 +32,7 @@ import {
   getReferenceMaps,
   getTemplateHeaders,
 } from "./graduates.shared";
-import { clearRouteCaches } from "../utils/routeCache";
-import { clearPublicStatsCache } from "./public.controller";
+import { clearGraduateCaches } from "../services/graduateCache.service";
 import { sanitizeExportRows } from "../utils/exportSafety";
 import { buildExportFilename } from "../utils/exportFilename";
 import {
@@ -400,8 +399,7 @@ export async function importGraduates(
     } catch {}
 
     // Μετά από import καθαρίζονται τα cached δεδομένα που επηρεάζονται από αλλαγές αποφοίτων.
-    clearRouteCaches(["graduates", "map"]);
-    clearPublicStatsCache();
+    clearGraduateCaches();
 
     return res.json({
       ok: true,
@@ -506,8 +504,7 @@ export async function createGraduate(
       details: { student_number: values.student_number },
     });
 
-    clearRouteCaches(["graduates", "map"]);
-    clearPublicStatsCache();
+    clearGraduateCaches();
 
     res.status(201).json({ ok: true, item: created });
   } catch (err) {
@@ -584,8 +581,7 @@ export async function updateGraduate(
       details: changed.length ? { changed } : null,
     });
 
-    clearRouteCaches(["graduates", "map"]);
-    clearPublicStatsCache();
+    clearGraduateCaches();
 
     res.json({ ok: true, item });
   } catch (err) {
@@ -622,8 +618,7 @@ export async function deleteGraduates(
       });
     }
 
-    clearRouteCaches(["graduates", "map"]);
-    clearPublicStatsCache();
+    clearGraduateCaches();
 
     res.json({ ok: true, deleted });
   } catch (err) {
@@ -656,8 +651,7 @@ export async function deleteGraduate(
       },
     });
 
-    clearRouteCaches(["graduates", "map"]);
-    clearPublicStatsCache();
+    clearGraduateCaches();
 
     res.json({ ok: true });
   } catch (err) {

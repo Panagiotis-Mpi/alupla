@@ -27,7 +27,6 @@ const graduateSortColumns: Array<{ sortKey: SortKey; labelKey: string }> = [
 export function GraduatesTable(props: {
   visibleItems: Graduate[];
   loading: boolean;
-  selectedIds: number[];
   selectedIdSet: Set<number>;
   allVisibleSelected: boolean;
   selectAllRef: React.RefObject<HTMLInputElement>;

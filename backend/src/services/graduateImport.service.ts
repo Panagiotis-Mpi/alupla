@@ -11,16 +11,15 @@ import {
   trimNullableText,
 } from "../controllers/graduates.helpers";
 import {
-  ensureManagedOrigin,
   resolveRegionId,
   resolveStudyProgramId,
   type ProgramLookup,
   type RegionLookup,
 } from "../controllers/graduates.shared";
 import {
-  normalizeOriginLocation,
-  type NormalizedOriginResult,
-} from "./regionResolver.service";
+  buildForeignGraduateOriginPayload,
+  buildGreekGraduateOriginPayload,
+} from "./graduateOrigin.service";
 import { toDateOnly, toInt, toNumber } from "../utils/importUtils";
 
 export type ImportRowError = {
@@ -263,33 +262,31 @@ export async function prepareGraduateImportRows(
       continue;
     }
 
-    let normalizedOrigin: NormalizedOriginResult | null = null;
-    if (!is_abroad) {
-      normalizedOrigin = await normalizeOriginLocation({
-        origin_country_region_id: origin_country_region_id ?? null,
-        origin_periphery_region_id: origin_periphery_region_id ?? null,
-        origin_region_id: origin_nomos_region_id ?? null,
-        origin_city_region_id: null,
-        origin_municipality,
+    const originResult = is_abroad
+      ? buildForeignGraduateOriginPayload(
+          origin_country_name,
+          origin_country_region_id,
+          origin_foreign_city,
+        )
+      : await buildGreekGraduateOriginPayload(
+          {
+            origin_country_region_id,
+            origin_periphery_region_id,
+            origin_region_id: origin_nomos_region_id,
+            origin_city_region_id: null,
+            origin_municipality,
+          },
+          regionsById,
+        );
+    if (originResult.error || !originResult.payload) {
+      errors.push({
+        row: rowNum,
+        column: "origin_municipality",
+        message: originResult.error ?? "Invalid origin",
+        value: origin_municipality,
       });
-
-      const managedOriginError = ensureManagedOrigin(
-        normalizedOrigin,
-        origin_country_region_id ?? null,
-        origin_periphery_region_id ?? null,
-        origin_municipality,
-        regionsById,
-      );
-      if (managedOriginError) {
-        errors.push({
-          row: rowNum,
-          column: "origin_municipality",
-          message: managedOriginError,
-          value: origin_municipality,
-        });
-        skipped++;
-        continue;
-      }
+      skipped++;
+      continue;
     }
 
     const ruleViolations = getGraduateRuleViolations(
@@ -328,23 +325,7 @@ export async function prepareGraduateImportRows(
         degree_grade,
         birth_date,
         study_program_id,
-        origin_country: is_abroad ? origin_country_name : "Ελλάδα",
-        origin_foreign_city: is_abroad ? origin_foreign_city : null,
-        origin_country_region_id: is_abroad
-          ? origin_country_region_id
-          : (normalizedOrigin?.origin_country_region_id ?? null),
-        origin_periphery_region_id: is_abroad
-          ? null
-          : (normalizedOrigin?.origin_periphery_region_id ?? null),
-        origin_region_id: is_abroad
-          ? null
-          : (normalizedOrigin?.origin_region_id ?? null),
-        origin_city_region_id: is_abroad
-          ? null
-          : (normalizedOrigin?.origin_city_region_id ?? null),
-        origin_municipality: is_abroad
-          ? null
-          : (normalizedOrigin?.origin_municipality ?? null),
+        ...originResult.payload,
       },
     });
     studentNumbers.push(student_number);

@@ -2,11 +2,12 @@
 import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
-import {
-  normalizeOriginLocation,
-  type NormalizedOriginResult,
-} from "../services/regionResolver.service";
 import { normalizeRegionText } from "../utils/regionText";
+import { findRegionAncestor } from "../utils/regionAncestors";
+import {
+  buildForeignGraduateOriginPayload,
+  buildGreekGraduateOriginPayload,
+} from "../services/graduateOrigin.service";
 import { getGreekNomosNormalizedName } from "../services/greekNomosLookup.service";
 import {
   formatCountryValue,
@@ -83,28 +84,6 @@ function isInvalidNullableNumber(value: number | null) {
   return value !== null && Number.isNaN(value);
 }
 
-// Βρίσκει το όνομα περιοχής στη σωστή γλώσσα.
-
-function getRegionAncestor(
-  regionsById: Map<number, RegionLookup>,
-  value: unknown,
-  targetType: string,
-) {
-  const startId = Number(value);
-  if (!Number.isFinite(startId) || startId <= 0) return null;
-  let current = regionsById.get(startId) ?? null;
-  let steps = 0;
-
-  while (current && steps < 25) {
-    if (String(current.type) === targetType) return current;
-    const parentId = Number(current.parent_id);
-    current = Number.isFinite(parentId) && parentId > 0 ? regionsById.get(parentId) ?? null : null;
-    steps += 1;
-  }
-
-  return null;
-}
-
 function findNomosByCityName(
   regionsById: Map<number, RegionLookup>,
   cityName: unknown,
@@ -131,7 +110,7 @@ function resolveGraduateNomosId(
 ) {
   const direct = regionsById.get(Number(row.origin_region_id));
   if (direct && String(direct.type) === "NOMOS") return Number(direct.id);
-  const ancestor = getRegionAncestor(regionsById, row.origin_city_region_id, "NOMOS");
+  const ancestor = findRegionAncestor(regionsById, row.origin_city_region_id, "NOMOS");
   if (ancestor) return Number(ancestor.id);
   const city = regionsById.get(Number(row.origin_city_region_id));
   const peripheryId = resolveGraduatePeripheryId(row, regionsById);
@@ -148,9 +127,9 @@ function resolveGraduatePeripheryId(
 ) {
   const direct = regionsById.get(Number(row.origin_periphery_region_id));
   if (direct && String(direct.type) === "PERIPHERY") return Number(direct.id);
-  const fromNomos = getRegionAncestor(regionsById, row.origin_region_id, "PERIPHERY");
+  const fromNomos = findRegionAncestor(regionsById, row.origin_region_id, "PERIPHERY");
   if (fromNomos) return Number(fromNomos.id);
-  return getRegionAncestor(regionsById, row.origin_city_region_id, "PERIPHERY")?.id ?? null;
+  return findRegionAncestor(regionsById, row.origin_city_region_id, "PERIPHERY")?.id ?? null;
 }
 
 function firstText(...values: unknown[]) {
@@ -522,7 +501,7 @@ export function buildResolvedOriginSnapshot<T extends ManagedOriginTarget>(
     origin_region_id: isAbroad
       ? null
       : (item.origin_region_id ??
-          getRegionAncestor(regionsById, item.origin_city_region_id, "NOMOS")
+          findRegionAncestor(regionsById, item.origin_city_region_id, "NOMOS")
             ?.id ??
           findNomosByCityName(
             regionsById,
@@ -535,48 +514,6 @@ export function buildResolvedOriginSnapshot<T extends ManagedOriginTarget>(
       : (item.origin_city_region_id ?? null),
     origin_municipality: isAbroad ? null : (item.origin_municipality ?? null),
   } as T;
-}
-
-function hasOriginValue(
-  originCountryRegionId: number | null | undefined,
-  originRegionId: number | null | undefined,
-  originMunicipality: string | null | undefined,
-) {
-  return (
-    originCountryRegionId != null ||
-    originRegionId != null ||
-    String(originMunicipality ?? "").trim().length > 0
-  );
-}
-
-// Ελέγχει ότι η καταγωγή έχει τα απαραίτητα πεδία.
-export function ensureManagedOrigin(
-  normalizedOrigin: NormalizedOriginResult,
-  originCountryRegionId: number | null | undefined,
-  originRegionId: number | null | undefined,
-  originMunicipality: string | null | undefined,
-  regionsById?: Map<number, RegionLookup>,
-) {
-  if (
-    !hasOriginValue(originCountryRegionId, originRegionId, originMunicipality)
-  )
-    return null;
-  if (!normalizedOrigin.origin_country_region_id)
-    return "origin_country_region_id is required";
-  if (!normalizedOrigin.origin_municipality)
-    return "origin_municipality is required";
-  if (!regionsById) return null;
-
-  const country = regionsById.get(
-    Number(normalizedOrigin.origin_country_region_id),
-  );
-  const isGreece =
-    normalizeRegionText(country?.name) === normalizeRegionText("Ελλάδα");
-  if (isGreece && !normalizedOrigin.origin_periphery_region_id)
-    return "origin_periphery_region_id is required for Greece";
-  if (!isGreece && normalizedOrigin.origin_periphery_region_id)
-    return "origin_periphery_region_id must be empty for foreign countries";
-  return null;
 }
 
 // Φτιάχνει τα πεδία καταγωγής για νέο απόφοιτο.
@@ -615,22 +552,11 @@ export async function buildCreateOriginPayload(
   );
 
   if (isAbroad) {
-    const resolvedCountryName =
-      originCountryName ?? trimNullableText(selectedCountryName);
-    if (!resolvedCountryName) return { error: "origin_country is required" };
-    if (!originForeignCity) return { error: "origin_foreign_city is required" };
-
-    return {
-      payload: {
-        origin_country: resolvedCountryName,
-        origin_foreign_city: originForeignCity,
-        origin_country_region_id: originCountryRegionId,
-        origin_periphery_region_id: null,
-        origin_region_id: null,
-        origin_city_region_id: null,
-        origin_municipality: null,
-      },
-    };
+    return buildForeignGraduateOriginPayload(
+      originCountryName ?? trimNullableText(selectedCountryName),
+      originCountryRegionId,
+      originForeignCity,
+    );
   }
 
   const originPeripheryRegionId = toNullableNumber(
@@ -642,34 +568,16 @@ export async function buildCreateOriginPayload(
   const originMunicipality = String(body.origin_municipality ?? "").trim();
   if (!originMunicipality) return { error: "origin_municipality is required" };
 
-  const normalizedOrigin = await normalizeOriginLocation({
-    origin_country_region_id: originCountryRegionId ?? null,
-    origin_periphery_region_id: originPeripheryRegionId ?? null,
-    origin_region_id: toNullableNumber(body.origin_region_id),
-    origin_city_region_id: toNullableNumber(body.origin_city_region_id),
-    origin_municipality: originMunicipality,
-  });
-
-  const managedOriginError = ensureManagedOrigin(
-    normalizedOrigin,
-    originCountryRegionId ?? null,
-    originPeripheryRegionId ?? null,
-    originMunicipality,
+  return buildGreekGraduateOriginPayload(
+    {
+      origin_country_region_id: originCountryRegionId,
+      origin_periphery_region_id: originPeripheryRegionId,
+      origin_region_id: toNullableNumber(body.origin_region_id),
+      origin_city_region_id: toNullableNumber(body.origin_city_region_id),
+      origin_municipality: originMunicipality,
+    },
     regionsById,
   );
-  if (managedOriginError) return { error: managedOriginError };
-
-  return {
-    payload: {
-      origin_country: "Ελλάδα",
-      origin_foreign_city: null,
-      origin_country_region_id: normalizedOrigin.origin_country_region_id,
-      origin_periphery_region_id: normalizedOrigin.origin_periphery_region_id,
-      origin_region_id: normalizedOrigin.origin_region_id,
-      origin_city_region_id: normalizedOrigin.origin_city_region_id,
-      origin_municipality: normalizedOrigin.origin_municipality,
-    },
-  };
 }
 
 // Εφαρμόζει αλλαγές καταγωγής σε υπάρχοντα απόφοιτο.
@@ -753,15 +661,13 @@ export async function applyOriginPatch(
   );
 
   if (isAbroad) {
-    item.origin_country =
-      currentCountryName ?? trimNullableText(selectedCountryName);
-    if (!item.origin_country) return "origin_country is required";
-    if (!currentForeignCity) return "origin_foreign_city is required";
-    item.origin_foreign_city = currentForeignCity;
-    item.origin_periphery_region_id = null;
-    item.origin_region_id = null;
-    item.origin_city_region_id = null;
-    item.origin_municipality = null;
+    const result = buildForeignGraduateOriginPayload(
+      currentCountryName ?? trimNullableText(selectedCountryName),
+      item.origin_country_region_id ?? null,
+      currentForeignCity,
+    );
+    if (result.error) return result.error;
+    Object.assign(item, result.payload);
     return null;
   }
 
@@ -778,29 +684,19 @@ export async function applyOriginPatch(
     item.origin_country_region_id = defaultGreeceId;
   }
 
-  const normalized = await normalizeOriginLocation({
-    origin_country_region_id: item.origin_country_region_id ?? null,
-    origin_periphery_region_id: item.origin_periphery_region_id ?? null,
-    origin_region_id: item.origin_region_id ?? null,
-    origin_city_region_id: item.origin_city_region_id ?? null,
-    origin_municipality: item.origin_municipality ?? null,
-  });
-
-  const managedOriginError = ensureManagedOrigin(
-    normalized,
-    item.origin_country_region_id ?? null,
-    item.origin_periphery_region_id ?? item.origin_region_id ?? null,
-    item.origin_municipality ?? null,
+  const result = await buildGreekGraduateOriginPayload(
+    {
+      origin_country_region_id: item.origin_country_region_id ?? null,
+      origin_periphery_region_id: item.origin_periphery_region_id ?? null,
+      origin_region_id: item.origin_region_id ?? null,
+      origin_city_region_id: item.origin_city_region_id ?? null,
+      origin_municipality: item.origin_municipality ?? null,
+      managedOriginRegionId:
+        item.origin_periphery_region_id ?? item.origin_region_id ?? null,
+    },
     regionsById,
   );
-  if (managedOriginError) return managedOriginError;
-
-  item.origin_country = "Ελλάδα";
-  item.origin_foreign_city = null;
-  item.origin_country_region_id = normalized.origin_country_region_id;
-  item.origin_periphery_region_id = normalized.origin_periphery_region_id;
-  item.origin_region_id = normalized.origin_region_id;
-  item.origin_city_region_id = normalized.origin_city_region_id;
-  item.origin_municipality = normalized.origin_municipality;
+  if (result.error) return result.error;
+  Object.assign(item, result.payload);
   return null;
 }

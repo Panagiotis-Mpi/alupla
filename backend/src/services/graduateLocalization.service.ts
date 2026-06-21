@@ -1,6 +1,7 @@
 import { ensureLocalizedRegionNames } from "./mapLocation.service";
 import type { LocalizedNamesByRegionId } from "../controllers/graduates.shared";
 import { Region } from "../models/Region";
+import { findRegionAncestor } from "../utils/regionAncestors";
 
 function collectGraduateRegionIds(rows: Array<Record<string, any>>) {
   const ids = new Set<number>();
@@ -25,25 +26,6 @@ type RegionNode = {
 };
 
 let graduateRegionTreeCache: Promise<Map<number, RegionNode>> | null = null;
-
-function ancestorOf(
-  startId: unknown,
-  targetType: string,
-  regionsById: Map<number, RegionNode>,
-) {
-  const id = Number(startId);
-  if (!Number.isFinite(id) || id <= 0) return null;
-  let current = regionsById.get(id) ?? null;
-  let steps = 0;
-
-  while (current && steps < 25) {
-    if (current.type === targetType) return current;
-    current = current.parent_id ? regionsById.get(current.parent_id) ?? null : null;
-    steps += 1;
-  }
-
-  return null;
-}
 
 function getGraduateRegionTree() {
   if (!graduateRegionTreeCache) {
@@ -81,13 +63,13 @@ async function completeGraduateRegionIds(rows: Array<Record<string, any>>) {
     const peripheryId = Number(next.origin_periphery_region_id);
 
     if ((!Number.isFinite(nomosId) || nomosId <= 0) && Number.isFinite(cityId) && cityId > 0) {
-      const nomos = ancestorOf(cityId, "NOMOS", regionsById);
+      const nomos = findRegionAncestor(regionsById, cityId, "NOMOS");
       if (nomos) next.origin_region_id = nomos.id;
     }
 
     if (!Number.isFinite(peripheryId) || peripheryId <= 0) {
       const sourceId = Number(next.origin_region_id) || cityId;
-      const periphery = ancestorOf(sourceId, "PERIPHERY", regionsById);
+      const periphery = findRegionAncestor(regionsById, sourceId, "PERIPHERY");
       if (periphery) next.origin_periphery_region_id = periphery.id;
     }
 

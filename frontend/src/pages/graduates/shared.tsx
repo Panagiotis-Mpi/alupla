@@ -73,6 +73,19 @@ export const EMPTY_GRADUATES_FILTERS: GraduatesFiltersState = {
   origin_country_like: "",
   origin_foreign_city_like: "",
 };
+const MAIN_TEXT_FILTER_FIELDS = [
+  ["ad_code_like", "table.ad"],
+  ["student_number_like", "table.am"],
+  ["last_name_like", "table.lastName"],
+  ["first_name_like", "table.firstName"],
+  ["father_name_like", "table.fatherName"],
+] as const;
+
+const ORIGIN_TEXT_FILTER_FIELDS = [
+  ["origin_municipality_like", "table.originMunicipality"],
+  ["origin_country_like", "table.country"],
+  ["origin_foreign_city_like", "filters.foreignCity"],
+] as const;
 
 function Field(props: { label: string; children: React.ReactNode; span?: number }) {
   return (
@@ -390,26 +403,21 @@ export function GraduatesFilters(props: {
   onReset: () => void;
 }) {
   const { t, filters, programs, regions, programNameById, regionNameById, setFilters, onSearch, onReset } = props;
+  const updateFilter = (key: keyof GraduatesFiltersState, value: string) => {
+    setFilters((current) => ({ ...current, [key]: value }));
+  };
+  const peripheries = regions.filter((region) => String(region.type) === "PERIPHERY");
+  const nomoi = regions.filter((region) => String(region.type) === "NOMOS");
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14, alignItems: "stretch" }}>
-      <Field label={t("table.ad")}>
-        <input className="input" value={filters.ad_code_like} onChange={(e) => setFilters((current) => ({ ...current, ad_code_like: e.target.value }))} />
-      </Field>
-      <Field label={t("table.am")}>
-        <input className="input" value={filters.student_number_like} onChange={(e) => setFilters((current) => ({ ...current, student_number_like: e.target.value }))} />
-      </Field>
-      <Field label={t("table.lastName")}>
-        <input className="input" value={filters.last_name_like} onChange={(e) => setFilters((current) => ({ ...current, last_name_like: e.target.value }))} />
-      </Field>
-      <Field label={t("table.firstName")}>
-        <input className="input" value={filters.first_name_like} onChange={(e) => setFilters((current) => ({ ...current, first_name_like: e.target.value }))} />
-      </Field>
-      <Field label={t("table.fatherName")}>
-        <input className="input" value={filters.father_name_like} onChange={(e) => setFilters((current) => ({ ...current, father_name_like: e.target.value }))} />
-      </Field>
+      {MAIN_TEXT_FILTER_FIELDS.map(([key, labelKey]) => (
+        <Field key={key} label={t(labelKey)}>
+          <input className="input" value={filters[key]} onChange={(event) => updateFilter(key, event.target.value)} />
+        </Field>
+      ))}
       <Field label={t("table.gender")}>
-        <select className="input" value={filters.gender} onChange={(e) => setFilters((current) => ({ ...current, gender: e.target.value }))}>
+        <select className="input" value={filters.gender} onChange={(e) => updateFilter("gender", e.target.value)}>
           <option value="">{t("filters.all")}</option>
           <option value="M">{t("filters.male")}</option>
           <option value="F">{t("filters.female")}</option>
@@ -421,8 +429,8 @@ export function GraduatesFilters(props: {
         toLabel={t("filters.to")}
         fromValue={filters.entry_year_min}
         toValue={filters.entry_year_max}
-        onFromChange={(value) => setFilters((current) => ({ ...current, entry_year_min: value }))}
-        onToChange={(value) => setFilters((current) => ({ ...current, entry_year_max: value }))}
+        onFromChange={(value) => updateFilter("entry_year_min", value)}
+        onToChange={(value) => updateFilter("entry_year_max", value)}
         type="number"
       />
       <RangeField
@@ -431,8 +439,8 @@ export function GraduatesFilters(props: {
         toLabel={t("filters.to")}
         fromValue={filters.birth_date_from}
         toValue={filters.birth_date_to}
-        onFromChange={(value) => setFilters((current) => ({ ...current, birth_date_from: value }))}
-        onToChange={(value) => setFilters((current) => ({ ...current, birth_date_to: value }))}
+        onFromChange={(value) => updateFilter("birth_date_from", value)}
+        onToChange={(value) => updateFilter("birth_date_to", value)}
         type="date"
       />
       <Field label={t("table.degreeGrade")}>
@@ -447,8 +455,8 @@ export function GraduatesFilters(props: {
         toLabel={t("filters.to")}
         fromValue={filters.graduation_date_from}
         toValue={filters.graduation_date_to}
-        onFromChange={(value) => setFilters((current) => ({ ...current, graduation_date_from: value }))}
-        onToChange={(value) => setFilters((current) => ({ ...current, graduation_date_to: value }))}
+        onFromChange={(value) => updateFilter("graduation_date_from", value)}
+        onToChange={(value) => updateFilter("graduation_date_to", value)}
         type="date"
       />
       <RangeField
@@ -457,12 +465,12 @@ export function GraduatesFilters(props: {
         toLabel={t("filters.to")}
         fromValue={filters.oath_date_from}
         toValue={filters.oath_date_to}
-        onFromChange={(value) => setFilters((current) => ({ ...current, oath_date_from: value }))}
-        onToChange={(value) => setFilters((current) => ({ ...current, oath_date_to: value }))}
+        onFromChange={(value) => updateFilter("oath_date_from", value)}
+        onToChange={(value) => updateFilter("oath_date_to", value)}
         type="date"
       />
       <Field label={t("table.studyProgram")}>
-        <select className="input" value={filters.study_program_id} onChange={(e) => setFilters((current) => ({ ...current, study_program_id: e.target.value }))}>
+        <select className="input" value={filters.study_program_id} onChange={(e) => updateFilter("study_program_id", e.target.value)}>
           <option value="">{t("filters.all")}</option>
           {programs.map((program) => (
             <option key={program.id} value={program.id}>
@@ -472,9 +480,9 @@ export function GraduatesFilters(props: {
         </select>
       </Field>
       <Field label={t("filters.region")}>
-        <select className="input" value={filters.origin_region_id} onChange={(e) => setFilters((current) => ({ ...current, origin_region_id: e.target.value }))}>
+        <select className="input" value={filters.origin_region_id} onChange={(e) => updateFilter("origin_region_id", e.target.value)}>
           <option value="">{t("filters.all")}</option>
-          {regions.filter((region) => String(region.type) === "PERIPHERY").map((region) => (
+          {peripheries.map((region) => (
             <option key={Number(region.id)} value={Number(region.id)}>
               {regionNameById.get(Number(region.id)) ?? String(region.name ?? "")}
             </option>
@@ -482,24 +490,20 @@ export function GraduatesFilters(props: {
         </select>
       </Field>
       <Field label={t("filters.nomos")}>
-        <select className="input" value={filters.origin_nomos_region_id} onChange={(e) => setFilters((current) => ({ ...current, origin_nomos_region_id: e.target.value }))}>
+        <select className="input" value={filters.origin_nomos_region_id} onChange={(e) => updateFilter("origin_nomos_region_id", e.target.value)}>
           <option value="">{t("filters.all")}</option>
-          {regions.filter((region) => String(region.type) === "NOMOS").map((region) => (
+          {nomoi.map((region) => (
             <option key={Number(region.id)} value={Number(region.id)}>
               {regionNameById.get(Number(region.id)) ?? String(region.name ?? "")}
             </option>
           ))}
         </select>
       </Field>
-      <Field label={t("table.originMunicipality")}>
-        <input className="input" value={filters.origin_municipality_like} onChange={(e) => setFilters((current) => ({ ...current, origin_municipality_like: e.target.value }))} />
-      </Field>
-      <Field label={t("table.country")}>
-        <input className="input" value={filters.origin_country_like} onChange={(e) => setFilters((current) => ({ ...current, origin_country_like: e.target.value }))} />
-      </Field>
-      <Field label={t("filters.foreignCity")}>
-        <input className="input" value={filters.origin_foreign_city_like} onChange={(e) => setFilters((current) => ({ ...current, origin_foreign_city_like: e.target.value }))} />
-      </Field>
+      {ORIGIN_TEXT_FILTER_FIELDS.map(([key, labelKey]) => (
+        <Field key={key} label={t(labelKey)}>
+          <input className="input" value={filters[key]} onChange={(event) => updateFilter(key, event.target.value)} />
+        </Field>
+      ))}
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-start" }}>
         <button className="btn" onClick={onSearch}>
           <Icon src={listFilterIcon} size={17} />
