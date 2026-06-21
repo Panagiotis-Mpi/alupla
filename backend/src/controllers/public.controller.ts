@@ -1127,8 +1127,70 @@ export async function publicExportActivity(req: Request, res: Response) {
     return res.status(400).json({ ok: false, message: "Invalid action" });
   }
 
+  const rawDetails =
+    req.body?.details && typeof req.body.details === "object" && !Array.isArray(req.body.details)
+      ? req.body.details
+      : {};
+  const readAllowedValues = (value: unknown, allowed: Set<string>) =>
+    Array.isArray(value)
+      ? Array.from(
+          new Set(
+            value
+              .map((item) => String(item ?? "").trim())
+              .filter((item) => allowed.has(item)),
+          ),
+        ).slice(0, 30)
+      : [];
+  const details: Record<string, unknown> = { format };
+
+  if (action === "statistics_export") {
+    const groups = readAllowedValues(
+      (rawDetails as any).statistics_groups,
+      new Set(["demographics", "academic", "geography", "compare"]),
+    );
+    const charts = readAllowedValues(
+      (rawDetails as any).statistics_charts,
+      new Set([
+        "byYear",
+        "countByEntryYear",
+        "birthYear",
+        "genderTotal",
+        "gender",
+        "gradeDistribution",
+        "gradeDistributionByGender",
+        "timeToDegreeDistribution",
+        "gradeByYear",
+        "gradeByRegion",
+        "timeToDegreeByEntryYear",
+        "timeToDegreeByRegion",
+        "originRegion",
+        "genderByRegion",
+        "originMunicipality",
+        "genderByMunicipality",
+        "originCountry",
+        "abroadShare",
+        "abroadByYear",
+        "timeToDegreeByNomos",
+        "compare",
+      ]),
+    );
+    if (groups.length) details.statistics_groups = groups;
+    if (charts.length) details.statistics_charts = charts;
+  } else {
+    const mapExports = readAllowedValues(
+      (rawDetails as any).map_exports,
+      new Set([
+        "greece:count",
+        "abroad:count",
+        "greece:dominant_gender",
+        "abroad:dominant_gender",
+      ]),
+    );
+    if (mapExports.length) details.map_exports = mapExports;
+  }
+
   const entityType = action === "map_export" ? "map" : "statistics";
 // Τα public exports γράφονται στα logs ως ενέργειες επισκέπτη.
-  await logPublicExportAction(req, action, entityType, { format });
+  await logPublicExportAction(req, action, entityType, details);
   return res.json({ ok: true });
 }

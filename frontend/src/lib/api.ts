@@ -779,10 +779,11 @@ export async function getPublicStats(
 export async function logPublicExport(
   action: "map_export" | "statistics_export",
   format: string,
+  details: Record<string, unknown> = {},
 ): Promise<ApiOk> {
   const response = await api<ApiOk>("/public/activity-export", {
     method: "POST",
-    body: { action, format },
+    body: { action, format, details },
   });
   clearActivityLogCaches();
   return response;

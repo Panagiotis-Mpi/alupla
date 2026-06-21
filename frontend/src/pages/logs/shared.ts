@@ -351,6 +351,9 @@ export function createLogsLocalizer({
             is_active: "Active",
             approved: "Approved",
             code: "Code",
+            statistics_groups: "Categories",
+            statistics_charts: "Statistics",
+            map_exports: "Map content",
           }
         : {
             file: "Αρχείο",
@@ -409,6 +412,9 @@ export function createLogsLocalizer({
             is_active: "Ενεργός",
             approved: "Εγκεκριμένος",
             code: "Κωδικός",
+            statistics_groups: "Κατηγορίες",
+            statistics_charts: "Στατιστικά",
+            map_exports: "Περιεχόμενο χάρτη",
           };
 
     return labels[key as keyof typeof labels] ?? key;
@@ -481,6 +487,69 @@ export function createLogsLocalizer({
       : `Αλλαγμένα πεδία: ${names.join(", ")}`;
   };
 
+  const exportDetailValues =
+    activeLang === "en"
+      ? {
+          demographics: "Counts and gender",
+          academic: "Academic insights",
+          geography: "Geographic distribution",
+          compare: "Compare",
+          byYear: "Graduates by graduation year",
+          countByEntryYear: "Graduates by entry year",
+          birthYear: "Graduates by birth year",
+          genderTotal: "Gender distribution",
+          gender: "Gender distribution by graduation year",
+          gradeDistribution: "Graduation grade distribution",
+          gradeDistributionByGender: "Graduation grade distribution by gender",
+          timeToDegreeDistribution: "Study duration distribution",
+          gradeByYear: "Average graduation grade by year",
+          gradeByRegion: "Average graduation grade by region of origin",
+          timeToDegreeByEntryYear: "Average study duration by entry year",
+          timeToDegreeByRegion: "Average study duration by region of origin",
+          originRegion: "Graduates by region of origin",
+          genderByRegion: "Gender distribution by region of origin",
+          originMunicipality: "Graduates by city of origin",
+          genderByMunicipality: "Gender distribution by city of origin",
+          originCountry: "Graduates by country of origin",
+          abroadShare: "Greece and abroad graduate distribution",
+          abroadByYear: "Greece and abroad graduates distribution by graduation year",
+          timeToDegreeByNomos: "Average study duration by regional unit of origin",
+          "greece:count": "Greece — Graduate count",
+          "abroad:count": "Abroad — Graduate count",
+          "greece:dominant_gender": "Greece — Gender geo distribution",
+          "abroad:dominant_gender": "Abroad — Gender geo distribution",
+        }
+      : {
+          demographics: "Πλήθος και φύλο",
+          academic: "Ακαδημαϊκά στοιχεία",
+          geography: "Γεωγραφική κατανομή",
+          compare: "Σύγκριση",
+          byYear: "Πλήθος αποφοίτων ανά έτος αποφοίτησης",
+          countByEntryYear: "Πλήθος αποφοίτων ανά έτος εισαγωγής",
+          birthYear: "Πλήθος αποφοίτων ανά έτος γέννησης",
+          genderTotal: "Κατανομή φύλου",
+          gender: "Κατανομή φύλου ανά έτος αποφοίτησης",
+          gradeDistribution: "Κατανομή βαθμολογίας αποφοίτησης",
+          gradeDistributionByGender: "Κατανομή βαθμολογίας αποφοίτησης ανά φύλο",
+          timeToDegreeDistribution: "Κατανομή διάρκειας σπουδών",
+          gradeByYear: "Μέση βαθμολογία αποφοίτησης ανά έτος",
+          gradeByRegion: "Μέση βαθμολογία αποφοίτησης ανά περιφέρεια καταγωγής",
+          timeToDegreeByEntryYear: "Μέση διάρκεια σπουδών ανά έτος εισαγωγής",
+          timeToDegreeByRegion: "Μέση διάρκεια σπουδών ανά περιφέρεια καταγωγής",
+          originRegion: "Πλήθος αποφοίτων ανά περιφέρεια καταγωγής",
+          genderByRegion: "Κατανομή φύλου ανά περιφέρεια καταγωγής",
+          originMunicipality: "Πλήθος αποφοίτων ανά πόλη καταγωγής",
+          genderByMunicipality: "Κατανομή φύλου ανά πόλη καταγωγής",
+          originCountry: "Πλήθος αποφοίτων ανά χώρα καταγωγής",
+          abroadShare: "Κατανομή αποφοίτων Ελλάδας και εξωτερικού",
+          abroadByYear: "Κατανομή αποφοίτων Ελλάδας και εξωτερικού ανά έτος αποφοίτησης",
+          timeToDegreeByNomos: "Μέση διάρκεια σπουδών ανά νομό καταγωγής",
+          "greece:count": "Ελλάδα — Πλήθος αποφοίτων",
+          "abroad:count": "Εξωτερικό — Πλήθος αποφοίτων",
+          "greece:dominant_gender": "Ελλάδα — Γεωκατανομή φύλου",
+          "abroad:dominant_gender": "Εξωτερικό — Γεωκατανομή φύλου",
+        };
+
   const localValue = (value: string) => {
     const normalized = String(value ?? "").trim();
     if (!normalized) return "";
@@ -504,6 +573,8 @@ export function createLogsLocalizer({
     if (normalized === "city") return activeLang === "en" ? "City" : "Πόλη";
     if (normalized === "periphery")
       return activeLang === "en" ? "Periphery" : "Περιφέρεια";
+    const exportDetailValue = exportDetailValues[normalized as keyof typeof exportDetailValues];
+    if (exportDetailValue) return exportDetailValue;
     if (["xls", "xlsx", "excel", "csv", "pdf", "png"].includes(normalized))
       return upperFileType(normalized);
     return toLocalizedAction(normalized) || normalized;
@@ -521,7 +592,7 @@ export function createLogsLocalizer({
     }
   };
 
-  const formatExportDetails = (details: Record<string, any>) => {
+  const formatExportDetails = (details: Record<string, any>, action: string) => {
     const format = upperFileType(
       String(details.format ?? details.file_type ?? "").trim(),
     );
@@ -529,8 +600,28 @@ export function createLogsLocalizer({
     const selected = details.selected;
     const page = localValue(String(details.page ?? ""));
     const parts: string[] = [];
+    const detailList = (value: unknown) =>
+      (Array.isArray(value) ? value : [value])
+        .map((item) => localValue(String(item ?? "")))
+        .filter(Boolean)
+        .join(", ");
 
-    if (format) parts.push(format);
+    if (format)
+      parts.push(
+        action === "statistics_export" || action === "map_export"
+          ? `${localDetailLabel("format")}: ${format}`
+          : format,
+      );
+    if (action === "statistics_export") {
+      const groups = detailList(details.statistics_groups);
+      const charts = detailList(details.statistics_charts);
+      if (groups) parts.push(`${localDetailLabel("statistics_groups")}: ${groups}`);
+      if (charts) parts.push(`${localDetailLabel("statistics_charts")}: ${charts}`);
+    }
+    if (action === "map_export") {
+      const mapExports = detailList(details.map_exports);
+      if (mapExports) parts.push(`${localDetailLabel("map_exports")}: ${mapExports}`);
+    }
     if (count !== null && count !== undefined && count !== "")
       parts.push(
         activeLang === "en" ? `${count} records` : `${count} εγγραφές`,
@@ -669,7 +760,7 @@ export function createLogsLocalizer({
         "map_export",
       ].includes(action)
     ) {
-      const exportText = formatExportDetails(details);
+      const exportText = formatExportDetails(details, action);
       if (exportText) return exportText;
     }
 

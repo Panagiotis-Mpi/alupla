@@ -1265,11 +1265,16 @@ export default function GraduatesMapPage() {
 
   async function handleExportSelection() {
     if (!selectedExportSelections.length) return;
+    const exportedSelections = selectedExportSelections.map(
+      (selection) => `${selection.scope}:${selection.category}`,
+    );
     setExportingSelection(true);
     try {
       await exportMapSelectionAsPng();
       try {
-        await logPublicExport("map_export", "png");
+        await logPublicExport("map_export", "png", {
+          map_exports: exportedSelections,
+        });
       } catch {}
       setSelectedExportFormat(null);
     } finally {

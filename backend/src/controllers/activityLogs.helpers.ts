@@ -103,6 +103,69 @@ export const actionLabels = {
   },
 } as const;
 
+const exportDetailValueLabels = {
+  gr: {
+    demographics: "Πλήθος και φύλο",
+    academic: "Ακαδημαϊκά στοιχεία",
+    geography: "Γεωγραφική κατανομή",
+    compare: "Σύγκριση",
+    byYear: "Πλήθος αποφοίτων ανά έτος αποφοίτησης",
+    countByEntryYear: "Πλήθος αποφοίτων ανά έτος εισαγωγής",
+    birthYear: "Πλήθος αποφοίτων ανά έτος γέννησης",
+    genderTotal: "Κατανομή φύλου",
+    gender: "Κατανομή φύλου ανά έτος αποφοίτησης",
+    gradeDistribution: "Κατανομή βαθμολογίας αποφοίτησης",
+    gradeDistributionByGender: "Κατανομή βαθμολογίας αποφοίτησης ανά φύλο",
+    timeToDegreeDistribution: "Κατανομή διάρκειας σπουδών",
+    gradeByYear: "Μέση βαθμολογία αποφοίτησης ανά έτος",
+    gradeByRegion: "Μέση βαθμολογία αποφοίτησης ανά περιφέρεια καταγωγής",
+    timeToDegreeByEntryYear: "Μέση διάρκεια σπουδών ανά έτος εισαγωγής",
+    timeToDegreeByRegion: "Μέση διάρκεια σπουδών ανά περιφέρεια καταγωγής",
+    originRegion: "Πλήθος αποφοίτων ανά περιφέρεια καταγωγής",
+    genderByRegion: "Κατανομή φύλου ανά περιφέρεια καταγωγής",
+    originMunicipality: "Πλήθος αποφοίτων ανά πόλη καταγωγής",
+    genderByMunicipality: "Κατανομή φύλου ανά πόλη καταγωγής",
+    originCountry: "Πλήθος αποφοίτων ανά χώρα καταγωγής",
+    abroadShare: "Κατανομή αποφοίτων Ελλάδας και εξωτερικού",
+    abroadByYear: "Κατανομή αποφοίτων Ελλάδας και εξωτερικού ανά έτος αποφοίτησης",
+    timeToDegreeByNomos: "Μέση διάρκεια σπουδών ανά νομό καταγωγής",
+    "greece:count": "Ελλάδα — Πλήθος αποφοίτων",
+    "abroad:count": "Εξωτερικό — Πλήθος αποφοίτων",
+    "greece:dominant_gender": "Ελλάδα — Γεωκατανομή φύλου",
+    "abroad:dominant_gender": "Εξωτερικό — Γεωκατανομή φύλου",
+  },
+  en: {
+    demographics: "Counts and gender",
+    academic: "Academic insights",
+    geography: "Geographic distribution",
+    compare: "Compare",
+    byYear: "Graduates by graduation year",
+    countByEntryYear: "Graduates by entry year",
+    birthYear: "Graduates by birth year",
+    genderTotal: "Gender distribution",
+    gender: "Gender distribution by graduation year",
+    gradeDistribution: "Graduation grade distribution",
+    gradeDistributionByGender: "Graduation grade distribution by gender",
+    timeToDegreeDistribution: "Study duration distribution",
+    gradeByYear: "Average graduation grade by year",
+    gradeByRegion: "Average graduation grade by region of origin",
+    timeToDegreeByEntryYear: "Average study duration by entry year",
+    timeToDegreeByRegion: "Average study duration by region of origin",
+    originRegion: "Graduates by region of origin",
+    genderByRegion: "Gender distribution by region of origin",
+    originMunicipality: "Graduates by city of origin",
+    genderByMunicipality: "Gender distribution by city of origin",
+    originCountry: "Graduates by country of origin",
+    abroadShare: "Greece and abroad graduate distribution",
+    abroadByYear: "Greece and abroad graduates distribution by graduation year",
+    timeToDegreeByNomos: "Average study duration by regional unit of origin",
+    "greece:count": "Greece — Graduate count",
+    "abroad:count": "Abroad — Graduate count",
+    "greece:dominant_gender": "Greece — Gender geo distribution",
+    "abroad:dominant_gender": "Abroad — Gender geo distribution",
+  },
+} as const;
+
 // Περιορίζει έναν αριθμό μέσα σε ασφαλές min/max.
 export function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -466,6 +529,9 @@ export function localDetailLabel(lang: "gr" | "en", key: string) {
           is_active: "Active",
           approved: "Approved",
           code: "Code",
+          statistics_groups: "Categories",
+          statistics_charts: "Statistics",
+          map_exports: "Map content",
         }
       : {
           file: "Αρχείο",
@@ -524,6 +590,9 @@ export function localDetailLabel(lang: "gr" | "en", key: string) {
           is_active: "Ενεργός",
           approved: "Εγκεκριμένος",
           code: "Κωδικός",
+          statistics_groups: "Κατηγορίες",
+          statistics_charts: "Στατιστικά",
+          map_exports: "Περιεχόμενο χάρτη",
         };
   return labels[key as keyof typeof labels] ?? key;
 }
@@ -561,6 +630,9 @@ export function localValue(lang: "gr" | "en", value: string) {
   const lower = normalized.toLowerCase();
   if (lower === "true") return lang === "en" ? "Yes" : "Ναι";
   if (lower === "false") return lang === "en" ? "No" : "Όχι";
+  const exportDetailValue =
+    exportDetailValueLabels[lang][normalized as keyof (typeof exportDetailValueLabels)[typeof lang]];
+  if (exportDetailValue) return exportDetailValue;
   return getLocalizedAction(lang, normalized) || normalized;
 }
 
@@ -696,7 +768,27 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
     const selected = (details as any).selected;
     const page = localValue(lang, String((details as any).page ?? ""));
     const parts: string[] = [];
-    if (format) parts.push(format);
+    const detailList = (value: unknown) =>
+      (Array.isArray(value) ? value : [value])
+        .map((item) => localValue(lang, String(item ?? "")))
+        .filter(Boolean)
+        .join(", ");
+    if (format)
+      parts.push(
+        action === "statistics_export" || action === "map_export"
+          ? `${localDetailLabel(lang, "format")}: ${format}`
+          : format,
+      );
+    if (action === "statistics_export") {
+      const groups = detailList((details as any).statistics_groups);
+      const charts = detailList((details as any).statistics_charts);
+      if (groups) parts.push(`${localDetailLabel(lang, "statistics_groups")}: ${groups}`);
+      if (charts) parts.push(`${localDetailLabel(lang, "statistics_charts")}: ${charts}`);
+    }
+    if (action === "map_export") {
+      const mapExports = detailList((details as any).map_exports);
+      if (mapExports) parts.push(`${localDetailLabel(lang, "map_exports")}: ${mapExports}`);
+    }
     if (count !== null && count !== undefined && count !== "")
       parts.push(lang === "en" ? `${count} records` : `${count} εγγραφές`);
     if (

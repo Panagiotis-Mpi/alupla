@@ -1204,6 +1204,11 @@ export default function Statistics() {
   async function handleExportAction() {
     if (!selectedChartIds.length || !selectedExportFormat) return;
 
+    const exportedChartIds = [...selectedChartIds];
+    const exportedGroupKeys = chartGroups
+      .filter((group) => group.charts.some((chart) => exportedChartIds.includes(chart.id)))
+      .map((group) => group.key);
+
     try {
       await Promise.all([loadStatsGroup("academic"), loadStatsGroup("geography")]);
       const rangedSourceData = await buildRangedExportSourceData();
@@ -1224,7 +1229,10 @@ export default function Statistics() {
       setExportOpen(false);
 
       try {
-        await logPublicExport("statistics_export", exportType);
+        await logPublicExport("statistics_export", exportType, {
+          statistics_groups: exportedGroupKeys,
+          statistics_charts: exportedChartIds,
+        });
       } catch {}
     }
   }
