@@ -159,15 +159,18 @@ export function parseYear(value: unknown) {
 }
 
 // Κανόνες λογικής εγκυρότητας για ηλικία και ελάχιστη διάρκεια σπουδών.
-export function getGraduateRuleViolations(input: { entry_year: number | null; birth_date: string | null; graduation_date: string | null; degree_grade?: number | null }, lang: RuleLang): GraduateRuleViolation[] {
+export function getGraduateRuleViolations(input: { entry_year: number | null; birth_date: string | null; graduation_date: string | null; oath_date?: string | null; degree_grade?: number | null }, lang: RuleLang): GraduateRuleViolation[] {
   const violations: GraduateRuleViolation[] = [];
-  const birthYear = parseYear(input.birth_date);
   const graduationYear = parseYear(input.graduation_date);
+  const birthDate = input.birth_date && DATE_ONLY_RE.test(input.birth_date) ? new Date(`${input.birth_date}T00:00:00Z`) : null;
+  const graduationDate = input.graduation_date && DATE_ONLY_RE.test(input.graduation_date) ? new Date(`${input.graduation_date}T00:00:00Z`) : null;
+  const oathDate = input.oath_date && DATE_ONLY_RE.test(input.oath_date) ? new Date(`${input.oath_date}T00:00:00Z`) : null;
+  const minimumAgeDate = birthDate ? new Date(Date.UTC(birthDate.getUTCFullYear() + MIN_GRADUATE_AGE, birthDate.getUTCMonth(), birthDate.getUTCDate())) : null;
   const degreeGrade = Number(input.degree_grade);
   if (input.degree_grade !== undefined && (!Number.isFinite(degreeGrade) || degreeGrade < MIN_DEGREE_GRADE || degreeGrade > MAX_DEGREE_GRADE)) {
     violations.push({ code: "degree_grade_out_of_range", message: getRuleViolationMessage("degree_grade_out_of_range", lang) });
   }
-  if (birthYear && graduationYear && graduationYear - birthYear < MIN_GRADUATE_AGE) {
+  if (minimumAgeDate && ((graduationDate && graduationDate < minimumAgeDate) || (oathDate && oathDate < minimumAgeDate))) {
     violations.push({ code: "age_under_minimum", message: getRuleViolationMessage("age_under_minimum", lang) });
   }
   if (input.entry_year && graduationYear && graduationYear - input.entry_year < MIN_GRADUATION_YEARS) {

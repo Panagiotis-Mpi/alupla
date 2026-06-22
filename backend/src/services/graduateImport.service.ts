@@ -290,7 +290,7 @@ export async function prepareGraduateImportRows(
     }
 
     const ruleViolations = getGraduateRuleViolations(
-      { entry_year, birth_date, graduation_date, degree_grade },
+      { entry_year, birth_date, graduation_date, oath_date, degree_grade },
       importLang,
     );
     if (ruleViolations.length) {
