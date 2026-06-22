@@ -1,5 +1,42 @@
+const GREECE_TIME_ZONE = "Europe/Athens";
+
+function dateTimePartMap(date: Date) {
+  return Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: GREECE_TIME_ZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(date)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+}
+
+export function formatGreeceDateTime(
+  value: Date | string | number = new Date(),
+  locale = "el-GR",
+  options: Intl.DateTimeFormatOptions = {
+    dateStyle: "short",
+    timeStyle: "medium",
+  },
+) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat(locale, {
+    ...options,
+    timeZone: GREECE_TIME_ZONE,
+  }).format(date);
+}
+
 export function exportTimestamp(date = new Date()) {
-  return date.toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  const parts = dateTimePartMap(date);
+  return `${parts.year}-${parts.month}-${parts.day}-${parts.hour}-${parts.minute}-${parts.second}`;
 }
 
 export function exportFilenamePart(value: unknown) {

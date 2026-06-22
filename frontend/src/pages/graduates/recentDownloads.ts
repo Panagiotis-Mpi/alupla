@@ -1,5 +1,6 @@
 // Κρατά πρόσφατα downloads για να μπορεί ο χρήστης να τα ξανακατεβάσει.
 import type { Graduate, QueryParams } from "../../lib/api";
+import { formatGreeceDateTime } from "../../lib/exportFilenames";
 import type { GraduatesFiltersState } from "./shared";
 
 export type RecentGraduateRequest = {
@@ -155,10 +156,10 @@ export function writeRecentGraduateDownloads(items: RecentGraduateDownload[]) {
 export function formatRecentGraduateDownloadDate(value: string, lang: "gr" | "en") {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "el-GR", {
+  return formatGreeceDateTime(date, lang === "en" ? "en-GB" : "el-GR", {
     dateStyle: "short",
     timeStyle: "short",
-  }).format(date);
+  });
 }
 
 export function buildRecentDownloadFiltersLabel(filters: GraduatesFiltersState, lang: "gr" | "en", selectedCount: number, totalCount: number) {

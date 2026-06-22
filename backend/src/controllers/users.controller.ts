@@ -75,7 +75,7 @@ function formatDate(value: unknown, lang: "gr" | "en") {
   if (!value) return "";
   const date = new Date(value as any);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "el-GR", { year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+  return new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "el-GR", { timeZone: "Europe/Athens", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 }
 
 function roleLabel(role: string, lang: "gr" | "en") {

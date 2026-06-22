@@ -11,7 +11,7 @@ import {
 import { compareSortValues, sortIndicator } from "./shared/sorting";
 import Icon from "../components/Icon";
 import { downloadBlob } from "../lib/download";
-import { buildExportFilename } from "../lib/exportFilenames";
+import { buildExportFilename, formatGreeceDateTime } from "../lib/exportFilenames";
 import userIcon from "../assets/icons/user.svg";
 import usersIcon from "../assets/icons/users.svg";
 import fileSpreadsheetIcon from "../assets/icons/file-spreadsheet.svg";
@@ -119,6 +119,7 @@ function RoleSelect({
 export default function Users() {
   const { t, i18n } = useTranslation("users");
 
+  const activeLocale = (i18n.resolvedLanguage || i18n.language || "gr").toLowerCase().startsWith("en") ? "en-GB" : "el-GR";
   const [items, setItems] = React.useState<AdminUser[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
@@ -468,7 +469,7 @@ export default function Users() {
                     <td>
                       <span
                         className="badge"
-                        title={user.last_seen_at ?? ""}
+                        title={user.last_seen_at ? formatGreeceDateTime(user.last_seen_at, activeLocale) : ""}
                         style={monospaceBadgeStyle}
                       >
                         {user.is_online

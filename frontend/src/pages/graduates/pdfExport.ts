@@ -1,5 +1,6 @@
 // Φτιάχνει PDF export της λίστας αποφοίτων από το frontend.
 import type { Graduate } from "../../lib/api";
+import { formatGreeceDateTime } from "../../lib/exportFilenames";
 import {
   getGraduateOriginCountryDisplay,
   getGraduateOriginMunicipalityDisplay,
@@ -410,9 +411,10 @@ export async function exportGraduatesPdf(args: {
 }) {
   const { items, lang, programNameById, regionNameById } = args;
   const title = lang === "en" ? "Graduates" : "Απόφοιτοι";
+  const exportDate = formatGreeceDateTime(new Date(), lang === "en" ? "en-GB" : "el-GR");
   const meta = lang === "en"
-    ? `Export date: ${new Date().toLocaleString("en-GB")} • Records: ${items.length}`
-    : `Ημερομηνία εξαγωγής: ${new Date().toLocaleString("el-GR")} • Εγγραφές: ${items.length}`;
+    ? `Export date: ${exportDate} • Records: ${items.length}`
+    : `Ημερομηνία εξαγωγής: ${exportDate} • Εγγραφές: ${items.length}`;
 
   const rows = buildRows({ items, lang, programNameById, regionNameById });
   const headers = Object.values(getLabels(lang));
