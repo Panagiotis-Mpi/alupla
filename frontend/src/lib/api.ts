@@ -46,13 +46,7 @@ export type StudyProgram = {
   is_active: 0 | 1 | boolean;
 };
 
-export type RegionType =
-  | "COUNTRY"
-  | "PERIPHERY"
-  | "NOMOS"
-  | "DIMOS"
-  | "CITY"
-  | "FOREIGN_CITY";
+export type RegionType = "COUNTRY" | "PERIPHERY" | "NOMOS" | "CITY";
 export type Region = {
   id: number;
   name: string;
@@ -78,6 +72,7 @@ export type Graduate = {
   birth_date: string;
   gender: "M" | "F";
   study_program_id: number;
+  origin_location_id?: number | null;
   origin_country?: string | null;
   origin_foreign_city?: string | null;
   origin_country_region_id?: number | null;
@@ -637,7 +632,7 @@ export async function listRegions(
       : parentIdOrParams || {};
 
   const path = `/regions${toQueryString(params)}`;
-  if (["NOMOS", "DIMOS", "CITY"].includes(String(params.type || "")))
+  if (["NOMOS", "CITY"].includes(String(params.type || "")))
     return api(path, { method: "GET" });
   return cachedPrivateApi("references", path, REFERENCE_CACHE_MS);
 }

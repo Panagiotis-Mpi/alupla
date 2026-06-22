@@ -1,140 +1,66 @@
-import { ensureLocalizedRegionNames } from "./mapLocation.service";
 import type { LocalizedNamesByRegionId } from "../controllers/graduates.shared";
-import { Region } from "../models/Region";
-import { findRegionAncestor } from "../utils/regionAncestors";
+import {
+  getRegionHierarchy,
+  loadRegionLookupIndex,
+} from "./regionLookup.service";
 
-function collectGraduateRegionIds(rows: Array<Record<string, any>>) {
+function text(...values: unknown[]) {
+  for (const value of values) {
+    const result = String(value ?? "").trim();
+    if (result) return result;
+  }
+  return "";
+}
+
+
+export async function getLocalizedNamesForGraduates(rows: Array<Record<string, any>>, lang: string) {
+  if (!String(lang || "").toLowerCase().startsWith("en")) return undefined;
+  const index = await loadRegionLookupIndex();
   const ids = new Set<number>();
-  for (const row of rows) {
-    [
-      row.origin_country_region_id,
-      row.origin_periphery_region_id,
-      row.origin_region_id,
-      row.origin_city_region_id,
-    ].forEach((value) => {
-      const id = Number(value);
-      if (Number.isFinite(id) && id > 0) ids.add(id);
-    });
-  }
-  return Array.from(ids);
-}
-
-type RegionNode = {
-  id: number;
-  type: string;
-  parent_id: number | null;
-};
-
-let graduateRegionTreeCache: Promise<Map<number, RegionNode>> | null = null;
-
-function getGraduateRegionTree() {
-  if (!graduateRegionTreeCache) {
-    graduateRegionTreeCache = Region.findAll({
-      attributes: ["id", "type", "parent_id"],
-    }).then(
-      (rows) =>
-        new Map(
-          rows.map((row: any) => [
-            Number(row.id),
-            {
-              id: Number(row.id),
-              type: String(row.type),
-              parent_id: row.parent_id == null ? null : Number(row.parent_id),
-            },
-          ]),
-        ),
-    );
-  }
-  return graduateRegionTreeCache;
-}
-
-export function clearGraduateLocalizationCache() {
-  graduateRegionTreeCache = null;
-}
-
-async function completeGraduateRegionIds(rows: Array<Record<string, any>>) {
-  if (!rows.length) return rows;
-  const regionsById = await getGraduateRegionTree();
-
-  return rows.map((row) => {
-    const next = { ...row };
-    const cityId = Number(next.origin_city_region_id);
-    const nomosId = Number(next.origin_region_id);
-    const peripheryId = Number(next.origin_periphery_region_id);
-
-    if ((!Number.isFinite(nomosId) || nomosId <= 0) && Number.isFinite(cityId) && cityId > 0) {
-      const nomos = findRegionAncestor(regionsById, cityId, "NOMOS");
-      if (nomos) next.origin_region_id = nomos.id;
+  for (const source of rows) {
+    const row = source?.get ? source.get({ plain: true }) : source;
+    const hierarchy = getRegionHierarchy(Number(row.origin_location_id), index.byId);
+    for (const region of [hierarchy?.location, hierarchy?.city, hierarchy?.nomos, hierarchy?.periphery, hierarchy?.country]) {
+      if (region) ids.add(region.id);
     }
-
-    if (!Number.isFinite(peripheryId) || peripheryId <= 0) {
-      const sourceId = Number(next.origin_region_id) || cityId;
-      const periphery = findRegionAncestor(regionsById, sourceId, "PERIPHERY");
-      if (periphery) next.origin_periphery_region_id = periphery.id;
-    }
-
-    return next;
-  });
-}
-
-export async function getLocalizedNamesForGraduates(
-  rows: Array<Record<string, any>>,
-  lang: string,
-) {
-  if (
-    !String(lang || "")
-      .toLowerCase()
-      .startsWith("en")
-  )
-    return undefined;
-  const plainRows = rows.map((row: any) =>
-    row?.get ? row.get({ plain: true }) : row,
-  );
-  const normalizedRows = await completeGraduateRegionIds(plainRows);
-  const entries = await Promise.all(
-    collectGraduateRegionIds(normalizedRows).map(
-      async (id) => [id, await ensureLocalizedRegionNames(id)] as const,
-    ),
-  );
-  return new Map(entries) as LocalizedNamesByRegionId;
-}
-
-function localizedName(
-  localizedNamesById: LocalizedNamesByRegionId | undefined,
-  id: unknown,
-) {
-  const numericId = Number(id);
-  if (!Number.isFinite(numericId) || numericId <= 0) return "";
-  return String(localizedNamesById?.get(numericId)?.nameEn ?? "").trim();
+  }
+  return new Map([...ids].map((id) => {
+    const region = index.byId.get(id)!;
+    return [id, {
+      nameEl: text(region.name_el, region.name) || null,
+      nameEn: text(region.name_en, region.name) || null,
+    }];
+  })) as LocalizedNamesByRegionId;
 }
 
 export async function serializeGraduateRows(rows: any[], lang: string) {
-  const plainRows = rows.map((row) =>
-    row?.get ? row.get({ plain: true }) : row,
-  );
-  const normalizedRows = await completeGraduateRegionIds(plainRows);
-  const localizedNamesById = await getLocalizedNamesForGraduates(
-    normalizedRows,
-    lang,
-  );
-  if (!localizedNamesById) return normalizedRows;
-  return normalizedRows.map((row) => ({
-    ...row,
-    origin_country_name_en: localizedName(
-      localizedNamesById,
-      row.origin_country_region_id,
-    ),
-    origin_region_name_en: localizedName(
-      localizedNamesById,
-      row.origin_periphery_region_id,
-    ),
-    origin_nomos_name_en: localizedName(
-      localizedNamesById,
-      row.origin_region_id,
-    ),
-    origin_city_name_en: localizedName(
-      localizedNamesById,
-      row.origin_city_region_id,
-    ),
-  }));
+  const index = await loadRegionLookupIndex();
+  const english = String(lang || "").toLowerCase().startsWith("en");
+  return rows.map((source) => {
+    const row = source?.get ? source.get({ plain: true }) : source;
+    const hierarchy = getRegionHierarchy(Number(row.origin_location_id), index.byId);
+    if (!hierarchy?.country) return row;
+    const abroad = hierarchy.country.normalized_name !== "ελλαδα" && hierarchy.country.normalized_name !== "greece";
+    const city = hierarchy.city;
+    return {
+      ...row,
+      origin_country: hierarchy.country.name,
+      origin_foreign_city: abroad ? city?.name ?? hierarchy.location.name : null,
+      origin_country_region_id: hierarchy.country.id,
+      origin_periphery_region_id: abroad ? null : hierarchy.periphery?.id ?? null,
+      origin_region_id: abroad ? null : hierarchy.nomos?.id ?? null,
+      origin_city_region_id: abroad ? null : city?.id ?? null,
+      origin_municipality: abroad ? null : city?.name ?? null,
+      origin_country_name_en: text(hierarchy.country.name_en, hierarchy.country.name),
+      origin_region_name_en: text(hierarchy.periphery?.name_en, hierarchy.periphery?.name),
+      origin_nomos_name_en: text(hierarchy.nomos?.name_en, hierarchy.nomos?.name),
+      origin_city_name_en: text(city?.name_en, city?.name),
+      ...(english ? {
+        origin_country_display: text(hierarchy.country.name_en, hierarchy.country.name),
+        origin_region_display: text(hierarchy.periphery?.name_en, hierarchy.periphery?.name),
+        origin_nomos_display: text(hierarchy.nomos?.name_en, hierarchy.nomos?.name),
+        origin_city_display: text(city?.name_en, city?.name),
+      } : {}),
+    };
+  });
 }

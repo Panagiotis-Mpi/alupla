@@ -101,7 +101,8 @@ export function getMatchedTemplateHeaderKeys(headers: string[]) {
 }
 
 
-const GRADUATE_SORT_FIELDS = new Set(["id", "last_name", "first_name", "entry_year", "graduation_date", "oath_date", "degree_grade", "birth_date", "study_program_id", "origin_region_id", "origin_city_region_id", "gender", "student_number", "ad_code"]);
+const GRADUATE_SORT_FIELDS = new Set(["id", "last_name", "first_name", "entry_year", "graduation_date", "oath_date", "degree_grade", "birth_date", "study_program_id", "origin_location_id", "origin_region_id", "origin_city_region_id", "origin_country_region_id", "gender", "student_number", "ad_code"]);
+const GRADUATE_SORT_ALIASES: Record<string, string> = { origin_region_id: "origin_location_id", origin_city_region_id: "origin_location_id", origin_country_region_id: "origin_location_id" };
 
 export function toSortDirection(value: unknown): "ASC" | "DESC" {
   return String(value ?? "asc").trim().toLowerCase() === "desc" ? "DESC" : "ASC";
@@ -114,7 +115,7 @@ export function parseSort(sortRaw: unknown): Array<[string, "ASC" | "DESC"]> {
   const parts = raw.split(":");
   const field = String(parts[0] ?? "").trim();
   if (!GRADUATE_SORT_FIELDS.has(field)) return [["id", "ASC"]];
-  return [[field, toSortDirection(parts[1])]];
+  return [[GRADUATE_SORT_ALIASES[field] || field, toSortDirection(parts[1])]];
 }
 
 export function bad(res: Response, message: string) {

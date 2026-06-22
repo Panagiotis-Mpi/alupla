@@ -260,11 +260,6 @@ useEffect(() => {
       try {
         const parentIds = Number.isFinite(nomosId) && nomosId > 0 ? [nomosId, peripheryId] : [peripheryId];
         for (const parentId of parentIds) {
-          const dimoi = await loadRegionChildren("DIMOS", parentId);
-          if (dimoi.length) {
-            setCities(dimoi);
-            return;
-          }
           const cityItems = await loadRegionChildren("CITY", parentId);
           if (cityItems.length) {
             setCities(cityItems);

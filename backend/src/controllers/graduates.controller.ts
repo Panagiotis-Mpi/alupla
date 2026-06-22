@@ -137,14 +137,11 @@ export async function exportGraduates(
       limit: ids.length ? undefined : limit,
     });
     const { programsById, regionsById } = await getReferenceMaps();
-    const localizedNamesById = await getLocalizedNamesForGraduates(
-      rows as any[],
-      lang,
-    );
-    // Πριν γραφτεί το αρχείο, καθαρίζονται τιμές που θα μπορούσαν να διαβαστούν ως Excel formulas.
+    const expandedRows = await serializeGraduateRows(rows as any[], lang);
+    const localizedNamesById = await getLocalizedNamesForGraduates(expandedRows, lang);
     const data = sanitizeExportRows(
       buildExportRows(
-        rows as any[],
+        expandedRows,
         lang,
         programsById,
         regionsById,
@@ -506,7 +503,7 @@ export async function createGraduate(
 
     clearGraduateCaches();
 
-    res.status(201).json({ ok: true, item: created });
+    res.status(201).json({ ok: true, item: (await serializeGraduateRows([created], String(body.lang ?? "")))[0] });
   } catch (err) {
     next(err);
   }
@@ -583,7 +580,7 @@ export async function updateGraduate(
 
     clearGraduateCaches();
 
-    res.json({ ok: true, item });
+    res.json({ ok: true, item: (await serializeGraduateRows([item], String(body.lang ?? "")))[0] });
   } catch (err) {
     next(err);
   }

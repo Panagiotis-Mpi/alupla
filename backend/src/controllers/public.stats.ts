@@ -34,7 +34,7 @@ export async function loadPublicMapRows(context: PublicWhereContext) {
         COUNT(*) as count,
         SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) as male,
         SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) as female
-     FROM graduates g
+     FROM graduate_details g
      LEFT JOIN regions r ON r.id = g.origin_region_id
      ${context.sqlWhere}
      GROUP BY g.origin_region_id, r.name, r.type

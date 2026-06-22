@@ -1,162 +1,128 @@
-import { Op, type WhereOptions } from "sequelize";
+import { Op, literal, type WhereOptions } from "sequelize";
+import { sequelize } from "../config/sequelize";
 import type { Graduate } from "../models/Graduate";
 
 type Query = Record<string, unknown>;
-type GraduateWhere = WhereOptions<Graduate> & Record<string | symbol, unknown>;
+type GraduateWhere = WhereOptions<Graduate> & Record<string | symbol, any>;
 
-type TextFilterPair = {
-  field: string;
-  exactKey: string;
-  likeKey: string;
-};
-
-function readString(value: unknown): string | undefined {
-  if (value === undefined || value === null) return undefined;
-  const normalized = String(value).trim();
-  return normalized.length > 0 ? normalized : undefined;
+function readString(value: unknown) {
+  const normalized = value == null ? "" : String(value).trim();
+  return normalized || undefined;
 }
 
-function readNumber(value: unknown): number | undefined {
+function readNumber(value: unknown) {
   if (value === undefined || value === null || value === "") return undefined;
   const normalized = Number(value);
   return Number.isFinite(normalized) ? normalized : undefined;
 }
 
 function contains(value: string) {
-  return { [Op.like]: `%${value}%` };
+  return { [Op.iLike]: `%${value}%` };
+}
+
+function appendAnd(where: GraduateWhere, condition: any) {
+  const current = where[Op.and];
+  where[Op.and] = Array.isArray(current) ? [...current, condition] : [condition];
+}
+
+function hierarchyCondition(column: string, value: string, exact = false) {
+  const escaped = sequelize.escape(exact ? value : `%${value}%`);
+  const operator = exact ? "=" : "ILIKE";
+  return literal(`"origin_location_id" IN (
+    SELECT location_id FROM public.region_hierarchy
+    WHERE COALESCE(${column}, '') ${operator} ${escaped}
+  )`);
 }
 
 function setTextFilters(where: GraduateWhere, query: Query) {
-  const pairs: TextFilterPair[] = [
-    { field: "ad_code", exactKey: "ad_code", likeKey: "ad_code_like" },
-    { field: "last_name", exactKey: "last_name", likeKey: "last_name_like" },
-    { field: "first_name", exactKey: "first_name", likeKey: "first_name_like" },
-    { field: "father_name", exactKey: "father_name", likeKey: "father_name_like" },
-    { field: "student_number", exactKey: "student_number", likeKey: "student_number_like" },
-    { field: "origin_municipality", exactKey: "origin_municipality", likeKey: "origin_municipality_like" },
-    { field: "origin_country", exactKey: "origin_country", likeKey: "origin_country_like" },
-    { field: "origin_foreign_city", exactKey: "origin_foreign_city", likeKey: "origin_foreign_city_like" }
-  ];
+  for (const field of ["ad_code", "last_name", "first_name", "father_name", "student_number"]) {
+    const exact = readString(query[field]);
+    const like = readString(query[`${field}_like`]);
+    if (exact) where[field] = exact;
+    if (like) where[field] = contains(like);
+  }
 
-  for (const pair of pairs) {
-    const exactValue = readString(query[pair.exactKey]);
-    const likeValue = readString(query[pair.likeKey]);
-    if (exactValue) where[pair.field] = exactValue;
-    if (likeValue) where[pair.field] = contains(likeValue);
+  const geoFilters = [
+    ["origin_municipality", "city_name"],
+    ["origin_country", "country_name"],
+    ["origin_foreign_city", "city_name"],
+  ] as const;
+  for (const [key, column] of geoFilters) {
+    const exact = readString(query[key]);
+    const like = readString(query[`${key}_like`]);
+    if (exact) appendAnd(where, hierarchyCondition(column, exact, true));
+    if (like) appendAnd(where, hierarchyCondition(column, like));
   }
 }
 
-function setEnumAndForeignKeyFilters(where: GraduateWhere, query: Query) {
-  const gender = readString(query.gender);
-  if (gender === "M" || gender === "F") where.gender = gender;
-
-  const studyProgramId = readNumber(query.study_program_id);
-  if (studyProgramId !== undefined) where.study_program_id = studyProgramId;
-
-  const originRegionId = readNumber(query.origin_region_id);
-  if (originRegionId !== undefined) where.origin_periphery_region_id = originRegionId;
-
-  const originNomosId = readNumber(query.origin_nomos_region_id);
-  if (originNomosId !== undefined) where.origin_region_id = originNomosId;
+function setLocationFilters(where: GraduateWhere, query: Query) {
+  const peripheryId = readNumber(query.origin_region_id);
+  const nomosId = readNumber(query.origin_nomos_region_id);
+  const countryId = readNumber(query.origin_country_region_id);
+  const cityId = readNumber(query.origin_city_region_id);
+  if (peripheryId !== undefined) appendAnd(where, literal(`"origin_location_id" IN (SELECT location_id FROM public.region_hierarchy WHERE periphery_id = ${Math.trunc(peripheryId)})`));
+  if (nomosId !== undefined) appendAnd(where, literal(`"origin_location_id" IN (SELECT location_id FROM public.region_hierarchy WHERE nomos_id = ${Math.trunc(nomosId)})`));
+  if (countryId !== undefined) appendAnd(where, literal(`"origin_location_id" IN (SELECT location_id FROM public.region_hierarchy WHERE country_id = ${Math.trunc(countryId)})`));
+  if (cityId !== undefined) appendAnd(where, literal(`"origin_location_id" IN (SELECT location_id FROM public.region_hierarchy WHERE city_id = ${Math.trunc(cityId)})`));
 }
 
-function setRangeOrExact(
-  where: GraduateWhere,
-  field: string,
-  exactValue: number | undefined,
-  minValue: number | undefined,
-  maxValue: number | undefined
-) {
-  if (exactValue !== undefined) {
-    where[field] = exactValue;
-    return;
+function setRangeOrExact(where: GraduateWhere, field: string, exact: number | undefined, min: number | undefined, max: number | undefined) {
+  if (exact !== undefined) {
+    where[field] = exact;
+  } else if (min !== undefined || max !== undefined) {
+    where[field] = {
+      ...(min !== undefined ? { [Op.gte]: min } : {}),
+      ...(max !== undefined ? { [Op.lte]: max } : {}),
+    };
   }
-
-  if (minValue === undefined && maxValue === undefined) return;
-
-  where[field] = {
-    ...(minValue !== undefined ? { [Op.gte]: minValue } : {}),
-    ...(maxValue !== undefined ? { [Op.lte]: maxValue } : {})
-  };
 }
 
-function setDateRange(where: GraduateWhere, field: string, from: string | undefined, to: string | undefined) {
+function setDateRange(where: GraduateWhere, field: string, from?: string, to?: string) {
   if (!from && !to) return;
-
   where[field] = {
     ...(from ? { [Op.gte]: from } : {}),
-    ...(to ? { [Op.lte]: to } : {})
+    ...(to ? { [Op.lte]: to } : {}),
   };
 }
 
-function setNumericFilters(where: GraduateWhere, query: Query) {
-  setRangeOrExact(where, "degree_grade",
-    readNumber(query.degree_grade),
-    readNumber(query.degree_grade_min),
-    readNumber(query.degree_grade_max)
-  );
-
-  setRangeOrExact(where, "entry_year",
-    readNumber(query.entry_year),
-    readNumber(query.entry_year_min),
-    readNumber(query.entry_year_max)
-  );
-}
-
-function setBirthDateFilters(where: GraduateWhere, query: Query) {
-  const exactBirthYear = readNumber(query.birth_year);
-  const birthYearMin = readNumber(query.birth_year_min);
-  const birthYearMax = readNumber(query.birth_year_max);
-
-  if (exactBirthYear !== undefined) {
-    where.birth_date = {
-      [Op.between]: [`${exactBirthYear}-01-01`, `${exactBirthYear}-12-31`]
-    };
-  } else if (birthYearMin !== undefined || birthYearMax !== undefined) {
-    setDateRange(
-      where,
-      "birth_date",
-      birthYearMin !== undefined ? `${birthYearMin}-01-01` : undefined,
-      birthYearMax !== undefined ? `${birthYearMax}-12-31` : undefined
-    );
-  }
-
-  const exactBirthDate = readString(query.birth_date);
-  if (exactBirthDate) where.birth_date = exactBirthDate;
-
+function setBirthFilters(where: GraduateWhere, query: Query) {
+  const year = readNumber(query.birth_year);
+  const min = readNumber(query.birth_year_min);
+  const max = readNumber(query.birth_year_max);
+  if (year !== undefined) where.birth_date = { [Op.between]: [`${year}-01-01`, `${year}-12-31`] };
+  else if (min !== undefined || max !== undefined) setDateRange(where, "birth_date", min !== undefined ? `${min}-01-01` : undefined, max !== undefined ? `${max}-12-31` : undefined);
+  const exact = readString(query.birth_date);
+  if (exact) where.birth_date = exact;
   setDateRange(where, "birth_date", readString(query.birth_date_from), readString(query.birth_date_to));
-}
-
-function setDateFilters(where: GraduateWhere, query: Query) {
-  setDateRange(where, "graduation_date", readString(query.graduation_date_from), readString(query.graduation_date_to));
-  setDateRange(where, "oath_date", readString(query.oath_date_from), readString(query.oath_date_to));
-}
-
-function setGlobalSearch(where: GraduateWhere, query: Query) {
-  const keyword = readString(query.q);
-  if (!keyword) return;
-
-  where[Op.or] = [
-    { last_name: contains(keyword) },
-    { first_name: contains(keyword) },
-    { father_name: contains(keyword) },
-    { student_number: contains(keyword) },
-    { ad_code: contains(keyword) },
-    { origin_municipality: contains(keyword) },
-    { origin_country: contains(keyword) },
-    { origin_foreign_city: contains(keyword) }
-  ];
 }
 
 export function buildGraduateWhere(query: Query): WhereOptions<Graduate> {
   const where: GraduateWhere = {};
-
   setTextFilters(where, query);
-  setEnumAndForeignKeyFilters(where, query);
-  setNumericFilters(where, query);
-  setBirthDateFilters(where, query);
-  setDateFilters(where, query);
-  setGlobalSearch(where, query);
+  setLocationFilters(where, query);
+
+  const gender = readString(query.gender);
+  if (gender === "M" || gender === "F") where.gender = gender;
+  const programId = readNumber(query.study_program_id);
+  if (programId !== undefined) where.study_program_id = programId;
+
+  setRangeOrExact(where, "degree_grade", readNumber(query.degree_grade), readNumber(query.degree_grade_min), readNumber(query.degree_grade_max));
+  setRangeOrExact(where, "entry_year", readNumber(query.entry_year), readNumber(query.entry_year_min), readNumber(query.entry_year_max));
+  setBirthFilters(where, query);
+  setDateRange(where, "graduation_date", readString(query.graduation_date_from), readString(query.graduation_date_to));
+  setDateRange(where, "oath_date", readString(query.oath_date_from), readString(query.oath_date_to));
+
+  const keyword = readString(query.q);
+  if (keyword) {
+    where[Op.or] = [
+      { last_name: contains(keyword) },
+      { first_name: contains(keyword) },
+      { father_name: contains(keyword) },
+      { student_number: contains(keyword) },
+      { ad_code: contains(keyword) },
+      hierarchyCondition("COALESCE(city_name, '') || ' ' || COALESCE(nomos_name, '') || ' ' || COALESCE(periphery_name, '') || ' ' || COALESCE(country_name, '')", keyword),
+    ];
+  }
 
   return where;
 }

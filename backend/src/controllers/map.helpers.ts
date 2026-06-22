@@ -1,36 +1,16 @@
-// Helpers του χάρτη για φίλτρα, ηλικίες, Ελλάδα/εξωτερικό και επιλογή top ονομάτων.
 import type { Request } from "express";
-import type { Graduate } from "../models/Graduate";
 import { Op } from "sequelize";
 import { buildGraduateWhere } from "../utils/buildGraduateWhere";
-import { getRegionAncestor, loadRegionLookupIndex } from "../services/regionLookup.service";
 
 export type AgeGroup = "23-26" | "27-30" | "31+";
 
-type MapGraduateSource = Pick<Graduate, "origin_country" | "origin_foreign_city" | "origin_country_region_id">;
 type GraduateWhere = ReturnType<typeof buildGraduateWhere> & { [Op.and]?: unknown[] };
 
-// Φορτώνει regions που χρειάζονται για mapping χάρτη.
-export async function loadRegions() {
-  const lookups = await loadRegionLookupIndex();
-  return {
-    regions: lookups.rows,
-    findRegion(regionId: number | null | undefined) {
-      return regionId ? lookups.byId.get(Number(regionId)) || null : null;
-    },
-    findPeriphery(regionId: number | null | undefined) {
-      return getRegionAncestor(regionId, "PERIPHERY", lookups.byId);
-    },
-  };
-}
-
-// Μετατρέπει input σε αριθμό ή fallback.
 export function toInt(value: unknown): number | null {
   const n = Number(value);
   return Number.isFinite(n) ? Math.trunc(n) : null;
 }
 
-// Καθαρίζει κείμενο ώστε να χρησιμοποιείται σαν σταθερό key.
 export function normalizeKey(value: string | null | undefined) {
   return String(value || "")
     .toLowerCase()
@@ -40,36 +20,17 @@ export function normalizeKey(value: string | null | undefined) {
     .trim();
 }
 
-// Ελέγχει αν μία χώρα/τιμή σημαίνει Ελλάδα.
 export function isGreeceOriginValue(value: unknown) {
   const normalized = normalizeKey(String(value ?? ""));
   return normalized === normalizeKey("Ελλάδα") || normalized === normalizeKey("Greece");
 }
 
-// Ελέγχει αν ο απόφοιτος μετράει στο ελληνικό scope χάρτη.
-export function isGreekMapGraduate(graduate: MapGraduateSource) {
-  const explicitCountry = String(graduate?.origin_country ?? "").trim();
-  if (explicitCountry) return isGreeceOriginValue(explicitCountry);
-  if (String(graduate?.origin_foreign_city ?? "").trim()) return false;
-  return !!graduate?.origin_country_region_id;
-}
-
-// Ελέγχει αν ο απόφοιτος μετράει στο scope εξωτερικού.
-export function isAbroadMapGraduate(graduate: MapGraduateSource) {
-  const explicitCountry = String(graduate?.origin_country ?? "").trim();
-  if (explicitCountry) return !isGreeceOriginValue(explicitCountry);
-  if (String(graduate?.origin_foreign_city ?? "").trim()) return true;
-  return false;
-}
-
-// Μετατρέπει τιμή ημερομηνίας σε Date για υπολογισμούς.
 function parseDateValue(value: unknown): Date | null {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(String(value));
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-// Υπολογίζει ηλικία αποφοίτου τη μέρα αποφοίτησης.
 export function calculateAgeAtDate(birthValue: unknown, referenceValue: unknown): number | null {
   const birthDate = parseDateValue(birthValue);
   const referenceDate = parseDateValue(referenceValue);
@@ -80,21 +41,19 @@ export function calculateAgeAtDate(birthValue: unknown, referenceValue: unknown)
   return age >= 0 ? age : null;
 }
 
-// Μετατρέπει ηλικιακή ομάδα φίλτρου σε min/max ηλικία.
 function ageGroupToRange(value: AgeGroup): [number, number | null] {
   if (value === "23-26") return [23, 26];
   if (value === "27-30") return [27, 30];
   return [31, null];
 }
 
-// Μετατρέπει φίλτρα χάρτη σε Sequelize where query.
 export function buildMapWhere(req: Request) {
   const graduationYear = toInt(req.query.graduation_year);
-  const ageGroup = (req.query.age_group as string | undefined) as AgeGroup | undefined;
+  const ageGroup = req.query.age_group as AgeGroup | undefined;
   const where = buildGraduateWhere(req.query as Record<string, unknown>) as GraduateWhere;
   const currentYear = new Date().getFullYear();
   const rawAnd = where[Op.and];
-  const andParts: unknown[] = Array.isArray(rawAnd) ? [...(rawAnd as unknown[])] : [];
+  const andParts: unknown[] = Array.isArray(rawAnd) ? [...rawAnd] : [];
 
   if (graduationYear) {
     andParts.push({ graduation_date: { [Op.between]: [`${graduationYear}-01-01`, `${graduationYear}-12-31`] } });
@@ -111,11 +70,9 @@ export function buildMapWhere(req: Request) {
   return { where, currentYear };
 }
 
-// Διαλέγει το πιο συχνό όνομα από μετρητή εμφανίσεων.
 export function pickTopName(counts: Map<number, number>, labels: Map<number, string>) {
   let topCount = 0;
   let topLabel = "";
-
   for (const [id, count] of counts.entries()) {
     const label = labels.get(id) || String(id);
     if (count > topCount || (count === topCount && label.localeCompare(topLabel, "el") < 0)) {
@@ -123,7 +80,5 @@ export function pickTopName(counts: Map<number, number>, labels: Map<number, str
       topLabel = label;
     }
   }
-
   return topCount > 0 ? topLabel : null;
 }
-

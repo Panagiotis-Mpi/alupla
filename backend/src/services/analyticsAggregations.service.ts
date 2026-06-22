@@ -77,7 +77,7 @@ export async function getGraduationYears() {
 }
 
 export async function getTotalGraduates(context: AnalyticsWhereContext) {
-  return queryAnalyticsRows<{ total: number }>(`SELECT COUNT(*) as total FROM graduates g ${context.sqlWhere}`, context);
+  return queryAnalyticsRows<{ total: number }>(`SELECT COUNT(*) as total FROM graduate_details g ${context.sqlWhere}`, context);
 }
 
 export async function getOverviewSummary(context: AnalyticsWhereContext) {
@@ -102,7 +102,7 @@ export async function getOverviewSummary(context: AnalyticsWhereContext) {
             AVG(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as avg_years_to_degree,
             MIN(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as min_years_to_degree,
             MAX(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as max_years_to_degree
-     FROM graduates g ${context.sqlWhere}`,
+     FROM graduate_details g ${context.sqlWhere}`,
     context,
   );
 }
@@ -111,7 +111,7 @@ export async function getCountByGraduationYear(context: AnalyticsWhereContext) {
   return queryAnalyticsRows<{ year: number; count: number }>(
     `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
             CAST(COUNT(*) AS INTEGER) as count
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY EXTRACT(YEAR FROM g.graduation_date)
      ORDER BY year ASC`,
     context,
@@ -123,7 +123,7 @@ export async function getCountByGraduationTerm(context: AnalyticsWhereContext) {
     `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
             ${termCaseSql} as term,
             CAST(COUNT(*) AS INTEGER) as count
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY EXTRACT(YEAR FROM g.graduation_date), ${termCaseSql}
      ORDER BY year ASC, ${termOrderSql} ASC`,
     context,
@@ -133,7 +133,7 @@ export async function getCountByGraduationTerm(context: AnalyticsWhereContext) {
 export async function getGenderCounts(context: AnalyticsWhereContext) {
   return queryAnalyticsRows<{ gender: string; count: number }>(
     `SELECT g.gender as gender, CAST(COUNT(*) AS INTEGER) as count
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY g.gender`,
     context,
   );
@@ -153,7 +153,7 @@ export async function getGenderByGraduationYear(context: AnalyticsWhereContext) 
     `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
             CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
             CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY EXTRACT(YEAR FROM g.graduation_date)
      ORDER BY year ASC`,
     context,
@@ -166,7 +166,7 @@ export async function getGenderByGraduationTerm(context: AnalyticsWhereContext) 
             ${termCaseSql} as term,
             CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
             CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY EXTRACT(YEAR FROM g.graduation_date), ${termCaseSql}
      ORDER BY year ASC, ${termOrderSql} ASC`,
     context,
@@ -178,7 +178,7 @@ export async function getCountByBirthYear(context: AnalyticsWhereContext, birthY
   return queryAnalyticsRows<{ year: number; count: number }>(
     `SELECT ${expr} as year,
             CAST(COUNT(*) AS INTEGER) as count
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY ${expr}
      ORDER BY year ASC`,
     context,
@@ -191,7 +191,7 @@ export async function getGenderByBirthYear(context: AnalyticsWhereContext, birth
     `SELECT ${expr} as year,
             CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
             CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY ${expr}
      ORDER BY year ASC`,
     context,
@@ -208,7 +208,7 @@ export async function getAgeGroups(context: AnalyticsWhereContext) {
               ELSE 'unknown'
             END as label,
             CAST(COUNT(*) AS INTEGER) as count
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY label
      ORDER BY CASE label WHEN '23-26' THEN 1 WHEN '27-30' THEN 2 WHEN '31+' THEN 3 ELSE 99 END`,
     context,
@@ -219,7 +219,7 @@ export async function getCountByEntryYear(context: AnalyticsWhereContext) {
   return queryAnalyticsRows<{ entry_year: number; count: number }>(
     `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
             CAST(COUNT(*) AS INTEGER) as count
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY g.entry_year
      ORDER BY g.entry_year ASC`,
     context,
@@ -231,7 +231,7 @@ export async function getGenderByEntryYear(context: AnalyticsWhereContext) {
     `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
             CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
             CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY g.entry_year
      ORDER BY g.entry_year ASC`,
     context,
@@ -242,7 +242,7 @@ export async function getAverageGradeByGraduationYear(context: AnalyticsWhereCon
   return queryAnalyticsRows<{ year: number; avg: number }>(
     `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
             ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY EXTRACT(YEAR FROM g.graduation_date)
      ORDER BY year ASC`,
     context,
@@ -255,7 +255,7 @@ export async function getAverageAgeByGraduationYear(context: AnalyticsWhereConte
     `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
             CAST(COUNT(*) AS INTEGER) as count,
             ROUND(CAST(AVG(EXTRACT(YEAR FROM age(g.graduation_date, ${birthExpr}))) AS NUMERIC), 2) as avg_age
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY EXTRACT(YEAR FROM g.graduation_date)
      ORDER BY year ASC`,
     context,
@@ -267,7 +267,7 @@ export async function getAverageYearsToDegreeByGraduationYear(context: Analytics
     `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
             CAST(COUNT(*) AS INTEGER) as count,
             ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY EXTRACT(YEAR FROM g.graduation_date)
      ORDER BY year ASC`,
     context,
@@ -278,7 +278,7 @@ export async function getDegreeGradeBins(context: AnalyticsWhereContext) {
   return queryAnalyticsRows<{ label: string; count: number }>(
     `SELECT ${gradeBucketSql} as label,
             CAST(COUNT(*) AS INTEGER) as count
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY ${gradeBucketSql}
      ORDER BY ${gradeBucketOrderSql} ASC`,
     context,
@@ -290,7 +290,7 @@ export async function getDegreeGradeBinsByGender(context: AnalyticsWhereContext)
     `SELECT ${gradeBucketSql} as label,
             CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
             CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY ${gradeBucketSql}
      ORDER BY ${gradeBucketOrderSql} ASC`,
     context,
@@ -301,7 +301,7 @@ export async function getAverageYearsToDegreeByEntryYear(context: AnalyticsWhere
   return queryAnalyticsRows<{ entry_year: number; avg_years: number }>(
     `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
             ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY g.entry_year
      ORDER BY entry_year ASC`,
     context,
@@ -313,7 +313,7 @@ export async function getYearsToDegreeDistribution(context: AnalyticsWhereContex
   return queryAnalyticsRows<{ label: string; count: number }>(
     `SELECT CAST((CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) AS TEXT) as label,
             CAST(COUNT(*) AS INTEGER) as count
-     FROM graduates g ${scopedWhere}
+     FROM graduate_details g ${scopedWhere}
      GROUP BY (CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year)
      ORDER BY (CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) ASC`,
     context,
@@ -324,7 +324,7 @@ export async function getOriginRows(context: AnalyticsWhereContext) {
   return queryAnalyticsRows<{ place: string; count: number }>(
     `SELECT COALESCE(NULLIF(TRIM(r.name), ''), NULLIF(TRIM(g.origin_municipality), ''), NULLIF(TRIM(g.origin_country), ''), 'Unknown') as place,
             CAST(COUNT(*) AS INTEGER) as count
-     FROM graduates g
+     FROM graduate_details g
      LEFT JOIN regions r ON r.id = g.origin_region_id
      ${context.sqlWhere}
      GROUP BY place
@@ -338,7 +338,7 @@ export async function getCityRows(context: AnalyticsWhereContext) {
   return queryAnalyticsRows<{ place: string; count: number }>(
     `SELECT COALESCE(NULLIF(TRIM(g.origin_municipality), ''), 'Unknown') as place,
             CAST(COUNT(*) AS INTEGER) as count
-     FROM graduates g ${context.sqlWhere}
+     FROM graduate_details g ${context.sqlWhere}
      GROUP BY place
      ORDER BY count DESC, place ASC
      LIMIT 20`,

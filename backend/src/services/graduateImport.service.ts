@@ -263,7 +263,7 @@ export async function prepareGraduateImportRows(
     }
 
     const originResult = is_abroad
-      ? buildForeignGraduateOriginPayload(
+      ? await buildForeignGraduateOriginPayload(
           origin_country_name,
           origin_country_region_id,
           origin_foreign_city,

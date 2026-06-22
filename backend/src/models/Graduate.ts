@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/sequelize";
 
 export type Gender = "M" | "F";
-// Model αποφοίτου: δηλώνει τα πεδία όπως υπάρχουν στον πίνακα graduates.
+
 export class Graduate extends Model {
   declare id: number;
   declare ad_code: string;
@@ -17,20 +17,13 @@ export class Graduate extends Model {
   declare birth_date: string;
   declare gender: Gender;
   declare study_program_id: number;
-  declare origin_country: string | null;
-  declare origin_foreign_city: string | null;
-  declare origin_country_region_id: number | null;
-  declare origin_periphery_region_id: number | null;
-  declare origin_region_id: number | null;
-  declare origin_city_region_id: number | null;
-  declare origin_municipality: string | null;
+  declare origin_location_id: number;
 }
 
-// Σύνδεση του model με τη βάση και τους τύπους κάθε πεδίου.
 Graduate.init(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    ad_code: { type: DataTypes.STRING(20), allowNull: false },
+    ad_code: { type: DataTypes.STRING(20), allowNull: false, unique: true },
     last_name: { type: DataTypes.STRING(100), allowNull: false },
     first_name: { type: DataTypes.STRING(100), allowNull: false },
     father_name: { type: DataTypes.STRING(100), allowNull: false },
@@ -38,17 +31,11 @@ Graduate.init(
     graduation_date: { type: DataTypes.DATEONLY, allowNull: false },
     oath_date: { type: DataTypes.DATEONLY, allowNull: false },
     entry_year: { type: DataTypes.SMALLINT, allowNull: false },
-    student_number: { type: DataTypes.STRING(50), allowNull: false },
+    student_number: { type: DataTypes.STRING(50), allowNull: false, unique: true },
     birth_date: { type: DataTypes.DATEONLY, allowNull: false },
     gender: { type: DataTypes.ENUM("M", "F"), allowNull: false },
     study_program_id: { type: DataTypes.INTEGER, allowNull: false },
-    origin_country: { type: DataTypes.STRING(120), allowNull: true },
-    origin_foreign_city: { type: DataTypes.STRING(120), allowNull: true },
-    origin_country_region_id: { type: DataTypes.INTEGER, allowNull: true },
-    origin_periphery_region_id: { type: DataTypes.INTEGER, allowNull: true },
-    origin_region_id: { type: DataTypes.INTEGER, allowNull: true },
-    origin_city_region_id: { type: DataTypes.INTEGER, allowNull: true },
-    origin_municipality: { type: DataTypes.STRING(150), allowNull: true }
+    origin_location_id: { type: DataTypes.INTEGER, allowNull: false }
   },
   {
     sequelize,

@@ -1,14 +1,10 @@
-// Κοινές βοηθητικές λειτουργίες για αποφοίτους, exports και καταγωγή.
-import { Graduate } from "../models/Graduate";
 import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
 import { normalizeRegionText } from "../utils/regionText";
-import { findRegionAncestor } from "../utils/regionAncestors";
 import {
   buildForeignGraduateOriginPayload,
   buildGreekGraduateOriginPayload,
 } from "../services/graduateOrigin.service";
-import { getGreekNomosNormalizedName } from "../services/greekNomosLookup.service";
 import {
   formatCountryValue,
   formatDateDisplay,
@@ -23,114 +19,16 @@ import {
   type ExportLang,
 } from "./graduates.helpers";
 
-export type ProgramLookup = Pick<
-  StudyProgram,
-  "id" | "code" | "name_el" | "name_en"
->;
-export type RegionLookup = Pick<
-  Region,
-  | "id"
-  | "name"
-  | "name_el"
-  | "name_en"
-  | "normalized_name"
-  | "external_ref_id"
-  | "type"
-  | "parent_id"
->;
-export type LocalizedNamesByRegionId = Map<
-  number,
-  { nameEl: string | null; nameEn: string | null }
->;
-type GraduateExportSource = Pick<
-  Graduate,
-  | "ad_code"
-  | "student_number"
-  | "last_name"
-  | "first_name"
-  | "father_name"
-  | "gender"
-  | "entry_year"
-  | "birth_date"
-  | "degree_grade"
-  | "graduation_date"
-  | "oath_date"
-  | "study_program_id"
-  | "origin_country"
-  | "origin_foreign_city"
-  | "origin_country_region_id"
-  | "origin_periphery_region_id"
-  | "origin_region_id"
-  | "origin_city_region_id"
-  | "origin_municipality"
->;
-type ManagedOriginTarget = Pick<
-  Graduate,
-  | "origin_country"
-  | "origin_foreign_city"
-  | "origin_country_region_id"
-  | "origin_periphery_region_id"
-  | "origin_region_id"
-  | "origin_city_region_id"
-  | "origin_municipality"
->;
-
+export type ProgramLookup = Pick<StudyProgram, "id" | "code" | "name_el" | "name_en">;
+export type RegionLookup = Pick<Region, "id" | "name" | "name_el" | "name_en" | "normalized_name" | "external_ref_id" | "type" | "parent_id">;
+export type LocalizedNamesByRegionId = Map<number, { nameEl: string | null; nameEn: string | null }>;
 export type ReferenceMaps = {
   programsById: Map<number, ProgramLookup>;
   regionsById: Map<number, RegionLookup>;
 };
 
-function isInvalidNullableNumber(value: number | null) {
-  return value !== null && Number.isNaN(value);
-}
-
-function findNomosByCityName(
-  regionsById: Map<number, RegionLookup>,
-  cityName: unknown,
-  peripheryId: number | null,
-) {
-  const nomosKey = getGreekNomosNormalizedName(cityName);
-  if (!nomosKey) return null;
-  const candidates = [...regionsById.values()].filter(
-    (item) => String(item.type) === "NOMOS" && normalizeRegionText(item.normalized_name || item.name) === nomosKey,
-  );
-  if (!candidates.length) return null;
-  if (peripheryId) {
-    const scoped = candidates.find(
-      (item) => Number(item.parent_id) === peripheryId,
-    );
-    if (scoped) return scoped;
-  }
-  return candidates[0] ?? null;
-}
-
-function resolveGraduateNomosId(
-  row: GraduateExportSource,
-  regionsById: Map<number, RegionLookup>,
-) {
-  const direct = regionsById.get(Number(row.origin_region_id));
-  if (direct && String(direct.type) === "NOMOS") return Number(direct.id);
-  const ancestor = findRegionAncestor(regionsById, row.origin_city_region_id, "NOMOS");
-  if (ancestor) return Number(ancestor.id);
-  const city = regionsById.get(Number(row.origin_city_region_id));
-  const peripheryId = resolveGraduatePeripheryId(row, regionsById);
-  return findNomosByCityName(
-    regionsById,
-    row.origin_municipality || city?.name,
-    peripheryId,
-  )?.id ?? null;
-}
-
-function resolveGraduatePeripheryId(
-  row: GraduateExportSource,
-  regionsById: Map<number, RegionLookup>,
-) {
-  const direct = regionsById.get(Number(row.origin_periphery_region_id));
-  if (direct && String(direct.type) === "PERIPHERY") return Number(direct.id);
-  const fromNomos = findRegionAncestor(regionsById, row.origin_region_id, "PERIPHERY");
-  if (fromNomos) return Number(fromNomos.id);
-  return findRegionAncestor(regionsById, row.origin_city_region_id, "PERIPHERY")?.id ?? null;
-}
+type GraduateExportSource = Record<string, any>;
+type ManagedOriginTarget = { origin_location_id: number };
 
 function firstText(...values: unknown[]) {
   for (const value of values) {
@@ -140,111 +38,19 @@ function firstText(...values: unknown[]) {
   return "";
 }
 
-function getRegionNameById(
-  regionsById: Map<number, RegionLookup>,
-  value: unknown,
-  lang: ExportLang,
-  localizedNamesById?: LocalizedNamesByRegionId,
-) {
-  if (value == null || value === "") return "";
-  const id = Number(value);
-  const region = regionsById.get(id);
+function regionName(region: RegionLookup | undefined, lang: ExportLang, localized?: LocalizedNamesByRegionId) {
   if (!region) return "";
-  const localized = localizedNamesById?.get(id);
-  if (lang === "en")
-    return firstText(localized?.nameEn, region.name_en, localized?.nameEl, region.name_el, region.name);
-  return firstText(localized?.nameEl, region.name_el, region.name, localized?.nameEn, region.name_en);
+  const names = localized?.get(Number(region.id));
+  return lang === "en"
+    ? firstText(names?.nameEn, region.name_en, names?.nameEl, region.name_el, region.name)
+    : firstText(names?.nameEl, region.name_el, region.name, names?.nameEn, region.name_en);
 }
 
-function getCountryExportName(
-  row: GraduateExportSource,
-  regionsById: Map<number, RegionLookup>,
-  lang: ExportLang,
-  localizedNamesById?: LocalizedNamesByRegionId,
-) {
-  const countryName = getRegionNameById(
-    regionsById,
-    row.origin_country_region_id,
-    lang,
-    localizedNamesById,
-  );
-  if (countryName) return formatCountryValue(countryName, lang);
-  return formatCountryValue(row.origin_country, lang);
+function compareDiplomaNumber(a: GraduateExportSource, b: GraduateExportSource) {
+  const result = String(a.ad_code ?? "").localeCompare(String(b.ad_code ?? ""), "el", { numeric: true, sensitivity: "base" });
+  return result || String(a.student_number ?? "").localeCompare(String(b.student_number ?? ""), "el", { numeric: true, sensitivity: "base" });
 }
 
-function getNomosExportName(
-  row: GraduateExportSource,
-  regionsById: Map<number, RegionLookup>,
-  isGreece: boolean,
-  lang: ExportLang,
-  localizedNamesById?: LocalizedNamesByRegionId,
-) {
-  if (!isGreece) return "";
-  const nomosId = resolveGraduateNomosId(row, regionsById);
-  if (!nomosId) return "";
-  return getRegionNameById(
-    regionsById,
-    nomosId,
-    lang,
-    localizedNamesById,
-  );
-}
-
-function getMunicipalityExportName(
-  row: GraduateExportSource,
-  regionsById: Map<number, RegionLookup>,
-  isGreece: boolean,
-  lang: ExportLang,
-  localizedNamesById?: LocalizedNamesByRegionId,
-) {
-  const explicitMunicipality = String(row.origin_municipality ?? "").trim();
-  const foreignCity = String(row.origin_foreign_city ?? "").trim();
-  const cityName = getRegionNameById(
-    regionsById,
-    row.origin_city_region_id,
-    lang,
-    localizedNamesById,
-  );
-  const legacyRegionName = getRegionNameById(
-    regionsById,
-    row.origin_region_id,
-    lang,
-    localizedNamesById,
-  );
-
-  if (lang === "en") {
-    if (cityName) return cityName;
-    return isGreece
-      ? explicitMunicipality || legacyRegionName || foreignCity
-      : foreignCity || explicitMunicipality || legacyRegionName;
-  }
-
-  if (isGreece) {
-    return explicitMunicipality || cityName || legacyRegionName || foreignCity;
-  }
-
-  return foreignCity || explicitMunicipality || cityName || legacyRegionName;
-}
-
-function compareDiplomaNumber(
-  a: GraduateExportSource,
-  b: GraduateExportSource,
-) {
-  const left = String(a.ad_code ?? "").trim();
-  const right = String(b.ad_code ?? "").trim();
-  const result = left.localeCompare(right, "el", {
-    numeric: true,
-    sensitivity: "base",
-  });
-  if (result !== 0) return result;
-  return String(a.student_number ?? "").localeCompare(
-    String(b.student_number ?? ""),
-    "el",
-    { numeric: true, sensitivity: "base" },
-  );
-}
-
-// Μετατρέπει εγγραφές αποφοίτων σε γραμμές για CSV/XLSX export.
 export function buildExportRows(
   rows: GraduateExportSource[],
   lang: ExportLang,
@@ -253,38 +59,17 @@ export function buildExportRows(
   localizedNamesById?: LocalizedNamesByRegionId,
 ) {
   const labels = getColumnLabels(lang);
-
   return [...rows].sort(compareDiplomaNumber).map((row) => {
-    const studyProgram = programsById.get(Number(row.study_program_id));
-    const regionId = resolveGraduatePeripheryId(row, regionsById);
+    const program = programsById.get(Number(row.study_program_id));
     const country = regionsById.get(Number(row.origin_country_region_id));
-    const countryExportName = getCountryExportName(
-      row,
-      regionsById,
-      lang,
-      localizedNamesById,
-    );
-    const rawCountryName = String(
-      row.origin_country ?? country?.name ?? countryExportName ?? "",
-    );
-    const isGreece =
-      isGreeceCountryValue(rawCountryName) ||
-      (country ? isGreeceCountryValue(country.name) : false);
-    const nomosName = getNomosExportName(
-      row,
-      regionsById,
-      isGreece,
-      lang,
-      localizedNamesById,
-    );
-    const municipalityName = getMunicipalityExportName(
-      row,
-      regionsById,
-      isGreece,
-      lang,
-      localizedNamesById,
-    );
-
+    const periphery = regionsById.get(Number(row.origin_periphery_region_id));
+    const nomos = regionsById.get(Number(row.origin_region_id));
+    const city = regionsById.get(Number(row.origin_city_region_id));
+    const countryName = formatCountryValue(regionName(country, lang, localizedNamesById) || row.origin_country, lang);
+    const isGreece = isGreeceCountryValue(country?.name || row.origin_country);
+    const cityName = isGreece
+      ? regionName(city, lang, localizedNamesById) || String(row.origin_municipality ?? "")
+      : String(row.origin_foreign_city ?? "") || regionName(city, lang, localizedNamesById);
     return {
       [labels.ad_code]: row.ad_code ?? "",
       [labels.student_number]: row.student_number ?? "",
@@ -297,17 +82,15 @@ export function buildExportRows(
       [labels.degree_grade]: row.degree_grade ?? "",
       [labels.graduation_date]: formatDateDisplay(row.graduation_date),
       [labels.oath_date]: formatDateDisplay(row.oath_date),
-      [labels.study_program]: studyProgram
+      [labels.study_program]: program
         ? lang === "en"
-          ? firstText(studyProgram.name_en, studyProgram.name_el, studyProgram.code, studyProgram.id)
-          : firstText(studyProgram.name_el, studyProgram.name_en, studyProgram.code, studyProgram.id)
+          ? firstText(program.name_en, program.name_el, program.code, program.id)
+          : firstText(program.name_el, program.name_en, program.code, program.id)
         : "",
-      [labels.origin_country]: countryExportName,
-      [labels.origin_region]: isGreece
-        ? getRegionNameById(regionsById, regionId, lang, localizedNamesById)
-        : "",
-      [labels.origin_nomos]: nomosName,
-      [labels.origin_municipality]: municipalityName,
+      [labels.origin_country]: countryName,
+      [labels.origin_region]: isGreece ? regionName(periphery, lang, localizedNamesById) : "",
+      [labels.origin_nomos]: isGreece ? regionName(nomos, lang, localizedNamesById) : "",
+      [labels.origin_municipality]: cityName,
     };
   });
 }
@@ -316,28 +99,19 @@ export function getTemplateHeaders(lang: ExportLang) {
   return [getStrictTemplateHeaderRows(lang)];
 }
 
-// Φορτώνει μία φορά τα βασικά lookup δεδομένα για ids → ονόματα.
 export async function getReferenceMaps(): Promise<ReferenceMaps> {
   const [programs, regions] = await Promise.all([
     StudyProgram.findAll({ order: [["id", "ASC"]] }),
     Region.findAll({ order: [["id", "ASC"]] }),
   ]);
-
   return {
-    programsById: new Map(
-      programs.map((item) => [Number(item.id), item as ProgramLookup]),
-    ),
-    regionsById: new Map(
-      regions.map((item) => [Number(item.id), item as RegionLookup]),
-    ),
+    programsById: new Map(programs.map((item) => [Number(item.id), item as ProgramLookup])),
+    regionsById: new Map(regions.map((item) => [Number(item.id), item as RegionLookup])),
   };
 }
 
-// Κανονικοποιεί κείμενο ώστε να ταιριάζουν τιμές με/χωρίς τόνους ή κενά.
 function normalizeLookupValue(value: unknown) {
   return String(value ?? "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
     .trim()
     .toLowerCase()
     .normalize("NFD")
@@ -347,356 +121,116 @@ function normalizeLookupValue(value: unknown) {
     .trim();
 }
 
-// Αντιστοιχίζει τιμή αρχείου ή φόρμας με πρόγραμμα σπουδών.
-export function resolveStudyProgramId(
-  value: unknown,
-  programsById: Map<number, ProgramLookup>,
-) {
+export function resolveStudyProgramId(value: unknown, programsById: Map<number, ProgramLookup>) {
   const raw = String(value ?? "").trim();
   if (!raw) return null;
-
   const directId = Number(raw);
   if (Number.isFinite(directId) && programsById.has(directId)) return directId;
-
-  const prefixId = raw.match(/^\s*(\d+)\s*(?:\(|-|$)/);
-  if (prefixId) {
-    const id = Number(prefixId[1]);
-    if (programsById.has(id)) return id;
-  }
-
   const normalized = normalizeLookupValue(raw);
-  for (const [id, item] of programsById.entries()) {
-    const candidates = [
-      item.code,
-      item.name_el,
-      item.name_en,
-      `${item.id} (${item.name_el ?? item.name_en ?? item.code ?? item.id})`,
-      `${item.id} (${item.name_en ?? item.name_el ?? item.code ?? item.id})`,
-    ]
+  for (const [id, item] of programsById) {
+    const candidates = [item.code, item.name_el, item.name_en, `${item.id} (${item.name_el ?? item.name_en ?? item.code ?? item.id})`, `${item.id} (${item.name_en ?? item.name_el ?? item.code ?? item.id})`]
       .filter(Boolean)
       .map(normalizeLookupValue);
     if (candidates.includes(normalized)) return id;
   }
-
   return null;
 }
 
-// Αντιστοιχίζει τιμή αρχείου ή φόρμας με περιοχή.
-export function resolveRegionId(
-  value: unknown,
-  regionsById: Map<number, RegionLookup>,
-) {
+export function resolveRegionId(value: unknown, regionsById: Map<number, RegionLookup>) {
   const raw = String(value ?? "").trim();
   if (!raw) return null;
-
   const directId = Number(raw);
   if (Number.isFinite(directId) && regionsById.has(directId)) return directId;
-
   const normalized = normalizeLookupValue(raw);
-  for (const [id, item] of regionsById.entries()) {
-    const candidates = [
-      item?.name,
-      item?.normalized_name,
-      item?.external_ref_id,
-    ]
-      .filter(Boolean)
-      .map(normalizeLookupValue);
-    if (candidates.includes(normalized)) return id;
+  for (const [id, item] of regionsById) {
+    if ([item.name, item.name_el, item.name_en, item.normalized_name, item.external_ref_id].filter(Boolean).map(normalizeLookupValue).includes(normalized)) return id;
   }
-
   return null;
 }
 
-function resolveCountryRegionByName(
-  value: unknown,
-  regionsById: Map<number, RegionLookup>,
-) {
-  const regionId = resolveRegionId(value, regionsById);
-  if (!regionId) return null;
-  const region = regionsById.get(Number(regionId));
-  if (!region || String(region.type) !== "COUNTRY") return null;
-  return Number(region.id);
-}
-
-// Μετατρέπει τη χώρα σε country_region_id, αν λείπει βάζει Ελλάδα.
 export function reconcileOriginCountryRegionId(
   originCountry: unknown,
   originCountryRegionId: number | null | undefined,
   regionsById: Map<number, RegionLookup>,
 ) {
-  const defaultGreeceId = getGreeceRegionId(regionsById);
-  const selectedCountryId = toNullableNumber(originCountryRegionId);
-  const selectedCountry =
-    selectedCountryId != null
-      ? (regionsById.get(Number(selectedCountryId)) ?? null)
-      : null;
-  const explicitCountryName = trimNullableText(originCountry);
-  const matchedCountryId = resolveCountryRegionByName(
-    explicitCountryName,
-    regionsById,
-  );
-  const matchedCountry =
-    matchedCountryId != null
-      ? (regionsById.get(Number(matchedCountryId)) ?? null)
-      : null;
-  const selectedIsCountry =
-    !!selectedCountry && String(selectedCountry.type) === "COUNTRY";
-  const selectedIsGreece =
-    selectedIsCountry && isGreeceCountryValue(selectedCountry?.name);
-  const matchedIsGreece =
-    !!matchedCountry && isGreeceCountryValue(matchedCountry?.name);
-
-  if (explicitCountryName) {
-    if (matchedCountryId != null) {
-      if (!selectedIsCountry) return matchedCountryId;
-      if (selectedIsGreece !== matchedIsGreece) return matchedCountryId;
-      if (
-        !selectedIsGreece &&
-        normalizeRegionText(selectedCountry?.name) !==
-          normalizeRegionText(matchedCountry?.name)
-      )
-        return matchedCountryId;
-    }
-
-    if (isGreeceCountryValue(explicitCountryName) && defaultGreeceId != null) {
-      return defaultGreeceId;
-    }
+  const selectedId = toNullableNumber(originCountryRegionId);
+  const selected = selectedId != null ? regionsById.get(selectedId) : null;
+  if (selected?.type === "COUNTRY") return Number(selected.id);
+  const normalized = normalizeRegionText(originCountry);
+  if (normalized) {
+    const matched = [...regionsById.values()].find((item) => item.type === "COUNTRY" && [item.name, item.name_el, item.name_en].some((name) => normalizeRegionText(name) === normalized));
+    if (matched) return Number(matched.id);
   }
-
-  if (selectedIsCountry) return Number(selectedCountry!.id);
-  return defaultGreeceId ?? null;
+  return getGreeceRegionId(regionsById);
 }
 
-// Καθαρίζει τα πεδία καταγωγής πριν σταλούν στο frontend.
-export function buildResolvedOriginSnapshot<T extends ManagedOriginTarget>(
-  item: T,
-  regionsById: Map<number, RegionLookup>,
-) {
-  const nextCountryRegionId = reconcileOriginCountryRegionId(
-    item.origin_country,
-    item.origin_country_region_id ?? null,
-    regionsById,
-  );
-  const nextCountry =
-    nextCountryRegionId != null
-      ? (regionsById.get(Number(nextCountryRegionId)) ?? null)
-      : null;
-  const nextCountryName =
-    trimNullableText(item.origin_country) ??
-    trimNullableText(nextCountry?.name);
-  const isAbroad = !!(
-    nextCountryName && !isGreeceCountryValue(nextCountryName)
-  );
+function ancestor(regionsById: Map<number, RegionLookup>, locationId: number | null | undefined, type: string) {
+  let current = locationId ? regionsById.get(Number(locationId)) ?? null : null;
+  for (let step = 0; current && step < 8; step += 1) {
+    if (String(current.type) === type) return current;
+    current = current.parent_id ? regionsById.get(Number(current.parent_id)) ?? null : null;
+  }
+  return null;
+}
 
+export function buildResolvedOriginSnapshot<T extends Record<string, any>>(item: T, regionsById: Map<number, RegionLookup>) {
+  const locationId = Number(item.origin_location_id);
+  if (!Number.isFinite(locationId)) return item;
+  const location = regionsById.get(locationId);
+  const country = ancestor(regionsById, locationId, "COUNTRY");
+  if (!location || !country) return item;
+  const abroad = !isGreeceCountryValue(country.name);
+  const city = ancestor(regionsById, locationId, "CITY");
+  const nomos = ancestor(regionsById, locationId, "NOMOS");
+  const periphery = ancestor(regionsById, locationId, "PERIPHERY");
   return {
     ...item,
-    origin_country: isAbroad ? nextCountryName : "Ελλάδα",
-    origin_country_region_id: nextCountryRegionId,
-    origin_foreign_city: isAbroad
-      ? trimNullableText(item.origin_foreign_city)
-      : null,
-    origin_periphery_region_id: isAbroad
-      ? null
-      : (item.origin_periphery_region_id ?? null),
-    origin_region_id: isAbroad
-      ? null
-      : (item.origin_region_id ??
-          findRegionAncestor(regionsById, item.origin_city_region_id, "NOMOS")
-            ?.id ??
-          findNomosByCityName(
-            regionsById,
-            item.origin_municipality,
-            item.origin_periphery_region_id ?? null,
-          )?.id ??
-          null),
-    origin_city_region_id: isAbroad
-      ? null
-      : (item.origin_city_region_id ?? null),
-    origin_municipality: isAbroad ? null : (item.origin_municipality ?? null),
+    origin_country: country.name,
+    origin_foreign_city: abroad ? city?.name ?? location.name : null,
+    origin_country_region_id: country.id,
+    origin_periphery_region_id: abroad ? null : periphery?.id ?? null,
+    origin_region_id: abroad ? null : nomos?.id ?? null,
+    origin_city_region_id: abroad ? null : city?.id ?? null,
+    origin_municipality: abroad ? null : city?.name ?? null,
   } as T;
 }
 
-// Φτιάχνει τα πεδία καταγωγής για νέο απόφοιτο.
-export async function buildCreateOriginPayload(
-  body: Record<string, unknown>,
-  regionsById: Map<number, RegionLookup>,
-) {
+export async function buildCreateOriginPayload(body: Record<string, unknown>, regionsById: Map<number, RegionLookup>) {
   const defaultGreeceId = getGreeceRegionId(regionsById);
-  const requestedCountryRegionId =
-    toNullableNumber(body.origin_country_region_id) ?? defaultGreeceId;
-  if (requestedCountryRegionId === null)
-    return { error: "origin_country_region_id is required" };
-  if (isInvalidNullableNumber(requestedCountryRegionId))
-    return { error: "origin_country_region_id must be a number" };
-
-  const originCountryRegionId = reconcileOriginCountryRegionId(
-    body.origin_country,
-    requestedCountryRegionId,
-    regionsById,
-  );
-  if (originCountryRegionId === null)
-    return { error: "origin_country_region_id is required" };
-
-  const selectedCountryName = String(
-    regionsById.get(Number(originCountryRegionId))?.name ?? "",
-  ).trim();
-  const originCountryName =
-    trimNullableText(body.origin_country) ??
-    trimNullableText(selectedCountryName);
-  const originForeignCity = trimNullableText(body.origin_foreign_city);
-  const isAbroad = isAbroadOriginInput(
-    originCountryName,
-    originCountryRegionId,
-    defaultGreeceId,
-    originForeignCity,
-  );
-
-  if (isAbroad) {
-    return buildForeignGraduateOriginPayload(
-      originCountryName ?? trimNullableText(selectedCountryName),
-      originCountryRegionId,
-      originForeignCity,
-    );
-  }
-
-  const originPeripheryRegionId = toNullableNumber(
-    body.origin_periphery_region_id,
-  );
-  if (isInvalidNullableNumber(originPeripheryRegionId))
-    return { error: "origin_periphery_region_id must be a number" };
-
-  const originMunicipality = String(body.origin_municipality ?? "").trim();
-  if (!originMunicipality) return { error: "origin_municipality is required" };
-
-  return buildGreekGraduateOriginPayload(
-    {
-      origin_country_region_id: originCountryRegionId,
-      origin_periphery_region_id: originPeripheryRegionId,
-      origin_region_id: toNullableNumber(body.origin_region_id),
-      origin_city_region_id: toNullableNumber(body.origin_city_region_id),
-      origin_municipality: originMunicipality,
-    },
-    regionsById,
-  );
+  const countryId = reconcileOriginCountryRegionId(body.origin_country, toNullableNumber(body.origin_country_region_id) ?? defaultGreeceId, regionsById);
+  if (!countryId) return { error: "origin_country_region_id is required" };
+  const country = regionsById.get(countryId);
+  if (!country || country.type !== "COUNTRY") return { error: "origin_country_region_id is invalid" };
+  const foreignCity = trimNullableText(body.origin_foreign_city);
+  const abroad = isAbroadOriginInput(country.name, countryId, defaultGreeceId, foreignCity);
+  if (abroad) return buildForeignGraduateOriginPayload(country.name, countryId, foreignCity);
+  const cityId = toNullableNumber(body.origin_city_region_id);
+  const peripheryId = toNullableNumber(body.origin_periphery_region_id);
+  const nomosId = toNullableNumber(body.origin_region_id);
+  const municipality = trimNullableText(body.origin_municipality);
+  if (!cityId && !municipality) return { error: "origin_municipality is required" };
+  return buildGreekGraduateOriginPayload({
+    origin_country_region_id: countryId,
+    origin_periphery_region_id: peripheryId,
+    origin_region_id: nomosId,
+    origin_city_region_id: cityId,
+    origin_municipality: municipality,
+  });
 }
 
-// Εφαρμόζει αλλαγές καταγωγής σε υπάρχοντα απόφοιτο.
-export async function applyOriginPatch(
-  item: ManagedOriginTarget,
-  body: Record<string, unknown>,
-  regionsById: Map<number, RegionLookup>,
-) {
-  const defaultGreeceId = getGreeceRegionId(regionsById);
-  let originRegionTouched = false;
-  let foreignOriginTouched = false;
-
-  if (body.origin_country_region_id !== undefined) {
-    const value = toNullableNumber(body.origin_country_region_id);
-    if (isInvalidNullableNumber(value))
-      return "origin_country_region_id must be a number";
-    item.origin_country_region_id = value;
-    originRegionTouched = true;
+export async function applyOriginPatch(item: ManagedOriginTarget, body: Record<string, unknown>, regionsById: Map<number, RegionLookup>) {
+  const keys = ["origin_location_id", "origin_country", "origin_foreign_city", "origin_country_region_id", "origin_periphery_region_id", "origin_region_id", "origin_city_region_id", "origin_municipality"];
+  if (!keys.some((key) => body[key] !== undefined)) return null;
+  if (body.origin_location_id !== undefined) {
+    const direct = toNullableNumber(body.origin_location_id);
+    if (direct && regionsById.has(direct)) {
+      item.origin_location_id = direct;
+      return null;
+    }
   }
-
-  if (body.origin_periphery_region_id !== undefined) {
-    const value = toNullableNumber(body.origin_periphery_region_id);
-    if (isInvalidNullableNumber(value))
-      return "origin_periphery_region_id must be a number";
-    item.origin_periphery_region_id = value;
-    originRegionTouched = true;
-  }
-
-  if (body.origin_region_id !== undefined) {
-    const value = toNullableNumber(body.origin_region_id);
-    if (isInvalidNullableNumber(value))
-      return "origin_region_id must be a number";
-    item.origin_region_id = value;
-    originRegionTouched = true;
-  }
-
-  if (body.origin_city_region_id !== undefined) {
-    const value = toNullableNumber(body.origin_city_region_id);
-    if (isInvalidNullableNumber(value))
-      return "origin_city_region_id must be a number";
-    item.origin_city_region_id = value;
-    originRegionTouched = true;
-  }
-
-  if (body.origin_country !== undefined) {
-    item.origin_country = trimNullableText(body.origin_country);
-    foreignOriginTouched = true;
-  }
-
-  if (body.origin_foreign_city !== undefined) {
-    item.origin_foreign_city = trimNullableText(body.origin_foreign_city);
-    foreignOriginTouched = true;
-  }
-
-  if (body.origin_municipality !== undefined) {
-    item.origin_municipality =
-      body.origin_municipality === ""
-        ? null
-        : String(body.origin_municipality ?? "").trim();
-    originRegionTouched = true;
-  }
-
-  item.origin_country_region_id = reconcileOriginCountryRegionId(
-    item.origin_country,
-    item.origin_country_region_id ?? null,
-    regionsById,
-  );
-
-  const selectedCountryName = String(
-    regionsById.get(Number(item.origin_country_region_id))?.name ?? "",
-  ).trim();
-  const currentCountryName =
-    trimNullableText(item.origin_country) ??
-    trimNullableText(selectedCountryName);
-  const currentForeignCity = trimNullableText(item.origin_foreign_city);
-  const isAbroad = isAbroadOriginInput(
-    currentCountryName,
-    item.origin_country_region_id ?? null,
-    defaultGreeceId,
-    currentForeignCity,
-  );
-
-  if (isAbroad) {
-    const result = buildForeignGraduateOriginPayload(
-      currentCountryName ?? trimNullableText(selectedCountryName),
-      item.origin_country_region_id ?? null,
-      currentForeignCity,
-    );
-    if (result.error) return result.error;
-    Object.assign(item, result.payload);
-    return null;
-  }
-
-  if (
-    !originRegionTouched &&
-    !foreignOriginTouched &&
-    body.origin_country_region_id === undefined &&
-    body.origin_country === undefined
-  ) {
-    return null;
-  }
-
-  if (!item.origin_country_region_id && defaultGreeceId != null) {
-    item.origin_country_region_id = defaultGreeceId;
-  }
-
-  const result = await buildGreekGraduateOriginPayload(
-    {
-      origin_country_region_id: item.origin_country_region_id ?? null,
-      origin_periphery_region_id: item.origin_periphery_region_id ?? null,
-      origin_region_id: item.origin_region_id ?? null,
-      origin_city_region_id: item.origin_city_region_id ?? null,
-      origin_municipality: item.origin_municipality ?? null,
-      managedOriginRegionId:
-        item.origin_periphery_region_id ?? item.origin_region_id ?? null,
-    },
-    regionsById,
-  );
+  const current = buildResolvedOriginSnapshot({ origin_location_id: item.origin_location_id }, regionsById);
+  const result = await buildCreateOriginPayload({ ...current, ...body }, regionsById);
   if (result.error) return result.error;
-  Object.assign(item, result.payload);
+  item.origin_location_id = result.payload!.origin_location_id;
   return null;
 }

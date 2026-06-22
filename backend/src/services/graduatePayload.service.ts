@@ -137,6 +137,8 @@ export function validateGraduateReadyForSave(item: any) {
     return "degree_grade must be a number";
   if (!Number.isFinite(Number(item.study_program_id)))
     return "study_program_id must be a number";
+  if ("origin_location_id" in item && !Number.isFinite(Number(item.origin_location_id)))
+    return "origin_location_id must be a number";
   if (!DATE_ONLY_RE.test(String(item.graduation_date ?? "")))
     return "graduation_date must be YYYY-MM-DD";
   if (!DATE_ONLY_RE.test(String(item.oath_date ?? "")))
@@ -165,23 +167,14 @@ const graduateLoggedFields = [
   "graduation_date",
   "oath_date",
   "study_program_id",
-  "origin_country",
-  "origin_country_region_id",
-  "origin_periphery_region_id",
-  "origin_region_id",
-  "origin_city_region_id",
-  "origin_municipality",
-  "origin_foreign_city",
+  "origin_location_id",
 ];
 
 const graduateNumericLogFields = new Set([
   "entry_year",
   "degree_grade",
   "study_program_id",
-  "origin_country_region_id",
-  "origin_periphery_region_id",
-  "origin_region_id",
-  "origin_city_region_id",
+  "origin_location_id",
 ]);
 
 const graduateDateLogFields = new Set([

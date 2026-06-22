@@ -14,20 +14,20 @@ export type RegionLookupItem = {
   external_ref_id: string | null;
 };
 
+export type RegionHierarchy = {
+  location: RegionLookupItem;
+  city: RegionLookupItem | null;
+  nomos: RegionLookupItem | null;
+  periphery: RegionLookupItem | null;
+  country: RegionLookupItem | null;
+};
+
 export type RegionLookupIndex = {
   rows: RegionLookupItem[];
   byId: Map<number, RegionLookupItem>;
-  cityByNormalized: Map<string, RegionLookupItem[]>;
-  nomosByNormalized: Map<string, RegionLookupItem[]>;
-  dimosByNormalized: Map<string, RegionLookupItem[]>;
-  foreignCityByNormalized: Map<string, RegionLookupItem[]>;
-  peripheryByNormalized: Map<string, RegionLookupItem>;
-  countryByNormalized: Map<string, RegionLookupItem>;
-  peripheryMatchesByNormalized: Map<string, RegionLookupItem[]>;
-  countryMatchesByNormalized: Map<string, RegionLookupItem[]>;
+  byTypeAndName: Map<RegionType, Map<string, RegionLookupItem[]>>;
 };
 
-const MAX_PARENT_STEPS = 25;
 let lookupCache: Promise<RegionLookupIndex> | null = null;
 
 function numberOrNull(value: unknown) {
@@ -36,59 +36,45 @@ function numberOrNull(value: unknown) {
 }
 
 function addMatch(map: Map<string, RegionLookupItem[]>, key: string, item: RegionLookupItem) {
+  if (!key) return;
   const current = map.get(key);
   if (current) current.push(item);
   else map.set(key, [item]);
 }
 
-function createIndex(rows: RegionLookupItem[]): RegionLookupIndex {
-  const index: RegionLookupIndex = {
-    rows,
-    byId: new Map(),
-    cityByNormalized: new Map(),
-    nomosByNormalized: new Map(),
-    dimosByNormalized: new Map(),
-    foreignCityByNormalized: new Map(),
-    peripheryByNormalized: new Map(),
-    countryByNormalized: new Map(),
-    peripheryMatchesByNormalized: new Map(),
-    countryMatchesByNormalized: new Map(),
-  };
+function createIndex(rows: RegionLookupItem[]) {
+  const byId = new Map<number, RegionLookupItem>();
+  const byTypeAndName = new Map<RegionType, Map<string, RegionLookupItem[]>>();
+  for (const type of ["COUNTRY", "PERIPHERY", "NOMOS", "CITY"] as RegionType[]) {
+    byTypeAndName.set(type, new Map());
+  }
   for (const item of rows) {
-    index.byId.set(item.id, item);
-    const key = item.normalized_name;
-    if (!key) continue;
-    if (item.type === "CITY") addMatch(index.cityByNormalized, key, item);
-    if (item.type === "NOMOS") addMatch(index.nomosByNormalized, key, item);
-    if (item.type === "DIMOS") addMatch(index.dimosByNormalized, key, item);
-    if (item.type === "FOREIGN_CITY") addMatch(index.foreignCityByNormalized, key, item);
-    if (item.type === "PERIPHERY") {
-      addMatch(index.peripheryMatchesByNormalized, key, item);
-      if (!index.peripheryByNormalized.has(key)) index.peripheryByNormalized.set(key, item);
-    }
-    if (item.type === "COUNTRY") {
-      addMatch(index.countryMatchesByNormalized, key, item);
-      if (!index.countryByNormalized.has(key)) index.countryByNormalized.set(key, item);
+    byId.set(item.id, item);
+    const target = byTypeAndName.get(item.type)!;
+    for (const value of [item.normalized_name, item.name, item.name_el, item.name_en]) {
+      addMatch(target, normalizeRegionText(value), item);
     }
   }
-  return index;
+  return { rows, byId, byTypeAndName };
 }
 
 export async function loadRegionLookupIndex() {
   if (!lookupCache) {
-    lookupCache = Region.findAll({ attributes: ["id", "name", "name_el", "name_en", "normalized_name", "type", "parent_id", "latitude", "longitude", "external_ref_id"] })
-      .then((rows) => createIndex((rows as any[]).map((row) => ({
-        id: Number(row.id),
-        name: String(row.name || ""),
-        name_el: row.name_el != null ? String(row.name_el) : null,
-        name_en: row.name_en != null ? String(row.name_en) : null,
-        normalized_name: String(row.normalized_name || normalizeRegionText(row.name)),
-        type: row.type as RegionType,
-        parent_id: row.parent_id != null ? Number(row.parent_id) : null,
-        latitude: numberOrNull(row.latitude),
-        longitude: numberOrNull(row.longitude),
-        external_ref_id: row.external_ref_id != null ? String(row.external_ref_id) : null,
-      }))));
+    lookupCache = Region.findAll({
+      attributes: ["id", "name", "name_el", "name_en", "normalized_name", "type", "parent_id", "latitude", "longitude", "external_ref_id"],
+      order: [["id", "ASC"]],
+    }).then((rows) => createIndex((rows as any[]).map((row) => ({
+      id: Number(row.id),
+      name: String(row.name || ""),
+      name_el: row.name_el != null ? String(row.name_el) : null,
+      name_en: row.name_en != null ? String(row.name_en) : null,
+      normalized_name: String(row.normalized_name || normalizeRegionText(row.name)),
+      type: row.type as RegionType,
+      parent_id: row.parent_id != null ? Number(row.parent_id) : null,
+      latitude: numberOrNull(row.latitude),
+      longitude: numberOrNull(row.longitude),
+      external_ref_id: row.external_ref_id != null ? String(row.external_ref_id) : null,
+    }))));
   }
   return lookupCache;
 }
@@ -99,11 +85,34 @@ export function clearRegionLookupIndex() {
 
 export function getRegionAncestor(regionId: number | null | undefined, targetType: RegionType, byId: Map<number, RegionLookupItem>) {
   let current = regionId ? byId.get(Number(regionId)) ?? null : null;
-  let steps = 0;
-  while (current && steps < MAX_PARENT_STEPS) {
+  for (let step = 0; current && step < 8; step += 1) {
     if (current.type === targetType) return current;
-    current = current.parent_id ? byId.get(Number(current.parent_id)) ?? null : null;
-    steps += 1;
+    current = current.parent_id ? byId.get(current.parent_id) ?? null : null;
   }
   return null;
+}
+
+export function getRegionHierarchy(regionId: number | null | undefined, byId: Map<number, RegionLookupItem>): RegionHierarchy | null {
+  const location = regionId ? byId.get(Number(regionId)) ?? null : null;
+  if (!location) return null;
+  return {
+    location,
+    city: getRegionAncestor(location.id, "CITY", byId),
+    nomos: getRegionAncestor(location.id, "NOMOS", byId),
+    periphery: getRegionAncestor(location.id, "PERIPHERY", byId),
+    country: getRegionAncestor(location.id, "COUNTRY", byId),
+  };
+}
+
+export function findRegions(type: RegionType, value: unknown, index: RegionLookupIndex) {
+  return index.byTypeAndName.get(type)?.get(normalizeRegionText(value)) ?? [];
+}
+
+export function isDescendantOf(regionId: number, ancestorId: number, byId: Map<number, RegionLookupItem>) {
+  let current = byId.get(regionId) ?? null;
+  for (let step = 0; current && step < 8; step += 1) {
+    if (current.id === ancestorId) return true;
+    current = current.parent_id ? byId.get(current.parent_id) ?? null : null;
+  }
+  return false;
 }

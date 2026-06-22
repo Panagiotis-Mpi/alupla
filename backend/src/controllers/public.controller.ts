@@ -259,7 +259,7 @@ export async function publicStats(req: Request, res: Response) {
                 r.name as name_en,
                 CAST(COUNT(*) AS INTEGER) as count,
                 ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
-         FROM graduates g
+         FROM graduate_details g
          ${originRegionJoin}
          ${originRegionWhere}
          GROUP BY r.id, r.name
@@ -272,7 +272,7 @@ export async function publicStats(req: Request, res: Response) {
                 r.name as name_en,
                 CAST(COUNT(*) AS INTEGER) as count,
                 ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
-         FROM graduates g
+         FROM graduate_details g
          ${originRegionJoin}
          ${originRegionWhere}
          GROUP BY r.id, r.name
@@ -330,7 +330,7 @@ export async function publicStats(req: Request, res: Response) {
                 r.name as name_el,
                 r.name as name_en,
                 CAST(COUNT(*) AS INTEGER) as count
-         FROM graduates g
+         FROM graduate_details g
          ${originRegionJoin}
          ${originRegionWhere}
          GROUP BY r.id, r.name
@@ -344,7 +344,7 @@ export async function publicStats(req: Request, res: Response) {
                 CAST(COUNT(*) AS INTEGER) as count,
                 CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
                 CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-         FROM graduates g
+         FROM graduate_details g
          ${originRegionJoin}
          ${originRegionWhere}
          GROUP BY r.id, r.name
@@ -369,7 +369,7 @@ export async function publicStats(req: Request, res: Response) {
                 r.name as name_en,
                 CAST(COUNT(*) AS INTEGER) as count,
                 ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
-         FROM graduates g
+         FROM graduate_details g
          ${originNomosJoin}
          ${originNomosWhere}
          GROUP BY r.id, r.name
@@ -380,7 +380,7 @@ export async function publicStats(req: Request, res: Response) {
         `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
                 CAST(SUM(CASE WHEN COALESCE(NULLIF(TRIM(g.origin_country), ''), '') <> '' AND LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) NOT IN ('ελλαδα', 'greece') THEN 0 ELSE 1 END) AS INTEGER) as greece,
                 CAST(SUM(CASE WHEN COALESCE(NULLIF(TRIM(g.origin_country), ''), '') <> '' AND LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) NOT IN ('ελλαδα', 'greece') THEN 1 ELSE 0 END) AS INTEGER) as abroad
-         FROM graduates g ${sqlWhere}
+         FROM graduate_details g ${sqlWhere}
          GROUP BY EXTRACT(YEAR FROM g.graduation_date)
          ORDER BY year ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
@@ -396,7 +396,7 @@ export async function publicStats(req: Request, res: Response) {
                 g.origin_country as country_name,
                 g.origin_municipality as name,
                 CAST(COUNT(*) AS INTEGER) as count
-         FROM graduates g ${municipalityWhere}
+         FROM graduate_details g ${municipalityWhere}
          GROUP BY g.origin_city_region_id, g.origin_country_region_id, g.origin_periphery_region_id, g.origin_region_id, g.origin_country, g.origin_municipality
          ORDER BY count DESC, g.origin_municipality ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
@@ -411,7 +411,7 @@ export async function publicStats(req: Request, res: Response) {
                 CAST(COUNT(*) AS INTEGER) as count,
                 CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
                 CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-         FROM graduates g ${municipalityWhere}
+         FROM graduate_details g ${municipalityWhere}
          GROUP BY g.origin_city_region_id, g.origin_country_region_id, g.origin_periphery_region_id, g.origin_region_id, g.origin_country, g.origin_municipality
          ORDER BY count DESC, g.origin_municipality ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
@@ -426,7 +426,7 @@ export async function publicStats(req: Request, res: Response) {
                   ELSE TRIM(g.origin_country)
                 END as name,
                 CAST(COUNT(*) AS INTEGER) as count
-         FROM graduates g ${sqlWhere}
+         FROM graduate_details g ${sqlWhere}
          GROUP BY g.origin_country_region_id, 2
          ORDER BY count DESC, name ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
@@ -434,7 +434,7 @@ export async function publicStats(req: Request, res: Response) {
       const countryGroups = await groupStatisticsCountries(rawOriginCountryDistribution);
       const abroadSummaryRow = await sequelize.query<{ abroad_count: number }>(
         `SELECT CAST(COUNT(*) AS INTEGER) as abroad_count
-         FROM graduates g
+         FROM graduate_details g
          ${sqlWhere ? `${sqlWhere} AND` : 'WHERE'} COALESCE(NULLIF(TRIM(g.origin_country), ''), '') <> ''
            AND LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) NOT IN ('ελλαδα', 'greece')`,
         { replacements: repl, type: QueryTypes.SELECT }
@@ -452,7 +452,7 @@ export async function publicStats(req: Request, res: Response) {
         return { ...r, name_el: names.name_el || r.name_el || 'Άγνωστος νομός', name_en: names.name_en || r.name_en || 'Unknown regional unit' };
       }));
       const totalRow = await sequelize.query<{ total: number }>(
-        `SELECT COUNT(*) as total FROM graduates g ${sqlWhere}`,
+        `SELECT COUNT(*) as total FROM graduate_details g ${sqlWhere}`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
       const total = Number(totalRow?.[0]?.total ?? 0);
@@ -488,7 +488,7 @@ export async function publicStats(req: Request, res: Response) {
     }
 
     const totalRow = await sequelize.query<{ total: number }>(
-      `SELECT COUNT(*) as total FROM graduates g ${sqlWhere}`,
+      `SELECT COUNT(*) as total FROM graduate_details g ${sqlWhere}`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
     const total = Number(totalRow?.[0]?.total ?? 0);
@@ -513,14 +513,14 @@ export async function publicStats(req: Request, res: Response) {
               AVG(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as avg_years_to_degree,
               MIN(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as min_years_to_degree,
               MAX(CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) as max_years_to_degree
-       FROM graduates g ${sqlWhere}`,
+       FROM graduate_details g ${sqlWhere}`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
     const byYear = await sequelize.query<{ year: number; count: number }>(
       `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
               CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date)
        ORDER BY year ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
@@ -535,7 +535,7 @@ export async function publicStats(req: Request, res: Response) {
                 ELSE 'other'
               END as term,
               CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date),
                 CASE
                   WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
@@ -570,7 +570,7 @@ export async function publicStats(req: Request, res: Response) {
 
     const genderRows = await sequelize.query<{ gender: string; count: number }>(
       `SELECT g.gender as gender, CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY g.gender`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
@@ -584,7 +584,7 @@ export async function publicStats(req: Request, res: Response) {
       `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
               CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
               CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date)
        ORDER BY year ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
@@ -600,7 +600,7 @@ export async function publicStats(req: Request, res: Response) {
               END as term,
               CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
               CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date),
                 CASE
                   WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
@@ -636,7 +636,7 @@ export async function publicStats(req: Request, res: Response) {
     const birthYearRows = await sequelize.query<{ year: number; count: number }>(
       `SELECT ${birthYearExpr} as year,
               CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY ${birthYearExpr}
        ORDER BY year ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
@@ -646,7 +646,7 @@ export async function publicStats(req: Request, res: Response) {
       `SELECT ${birthYearExpr} as year,
               CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
               CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY ${birthYearExpr}
        ORDER BY year ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
@@ -660,7 +660,7 @@ export async function publicStats(req: Request, res: Response) {
                 ELSE 'unknown'
               END as label,
               CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY CASE
                   WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
                   WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 27 AND 30 THEN '27-30'
@@ -694,7 +694,7 @@ export async function publicStats(req: Request, res: Response) {
     const avgGradeByYear = await sequelize.query<{ year: number; avg: number }>(
       `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
               ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date)
        ORDER BY year ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
@@ -710,7 +710,7 @@ export async function publicStats(req: Request, res: Response) {
       `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
               CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
               CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY g.entry_year
        ORDER BY g.entry_year ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
@@ -725,7 +725,7 @@ export async function publicStats(req: Request, res: Response) {
                 ELSE '9-10'
               END as label,
               CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY CASE
                   WHEN g.degree_grade < 5 THEN '<5'
                   WHEN g.degree_grade < 6 THEN '5-5.99'
@@ -797,7 +797,7 @@ export async function publicStats(req: Request, res: Response) {
               r.name as name_el,
               r.name as name_en,
               CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g
+       FROM graduate_details g
        ${originRegionJoin}
        ${originRegionWhere}
        GROUP BY r.id, r.name
@@ -808,7 +808,7 @@ export async function publicStats(req: Request, res: Response) {
     const countByEntryYear = await sequelize.query<{ entry_year: number; count: number }>(
       `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
               CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY g.entry_year
        ORDER BY g.entry_year ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
@@ -821,7 +821,7 @@ export async function publicStats(req: Request, res: Response) {
               CAST(COUNT(*) AS INTEGER) as count,
               CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
               CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
-       FROM graduates g
+       FROM graduate_details g
        ${originRegionJoin}
        ${originRegionWhere}
        GROUP BY r.id, r.name
@@ -835,7 +835,7 @@ export async function publicStats(req: Request, res: Response) {
               r.name as name_en,
               CAST(COUNT(*) AS INTEGER) as count,
               ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
-       FROM graduates g
+       FROM graduate_details g
        ${originRegionJoin}
        ${originRegionWhere}
        GROUP BY r.id, r.name
@@ -849,7 +849,7 @@ export async function publicStats(req: Request, res: Response) {
               r.name as name_en,
               CAST(COUNT(*) AS INTEGER) as count,
               ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
-       FROM graduates g
+       FROM graduate_details g
        ${originRegionJoin}
        ${originRegionWhere}
        GROUP BY r.id, r.name
@@ -869,7 +869,7 @@ export async function publicStats(req: Request, res: Response) {
               g.origin_country as country_name,
               g.origin_municipality as name,
               CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${municipalityWhere}
+       FROM graduate_details g ${municipalityWhere}
        GROUP BY g.origin_city_region_id, g.origin_country_region_id, g.origin_periphery_region_id, g.origin_region_id, g.origin_country, g.origin_municipality
        ORDER BY count DESC, g.origin_municipality ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
@@ -889,7 +889,7 @@ export async function publicStats(req: Request, res: Response) {
               g.origin_country as country_name,
               g.origin_foreign_city as name,
               CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${foreignCityWhere}
+       FROM graduate_details g ${foreignCityWhere}
        GROUP BY g.origin_city_region_id, g.origin_country_region_id, g.origin_periphery_region_id, g.origin_region_id, g.origin_country, g.origin_foreign_city
        ORDER BY count DESC, g.origin_foreign_city ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
@@ -921,7 +921,7 @@ export async function publicStats(req: Request, res: Response) {
                 ELSE TRIM(g.origin_country)
               END as name,
               CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY g.origin_country_region_id, 2
        ORDER BY count DESC, name ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
@@ -936,7 +936,7 @@ export async function publicStats(req: Request, res: Response) {
 
     const abroadSummaryRow = await sequelize.query<{ abroad_count: number }>(
       `SELECT CAST(COUNT(*) AS INTEGER) as abroad_count
-       FROM graduates g
+       FROM graduate_details g
        ${sqlWhere ? `${sqlWhere} AND` : 'WHERE'} COALESCE(NULLIF(TRIM(g.origin_country), ''), '') <> ''
          AND LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) NOT IN ('ελλαδα', 'greece')`,
       { replacements: repl, type: QueryTypes.SELECT }
@@ -945,7 +945,7 @@ export async function publicStats(req: Request, res: Response) {
     const oathYearDistribution = await sequelize.query<{ year: number; count: number }>(
       `SELECT CAST(EXTRACT(YEAR FROM g.oath_date) AS INTEGER) as year,
               CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.oath_date)
        ORDER BY year ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
@@ -954,7 +954,7 @@ export async function publicStats(req: Request, res: Response) {
     const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
       `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
               ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
-       FROM graduates g ${sqlWhere}
+       FROM graduate_details g ${sqlWhere}
        GROUP BY g.entry_year
        ORDER BY entry_year ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
@@ -967,7 +967,7 @@ export async function publicStats(req: Request, res: Response) {
     const yearsToDegreeDistribution = await sequelize.query<{ label: string; count: number }>(
       `SELECT CAST((CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) AS TEXT) as label,
               CAST(COUNT(*) AS INTEGER) as count
-       FROM graduates g ${yearsToDegreeDistributionWhere}
+       FROM graduate_details g ${yearsToDegreeDistributionWhere}
        GROUP BY (CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year)
        ORDER BY (CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
