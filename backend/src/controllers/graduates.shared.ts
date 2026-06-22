@@ -69,7 +69,7 @@ export function buildExportRows(
     const isGreece = isGreeceCountryValue(country?.name || row.origin_country);
     const cityName = isGreece
       ? regionName(city, lang, localizedNamesById) || String(row.origin_municipality ?? "")
-      : String(row.origin_foreign_city ?? "") || regionName(city, lang, localizedNamesById);
+      : regionName(city, lang, localizedNamesById) || String(row.origin_foreign_city ?? "");
     return {
       [labels.ad_code]: row.ad_code ?? "",
       [labels.student_number]: row.student_number ?? "",
