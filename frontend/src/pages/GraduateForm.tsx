@@ -500,11 +500,11 @@ useEffect(() => {
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap", paddingTop: 6 }}>
+            <button className="btn primary" disabled={saving} onClick={onSave}><Icon src={graduationCapIcon} size={18} /><span>{saving ? t("saving") : t("save")}</span></button>
             <Link className="btn" to="/graduates" style={{ textDecoration: "none" }}>
               <Icon src={xIcon} size={17} />
               <span>{t("back")}</span>
             </Link>
-            <button className="btn primary" disabled={saving} onClick={onSave}><Icon src={graduationCapIcon} size={18} /><span>{saving ? t("saving") : t("save")}</span></button>
           </div>
         </div>
         )}

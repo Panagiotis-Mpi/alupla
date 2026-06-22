@@ -30,11 +30,11 @@ export default function ExportSelectionDialog(props: Props) {
         </div>
         <div style={{ display: "grid", gap: 8, alignContent: "start", overflowY: "auto", maxHeight: "min(52vh, 500px)", minHeight: 0, paddingRight: 4, minWidth: 0 }}>{props.children}</div>
         <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, flexWrap: "wrap", paddingTop: 0 }}>
-          <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={props.onClose}>
-            <Icon src={xIcon} size={17} /><span>{props.cancelLabel}</span>
-          </button>
           <button type="button" className="btn primary" disabled={!canSubmit} style={{ opacity: canSubmit ? 1 : 0.55 }} onClick={props.onConfirm}>
             <Icon src={arrowDownIcon} size={17} /><span>{props.confirmLabel}</span>
+          </button>
+          <button type="button" className="btn" style={{ minHeight: 40, padding: "0 14px" }} onClick={props.onClose}>
+            <Icon src={xIcon} size={17} /><span>{props.cancelLabel}</span>
           </button>
         </div>
       </div>

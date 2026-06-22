@@ -134,13 +134,13 @@ export default function Profile() {
             </button>
           ) : (
             <div style={actionStyle}>
-              <button className="btn" onClick={cancelPasswordChange} style={{ width: "auto" }}>
-                <Icon src={xIcon} size={17} />
-                <span>{t("changePassword.cancel")}</span>
-              </button>
               <button className="btn primary" onClick={onSavePassword} style={{ width: "auto" }}>
                 <Icon src={lockIcon} size={18} />
                 <span>{t("changePassword.save")}</span>
+              </button>
+              <button className="btn" onClick={cancelPasswordChange} style={{ width: "auto" }}>
+                <Icon src={xIcon} size={17} />
+                <span>{t("changePassword.cancel")}</span>
               </button>
             </div>
           )}
