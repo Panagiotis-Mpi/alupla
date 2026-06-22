@@ -3,6 +3,12 @@ import type { RefObject } from "react";
 import L from "leaflet";
 import { prepareSnapshotClone, waitForRenderableImages } from "../../lib/domSnapshot";
 
+function stripLeafletSnapshotUi(root: HTMLElement) {
+  root.querySelectorAll(".leaflet-control-container").forEach((element) => {
+    (element as HTMLElement).style.display = "none";
+  });
+}
+
 export async function waitForMapFrame(mapRef: RefObject<L.Map | null>) {
   await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
   await new Promise<void>((resolve) => window.setTimeout(resolve, 240));
@@ -16,6 +22,7 @@ export async function renderMapSnapshot(element: HTMLElement) {
   const height = Math.ceil(rect.height);
   await waitForRenderableImages(element);
   const clone = await prepareSnapshotClone(element);
+  stripLeafletSnapshotUi(clone);
   clone.style.margin = "0";
   clone.style.width = `${width}px`;
   clone.style.height = `${height}px`;
