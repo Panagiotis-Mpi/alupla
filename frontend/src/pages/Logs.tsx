@@ -4,6 +4,7 @@ import { downloadBlob } from "../lib/download";
 import { buildExportFilename } from "../lib/exportFilenames";
 import Icon from "../components/Icon";
 import fileSpreadsheetIcon from "../assets/icons/file-spreadsheet.svg";
+import arrowLeftRightIcon from "../assets/icons/arrow-left-right.svg";
 import historyIcon from "../assets/icons/history.svg";
 import listFilterIcon from "../assets/icons/list-filter.svg";
 import {
@@ -131,6 +132,7 @@ export default function Logs() {
   const [userOptions, setUserOptions] = React.useState<UserOption[]>([]);
   const [studyPrograms, setStudyPrograms] = React.useState<StudyProgram[]>([]);
   const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
+  const [activePanel, setActivePanel] = React.useState<"logs" | "summary">("logs");
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
   const summaryRequestRef = React.useRef(0);
 
@@ -313,12 +315,23 @@ export default function Logs() {
           >
             <button
               type="button"
-              className="btn primary"
+              className={activePanel === "logs" ? "btn primary" : "btn"}
               style={{ minHeight: 46, justifyContent: "center" }}
-              aria-current="page"
+              aria-current={activePanel === "logs" ? "page" : undefined}
+              onClick={() => setActivePanel("logs")}
             >
               <Icon src={historyIcon} size={18} />
               <span>{t("title")}</span>
+            </button>
+            <button
+              type="button"
+              className={activePanel === "summary" ? "btn primary" : "btn"}
+              style={{ minHeight: 46, justifyContent: "center" }}
+              aria-current={activePanel === "summary" ? "page" : undefined}
+              onClick={() => setActivePanel("summary")}
+            >
+              <Icon src={arrowLeftRightIcon} size={18} />
+              <span>{t("summary.title")}</span>
             </button>
             <div ref={exportMenuRef} style={{ position: "relative" }}>
               <button
@@ -363,7 +376,8 @@ export default function Logs() {
         </div>
       </div>
 
-      <div className="card logs-summary-card page-header-card mobile-table-card">
+      {activePanel === "summary" && (
+        <div className="card logs-summary-card page-header-card mobile-table-card">
         <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap" }}>
           <h3 style={{ margin: 0 }}>{t("summary.title")}</h3>
           <select
@@ -414,9 +428,12 @@ export default function Logs() {
             </tbody>
           </table>
         </div>
-      </div>
+        </div>
+      )}
 
-      <div className="card logs-filters-card page-header-card">
+      {activePanel === "logs" && (
+        <>
+          <div className="card logs-filters-card page-header-card">
         <div className="grid cols2" style={{ gap: 14 }}>
           <div>
             <label className="label">{t("filters.actor")}</label>
@@ -563,9 +580,9 @@ export default function Logs() {
         </div>
       </div>
 
-      <div className="card logs-table-card page-header-card mobile-table-card">
-        <div className="table-wrap">
-          <table className="table logs-list-table" style={{ width: "100%", minWidth: 860, tableLayout: "fixed" }}>
+          <div className="card logs-table-card page-header-card mobile-table-card">
+            <div className="table-wrap">
+              <table className="table logs-list-table" style={{ width: "100%", minWidth: 860, tableLayout: "fixed" }}>
             <thead>
               <tr>
                 <th style={{ width: 42 }}>{t("table.id")}</th>
@@ -596,9 +613,11 @@ export default function Logs() {
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
