@@ -310,13 +310,14 @@ export default function Logs() {
               display: "grid",
               gap: 12,
               width: "100%",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gridTemplateColumns: isCompact ? "1fr" : "repeat(3, minmax(0, 1fr))",
+              alignItems: "stretch",
             }}
           >
             <button
               type="button"
               className={activePanel === "logs" ? "btn primary" : "btn"}
-              style={{ minHeight: 46, justifyContent: "center" }}
+              style={{ minHeight: 46, height: "100%", justifyContent: "center" }}
               aria-current={activePanel === "logs" ? "page" : undefined}
               onClick={() => setActivePanel("logs")}
             >
@@ -326,19 +327,19 @@ export default function Logs() {
             <button
               type="button"
               className={activePanel === "summary" ? "btn primary" : "btn"}
-              style={{ minHeight: 46, justifyContent: "center" }}
+              style={{ minHeight: 46, height: "100%", justifyContent: "center" }}
               aria-current={activePanel === "summary" ? "page" : undefined}
               onClick={() => setActivePanel("summary")}
             >
               <Icon src={arrowLeftRightIcon} size={18} />
-              <span>{t("summary.title")}</span>
+              <span>{t("summary.button")}</span>
             </button>
-            <div ref={exportMenuRef} style={{ position: "relative" }}>
+            <div ref={exportMenuRef} style={{ position: "relative", height: "100%" }}>
               <button
                 type="button"
                 className="btn dropdown-like"
                 onClick={() => setExportMenuOpen((current) => !current)}
-                style={{ minHeight: 46, justifyContent: "center", width: "100%" }}
+                style={{ minHeight: 46, height: "100%", justifyContent: "center", width: "100%" }}
               >
                 <Icon src={fileSpreadsheetIcon} size={18} />
                 <span>{t("actions.export")}</span>
