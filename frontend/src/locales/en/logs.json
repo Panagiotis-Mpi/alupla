@@ -32,7 +32,7 @@
   "exportFailed": "Export failed",
   "summary": {
     "title": "File import and export summary",
-    "button": "Table",
+    "button": "File summary",
     "page": "Page",
     "imports": "File imports",
     "exports": "File exports",
