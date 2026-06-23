@@ -297,44 +297,73 @@ export default function Logs() {
         </div>
       )}
 
-      <div className="card logs-summary-card page-header-card mobile-table-card">
-        <div className="topbar" style={{ alignItems: "center", justifyContent: "space-between", marginBottom: 12, width: "100%" }}>
-          <h2 style={{ margin: 0 }}>{t("title")}</h2>
-          <div ref={exportMenuRef} style={{ position: "relative", marginLeft: "auto" }}>
-            <button className="btn dropdown-like" onClick={() => setExportMenuOpen((current) => !current)} style={{ minWidth: 0, width: "100%", maxWidth: 220 }}>
-              <Icon src={fileSpreadsheetIcon} size={18} />
-              <span>{t("actions.export")}</span><span className="btn-dropdown-chevron" aria-hidden="true" />
+      <div className="card page-header-card" style={{ padding: 14 }}>
+        <div style={{ display: "grid", gap: 14 }}>
+          <div className="mobile-summary-title-row" style={{ alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <h2 style={{ margin: 0 }}>{t("title")}</h2>
+          </div>
+          <div
+            className="page-header-actions-grid logs-actions-grid"
+            style={{
+              display: "grid",
+              gap: 12,
+              width: "100%",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            }}
+          >
+            <button
+              type="button"
+              className="btn primary"
+              style={{ minHeight: 46, justifyContent: "center" }}
+              aria-current="page"
+            >
+              <Icon src={historyIcon} size={18} />
+              <span>{t("title")}</span>
             </button>
-            {exportMenuOpen && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 8px)",
-                  right: 0,
-                  width: 170,
-                  background: "#fff",
-                  border: "1px solid var(--border)",
-                  borderRadius: 14,
-                  boxShadow: "0 18px 40px rgba(15,23,42,.16)",
-                  padding: 8,
-                  zIndex: 50,
-                  display: "grid",
-                  gap: 6,
-                }}
+            <div ref={exportMenuRef} style={{ position: "relative" }}>
+              <button
+                type="button"
+                className="btn dropdown-like"
+                onClick={() => setExportMenuOpen((current) => !current)}
+                style={{ minHeight: 46, justifyContent: "center", width: "100%" }}
               >
-                <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("xlsx")}>
-                  <Icon src={fileSpreadsheetIcon} size={17} />
-                  <span>{t("summary.fileTypes.excel")}</span>
-                </button>
-                <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("csv")}>
-                  <Icon src={fileSpreadsheetIcon} size={17} />
-                  <span>{t("summary.fileTypes.csv")}</span>
-                </button>
-              </div>
-            )}
+                <Icon src={fileSpreadsheetIcon} size={18} />
+                <span>{t("actions.export")}</span>
+                <span className="btn-dropdown-chevron" aria-hidden="true" />
+              </button>
+              {exportMenuOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    right: 0,
+                    width: 170,
+                    background: "#fff",
+                    border: "1px solid var(--border)",
+                    borderRadius: 14,
+                    boxShadow: "0 18px 40px rgba(15,23,42,.16)",
+                    padding: 8,
+                    zIndex: 50,
+                    display: "grid",
+                    gap: 6,
+                  }}
+                >
+                  <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("xlsx")}>
+                    <Icon src={fileSpreadsheetIcon} size={17} />
+                    <span>{t("summary.fileTypes.excel")}</span>
+                  </button>
+                  <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("csv")}>
+                    <Icon src={fileSpreadsheetIcon} size={17} />
+                    <span>{t("summary.fileTypes.csv")}</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+      </div>
 
+      <div className="card logs-summary-card page-header-card mobile-table-card">
         <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap" }}>
           <h3 style={{ margin: 0 }}>{t("summary.title")}</h3>
           <select
