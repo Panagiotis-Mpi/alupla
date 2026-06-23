@@ -135,7 +135,7 @@ export const MIN_DEGREE_GRADE = 5;
 export const MAX_DEGREE_GRADE = 10;
 
 export type RuleLang = "gr" | "en";
-export type RuleViolationCode = "age_under_minimum" | "graduation_duration_under_minimum" | "degree_grade_out_of_range";
+export type RuleViolationCode = "age_under_minimum" | "graduation_duration_under_minimum" | "degree_grade_out_of_range" | "oath_not_after_graduation";
 export type GraduateRuleViolation = { code: RuleViolationCode; message: string };
 
 export function getRuleLang(raw: unknown): RuleLang {
@@ -146,10 +146,12 @@ export function getRuleViolationMessage(code: RuleViolationCode, lang: RuleLang)
   if (lang === "en") {
     if (code === "age_under_minimum") return "Graduate age must be at least 23 years.";
     if (code === "degree_grade_out_of_range") return "Degree grade must be from 5 to 10.";
+    if (code === "oath_not_after_graduation") return "Oath date must be after the diploma award date.";
     return "Study duration must be at least 5 years from entry year.";
   }
   if (code === "age_under_minimum") return "Η ηλικία αποφοίτησης πρέπει να είναι τουλάχιστον 23 έτη.";
   if (code === "degree_grade_out_of_range") return "Ο βαθμός πτυχίου πρέπει να είναι από 5 έως 10.";
+  if (code === "oath_not_after_graduation") return "Η ημερομηνία ορκωμοσίας πρέπει να είναι μετά την ημερομηνία λήψης διπλώματος.";
   return "Η διάρκεια σπουδών πρέπει να είναι τουλάχιστον 5 έτη από το έτος εισαγωγής.";
 }
 
@@ -172,6 +174,11 @@ export function getGraduateRuleViolations(input: { entry_year: number | null; bi
   }
   if (minimumAgeDate && ((graduationDate && graduationDate < minimumAgeDate) || (oathDate && oathDate < minimumAgeDate))) {
     violations.push({ code: "age_under_minimum", message: getRuleViolationMessage("age_under_minimum", lang) });
+  }
+  if (graduationDate && oathDate) {
+    if (oathDate <= graduationDate) {
+      violations.push({ code: "oath_not_after_graduation", message: getRuleViolationMessage("oath_not_after_graduation", lang) });
+    }
   }
   if (input.entry_year && graduationYear && graduationYear - input.entry_year < MIN_GRADUATION_YEARS) {
     violations.push({ code: "graduation_duration_under_minimum", message: getRuleViolationMessage("graduation_duration_under_minimum", lang) });

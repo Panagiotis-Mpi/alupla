@@ -1,7 +1,4 @@
-import {
-  DATE_ONLY_RE,
-  parseStoredGender,
-} from "../controllers/graduates.helpers";
+import { DATE_ONLY_RE, parseStoredGender } from "../controllers/graduates.helpers";
 
 export type ManualGraduateValidationInput = {
   entry_year: number;
@@ -65,6 +62,8 @@ export function getManualGraduateValidationMessage(
     return "Ο απόφοιτος πρέπει να είναι τουλάχιστον 23 ετών στη λήψη διπλώματος.";
   if (birthDate && oathDate && oathDate < ageLimitDate(birthDate, 23))
     return "Ο απόφοιτος πρέπει να είναι τουλάχιστον 23 ετών στην ορκωμοσία.";
+  if (graduationDate && oathDate && oathDate <= graduationDate)
+    return "Η ημερομηνία ορκωμοσίας πρέπει να είναι μετά την ημερομηνία λήψης διπλώματος.";
   return null;
 }
 

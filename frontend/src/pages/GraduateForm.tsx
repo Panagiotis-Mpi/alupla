@@ -32,6 +32,13 @@ function isAtLeastAgeOnDate(birthDateValue: unknown, targetDateValue: unknown, m
   return targetDate >= ageLimitDate;
 }
 
+function dateDifferenceInDays(startDateValue: unknown, endDateValue: unknown) {
+  const startDate = new Date(String(startDateValue ?? ""));
+  const endDate = new Date(String(endDateValue ?? ""));
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return null;
+  return (endDate.getTime() - startDate.getTime()) / 86400000;
+}
+
 function getGraduateValidationIssue(form: Partial<Graduate>, t: (key: string, options?: any) => string) {
   const entryYear = Number(form.entry_year);
   const birthYear = yearFromDate((form as any).birth_date);
@@ -41,6 +48,8 @@ function getGraduateValidationIssue(form: Partial<Graduate>, t: (key: string, op
   if (!Number.isFinite(degreeGrade) || degreeGrade < 5 || degreeGrade > 10) return t("validation.degreeGradeRange");
   if (!isAtLeastAgeOnDate((form as any).birth_date, form.graduation_date, 23)) return t("validation.graduationAge");
   if (!isAtLeastAgeOnDate((form as any).birth_date, form.oath_date, 23)) return t("validation.oathAge");
+  const oathDelay = dateDifferenceInDays(form.graduation_date, form.oath_date);
+  if (oathDelay !== null && oathDelay <= 0) return t("validation.oathAfterGraduation");
   return null;
 }
 

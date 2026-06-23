@@ -300,7 +300,11 @@ export async function prepareGraduateImportRows(
           (item) => item.code === "degree_grade_out_of_range",
         )
           ? "degree_grade"
-          : "graduation_date",
+          : ruleViolations.some(
+                (item) => item.code === "oath_not_after_graduation",
+              )
+            ? "oath_date"
+            : "graduation_date",
         message: buildImportViolationSummary(ruleViolations, importLang),
         details: ruleViolations.map((item) => item.message),
         violation_codes: ruleViolations.map((item) => item.code),
