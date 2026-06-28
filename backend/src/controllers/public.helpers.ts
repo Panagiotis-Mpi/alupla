@@ -7,7 +7,7 @@ import { verifyToken } from "../utils/jwt";
 import { logAction } from "../services/log.service";
 
 // Μετατρέπει τιμή DB σε αριθμό.
-export function num(v: any): number | null {
+function num(v: any): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
@@ -15,7 +15,7 @@ export function num(v: any): number | null {
 let graduatesBirthModeCache: "birth_date" | "birth_year" | null = null;
 
 // Βλέπει αν η βάση κρατά birth_date ή birth_year.
-export async function getGraduatesBirthMode(): Promise<"birth_date" | "birth_year"> {
+async function getGraduatesBirthMode(): Promise<"birth_date" | "birth_year"> {
   if (graduatesBirthModeCache) return graduatesBirthModeCache;
 
   const rows = await sequelize.query<{ column_name: string }>(
@@ -32,7 +32,7 @@ export async function getGraduatesBirthMode(): Promise<"birth_date" | "birth_yea
 }
 
 // Φτιάχνει SQL expression για ημερομηνία γέννησης.
-export async function getBirthDateExpr() {
+async function getBirthDateExpr() {
   const mode = await getGraduatesBirthMode();
   return mode === "birth_date" ? "g.birth_date" : "CASE WHEN TRIM(CAST(g.birth_year AS TEXT)) ~ '^[0-9]{4}$' THEN make_date(CAST(g.birth_year AS INTEGER), 1, 1) ELSE NULL END";
 }
@@ -44,7 +44,7 @@ export async function getBirthYearExpr() {
 }
 
 // Καθαρίζει όνομα περιοχής για ομαδοποίηση.
-export function normalizePlaceName(value: unknown) {
+function normalizePlaceName(value: unknown) {
   return String(value ?? "")
     .toLowerCase()
     .normalize("NFD")
@@ -105,7 +105,7 @@ export async function buildRegionLookup() {
 }
 
 // Παίρνει user id αν υπάρχει token, αλλιώς επιστρέφει null.
-export function getOptionalUserId(req: Request) {
+function getOptionalUserId(req: Request) {
   const auth = req.headers.authorization;
   let token: string | null = null;
 

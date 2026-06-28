@@ -938,11 +938,9 @@ export default function Statistics() {
           rangeALabel: t("compare.periodRange", { range: sourceCompareA.range }),
           rangeBLabel: t("compare.periodRange", { range: sourceCompareB.range }),
           changeLabel: activeLang === "en" ? "Change" : "Μεταβολή",
-          sections: {
-            compare: {
-              name: compareExportLabel,
-              rows: sourceCompareRows.map((row) => ({ metric: row.label, a: row.a, b: row.b, delta: row.delta })),
-            },
+          section: {
+            name: compareExportLabel,
+            rows: sourceCompareRows.map((row) => ({ metric: row.label, a: row.a, b: row.b, delta: row.delta })),
           },
         };
       })(),

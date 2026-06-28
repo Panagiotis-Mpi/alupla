@@ -10,14 +10,14 @@ export type AnalyticsWhereContext = {
 
 export type ExportLang = "gr" | "en";
 
-export const termCaseSql = `CASE
+const termCaseSql = `CASE
   WHEN EXTRACT(MONTH FROM g.graduation_date) IN (1, 2) THEN 'winter'
   WHEN EXTRACT(MONTH FROM g.graduation_date) IN (6, 7) THEN 'spring'
   WHEN EXTRACT(MONTH FROM g.graduation_date) = 9 THEN 'september'
   ELSE 'other'
 END`;
 
-export const termOrderSql = `CASE
+const termOrderSql = `CASE
   WHEN ${termCaseSql} = 'winter' THEN 1
   WHEN ${termCaseSql} = 'spring' THEN 2
   WHEN ${termCaseSql} = 'september' THEN 3
@@ -198,23 +198,6 @@ export async function getGenderByBirthYear(context: AnalyticsWhereContext, birth
   );
 }
 
-export async function getAgeGroups(context: AnalyticsWhereContext) {
-  const birthExpr = context.birthExpr ?? "g.birth_date";
-  return queryAnalyticsRows<{ label: string; count: number }>(
-    `SELECT CASE
-              WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 23 AND 26 THEN '23-26'
-              WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) BETWEEN 27 AND 30 THEN '27-30'
-              WHEN EXTRACT(YEAR FROM age(current_date, ${birthExpr})) >= 31 THEN '31+'
-              ELSE 'unknown'
-            END as label,
-            CAST(COUNT(*) AS INTEGER) as count
-     FROM graduate_details g ${context.sqlWhere}
-     GROUP BY label
-     ORDER BY CASE label WHEN '23-26' THEN 1 WHEN '27-30' THEN 2 WHEN '31+' THEN 3 ELSE 99 END`,
-    context,
-  );
-}
-
 export async function getCountByEntryYear(context: AnalyticsWhereContext) {
   return queryAnalyticsRows<{ entry_year: number; count: number }>(
     `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
@@ -316,32 +299,6 @@ export async function getYearsToDegreeDistribution(context: AnalyticsWhereContex
      FROM graduate_details g ${scopedWhere}
      GROUP BY (CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year)
      ORDER BY (CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) - g.entry_year) ASC`,
-    context,
-  );
-}
-
-export async function getOriginRows(context: AnalyticsWhereContext) {
-  return queryAnalyticsRows<{ place: string; count: number }>(
-    `SELECT COALESCE(NULLIF(TRIM(r.name), ''), NULLIF(TRIM(g.origin_municipality), ''), NULLIF(TRIM(g.origin_country), ''), 'Unknown') as place,
-            CAST(COUNT(*) AS INTEGER) as count
-     FROM graduate_details g
-     LEFT JOIN regions r ON r.id = g.origin_region_id
-     ${context.sqlWhere}
-     GROUP BY place
-     ORDER BY count DESC, place ASC
-     LIMIT 20`,
-    context,
-  );
-}
-
-export async function getCityRows(context: AnalyticsWhereContext) {
-  return queryAnalyticsRows<{ place: string; count: number }>(
-    `SELECT COALESCE(NULLIF(TRIM(g.origin_municipality), ''), 'Unknown') as place,
-            CAST(COUNT(*) AS INTEGER) as count
-     FROM graduate_details g ${context.sqlWhere}
-     GROUP BY place
-     ORDER BY count DESC, place ASC
-     LIMIT 20`,
     context,
   );
 }

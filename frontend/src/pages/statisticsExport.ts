@@ -30,9 +30,6 @@ export type StatisticsChartId =
   | "timeToDegreeByRegion"
   | "timeToDegreeByNomos"
   | "compare"
-  | "compareDemographics"
-  | "compareAcademic"
-  | "compareGeography"
 ;
 
 type NamedCountRow = {
@@ -82,11 +79,11 @@ type StatisticsData = Partial<Record<
 type SheetRow = Record<string, string | number>;
 type ExportColumnKind = "text" | "year" | "count" | "percentage" | "average" | "duration";
 
-export type StatisticsExportFormat = "xlsx" | "csv" | "png";
-export type StatisticsExportGroupKey = "demographics" | "academic" | "geography" | "compare";
-export type StatisticsExportRange = { from?: string | number | null; to?: string | number | null };
+type StatisticsExportFormat = "xlsx" | "csv" | "png";
+type StatisticsExportGroupKey = "demographics" | "academic" | "geography" | "compare";
+type StatisticsExportRange = { from?: string | number | null; to?: string | number | null };
 
-export type BuildArgs = {
+type BuildArgs = {
   data: StatisticsData;
   t: TFunction;
   activeLang: "el" | "en";
@@ -103,10 +100,10 @@ export type BuildArgs = {
     rangeALabel: string;
     rangeBLabel: string;
     changeLabel: string;
-    sections: Partial<Record<"compare" | "compareDemographics" | "compareAcademic" | "compareGeography", {
+    section?: {
       name: string;
       rows: Array<{ metric: string; a: string | number; b: string | number; delta: string | number }>;
-    }>>;
+    };
   };
 };
 
@@ -1013,25 +1010,23 @@ function buildSheets(args: BuildArgs) {
     },
   });
 
-  if (args.compare) {
-    Object.entries(args.compare.sections).forEach(([chartId, section]) => {
-      if (!section?.rows.length) return;
-      sheets.set(chartId as "compare" | "compareDemographics" | "compareAcademic" | "compareGeography", {
-        chartId: chartId as "compare" | "compareDemographics" | "compareAcademic" | "compareGeography",
-        name: section.name,
-        rows: section.rows.map((row) => ({
-          [l.category]: row.metric,
-          [args.compare?.rangeALabel ?? "A"]: row.a,
-          [args.compare?.rangeBLabel ?? "B"]: row.b,
-          [args.compare?.changeLabel ?? "Change"]: row.delta,
-        })),
-        columnKinds: {
-          [l.category]: "text",
-          [args.compare?.rangeALabel ?? "A"]: "text",
-          [args.compare?.rangeBLabel ?? "B"]: "text",
-          [args.compare?.changeLabel ?? "Change"]: "text",
-        },
-      });
+  const compareSection = args.compare?.section;
+  if (compareSection?.rows.length) {
+    sheets.set("compare", {
+      chartId: "compare",
+      name: compareSection.name,
+      rows: compareSection.rows.map((row) => ({
+        [l.category]: row.metric,
+        [args.compare?.rangeALabel ?? "A"]: row.a,
+        [args.compare?.rangeBLabel ?? "B"]: row.b,
+        [args.compare?.changeLabel ?? "Change"]: row.delta,
+      })),
+      columnKinds: {
+        [l.category]: "text",
+        [args.compare?.rangeALabel ?? "A"]: "text",
+        [args.compare?.rangeBLabel ?? "B"]: "text",
+        [args.compare?.changeLabel ?? "Change"]: "text",
+      },
     });
   }
 
@@ -1188,7 +1183,7 @@ function groupRangeParts(args: BuildArgs, groups: StatisticsExportGroupKey[]) {
   return items.map((item) => `${labels[item.group]}_${item.range}`);
 }
 
-export function statisticsExportGroupForChart(chartId: StatisticsChartId): StatisticsExportGroupKey {
+function statisticsExportGroupForChart(chartId: StatisticsChartId): StatisticsExportGroupKey {
   if (["byYear", "countByEntryYear", "birthYear", "genderTotal", "genderByEntryYear", "gender"].includes(chartId)) return "demographics";
   if (["gradeDistribution", "gradeDistributionByGender", "timeToDegreeDistribution", "gradeByYear", "gradeByRegion", "timeToDegreeByEntryYear", "timeToDegreeByRegion"].includes(chartId)) return "academic";
   if (["originRegion", "genderByRegion", "originMunicipality", "genderByMunicipality", "originCountry", "abroadShare", "abroadByYear", "timeToDegreeByNomos"].includes(chartId)) return "geography";

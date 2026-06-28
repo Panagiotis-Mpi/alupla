@@ -12,7 +12,7 @@ import {
   termLabel,
 } from "../services/analyticsAggregations.service";
 
-export type PublicWhereContext = AnalyticsWhereContext;
+type PublicWhereContext = AnalyticsWhereContext;
 type PublicExportLang = ExportLang;
 
 type PublicMapRow = {

@@ -1152,32 +1152,6 @@ html.accessibility-high-contrast .alupla-map .leaflet-container canvas{
   border:none !important;
   border-radius:0 !important;
 }
-html.accessibility-high-contrast .recharts-text,
-html.accessibility-high-contrast .recharts-label,
-html.accessibility-high-contrast .recharts-cartesian-axis-tick-value,
-html.accessibility-high-contrast .recharts-legend-item-text,
-html.accessibility-high-contrast .recharts-tooltip-label,
-html.accessibility-high-contrast .recharts-tooltip-item-name,
-html.accessibility-high-contrast .recharts-tooltip-item-value{
-  fill:#7fffd4 !important;
-  color:#7fffd4 !important;
-}
-html.accessibility-high-contrast .recharts-cartesian-axis-line,
-html.accessibility-high-contrast .recharts-cartesian-axis-tick-line,
-html.accessibility-high-contrast .recharts-cartesian-grid line,
-html.accessibility-high-contrast .recharts-reference-line line,
-html.accessibility-high-contrast .recharts-polar-grid-angle line,
-html.accessibility-high-contrast .recharts-polar-grid-concentric polygon,
-html.accessibility-high-contrast .recharts-polar-grid-concentric circle{
-  stroke:#2cf5c8 !important;
-  opacity:.75;
-}
-html.accessibility-high-contrast .recharts-default-tooltip,
-html.accessibility-high-contrast .recharts-tooltip-wrapper{
-  background:#000000 !important;
-  color:#7fffd4 !important;
-  border-color:#2cf5c8 !important;
-}
 html.accessibility-high-contrast .map-menu-item{
   background:#000000 !important;
   color:#7fffd4 !important;
@@ -3162,26 +3136,6 @@ html.accessibility-high-contrast canvas{
 html.accessibility-high-contrast img:not(.leaflet-tile),
 html.accessibility-high-contrast video{
   filter:contrast(120%);
-}
-html.accessibility-high-contrast .recharts-text,
-html.accessibility-high-contrast .recharts-label,
-html.accessibility-high-contrast .recharts-cartesian-axis-tick-value,
-html.accessibility-high-contrast .recharts-legend-item-text,
-html.accessibility-high-contrast .recharts-tooltip-label,
-html.accessibility-high-contrast .recharts-tooltip-item-name,
-html.accessibility-high-contrast .recharts-tooltip-item-value{
-  fill:#9fffe7 !important;
-  color:#9fffe7 !important;
-}
-html.accessibility-high-contrast .recharts-cartesian-axis-line,
-html.accessibility-high-contrast .recharts-cartesian-axis-tick-line,
-html.accessibility-high-contrast .recharts-cartesian-grid line,
-html.accessibility-high-contrast .recharts-reference-line line,
-html.accessibility-high-contrast .recharts-polar-grid-angle line,
-html.accessibility-high-contrast .recharts-polar-grid-concentric polygon,
-html.accessibility-high-contrast .recharts-polar-grid-concentric circle{
-  stroke:#14f5c8 !important;
-  opacity:.62;
 }
 html.accessibility-high-contrast .chart-marker-swatch,
 html.accessibility-high-contrast .chart-data-summary-row .chart-marker-swatch{

@@ -474,7 +474,7 @@ export function buildLineDataset(label: string, data: number[], color: string, b
   };
 }
 
-export function wrapAxisLabel(label: string, maxLineLength = 18, maxLines = 3) {
+function wrapAxisLabel(label: string, maxLineLength = 18, maxLines = 3) {
   const text = String(label ?? "").trim();
   const words = text.split(/\s+/).filter(Boolean);
   if (!words.length) return "";
@@ -663,7 +663,7 @@ export function SectionTitle(props: { title: string; subtitle?: string }) {
   );
 }
 
-export function MetricCard(props: { label: string; value: string | number; loading?: boolean; subItems?: { label: string; value: string | number }[]; inlineRows?: boolean; detail?: string | number; detailsLabel?: string; hideDetailsLabel?: string }) {
+export function MetricCard(props: { label: string; value: string | number; loading?: boolean; subItems?: { label: string; value: string | number }[]; detail?: string | number; detailsLabel?: string; hideDetailsLabel?: string }) {
   const [expanded, setExpanded] = React.useState(false);
   const hasDetails = Boolean(props.subItems?.length || props.detail !== undefined);
   const detailsId = React.useId();
@@ -964,7 +964,6 @@ export function ChartCard(props: {
   height?: number;
   minLabelWidth?: number;
   maxLabelWidth?: number;
-  forceScrollable?: boolean;
   exportMode?: boolean;
 }) {
   const highContrast = useHighContrastEnabled();

@@ -84,7 +84,7 @@ async function renderSnapshotClone(clone: HTMLElement, width: number, height: nu
 }
 
 
-export async function renderElementSnapshot(element: HTMLElement) {
+async function renderElementSnapshot(element: HTMLElement) {
   const rect = element.getBoundingClientRect();
   const width = Math.ceil(Math.max(rect.width, element.scrollWidth));
   const height = Math.ceil(Math.max(rect.height, element.scrollHeight));

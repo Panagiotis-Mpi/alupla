@@ -1,23 +1,9 @@
 {
   "pageTitle": "Statistics",
-  "filters": {
-    "graduationYear": "Graduation year",
-    "studyProgram": "Study program",
-    "gender": "Gender",
-    "ageGroup": "Age group",
-    "all": "All",
-    "apply": "Apply",
-    "exportCsv": "Export CSV (anonymous)",
-    "byYear": "By year",
-    "bySemester": "By semester"
-  },
   "cards": {
     "total": "Total graduates",
     "avgAge": "Average age at graduation",
     "avgGrade": "Average graduation grade",
-    "topAgeGroup": "Most common age group",
-    "earliestYear": "Maximum study duration",
-    "latestYear": "Latest graduation year",
     "topGraduationYear": "Year with maximum graduates",
     "topCity": "City with the most graduates",
     "minAge": "Minimum",
@@ -35,9 +21,7 @@
   "sections": {
     "byYear": "Graduates by graduation year",
     "gender": "Gender distribution by graduation year",
-    "age": "Age distribution",
     "gradeByYear": "Average graduation grade by year",
-    "byTerm": "Graduates per exam period",
     "timeToDegreeByEntryYear": "Average study duration by entry year",
     "gradeDistribution": "Graduation grade distribution",
     "gradeDistributionByGender": "Graduation grade distribution by gender",
@@ -50,7 +34,6 @@
     "abroadByYear": "Greece and abroad graduates distribution by graduation year",
     "timeToDegreeByNomos": "Average study duration by regional unit of origin",
     "timeToDegreeDistribution": "Study duration distribution",
-    "genderByEntryYear": "Gender distribution by entry year",
     "countByEntryYear": "Graduates by entry year",
     "gradeByRegion": "Average graduation grade by region of origin",
     "genderByRegion": "Gender distribution by region of origin",
@@ -58,32 +41,14 @@
     "genderByMunicipality": "Gender distribution by city of origin"
   },
   "table": {
-    "year": "Year",
-    "count": "Count",
     "male": "Male",
     "female": "Female",
-    "avg": "Avg",
-    "ageGroup": "Age group",
-    "winter": "Winter",
-    "spring": "Spring",
-    "september": "September",
-    "avgYears": "Avg years",
-    "otherRegions": "Other regions",
-    "otherCities": "Other cities",
-    "topRegion": "Top region",
-    "topCity": "Top city",
     "greece": "Greece",
     "abroad": "Abroad"
   },
   "loading": "Loading...",
   "error": "Something went wrong",
-  "charts": {
-    "byTerm": "Bar chart",
-    "timeToDegreeByEntryYear": "Chart",
-    "gradeDistribution": "Bar chart"
-  },
   "actions": {
-    "exportExcel": "Export Excel",
     "export": "Export statistics",
     "selectAll": "All",
     "selectAllYears": "All years",
@@ -93,25 +58,20 @@
     "exportSelectionSubtitle": "Choose which charts you want to download",
     "exportSelected": "Export selected",
     "cancel": "Cancel",
-    "close": "Close",
-    "compare": "Compare",
     "fullscreen": "Fullscreen",
     "from": "From",
     "to": "To"
   },
   "groups": {
-    "overview": "Overview",
     "demographics": "Counts and gender",
     "academic": "Academic insights",
     "geography": "Geographic distribution",
     "compare": "Compare"
   },
   "groupText": {
-    "overview": "Overall graduate snapshot with key indicators and broad trends.",
     "demographics": "Aggregated graduate counts and gender distribution.",
     "academic": "Statistics on graduation grades and study duration by year and region.",
-    "geography": "Statistics on graduate origin by region, city and country.",
-    "compare": "Comparison of key graduate indicators between two selected time ranges."
+    "geography": "Statistics on graduate origin by region, city and country."
   },
   "summary": {
     "show": "Brief info",
