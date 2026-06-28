@@ -284,7 +284,11 @@ export async function exportActivityLogsCsv(
 
     await writeExportLog(req, "export_csv", rows.length);
 
-    const exportRows = sanitizeExportRows(getExportRows(lang, rows as any[]));
+    const dateHeader = lang === "en" ? "Time, Date" : "Ώρα, Ημερομηνία";
+    const exportRows = sanitizeExportRows(getExportRows(lang, rows as any[])).map((row) => ({
+      ...row,
+      [dateHeader]: `\u200B${String(row[dateHeader] ?? "")}`,
+    }));
     const csv = buildDelimitedText(exportRows, "\t");
     const buffer = buildUtf16CsvBuffer(csv);
     res.setHeader(
