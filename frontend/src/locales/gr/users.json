@@ -21,8 +21,7 @@
     "deactivate": "Διαγραφή",
     "export": "Εξαγωγή χρηστών",
     "excel": "Excel",
-    "csv": "CSV",
-    "cancel": "Ακύρωση"
+    "csv": "CSV"
   },
   "table": {
     "id": "ID",
@@ -36,9 +35,7 @@
   },
   "status": {
     "online": "● συνδεδεμένος",
-    "offline": "○ εκτός σύνδεσης",
-    "yes": "Ναι",
-    "no": "Όχι"
+    "offline": "○ εκτός σύνδεσης"
   },
   "confirm": {
     "deactivate": "Διαγραφή χρήστη #{{id}};"
@@ -46,8 +43,5 @@
   "messages": {
     "createdWithEmail": "Ο χρήστης δημιουργήθηκε και στάλθηκε email με τα στοιχεία σύνδεσης.",
     "createdWithoutEmail": "Ο χρήστης δημιουργήθηκε. Δεν στάλθηκε email. Έλεγξε τις ρυθμίσεις Brevo/API αποστολής email στο backend."
-  },
-  "menu": {
-    "title": "Μενού χρηστών"
   }
 }

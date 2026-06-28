@@ -21,8 +21,7 @@
     "deactivate": "Delete",
     "export": "Export users",
     "excel": "Excel",
-    "csv": "CSV",
-    "cancel": "Cancel"
+    "csv": "CSV"
   },
   "table": {
     "id": "ID",
@@ -36,9 +35,7 @@
   },
   "status": {
     "online": "● online",
-    "offline": "○ offline",
-    "yes": "Yes",
-    "no": "No"
+    "offline": "○ offline"
   },
   "confirm": {
     "deactivate": "Delete user #{{id}}?"
@@ -46,8 +43,5 @@
   "messages": {
     "createdWithEmail": "The user was created and an email with the login details was sent.",
     "createdWithoutEmail": "The user was created. No email was sent. Check the Brevo/API email settings in the backend."
-  },
-  "menu": {
-    "title": "Users menu"
   }
 }

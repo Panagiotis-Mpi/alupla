@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/sequelize";
 
 // Οι ρόλοι που επιτρέπονται στην πλατφόρμα.
-export type UserRole = "super_admin" | "secretariat";
+type UserRole = "super_admin" | "secretariat";
 
 // Model για τους χρήστες της πλατφόρμας.
 export class User extends Model {

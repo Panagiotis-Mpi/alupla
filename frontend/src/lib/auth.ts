@@ -1,7 +1,7 @@
 // Αποθηκεύει και διαβάζει στοιχεία σύνδεσης χρήστη από το browser.
 export type Role = "secretariat" | "super_admin";
 
-export type SessionUser = {
+type SessionUser = {
   id: number;
   first_name: string;
   last_name: string;
@@ -36,11 +36,6 @@ function moveLegacySessionData() {
       clearLegacyStorage();
     }
   } catch {}
-}
-
-export function getToken(): string | null {
-  moveLegacySessionData();
-  return sessionStorage.getItem(TOKEN_KEY);
 }
 
 export function getUser(): SessionUser | null {

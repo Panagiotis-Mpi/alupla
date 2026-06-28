@@ -3,7 +3,7 @@ import { Op } from "sequelize";
 import { User } from "../models/User";
 import { verifyToken } from "../utils/jwt";
 
-export type AuthUser = {
+type AuthUser = {
   id: number;
   role: "super_admin" | "secretariat";
 };

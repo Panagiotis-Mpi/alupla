@@ -10,7 +10,7 @@ export type LogFilters = {
 };
 
 export type FileSummaryRole = "secretariat" | "super_admin" | "visitor";
-export type FileSummaryFileType = "excel" | "csv" | "pdf" | "png";
+type FileSummaryFileType = "excel" | "csv" | "pdf" | "png";
 export type FileSummaryPage =
   | "graduates"
   | "users"
@@ -31,7 +31,7 @@ export type ActivityLogListResponse = {
   pageSize?: number;
 };
 
-export type SummaryLayout = {
+type SummaryLayout = {
   pages: FileSummaryPage[];
   importTypes: FileSummaryFileType[];
   exportTypes: FileSummaryFileType[];
@@ -44,7 +44,7 @@ export const emptyFilters: LogFilters = {
 
 const hiddenDetailKeys = new Set(["actor_role", "actor_name", "actor_email"]);
 
-export const actionLabels = {
+const actionLabels = {
   gr: {
     login: "Σύνδεση",
     logout: "Αποσύνδεση",
@@ -180,7 +180,7 @@ export const knownActionKeys = [
   "upload",
 ] as const;
 
-export const detailFreeActions = new Set([
+const detailFreeActions = new Set([
   "login",
   "logout",
   "register",
@@ -226,7 +226,7 @@ export function getSummaryLayout(role: FileSummaryRole): SummaryLayout {
   };
 }
 
-export function isSummaryCellSupported(
+function isSummaryCellSupported(
   page: FileSummaryPage,
   operation: SummaryOperation,
   fileType: FileSummaryFileType,
@@ -243,7 +243,7 @@ export function summaryCellValue(
   return row[operation]?.[fileType] ?? 0;
 }
 
-export function upperFileType(value: string) {
+function upperFileType(value: string) {
   const normalized = String(value || "")
     .trim()
     .toLowerCase();

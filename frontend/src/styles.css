@@ -968,9 +968,7 @@ html.accessibility-high-contrast .alupla-map .alupla-city-label-text{
   
   .statistics-metric-detail{font-size:12px;line-height:1.28}
   .logs-summary-card,.logs-filters-card{max-width:100%;overflow:hidden}
-  .logs-summary-card .table-wrap,.logs-filters-card .table-wrap{max-width:100%;overflow-x:auto}
-  .logs-summary-table{min-width:0 !important;width:100% !important;table-layout:fixed !important}
-  .logs-summary-table th,.logs-summary-table td{white-space:normal;word-break:break-word;overflow-wrap:anywhere;font-size:12.5px;padding:7px 6px}
+  .logs-summary-card .table-wrap{max-width:100%;overflow-x:auto}
 }
 html.accessibility-high-contrast{
   --bg:#000000;
@@ -1749,28 +1747,6 @@ html.accessibility-high-contrast .logs-summary-loading-region.is-loading::after{
   border:2px solid #14f5c8 !important;
 }
 
-.logs-summary-table th,
-.logs-summary-table td,
-.logs-list-table th,
-.logs-list-table td{
-  font-size:14px;
-  line-height:1.35;
-}
-.logs-summary-table th,
-.logs-list-table th{
-  font-size:14px;
-  font-weight:800;
-  color:#475569;
-}
-@media (max-width:640px){
-  .logs-summary-table th,
-  .logs-summary-table td,
-  .logs-list-table th,
-  .logs-list-table td{
-    font-size:13.5px !important;
-    line-height:1.35;
-  }
-}
 
 .auth-page-shell{
   min-height:calc(100vh - 70px);

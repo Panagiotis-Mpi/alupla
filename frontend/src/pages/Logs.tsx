@@ -305,7 +305,7 @@ export default function Logs() {
             <h2 style={{ margin: 0 }}>{t("title")}</h2>
           </div>
           <div
-            className="page-header-actions-grid logs-actions-grid"
+            className="page-header-actions-grid"
             style={{
               display: "grid",
               gap: 12,
@@ -581,7 +581,7 @@ export default function Logs() {
         </div>
       </div>
 
-          <div className="card logs-table-card page-header-card mobile-table-card">
+          <div className="card page-header-card mobile-table-card">
             <div className="table-wrap">
               <table className="table logs-list-table" style={{ width: "100%", minWidth: 860, tableLayout: "fixed" }}>
             <thead>

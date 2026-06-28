@@ -257,7 +257,7 @@ export default function Users() {
   }
 
   return (
-    <div className="page-stable-shell users-page">
+    <div className="page-stable-shell">
       <div className="card page-header-card" style={{ padding: 14 }}>
         <div style={{ display: "grid", gap: 14 }}>
           <div
@@ -272,7 +272,7 @@ export default function Users() {
             </span>
           </div>
           <div
-            className="page-header-actions-grid users-actions-grid"
+            className="page-header-actions-grid"
             style={{
               display: "grid",
               gap: 12,
@@ -386,7 +386,7 @@ export default function Users() {
                 <option value="super_admin">{roleLabels.superAdmin}</option>
               </select>
             </div>
-            <div className="users-password-field" style={passwordFieldStyle}>
+            <div style={passwordFieldStyle}>
               <label className="label">{t("labels.passwordStrong")}</label>
               <input
                 className="input"

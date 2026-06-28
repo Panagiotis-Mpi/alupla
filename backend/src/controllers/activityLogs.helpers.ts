@@ -12,7 +12,7 @@ export const EXPORT_LIMIT = 5000;
 
 const hiddenDetailKeys = new Set(["actor_role", "actor_name", "actor_email"]);
 
-export const actionLabels = {
+const actionLabels = {
   gr: {
     login: "Σύνδεση",
     logout: "Αποσύνδεση",
@@ -184,7 +184,7 @@ export function nonEmptyString(value: unknown) {
 }
 
 // Διαβάζει details log είτε είναι JSON string είτε object.
-export function parseLogDetails(value: unknown) {
+function parseLogDetails(value: unknown) {
   if (value && typeof value === "object")
     return value as Record<string, unknown>;
   if (typeof value !== "string") return null;
@@ -198,7 +198,7 @@ export function parseLogDetails(value: unknown) {
 }
 
 // Κάνει ασφαλή τιμή CSV για να μη χαλάσει η γραμμή export.
-export function csvEscape(value: unknown, delimiter = ",") {
+function csvEscape(value: unknown, delimiter = ",") {
   const text =
     value === null || value === undefined
       ? ""
@@ -343,7 +343,7 @@ export function getRoleFilter(req: Request) {
 }
 
 // Ομαδοποιεί log ανά ρόλο actor για φίλτρα/προβολή.
-export function getRoleBucket(row: any) {
+function getRoleBucket(row: any) {
   const details = parseLogDetails(row?.details);
   const detailRole = String((details as any)?.actor_role ?? "")
     .trim()
@@ -410,7 +410,7 @@ export function getOperation(row: any) {
 }
 
 // Βρίσκει format αρχείου από filename.
-export function getFormatFromFilename(name: string) {
+function getFormatFromFilename(name: string) {
   const normalized = String(name ?? "")
     .trim()
     .toLowerCase();
@@ -469,7 +469,7 @@ export function getLanguage(req: Request) {
 }
 
 // Μεταφράζει labels details log στη σωστή γλώσσα.
-export function localDetailLabel(lang: "gr" | "en", key: string) {
+function localDetailLabel(lang: "gr" | "en", key: string) {
   const labels =
     lang === "en"
       ? {
@@ -598,7 +598,7 @@ export function localDetailLabel(lang: "gr" | "en", key: string) {
 }
 
 // Επιστρέφει τύπο αρχείου με κεφαλαία για εμφάνιση.
-export function upperFileType(value: string) {
+function upperFileType(value: string) {
   const normalized = String(value || "")
     .trim()
     .toLowerCase();
@@ -610,7 +610,7 @@ export function upperFileType(value: string) {
 }
 
 // Μεταφράζει γνωστές τιμές log για GR/EN εμφάνιση.
-export function localValue(lang: "gr" | "en", value: string) {
+function localValue(lang: "gr" | "en", value: string) {
   const normalized = String(value ?? "").trim();
   if (!normalized) return "";
   if (normalized === "visitor") return lang === "en" ? "Visitor" : "Επισκέπτης";
@@ -636,7 +636,7 @@ export function localValue(lang: "gr" | "en", value: string) {
   return getLocalizedAction(lang, normalized) || normalized;
 }
 
-export function parseDetails(value: unknown) {
+function parseDetails(value: unknown) {
   if (value && typeof value === "object")
     return value as Record<string, unknown>;
   if (typeof value !== "string") return null;
@@ -913,72 +913,4 @@ export function getLocalizedDetails(lang: "gr" | "en", log: any) {
       return `${localDetailLabel(lang, key)}: ${rendered}`;
     })
     .join(", ");
-}
-
-// Φτιάχνει καθαρό όνομα χρήστη/ρόλου για εμφάνιση στα logs.
-export function getActorLabel(log: any) {
-  const firstName = String(log?.user?.first_name ?? "").trim();
-  const lastName = String(log?.user?.last_name ?? "").trim();
-  const fullName = `${firstName} ${lastName}`.trim();
-  if (fullName) return fullName;
-  if (log?.user?.email) return String(log.user.email);
-  return log?.user_id == null ? "Visitor" : "";
-}
-
-// Μορφοποιεί ημερομηνία log για GR/EN προβολή και exports.
-export function formatDateTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  const locale = "en-GB";
-  const time = new Intl.DateTimeFormat(locale, {
-    timeZone: "Europe/Athens",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(date);
-  const day = new Intl.DateTimeFormat(locale, {
-    timeZone: "Europe/Athens",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-  return `${day} ${time}`;
-}
-
-// Φέρνει όλα τα logs που θα μπουν σε CSV/XLSX export.
-export function findLogsForExport(rows: any[], roleFilter: string) {
-  return rows
-    .filter((row) => matchesRole(row, roleFilter))
-    .slice(0, EXPORT_LIMIT);
-}
-
-// Μετατρέπει logs βάσης σε γραμμές αρχείου export.
-export function getExportRows(rows: any[], lang: "gr" | "en") {
-  return rows.map((row) => ({
-    [lang === "en" ? "Date" : "Ημερομηνία"]: formatDateTime(
-      String(row.created_at ?? ""),
-    ),
-    [lang === "en" ? "User" : "Χρήστης"]: getActorLabel(row),
-    [lang === "en" ? "Role" : "Ρόλος"]: localValue(
-      lang,
-      String(
-        (row?.user?.role ?? row?.details?.actor_role ?? row?.user_id == null)
-          ? "visitor"
-          : "",
-      ),
-    ),
-    [lang === "en" ? "Action" : "Ενέργεια"]: getLocalizedAction(
-      lang,
-      row.action,
-      row,
-    ),
-    [lang === "en" ? "Entity" : "Αντικείμενο"]: localValue(
-      lang,
-      String(row.entity_type ?? ""),
-    ),
-    [lang === "en" ? "Details" : "Λεπτομέρειες"]: getLocalizedDetails(
-      lang,
-      row,
-    ),
-  }));
 }

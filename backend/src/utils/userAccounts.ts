@@ -4,8 +4,8 @@ import type { User } from "../models/User";
 
 const STRONG_PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
-export const PASSWORD_HASH_ROUNDS = 10;
-export const ONLINE_WINDOW_MS = 90_000;
+const PASSWORD_HASH_ROUNDS = 10;
+const ONLINE_WINDOW_MS = 90_000;
 
 export function fail(res: Response, status: number, message: string) {
   return res.status(status).json({ ok: false, error: { message } });
@@ -33,7 +33,7 @@ export function isStrongPassword(value: string) {
 
 
 
-export function computeIsOnline(lastSeen: Date | null | undefined) {
+function computeIsOnline(lastSeen: Date | null | undefined) {
   if (!lastSeen) return false;
   return Date.now() - new Date(lastSeen).getTime() <= ONLINE_WINDOW_MS;
 }

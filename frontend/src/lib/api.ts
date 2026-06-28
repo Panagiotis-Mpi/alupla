@@ -1,12 +1,5 @@
 // Συγκεντρώνει τις κλήσεις προς το backend API που χρησιμοποιούν οι σελίδες.
-export {
-  API_URL,
-  clearToken,
-  getToken,
-  setToken,
-  toQueryString,
-  type QueryParams,
-} from "./apiCore";
+export type { QueryParams } from "./apiCore";
 import {
   API_URL,
   api,

@@ -32,19 +32,7 @@ export function getToken(): string | null {
   return normalized;
 }
 
-export function setToken(token: string) {
-  if (!token || token === "null" || token === "undefined") {
-    clearToken();
-    return;
-  }
-  sessionStorage.setItem(TOKEN_KEY, token);
-  try {
-    localStorage.removeItem(TOKEN_KEY);
-  } catch {
-  }
-}
-
-export function clearToken() {
+function clearToken() {
   sessionStorage.removeItem(TOKEN_KEY);
   try {
     localStorage.removeItem(TOKEN_KEY);
@@ -53,9 +41,9 @@ export function clearToken() {
 }
 
 type JsonRecord = Record<string, unknown>;
-export type QueryValue = string | number | boolean | null | undefined | Array<string | number | boolean>;
+type QueryValue = string | number | boolean | null | undefined | Array<string | number | boolean>;
 export type QueryParams = Record<string, QueryValue>;
-export type ApiRequestInit = Omit<RequestInit, "body"> & { body?: unknown };
+type ApiRequestInit = Omit<RequestInit, "body"> & { body?: unknown };
 
 function apiErrorMessage(data: unknown, fallback: string) {
   if (data && typeof data === "object") {
@@ -84,7 +72,7 @@ function looksLikeJson(value: string) {
   return (text.startsWith("{") && text.endsWith("}")) || (text.startsWith("[") && text.endsWith("]"));
 }
 
-export function appendQuery(params: URLSearchParams, values: QueryParams = {}) {
+function appendQuery(params: URLSearchParams, values: QueryParams = {}) {
   for (const [key, value] of Object.entries(values)) {
     if (value === undefined || value === null || value === "") continue;
     params.set(key, Array.isArray(value) ? value.join(",") : String(value));
