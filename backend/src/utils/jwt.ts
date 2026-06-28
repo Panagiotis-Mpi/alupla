@@ -7,7 +7,7 @@ if (!JWT_SECRET_RAW) {
 }
 const JWT_SECRET: Secret = JWT_SECRET_RAW;
 
-export type AppJwtPayload = StdJwtPayload & {
+type AppJwtPayload = StdJwtPayload & {
   role: string;
   userId?: number | string;
   email?: string;

@@ -1,6 +1,6 @@
 // Δημόσια αρχική σελίδα για επισκέπτες χωρίς login.
 import { useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import greeceMapIllustration from "../assets/home_greece_map.svg";
 import greeceMapHighContrastIllustration from "../assets/home_greece_map_high_contrast.svg";
@@ -159,12 +159,6 @@ export default function PublicHome() {
     }
   };
 
-  const handleMapSlideKeyDown = (event: KeyboardEvent<HTMLButtonElement>, scope: HomeMapSlide["scope"]) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      openMapScope(scope);
-    }
-  };
 
   return (
     <div className="public-home-shell">
@@ -227,7 +221,6 @@ export default function PublicHome() {
                       key={`${slide.scope}-${index}`}
                       className={`public-home-illustration-slide public-home-illustration-clickable public-home-illustration-slide-${slide.scope}`}
                       onClick={() => openMapScope(slide.scope)}
-                      onKeyDown={(event) => handleMapSlideKeyDown(event, slide.scope)}
                       tabIndex={isActive ? 0 : -1}
                       aria-hidden={!isActive}
                       aria-label={slide.alt}

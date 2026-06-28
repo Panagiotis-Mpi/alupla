@@ -17,7 +17,7 @@ import {
   type CacheStore,
 } from "./cache";
 
-export type UserRole = "super_admin" | "secretariat";
+type UserRole = "super_admin" | "secretariat";
 export type User = {
   id: number;
   first_name: string;
@@ -39,7 +39,7 @@ export type StudyProgram = {
   is_active: 0 | 1 | boolean;
 };
 
-export type RegionType = "COUNTRY" | "PERIPHERY" | "NOMOS" | "CITY";
+type RegionType = "COUNTRY" | "PERIPHERY" | "NOMOS" | "CITY";
 export type Region = {
   id: number;
   name: string;
@@ -297,7 +297,7 @@ function readApiErrorMessage(value: unknown, fallback: string) {
   );
 }
 
-export type MapYearRangeResponse = {
+type MapYearRangeResponse = {
   ok: true;
   years: number[];
   min_year: number | null;
@@ -380,25 +380,12 @@ export async function resetPassword(payload: {
   });
 }
 
-export async function changePassword(
-  currentPasswordOrPayload:
-    | string
-    | { currentPassword: string; newPassword: string },
-  maybeNewPassword?: string,
-): Promise<ApiOk> {
-  const payload =
-    typeof currentPasswordOrPayload === "string"
-      ? {
-          currentPassword: currentPasswordOrPayload,
-          newPassword: maybeNewPassword || "",
-        }
-      : currentPasswordOrPayload;
-
+export async function changePassword(currentPassword: string, newPassword: string): Promise<ApiOk> {
   return api("/auth/change-password", {
     method: "POST",
     body: {
-      current_password: payload.currentPassword,
-      new_password: payload.newPassword,
+      current_password: currentPassword,
+      new_password: newPassword,
     },
   });
 }

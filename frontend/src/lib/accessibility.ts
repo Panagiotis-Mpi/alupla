@@ -56,7 +56,7 @@ const FONT_SCALE_MULTIPLIERS: Record<AccessibilitySettings["fontScale"], number>
 let fontObserver: MutationObserver | null = null;
 let scheduledAnimationFrame = 0;
 
-export const defaultAccessibilitySettings: AccessibilitySettings = {
+const defaultAccessibilitySettings: AccessibilitySettings = {
   fontScale: 0,
   highContrast: false,
   underlineLinks: false,

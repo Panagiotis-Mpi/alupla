@@ -1,12 +1,9 @@
 {
   "nav": {
     "graduates": "Graduates",
-    "regions": "Regions",
     "map": "Map",
-    "profile": "Profile",
     "users": "Users",
     "logs": "Logs",
-    "academicData": "Study program management",
     "logout": "Logout",
     "statistics": "Statistics",
     "login": "Login",
@@ -15,26 +12,15 @@
     "myProfile": "My profile",
     "homepage": "Homepage"
   },
-  "login": {
-    "title": "Login",
-    "email": "Email",
-    "password": "Password",
-    "button": "Sign In",
-    "register": "Register"
-  },
   "home": {
     "heroTitle": "Alumni Platform | Graduate Platform",
-    "heroLead": "",
-    "heroSublead": "",
     "map": "Map",
     "stats": "Statistics",
-    "heroLoginHint": "For Secretariat / Administrator access:",
     "counters": {
       "label": "Home page key figures",
       "graduates": "Graduates",
       "countries": "Countries",
-      "years": "Graduation years",
-      "description": ""
+      "years": "Graduation years"
     }
   },
   "common": {
@@ -111,7 +97,6 @@
   "accessibility": {
     "title": "Accessibility",
     "open": "Accessibility menu",
-    "shortLabel": "A",
     "reset": "Reset",
     "fontSize": "Text size",
     "increaseText": "Increase text",

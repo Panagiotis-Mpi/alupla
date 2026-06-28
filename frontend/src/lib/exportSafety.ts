@@ -6,7 +6,7 @@ export function sanitizeExportCell(value: unknown): unknown {
   return FORMULA_LIKE_RE.test(value) ? `'${value}` : value;
 }
 
-export function sanitizeExportRow<T extends Record<string, unknown>>(row: T): T {
+function sanitizeExportRow<T extends Record<string, unknown>>(row: T): T {
   return Object.fromEntries(Object.entries(row).map(([key, value]) => [key, sanitizeExportCell(value)])) as T;
 }
 

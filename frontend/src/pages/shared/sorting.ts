@@ -1,4 +1,4 @@
-export type SortDirection = "asc" | "desc";
+type SortDirection = "asc" | "desc";
 
 export function sortIndicator<T extends string>(activeKey: T, key: T, direction: SortDirection) {
   if (activeKey !== key) return "";

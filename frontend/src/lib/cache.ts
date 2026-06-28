@@ -1,4 +1,4 @@
-export type CacheEntry<T = unknown> = {
+type CacheEntry<T = unknown> = {
   expires: number;
   value: T;
 };

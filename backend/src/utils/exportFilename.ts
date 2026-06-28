@@ -18,12 +18,12 @@ function dateTimePartMap(date: Date) {
   );
 }
 
-export function exportTimestamp(date = new Date()) {
+function exportTimestamp(date = new Date()) {
   const parts = dateTimePartMap(date);
   return `${parts.year}-${parts.month}-${parts.day}-${parts.hour}-${parts.minute}-${parts.second}`;
 }
 
-export function exportFilenamePart(value: unknown) {
+function exportFilenamePart(value: unknown) {
   return String(value ?? "")
     .trim()
     .toLowerCase()

@@ -60,7 +60,7 @@ export function routeCache(scope: string, ttlMs: number) {
 }
 
 // Καθαρίζει cache για ένα route prefix.
-export function clearRouteCache(scope?: string) {
+function clearRouteCache(scope?: string) {
   if (!scope) {
     entries.clear();
     return;

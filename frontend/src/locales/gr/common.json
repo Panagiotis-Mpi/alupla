@@ -1,12 +1,9 @@
 {
   "nav": {
     "graduates": "Απόφοιτοι",
-    "regions": "Περιοχές",
     "map": "Χάρτης",
-    "profile": "Προφίλ",
     "users": "Χρήστες",
     "logs": "Καταγραφές",
-    "academicData": "Διαχείριση προγραμμάτων σπουδών",
     "logout": "Αποσύνδεση",
     "statistics": "Στατιστικά",
     "login": "Σύνδεση",
@@ -15,26 +12,15 @@
     "myProfile": "Το προφίλ μου",
     "homepage": "Αρχική σελίδα"
   },
-  "login": {
-    "title": "Σύνδεση",
-    "email": "Email",
-    "password": "Κωδικός",
-    "button": "Σύνδεση",
-    "register": "Εγγραφή"
-  },
   "home": {
     "heroTitle": "Alumni Platform | Πλατφόρμα αποφοίτων",
-    "heroLead": "",
-    "heroSublead": "",
     "map": "Χάρτης",
     "stats": "Στατιστικά",
-    "heroLoginHint": "Για πρόσβαση Γραμματείας / Διαχειριστή:",
     "counters": {
       "label": "Σύντομοι αριθμοί αρχικής σελίδας",
       "graduates": "Απόφοιτοι",
       "countries": "Χώρες",
-      "years": "Έτη αποφοίτησης",
-      "description": ""
+      "years": "Έτη αποφοίτησης"
     }
   },
   "common": {
@@ -112,7 +98,6 @@
   "accessibility": {
     "title": "Προσβασιμότητα",
     "open": "Μενού προσβασιμότητας",
-    "shortLabel": "A",
     "reset": "Επαναφορά",
     "fontSize": "Μέγεθος γραμματοσειράς",
     "increaseText": "Αύξηση κειμένου",

@@ -1,12 +1,7 @@
 {
   "title": "Study Programs Management",
   "error": "Error",
-  "status": {
-    "active": "Active",
-    "inactive": "Inactive"
-  },
   "menu": {
-    "programs": "Study Programs",
     "import": "Import study programs",
     "template": "Download template"
   },
@@ -18,24 +13,16 @@
     "cancel": "Cancel"
   },
   "table": {
-    "code": "Code",
     "name": "Name",
-    "status": "Status",
     "actions": "Actions",
     "empty": "No entries found.",
-    "loading": "Loading",
-    "nameEl": "Name",
-    "nameEn": "Name"
+    "loading": "Loading"
   },
   "programs": {
     "title": "Study Programs",
-    "count": "{{count}} entries",
-    "summary": "Study programs: {{count}} total",
     "labels": {
-      "code": "Code *",
       "nameEl": "Name in Greek",
-      "nameEn": "Name in English",
-      "status": "Status"
+      "nameEn": "Name in English"
     }
   },
   "confirm": {
