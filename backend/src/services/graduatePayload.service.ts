@@ -1,6 +1,6 @@
 import { DATE_ONLY_RE, parseStoredGender } from "../controllers/graduates.helpers";
 
-export type ManualGraduateValidationInput = {
+type ManualGraduateValidationInput = {
   entry_year: number;
   birth_date: string;
   graduation_date: string;
@@ -8,7 +8,7 @@ export type ManualGraduateValidationInput = {
   degree_grade: number;
 };
 
-export type CreateGraduateValues = {
+type CreateGraduateValues = {
   ad_code_in: string;
   last_name: string;
   first_name: string;
@@ -34,7 +34,7 @@ function ageLimitDate(birthDate: Date, years: number) {
   return date;
 }
 
-export function getManualGraduateValidationMessage(
+function getManualGraduateValidationMessage(
   input: ManualGraduateValidationInput,
 ) {
   const birthYear = Number(String(input.birth_date ?? "").slice(0, 4));

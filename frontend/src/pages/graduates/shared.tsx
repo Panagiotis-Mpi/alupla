@@ -168,7 +168,7 @@ export function formatValue(value: unknown, mode: "default" | "date" = "default"
   return value === null || value === undefined ? "" : String(value);
 }
 
-export function normalizeValue(value: unknown) {
+function normalizeValue(value: unknown) {
   if (value === null || value === undefined) {
     return "";
   }
@@ -296,7 +296,7 @@ export function renderGenderValue(value: unknown, activeLang: "gr" | "en" = "gr"
   return formatValue(value);
 }
 
-export function getGraduateSortValue(args: {
+function getGraduateSortValue(args: {
   graduate: Graduate;
   key: SortKey;
   programNameById: Map<number, string>;

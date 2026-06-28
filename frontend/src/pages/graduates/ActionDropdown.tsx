@@ -1,7 +1,7 @@
 import React from "react";
 import Icon from "../../components/Icon";
 
-export type GraduateDropdownAction = {
+type GraduateDropdownAction = {
   key: string;
   label: string;
   icon: string;

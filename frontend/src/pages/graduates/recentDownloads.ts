@@ -56,7 +56,7 @@ export const MAX_RECENT_GRADUATE_DOWNLOADS = 8;
 const RECENT_GRADUATE_DOWNLOADS_KEY = "alupla.graduates.recentDownloads";
 export const recentGraduateSessionDownloads = new Map<string, { blob: Blob; fileName: string }>();
 
-export function normalizeRecentGraduateDownload(item: any): RecentGraduateDownload | null {
+function normalizeRecentGraduateDownload(item: any): RecentGraduateDownload | null {
   if (!item || typeof item !== "object") return null;
   const format = item.format === "csv" || item.format === "pdf" ? item.format : "xlsx";
   const fileName = typeof item.fileName === "string" && item.fileName.trim() ? item.fileName : "";

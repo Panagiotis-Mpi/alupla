@@ -7,10 +7,7 @@
     "importing": "Import...",
     "exportExcel": "Excel",
     "newGraduate": "New graduate",
-    "importTemplateHelp": "The file field format for importing graduates is the following:",
     "downloadTemplate": "Download Template",
-    "selectGraduates": "Select graduates",
-    "exportSelected": "Export selected",
     "delete": "Delete graduates",
     "searchPlaceholder": "Search across all graduate fields...",
     "import": "Import graduates",
@@ -31,35 +28,19 @@
     "noSelection": "You have not selected graduates."
   },
   "filters": {
-    "qLabel": "Global search (q)",
-    "qPlaceholder": "e.g. Papad...",
-    "lastNameLike": "Last name",
-    "firstNameLike": "First name",
-    "gender": "Gender",
     "all": "All",
-    "studyProgram": "Study program",
-    "sort": "Sort",
-    "sort_id_asc": "id ↑",
-    "sort_id_desc": "id ↓",
-    "sort_last_name_asc": "last name ↑",
-    "sort_last_name_desc": "last name ↓",
     "search": "Search",
     "reset": "Reset",
     "from": "From",
     "to": "To",
     "region": "Region",
-    "page": "Page {{page}}",
     "male": "Male",
     "female": "Female",
-    "originType": "Origin category",
     "originTypeGreece": "Greece",
-    "originTypeAbroad": "Abroad",
-    "foreignCountry": "Country",
     "foreignCity": "Foreign city",
     "nomos": "Regional unit"
   },
   "table": {
-    "id": "ID",
     "ad": "Diploma number",
     "am": "Student number",
     "lastName": "Last name",
@@ -79,7 +60,6 @@
     "loading": "loading",
     "empty": "No results.",
     "region": "Region",
-    "originType": "Origin category",
     "country": "Country",
     "nomos": "Regional unit"
   },
@@ -92,8 +72,6 @@
     "importFailed": "Import failed",
     "importFailedReason": "Import failed because: {{reason}}",
     "somethingWentWrong": "Something went wrong",
-    "importCompletedWithNotes": "Import completed with notes",
-    "importSummary": "Inserted: {{inserted}}, updated: {{updated}}, skipped: {{skipped}}",
     "importSummaryHuman": "Added {{inserted}} new records, updated {{updated}} existing ones and skipped {{skipped}}.",
     "detailsInserted": "New records inserted: {{inserted}}.",
     "detailsUpdated": "Records updated: {{updated}}.",
@@ -102,7 +80,6 @@
     "detailsNoIssues": "No issues were found in any row.",
     "more": "More details",
     "less": "Less",
-    "rowLabel": "Row {{row}}",
     "issueFieldTitle": "Field {{field}} · {{count}} rows",
     "issueRows": "Affected rows: {{rows}}",
     "hintGender": "Accepted values: M, F, Male or Female.",
@@ -111,7 +88,6 @@
     "hintGrade": "Enter a numeric grade, e.g. 7.50.",
     "hintStudyProgram": "The study program must already exist in the system.",
     "hintRegion": "This field is required.",
-    "hintCity": "This field is required.",
     "hintAm": "Student Number is required and must be filled in correctly.",
     "hintAmDuplicate": "Student Number must be unique and must not be repeated in the file.",
     "hintAd": "Diploma Number is required and must be filled in correctly.",
@@ -119,7 +95,6 @@
     "hintText": "The field must be filled in with valid text.",
     "birthYearRemoved": "The Birth year column is no longer accepted. Use Birth date only.",
     "hintGeneric": "Check the field value and correct it according to the template format.",
-    "hintOriginType": "Allowed values: Greece or Abroad.",
     "hintForeignCountry": "For an abroad graduate, fill in the country correctly.",
     "hintForeignCity": "For an abroad graduate, fill in the city correctly."
   },
@@ -128,7 +103,6 @@
     "deleteSelectedGraduates": "Are you sure you want to delete the selected graduates?"
   },
   "export": {
-    "failed": "Export failed",
-    "pdfBlocked": "Please allow pop-ups to export the PDF."
+    "failed": "Export failed"
   }
 }

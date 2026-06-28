@@ -1,6 +1,6 @@
 import { normalizeOriginLocation, type ResolveOriginInput } from "./regionResolver.service";
 
-export type GraduateOriginPayload = {
+type GraduateOriginPayload = {
   origin_location_id: number;
 };
 

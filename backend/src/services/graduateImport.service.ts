@@ -22,7 +22,7 @@ import {
 } from "./graduateOrigin.service";
 import { toDateOnly, toInt, toNumber } from "../utils/importUtils";
 
-export type ImportRowError = {
+type ImportRowError = {
   row: number;
   column?: string;
   message: string;
@@ -31,13 +31,13 @@ export type ImportRowError = {
   violation_codes?: RuleViolationCode[];
 };
 
-export type PreparedGraduateImportRow = {
+type PreparedGraduateImportRow = {
   rowNum: number;
   student_number: string;
   payload: any;
 };
 
-export type GraduateImportIndexes = {
+type GraduateImportIndexes = {
   ad_code: number;
   student_number: number;
   last_name: number;
