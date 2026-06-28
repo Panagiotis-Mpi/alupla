@@ -1,82 +1,15 @@
 {
-  "pageTitle": "Map (Regions)",
-  "note": "Anonymous data",
   "loading": "Loading...",
-  "error": "Something went wrong",
-  "topbar": {
-    "loading": "Loading…",
-    "ready": "Ready"
-  },
-  "filters": {
-    "login": "Login",
-    "exportCsv": "Export CSV (anonymous)",
-    "graduationYear": "Graduation year",
-    "studyProgram": "Study program",
-    "year": "Graduation year",
-    "gradYear": "Graduation year",
-    "gradYearPlaceholder": "e.g. 2026",
-    "studyProgramId": "Study program",
-    "gender": "Gender",
-    "ageGroup": "Age group",
-    "all": "All",
-    "apply": "Apply",
-    "reset": "Reset"
-  },
-  "table": {
-    "region": "Region",
-    "type": "Type",
-    "count": "Count",
-    "male": "Male",
-    "female": "Female",
-    "ratio": "Ratio"
-  },
   "export": {
-    "png": "Export PNG",
-    "notReady": "Map is not ready for export",
-    "periphery": "Region",
     "count": "Graduates",
-    "avgAge": "Average graduation age",
-    "malePct": "% Male",
-    "femalePct": "% Female",
-    "avgGrade": "Average grade",
-    "countDetailed": "Region graduate count",
-    "avgAgeDetailed": "Region average graduation age",
-    "malePctDetailed": "Region male graduates percentage",
-    "femalePctDetailed": "Region female graduates percentage",
-    "avgGradeDetailed": "Region average graduation grade",
-    "cityCount": "City graduate count",
     "selectionTitle": "Export category selection",
     "selectionSubtitle": "Choose which categories you want to download",
     "exportSelected": "Export selected",
-    "categoryColumn": "Category",
     "from": "From",
     "to": "To"
   },
-  "map": {
-    "total": "Total: {{total}}"
-  },
   "legend": "Legend",
-  "panel": {
-    "title": "Details",
-    "selectHint": "Click a region for details.",
-    "region": "Region",
-    "total": "Total graduates",
-    "allGraduates": "Total",
-    "avgAge": "Average graduation age",
-    "male": "Male",
-    "female": "Female"
-  },
-  "errors": {
-    "failed": "Failed to load map data"
-  },
   "title": "Map",
-  "total": "Total: {{total}}",
-  "totalInline": "Total",
-  "detailsTitle": "Details",
-  "detailsHint": "You can select up to six cities to compare them.",
-  "legendCounts": "Current map metric",
-  "exportPng": "Export map as PNG",
-  "totalLabel": "Total",
   "avgAge": "Average graduation age",
   "malePct": "% Male",
   "femalePct": "% Female",
@@ -84,63 +17,27 @@
   "avgGraduationYears": "Average study duration",
   "maleCount": "Men",
   "femaleCount": "Women",
-  "dominantDirection": "Study program",
-  "cities": "Cities",
-  "metricLabel": "Map view",
-  "noResults": "No graduates were found for the current filters.",
-  "noCities": "No city details are available for the current region.",
   "metricOptions": {
     "count": "Graduate count",
-    "malePct": "Male percentage",
-    "femalePct": "Female percentage",
-    "avgAge": "Average graduation age",
-    "avgGrade": "Average grade",
-    "dominantGender": "Gender geo distribution",
-    "dominantDirection": "Study program"
+    "dominantGender": "Gender geo distribution"
   },
   "summary": {
-    "title": "Map summary",
     "total": "Total graduates",
-    "metric": "Current map view",
     "topPeriphery": "Region with the most graduates",
     "topCity": "City with the most graduates",
-    "avgAge": "Average graduation age",
-    "fromCurrentFilters": "Calculated from the current filters",
     "topCountry": "Country with the most graduates",
     "topAbroadCountry": "Country outside Greece with the most graduates",
     "fromGreece": "Graduates from Greece",
     "fromAbroad": "Graduates from abroad",
     "show": "Brief info",
-    "hide": "Hide summary",
-    "minAge": "Minimum",
-    "maxAge": "Maximum"
+    "hide": "Hide summary"
   },
   "detailGroups": {
-    "basics": "Basics",
     "demographics": "Demographics",
-    "academics": "Academic data",
-    "geography": "Geography"
+    "academics": "Academic data"
   },
-  "trend": {
-    "title": "Graduates by year",
-    "series": "Graduates",
-    "genderTitle": "Gender trend by year",
-    "empty": "No timeline data is available for the current selection.",
-    "selectRegion": "Select a region"
-  },
-  "infoTitle": "Information",
-  "citiesTitle": "Cities",
   "totalGraduatesLine": "Total graduates: {{total}}",
-  "detailLabels": {
-    "region": "Region",
-    "city": "City"
-  },
   "legendLabels": {
-    "dominantGender": "Dominant gender",
-    "moreMen": "More men",
-    "moreWomen": "More women",
-    "balance": "Balanced",
-    "noData": "No data",
     "maleColor": "Men",
     "femaleColor": "Women",
     "genderBalance": "Equal presence of men and women",
@@ -149,9 +46,6 @@
     "countByCountry": "Graduate count by country",
     "graduatesUnit": "graduates",
     "countRange": "{{from}}–{{to}} graduates"
-  },
-  "tooltip": {
-    "dominantGender": "Dominant gender"
   },
   "timeline": {
     "title": "Time period",
@@ -169,8 +63,6 @@
     "greece": "Greece",
     "abroad": "Abroad"
   },
-  "detailsHintAbroad": "You can select up to 6 countries to compare them.",
   "downloadMap": "Download map",
-  "loadingLabel": "Loading",
-  "removeSelection": "Remove selection"
+  "loadingLabel": "Loading"
 }

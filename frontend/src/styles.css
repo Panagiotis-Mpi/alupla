@@ -296,9 +296,7 @@ html.accessibility-high-contrast .statistics-metric-sub-value{
 .map-page-container{max-width:none;width:100%;padding-left:0;padding-right:0}
 .map-page-container .map-top-menu-card,
 .map-page-container .map-summary-shell,
-.map-page-container .map-timeline-shell,
-.map-page-container .map-trend-card,
-.map-page-container .map-combined-details-card{margin-left:var(--space-2);margin-right:var(--space-2)}
+.map-page-container .map-timeline-shell{margin-left:var(--space-2);margin-right:var(--space-2)}
 
 .map-canvas{height:calc(100vh - 240px);min-height:640px;width:100%}
 .map-page-container .map-main-card{width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);border-left:0;border-right:0;border-radius:0}
@@ -829,8 +827,7 @@ html.accessibility-high-contrast .alupla-map .alupla-city-bubble-number-gender{
   color:#0f172a !important;
   text-shadow:0 1px 1px rgba(255,255,255,.78) !important;
 }
-html.accessibility-high-contrast .alupla-map .alupla-city-bubble-label,
-html.accessibility-high-contrast .alupla-map .alupla-city-label-text{
+html.accessibility-high-contrast .alupla-map .alupla-city-bubble-label{
   color:#0f172a !important;
   text-shadow:0 1px 2px rgba(255,255,255,.98), 0 0 8px rgba(255,255,255,.95) !important;
 }
@@ -1222,7 +1219,6 @@ html.accessibility-high-contrast .alupla-city-bubble{
 html.accessibility-high-contrast .alupla-map .alupla-city-bubble-count .alupla-city-bubble-number,
 html.accessibility-high-contrast .alupla-map .alupla-city-bubble-number-gender,
 html.accessibility-high-contrast .alupla-city-bubble-label,
-html.accessibility-high-contrast .alupla-city-label-text,
 html.accessibility-high-contrast .alupla-city-bubble-number,
 html.accessibility-high-contrast .alupla-city-bubble-number-gender{
   color:#000000 !important;
@@ -1333,11 +1329,7 @@ html.accessibility-high-contrast .leaflet-tile{
 }
 html.accessibility-high-contrast .alupla-city-bubble-number,
 html.accessibility-high-contrast .alupla-city-bubble-count .alupla-city-bubble-number,
-html.accessibility-high-contrast .alupla-city-bubble-number-gender,
-html.accessibility-high-contrast .alupla-city-gender-segment,
-html.accessibility-high-contrast .alupla-city-gender-segment-male,
-html.accessibility-high-contrast .alupla-city-gender-segment-female,
-html.accessibility-high-contrast .alupla-city-gender-balance-symbol{
+html.accessibility-high-contrast .alupla-city-bubble-number-gender{
   color:#000000 !important;
   text-shadow:none !important;
 }
@@ -1485,17 +1477,12 @@ html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast{
 }
 html.accessibility-high-contrast .alupla-city-bubble-number,
 html.accessibility-high-contrast .alupla-city-bubble-count .alupla-city-bubble-number,
-html.accessibility-high-contrast .alupla-city-bubble-number-gender,
-html.accessibility-high-contrast .alupla-city-gender-segment,
-html.accessibility-high-contrast .alupla-city-gender-segment-male,
-html.accessibility-high-contrast .alupla-city-gender-segment-female,
-html.accessibility-high-contrast .alupla-city-gender-balance-symbol{
+html.accessibility-high-contrast .alupla-city-bubble-number-gender{
   color:#000000 !important;
   font-weight:950 !important;
   text-shadow:none !important;
 }
-html.accessibility-high-contrast .alupla-city-bubble-label,
-html.accessibility-high-contrast .alupla-city-label-text{
+html.accessibility-high-contrast .alupla-city-bubble-label{
   color:#000000 !important;
   background:#7fffd4 !important;
   border:1px solid #000000 !important;
@@ -1531,19 +1518,11 @@ html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast{
 }
 html.accessibility-high-contrast .alupla-city-bubble-number,
 html.accessibility-high-contrast .alupla-city-bubble-count .alupla-city-bubble-number,
-html.accessibility-high-contrast .alupla-city-bubble-number-gender,
-html.accessibility-high-contrast .alupla-city-gender-segment,
-html.accessibility-high-contrast .alupla-city-gender-segment-male,
-html.accessibility-high-contrast .alupla-city-gender-segment-female,
-html.accessibility-high-contrast .alupla-city-gender-balance-symbol{
+html.accessibility-high-contrast .alupla-city-bubble-number-gender{
   color:#000000 !important;
   font-weight:1000 !important;
   -webkit-text-stroke:.35px #000000;
   text-shadow:none !important;
-}
-html.accessibility-high-contrast .alupla-city-gender-lines line{
-  stroke:#000000 !important;
-  stroke-width:3.4 !important;
 }
 html.accessibility-high-contrast .map-legend-swatch{
   background:#ffd400 !important;
@@ -1658,12 +1637,12 @@ html.accessibility-high-contrast .nav .nav-link-active *,
 html.accessibility-high-contrast .mobile-drawer .nav-link-active *{
   color:#000000 !important;
 }
-.page-header-actions-grid .btn,.graduates-actions-grid .btn,.map-metric-button,.map-action-button,.map-program-button{font-size:16px;font-weight:700;line-height:1.25;min-height:48px;border-radius:12px}
-.page-header-actions-grid .btn:hover,.graduates-actions-grid .btn:hover,.map-metric-button:hover,.map-action-button:hover,.map-program-button:hover{background:var(--primaryHover);border-color:var(--primaryHover);color:#fff;box-shadow:0 6px 16px rgba(37,99,235,.16)}
-.page-header-actions-grid .btn.primary:hover,.graduates-actions-grid .btn.primary:hover,.map-metric-button.primary:hover,.map-action-button.primary:hover,.map-program-button.primary:hover{background:var(--primaryHover);border-color:var(--primaryHover);color:#fff}
+.page-header-actions-grid .btn,.graduates-actions-grid .btn,.map-metric-button,.map-action-button{font-size:16px;font-weight:700;line-height:1.25;min-height:48px;border-radius:12px}
+.page-header-actions-grid .btn:hover,.graduates-actions-grid .btn:hover,.map-metric-button:hover,.map-action-button:hover{background:var(--primaryHover);border-color:var(--primaryHover);color:#fff;box-shadow:0 6px 16px rgba(37,99,235,.16)}
+.page-header-actions-grid .btn.primary:hover,.graduates-actions-grid .btn.primary:hover,.map-metric-button.primary:hover,.map-action-button.primary:hover{background:var(--primaryHover);border-color:var(--primaryHover);color:#fff}
 @media (max-width:640px){
   .nav .btn{font-size:15px;padding:8px 10px}
-  .page-header-actions-grid .btn,.graduates-actions-grid .btn,.map-metric-button,.map-action-button,.map-program-button{font-size:15px;min-height:46px}
+  .page-header-actions-grid .btn,.graduates-actions-grid .btn,.map-metric-button,.map-action-button{font-size:15px;min-height:46px}
 }
 
 .mobile-summary-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -2197,7 +2176,6 @@ html.accessibility-high-contrast .auth-page-shell .auth-back-home-button:hover{
 .graduates-actions-grid .btn,
 .map-metric-button,
 .map-action-button,
-.map-program-button,
 .mobile-summary-toggle,
 .accessibility-panel-actions .btn{
   background:#eff6ff;
@@ -2212,7 +2190,6 @@ html.accessibility-high-contrast .auth-page-shell .auth-back-home-button:hover{
 .graduates-actions-grid .btn:hover,
 .map-metric-button:hover,
 .map-action-button:hover,
-.map-program-button:hover,
 .mobile-summary-toggle:hover,
 .accessibility-panel-actions .btn:hover{
   background:#dbeafe;
@@ -2233,7 +2210,6 @@ html.accessibility-high-contrast .auth-page-shell .auth-back-home-button:hover{
 .map-metric-button.primary,
 .map-metric-button.active,
 .map-action-button.primary,
-.map-program-button.primary,
 .mobile-summary-toggle.primary,
 .accessibility-toggle-btn.is-active,
 .accessibility-icon-btn.is-active{
@@ -2255,7 +2231,6 @@ html.accessibility-high-contrast .auth-page-shell .auth-back-home-button:hover{
 .map-metric-button.primary:hover,
 .map-metric-button.active:hover,
 .map-action-button.primary:hover,
-.map-program-button.primary:hover,
 .mobile-summary-toggle.primary:hover,
 .accessibility-toggle-btn.is-active:hover,
 .accessibility-icon-btn.is-active:hover{
@@ -3266,10 +3241,6 @@ html.accessibility-high-contrast .alupla-city-bubble-count.is-high-contrast{
 html.accessibility-high-contrast .alupla-city-bubble-number,
 html.accessibility-high-contrast .alupla-city-bubble-count .alupla-city-bubble-number,
 html.accessibility-high-contrast .alupla-city-bubble-number-gender,
-html.accessibility-high-contrast .alupla-city-gender-segment,
-html.accessibility-high-contrast .alupla-city-gender-segment-male,
-html.accessibility-high-contrast .alupla-city-gender-segment-female,
-html.accessibility-high-contrast .alupla-city-gender-balance-symbol,
 html.accessibility-high-contrast .map-legend-swatch,
 html.accessibility-high-contrast .map-legend-swatch *,
 html.accessibility-high-contrast .map-legend-swatch-symbol{
@@ -3277,8 +3248,7 @@ html.accessibility-high-contrast .map-legend-swatch-symbol{
   font-weight:950 !important;
   text-shadow:none !important;
 }
-html.accessibility-high-contrast .alupla-city-bubble-label,
-html.accessibility-high-contrast .alupla-city-label-text{
+html.accessibility-high-contrast .alupla-city-bubble-label{
   color:#000000 !important;
   background:#9fffe7 !important;
   border:1px solid #000000 !important;
@@ -3430,8 +3400,7 @@ html.accessibility-high-contrast .public-home-illustration-clickable:focus-visib
     align-self:flex-start !important;
   }
   .map-top-controls-row .map-metric-button,
-  .map-top-controls-row .map-action-button,
-  .map-top-controls-row .map-program-button{
+  .map-top-controls-row .map-action-button{
     gap:6px !important;
     padding:8px 10px !important;
     overflow:hidden !important;
@@ -3439,8 +3408,7 @@ html.accessibility-high-contrast .public-home-illustration-clickable:focus-visib
     line-height:1.16 !important;
   }
   .map-top-controls-row .map-metric-button > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret),
-  .map-top-controls-row .map-action-button > span:not(.ui-icon):not(.map-dropdown-caret),
-  .map-top-controls-row .map-program-button > span:not(.ui-icon):not(.map-dropdown-caret){
+  .map-top-controls-row .map-action-button > span:not(.ui-icon):not(.map-dropdown-caret){
     min-width:0 !important;
     max-width:100% !important;
     overflow-wrap:anywhere !important;
@@ -3487,8 +3455,7 @@ html.accessibility-high-contrast .public-home-illustration-clickable:focus-visib
 
 @media (max-width: 520px){
   .map-top-controls-row .map-metric-button,
-  .map-top-controls-row .map-action-button,
-  .map-top-controls-row .map-program-button{
+  .map-top-controls-row .map-action-button{
     min-height:44px !important;
     font-size:13.5px !important;
     padding:7px 8px !important;
@@ -3617,41 +3584,11 @@ html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast .al
   -webkit-text-stroke:0;
   pointer-events:none;
 }
-html.accessibility-high-contrast .alupla-city-bubble-gender .alupla-city-gender-balance-symbol, html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-balance-symbol{
-  position:static !important;
-  transform:none !important;
-  display:block;
-  color:#000000 !important;
-  background:transparent !important;
-  border:0 !important;
-  padding:0 !important;
-  font-weight:950 !important;
-  line-height:1 !important;
-  text-shadow:none !important;
-  -webkit-text-stroke:0;
-}
 html.accessibility-high-contrast .alupla-map .alupla-city-bubble-gender.is-high-contrast,
 html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast{
   background:var(--alupla-bubble-background, #ffd400) !important;
   border-color:#000000 !important;
   overflow:hidden !important;
-}
-html.accessibility-high-contrast .alupla-map .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-lines,
-html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-lines{
-  position:absolute !important;
-  inset:0 !important;
-  width:100% !important;
-  height:100% !important;
-  border-radius:999px !important;
-  z-index:1 !important;
-  pointer-events:none !important;
-}
-html.accessibility-high-contrast .alupla-map .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-lines line,
-html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-lines line{
-  stroke:#000000 !important;
-  stroke-width:3.6 !important;
-  stroke-linecap:round !important;
-  vector-effect:non-scaling-stroke !important;
 }
 html.accessibility-high-contrast .alupla-map .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-icons,
 html.accessibility-high-contrast .alupla-city-bubble-gender.is-high-contrast .alupla-city-gender-icons{

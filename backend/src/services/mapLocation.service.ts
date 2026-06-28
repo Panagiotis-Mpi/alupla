@@ -4,15 +4,13 @@ import {
 } from "./regionLookup.service";
 import { normalizeOriginLocation, type ResolveOriginInput } from "./regionResolver.service";
 
-export type ResolvedMapLocation = {
+type ResolvedMapLocation = {
   cityId: number | null;
   cityName: string | null;
   peripheryId: number | null;
   peripheryName: string | null;
   countryId: number | null;
   countryName: string | null;
-  countryNameEl: string | null;
-  countryNameEn: string | null;
   latitude: number | null;
   longitude: number | null;
 };
@@ -57,8 +55,6 @@ export async function resolveMapLocation(input: ResolveOriginInput): Promise<Res
     peripheryName: hierarchy.periphery?.name ?? null,
     countryId: hierarchy.country.id,
     countryName: hierarchy.country.name,
-    countryNameEl: hierarchy.country.name_el || hierarchy.country.name,
-    countryNameEn: hierarchy.country.name_en || hierarchy.country.name,
     latitude,
     longitude,
   };

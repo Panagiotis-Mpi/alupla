@@ -7,7 +7,7 @@ export function useCompactMapViewport() {
   return useMediaQuery("(max-width: 820px)");
 }
 
-export function compactNumber(value: number | string | null | undefined) {
+function compactNumber(value: number | string | null | undefined) {
   if (value === null || value === undefined || value === "") return "-";
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return String(value);

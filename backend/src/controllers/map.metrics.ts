@@ -1,20 +1,6 @@
 import { calculateAgeAtDate } from "./map.helpers";
 
-export type AggregatedMapMetricsRow = {
-  gender: "M" | "F" | null;
-  study_program_id: number | null;
-  graduate_count: number | string | null;
-  grade_sum: number | string | null;
-  grade_count: number | string | null;
-  age_sum: number | string | null;
-  age_count: number | string | null;
-  min_age: number | string | null;
-  max_age: number | string | null;
-  graduation_duration_sum: number | string | null;
-  graduation_duration_count: number | string | null;
-};
-
-export type MapMetricsBucket = Record<string, any> & {
+type MapMetricsBucket = Record<string, any> & {
   count: number;
   male: number;
   female: number;
@@ -30,11 +16,6 @@ export type MapMetricsBucket = Record<string, any> & {
 };
 
 type MetricContribution = Omit<MapMetricsBucket, "programCounts"> & { studyProgramId: number };
-
-function numberOrZero(value: unknown) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : 0;
-}
 
 function graduateContribution(graduate: any): MetricContribution {
   const age = calculateAgeAtDate(graduate.birth_date, graduate.graduation_date);
@@ -56,26 +37,6 @@ function graduateContribution(graduate: any): MetricContribution {
     gradeCount: validGrade ? 1 : 0,
     graduationDurationSum: validDuration ? graduationYear - entryYear : 0,
     graduationDurationCount: validDuration ? 1 : 0,
-  };
-}
-
-function aggregatedContribution(row: AggregatedMapMetricsRow): MetricContribution {
-  const count = numberOrZero(row.graduate_count);
-  const minAge = Number(row.min_age);
-  const maxAge = Number(row.max_age);
-  return {
-    count,
-    male: row.gender === "M" ? count : 0,
-    female: row.gender === "F" ? count : 0,
-    studyProgramId: Number(row.study_program_id) || 0,
-    ageSum: numberOrZero(row.age_sum),
-    ageCount: numberOrZero(row.age_count),
-    minAge: Number.isFinite(minAge) ? minAge : null,
-    maxAge: Number.isFinite(maxAge) ? maxAge : null,
-    gradeSum: numberOrZero(row.grade_sum),
-    gradeCount: numberOrZero(row.grade_count),
-    graduationDurationSum: numberOrZero(row.graduation_duration_sum),
-    graduationDurationCount: numberOrZero(row.graduation_duration_count),
   };
 }
 
@@ -101,7 +62,6 @@ export function createMetricsBucket(seed: Record<string, unknown>): MapMetricsBu
 }
 
 export const applyGraduateMetrics = (bucket: MapMetricsBucket, graduate: any) => applyContribution(bucket, graduateContribution(graduate));
-export const applyAggregatedMetrics = (bucket: MapMetricsBucket, row: AggregatedMapMetricsRow) => applyContribution(bucket, aggregatedContribution(row));
 
 export function serializeMapMetrics(bucket: MapMetricsBucket) {
   return {

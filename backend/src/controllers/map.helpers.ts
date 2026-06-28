@@ -2,7 +2,7 @@ import type { Request } from "express";
 import { Op } from "sequelize";
 import { buildGraduateWhere } from "../utils/buildGraduateWhere";
 
-export type AgeGroup = "23-26" | "27-30" | "31+";
+type AgeGroup = "23-26" | "27-30" | "31+";
 
 type GraduateWhere = ReturnType<typeof buildGraduateWhere> & { [Op.and]?: unknown[] };
 

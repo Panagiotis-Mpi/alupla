@@ -15,10 +15,9 @@ export type MapLegendEntry = {
   opacity: number;
 };
 
-export type MapMarkerCollection = {
+type MapMarkerCollection = {
   items: any[];
   legend: MapLegendEntry[];
-  maxCount: number;
 };
 
 type MapTranslate = (key: string, options?: Record<string, unknown>) => string;
@@ -62,7 +61,7 @@ function scaledMarkers(
     .filter((value) => value > 0)
     .sort((left, right) => left - right);
   if (!counts.length) {
-    return { items: [] as any[], legend: [] as MapLegendEntry[], maxCount: 0 };
+    return { items: [] as any[], legend: [] as MapLegendEntry[] };
   }
   const { legend, bucketForCount } = countLegend(counts, radii, keyPrefix, mt);
   return {
@@ -80,7 +79,6 @@ function scaledMarkers(
       };
     }),
     legend,
-    maxCount: counts[counts.length - 1],
   };
 }
 
@@ -128,8 +126,6 @@ export function buildGreekCityMarkers(
       female_count: 0,
       avg_age_weighted_sum: 0,
       avg_age_weight: 0,
-      min_age: null,
-      max_age: null,
       avg_grade_weighted_sum: 0,
       avg_grade_weight: 0,
       avg_graduation_years_weighted_sum: 0,
@@ -148,16 +144,6 @@ export function buildGreekCityMarkers(
     addWeightedMetric(current, city, count, "avg_grade");
     addWeightedMetric(current, city, count, "avg_graduation_years");
 
-    const minAge = Number(city.min_age);
-    const maxAge = Number(city.max_age);
-    if (Number.isFinite(minAge)) {
-      current.min_age =
-        current.min_age === null ? minAge : Math.min(current.min_age, minAge);
-    }
-    if (Number.isFinite(maxAge)) {
-      current.max_age =
-        current.max_age === null ? maxAge : Math.max(current.max_age, maxAge);
-    }
     grouped.set(key, current);
   }
 
@@ -201,7 +187,6 @@ export function buildAbroadCountryMarkers(
       periphery_name: localizedName,
       country_region_id: countryId || null,
       country_name: localizedName,
-      raw_country_name: rawCountryName || localizedName,
       latitude_sum: 0,
       longitude_sum: 0,
       weight: 0,
@@ -230,7 +215,6 @@ export function buildAbroadCountryMarkers(
       periphery_name: item.country_name,
       country_region_id: item.country_region_id,
       country_name: item.country_name,
-      raw_country_name: item.raw_country_name,
       latitude: item.weight ? item.latitude_sum / item.weight : null,
       longitude: item.weight ? item.longitude_sum / item.weight : null,
       count: item.count,

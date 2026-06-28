@@ -1,43 +1,27 @@
         .leaflet-container path:focus, .leaflet-interactive:focus, .leaflet-container:focus { outline: none !important; }
         .alupla-map .leaflet-container { background: transparent !important; }
         .alupla-map-card { padding: 0; overflow: hidden; position: relative; }
-        .alupla-city-label-icon { background: transparent !important; border: 0 !important; }
         .alupla-city-bubble-icon { background: transparent !important; border: 0 !important; }
         .alupla-city-bubble-wrap { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; pointer-events: auto; overflow: visible; }
-        .alupla-city-bubble-label, .alupla-city-label-text { text-align: center; color: #0f172a; font-size: 12px; font-weight: 700; line-height: 1.05; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); background: transparent !important; border: 0 !important; padding: 0; }
+        .alupla-city-bubble-label { text-align: center; color: #0f172a; font-size: 12px; font-weight: 700; line-height: 1.05; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); background: transparent !important; border: 0 !important; padding: 0; }
         .alupla-city-bubble-label { margin: 0 0 4px; }
         .alupla-city-bubble { position: relative; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #fff; font-weight: 800; border: 2px solid var(--alupla-bubble-border, rgba(51,65,85,.72)); background: var(--alupla-bubble-background, #60a5fa); opacity: var(--alupla-bubble-opacity, 1); box-shadow: var(--alupla-bubble-shadow, none); }
         .alupla-city-bubble-number { line-height: 1; color: #fff; text-shadow: 0 1px 1px rgba(15,23,42,.35); }
         .alupla-city-bubble-count .alupla-city-bubble-number { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.45); }
         .alupla-city-bubble-number-gender { color: #0f172a; text-shadow: 0 1px 1px rgba(255,255,255,.5); }
-        .alupla-city-gender-lines { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 999px; overflow: hidden; pointer-events: none; }
-        .alupla-city-gender-lines line { stroke: #000; stroke-width: 3.2; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-        .alupla-city-gender-segment { position: absolute; transform: translate(-50%, -50%); border-radius: 999px; padding: 0; font-weight: 950; line-height: 1; white-space: nowrap; color: #000; text-shadow: 0 0 0 #000, 0 0 1px #000, 0 1px 0 #fff; font-family: Arial, Helvetica, sans-serif; z-index: 2; }
-        .alupla-city-gender-segment-male, .alupla-city-gender-segment-female { color: #000; background: transparent; }
-        .alupla-city-gender-balance-symbol { color: #000; font-weight: 950; line-height: 1; text-shadow: 0 0 0 #000, 0 0 1px #000, 0 1px 0 #fff; font-family: Arial, Helvetica, sans-serif; }
         .alupla-city-bubble-gender.is-high-contrast { border-color: #000000; background: var(--alupla-bubble-background, #ffd400); box-shadow: inset 0 0 0 1px #000, var(--alupla-bubble-shadow, none); overflow: hidden; }
-        .alupla-city-bubble-sub { margin-top: 4px; color: #475569; font-size: 10px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.9); }
-        .alupla-city-point { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; pointer-events: auto; }
-        .alupla-city-label-text { display: block; margin: 0; }
-        .alupla-city-label-dot { display: block; border-radius: 999px; background: #475569; border: 1px solid rgba(255,255,255,.92); box-shadow: 0 1px 2px rgba(15,23,42,.18); }
-        .alupla-city-point-compact { width: 18px; height: 18px; display:flex; align-items:center; justify-content:center; }
         .alupla-map .leaflet-control-zoom .alupla-map-reset-button { display: block; text-align: center; text-decoration: none; }
         .alupla-map .leaflet-control-zoom .alupla-map-reset-button:hover { text-decoration: none; }
         .alupla-map .leaflet-control-zoom .alupla-map-reset-button span { font-size: 18px; line-height: 1; font-weight: 800; }
-        .alupla-region-tip-title { font-weight: 700; margin-bottom: 4px; }
-        .alupla-region-tip-sub { color: #64748b; font-size: 12px; }
         .map-top-menu-card { padding: 20px 16px 16px; display: grid; gap: 14px; }
         .map-top-menu-title { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .map-top-menu-title h2 { margin: 0; }
         .map-top-menu-title-spacer { flex: 1; }
         .map-top-controls-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; align-items: stretch; }
         .map-top-control-slot { position: relative; min-width: 0; }
-        .map-metric-button, .map-action-button, .map-program-button { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 16px; font-weight: 700; line-height: 1.25; letter-spacing: 0; }
+        .map-metric-button, .map-action-button { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 16px; font-weight: 700; line-height: 1.25; letter-spacing: 0; }
         .map-scope-button { gap: 10px; position: relative; padding-inline: 14px 34px; justify-content: center; }
-        .map-scope-button-title { flex: 1; min-width: 0; display: block; font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
-        .map-scope-selected-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 86px; padding: 7px 12px; border-radius: 999px; background: #ffffff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 14px; font-weight: 800; line-height: 1; box-shadow: 0 6px 16px rgba(37,99,235,.12); white-space: nowrap; }
         .map-scope-button .map-dropdown-caret { position: absolute; right: 16px; margin-left: 0; }
-        .map-program-button { gap: 8px; }
         .map-dropdown-button { justify-content: space-between; padding-inline: 14px; }
         .map-dropdown-caret { width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); display: inline-block; flex: 0 0 auto; transition: transform .18s ease; }
         .map-dropdown-caret.open { transform: rotate(225deg) translateY(-1px); }
@@ -95,9 +79,6 @@
         .map-loading-overlay-card { min-width: 180px; min-height: 88px; padding: 16px 20px; border-radius: 18px; border: 0; background: transparent; box-shadow: none; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: #0f172a; text-align: center; }
         .map-summary-shell, .map-timeline-shell { position: relative; }
         .map-main-card .map-canvas { height: clamp(760px, 80vh, 940px); min-height: 760px; }
-        .map-trend-card, .map-combined-details-card { margin-top: 12px; padding: 16px; display: grid; gap: 12px; }
-        .map-trend-canvas { height: 260px; min-height: 260px; width: 100%; }
-        .map-trend-scroll { overflow: hidden; min-height: 260px; }
         .map-info-box { border: 1px solid var(--border); border-radius: 16px; background: rgba(248,250,252,.82); padding: 16px 18px; display: grid; gap: 14px; }
         .alupla-map-info-popup .leaflet-popup-content-wrapper { border-radius: 18px; padding: 0; box-shadow: 0 18px 40px rgba(15,23,42,.18); }
         .alupla-map-info-popup .leaflet-popup-content { margin: 0; min-width: 260px; max-width: min(420px, calc(100vw - 48px)); }
@@ -109,9 +90,7 @@
         .map-info-total-line, .map-info-metric-label { color: #64748b; font-size: 13px; }
         .map-info-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
         .map-info-group-title, .map-info-metric-value { color: #0f172a; font-weight: 800; }
-        .map-city-cards-inline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
-        .map-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-        @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .map-city-cards-inline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @media (max-width: 780px) { .map-top-controls-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .map-top-menu-card { padding: 16px; gap: 12px; } .map-top-menu-title { gap: 10px; } .map-metric-button, .map-action-button, .map-program-button { min-height: 46px; font-size: 15px; } }
-        @media (max-width: 640px) { .map-summary-grid, .map-city-cards-inline { grid-template-columns: 1fr; } .map-summary-grid { gap: 10px; } .map-summary-card { min-height: 88px; padding: 12px; gap: 6px; } .map-summary-label { font-size: 14px; line-height: 1.25; } .map-summary-value { font-size: 22px; line-height: 1.12; } .map-summary-sub { font-size: 12px; line-height: 1.28; } .map-summary-scope-list { gap: 6px; } .map-summary-total-name, .map-summary-scope-name { font-size: 12px; line-height: 1.22; } .map-summary-total-number, .map-summary-scope-number { font-size: 22px; } .map-summary-scope-row.active .map-summary-scope-name { font-size: 12px; } .map-summary-scope-row.active .map-summary-scope-number { font-size: 22px; } .map-timeline-actions { width: 100%; } .map-timeline-current { width: 100%; justify-content: center; } }
+        @media (max-width: 1100px) { .map-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 780px) { .map-top-controls-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .map-top-menu-card { padding: 16px; gap: 12px; } .map-top-menu-title { gap: 10px; } .map-metric-button, .map-action-button { min-height: 46px; font-size: 15px; } }
+        @media (max-width: 640px) { .map-summary-grid { grid-template-columns: 1fr; } .map-summary-grid { gap: 10px; } .map-summary-card { min-height: 88px; padding: 12px; gap: 6px; } .map-summary-label { font-size: 14px; line-height: 1.25; } .map-summary-value { font-size: 22px; line-height: 1.12; } .map-summary-sub { font-size: 12px; line-height: 1.28; } .map-summary-scope-list { gap: 6px; } .map-summary-total-name, .map-summary-scope-name { font-size: 12px; line-height: 1.22; } .map-summary-total-number, .map-summary-scope-number { font-size: 22px; } .map-summary-scope-row.active .map-summary-scope-name { font-size: 12px; } .map-summary-scope-row.active .map-summary-scope-number { font-size: 22px; } .map-timeline-actions { width: 100%; } .map-timeline-current { width: 100%; justify-content: center; } }
         @media (max-width: 520px) { .map-scope-button { gap: 6px; padding-inline: 10px 30px; } .map-timeline-card { gap: 18px; } .map-timeline-scale { margin: 0 18px; font-size: 12px; height: 24px; } .map-year-ruler { margin: 0 18px; } .map-timeline-slider::-webkit-slider-thumb { width: 30px; height: 30px; border-width: 7px; } .map-timeline-slider::-moz-range-thumb { width: 16px; height: 16px; border-width: 7px; } }
