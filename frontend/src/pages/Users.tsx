@@ -208,14 +208,26 @@ export default function Users() {
   }
 
   async function onRoleChange(userId: number, role: AdminUser["role"]) {
-    await updateUser(userId, { role });
-    await load();
+    setErr(null);
+    setOk(null);
+    try {
+      await updateUser(userId, { role }, i18n.language);
+      await load();
+    } catch (e: any) {
+      setErr(e?.message ?? t("error"));
+    }
   }
 
   async function onDeactivate(userId: number) {
     if (!confirm(t("confirm.deactivate", { id: userId }))) return;
-    await deactivateUser(userId);
-    await load();
+    setErr(null);
+    setOk(null);
+    try {
+      await deactivateUser(userId, i18n.language);
+      await load();
+    } catch (e: any) {
+      setErr(e?.message ?? t("error"));
+    }
   }
 
   async function onExport(format: "csv" | "xlsx") {

@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import type { Transaction } from "sequelize";
 import XLSX from "xlsx";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
@@ -8,6 +9,7 @@ import { sanitizeExportRows } from "../utils/exportSafety";
 import { applySheetLayout, buildDelimitedText, buildUtf16CsvBuffer } from "./activityLogs.helpers";
 import { sendNewUserAccountEmail } from "../services/userNotification.service";
 import { buildExportFilename } from "../utils/exportFilename";
+import { sequelize } from "../config/sequelize";
 
 type AllowedRole = "super_admin" | "secretariat";
 
@@ -35,14 +37,14 @@ function readCreateInput(body: any): UserCreateInput {
   };
 }
 
-async function findUserByParamId(req: Request, res: Response) {
+async function findUserByParamId(req: Request, res: Response, transaction?: Transaction) {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) {
     badRequest(res, "Invalid id");
     return null;
   }
 
-  const user = await User.findByPk(id);
+  const user = await User.findByPk(id, transaction ? { transaction, lock: transaction.LOCK.UPDATE } : undefined);
   if (!user) {
     notFound(res);
     return null;
@@ -69,6 +71,33 @@ function userDisplayName(user: User) {
 function getExportLang(req: Request) {
   const value = String(req.query.lang ?? "").trim().toLowerCase();
   return value.startsWith("en") ? "en" : "gr";
+}
+
+function lastAdminMessage(req: Request, action: "role" | "deactivate" | "delete") {
+  const lang = getExportLang(req);
+  if (lang === "en") {
+    if (action === "role") return "The last administrator cannot be changed to Secretariat.";
+    if (action === "deactivate") return "The last administrator cannot be deactivated.";
+    return "The last administrator cannot be deleted.";
+  }
+
+  if (action === "role") return "Ο τελευταίος διαχειριστής δεν μπορεί να αλλάξει σε Γραμματεία.";
+  if (action === "deactivate") return "Ο τελευταίος διαχειριστής δεν μπορεί να απενεργοποιηθεί.";
+  return "Ο τελευταίος διαχειριστής δεν μπορεί να διαγραφεί.";
+}
+
+function lastAdminConflict(res: Response, message: string) {
+  return res.status(409).json({ ok: false, error: { message } });
+}
+
+async function lockActiveSuperAdmins(transaction: Transaction) {
+  return User.findAll({
+    attributes: ["id"],
+    where: { role: "super_admin", is_active: true },
+    order: [["id", "ASC"]],
+    transaction,
+    lock: transaction.LOCK.UPDATE
+  });
 }
 
 function formatDate(value: unknown, lang: "gr" | "en") {
@@ -211,34 +240,62 @@ export async function createUser(req: Request, res: Response, next: NextFunction
 
 export async function updateUser(req: Request, res: Response, next: NextFunction) {
   try {
-    const user = await findUserByParamId(req, res);
-    if (!user) return;
-
     const body = req.body ?? {};
 
-    if (body.first_name !== undefined) user.first_name = normalizeText(body.first_name);
-    if (body.last_name !== undefined) user.last_name = normalizeText(body.last_name);
-    if (body.email !== undefined) user.email = normalizeEmail(body.email);
+    const user = await sequelize.transaction(async (transaction) => {
+      const activeSuperAdmins = await lockActiveSuperAdmins(transaction);
+      const currentUser = await findUserByParamId(req, res, transaction);
+      if (!currentUser) return null;
 
-    if (body.role !== undefined) {
-      const role = normalizeText(body.role);
-      if (!isAllowedRole(role)) return badRequest(res, "Invalid role");
-      user.role = role;
-    }
-
-    if (body.is_active !== undefined) user.is_active = Boolean(body.is_active);
-
-    if (body.password !== undefined && String(body.password).length) {
-      const password = String(body.password);
-      if (!isStrongPassword(password)) {
-        return badRequest(res, "Weak password (min 8, letter+number+symbol)");
+      let nextRole = currentUser.role;
+      if (body.role !== undefined) {
+        const role = normalizeText(body.role);
+        if (!isAllowedRole(role)) {
+          badRequest(res, "Invalid role");
+          return null;
+        }
+        nextRole = role;
       }
-      user.password_hash = await hashPassword(password);
-    }
 
-    if (!user.first_name || !user.last_name || !user.email) return badRequest(res, "Invalid name/email");
+      const nextIsActive = body.is_active !== undefined ? Boolean(body.is_active) : currentUser.is_active;
+      const removesLastActiveSuperAdmin =
+        currentUser.role === "super_admin" &&
+        currentUser.is_active &&
+        activeSuperAdmins.length === 1 &&
+        (nextRole !== "super_admin" || !nextIsActive);
 
-    await user.save();
+      if (removesLastActiveSuperAdmin) {
+        const action = nextRole !== "super_admin" ? "role" : "deactivate";
+        lastAdminConflict(res, lastAdminMessage(req, action));
+        return null;
+      }
+
+      if (body.first_name !== undefined) currentUser.first_name = normalizeText(body.first_name);
+      if (body.last_name !== undefined) currentUser.last_name = normalizeText(body.last_name);
+      if (body.email !== undefined) currentUser.email = normalizeEmail(body.email);
+      currentUser.role = nextRole;
+      currentUser.is_active = nextIsActive;
+
+      if (body.password !== undefined && String(body.password).length) {
+        const password = String(body.password);
+        if (!isStrongPassword(password)) {
+          badRequest(res, "Weak password (min 8, letter+number+symbol)");
+          return null;
+        }
+        currentUser.password_hash = await hashPassword(password);
+      }
+
+      if (!currentUser.first_name || !currentUser.last_name || !currentUser.email) {
+        badRequest(res, "Invalid name/email");
+        return null;
+      }
+
+      await currentUser.save({ transaction });
+      return currentUser;
+    });
+
+    if (!user) return;
+
     await writeUserLog(req, "update_user", user, { changed: Object.keys(body) });
     clearRouteCaches(["users"]);
 
@@ -250,13 +307,27 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
 
 export async function deactivateUser(req: Request, res: Response, next: NextFunction) {
   try {
-    const user = await findUserByParamId(req, res);
+    const user = await sequelize.transaction(async (transaction) => {
+      const activeSuperAdmins = await lockActiveSuperAdmins(transaction);
+      const currentUser = await findUserByParamId(req, res, transaction);
+      if (!currentUser) return null;
+
+      if (currentUser.role === "super_admin" && currentUser.is_active && activeSuperAdmins.length === 1) {
+        lastAdminConflict(res, lastAdminMessage(req, "delete"));
+        return null;
+      }
+
+      if (req.auth!.id === currentUser.id) {
+        badRequest(res, "Cannot deactivate yourself");
+        return null;
+      }
+
+      await writeUserLog(req, "διαγραφή χρήστη", currentUser, { target_name: userDisplayName(currentUser) });
+      await currentUser.destroy({ transaction });
+      return currentUser;
+    });
+
     if (!user) return;
-
-    if (req.auth!.id === user.id) return badRequest(res, "Cannot deactivate yourself");
-
-    await writeUserLog(req, "διαγραφή χρήστη", user, { target_name: userDisplayName(user) });
-    await user.destroy();
 
     clearRouteCaches(["users"]);
     res.json({ ok: true });

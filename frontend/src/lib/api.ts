@@ -421,17 +421,24 @@ export async function updateUser(
   patch: Partial<
     Pick<User, "first_name" | "last_name" | "email" | "role" | "is_active">
   >,
+  language?: string,
 ): Promise<ItemResponse<User>> {
-  const response = await api<ItemResponse<User>>(`/users/${id}`, {
-    method: "PUT",
-    body: patch,
-  });
+  const response = await api<ItemResponse<User>>(
+    `/users/${id}${toQueryString({ lang: language })}`,
+    {
+      method: "PUT",
+      body: patch,
+    },
+  );
   clearUserRelatedCaches();
   return response;
 }
 
-export async function deactivateUser(id: number): Promise<ApiOk> {
-  const response = await api<ApiOk>(`/users/${id}`, { method: "DELETE" });
+export async function deactivateUser(id: number, language?: string): Promise<ApiOk> {
+  const response = await api<ApiOk>(
+    `/users/${id}${toQueryString({ lang: language })}`,
+    { method: "DELETE" },
+  );
   clearUserRelatedCaches();
   return response;
 }
