@@ -43,8 +43,8 @@ export async function renderMapSnapshot(element: HTMLElement) {
   return { image, width, height };
 }
 
-export async function exportCombinedSnapshots(filename: string, title: string, snapshots: Array<{ image: HTMLImageElement; width: number; height: number; caption?: string }>) {
-  if (!snapshots.length) return;
+export async function combinedSnapshotsToBlob(title: string, snapshots: Array<{ image: HTMLImageElement; width: number; height: number; caption?: string }>) {
+  if (!snapshots.length) return null;
   const padding = 20;
   const gap = 18;
   const titleHeight = 42;
@@ -55,7 +55,7 @@ export async function exportCombinedSnapshots(filename: string, title: string, s
   canvas.width = width * 2;
   canvas.height = height * 2;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  if (!ctx) return null;
   ctx.scale(2, 2);
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, width, height);
@@ -76,15 +76,5 @@ export async function exportCombinedSnapshots(filename: string, title: string, s
     if (index < snapshots.length - 1) offsetY += gap;
   });
 
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-  if (!blob) return;
-
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
 }

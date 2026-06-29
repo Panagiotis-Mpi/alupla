@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import JSZip from "jszip";
 import { useTranslation } from "react-i18next";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -25,11 +26,12 @@ import {
 } from "./map/utils";
 import { genderColors, useCompactMapViewport } from "./map/viewHelpers";
 import {
-  exportCombinedSnapshots,
+  combinedSnapshotsToBlob,
   renderMapSnapshot,
   waitForMapFrame,
 } from "./map/exportSelection";
 import { buildExportFilename, yearRangeFilenamePart } from "../lib/exportFilenames";
+import { downloadBlob } from "../lib/download";
 import {
   localizedCityRecordName,
   localizedCountryRecordName,
@@ -83,6 +85,7 @@ export default function GraduatesMapPage() {
   const mapViewSettleTimerRef = useRef<number | null>(null);
   const selectedGraduationYearStartRef = useRef("");
   const selectedGraduationYearEndRef = useRef("");
+  const exportInFlightRef = useRef(false);
 
   const [mapMetric, setMapMetric] = useState<MapMetric>("count");
   const [mapScope, setMapScope] = useState<MapScope>(initialMapScope);
@@ -906,6 +909,7 @@ export default function GraduatesMapPage() {
     const previousSelectedCityCards = selectedCityCards;
     const previousStartYear = selectedGraduationYearStartRef.current;
     const previousEndYear = selectedGraduationYearEndRef.current;
+    const files: Array<{ filename: string; blob: Blob }> = [];
 
     setSelectedCityCards([]);
     await waitForMapFrame(mapRef);
@@ -930,11 +934,16 @@ export default function GraduatesMapPage() {
           (item) => item.id === selection.category,
         );
         const selectedRangeLabel = exportRangeLabel(range);
-        await exportCombinedSnapshots(
-          buildExportFilename("map", metricFilenameParts(selection.category, selection.scope, range), "png"),
+        const filename = buildExportFilename(
+          "map",
+          metricFilenameParts(selection.category, selection.scope, range),
+          "png",
+        );
+        const blob = await combinedSnapshotsToBlob(
           `${option?.label || selection.category} · ${scopeLabel} · ${selectedRangeLabel}`,
           [{ ...snapshot }],
         );
+        if (blob) files.push({ filename, blob });
       }
     } finally {
       setMapScope(previousScope);
@@ -944,16 +953,34 @@ export default function GraduatesMapPage() {
       setSelectedCityCards(previousSelectedCityCards);
       await waitForMapFrame(mapRef);
     }
+
+    return files;
   }
 
   async function handleExportSelection() {
-    if (!selectedExportSelections.length) return;
+    if (!selectedExportSelections.length || exportInFlightRef.current) return;
     const exportedSelections = selectedExportSelections.map(
       (selection) => `${selection.scope}:${selection.category}`,
     );
+    exportInFlightRef.current = true;
     setExportingSelection(true);
     try {
-      await exportMapSelectionAsPng();
+      const files = await exportMapSelectionAsPng();
+      if (!files.length) return;
+      if (files.length === 1) {
+        const [file] = files;
+        await downloadBlob(file.blob, file.filename);
+      } else {
+        const zip = new JSZip();
+        files.forEach((file) => zip.file(file.filename, file.blob));
+        const zipBlob = await zip.generateAsync({ type: "blob", compression: "STORE" });
+        const zipFilename = buildExportFilename(
+          "map",
+          ["png", "exports", files.length, "files"],
+          "zip",
+        );
+        await downloadBlob(zipBlob, zipFilename);
+      }
       try {
         await logPublicExport("map_export", "png", {
           map_exports: exportedSelections,
@@ -961,6 +988,7 @@ export default function GraduatesMapPage() {
       } catch {}
       setSelectedExportFormat(null);
     } finally {
+      exportInFlightRef.current = false;
       setExportingSelection(false);
     }
   }
