@@ -71,16 +71,51 @@ type ExportBarDataset = {
   pointStyle?: "circle" | "square" | "diamond";
 };
 
-function exportChunkRanges(length: number, size = 12) {
+function exportChunkCapacity(labels: string[], datasetCount = 1) {
+  const normalizedLabels = labels.map((label) => String(label ?? "").trim()).filter(Boolean);
+  if (!normalizedLabels.length) return datasetCount > 1 ? 9 : 10;
+  const longest = normalizedLabels.reduce((max, label) => Math.max(max, label.length), 0);
+  const average = normalizedLabels.reduce((sum, label) => sum + label.length, 0) / normalizedLabels.length;
+
+  if (longest > 30 || average > 18) return datasetCount > 1 ? 7 : 8;
+  if (longest > 22 || average > 14) return datasetCount > 1 ? 8 : 9;
+  return datasetCount > 1 ? 9 : 10;
+}
+
+function exportChunkRanges(labels: string[], datasetCount = 1) {
+  const length = labels.length;
   if (length <= 0) return [] as Array<[number, number]>;
+  const pageCount = Math.max(1, Math.ceil(length / exportChunkCapacity(labels, datasetCount)));
+  const baseSize = Math.floor(length / pageCount);
+  const remainder = length % pageCount;
   const ranges: Array<[number, number]> = [];
-  for (let start = 0; start < length; start += size) ranges.push([start, Math.min(length, start + size)]);
+  let start = 0;
+
+  for (let index = 0; index < pageCount; index += 1) {
+    const chunkSize = baseSize + (index < remainder ? 1 : 0);
+    ranges.push([start, start + chunkSize]);
+    start += chunkSize;
+  }
+
   return ranges;
 }
 
-function exportValueMax(values: number[]) {
+function exportValueMax(values: number[], precision?: number) {
   const max = values.reduce((current, value) => Number.isFinite(Number(value)) ? Math.max(current, Number(value)) : current, 0);
-  return max > 0 ? max * 1.08 : undefined;
+  if (!(max > 0)) return undefined;
+  const padded = max * 1.08;
+
+  if (precision !== undefined) {
+    const factor = 10 ** Math.max(0, precision);
+    return Number((Math.ceil(padded * factor) / factor).toFixed(Math.max(0, precision)));
+  }
+
+  if (max <= 10) return Math.ceil(padded);
+  const rawStep = padded / 8;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const normalized = rawStep / magnitude;
+  const step = (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10) * magnitude;
+  return Math.ceil(padded / step) * step;
 }
 
 function ExportBarCards(props: {
@@ -89,14 +124,14 @@ function ExportBarCards(props: {
   series: ChartSeries;
   yTickPrecision?: number;
 }) {
-  const ranges = exportChunkRanges(props.series.labels.length);
+  const ranges = exportChunkRanges(props.series.labels);
+  const maxValue = exportValueMax(props.series.values, props.yTickPrecision);
 
   return (
     <>
       {ranges.map(([start, end], index) => {
         const labels = props.series.labels.slice(start, end);
         const values = props.series.values.slice(start, end);
-        const maxValue = exportValueMax(values);
         return (
           <BarChartCard
             key={`${props.chartId}-${index}`}
@@ -124,14 +159,14 @@ function ExportMultiBarCards(props: {
   datasets: ExportBarDataset[];
   yTickPrecision?: number;
 }) {
-  const ranges = exportChunkRanges(props.labels.length);
+  const ranges = exportChunkRanges(props.labels, props.datasets.length);
+  const maxValue = exportValueMax(props.datasets.flatMap((dataset) => dataset.values), props.yTickPrecision);
 
   return (
     <>
       {ranges.map(([start, end], index) => {
         const labels = props.labels.slice(start, end);
         const datasets = props.datasets.map((dataset) => ({ ...dataset, values: dataset.values.slice(start, end) }));
-        const maxValue = exportValueMax(datasets.flatMap((dataset) => dataset.values));
         return (
           <MultiBarChartCard
             key={`${props.chartId}-${index}`}
@@ -254,7 +289,7 @@ function GraduationLineCard(props: Pick<ChartBlockProps, "t" | "cardInnerStyle" 
     <div className="card" style={props.cardInnerStyle} data-stat-chart-card="true" data-export-chart-id="byYear">
       <div className="topbar" style={props.compactTopbarStyle}>
         <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.t("sections.byYear")}</h3>
-        <ChartFullscreenButton label={props.t("actions.fullscreen")} title={props.t("actions.fullscreen")} />
+        {!props.exportMode ? <ChartFullscreenButton label={props.t("actions.fullscreen")} title={props.t("actions.fullscreen")} /> : null}
         <ChartLegendInset items={[{ label: props.t("sections.byYear"), color: "#2563eb", borderColor: "#2563eb", pointStyle: "circle" }]} />
       </div>
       <div className="chart-figure" role="img" aria-label={props.t("sections.byYear")} style={{ position: "relative" }}>

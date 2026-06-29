@@ -432,13 +432,13 @@ export function ChartLegendInset(props: { items: ChartLegendItem[] }) {
   );
 }
 
-function ChartDataSummary(props: { labels: string[]; values: number[]; colors: string[]; borderColors?: string[] }) {
+function ChartDataSummary(props: { labels: string[]; values: number[]; colors: string[]; borderColors?: string[]; exportMode?: boolean }) {
   if (!props.labels.length) return <div className="chart-data-summary-empty">-</div>;
 
   const total = props.values.reduce((sum, value) => sum + Number(value ?? 0), 0);
 
   return (
-    <div className="chart-data-summary" role="list">
+    <div className="chart-data-summary" role="list" style={props.exportMode ? { justifySelf: "center", marginLeft: "auto", marginRight: "auto" } : undefined}>
       {props.labels.map((label, index) => {
         const value = Number(props.values[index] ?? 0);
         const percent = total > 0 ? `${((value / total) * 100).toFixed(1)}%` : "0%";
@@ -533,7 +533,7 @@ function exportAxisLabel(label: string, index: number, labels: string[]) {
     const lastIndex = labels.length - 1;
     if (index !== 0 && index !== lastIndex && index % step !== 0) return "";
   }
-  return wrapAxisLabel(label, 16, 3);
+  return wrapAxisLabel(label, 18, 3);
 }
 
 function useCompactStatisticsLayout() {
@@ -902,6 +902,7 @@ function PieChartFigure(props: {
   values: number[];
   height?: number;
   colors?: string[];
+  exportMode?: boolean;
 }) {
   const highContrast = useHighContrastEnabled();
   const chartColors = React.useMemo(() => highContrast ? pieColors(props.labels.length, true) : props.colors?.length ? Array.from({ length: props.labels.length }, (_, index) => props.colors?.[index % props.colors.length] ?? pieColors(props.labels.length, false)[index]) : pieColors(props.labels.length, false), [highContrast, props.colors, props.labels.length]);
@@ -948,7 +949,7 @@ function PieChartFigure(props: {
           },
         }, highContrast)}
       />
-      <ChartDataSummary labels={props.labels} values={props.values} colors={chartColors} borderColors={borderColors} />
+      <ChartDataSummary labels={props.labels} values={props.values} colors={chartColors} borderColors={borderColors} exportMode={props.exportMode} />
     </div>
   );
 }
@@ -972,7 +973,7 @@ export function PieChartCard(props: {
           {props.control}
         </span>
       </div>
-      <PieChartFigure title={props.title} labels={props.labels} values={props.values} height={props.height} colors={props.colors} />
+      <PieChartFigure title={props.title} labels={props.labels} values={props.values} height={props.height} colors={props.colors} exportMode={props.exportMode} />
     </div>
   );
 }

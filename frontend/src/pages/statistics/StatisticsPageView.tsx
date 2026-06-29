@@ -31,13 +31,10 @@ export function StatisticsPageView(props: any) {
     chartGroups,
     closeExportSelection,
     compactTopbarStyle,
-    compareA,
     compareAEnd,
     compareAStart,
-    compareB,
     compareBEnd,
     compareBStart,
-    compareExportLabel,
     compareRows,
     compareSelect,
     compareYearOptions,
@@ -48,8 +45,6 @@ export function StatisticsPageView(props: any) {
     entryYearOptions,
     entryYears,
     err,
-    exportCompareA,
-    exportCompareB,
     exportCompareRanges,
     exportCompareRows,
     exportFormatLabel,
@@ -115,17 +110,40 @@ export function StatisticsPageView(props: any) {
     yearsToDegreeDistribution,
   } = props;
 
-const renderCompareExportCard = (chartId: StatisticsChartId, title: string, rows: typeof compareRows, firstRange = compareA, secondRange = compareB, exportMode = false) => (
+const renderCompareExportCard = (
+    chartId: StatisticsChartId,
+    rows: typeof compareRows,
+    firstRange: { from: string; to: string },
+    secondRange: { from: string; to: string },
+  ) => (
     <div className="card statistics-compare-card" data-stat-chart-card="true" data-export-chart-id={chartId}>
       <div className="statistics-compare-head">
         <div className="statistics-compare-title">
-          <h3>{title}</h3>
-          <p>{t("compare.periodRange", { range: firstRange.range })} · {t("compare.periodRange", { range: secondRange.range })}</p>
+          <h3>{t("compare.title")}</h3>
+          <p>{t("compare.subtitle")}</p>
         </div>
       </div>
-      <div className="statistics-compare-rows" style={exportMode ? { gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 } : undefined}>
+      <div className="statistics-compare-ranges">
+        <div className="statistics-compare-range-control">
+          <span className="statistics-compare-panel-title">{t("compare.periodA")}</span>
+          <span className="statistics-compare-selects">
+            <select defaultValue={firstRange.from}><option value={firstRange.from}>{firstRange.from}</option></select>
+            <span>–</span>
+            <select defaultValue={firstRange.to}><option value={firstRange.to}>{firstRange.to}</option></select>
+          </span>
+        </div>
+        <div className="statistics-compare-range-control">
+          <span className="statistics-compare-panel-title">{t("compare.periodB")}</span>
+          <span className="statistics-compare-selects">
+            <select defaultValue={secondRange.from}><option value={secondRange.from}>{secondRange.from}</option></select>
+            <span>–</span>
+            <select defaultValue={secondRange.to}><option value={secondRange.to}>{secondRange.to}</option></select>
+          </span>
+        </div>
+      </div>
+      <div className="statistics-compare-rows">
         {rows.map((row: any) => (
-          <div className="statistics-compare-row" key={row.key} style={exportMode ? { gridTemplateColumns: "minmax(0, 1fr) 32px minmax(0, 1fr) minmax(116px, .52fr)", gap: 8 } : undefined}>
+          <div className="statistics-compare-row" key={row.key}>
             <div className="statistics-compare-metric statistics-compare-row-metric">
               <strong>{row.a}</strong>
               <span>{row.label}</span>
@@ -458,7 +476,7 @@ const renderCompareExportCard = (chartId: StatisticsChartId, title: string, rows
           abroadCount={exportViewData.abroadCount}
           exportMode
         />
-        {renderCompareExportCard("compare", compareExportLabel, exportCompareRows, exportCompareA, exportCompareB, true)}
+        {renderCompareExportCard("compare", exportCompareRows, exportCompareRanges.a, exportCompareRanges.b)}
         </div>
       ) : null}
     </>
