@@ -6,7 +6,6 @@ import { ensureLocalizedRegionNames, resolveMapLocation } from "../services/mapL
 import { loadRegionLookupIndex } from "../services/regionLookup.service";
 import { normalizeKey, pickTopName, toInt } from "./map.helpers";
 import { applyAggregateMetrics, createMetricsBucket, serializeMapMetrics } from "./map.metrics";
-import { hasPublishablePublicGroup, protectPublicMapMetrics } from "../services/publicPrivacy.service";
 
 const ATHENS_GROUP_KEY = "athens";
 const ATHENS_GROUP = {
@@ -183,7 +182,7 @@ function bucketToMapItem(bucket: any, programLabels: Map<number, string>) {
     latitude: bucket.latitude ?? null,
     longitude: bucket.longitude ?? null,
     ...serializeMapMetrics(bucket),
-    dominant_study_program: pickTopName(bucket.programCounts, programLabels, 5),
+    dominant_study_program: pickTopName(bucket.programCounts, programLabels),
   };
 }
 
@@ -299,12 +298,11 @@ async function buildMapData(req: Request, options: MapBuildOptions = {}) {
   }
 
   const mapItems = [...mapGroups.values()]
-    .filter((bucket) => scope === "greece" || hasPublishablePublicGroup(bucket.count))
-    .map((bucket) => protectPublicMapMetrics(bucketToMapItem(bucket, programLabels)))
+    .map((bucket) => bucketToMapItem(bucket, programLabels))
     .sort((a, b) => b.count - a.count);
   const cities = [...cityGroups.values()]
-    .filter((bucket) => hasPublishablePublicGroup(bucket.count))
-    .map((bucket) => protectPublicMapMetrics(cityItem(bucket)))
+    .filter((bucket) => bucket.count > 0)
+    .map(cityItem)
     .sort((a, b) => b.count - a.count || String(a.city_name).localeCompare(String(b.city_name), "el"));
 
   return {
@@ -390,7 +388,7 @@ export async function getMapCityDetail(req: Request, res: Response) {
 
   const bucket = createMetricsBucket({});
   matching.forEach((row) => applyAggregateMetrics(bucket, row));
-  const metrics = protectPublicMapMetrics(serializeMapMetrics(bucket));
+  const metrics = serializeMapMetrics(bucket);
   const selectedCityIds = Array.from(new Set(matching.map((row) => Number(row.city_id || 0)).filter((id) => id > 0)));
   const resolvedCityId = group ? 0 : cityId || selectedCityIds[0] || 0;
   const label = group?.nameEl || cityName || String(matching[0]?.city_name || "");
@@ -407,8 +405,6 @@ export async function getMapCityDetail(req: Request, res: Response) {
     country_name_el: countryNames.nameEl,
     country_name_en: countryNames.nameEn,
     total: metrics.count,
-    privacy_suppressed: Boolean((metrics as any).privacy_suppressed),
-    minimum_group_size: (metrics as any).minimum_group_size,
     avg_age: metrics.avg_age,
     avg_grade: metrics.avg_grade,
     avg_graduation_years: metrics.avg_graduation_years,
@@ -427,7 +423,7 @@ export async function getMapCityDetail(req: Request, res: Response) {
   const yearRows = await loadMapCityYearCounts(req, scope, selectedCityIds, scope === "abroad" ? countryLookupId : null);
   for (const row of yearRows) {
     const year = Number(row.year);
-    if (year >= startYear && year <= endYear && hasPublishablePublicGroup(row.count)) counts[year - startYear] = Number(row.count) || 0;
+    if (year >= startYear && year <= endYear) counts[year - startYear] = Number(row.count) || 0;
   }
   const lang = String(req.query.lang || "").toLowerCase().startsWith("en") ? "en" : "gr";
   return res.json({ ...base, mode: "count", labels, datasets: [{ key: "count", label: lang === "en" ? "Graduates" : "Απόφοιτοι", values: counts }] });

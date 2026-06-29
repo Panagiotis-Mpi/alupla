@@ -2,21 +2,17 @@ import { Request, Response } from "express";
 import { buildRegionLookup, buildWhere, logPublicExportAction } from "./public.helpers";
 import { buildAnonymousStatisticsWorkbook, loadPublicMapRows } from "./public.stats";
 import { buildExportFilename, yearRangeFilenamePart } from "../utils/exportFilename";
-import { arePublicBinaryCountsSafe, hasPublishablePublicGroup } from "../services/publicPrivacy.service";
 
 export async function publicMap(req: Request, res: Response) {
   const context = await buildWhere(req);
   const { byId, findPeriphery } = await buildRegionLookup();
   const rows = await loadPublicMapRows(context);
 
-  const items = rows.filter((row) => hasPublishablePublicGroup((row as any).count)).map((row) => {
+  const items = rows.map((row) => {
     const regionId = Number((row as any).region_id) || null;
     const rawRegion = regionId ? byId.get(regionId) ?? null : null;
     const periphery = rawRegion ? findPeriphery(regionId) : null;
     const region = periphery ?? rawRegion;
-    const male = Number((row as any).male) || 0;
-    const female = Number((row as any).female) || 0;
-    const genderSafe = arePublicBinaryCountsSafe(male, female);
     return {
       region_id: region ? Number(region.id) : regionId,
       region_name: region ? String(region.name) : String((row as any).region_name ?? 'Unknown'),
@@ -24,8 +20,8 @@ export async function publicMap(req: Request, res: Response) {
       latitude: region?.latitude ?? null,
       longitude: region?.longitude ?? null,
       count: Number((row as any).count) || 0,
-      male: genderSafe ? male : 0,
-      female: genderSafe ? female : 0,
+      male: Number((row as any).male) || 0,
+      female: Number((row as any).female) || 0,
     };
   });
 

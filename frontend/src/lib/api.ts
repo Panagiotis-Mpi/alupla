@@ -230,7 +230,7 @@ function writeMapCache<T>(key: string, value: T) {
 }
 
 async function cachedMapApi<T>(path: string): Promise<T> {
-  const key = `alupla:map:v2:${path}`;
+  const key = `alupla:map:${path}`;
   const cached = readMapCache<T>(key);
   if (cached) return cached;
   const response = await api<T>(path, { method: "GET" });
@@ -751,7 +751,7 @@ export async function getPublicStats(
   } = {},
 ): Promise<PublicStatsResponse> {
   const path = `/public/stats${toQueryString(params)}`;
-  const cacheKey = `alupla:public-stats:v2:${path}`;
+  const cacheKey = `alupla:public-stats:${path}`;
   const cached = readPublicStatsCache(cacheKey);
   if (cached) return cached;
 

@@ -17,7 +17,7 @@ export function isGreeceOriginValue(value: unknown) {
   return normalized === normalizeKey("Ελλάδα") || normalized === normalizeKey("Greece");
 }
 
-export function pickTopName(counts: Map<number, number>, labels: Map<number, string>, minimumCount = 1) {
+export function pickTopName(counts: Map<number, number>, labels: Map<number, string>) {
   let topCount = 0;
   let topLabel = "";
   for (const [id, count] of counts.entries()) {
@@ -27,5 +27,5 @@ export function pickTopName(counts: Map<number, number>, labels: Map<number, str
       topLabel = label;
     }
   }
-  return topCount >= minimumCount ? topLabel : null;
+  return topCount > 0 ? topLabel : null;
 }
