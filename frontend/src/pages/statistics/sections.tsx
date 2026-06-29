@@ -71,8 +71,8 @@ type ExportBarDataset = {
   pointStyle?: "circle" | "square" | "diamond";
 };
 
-function exportChunkRanges(length: number, size = 12) {
-  if (length <= 0) return [[0, 0]] as Array<[number, number]>;
+function exportChunkRanges(length: number, size = 16) {
+  if (length <= 0) return [] as Array<[number, number]>;
   const ranges: Array<[number, number]> = [];
   for (let start = 0; start < length; start += size) ranges.push([start, Math.min(length, start + size)]);
   return ranges;
@@ -90,20 +90,21 @@ function ExportBarCards(props: {
   yTickPrecision?: number;
 }) {
   const ranges = exportChunkRanges(props.series.labels.length);
-  const maxValue = exportValueMax(props.series.values);
 
   return (
     <>
       {ranges.map(([start, end], index) => {
         const labels = props.series.labels.slice(start, end);
+        const values = props.series.values.slice(start, end);
+        const maxValue = exportValueMax(values);
         return (
           <BarChartCard
             key={`${props.chartId}-${index}`}
             chartId={props.chartId}
             title={props.title}
             labels={labels}
-            values={props.series.values.slice(start, end)}
-            height={Math.max(360, labels.length * 48 + 72)}
+            values={values}
+            height={Math.max(360, labels.length * 42 + 80)}
             horizontal
             fullLabelTooltip
             yTickPrecision={props.yTickPrecision}
@@ -127,20 +128,21 @@ function ExportMultiBarCards(props: {
   yTickPrecision?: number;
 }) {
   const ranges = exportChunkRanges(props.labels.length);
-  const maxValue = exportValueMax(props.datasets.flatMap((dataset) => dataset.values));
 
   return (
     <>
       {ranges.map(([start, end], index) => {
         const labels = props.labels.slice(start, end);
+        const datasets = props.datasets.map((dataset) => ({ ...dataset, values: dataset.values.slice(start, end) }));
+        const maxValue = exportValueMax(datasets.flatMap((dataset) => dataset.values));
         return (
           <MultiBarChartCard
             key={`${props.chartId}-${index}`}
             chartId={props.chartId}
             title={props.title}
             labels={labels}
-            datasets={props.datasets.map((dataset) => ({ ...dataset, values: dataset.values.slice(start, end) }))}
-            height={Math.max(380, labels.length * 58 + 72)}
+            datasets={datasets}
+            height={Math.max(380, labels.length * 48 + 84)}
             horizontal
             yTickPrecision={props.yTickPrecision}
             maxValue={maxValue}

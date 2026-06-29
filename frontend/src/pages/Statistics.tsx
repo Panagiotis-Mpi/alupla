@@ -74,6 +74,7 @@ export default function Statistics() {
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
   const pageRef = React.useRef<HTMLDivElement | null>(null);
   const exportSurfaceRef = React.useRef<HTMLDivElement | null>(null);
+  const exportInProgressRef = React.useRef(false);
   const statsRequestsRef = React.useRef<Partial<Record<StatisticsDataGroupKey, Promise<any>>>>({});
 
   const activeLang: "el" | "en" = i18n.language?.toLowerCase().startsWith("en") ? "en" : "el";
@@ -928,7 +929,8 @@ export default function Statistics() {
   }
 
   async function handleExportAction() {
-    if (!selectedChartIds.length || !selectedExportFormat) return;
+    if (exportInProgressRef.current || !selectedChartIds.length || !selectedExportFormat) return;
+    exportInProgressRef.current = true;
 
     const exportedChartIds = [...selectedChartIds];
     const exportedGroupKeys = chartGroups
@@ -950,6 +952,7 @@ export default function Statistics() {
       }
     } finally {
       const exportType = selectedExportFormat;
+      exportInProgressRef.current = false;
       setExportPreviewData(null);
       setSelectedExportFormat(null);
       setExportOpen(false);
