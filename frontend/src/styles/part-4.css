@@ -47,6 +47,9 @@
 .statistics-compare-change.is-neutral{background:#f8fafc;border-color:#cbd5e1}
 
 .statistics-compare-change strong{display:flex;align-items:center;justify-content:center;gap:12px;color:#0f172a;font-size:22px;line-height:1.2;margin:0;overflow-wrap:anywhere;letter-spacing:-.01em;text-align:center}
+.statistics-compare-change-values{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0}
+.statistics-compare-change-value{font-size:1em;font-weight:900;line-height:1.12}
+.statistics-compare-change-percent{font-size:.72em;font-weight:800;line-height:1.1;letter-spacing:0}
 .statistics-compare-change-arrow{width:40px;height:40px;border-radius:999px;display:inline-flex !important;align-items:center;justify-content:center;margin:0 !important;font-size:26px !important;font-weight:900 !important;color:#1d4ed8 !important;background:#eff6ff;border:2px solid rgba(37,99,235,.22);flex:0 0 auto;box-shadow:0 10px 22px rgba(37,99,235,.14)}
 .statistics-compare-change.is-up .statistics-compare-change-arrow{color:#047857 !important;background:#dcfce7;border-color:rgba(22,163,74,.42)}
 .statistics-compare-change.is-down .statistics-compare-change-arrow{color:#b91c1c !important;background:#fee2e2;border-color:rgba(220,38,38,.42)}
@@ -62,7 +65,6 @@ html.accessibility-high-contrast .statistics-compare-panel-title,
 html.accessibility-high-contrast .statistics-compare-metric strong,
 html.accessibility-high-contrast .statistics-compare-metric span,
 html.accessibility-high-contrast .statistics-compare-arrow,
-html.accessibility-high-contrast .statistics-compare-change span,
 html.accessibility-high-contrast .statistics-compare-change strong,
 html.accessibility-high-contrast .statistics-compare-selects select{background:#000000 !important;color:#7fffd4 !important;border:2px solid #14f5c8 !important}
 @media (max-width: 900px){

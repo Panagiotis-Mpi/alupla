@@ -136,7 +136,13 @@ const renderCompareExportCard = (chartId: StatisticsChartId, title: string, rows
               <span>{row.label}</span>
             </div>
             <div className={`statistics-compare-change ${row.direction > 0 ? "is-up" : row.direction < 0 ? "is-down" : "is-neutral"}`}>
-              <strong><span className="statistics-compare-change-arrow" aria-hidden="true">{row.direction > 0 ? "↑" : row.direction < 0 ? "↓" : "–"}</span>{row.delta}</strong>
+              <strong>
+                <span className="statistics-compare-change-arrow" aria-hidden="true">{row.direction > 0 ? "↑" : row.direction < 0 ? "↓" : "–"}</span>
+                <span className="statistics-compare-change-values">
+                  <span className="statistics-compare-change-value">{row.deltaValue ?? row.delta}</span>
+                  {row.deltaPercent && row.deltaPercent !== "-" ? <span className="statistics-compare-change-percent">({row.deltaPercent})</span> : null}
+                </span>
+              </strong>
             </div>
           </div>
         ))}
@@ -239,7 +245,13 @@ const renderCompareExportCard = (chartId: StatisticsChartId, title: string, rows
                     <span>{row.label}</span>
                   </div>
                   <div className={`statistics-compare-change ${row.direction > 0 ? "is-up" : row.direction < 0 ? "is-down" : "is-neutral"}`}>
-                    <strong><span className="statistics-compare-change-arrow" aria-hidden="true">{row.direction > 0 ? "↑" : row.direction < 0 ? "↓" : "–"}</span>{row.delta}</strong>
+                    <strong>
+                      <span className="statistics-compare-change-arrow" aria-hidden="true">{row.direction > 0 ? "↑" : row.direction < 0 ? "↓" : "–"}</span>
+                      <span className="statistics-compare-change-values">
+                        <span className="statistics-compare-change-value">{row.deltaValue ?? row.delta}</span>
+                        {row.deltaPercent && row.deltaPercent !== "-" ? <span className="statistics-compare-change-percent">({row.deltaPercent})</span> : null}
+                      </span>
+                    </strong>
                   </div>
                 </div>
               ))}
