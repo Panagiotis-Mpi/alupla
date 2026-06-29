@@ -1,7 +1,7 @@
 // Προστατεύει σελίδες που χρειάζονται login ή συγκεκριμένο ρόλο χρήστη.
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { getUser, type Role } from "../lib/auth";
+import { getUser, subscribeSessionChange, type Role } from "../lib/auth";
 
 type GuardProps = {
   children: React.ReactNode;
@@ -9,7 +9,9 @@ type GuardProps = {
 };
 
 export default function Guard({ children, allow }: GuardProps) {
-  const role = getUser()?.role ?? null;
+  const [role, setRole] = React.useState<Role | null>(() => getUser()?.role ?? null);
+
+  React.useEffect(() => subscribeSessionChange(() => setRole(getUser()?.role ?? null)), []);
 
   if (!role) {
     return <Navigate to="/login" replace />;

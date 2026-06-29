@@ -8,9 +8,11 @@ import {
   getCountByGraduationYear,
   getGenderByGraduationTerm,
   getGenderByGraduationYear,
+  getTotalGraduates,
   queryAnalyticsRows,
   termLabel,
 } from "../services/analyticsAggregations.service";
+import { arePublicBinaryCountsSafe, hasPublishablePublicGroup } from "../services/publicPrivacy.service";
 
 type PublicWhereContext = AnalyticsWhereContext;
 type PublicExportLang = ExportLang;
@@ -45,36 +47,39 @@ export async function loadPublicMapRows(context: PublicWhereContext) {
 
 // Φτιάχνει Excel workbook με ανώνυμα στατιστικά.
 export async function buildAnonymousStatisticsWorkbook(context: PublicWhereContext, countsMode: "year" | "semester", genderMode: "year" | "semester", lang: PublicExportLang = "gr") {
-  const [byYear, byTerm, genderByYear, genderByTerm] = await Promise.all([
+  const [totalRows, byYear, byTerm, genderByYear, genderByTerm] = await Promise.all([
+    getTotalGraduates(context),
     getCountByGraduationYear(context),
     getCountByGraduationTerm(context),
     getGenderByGraduationYear(context),
     getGenderByGraduationTerm(context),
   ]);
+  const total = Number(totalRows?.[0]?.total ?? 0);
+  const publishable = total === 0 || hasPublishablePublicGroup(total);
 
   const labels = lang === "en"
     ? { year: "Year", semester: "Semester", count: "Graduate count", male: "Men", female: "Women", countsSheet: "Graduate count", genderSheet: "Gender ratio" }
     : { year: "Έτος", semester: "Εξάμηνο", count: "Πλήθος αποφοίτων", male: "Άνδρες", female: "Γυναίκες", countsSheet: "Πλήθος αποφοίτων", genderSheet: "Αναλογία φύλων" };
 
-  const countsRows = countsMode === "semester"
-    ? byTerm.filter((row) => row.term !== "other").map((row) => ({
+  const countsRows = !publishable ? [] : countsMode === "semester"
+    ? byTerm.filter((row) => row.term !== "other" && hasPublishablePublicGroup(row.count)).map((row) => ({
         [labels.year]: Number(row.year),
         [labels.semester]: termLabel(String(row.term), lang),
         [labels.count]: Number(row.count) || 0,
       }))
-    : byYear.map((row) => ({
+    : byYear.filter((row) => hasPublishablePublicGroup(row.count)).map((row) => ({
         [labels.year]: Number(row.year),
         [labels.count]: Number(row.count) || 0,
       }));
 
-  const genderRows = genderMode === "semester"
-    ? genderByTerm.filter((row) => row.term !== "other").map((row) => ({
+  const genderRows = !publishable ? [] : genderMode === "semester"
+    ? genderByTerm.filter((row) => row.term !== "other" && hasPublishablePublicGroup(Number(row.male) + Number(row.female)) && arePublicBinaryCountsSafe(row.male, row.female)).map((row) => ({
         [labels.year]: Number(row.year),
         [labels.semester]: termLabel(String(row.term), lang),
         [labels.male]: Number(row.male) || 0,
         [labels.female]: Number(row.female) || 0,
       }))
-    : genderByYear.map((row) => ({
+    : genderByYear.filter((row) => hasPublishablePublicGroup(Number(row.male) + Number(row.female)) && arePublicBinaryCountsSafe(row.male, row.female)).map((row) => ({
         [labels.year]: Number(row.year),
         [labels.male]: Number(row.male) || 0,
         [labels.female]: Number(row.female) || 0,

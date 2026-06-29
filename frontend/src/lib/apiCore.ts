@@ -1,4 +1,5 @@
 // Κεντρικός μηχανισμός για HTTP requests, token και χειρισμό απαντήσεων API.
+import { logout } from "./auth";
 export const API_URL: string = (() => {
   const env = import.meta.env as { VITE_API_URL?: string } | undefined;
   const envUrl = env?.VITE_API_URL;
@@ -32,12 +33,8 @@ export function getToken(): string | null {
   return normalized;
 }
 
-function clearToken() {
-  sessionStorage.removeItem(TOKEN_KEY);
-  try {
-    localStorage.removeItem(TOKEN_KEY);
-  } catch {
-  }
+export function handleUnauthorizedResponse(res: Response) {
+  if (res.status === 401) logout();
 }
 
 type JsonRecord = Record<string, unknown>;
@@ -136,6 +133,8 @@ export async function fetchBlob(path: string, params: QueryParams = {}, lang?: s
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 
+  handleUnauthorizedResponse(res);
+
   if (!res.ok) {
     const data = await parseJsonSafe(res);
     throw new Error(apiErrorMessage(data, res.statusText));
@@ -155,6 +154,8 @@ export async function postBlob(path: string, body: QueryParams = {}, lang?: stri
     headers,
     body: JSON.stringify(lang ? { ...body, lang } : body),
   });
+
+  handleUnauthorizedResponse(res);
 
   if (!res.ok) {
     const data = await parseJsonSafe(res);
@@ -180,9 +181,7 @@ export async function api<T>(path: string, init: ApiRequestInit = {}): Promise<T
 
   const data = await parseJsonSafe(res);
 
-  if (res.status === 401) {
-    clearToken();
-  }
+  handleUnauthorizedResponse(res);
 
   if (!res.ok) {
     throw new Error(apiErrorMessage(data, res.statusText));

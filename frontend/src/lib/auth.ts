@@ -1,7 +1,9 @@
 // Αποθηκεύει και διαβάζει στοιχεία σύνδεσης χρήστη από το browser.
+import { clearPrivateCachedValues } from "./cache";
+
 export type Role = "secretariat" | "super_admin";
 
-type SessionUser = {
+export type SessionUser = {
   id: number;
   first_name: string;
   last_name: string;
@@ -11,6 +13,13 @@ type SessionUser = {
 
 const TOKEN_KEY = "alupla_token";
 const USER_KEY = "alupla_user";
+const SESSION_EVENT = "alupla:session-change";
+
+function notifySessionChange() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(SESSION_EVENT));
+  }
+}
 
 function clearLegacyStorage() {
   try {
@@ -55,14 +64,23 @@ export function getUser(): SessionUser | null {
 }
 
 export function setSession(token: string, user: SessionUser) {
+  clearPrivateCachedValues();
   sessionStorage.setItem(TOKEN_KEY, token);
   sessionStorage.setItem(USER_KEY, JSON.stringify(user));
   clearLegacyStorage();
+  notifySessionChange();
 }
 
 export function logout() {
+  clearPrivateCachedValues();
   sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(USER_KEY);
   clearLegacyStorage();
+  notifySessionChange();
 }
 
+export function subscribeSessionChange(listener: () => void) {
+  if (typeof window === "undefined") return () => undefined;
+  window.addEventListener(SESSION_EVENT, listener);
+  return () => window.removeEventListener(SESSION_EVENT, listener);
+}

@@ -7,6 +7,18 @@ export type CacheStore = Map<string, CacheEntry>;
 
 type CacheValidator<T> = (value: T) => boolean;
 
+const PRIVATE_CACHE_PREFIXES = [
+  "alupla:users:",
+  "alupla:graduates:",
+  "alupla:references:",
+  "alupla:logs:",
+  "alupla:logs-summary:",
+];
+const PRIVATE_LOCAL_STORAGE_KEYS = ["alupla.graduates.recentDownloads"];
+const privateMemoryClearers = new Set<() => void>();
+
+export const privateApiMemoryCache: CacheStore = new Map();
+
 function removeStoredValue(key: string) {
   try {
     sessionStorage.removeItem(key);
@@ -71,5 +83,29 @@ export function clearCachedValues(prefixes: string[], stores: CacheStore[]) {
       }
     }
   } catch {
+  }
+}
+
+export function registerPrivateMemoryCleanup(clearer: () => void) {
+  privateMemoryClearers.add(clearer);
+  return () => privateMemoryClearers.delete(clearer);
+}
+
+export function clearPrivateCachedValues() {
+  clearCachedValues(PRIVATE_CACHE_PREFIXES, [privateApiMemoryCache]);
+
+  try {
+    for (const key of PRIVATE_LOCAL_STORAGE_KEYS) {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    }
+  } catch {
+  }
+
+  for (const clear of privateMemoryClearers) {
+    try {
+      clear();
+    } catch {
+    }
   }
 }

@@ -1,5 +1,6 @@
 // Κρατά πρόσφατα downloads για να μπορεί ο χρήστης να τα ξανακατεβάσει.
 import type { Graduate, QueryParams } from "../../lib/api";
+import { registerPrivateMemoryCleanup } from "../../lib/cache";
 import { formatGreeceDateTime } from "../../lib/exportFilenames";
 import type { GraduatesFiltersState } from "./shared";
 
@@ -55,6 +56,7 @@ export type RecentGraduateDownload = {
 export const MAX_RECENT_GRADUATE_DOWNLOADS = 8;
 const RECENT_GRADUATE_DOWNLOADS_KEY = "alupla.graduates.recentDownloads";
 export const recentGraduateSessionDownloads = new Map<string, { blob: Blob; fileName: string }>();
+registerPrivateMemoryCleanup(() => recentGraduateSessionDownloads.clear());
 
 function normalizeRecentGraduateDownload(item: any): RecentGraduateDownload | null {
   if (!item || typeof item !== "object") return null;

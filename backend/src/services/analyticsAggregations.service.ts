@@ -1,5 +1,6 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/sequelize";
+import { PUBLIC_MIN_GROUP_SIZE } from "./publicPrivacy.service";
 
 export type AnalyticsWhereContext = {
   sqlWhere: string;
@@ -65,9 +66,11 @@ export function termLabel(term: string, lang: ExportLang = "gr") {
 
 export async function getGraduationYears() {
   const rows = await queryAnalyticsRows<{ year: number | null }>(
-    `SELECT DISTINCT DATE_PART('year', graduation_date)::INTEGER AS year
+    `SELECT DATE_PART('year', graduation_date)::INTEGER AS year
      FROM graduates
      WHERE graduation_date IS NOT NULL
+     GROUP BY DATE_PART('year', graduation_date)
+     HAVING COUNT(*) >= ${PUBLIC_MIN_GROUP_SIZE}
      ORDER BY year ASC`,
   );
   return rows
@@ -222,8 +225,9 @@ export async function getGenderByEntryYear(context: AnalyticsWhereContext) {
 }
 
 export async function getAverageGradeByGraduationYear(context: AnalyticsWhereContext) {
-  return queryAnalyticsRows<{ year: number; avg: number }>(
+  return queryAnalyticsRows<{ year: number; count: number; avg: number }>(
     `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+            CAST(COUNT(*) AS INTEGER) as count,
             ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
      FROM graduate_details g ${context.sqlWhere}
      GROUP BY EXTRACT(YEAR FROM g.graduation_date)
@@ -281,8 +285,9 @@ export async function getDegreeGradeBinsByGender(context: AnalyticsWhereContext)
 }
 
 export async function getAverageYearsToDegreeByEntryYear(context: AnalyticsWhereContext) {
-  return queryAnalyticsRows<{ entry_year: number; avg_years: number }>(
+  return queryAnalyticsRows<{ entry_year: number; count: number; avg_years: number }>(
     `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
+            CAST(COUNT(*) AS INTEGER) as count,
             ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
      FROM graduate_details g ${context.sqlWhere}
      GROUP BY g.entry_year

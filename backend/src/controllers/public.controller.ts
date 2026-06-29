@@ -5,6 +5,7 @@ import { Request, Response } from "express";
 import { StudyProgram } from "../models/StudyProgram";
 import { buildWhere, getBirthYearExpr } from "./public.helpers";
 import { getPublicStatsCache, setPublicStatsCache } from "../services/publicStatsCache.service";
+import { protectPublicStatisticsBody } from "../services/publicPrivacy.service";
 import {
   groupStatisticsCountries,
   groupStatisticsMunicipalities,
@@ -98,9 +99,10 @@ export async function publicStats(req: Request, res: Response) {
         gender_by_entry_year: genderByEntryYear,
         avg_age_by_year: avgAgeByYear,
       };
-      setPublicStatsCache(cacheKey, body);
+      const protectedBody = protectPublicStatisticsBody(body);
+      setPublicStatsCache(cacheKey, protectedBody);
       res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
-      return res.json(body);
+      return res.json(protectedBody);
     }
 
     if (section === "academic") {
@@ -182,9 +184,10 @@ export async function publicStats(req: Request, res: Response) {
         avg_years_to_degree_by_graduation_year: avgYearsToDegreeByGraduationYear,
         years_to_degree_distribution: yearsToDegreeDistribution,
       };
-      setPublicStatsCache(cacheKey, body);
+      const protectedBody = protectPublicStatisticsBody(body);
+      setPublicStatsCache(cacheKey, protectedBody);
       res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
-      return res.json(body);
+      return res.json(protectedBody);
     }
 
     if (section === "geography") {
@@ -355,9 +358,10 @@ export async function publicStats(req: Request, res: Response) {
         origin_municipality_distribution: originMunicipalityDistribution,
         gender_by_municipality: genderByMunicipality,
       };
-      setPublicStatsCache(cacheKey, body);
+      const protectedBody = protectPublicStatisticsBody(body);
+      setPublicStatsCache(cacheKey, protectedBody);
       res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
-      return res.json(body);
+      return res.json(protectedBody);
     }
 
     const totalRow = await sequelize.query<{ total: number }>(
@@ -564,8 +568,9 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
-    const avgGradeByYear = await sequelize.query<{ year: number; avg: number }>(
+    const avgGradeByYear = await sequelize.query<{ year: number; count: number; avg: number }>(
       `SELECT CAST(EXTRACT(YEAR FROM g.graduation_date) AS INTEGER) as year,
+              CAST(COUNT(*) AS INTEGER) as count,
               ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
        FROM graduate_details g ${sqlWhere}
        GROUP BY EXTRACT(YEAR FROM g.graduation_date)
@@ -824,8 +829,9 @@ export async function publicStats(req: Request, res: Response) {
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
-    const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; avg_years: number }>(
+    const avgYearsToDegreeByEntryYear = await sequelize.query<{ entry_year: number; count: number; avg_years: number }>(
       `SELECT CAST(g.entry_year AS INTEGER) as entry_year,
+              CAST(COUNT(*) AS INTEGER) as count,
               ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
        FROM graduate_details g ${sqlWhere}
        GROUP BY g.entry_year
@@ -923,9 +929,10 @@ export async function publicStats(req: Request, res: Response) {
       years_to_degree_distribution: yearsToDegreeDistribution,
     };
 
-    setPublicStatsCache(cacheKey, body);
+    const protectedBody = protectPublicStatisticsBody(body);
+    setPublicStatsCache(cacheKey, protectedBody);
     res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
-    return res.json(body);
+    return res.json(protectedBody);
   } catch (err) {
     console.error('[public/stats] failed', err);
     return res.status(500).json({ message: 'Stats query failed' });

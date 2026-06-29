@@ -5,6 +5,7 @@ import {
   api,
   fetchBlob,
   getToken,
+  handleUnauthorizedResponse,
   parseJsonSafe,
   postBlob,
   toQueryString,
@@ -12,10 +13,12 @@ import {
 } from "./apiCore";
 import {
   clearCachedValues,
+  privateApiMemoryCache,
   readCachedValue,
   writeCachedValue,
   type CacheStore,
 } from "./cache";
+import { getUser } from "./auth";
 
 type UserRole = "super_admin" | "secretariat";
 export type User = {
@@ -205,7 +208,6 @@ const LOGS_SUMMARY_CACHE_MS = 30 * 1000;
 const REFERENCE_CACHE_MS = 10 * 60 * 1000;
 const publicStatsMemoryCache: CacheStore = new Map();
 const mapMemoryCache: CacheStore = new Map();
-const protectedMemoryCache: CacheStore = new Map();
 
 function readPublicStatsCache(key: string) {
   return readCachedValue<PublicStatsResponse>(
@@ -228,7 +230,7 @@ function writeMapCache<T>(key: string, value: T) {
 }
 
 async function cachedMapApi<T>(path: string): Promise<T> {
-  const key = `alupla:map:${path}`;
+  const key = `alupla:map:v2:${path}`;
   const cached = readMapCache<T>(key);
   if (cached) return cached;
   const response = await api<T>(path, { method: "GET" });
@@ -236,22 +238,22 @@ async function cachedMapApi<T>(path: string): Promise<T> {
   return response;
 }
 
-function privateCacheTokenPart() {
-  const token = getToken();
-  return token ? token.slice(0, 24) : "guest";
+function privateCacheUserPart() {
+  const user = getUser();
+  return user ? `user-${user.id}-${user.role}` : "guest";
 }
 
 function readProtectedCache<T>(key: string): T | null {
-  return readCachedValue<T>(key, protectedMemoryCache);
+  return readCachedValue<T>(key, privateApiMemoryCache);
 }
 
 function writeProtectedCache<T>(key: string, value: T, ttlMs: number) {
-  writeCachedValue(key, protectedMemoryCache, value, ttlMs);
+  writeCachedValue(key, privateApiMemoryCache, value, ttlMs);
 }
 
 function clearCachedKeys(prefixes: string[]) {
   clearCachedValues(prefixes, [
-    protectedMemoryCache,
+    privateApiMemoryCache,
     publicStatsMemoryCache,
     mapMemoryCache,
   ]);
@@ -280,7 +282,7 @@ async function cachedPrivateApi<T>(
   path: string,
   ttlMs: number,
 ): Promise<T> {
-  const key = `alupla:${scope}:${privateCacheTokenPart()}:${path}`;
+  const key = `alupla:${scope}:${privateCacheUserPart()}:${path}`;
   const cached = readProtectedCache<T>(key);
   if (cached) return cached;
   const response = await api<T>(path, { method: "GET" });
@@ -533,6 +535,7 @@ export async function importStudyProgramsFile(
     },
     body: fd,
   });
+  handleUnauthorizedResponse(res);
   if (!res.ok) {
     const j = await parseJsonSafe(res);
     const msg = readApiErrorMessage(j, res.statusText);
@@ -720,6 +723,8 @@ export async function importGraduatesFile(
     throw new Error(message);
   }
 
+  handleUnauthorizedResponse(res);
+
   if (!res.ok) {
     const j = await parseJsonSafe(res);
     const msg = readApiErrorMessage(j, `Import request failed (${res.status})`);
@@ -746,7 +751,7 @@ export async function getPublicStats(
   } = {},
 ): Promise<PublicStatsResponse> {
   const path = `/public/stats${toQueryString(params)}`;
-  const cacheKey = `alupla:public-stats:${path}`;
+  const cacheKey = `alupla:public-stats:v2:${path}`;
   const cached = readPublicStatsCache(cacheKey);
   if (cached) return cached;
 

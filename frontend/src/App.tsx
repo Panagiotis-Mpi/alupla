@@ -4,7 +4,7 @@ import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-r
 import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
 import Guard from "./components/Guard";
-import { getUser, logout } from "./lib/auth";
+import { getUser, logout, subscribeSessionChange } from "./lib/auth";
 import { pingPresence } from "./lib/api";
 import Footer from "./components/Footer";
 import AccessibilityMenu from "./components/AccessibilityMenu";
@@ -47,7 +47,7 @@ const navIconByRoute: Record<string, string> = {
 
 function TopNav() {
   const { t } = useTranslation();
-  const user = getUser();
+  const [user, setUser] = React.useState(() => getUser());
   const role = user?.role;
   const navigate = useNavigate();
   const location = useLocation();
@@ -59,6 +59,8 @@ function TopNav() {
   const drawerRef = React.useRef<HTMLElement | null>(null);
   const languageRef = React.useRef<HTMLDivElement | null>(null);
   const accountRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => subscribeSessionChange(() => setUser(getUser())), []);
 
   const authRoute = React.useMemo(() => ["/login", "/forgot-password", "/reset-password"].some((path) => location.pathname.startsWith(path)), [location.pathname]);
   const homeRoute = React.useMemo(() => location.pathname === "/", [location.pathname]);
