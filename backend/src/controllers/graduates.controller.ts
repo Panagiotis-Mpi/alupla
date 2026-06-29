@@ -478,7 +478,10 @@ export async function createGraduate(
     if (requiredStringError) return requiredStringError;
 
     const basePayload = getGraduateBasePayload(values);
-    const readyError = validateGraduateReadyForSave(basePayload);
+    const readyError = validateGraduateReadyForSave(
+      basePayload,
+      getRuleLang(body.lang),
+    );
     if (readyError) return bad(res, readyError);
 
     const program = await StudyProgram.findByPk(values.study_program_id);
@@ -557,7 +560,10 @@ export async function updateGraduate(
     if (body.study_program_id !== undefined)
       (item as any).study_program_id = nextStudyProgramId;
 
-    const readyError = validateGraduateReadyForSave(item as any);
+    const readyError = validateGraduateReadyForSave(
+      item as any,
+      getRuleLang(body.lang),
+    );
     if (readyError) return bad(res, readyError);
 
     await item.save();

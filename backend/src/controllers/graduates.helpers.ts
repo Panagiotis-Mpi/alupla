@@ -129,13 +129,14 @@ export function toNullableNumber(v: any): number | null {
 }
 
 export const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MIN_ENTRY_AGE = 18;
 const MIN_GRADUATE_AGE = 23;
 const MIN_GRADUATION_YEARS = 5;
 export const MIN_DEGREE_GRADE = 5;
 export const MAX_DEGREE_GRADE = 10;
 
 export type RuleLang = "gr" | "en";
-export type RuleViolationCode = "age_under_minimum" | "graduation_duration_under_minimum" | "degree_grade_out_of_range" | "oath_not_after_graduation";
+export type RuleViolationCode = "entry_age_under_minimum" | "age_under_minimum" | "graduation_duration_under_minimum" | "degree_grade_out_of_range" | "oath_not_after_graduation";
 export type GraduateRuleViolation = { code: RuleViolationCode; message: string };
 
 export function getRuleLang(raw: unknown): RuleLang {
@@ -144,31 +145,60 @@ export function getRuleLang(raw: unknown): RuleLang {
 
 export function getRuleViolationMessage(code: RuleViolationCode, lang: RuleLang) {
   if (lang === "en") {
+    if (code === "entry_age_under_minimum") return "Graduate age must be at least 18 years in the entry year.";
     if (code === "age_under_minimum") return "Graduate age must be at least 23 years.";
     if (code === "degree_grade_out_of_range") return "Degree grade must be from 5 to 10.";
     if (code === "oath_not_after_graduation") return "Oath date must be after the diploma award date.";
     return "Study duration must be at least 5 years from entry year.";
   }
+  if (code === "entry_age_under_minimum") return "Ο απόφοιτος πρέπει να είναι τουλάχιστον 18 ετών στο έτος εισαγωγής.";
   if (code === "age_under_minimum") return "Η ηλικία αποφοίτησης πρέπει να είναι τουλάχιστον 23 έτη.";
   if (code === "degree_grade_out_of_range") return "Ο βαθμός πτυχίου πρέπει να είναι από 5 έως 10.";
   if (code === "oath_not_after_graduation") return "Η ημερομηνία ορκωμοσίας πρέπει να είναι μετά την ημερομηνία λήψης διπλώματος.";
   return "Η διάρκεια σπουδών πρέπει να είναι τουλάχιστον 5 έτη από το έτος εισαγωγής.";
 }
 
-export function parseYear(value: unknown) {
-  const year = Number(String(value ?? "").slice(0, 4));
-  return Number.isFinite(year) ? year : null;
+function parseRuleDate(value: unknown) {
+  const text = String(value ?? "").trim();
+  if (!DATE_ONLY_RE.test(text)) return null;
+  const [year, month, day] = text.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  )
+    return null;
+  return date;
+}
+
+function addRuleYears(date: Date, years: number) {
+  const year = date.getUTCFullYear() + years;
+  const month = date.getUTCMonth();
+  const day = Math.min(
+    date.getUTCDate(),
+    new Date(Date.UTC(year, month + 1, 0)).getUTCDate(),
+  );
+  return new Date(Date.UTC(year, month, day));
+}
+
+export function isValidDateOnly(value: unknown) {
+  return parseRuleDate(value) !== null;
 }
 
 // Κανόνες λογικής εγκυρότητας για ηλικία και ελάχιστη διάρκεια σπουδών.
 export function getGraduateRuleViolations(input: { entry_year: number | null; birth_date: string | null; graduation_date: string | null; oath_date?: string | null; degree_grade?: number | null }, lang: RuleLang): GraduateRuleViolation[] {
   const violations: GraduateRuleViolation[] = [];
-  const graduationYear = parseYear(input.graduation_date);
-  const birthDate = input.birth_date && DATE_ONLY_RE.test(input.birth_date) ? new Date(`${input.birth_date}T00:00:00Z`) : null;
-  const graduationDate = input.graduation_date && DATE_ONLY_RE.test(input.graduation_date) ? new Date(`${input.graduation_date}T00:00:00Z`) : null;
-  const oathDate = input.oath_date && DATE_ONLY_RE.test(input.oath_date) ? new Date(`${input.oath_date}T00:00:00Z`) : null;
-  const minimumAgeDate = birthDate ? new Date(Date.UTC(birthDate.getUTCFullYear() + MIN_GRADUATE_AGE, birthDate.getUTCMonth(), birthDate.getUTCDate())) : null;
+  const birthDate = parseRuleDate(input.birth_date);
+  const graduationDate = parseRuleDate(input.graduation_date);
+  const oathDate = parseRuleDate(input.oath_date);
+  const birthYear = birthDate?.getUTCFullYear() ?? null;
+  const graduationYear = graduationDate?.getUTCFullYear() ?? null;
+  const minimumAgeDate = birthDate ? addRuleYears(birthDate, MIN_GRADUATE_AGE) : null;
   const degreeGrade = Number(input.degree_grade);
+  if (input.entry_year && birthYear && input.entry_year - birthYear < MIN_ENTRY_AGE) {
+    violations.push({ code: "entry_age_under_minimum", message: getRuleViolationMessage("entry_age_under_minimum", lang) });
+  }
   if (input.degree_grade !== undefined && (!Number.isFinite(degreeGrade) || degreeGrade < MIN_DEGREE_GRADE || degreeGrade > MAX_DEGREE_GRADE)) {
     violations.push({ code: "degree_grade_out_of_range", message: getRuleViolationMessage("degree_grade_out_of_range", lang) });
   }

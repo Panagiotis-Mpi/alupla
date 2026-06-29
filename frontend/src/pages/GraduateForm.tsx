@@ -18,30 +18,55 @@ import {
 
 type Mode = "create" | "edit";
 
+function dateFromDateOnly(value: unknown) {
+  const text = String(value ?? "").trim();
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  )
+    return null;
+  return date;
+}
+
 function yearFromDate(value: unknown) {
-  const year = Number(String(value ?? "").slice(0, 4));
-  return Number.isFinite(year) ? year : null;
+  return dateFromDateOnly(value)?.getUTCFullYear() ?? null;
+}
+
+function addYears(date: Date, years: number) {
+  const year = date.getUTCFullYear() + years;
+  const month = date.getUTCMonth();
+  const day = Math.min(
+    date.getUTCDate(),
+    new Date(Date.UTC(year, month + 1, 0)).getUTCDate(),
+  );
+  return new Date(Date.UTC(year, month, day));
 }
 
 function isAtLeastAgeOnDate(birthDateValue: unknown, targetDateValue: unknown, minimumAge: number) {
-  const birthDate = new Date(String(birthDateValue ?? ""));
-  const targetDate = new Date(String(targetDateValue ?? ""));
-  if (Number.isNaN(birthDate.getTime()) || Number.isNaN(targetDate.getTime())) return true;
-  const ageLimitDate = new Date(birthDate);
-  ageLimitDate.setFullYear(ageLimitDate.getFullYear() + minimumAge);
-  return targetDate >= ageLimitDate;
+  const birthDate = dateFromDateOnly(birthDateValue);
+  const targetDate = dateFromDateOnly(targetDateValue);
+  if (!birthDate || !targetDate) return true;
+  return targetDate >= addYears(birthDate, minimumAge);
 }
 
 function dateDifferenceInDays(startDateValue: unknown, endDateValue: unknown) {
-  const startDate = new Date(String(startDateValue ?? ""));
-  const endDate = new Date(String(endDateValue ?? ""));
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return null;
+  const startDate = dateFromDateOnly(startDateValue);
+  const endDate = dateFromDateOnly(endDateValue);
+  if (!startDate || !endDate) return null;
   return (endDate.getTime() - startDate.getTime()) / 86400000;
 }
 
 function getGraduateValidationIssue(form: Partial<Graduate>, t: (key: string, options?: any) => string) {
   const entryYear = Number(form.entry_year);
   const birthYear = yearFromDate((form as any).birth_date);
+  const graduationYear = yearFromDate(form.graduation_date);
   const degreeGrade = Number(form.degree_grade);
 
   if (Number.isFinite(entryYear) && birthYear && entryYear - birthYear < 18) return t("validation.entryAge");
@@ -50,6 +75,7 @@ function getGraduateValidationIssue(form: Partial<Graduate>, t: (key: string, op
   if (!isAtLeastAgeOnDate((form as any).birth_date, form.oath_date, 23)) return t("validation.oathAge");
   const oathDelay = dateDifferenceInDays(form.graduation_date, form.oath_date);
   if (oathDelay !== null && oathDelay <= 0) return t("validation.oathAfterGraduation");
+  if (Number.isFinite(entryYear) && graduationYear && graduationYear - entryYear < 5) return t("validation.studyDuration");
   return null;
 }
 
@@ -337,6 +363,7 @@ useEffect(() => {
 
       const payload = {
         ...form,
+        lang: activeLang,
         origin_country_region_id: form.origin_country_region_id ?? null,
         origin_periphery_region_id: greeceSelected ? form.origin_periphery_region_id ?? null : null,
         origin_region_id: greeceSelected ? form.origin_region_id ?? null : null,

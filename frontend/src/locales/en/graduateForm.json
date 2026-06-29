@@ -33,7 +33,8 @@
     "degreeGradeRange": "Degree grade must be from 5 to 10.",
     "graduationAge": "The graduate must be at least 23 years old on the diploma award date.",
     "oathAge": "The graduate must be at least 23 years old on the oath date.",
-    "oathAfterGraduation": "The oath date must be after the diploma award date."
+    "oathAfterGraduation": "The oath date must be after the diploma award date.",
+    "studyDuration": "Study duration must be at least 5 years from entry year."
   },
   "requiredNotice": "All fields must be filled in."
 }

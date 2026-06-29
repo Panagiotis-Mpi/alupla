@@ -294,17 +294,23 @@ export async function prepareGraduateImportRows(
       importLang,
     );
     if (ruleViolations.length) {
-      errors.push({
-        row: rowNum,
-        column: ruleViolations.some(
-          (item) => item.code === "degree_grade_out_of_range",
-        )
-          ? "degree_grade"
+      const violationColumn = ruleViolations.some(
+        (item) => item.code === "degree_grade_out_of_range",
+      )
+        ? "degree_grade"
+        : ruleViolations.some(
+              (item) => item.code === "entry_age_under_minimum",
+            )
+          ? "entry_year"
           : ruleViolations.some(
                 (item) => item.code === "oath_not_after_graduation",
               )
             ? "oath_date"
-            : "graduation_date",
+            : "graduation_date";
+
+      errors.push({
+        row: rowNum,
+        column: violationColumn,
         message: buildImportViolationSummary(ruleViolations, importLang),
         details: ruleViolations.map((item) => item.message),
         violation_codes: ruleViolations.map((item) => item.code),

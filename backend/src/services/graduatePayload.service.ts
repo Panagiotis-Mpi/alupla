@@ -1,4 +1,9 @@
-import { DATE_ONLY_RE, parseStoredGender } from "../controllers/graduates.helpers";
+import {
+  getGraduateRuleViolations,
+  isValidDateOnly,
+  parseStoredGender,
+  type RuleLang,
+} from "../controllers/graduates.helpers";
 
 type ManualGraduateValidationInput = {
   entry_year: number;
@@ -23,48 +28,11 @@ type CreateGraduateValues = {
   birth_date: string;
 };
 
-function parsedDate(value: unknown) {
-  const date = new Date(String(value ?? ""));
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function ageLimitDate(birthDate: Date, years: number) {
-  const date = new Date(birthDate);
-  date.setFullYear(date.getFullYear() + years);
-  return date;
-}
-
 function getManualGraduateValidationMessage(
   input: ManualGraduateValidationInput,
+  lang: RuleLang,
 ) {
-  const birthYear = Number(String(input.birth_date ?? "").slice(0, 4));
-  const birthDate = parsedDate(input.birth_date);
-  const graduationDate = parsedDate(input.graduation_date);
-  const oathDate = parsedDate(input.oath_date);
-
-  if (
-    Number.isFinite(input.entry_year) &&
-    Number.isFinite(birthYear) &&
-    input.entry_year - birthYear < 18
-  )
-    return "Ο απόφοιτος πρέπει να είναι τουλάχιστον 18 ετών στο έτος εισαγωγής.";
-  if (
-    !Number.isFinite(input.degree_grade) ||
-    input.degree_grade < 5 ||
-    input.degree_grade > 10
-  )
-    return "Ο βαθμός πτυχίου πρέπει να είναι από 5 έως 10.";
-  if (
-    birthDate &&
-    graduationDate &&
-    graduationDate < ageLimitDate(birthDate, 23)
-  )
-    return "Ο απόφοιτος πρέπει να είναι τουλάχιστον 23 ετών στη λήψη διπλώματος.";
-  if (birthDate && oathDate && oathDate < ageLimitDate(birthDate, 23))
-    return "Ο απόφοιτος πρέπει να είναι τουλάχιστον 23 ετών στην ορκωμοσία.";
-  if (graduationDate && oathDate && oathDate <= graduationDate)
-    return "Η ημερομηνία ορκωμοσίας πρέπει να είναι μετά την ημερομηνία λήψης διπλώματος.";
-  return null;
+  return getGraduateRuleViolations(input, lang)[0]?.message ?? null;
 }
 
 export function readCreateGraduateValues(
@@ -120,7 +88,7 @@ export function applyGraduateScalarPatch(item: any, body: Record<string, any>) {
   setIf("birth_date", (v) => String(v ?? "").trim());
 }
 
-export function validateGraduateReadyForSave(item: any) {
+export function validateGraduateReadyForSave(item: any, lang: RuleLang = "gr") {
   if (!String(item.ad_code ?? "").trim()) return "ad_code cannot be empty";
   if (!String(item.last_name ?? "").trim()) return "last_name cannot be empty";
   if (!String(item.first_name ?? "").trim())
@@ -138,11 +106,11 @@ export function validateGraduateReadyForSave(item: any) {
     return "study_program_id must be a number";
   if ("origin_location_id" in item && !Number.isFinite(Number(item.origin_location_id)))
     return "origin_location_id must be a number";
-  if (!DATE_ONLY_RE.test(String(item.graduation_date ?? "")))
+  if (!isValidDateOnly(item.graduation_date))
     return "graduation_date must be YYYY-MM-DD";
-  if (!DATE_ONLY_RE.test(String(item.oath_date ?? "")))
+  if (!isValidDateOnly(item.oath_date))
     return "oath_date must be YYYY-MM-DD";
-  if (!DATE_ONLY_RE.test(String(item.birth_date ?? "")))
+  if (!isValidDateOnly(item.birth_date))
     return "birth_date must be YYYY-MM-DD";
   return getManualGraduateValidationMessage({
     entry_year: Number(item.entry_year),
@@ -150,7 +118,7 @@ export function validateGraduateReadyForSave(item: any) {
     graduation_date: String(item.graduation_date ?? ""),
     oath_date: String(item.oath_date ?? ""),
     degree_grade: Number(item.degree_grade),
-  });
+  }, lang);
 }
 
 const graduateLoggedFields = [
