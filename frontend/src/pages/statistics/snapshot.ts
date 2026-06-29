@@ -169,10 +169,26 @@ export async function renderSegmentedElementSnapshots(element: HTMLElement) {
   return snapshots;
 }
 
-export async function downloadCanvasAsPng(canvas: HTMLCanvasElement, filename: string) {
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-  if (!blob) return false;
+export async function snapshotToPngBlob(snapshot: { image: HTMLImageElement; width: number; height: number }) {
+  const padding = 18;
+  const width = snapshot.width + padding * 2;
+  const height = snapshot.height + padding * 2;
+  const canvas = document.createElement("canvas");
+  canvas.width = width * 2;
+  canvas.height = height * 2;
 
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  ctx.scale(2, 2);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(snapshot.image, padding, padding, snapshot.width, snapshot.height);
+
+  return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+}
+
+export function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -181,55 +197,4 @@ export async function downloadCanvasAsPng(canvas: HTMLCanvasElement, filename: s
   link.click();
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  return true;
-}
-
-export async function downloadCombinedSnapshotsAsPng(
-  filename: string,
-  title: string,
-  snapshots: Array<{ image: HTMLImageElement; width: number; height: number; caption?: string }>
-) {
-  if (!snapshots.length) return false;
-
-  const padding = 22;
-  const gap = 20;
-  const titleHeight = title ? 46 : 0;
-  const captionHeight = 30;
-  const width = Math.max(...snapshots.map((snapshot) => snapshot.width)) + padding * 2;
-  const height = titleHeight + padding + snapshots.reduce((sum, snapshot) => sum + snapshot.height + (snapshot.caption ? captionHeight : 0), 0) + gap * Math.max(0, snapshots.length - 1) + padding;
-  const canvas = document.createElement("canvas");
-  canvas.width = width * 2;
-  canvas.height = height * 2;
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return false;
-
-  ctx.scale(2, 2);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, width, height);
-
-  let offsetY = padding;
-
-  if (title) {
-    ctx.fillStyle = "#0f172a";
-    ctx.font = '700 22px Arial, sans-serif';
-    ctx.fillText(title, padding, offsetY + 22);
-    offsetY += titleHeight;
-  }
-
-  snapshots.forEach((snapshot, index) => {
-    if (snapshot.caption) {
-      ctx.fillStyle = "#334155";
-      ctx.font = '700 16px Arial, sans-serif';
-      ctx.fillText(snapshot.caption, padding, offsetY + 18);
-      offsetY += captionHeight;
-    }
-
-    ctx.drawImage(snapshot.image, padding, offsetY, snapshot.width, snapshot.height);
-    offsetY += snapshot.height;
-
-    if (index < snapshots.length - 1) offsetY += gap;
-  });
-
-  return downloadCanvasAsPng(canvas, filename);
 }

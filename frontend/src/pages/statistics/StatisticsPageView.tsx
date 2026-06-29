@@ -115,7 +115,7 @@ export function StatisticsPageView(props: any) {
     yearsToDegreeDistribution,
   } = props;
 
-const renderCompareExportCard = (chartId: StatisticsChartId, title: string, rows: typeof compareRows, firstRange = compareA, secondRange = compareB) => (
+const renderCompareExportCard = (chartId: StatisticsChartId, title: string, rows: typeof compareRows, firstRange = compareA, secondRange = compareB, exportMode = false) => (
     <div className="card statistics-compare-card" data-stat-chart-card="true" data-export-chart-id={chartId}>
       <div className="statistics-compare-head">
         <div className="statistics-compare-title">
@@ -123,9 +123,9 @@ const renderCompareExportCard = (chartId: StatisticsChartId, title: string, rows
           <p>{t("compare.periodRange", { range: firstRange.range })} · {t("compare.periodRange", { range: secondRange.range })}</p>
         </div>
       </div>
-      <div className="statistics-compare-rows">
+      <div className="statistics-compare-rows" style={exportMode ? { gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 } : undefined}>
         {rows.map((row: any) => (
-          <div className="statistics-compare-row" key={row.key}>
+          <div className="statistics-compare-row" key={row.key} style={exportMode ? { gridTemplateColumns: "minmax(0, 1fr) 32px minmax(0, 1fr) minmax(116px, .52fr)", gap: 8 } : undefined}>
             <div className="statistics-compare-metric statistics-compare-row-metric">
               <strong>{row.a}</strong>
               <span>{row.label}</span>
@@ -458,7 +458,7 @@ const renderCompareExportCard = (chartId: StatisticsChartId, title: string, rows
           abroadCount={exportViewData.abroadCount}
           exportMode
         />
-        {renderCompareExportCard("compare", compareExportLabel, exportCompareRows, exportCompareA, exportCompareB)}
+        {renderCompareExportCard("compare", compareExportLabel, exportCompareRows, exportCompareA, exportCompareB, true)}
         </div>
       ) : null}
     </>

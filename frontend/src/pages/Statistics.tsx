@@ -1,5 +1,6 @@
 // Σελίδα στατιστικών με KPIs, διαγράμματα, φίλτρα και exports.
 import React from "react";
+import JSZip from "jszip";
 import { useTranslation } from "react-i18next";
 import { getPublicStats, logPublicExport } from "../lib/api";
 import { buildStatisticsExportFilename, buildStatisticsPngFilename, exportStatisticsCsvFile, exportStatisticsWorkbookFile, type StatisticsChartId } from "./statisticsExport";
@@ -15,7 +16,7 @@ import {
   BarElement,
   ArcElement,
 } from "chart.js";
-import { downloadCanvasAsPng, downloadCombinedSnapshotsAsPng, renderSegmentedElementSnapshots } from "./statistics/snapshot";
+import { downloadBlob, renderSegmentedElementSnapshots, snapshotToPngBlob } from "./statistics/snapshot";
 import { waitForRenderableImages } from "../lib/domSnapshot";
 import { buildLineDataset } from "./statistics/ui";
 import { toggleAllChartsSelection, toggleChartGroupSelection, toggleChartSelection } from "./statistics/exportSelection";
@@ -806,14 +807,7 @@ export default function Statistics() {
       chartGroups.flatMap((group) => group.charts.map((chart) => [chart.id, { groupKey: group.key, groupLabel: group.label, chartLabel: chart.label }] as [StatisticsChartId, { groupKey: StatisticsGroupKey; groupLabel: string; chartLabel: string }]))
     );
 
-    const orderedGroupSelections = chartGroups
-      .map((group) => ({
-        key: group.key,
-        label: group.label,
-        chartIds: group.charts.map((chart) => chart.id).filter((chartId) => selectedChartIds.includes(chartId)),
-      }))
-      .filter((group) => group.chartIds.length > 0);
-
+    const orderedChartIds = chartGroups.flatMap((group) => group.charts.map((chart) => chart.id)).filter((chartId) => selectedChartIds.includes(chartId));
     const findChartCards = (chartId: StatisticsChartId) => {
       const selector = `[data-export-chart-id="${chartId}"]`;
       const exportCards = exportRoot ? Array.from(exportRoot.querySelectorAll<HTMLElement>(selector)) : [];
@@ -821,111 +815,48 @@ export default function Statistics() {
       return visibleRoot ? Array.from(visibleRoot.querySelectorAll<HTMLElement>(selector)) : [];
     };
 
-    const downloaded: string[] = [];
+    const args = buildStatisticsExportArgs(exportPreviewData ?? data);
+    const files: Array<{ filename: string; blob: Blob }> = [];
 
-    for (const group of orderedGroupSelections) {
-      const snapshots: Array<{ chartId: StatisticsChartId; image: HTMLImageElement; width: number; height: number; caption?: string; dense?: boolean }> = [];
+    for (const chartId of orderedChartIds) {
+      const cards = findChartCards(chartId);
+      if (!cards.length) continue;
 
-      for (const chartId of group.chartIds) {
-        const cards = findChartCards(chartId);
-        if (!cards.length) continue;
+      const rendered: Array<{ image: HTMLImageElement; width: number; height: number }> = [];
 
-        const chartSnapshots: Array<{ image: HTMLImageElement; width: number; height: number; dense?: boolean }> = [];
+      for (const card of cards) {
+        await waitForRenderableImages(card);
 
-        for (const card of cards) {
-          await waitForRenderableImages(card);
-
-          try {
-            const renderedSnapshots = await renderSegmentedElementSnapshots(card);
-            renderedSnapshots.forEach((snapshot) => {
-              chartSnapshots.push({
-                image: snapshot.image,
-                width: snapshot.width,
-                height: snapshot.height,
-                dense: card.dataset.exportDense === "true",
-              });
-            });
-          } catch {}
-        }
-
-        const meta = chartMeta.get(chartId);
-        const segmentCount = chartSnapshots.length;
-
-        chartSnapshots.forEach((snapshot, snapshotIndex) => {
-          const showCaption = group.chartIds.length > 1 || segmentCount > 1;
-          const baseCaption = meta?.chartLabel ?? chartId;
-          const caption = showCaption
-            ? segmentCount > 1
-              ? `${baseCaption} ${snapshotIndex + 1}/${segmentCount}`
-              : baseCaption
-            : undefined;
-
-          snapshots.push({
-            chartId,
-            image: snapshot.image,
-            width: snapshot.width,
-            height: snapshot.height,
-            caption,
-            dense: snapshot.dense,
-          });
-        });
+        try {
+          const snapshots = await renderSegmentedElementSnapshots(card);
+          snapshots.forEach((snapshot) => rendered.push(snapshot));
+        } catch {}
       }
 
-      if (!snapshots.length) continue;
+      const meta = chartMeta.get(chartId);
 
-      if (snapshots.length === 1) {
-        const snapshot = snapshots[0];
-        const out = document.createElement("canvas");
-        const padding = 18;
-        const width = snapshot.width + padding * 2;
-        const height = snapshot.height + padding * 2;
+      for (let index = 0; index < rendered.length; index += 1) {
+        const blob = await snapshotToPngBlob(rendered[index]);
+        if (!blob) continue;
 
-        out.width = width * 2;
-        out.height = height * 2;
-
-        const ctx = out.getContext("2d");
-        if (!ctx) continue;
-
-        ctx.scale(2, 2);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(snapshot.image, padding, padding, snapshot.width, snapshot.height);
-
-        const meta = chartMeta.get(snapshot.chartId);
+        const part = rendered.length > 1 ? `part_${index + 1}_of_${rendered.length}` : null;
         const filename = buildStatisticsPngFilename(
-          buildStatisticsExportArgs(exportPreviewData ?? data),
-          snapshot.chartId,
-          ["alupla", "statistics", meta?.groupLabel ?? group.label, meta?.chartLabel ?? snapshot.chartId],
-          group.key,
+          args,
+          chartId,
+          ["alupla", "statistics", meta?.groupLabel, meta?.chartLabel ?? chartId, part],
+          meta?.groupKey,
         );
-        const didDownload = await downloadCanvasAsPng(out, filename);
-        if (!didDownload) continue;
-        downloaded.push(filename);
-        await new Promise<void>((resolve) => window.setTimeout(resolve, 220));
-        continue;
-      }
-
-      const maxChartsPerPage = snapshots.some((snapshot) => snapshot.dense) ? 2 : 4;
-
-      for (let pageIndex = 0; pageIndex < snapshots.length; pageIndex += maxChartsPerPage) {
-        const pageSnapshots = snapshots.slice(pageIndex, pageIndex + maxChartsPerPage);
-        const pageNumber = Math.floor(pageIndex / maxChartsPerPage) + 1;
-        const totalPages = Math.ceil(snapshots.length / maxChartsPerPage);
-        const title = totalPages > 1 ? `${group.label} ${pageNumber}/${totalPages}` : group.label;
-        const filename = buildStatisticsPngFilename(
-          buildStatisticsExportArgs(exportPreviewData ?? data),
-          null,
-          ["alupla", "statistics", group.label, totalPages > 1 ? `page_${pageNumber}` : null],
-          group.key,
-        );
-        const didDownload = await downloadCombinedSnapshotsAsPng(filename, title, pageSnapshots);
-        if (!didDownload) continue;
-        downloaded.push(filename);
-        await new Promise<void>((resolve) => window.setTimeout(resolve, 220));
+        files.push({ filename, blob });
       }
     }
 
-    if (!downloaded.length) throw new Error("png_export_failed");
+    if (!files.length) throw new Error("png_export_failed");
+
+    const zip = new JSZip();
+    files.forEach((file) => zip.file(file.filename, file.blob));
+    const zipBlob = await zip.generateAsync({ type: "blob", compression: "STORE" });
+    const zipFilename = buildStatisticsExportFilename(args, "png").replace(/\.png$/i, ".zip");
+    downloadBlob(zipBlob, zipFilename);
   }
 
   async function handleExportAction() {

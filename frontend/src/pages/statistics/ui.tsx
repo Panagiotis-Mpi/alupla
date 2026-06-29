@@ -717,9 +717,6 @@ export function BarChartCard(props: {
   yTickPrecision?: number;
   maxValue?: number;
   exportMode?: boolean;
-  exportSegmentIndex?: number;
-  exportSegmentCount?: number;
-  exportDense?: boolean;
 }) {
   const highContrast = useHighContrastEnabled();
   const chartHeight = props.height ?? (props.horizontal ? Math.max(300, props.labels.length * 54) : 280);
@@ -750,9 +747,6 @@ export function BarChartCard(props: {
       style={cardInnerStyle}
       data-stat-chart-card="true"
       data-export-chart-id={props.chartId}
-      data-export-segment-index={props.exportSegmentIndex}
-      data-export-segment-count={props.exportSegmentCount}
-      data-export-dense={props.exportDense ? "true" : undefined}
     >
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.title}</h3>
@@ -796,9 +790,6 @@ export function MultiBarChartCard(props: {
   yTickPrecision?: number;
   maxValue?: number;
   exportMode?: boolean;
-  exportSegmentIndex?: number;
-  exportSegmentCount?: number;
-  exportDense?: boolean;
 }) {
   const highContrast = useHighContrastEnabled();
   const palette = highContrast ? ["#ffd400", "#7fffd4", "#ffffff", "#ff8a00"] : props.datasets.map((dataset) => dataset.color);
@@ -850,9 +841,6 @@ export function MultiBarChartCard(props: {
       style={cardInnerStyle}
       data-stat-chart-card="true"
       data-export-chart-id={props.chartId}
-      data-export-segment-index={props.exportSegmentIndex}
-      data-export-segment-count={props.exportSegmentCount}
-      data-export-dense={props.exportDense ? "true" : undefined}
     >
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.title}</h3>

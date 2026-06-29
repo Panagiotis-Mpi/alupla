@@ -71,7 +71,7 @@ type ExportBarDataset = {
   pointStyle?: "circle" | "square" | "diamond";
 };
 
-function exportChunkRanges(length: number, size = 16) {
+function exportChunkRanges(length: number, size = 12) {
   if (length <= 0) return [] as Array<[number, number]>;
   const ranges: Array<[number, number]> = [];
   for (let start = 0; start < length; start += size) ranges.push([start, Math.min(length, start + size)]);
@@ -104,15 +104,12 @@ function ExportBarCards(props: {
             title={props.title}
             labels={labels}
             values={values}
-            height={Math.max(360, labels.length * 42 + 80)}
-            horizontal
-            fullLabelTooltip
+            height={380}
+            minLabelWidth={82}
+            maxLabelWidth={112}
             yTickPrecision={props.yTickPrecision}
             maxValue={maxValue}
             exportMode
-            exportSegmentIndex={index}
-            exportSegmentCount={ranges.length}
-            exportDense
           />
         );
       })}
@@ -142,14 +139,12 @@ function ExportMultiBarCards(props: {
             title={props.title}
             labels={labels}
             datasets={datasets}
-            height={Math.max(380, labels.length * 48 + 84)}
-            horizontal
+            height={400}
+            minLabelWidth={88}
+            maxLabelWidth={120}
             yTickPrecision={props.yTickPrecision}
             maxValue={maxValue}
             exportMode
-            exportSegmentIndex={index}
-            exportSegmentCount={ranges.length}
-            exportDense
           />
         );
       })}
