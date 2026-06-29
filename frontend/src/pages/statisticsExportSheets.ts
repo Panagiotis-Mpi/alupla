@@ -16,7 +16,6 @@ import {
   text,
   type BuildArgs,
   type SheetBlock,
-  type SheetRow,
   type StatisticsChartId,
 } from "./statisticsExportCore";
 

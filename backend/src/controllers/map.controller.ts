@@ -173,11 +173,6 @@ function mapScopeFromRequest(req: Request): MapScope {
   return String(req.query.scope || "greece").trim().toLowerCase() === "abroad" ? "abroad" : "greece";
 }
 
-function isGreeceCountry(name: unknown) {
-  const value = normalizeKey(String(name ?? ""));
-  return value === normalizeKey("Ελλάδα") || value === normalizeKey("Greece");
-}
-
 function bucketToMapItem(bucket: any, programLabels: Map<number, string>) {
   return {
     periphery_id: bucket.periphery_id,
