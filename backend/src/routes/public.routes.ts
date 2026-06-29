@@ -1,23 +1,18 @@
-// Ορίζει δημόσια routes που δουλεύουν χωρίς login.
 import express from "express";
-import {
-  publicAnonymousGraduatesCsv,
-  publicExportActivity,
-  publicMap,
-  publicStats,
-  publicStudyPrograms,
-} from "../controllers/public.controller";
+import { publicStats, publicStudyPrograms } from "../controllers/public.controller";
+import { publicAnonymousGraduatesCsv, publicExportActivity, publicMap } from "../controllers/publicExports.controller";
+import { rateLimit } from "../middleware/rateLimit";
+import { asyncHandler } from "../utils/asyncHandler";
 
-// Δημιουργεί router που ομαδοποιεί τα σχετικά endpoints.
 const publicRouter = express.Router();
+const publicReadLimit = rateLimit({ windowMs: 60 * 1000, max: 120 });
+const publicExportLimit = rateLimit({ windowMs: 60 * 1000, max: 20 });
+const publicLogLimit = rateLimit({ windowMs: 60 * 1000, max: 60 });
 
-// Δημόσια λίστα προγραμμάτων για φίλτρα.
-publicRouter.get("/study-programs", publicStudyPrograms);
-// Δημόσια ανώνυμα στατιστικά.
-publicRouter.get("/stats", publicStats);
-// Δημόσια ανώνυμα δεδομένα χάρτη.
-publicRouter.get("/map", publicMap);
-publicRouter.get("/anonymous-graduates.xlsx", publicAnonymousGraduatesCsv);
-publicRouter.post("/activity-export", publicExportActivity);
+publicRouter.get("/study-programs", publicReadLimit, asyncHandler(publicStudyPrograms));
+publicRouter.get("/stats", publicReadLimit, asyncHandler(publicStats));
+publicRouter.get("/map", publicReadLimit, asyncHandler(publicMap));
+publicRouter.get("/anonymous-graduates.xlsx", publicExportLimit, asyncHandler(publicAnonymousGraduatesCsv));
+publicRouter.post("/activity-export", publicLogLimit, asyncHandler(publicExportActivity));
 
 export { publicRouter };

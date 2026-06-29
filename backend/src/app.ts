@@ -4,7 +4,6 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { errorHandler } from "./middleware/errorHandler";
-import { initDb } from "./models";
 import { studyProgramsRouter } from "./routes/studyPrograms.routes";
 import { graduatesRouter } from "./routes/graduates.routes";
 import { regionsRouter } from "./routes/regions.routes";
@@ -41,6 +40,7 @@ function collectAllowedOrigins() {
 export function createApp() {
   // Δημιουργεί το βασικό Express app.
   const app = express();
+  app.set("trust proxy", 1);
   const allowedOrigins = collectAllowedOrigins();
 
   // Προσθέτει βασικά security headers.
@@ -65,9 +65,6 @@ export function createApp() {
 
   // Εκτυπώνει σύντομα logs για κάθε HTTP request στο terminal.
   app.use(morgan("dev"));
-
-  // Αρχικοποιεί τη σύνδεση με τη βάση δεδομένων.
-  initDb().catch((e) => console.error("[db] connection failed:", e));
 
   // Απλό endpoint ελέγχου ότι ο server λειτουργεί.
   app.get("/health", (_req, res) => {

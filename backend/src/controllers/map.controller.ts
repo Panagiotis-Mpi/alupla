@@ -1,11 +1,11 @@
 import type { Request, Response } from "express";
-import { Graduate } from "../models/Graduate";
 import { StudyProgram } from "../models/StudyProgram";
-import { ensureLocalizedRegionNames, resolveMapLocation } from "../services/mapLocation.service";
-import { getRegionHierarchy, loadRegionLookupIndex } from "../services/regionLookup.service";
-import { buildMapWhere, normalizeKey, pickTopName, toInt } from "./map.helpers";
 import { getGraduationYears } from "../services/analyticsAggregations.service";
-import { applyGraduateMetrics, createMetricsBucket, serializeMapMetrics } from "./map.metrics";
+import { loadMapAggregateRows, loadMapCityYearCounts } from "../services/mapAggregations.service";
+import { ensureLocalizedRegionNames, resolveMapLocation } from "../services/mapLocation.service";
+import { loadRegionLookupIndex } from "../services/regionLookup.service";
+import { normalizeKey, pickTopName, toInt } from "./map.helpers";
+import { applyAggregateMetrics, createMetricsBucket, serializeMapMetrics } from "./map.metrics";
 
 const ATHENS_GROUP_KEY = "athens";
 const ATHENS_GROUP = {
@@ -217,19 +217,20 @@ async function loadProgramLabels() {
   return new Map(rows.map((row: any) => [Number(row.id), String(row.name_el || row.name_en || row.code || "")]));
 }
 
-function graduateAttributes() {
-  return ["origin_location_id", "gender", "birth_date", "degree_grade", "entry_year", "graduation_date", "study_program_id"];
+function numericOrNull(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 async function buildMapData(req: Request, options: MapBuildOptions = {}) {
   const scope = mapScopeFromRequest(req);
-  const { where } = buildMapWhere(req);
   const includeMapItems = options.includeMapItems !== false;
   const includeCityItems = options.includeCityItems === true;
   const [rows, index, programLabels] = await Promise.all([
-    Graduate.findAll({ where, attributes: graduateAttributes() }),
+    loadMapAggregateRows(req, scope),
     loadRegionLookupIndex(),
-    includeMapItems ? loadProgramLabels() : Promise.resolve(new Map<number, string>()),
+    includeMapItems ? loadProgramLabels() : Promise.resolve(new Map<number, string>())
   ]);
 
   const mapGroups = new Map<number, any>();
@@ -244,63 +245,59 @@ async function buildMapData(req: Request, options: MapBuildOptions = {}) {
         periphery_name_el: region.name_el || region.name,
         periphery_name_en: region.name_en || region.name,
         latitude: region.latitude,
-        longitude: region.longitude,
+        longitude: region.longitude
       }));
     }
   }
 
-  for (const source of rows as any[]) {
-    const graduate = source.get({ plain: true });
-    const hierarchy = getRegionHierarchy(Number(graduate.origin_location_id), index.byId);
-    if (!hierarchy?.country) continue;
-    const isGreece = isGreeceCountry(hierarchy.country.name);
-    if ((scope === "greece") !== isGreece) continue;
-    const resolved = await resolveMapLocation({ origin_location_id: graduate.origin_location_id });
-    if (!resolved) continue;
-
-    if (includeMapItems) {
-      const mapRegion = scope === "greece" ? hierarchy.periphery : hierarchy.country;
-      if (mapRegion) {
-        const bucket = mapGroups.get(mapRegion.id) || createMetricsBucket({
-          periphery_id: mapRegion.id,
-          periphery_name: mapRegion.name,
-          periphery_name_el: mapRegion.name_el || mapRegion.name,
-          periphery_name_en: mapRegion.name_en || mapRegion.name,
-          latitude: mapRegion.latitude ?? resolved.latitude,
-          longitude: mapRegion.longitude ?? resolved.longitude,
-        });
-        applyGraduateMetrics(bucket, graduate);
-        mapGroups.set(mapRegion.id, bucket);
-      }
+  for (const row of rows) {
+    const mapRegionId = Number(row.map_region_id || 0);
+    if (includeMapItems && mapRegionId > 0) {
+      const bucket = mapGroups.get(mapRegionId) || createMetricsBucket({
+        periphery_id: mapRegionId,
+        periphery_name: String(row.map_region_name || ""),
+        periphery_name_el: String(row.map_region_name_el || row.map_region_name || ""),
+        periphery_name_en: String(row.map_region_name_en || row.map_region_name || ""),
+        latitude: numericOrNull(row.map_latitude),
+        longitude: numericOrNull(row.map_longitude)
+      });
+      applyAggregateMetrics(bucket, row);
+      mapGroups.set(mapRegionId, bucket);
     }
 
     if (includeCityItems) {
-      const rawCityName = hierarchy.city?.name || hierarchy.location.name;
-      const group = scope === "greece" ? greekCityGroupForLocation(resolved, rawCityName) : null;
-      const cityId = group ? 0 : hierarchy.city?.id ?? hierarchy.location.id;
-      const key = group
-        ? `group:${group.key}`
-        : `${hierarchy.country.id}:${cityId}`;
-      const city = hierarchy.city || hierarchy.location;
-      const parent = scope === "greece" ? hierarchy.periphery : hierarchy.country;
+      const resolved = {
+        cityName: String(row.city_name || ""),
+        peripheryId: Number(row.periphery_id || 0) || null,
+        peripheryName: String(row.periphery_name || "")
+      };
+      const group = scope === "greece" ? greekCityGroupForLocation(resolved, row.city_name) : null;
+      const cityId = group ? 0 : Number(row.city_id || 0);
+      if (!group && cityId <= 0) continue;
+      const countryId = Number(row.country_id || 0);
+      const key = group ? `group:${group.key}` : `${countryId}:${cityId}`;
+      const parentId = scope === "greece" ? Number(row.periphery_id || 0) || null : countryId || null;
+      const parentName = scope === "greece" ? row.periphery_name : row.country_name;
+      const parentNameEl = scope === "greece" ? row.periphery_name_el : row.country_name_el;
+      const parentNameEn = scope === "greece" ? row.periphery_name_en : row.country_name_en;
       const bucket = cityGroups.get(key) || createMetricsBucket({
         city_id: cityId,
-        city_name: group?.nameEl || city.name,
-        city_name_el: group?.nameEl || city.name_el || city.name,
-        city_name_en: group?.nameEn || city.name_en || city.name,
+        city_name: group?.nameEl || String(row.city_name || ""),
+        city_name_el: group?.nameEl || String(row.city_name_el || row.city_name || ""),
+        city_name_en: group?.nameEn || String(row.city_name_en || row.city_name || ""),
         map_group_key: group?.key || null,
-        periphery_id: parent?.id ?? null,
-        periphery_name: parent?.name || "",
-        periphery_name_el: parent?.name_el || parent?.name || "",
-        periphery_name_en: parent?.name_en || parent?.name || "",
-        country_region_id: hierarchy.country.id,
-        country_name: hierarchy.country.name,
-        country_name_el: hierarchy.country.name_el || hierarchy.country.name,
-        country_name_en: hierarchy.country.name_en || hierarchy.country.name,
-        latitude: group?.latitude ?? resolved.latitude,
-        longitude: group?.longitude ?? resolved.longitude,
+        periphery_id: parentId,
+        periphery_name: String(parentName || ""),
+        periphery_name_el: String(parentNameEl || parentName || ""),
+        periphery_name_en: String(parentNameEn || parentName || ""),
+        country_region_id: countryId || null,
+        country_name: String(row.country_name || ""),
+        country_name_el: String(row.country_name_el || row.country_name || ""),
+        country_name_en: String(row.country_name_en || row.country_name || ""),
+        latitude: group?.latitude ?? numericOrNull(row.city_latitude),
+        longitude: group?.longitude ?? numericOrNull(row.city_longitude)
       });
-      applyGraduateMetrics(bucket, graduate);
+      applyAggregateMetrics(bucket, row);
       cityGroups.set(key, bucket);
     }
   }
@@ -315,7 +312,7 @@ async function buildMapData(req: Request, options: MapBuildOptions = {}) {
 
   return {
     map: { items: includeMapItems ? mapItems : [], total: mapItems.reduce((sum, item) => sum + Number(item.count || 0), 0) },
-    cities: { items: includeCityItems ? cities : [] },
+    cities: { items: includeCityItems ? cities : [] }
   };
 }
 
@@ -375,45 +372,36 @@ export async function getMapCityDetail(req: Request, res: Response) {
   const cityId = toInt(req.query.city_id);
   const cityName = String(req.query.city_name || "").trim();
   const group = scope === "greece" ? greekCityGroupForKey(req.query.map_group_key) || greekCityGroupForName(cityName) : null;
-  const countryId = toInt(req.query.country_region_id) || toInt(req.query.periphery_id);
-  const { where, currentYear } = buildMapWhere(req);
-  const [rows, index] = await Promise.all([
-    Graduate.findAll({ where, attributes: graduateAttributes() }),
-    loadRegionLookupIndex(),
-  ]);
-  const matching: any[] = [];
-  let label = group?.nameEl || cityName;
-
-  for (const source of rows as any[]) {
-    const graduate = source.get({ plain: true });
-    const hierarchy = getRegionHierarchy(Number(graduate.origin_location_id), index.byId);
-    if (!hierarchy?.country) continue;
-    const isGreece = isGreeceCountry(hierarchy.country.name);
-    if ((scope === "greece") !== isGreece) continue;
-    const resolved = await resolveMapLocation({ origin_location_id: graduate.origin_location_id });
-    if (!resolved) continue;
-
+  const countryLookupId = toInt(req.query.country_region_id) || toInt(req.query.periphery_id);
+  const rows = await loadMapAggregateRows(req, scope);
+  const matching = rows.filter((row) => {
     if (scope === "abroad") {
-      if (countryId && hierarchy.country.id !== countryId) continue;
-      if (cityId && (hierarchy.city?.id ?? hierarchy.location.id) !== cityId) continue;
-      if (!cityId && cityName && normalizeKey(hierarchy.city?.name || hierarchy.location.name) !== normalizeKey(cityName)) continue;
-      label = cityName || hierarchy.city?.name || hierarchy.country.name;
-    } else if (group) {
-      if (greekCityGroupForLocation(resolved, hierarchy.city?.name || hierarchy.location.name)?.key !== group.key) continue;
-    } else if (cityId && (hierarchy.city?.id ?? hierarchy.location.id) !== cityId) {
-      continue;
+      if (countryLookupId && Number(row.country_id) !== countryLookupId) return false;
+      if (cityId && Number(row.city_id) !== cityId) return false;
+      return cityId || !cityName ? true : normalizeKey(row.city_name) === normalizeKey(cityName);
     }
-    matching.push(graduate);
-  }
+    if (group) {
+      return greekCityGroupForLocation({
+        cityName: row.city_name,
+        peripheryId: Number(row.periphery_id || 0) || null,
+        peripheryName: row.periphery_name
+      }, row.city_name)?.key === group.key;
+    }
+    if (cityId) return Number(row.city_id) === cityId;
+    return cityName ? normalizeKey(row.city_name) === normalizeKey(cityName) : false;
+  });
 
   const bucket = createMetricsBucket({});
-  matching.forEach((graduate) => applyGraduateMetrics(bucket, graduate));
+  matching.forEach((row) => applyAggregateMetrics(bucket, row));
   const metrics = serializeMapMetrics(bucket);
-  const names = cityId ? await ensureLocalizedRegionNames(cityId) : { nameEl: null, nameEn: null };
-  const countryNames = countryId ? await ensureLocalizedRegionNames(countryId) : { nameEl: null, nameEn: null };
+  const selectedCityIds = Array.from(new Set(matching.map((row) => Number(row.city_id || 0)).filter((id) => id > 0)));
+  const resolvedCityId = group ? 0 : cityId || selectedCityIds[0] || 0;
+  const label = group?.nameEl || cityName || String(matching[0]?.city_name || "");
+  const names = resolvedCityId ? await ensureLocalizedRegionNames(resolvedCityId) : { nameEl: null, nameEn: null };
+  const countryNames = countryLookupId ? await ensureLocalizedRegionNames(countryLookupId) : { nameEl: null, nameEn: null };
   const base = {
     ok: true,
-    city_id: group ? 0 : cityId || 0,
+    city_id: resolvedCityId,
     city_name: label,
     city_name_el: group?.nameEl || names.nameEl || label,
     city_name_en: group?.nameEn || names.nameEn || label,
@@ -428,17 +416,19 @@ export async function getMapCityDetail(req: Request, res: Response) {
     male_count: metrics.male_count,
     female_count: metrics.female_count,
     male_pct: metrics.male_pct,
-    female_pct: metrics.female_pct,
+    female_pct: metrics.female_pct
   };
   if (String(req.query.mode || "count") === "dominant_gender") return res.json({ ...base, mode: "dominant_gender" });
 
   const startYear = 2010;
+  const currentYear = new Date().getFullYear();
   const endYear = Math.max(currentYear, startYear);
   const labels = Array.from({ length: endYear - startYear + 1 }, (_, index) => String(startYear + index));
   const counts = labels.map(() => 0);
-  for (const graduate of matching) {
-    const year = Number(String(graduate.graduation_date || "").slice(0, 4));
-    if (year >= startYear && year <= endYear) counts[year - startYear] += 1;
+  const yearRows = await loadMapCityYearCounts(req, scope, selectedCityIds, scope === "abroad" ? countryLookupId : null);
+  for (const row of yearRows) {
+    const year = Number(row.year);
+    if (year >= startYear && year <= endYear) counts[year - startYear] = Number(row.count) || 0;
   }
   const lang = String(req.query.lang || "").toLowerCase().startsWith("en") ? "en" : "gr";
   return res.json({ ...base, mode: "count", labels, datasets: [{ key: "count", label: lang === "en" ? "Graduates" : "Απόφοιτοι", values: counts }] });

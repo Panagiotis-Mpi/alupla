@@ -1,5 +1,5 @@
 import { clearRouteCaches } from "../utils/routeCache";
-import { clearPublicStatsCache } from "../controllers/public.controller";
+import { clearPublicStatsCache } from "./publicStatsCache.service";
 
 export function clearGraduateCaches() {
   clearRouteCaches(["graduates", "map"]);

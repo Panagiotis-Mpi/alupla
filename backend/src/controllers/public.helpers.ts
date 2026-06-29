@@ -3,7 +3,8 @@ import type { Request } from "express";
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/sequelize";
 import { Region } from "../models/Region";
-import { verifyToken } from "../utils/jwt";
+import { User } from "../models/User";
+import { tokenMatchesPassword, verifyToken } from "../utils/jwt";
 import { logAction } from "../services/log.service";
 
 // Μετατρέπει τιμή DB σε αριθμό.
@@ -105,25 +106,21 @@ export async function buildRegionLookup() {
 }
 
 // Παίρνει user id αν υπάρχει token, αλλιώς επιστρέφει null.
-function getOptionalUserId(req: Request) {
+async function getOptionalUserId(req: Request) {
   const auth = req.headers.authorization;
-  let token: string | null = null;
+  if (typeof auth !== "string" || !auth.trim()) return null;
 
-  if (typeof auth === "string" && auth.trim()) {
-    const raw = auth.trim();
-    token = raw.toLowerCase().startsWith("bearer ") ? raw.slice(7).trim() : raw;
-  }
-
-  if (!token && typeof req.query.token === "string" && req.query.token.trim()) {
-    token = req.query.token.trim();
-  }
-
+  const raw = auth.trim();
+  const token = raw.toLowerCase().startsWith("bearer ") ? raw.slice(7).trim() : raw;
   if (!token) return null;
 
   try {
-    const payload: any = verifyToken(token);
-    const id = Number(payload?.sub ?? payload?.userId);
-    return Number.isFinite(id) ? id : null;
+    const payload = verifyToken(token);
+    const id = Number(payload.sub ?? payload.userId);
+    if (!Number.isFinite(id) || id <= 0) return null;
+    const user = await User.findByPk(id, { attributes: ["id", "password_hash", "is_active"] });
+    if (!user?.is_active || !tokenMatchesPassword(payload, user.password_hash)) return null;
+    return user.id;
   } catch {
     return null;
   }
@@ -132,7 +129,7 @@ function getOptionalUserId(req: Request) {
 // Γράφει activity log για public export.
 export async function logPublicExportAction(req: Request, action: string, entityType: string, details?: Record<string, any>) {
   await logAction({
-    user_id: getOptionalUserId(req),
+    user_id: await getOptionalUserId(req),
     action,
     entity_type: entityType,
     entity_id: null,

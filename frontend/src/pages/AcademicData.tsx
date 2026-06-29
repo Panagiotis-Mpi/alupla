@@ -163,7 +163,6 @@ export default function AcademicData() {
           code: createProgramCode(),
           name_el: programForm.name_el,
           name_en: programForm.name_en,
-          is_active: true,
         });
       }
       clearProgramForm();

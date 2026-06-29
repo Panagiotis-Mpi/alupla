@@ -36,7 +36,6 @@ export type StudyProgram = {
   code: string;
   name_el: string;
   name_en?: string | null;
-  is_active: 0 | 1 | boolean;
 };
 
 type RegionType = "COUNTRY" | "PERIPHERY" | "NOMOS" | "CITY";
@@ -466,7 +465,6 @@ export async function createStudyProgram(payload: {
   code: string;
   name_el: string;
   name_en?: string | null;
-  is_active?: boolean;
 }): Promise<ItemResponse<StudyProgram>> {
   const response = await api<ItemResponse<StudyProgram>>("/study-programs", {
     method: "POST",
@@ -487,7 +485,6 @@ export async function updateStudyProgram(
     code: string;
     name_el: string;
     name_en?: string | null;
-    is_active?: boolean;
   }>,
 ): Promise<ApiOk & { item?: StudyProgram }> {
   const response = await api<ApiOk & { item?: StudyProgram }>(

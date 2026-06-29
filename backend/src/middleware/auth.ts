@@ -1,14 +1,13 @@
 import type { Request, Response, NextFunction } from "express";
 import { Op } from "sequelize";
 import { User } from "../models/User";
-import { verifyToken } from "../utils/jwt";
+import { tokenMatchesPassword, verifyToken } from "../utils/jwt";
 
 type AuthUser = {
   id: number;
   role: "super_admin" | "secretariat";
 };
 
-// Προσθέτει user/auth πάνω στο Express request για χρήση στα protected routes.
 declare global {
   namespace Express {
     interface Request {
@@ -34,7 +33,6 @@ function trimWrappedValue(value: string): string {
   return trimmed;
 }
 
-// Καθαρίζει token τιμές που έρχονται με quotes, Bearer ή extra commas.
 function normalizeTokenValue(value: string): string {
   let normalized = trimWrappedValue(value);
 
@@ -84,7 +82,6 @@ function setAuthUser(req: Request, user: AuthUser) {
 
 const PRESENCE_TOUCH_INTERVAL_MS = 30 * 1000;
 
-// Ενημερώνει last_seen_at χωρίς να γράφει στη βάση σε κάθε request.
 function touchPresence(userId: number) {
   const now = new Date();
   const cutoff = new Date(now.getTime() - PRESENCE_TOUCH_INTERVAL_MS);
@@ -100,23 +97,27 @@ function touchPresence(userId: number) {
   );
 }
 
-// Middleware που απαιτεί έγκυρο JWT και ενεργό χρήστη.
 export async function authRequired(req: Request, res: Response, next: NextFunction) {
   const token = getRequestToken(req);
   if (!token) {
     return reject(res, 401, "Missing token");
   }
 
+  let payload;
   try {
-    const payload = verifyToken(token);
-    const userId = Number((payload as any).sub);
+    payload = verifyToken(token);
+  } catch {
+    return reject(res, 401, "Invalid token");
+  }
 
-    if (!Number.isFinite(userId) || userId <= 0) {
-      return reject(res, 401, "Invalid token");
-    }
+  const userId = Number(payload.sub);
+  if (!Number.isFinite(userId) || userId <= 0) {
+    return reject(res, 401, "Invalid token");
+  }
 
+  try {
     const user = await User.findByPk(userId);
-    if (!user || !user.is_active || !isAllowedRole(user.role)) {
+    if (!user || !user.is_active || !isAllowedRole(user.role) || !tokenMatchesPassword(payload, user.password_hash)) {
       return reject(res, 401, "Invalid token");
     }
 
@@ -127,14 +128,12 @@ export async function authRequired(req: Request, res: Response, next: NextFuncti
 
     setAuthUser(req, authUser);
     void touchPresence(authUser.id).catch(() => undefined);
-
     return next();
-  } catch {
-    return reject(res, 401, "Invalid token");
+  } catch (error) {
+    return next(error);
   }
 }
 
-// Middleware που επιτρέπει μόνο συγκεκριμένους ρόλους.
 export function allowRoles(roles: Array<AuthUser["role"]>) {
   return (req: Request, res: Response, next: NextFunction) => {
     const currentUser = req.user;

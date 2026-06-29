@@ -27,15 +27,6 @@ export function readWorksheetRows(file: Express.Multer.File | undefined) {
   return XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[firstSheet], { defval: "" });
 }
 
-// Μετατρέπει Ναι/Όχι/true/false σε boolean ενεργότητας.
-export function parseActiveFlag(value: unknown) {
-  const text = String(value ?? "").trim().toLowerCase();
-  if (!text) return true;
-  if (["1", "true", "yes", "y", "active", "ενεργό", "ενεργη", "ενεργο"].includes(text)) return true;
-  if (["0", "false", "no", "n", "inactive", "ανενεργό", "ανενεργη", "ανενεργο"].includes(text)) return false;
-  return true;
-}
-
 // Καθαρίζει key από import row.
 export function normalizeImportKey(value: string) {
   return value.normalize("NFD").replace(/\p{Diacritic}/gu, "");

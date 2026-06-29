@@ -62,7 +62,8 @@
       "region": "Region",
       "city": "City",
       "from": "From",
-      "to": "To"
+      "to": "To",
+      "studyProgram": "Study program"
     }
   },
   "map": {

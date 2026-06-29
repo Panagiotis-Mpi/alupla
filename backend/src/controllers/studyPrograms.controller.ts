@@ -12,7 +12,6 @@ import {
   encodeUtf16WithBom,
   escapeDelimitedCell,
   normalizeImportKey,
-  parseActiveFlag,
   pickFirstFilled,
   readWorksheetRows,
   resolveTemplateFormat
@@ -22,7 +21,6 @@ type StudyProgramPatch = {
   code?: string;
   name_el?: string;
   name_en?: string | null;
-  is_active?: boolean;
 };
 
 // Βρίσκει πρόγραμμα σπουδών ή επιστρέφει 404-style error.
@@ -51,15 +49,13 @@ function getTemplateHeaders(lang: string) {
     return [[
       "Study Program Code (required)",
       "Study Program Name in Greek (required)",
-      "Study Program Name in English (optional)",
-      "Study Program Status - Active or Inactive (optional)"
+      "Study Program Name in English (optional)"
     ]];
   }
   return [[
     "Κωδικός Προγράμματος Σπουδών (υποχρεωτικό)",
     "Ονομασία Προγράμματος Σπουδών στα Ελληνικά (υποχρεωτικό)",
-    "Ονομασία Προγράμματος Σπουδών στα Αγγλικά (προαιρετικό)",
-    "Κατάσταση Προγράμματος Σπουδών - Ενεργό ή Ανενεργό (προαιρετικό)"
+    "Ονομασία Προγράμματος Σπουδών στα Αγγλικά (προαιρετικό)"
   ]];
 }
 
@@ -115,21 +111,10 @@ function normalizeProgramRow(input: Record<string, unknown>) {
     "ονομασια_(en)",
     "ονομασια_en"
   ]) ?? "").trim();
-  const statusValue = pickFirstFilled(row, [
-    "study_program_status_-_active_or_inactive_(optional)",
-    "study_program_status",
-    "program_status",
-    "status",
-    "κατασταση_προγραμματος_σπουδων_-_ενεργο_η_ανενεργο_(προαιρετικο)",
-    "κατασταση_προγραμματος_σπουδων",
-    "κατασταση_προγραμματος",
-    "κατασταση"
-  ]);
   return {
     code,
     name_el: nameEl,
     name_en: nameEn || null,
-    is_active: parseActiveFlag(statusValue),
   };
 }
 
@@ -204,7 +189,6 @@ export async function importStudyPrograms(req: Request, res: Response, next: Nex
           code: row.code,
           name_el: row.name_el,
           name_en: row.name_en,
-          is_active: row.is_active,
         });
         updated += 1;
         continue;
@@ -242,7 +226,6 @@ export async function createStudyProgram(req: Request, res: Response, next: Next
     const code = readText(req.body?.code);
     const nameEl = readText(req.body?.name_el);
     const nameEn = readText(req.body?.name_en) || null;
-    const isActive = req.body?.is_active === undefined ? true : Boolean(req.body.is_active);
 
     if (!code || !nameEl) {
       return invalid(res, "code and name_el are required");
@@ -256,8 +239,7 @@ export async function createStudyProgram(req: Request, res: Response, next: Next
     const item = await StudyProgram.create({
       code,
       name_el: nameEl,
-      name_en: nameEn,
-      is_active: isActive
+      name_en: nameEn
     });
 
 // Οι αλλαγές προγραμμάτων γράφονται στα logs.
@@ -308,10 +290,6 @@ export async function updateStudyProgram(req: Request, res: Response, next: Next
 
     if (req.body?.name_en !== undefined) {
       patch.name_en = readText(req.body.name_en) || null;
-    }
-
-    if (req.body?.is_active !== undefined) {
-      patch.is_active = Boolean(req.body.is_active);
     }
 
     if (!hasPatchChanges(patch)) {

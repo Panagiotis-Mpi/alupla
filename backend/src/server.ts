@@ -1,9 +1,14 @@
-// Εκκινεί το backend server χρησιμοποιώντας το app και το port από το περιβάλλον.
 import { createApp } from "./app";
 import { env } from "./config/env";
+import { initDb } from "./models";
 
-// Δημιουργεί το Express app
-const app = createApp();
+async function start() {
+  await initDb();
+  const app = createApp();
+  app.listen(env.port);
+}
 
-// Ξεκινά τον server στο συγκεκριμένο port
-app.listen(env.port);
+void start().catch((error) => {
+  console.error("[startup] failed:", error);
+  process.exitCode = 1;
+});

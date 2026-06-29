@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
 import { passwordResetUrl, sendPasswordResetEmail } from "../services/userNotification.service";
-import { signToken } from "../utils/jwt";
+import { passwordSessionKey, signToken } from "../utils/jwt";
 import { fail, hashPassword, isStrongPassword, normalizeEmail, toSafeUser } from "../utils/userAccounts";
 
 type SessionLog = {
@@ -24,7 +24,7 @@ async function findActiveUserByEmail(email: unknown) {
 }
 
 async function openSession(user: User, log: SessionLog) {
-  const token = signToken({ sub: user.id, role: user.role });
+  const token = signToken({ sub: user.id, role: user.role, session_key: passwordSessionKey(user.password_hash) });
   user.last_seen_at = new Date();
   await user.save();
   await logAction({ user_id: user.id, ...log });

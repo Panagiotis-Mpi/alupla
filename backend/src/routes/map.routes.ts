@@ -1,16 +1,18 @@
 import { Router } from "express";
 import { getGraduatesMap, getMapCities, getMapCityDetail, getMapSummary, getMapYearRange } from "../controllers/map.controller";
+import { rateLimit } from "../middleware/rateLimit";
+import { asyncHandler } from "../utils/asyncHandler";
 import { routeCache } from "../utils/routeCache";
 
-// Δημόσια endpoints για δεδομένα χάρτη.
 const r = Router();
-// Κρατά προσωρινά τα αποτελέσματα χάρτη για καλύτερη απόδοση.
 const mapCache = routeCache("map", 3 * 60 * 1000);
+const mapLimit = rateLimit({ windowMs: 60 * 1000, max: 120 });
 
-r.get("/summary", mapCache, getMapSummary);
-r.get("/graduates", mapCache, getGraduatesMap);
-r.get("/years", mapCache, getMapYearRange);
-r.get("/cities", mapCache, getMapCities);
-r.get("/city-detail", mapCache, getMapCityDetail);
+r.use(mapLimit);
+r.get("/summary", mapCache, asyncHandler(getMapSummary));
+r.get("/graduates", mapCache, asyncHandler(getGraduatesMap));
+r.get("/years", mapCache, asyncHandler(getMapYearRange));
+r.get("/cities", mapCache, asyncHandler(getMapCities));
+r.get("/city-detail", mapCache, asyncHandler(getMapCityDetail));
 
 export default r;

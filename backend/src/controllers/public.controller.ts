@@ -3,17 +3,15 @@ import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/sequelize";
 import { Request, Response } from "express";
 import { StudyProgram } from "../models/StudyProgram";
-import { ensureLocalizedRegionNames } from "../services/mapLocation.service";
-import { resolveMapCityPresentation, resolveMapCountryPresentation } from "./map.controller";
-import { isGreeceOriginValue } from "./map.helpers";
+import { buildWhere, getBirthYearExpr } from "./public.helpers";
+import { getPublicStatsCache, setPublicStatsCache } from "../services/publicStatsCache.service";
 import {
-  buildRegionLookup,
-  buildWhere,
-  getBirthYearExpr,
-  logPublicExportAction,
-} from "./public.helpers";
-import { buildAnonymousStatisticsWorkbook, loadPublicMapRows } from "./public.stats";
-import { buildExportFilename, yearRangeFilenamePart } from "../utils/exportFilename";
+  groupStatisticsCountries,
+  groupStatisticsMunicipalities,
+  localizedNamesForRegion,
+  type StatisticsCountryRow,
+  type StatisticsMunicipalityRow,
+} from "../services/publicStatisticsGrouping.service";
 import {
   getAverageAgeByGraduationYear,
   getAverageGradeByGraduationYear,
@@ -35,131 +33,6 @@ import {
   genderRowsToCounts,
 } from "../services/analyticsAggregations.service";
 
-type PublicStatsCacheEntry = { expires: number; body: Record<string, unknown> };
-// Κρατά προσωρινά δεδομένα για πιο γρήγορη απόκριση.
-const publicStatsCache = new Map<string, PublicStatsCacheEntry>();
-const PUBLIC_STATS_CACHE_MS = 5 * 60 * 1000;
-
-async function localizedNamesForRegion(regionId: number | null | undefined, fallback: string) {
-  const safeFallback = String(fallback ?? "").trim();
-  if (!regionId) return { name_el: safeFallback, name_en: safeFallback };
-  const names = await ensureLocalizedRegionNames(Number(regionId));
-  return {
-    name_el: String(names.nameEl ?? safeFallback).trim() || safeFallback,
-    name_en: String(names.nameEn ?? safeFallback).trim() || safeFallback,
-  };
-}
-
-function mergeLocalizedCount(
-  map: Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number }>,
-  key: string,
-  item: { id?: number | null; name: string; name_el: string; name_en: string; count: number }
-) {
-  const current = map.get(key);
-  if (current) {
-    current.count += item.count;
-    if (!current.id && item.id) current.id = item.id;
-    if (!current.name_el && item.name_el) current.name_el = item.name_el;
-    if (!current.name_en && item.name_en) current.name_en = item.name_en;
-    return;
-  }
-  map.set(key, item);
-}
-
-type StatisticsMunicipalityRow = {
-  city_id?: number | null;
-  country_id?: number | null;
-  periphery_id?: number | null;
-  region_id?: number | null;
-  country_name?: string | null;
-  name: string;
-  count: number;
-  male?: number;
-  female?: number;
-};
-
-type StatisticsCountryRow = {
-  id?: number | null;
-  name: string;
-  count: number;
-};
-
-async function groupStatisticsMunicipalities(rows: StatisticsMunicipalityRow[], forcedScope?: "greece" | "abroad") {
-  const groups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number; male: number; female: number }>();
-  for (const row of rows) {
-    const rawName = String(row.name ?? "").trim();
-    if (!rawName) continue;
-    const countryName = String(row.country_name ?? "").trim();
-    const scope = forcedScope || (countryName && !isGreeceOriginValue(countryName) ? "abroad" : "greece");
-    const presentation = await resolveMapCityPresentation({
-      origin_country: countryName || null,
-      origin_country_region_id: Number(row.country_id) || null,
-      origin_periphery_region_id: Number(row.periphery_id) || null,
-      origin_region_id: Number(row.region_id) || null,
-      origin_city_region_id: Number(row.city_id) || null,
-      origin_municipality: scope === "greece" ? rawName : null,
-      origin_foreign_city: scope === "abroad" ? rawName : null,
-    }, scope);
-    const current = groups.get(presentation.key);
-    if (current) {
-      current.count += Number(row.count) || 0;
-      current.male += Number(row.male) || 0;
-      current.female += Number(row.female) || 0;
-      continue;
-    }
-    groups.set(presentation.key, {
-      id: presentation.id,
-      name: presentation.name,
-      name_el: presentation.name_el,
-      name_en: presentation.name_en,
-      count: Number(row.count) || 0,
-      male: Number(row.male) || 0,
-      female: Number(row.female) || 0,
-    });
-  }
-  return groups;
-}
-
-async function groupStatisticsCountries(rows: StatisticsCountryRow[]) {
-  const groups = new Map<string, { id?: number | null; name: string; name_el: string; name_en: string; count: number }>();
-  for (const row of rows) {
-    const presentation = await resolveMapCountryPresentation({
-      origin_country: String(row.name ?? "").trim(),
-      origin_country_region_id: Number(row.id) || null,
-    });
-    mergeLocalizedCount(groups, presentation.key, {
-      id: presentation.id,
-      name: presentation.name,
-      name_el: presentation.name_el,
-      name_en: presentation.name_en,
-      count: Number(row.count) || 0,
-    });
-  }
-  return groups;
-}
-
-// Διαβάζει cached δημόσια στατιστικά αν είναι ακόμα φρέσκα.
-function getPublicStatsCache(key: string) {
-  const item = publicStatsCache.get(key);
-  if (!item) return null;
-  if (item.expires <= Date.now()) {
-    publicStatsCache.delete(key);
-    return null;
-  }
-  return item.body;
-}
-
-// Αποθηκεύει δημόσια στατιστικά στο cache.
-function setPublicStatsCache(key: string, body: Record<string, unknown>) {
-  publicStatsCache.set(key, { expires: Date.now() + PUBLIC_STATS_CACHE_MS, body });
-}
-
-// Καθαρίζει cache στατιστικών μετά από αλλαγές αποφοίτων.
-export function clearPublicStatsCache() {
-  publicStatsCache.clear();
-}
-
-// Επιστρέφει ενεργά προγράμματα σπουδών για δημόσια φίλτρα.
 export async function publicStudyPrograms(_req: Request, res: Response) {
   const items = await StudyProgram.findAll({
     attributes: ["id", "code", "name_el", "name_en"],
@@ -1057,111 +930,4 @@ export async function publicStats(req: Request, res: Response) {
     console.error('[public/stats] failed', err);
     return res.status(500).json({ message: 'Stats query failed' });
   }
-}
-
-// Επιστρέφει ανώνυμα συγκεντρωτικά δεδομένα για τον δημόσιο χάρτη.
-export async function publicMap(req: Request, res: Response) {
-  const context = await buildWhere(req);
-  const { byId, findPeriphery } = await buildRegionLookup();
-  const rows = await loadPublicMapRows(context);
-
-  const items = rows.map((row) => {
-    const regionId = Number((row as any).region_id) || null;
-    const rawRegion = regionId ? byId.get(regionId) ?? null : null;
-    const periphery = rawRegion ? findPeriphery(regionId) : null;
-    const region = periphery ?? rawRegion;
-    return {
-      region_id: region ? Number(region.id) : regionId,
-      region_name: region ? String(region.name) : String((row as any).region_name ?? 'Unknown'),
-      region_type: region ? String(region.type) : String((row as any).region_type ?? 'UNKNOWN'),
-      latitude: region?.latitude ?? null,
-      longitude: region?.longitude ?? null,
-      count: Number((row as any).count) || 0,
-      male: Number((row as any).male) || 0,
-      female: Number((row as any).female) || 0,
-    };
-  });
-
-  res.json({ ok: true, rows: items });
-}
-
-// Εξάγει ανώνυμα δεδομένα αποφοίτων για επισκέπτες.
-export async function publicAnonymousGraduatesCsv(req: Request, res: Response) {
-  const context = await buildWhere(req);
-  const countsMode = req.query.counts_mode === "semester" ? "semester" : "year";
-  const genderMode = req.query.gender_mode === "semester" ? "semester" : "year";
-  const lang = String(req.query.lang ?? "").toLowerCase().startsWith("en") ? "en" : "gr";
-
-  const { buffer, rowCount } = await buildAnonymousStatisticsWorkbook(context, countsMode, genderMode, lang);
-
-// Τα public exports γράφονται στα logs ως ενέργειες επισκέπτη.
-  await logPublicExportAction(req, "statistics_export", "statistics", {
-    format: "xlsx",
-    graduation_year: req.query.graduation_year ?? null,
-    study_program_id: req.query.study_program_id ?? null,
-    gender: req.query.gender ?? null,
-    age_group: req.query.age_group ?? null,
-    counts_mode: countsMode,
-    gender_mode: genderMode,
-    lang,
-    rows: rowCount,
-  });
-
-  const startYear = req.query.graduation_year_from ?? req.query.graduation_year ?? null;
-  const endYear = req.query.graduation_year_to ?? req.query.graduation_year ?? null;
-  const rangePart = yearRangeFilenamePart(String(startYear ?? ""), String(endYear ?? ""));
-
-  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-  res.setHeader("Content-Disposition", `attachment; filename="${buildExportFilename("statistics", ["anonymous", rangePart], "xlsx")}"`);
-  res.send(buffer);
-}
-
-// Γράφει log για δημόσια exports, ακόμα και χωρίς logged-in χρήστη.
-export async function publicExportActivity(req: Request, res: Response) {
-  const action = typeof req.body?.action === "string" ? req.body.action : "";
-  const format = typeof req.body?.format === "string" ? req.body.format : null;
-
-  if (action !== "map_export" && action !== "statistics_export") {
-    return res.status(400).json({ ok: false, message: "Invalid action" });
-  }
-
-  const rawDetails =
-    req.body?.details && typeof req.body.details === "object" && !Array.isArray(req.body.details)
-      ? req.body.details
-      : {};
-  const readAllowedValues = (value: unknown, allowed: Set<string>) =>
-    Array.isArray(value)
-      ? Array.from(
-          new Set(
-            value
-              .map((item) => String(item ?? "").trim())
-              .filter((item) => allowed.has(item)),
-          ),
-        ).slice(0, 30)
-      : [];
-  const details: Record<string, unknown> = { format };
-
-  if (action === "statistics_export") {
-    const groups = readAllowedValues(
-      (rawDetails as any).statistics_groups,
-      new Set(["demographics", "academic", "geography", "compare"]),
-    );
-    if (groups.length) details.statistics_groups = groups;
-  } else {
-    const mapExports = readAllowedValues(
-      (rawDetails as any).map_exports,
-      new Set([
-        "greece:count",
-        "abroad:count",
-        "greece:dominant_gender",
-        "abroad:dominant_gender",
-      ]),
-    );
-    if (mapExports.length) details.map_exports = mapExports;
-  }
-
-  const entityType = action === "map_export" ? "map" : "statistics";
-// Τα public exports γράφονται στα logs ως ενέργειες επισκέπτη.
-  await logPublicExportAction(req, action, entityType, details);
-  return res.json({ ok: true });
 }
