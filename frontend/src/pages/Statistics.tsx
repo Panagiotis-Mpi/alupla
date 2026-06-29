@@ -813,46 +813,61 @@ export default function Statistics() {
       }))
       .filter((group) => group.chartIds.length > 0);
 
-    const findChartCard = (chartId: StatisticsChartId) => {
+    const findChartCards = (chartId: StatisticsChartId) => {
       const selector = `[data-export-chart-id="${chartId}"]`;
-      return exportRoot?.querySelector<HTMLElement>(selector) ?? visibleRoot?.querySelector<HTMLElement>(selector) ?? null;
+      const exportCards = exportRoot ? Array.from(exportRoot.querySelectorAll<HTMLElement>(selector)) : [];
+      if (exportCards.length) return exportCards;
+      return visibleRoot ? Array.from(visibleRoot.querySelectorAll<HTMLElement>(selector)) : [];
     };
 
     const downloaded: string[] = [];
-    const maxChartsPerPage = 4;
 
     for (const group of orderedGroupSelections) {
-      const snapshots: Array<{ chartId: StatisticsChartId; image: HTMLImageElement; width: number; height: number; caption?: string }> = [];
+      const snapshots: Array<{ chartId: StatisticsChartId; image: HTMLImageElement; width: number; height: number; caption?: string; dense?: boolean }> = [];
 
       for (const chartId of group.chartIds) {
-        const card = findChartCard(chartId);
-        if (!card) continue;
+        const cards = findChartCards(chartId);
+        if (!cards.length) continue;
 
-        await waitForRenderableImages(card);
+        const chartSnapshots: Array<{ image: HTMLImageElement; width: number; height: number; dense?: boolean }> = [];
 
-        try {
-          const renderedSnapshots = await renderSegmentedElementSnapshots(card);
-          const meta = chartMeta.get(chartId);
-          const segmentCount = renderedSnapshots.length;
+        for (const card of cards) {
+          await waitForRenderableImages(card);
 
-          renderedSnapshots.forEach((snapshot, snapshotIndex) => {
-            const showCaption = group.chartIds.length > 1 || segmentCount > 1;
-            const baseCaption = meta?.chartLabel ?? chartId;
-            const caption = showCaption
-              ? segmentCount > 1
-                ? `${baseCaption} ${snapshotIndex + 1}/${segmentCount}`
-                : baseCaption
-              : undefined;
-
-            snapshots.push({
-              chartId,
-              image: snapshot.image,
-              width: snapshot.width,
-              height: snapshot.height,
-              caption,
+          try {
+            const renderedSnapshots = await renderSegmentedElementSnapshots(card);
+            renderedSnapshots.forEach((snapshot) => {
+              chartSnapshots.push({
+                image: snapshot.image,
+                width: snapshot.width,
+                height: snapshot.height,
+                dense: card.dataset.exportDense === "true",
+              });
             });
+          } catch {}
+        }
+
+        const meta = chartMeta.get(chartId);
+        const segmentCount = chartSnapshots.length;
+
+        chartSnapshots.forEach((snapshot, snapshotIndex) => {
+          const showCaption = group.chartIds.length > 1 || segmentCount > 1;
+          const baseCaption = meta?.chartLabel ?? chartId;
+          const caption = showCaption
+            ? segmentCount > 1
+              ? `${baseCaption} ${snapshotIndex + 1}/${segmentCount}`
+              : baseCaption
+            : undefined;
+
+          snapshots.push({
+            chartId,
+            image: snapshot.image,
+            width: snapshot.width,
+            height: snapshot.height,
+            caption,
+            dense: snapshot.dense,
           });
-        } catch {}
+        });
       }
 
       if (!snapshots.length) continue;
@@ -888,6 +903,8 @@ export default function Statistics() {
         await new Promise<void>((resolve) => window.setTimeout(resolve, 220));
         continue;
       }
+
+      const maxChartsPerPage = snapshots.some((snapshot) => snapshot.dense) ? 2 : 4;
 
       for (let pageIndex = 0; pageIndex < snapshots.length; pageIndex += maxChartsPerPage) {
         const pageSnapshots = snapshots.slice(pageIndex, pageIndex + maxChartsPerPage);

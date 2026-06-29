@@ -62,6 +62,99 @@ type ChartBlockProps = {
   exportMode?: boolean;
 };
 
+type ExportBarDataset = {
+  label: string;
+  values: number[];
+  color: string;
+  borderColor?: string;
+  dashed?: boolean;
+  pointStyle?: "circle" | "square" | "diamond";
+};
+
+function exportChunkRanges(length: number, size = 12) {
+  if (length <= 0) return [[0, 0]] as Array<[number, number]>;
+  const ranges: Array<[number, number]> = [];
+  for (let start = 0; start < length; start += size) ranges.push([start, Math.min(length, start + size)]);
+  return ranges;
+}
+
+function exportValueMax(values: number[]) {
+  const max = values.reduce((current, value) => Number.isFinite(Number(value)) ? Math.max(current, Number(value)) : current, 0);
+  return max > 0 ? max * 1.08 : undefined;
+}
+
+function ExportBarCards(props: {
+  chartId: string;
+  title: string;
+  series: ChartSeries;
+  yTickPrecision?: number;
+}) {
+  const ranges = exportChunkRanges(props.series.labels.length);
+  const maxValue = exportValueMax(props.series.values);
+
+  return (
+    <>
+      {ranges.map(([start, end], index) => {
+        const labels = props.series.labels.slice(start, end);
+        return (
+          <BarChartCard
+            key={`${props.chartId}-${index}`}
+            chartId={props.chartId}
+            title={props.title}
+            labels={labels}
+            values={props.series.values.slice(start, end)}
+            height={Math.max(360, labels.length * 48 + 72)}
+            horizontal
+            fullLabelTooltip
+            yTickPrecision={props.yTickPrecision}
+            maxValue={maxValue}
+            exportMode
+            exportSegmentIndex={index}
+            exportSegmentCount={ranges.length}
+            exportDense
+          />
+        );
+      })}
+    </>
+  );
+}
+
+function ExportMultiBarCards(props: {
+  chartId: string;
+  title: string;
+  labels: string[];
+  datasets: ExportBarDataset[];
+  yTickPrecision?: number;
+}) {
+  const ranges = exportChunkRanges(props.labels.length);
+  const maxValue = exportValueMax(props.datasets.flatMap((dataset) => dataset.values));
+
+  return (
+    <>
+      {ranges.map(([start, end], index) => {
+        const labels = props.labels.slice(start, end);
+        return (
+          <MultiBarChartCard
+            key={`${props.chartId}-${index}`}
+            chartId={props.chartId}
+            title={props.title}
+            labels={labels}
+            datasets={props.datasets.map((dataset) => ({ ...dataset, values: dataset.values.slice(start, end) }))}
+            height={Math.max(380, labels.length * 58 + 72)}
+            horizontal
+            yTickPrecision={props.yTickPrecision}
+            maxValue={maxValue}
+            exportMode
+            exportSegmentIndex={index}
+            exportSegmentCount={ranges.length}
+            exportDense
+          />
+        );
+      })}
+    </>
+  );
+}
+
 export function StatisticsGroupMenu(props: {
   t: Translate;
   activeGroup: MenuGroup;
@@ -286,11 +379,11 @@ export function ExportChartsSurface(props: ChartBlockProps) {
   return (
     <div style={{ display: "grid", gap: 14 }} data-stat-export-single="true">
       <GraduationLineCard {...props} exportMode />
-      <ChartCard chartId="countByEntryYear" title={props.t("sections.countByEntryYear")} labels={props.entryYears.labels} values={props.entryYears.values} height={320} exportMode={props.exportMode} />
-      <ChartCard chartId="birthYear" title={props.t("sections.birthYear")} labels={props.birthYears.labels} values={props.birthYears.values} height={320} exportMode={props.exportMode} />
-      <PieChartCard chartId="genderTotal" title={props.t("sections.genderTotal")} labels={props.genderDistributionPie.labels} values={props.genderDistributionPie.values} height={320} control={props.genderDistributionPie.control} colors={["#3b82f6", "#db2777"]} exportMode={props.exportMode} />
+      <ChartCard chartId="countByEntryYear" title={props.t("sections.countByEntryYear")} labels={props.entryYears.labels} values={props.entryYears.values} height={320} exportMode />
+      <ChartCard chartId="birthYear" title={props.t("sections.birthYear")} labels={props.birthYears.labels} values={props.birthYears.values} height={320} exportMode />
+      <PieChartCard chartId="genderTotal" title={props.t("sections.genderTotal")} labels={props.genderDistributionPie.labels} values={props.genderDistributionPie.values} height={320} control={props.genderDistributionPie.control} colors={["#3b82f6", "#db2777"]} exportMode />
       <GenderLineCard {...props} exportMode />
-      <BarChartCard chartId="gradeDistribution" title={props.t("sections.gradeDistribution")} labels={props.gradeBins.labels} values={props.gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} exportMode={props.exportMode} />
+      <BarChartCard chartId="gradeDistribution" title={props.t("sections.gradeDistribution")} labels={props.gradeBins.labels} values={props.gradeBins.values} height={320} minLabelWidth={88} maxLabelWidth={128} exportMode />
       <MultiBarChartCard
         chartId="gradeDistributionByGender"
         title={props.t("sections.gradeDistributionByGender")}
@@ -302,15 +395,15 @@ export function ExportChartsSurface(props: ChartBlockProps) {
         height={320}
         minLabelWidth={88}
         maxLabelWidth={128}
-      
-          exportMode={props.exportMode}/>
-      <BarChartCard chartId="timeToDegreeDistribution" title={props.t("sections.timeToDegreeDistribution")} labels={props.yearsToDegreeDistribution.labels} values={props.yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} scrollThreshold={18} exportMode={props.exportMode} />
-      <BarChartCard chartId="gradeByYear" title={props.t("sections.gradeByYear")} labels={props.avgGradesByYear.labels} values={props.avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} yTickPrecision={2} exportMode={props.exportMode} />
-      <BarChartCard chartId="gradeByRegion" title={props.t("sections.gradeByRegion")} labels={props.avgGradesByRegion.labels} values={props.avgGradesByRegion.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable yTickPrecision={2} exportMode={props.exportMode} />
-      <BarChartCard chartId="timeToDegreeByEntryYear" title={props.t("sections.timeToDegreeByEntryYear")} labels={props.yearsToDegree.labels} values={props.yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} yTickPrecision={1} exportMode={props.exportMode} />
-      <BarChartCard chartId="timeToDegreeByRegion" title={props.t("sections.timeToDegreeByRegion")} labels={props.yearsToDegreeByRegion.labels} values={props.yearsToDegreeByRegion.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable yTickPrecision={1} exportMode={props.exportMode} />
-      <BarChartCard chartId="originRegion" title={props.t("sections.originRegion")} labels={props.regions.labels} values={props.regions.values} height={320} minLabelWidth={104} maxLabelWidth={156} exportMode={props.exportMode} />
-      <MultiBarChartCard
+        exportMode
+      />
+      <BarChartCard chartId="timeToDegreeDistribution" title={props.t("sections.timeToDegreeDistribution")} labels={props.yearsToDegreeDistribution.labels} values={props.yearsToDegreeDistribution.values} height={320} minLabelWidth={64} maxLabelWidth={88} scrollThreshold={18} exportMode />
+      <BarChartCard chartId="gradeByYear" title={props.t("sections.gradeByYear")} labels={props.avgGradesByYear.labels} values={props.avgGradesByYear.values} height={320} minLabelWidth={76} maxLabelWidth={96} yTickPrecision={2} exportMode />
+      <ExportBarCards chartId="gradeByRegion" title={props.t("sections.gradeByRegion")} series={props.avgGradesByRegion} yTickPrecision={2} />
+      <BarChartCard chartId="timeToDegreeByEntryYear" title={props.t("sections.timeToDegreeByEntryYear")} labels={props.yearsToDegree.labels} values={props.yearsToDegree.values} height={320} minLabelWidth={76} maxLabelWidth={96} yTickPrecision={1} exportMode />
+      <ExportBarCards chartId="timeToDegreeByRegion" title={props.t("sections.timeToDegreeByRegion")} series={props.yearsToDegreeByRegion} yTickPrecision={1} />
+      <ExportBarCards chartId="originRegion" title={props.t("sections.originRegion")} series={props.regions} />
+      <ExportMultiBarCards
         chartId="genderByRegion"
         title={props.t("sections.genderByRegion")}
         labels={props.genderByRegion.labels}
@@ -318,14 +411,9 @@ export function ExportChartsSurface(props: ChartBlockProps) {
           { label: props.t("table.male"), values: props.genderByRegion.male, color: "#3b82f6", borderColor: "#3b82f6", pointStyle: "circle" },
           { label: props.t("table.female"), values: props.genderByRegion.female, color: "#db2777", borderColor: "#db2777", pointStyle: "diamond", dashed: true },
         ]}
-        height={320}
-        minLabelWidth={104}
-        maxLabelWidth={156}
-        forceScrollable
-      
-          exportMode={props.exportMode}/>
-      <BarChartCard chartId="originMunicipality" title={props.t("sections.originMunicipality")} labels={props.municipalities.labels} values={props.municipalities.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable exportMode={props.exportMode} />
-      <MultiBarChartCard
+      />
+      <ExportBarCards chartId="originMunicipality" title={props.t("sections.originMunicipality")} series={props.municipalities} />
+      <ExportMultiBarCards
         chartId="genderByMunicipality"
         title={props.t("sections.genderByMunicipality")}
         labels={props.genderByMunicipality.labels}
@@ -333,14 +421,9 @@ export function ExportChartsSurface(props: ChartBlockProps) {
           { label: props.t("table.male"), values: props.genderByMunicipality.male, color: "#3b82f6", borderColor: "#3b82f6", pointStyle: "circle" },
           { label: props.t("table.female"), values: props.genderByMunicipality.female, color: "#db2777", borderColor: "#db2777", pointStyle: "diamond", dashed: true },
         ]}
-        height={320}
-        minLabelWidth={104}
-        maxLabelWidth={156}
-        forceScrollable
-      
-          exportMode={props.exportMode}/>
-      <BarChartCard chartId="originCountry" title={props.t("sections.originCountry")} labels={props.countries.labels} values={props.countries.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable exportMode={props.exportMode} />
-      <PieChartCard chartId="abroadShare" title={props.t("sections.abroadShare")} labels={[props.t("table.greece"), props.t("table.abroad")]} values={[Math.max(0, props.total - props.abroadCount), props.abroadCount]} height={340} colors={[greeceAbroadColors.greece, greeceAbroadColors.abroad]} exportMode={props.exportMode} />
+      />
+      <ExportBarCards chartId="originCountry" title={props.t("sections.originCountry")} series={props.countries} />
+      <PieChartCard chartId="abroadShare" title={props.t("sections.abroadShare")} labels={[props.t("table.greece"), props.t("table.abroad")]} values={[Math.max(0, props.total - props.abroadCount), props.abroadCount]} height={340} colors={[greeceAbroadColors.greece, greeceAbroadColors.abroad]} exportMode />
       <MultiBarChartCard
         chartId="abroadByYear"
         title={props.t("sections.abroadByYear")}
@@ -352,10 +435,9 @@ export function ExportChartsSurface(props: ChartBlockProps) {
         height={320}
         minLabelWidth={76}
         maxLabelWidth={96}
-        forceScrollable
-      
-          exportMode={props.exportMode}/>
-      <BarChartCard chartId="timeToDegreeByNomos" title={props.t("sections.timeToDegreeByNomos")} labels={props.yearsToDegreeByNomos.labels} values={props.yearsToDegreeByNomos.values} height={320} minLabelWidth={104} maxLabelWidth={156} forceScrollable yTickPrecision={1} exportMode={props.exportMode} />
+        exportMode
+      />
+      <ExportBarCards chartId="timeToDegreeByNomos" title={props.t("sections.timeToDegreeByNomos")} series={props.yearsToDegreeByNomos} yTickPrecision={1} />
     </div>
   );
 }

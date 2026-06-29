@@ -11,6 +11,7 @@ const sectionTextStyle: React.CSSProperties = { margin: 0, color: "#64748b", fon
 const solidBlueFill = "rgba(37, 99, 235, 0.72)";
 const chartGridColor = "rgba(148, 163, 184, 0.22)";
 const chartTickColor = "#475569";
+const exportChartWidth = 1120;
 const contrastPiePalette = ["#ffd400", "#7fffd4", "#ffffff", "#ff8a00", "#66f2d5", "#ff5f5f", "#c4ff00", "#d6b4ff"];
 
 const piePalette = [
@@ -563,7 +564,7 @@ export function ScrollableLineChart(props: {
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 68, props.maxLabelWidth ?? 128);
   const hasLongLabels = props.labels.some((label) => String(label ?? "").trim().length > 12);
   const shouldScroll = !props.exportMode && (props.labels.length > 6 || (props.datasetCount ?? 1) > 1 || (isCompact && (props.labels.length > 3 || hasLongLabels)));
-  const exportWidth = props.exportMode ? Math.max(contentWidth, 960) : 0;
+  const exportWidth = props.exportMode ? exportChartWidth : 0;
   const minWidth = props.exportMode ? exportWidth : shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
   const normalizedData = React.useMemo(
     () => ({
@@ -626,7 +627,7 @@ function ScrollableBarChart(props: {
   const contentWidth = chartContentWidth(props.labels, props.datasetCount ?? 1, props.minLabelWidth ?? 72, props.maxLabelWidth ?? 124);
   const hasLongLabels = props.labels.some((label) => String(label ?? "").trim().length > 12);
   const shouldScroll = !props.exportMode && (!!props.forceScrollable || props.labels.length > (props.scrollThreshold ?? 7) || (isCompact && (props.labels.length > 3 || hasLongLabels)));
-  const exportWidth = props.exportMode ? Math.max(contentWidth, 960) : 0;
+  const exportWidth = props.exportMode ? exportChartWidth : 0;
   const minWidth = props.exportMode ? exportWidth : shouldScroll ? Math.max(contentWidth, isCompact ? 560 : 640) : 0;
   const normalizedOptions = React.useMemo(() => applyAccessibleChartOptions(props.options, highContrast), [highContrast, props.options]);
 
@@ -714,7 +715,11 @@ export function BarChartCard(props: {
   scrollThreshold?: number;
   chartId?: string;
   yTickPrecision?: number;
+  maxValue?: number;
   exportMode?: boolean;
+  exportSegmentIndex?: number;
+  exportSegmentCount?: number;
+  exportDense?: boolean;
 }) {
   const highContrast = useHighContrastEnabled();
   const chartHeight = props.height ?? (props.horizontal ? Math.max(300, props.labels.length * 54) : 280);
@@ -732,14 +737,23 @@ export function BarChartCard(props: {
         fullLabelTooltip: props.fullLabelTooltip,
         labels: props.labels,
         yTickPrecision: props.yTickPrecision,
+        max: props.maxValue,
         exportMode: props.exportMode,
       }),
-    [props.exportMode, props.fullLabelTooltip, props.horizontal, props.labels, props.yTickPrecision],
+    [props.exportMode, props.fullLabelTooltip, props.horizontal, props.labels, props.maxValue, props.yTickPrecision],
   );
   const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
 
   return (
-    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
+    <div
+      className="card"
+      style={cardInnerStyle}
+      data-stat-chart-card="true"
+      data-export-chart-id={props.chartId}
+      data-export-segment-index={props.exportSegmentIndex}
+      data-export-segment-count={props.exportSegmentCount}
+      data-export-dense={props.exportDense ? "true" : undefined}
+    >
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.title}</h3>
         {!props.exportMode ? <ChartFullscreenButton label="Fullscreen" title="Fullscreen" /> : null}
@@ -778,8 +792,13 @@ export function MultiBarChartCard(props: {
   scrollThreshold?: number;
   chartId?: string;
   stacked?: boolean;
+  horizontal?: boolean;
   yTickPrecision?: number;
+  maxValue?: number;
   exportMode?: boolean;
+  exportSegmentIndex?: number;
+  exportSegmentCount?: number;
+  exportDense?: boolean;
 }) {
   const highContrast = useHighContrastEnabled();
   const palette = highContrast ? ["#ffd400", "#7fffd4", "#ffffff", "#ff8a00"] : props.datasets.map((dataset) => dataset.color);
@@ -809,11 +828,13 @@ export function MultiBarChartCard(props: {
     () =>
       buildBarChartOptions({
         labels: props.labels,
+        horizontal: props.horizontal,
         stacked: props.stacked,
         yTickPrecision: props.yTickPrecision,
+        max: props.maxValue,
         exportMode: props.exportMode,
       }),
-    [props.exportMode, props.labels, props.stacked, props.yTickPrecision],
+    [props.exportMode, props.horizontal, props.labels, props.maxValue, props.stacked, props.yTickPrecision],
   );
   const ariaLabel = React.useMemo(() => {
     const preview = props.labels
@@ -824,7 +845,15 @@ export function MultiBarChartCard(props: {
   }, [props.datasets, props.labels, props.title]);
 
   return (
-    <div className="card" style={cardInnerStyle} data-stat-chart-card="true" data-export-chart-id={props.chartId}>
+    <div
+      className="card"
+      style={cardInnerStyle}
+      data-stat-chart-card="true"
+      data-export-chart-id={props.chartId}
+      data-export-segment-index={props.exportSegmentIndex}
+      data-export-segment-count={props.exportSegmentCount}
+      data-export-dense={props.exportDense ? "true" : undefined}
+    >
       <div className="topbar" style={compactTopbarStyle}>
         <h3 style={{ margin: 0, flex: "1 1 auto", minWidth: 0 }}>{props.title}</h3>
         {!props.exportMode ? <ChartFullscreenButton label="Fullscreen" title="Fullscreen" /> : null}
@@ -837,18 +866,22 @@ export function MultiBarChartCard(props: {
         }))} />
       </div>
       <div className="chart-figure" role="img" aria-label={ariaLabel} style={{ position: "relative" }}>
-        <ScrollableBarChart
-          height={props.height ?? 320}
-          labels={props.labels}
-          datasetCount={props.datasets.length}
-          minLabelWidth={props.minLabelWidth ?? 104}
-          maxLabelWidth={props.maxLabelWidth ?? 156}
-          data={chartData}
-          options={chartOptions}
-          forceScrollable={props.forceScrollable}
-          scrollThreshold={props.scrollThreshold}
-          exportMode={props.exportMode}
-        />
+        {props.horizontal ? (
+          <FixedBarChart height={props.height ?? Math.max(320, props.labels.length * 58)} data={chartData} options={chartOptions} />
+        ) : (
+          <ScrollableBarChart
+            height={props.height ?? 320}
+            labels={props.labels}
+            datasetCount={props.datasets.length}
+            minLabelWidth={props.minLabelWidth ?? 104}
+            maxLabelWidth={props.maxLabelWidth ?? 156}
+            data={chartData}
+            options={chartOptions}
+            forceScrollable={props.forceScrollable}
+            scrollThreshold={props.scrollThreshold}
+            exportMode={props.exportMode}
+          />
+        )}
       </div>
     </div>
   );
