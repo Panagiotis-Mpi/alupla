@@ -148,7 +148,7 @@ export function buildStatisticsPngFilename(args: BuildArgs, chartId: StatisticsC
   return `${parts.join("_") || `alupla_statistics_${exportTimestamp()}`}.png`;
 }
 
-export function exportStatisticsWorkbookFile(args: BuildArgs, filename = buildStatisticsExportFilename(args, "xlsx")) {
+function statisticsWorkbook(args: BuildArgs) {
   const workbook = XLSX.utils.book_new();
   const usedNames = new Set<string>();
 
@@ -165,10 +165,10 @@ export function exportStatisticsWorkbookFile(args: BuildArgs, filename = buildSt
     XLSX.utils.book_append_sheet(workbook, ws, workbookSheetName(sheet.name, usedNames));
   }
 
-  exportWorkbook(filename, workbook);
+  return workbook;
 }
 
-export function exportStatisticsCsvFile(args: BuildArgs, filename = buildStatisticsExportFilename(args, "csv")) {
+function statisticsCsvText(args: BuildArgs) {
   const blocks = buildSheets(args);
   const lines: string[] = [];
 
@@ -182,5 +182,35 @@ export function exportStatisticsCsvFile(args: BuildArgs, filename = buildStatist
     }
   });
 
-  if (lines.length) exportUtf16Csv(filename, lines.join("\r\n"));
+  return lines.join("\r\n");
+}
+
+function utf16CsvBlob(textValue: string) {
+  const output = new Uint8Array(2 + textValue.length * 2);
+  output[0] = 0xff;
+  output[1] = 0xfe;
+  for (let index = 0; index < textValue.length; index += 1) {
+    const code = textValue.charCodeAt(index);
+    output[2 + index * 2] = code & 0xff;
+    output[3 + index * 2] = code >> 8;
+  }
+  return new Blob([output], { type: "text/csv;charset=utf-16le" });
+}
+
+export function buildStatisticsWorkbookBlob(args: BuildArgs) {
+  const output = XLSX.write(statisticsWorkbook(args), { bookType: "xlsx", type: "array", compression: true });
+  return new Blob([output], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+
+export function buildStatisticsCsvBlob(args: BuildArgs) {
+  return utf16CsvBlob(statisticsCsvText(args));
+}
+
+export function exportStatisticsWorkbookFile(args: BuildArgs, filename = buildStatisticsExportFilename(args, "xlsx")) {
+  exportWorkbook(filename, statisticsWorkbook(args));
+}
+
+export function exportStatisticsCsvFile(args: BuildArgs, filename = buildStatisticsExportFilename(args, "csv")) {
+  const textValue = statisticsCsvText(args);
+  if (textValue) exportUtf16Csv(filename, textValue);
 }

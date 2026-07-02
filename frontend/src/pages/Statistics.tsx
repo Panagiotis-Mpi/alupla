@@ -3,7 +3,7 @@ import React from "react";
 import JSZip from "jszip";
 import { useTranslation } from "react-i18next";
 import { getPublicStats, logPublicExport } from "../lib/api";
-import { buildStatisticsExportFilename, buildStatisticsPngFilename, exportStatisticsCsvFile, exportStatisticsWorkbookFile, type StatisticsChartId } from "./statisticsExport";
+import { buildStatisticsCsvBlob, buildStatisticsExportFilename, buildStatisticsPngFilename, buildStatisticsWorkbookBlob, exportStatisticsCsvFile, exportStatisticsWorkbookFile, type StatisticsChartId } from "./statisticsExport";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -877,10 +877,27 @@ export default function Statistics() {
       const rangedSourceData = await buildRangedExportSourceData();
       const rangedExportArgs = buildStatisticsExportArgs(rangedSourceData);
 
-      if (selectedExportFormat === "xlsx") {
-        exportStatisticsWorkbookFile(rangedExportArgs, buildStatisticsExportFilename(rangedExportArgs, "xlsx"));
-      } else if (selectedExportFormat === "csv") {
-        exportStatisticsCsvFile(rangedExportArgs, buildStatisticsExportFilename(rangedExportArgs, "csv"));
+      if (selectedExportFormat === "xlsx" || selectedExportFormat === "csv") {
+        if (exportedGroupKeys.length > 1) {
+          const zip = new JSZip();
+
+          exportedGroupKeys.forEach((groupKey) => {
+            const group = chartGroups.find((item) => item.key === groupKey);
+            const groupChartIds = group?.charts.map((chart) => chart.id).filter((chartId) => exportedChartIds.includes(chartId)) ?? [];
+            const groupArgs = { ...rangedExportArgs, selectedChartIds: groupChartIds };
+            const filename = buildStatisticsExportFilename(groupArgs, selectedExportFormat);
+            const blob = selectedExportFormat === "xlsx" ? buildStatisticsWorkbookBlob(groupArgs) : buildStatisticsCsvBlob(groupArgs);
+            zip.file(filename, blob);
+          });
+
+          const zipBlob = await zip.generateAsync({ type: "blob", compression: "STORE" });
+          const zipFilename = buildStatisticsExportFilename(rangedExportArgs, selectedExportFormat).replace(/\.(xlsx|csv)$/i, ".zip");
+          downloadBlob(zipBlob, zipFilename);
+        } else if (selectedExportFormat === "xlsx") {
+          exportStatisticsWorkbookFile(rangedExportArgs, buildStatisticsExportFilename(rangedExportArgs, "xlsx"));
+        } else {
+          exportStatisticsCsvFile(rangedExportArgs, buildStatisticsExportFilename(rangedExportArgs, "csv"));
+        }
       } else {
         await preparePngExportPreview(rangedSourceData);
         await exportSelectedChartsAsPng();
