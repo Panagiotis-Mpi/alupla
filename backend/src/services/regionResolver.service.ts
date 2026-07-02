@@ -1,3 +1,4 @@
+import { Op, UniqueConstraintError } from "sequelize";
 import { Region } from "../models/Region";
 import { cleanRegionText, normalizeRegionText } from "../utils/regionText";
 import { getGreekNomosNormalizedName } from "./greekNomosLookup.service";
@@ -63,39 +64,56 @@ async function geocodeGreekCity(name: string) {
   }
 }
 
+async function persistCity(
+  cleanName: string,
+  parent: RegionLookupItem,
+  latitude: number | null,
+  longitude: number | null,
+) {
+  try {
+    const [row] = await Region.findOrCreate({
+      where: { type: "CITY", parent_id: parent.id, name_el: cleanName },
+      defaults: {
+        name_el: cleanName,
+        name_en: null,
+        type: "CITY",
+        parent_id: parent.id,
+        latitude,
+        longitude,
+      } as any,
+    });
+    clearRegionLookupIndex();
+    return Number(row.id);
+  } catch (error) {
+    if (!(error instanceof UniqueConstraintError)) throw error;
+    const existing = await Region.findOne({
+      where: {
+        type: "CITY",
+        parent_id: parent.id,
+        name_el: { [Op.iLike]: cleanName },
+      },
+      order: [["id", "ASC"]],
+    });
+    if (!existing) throw error;
+    clearRegionLookupIndex();
+    return Number(existing.id);
+  }
+}
+
 async function createCity(name: string, parent: RegionLookupItem, allowOnlineLookup: boolean) {
   const cleanName = cleanRegionText(name);
   const geocoded = allowOnlineLookup ? await geocodeGreekCity(cleanName) : null;
-  const [row] = await Region.findOrCreate({
-    where: { type: "CITY", parent_id: parent.id, name_el: cleanName },
-    defaults: {
-      name_el: cleanName,
-      name_en: null,
-      type: "CITY",
-      parent_id: parent.id,
-      latitude: geocoded?.latitude ?? parent.latitude,
-      longitude: geocoded?.longitude ?? parent.longitude,
-    } as any,
-  });
-  clearRegionLookupIndex();
-  return Number(row.id);
+  return persistCity(
+    cleanName,
+    parent,
+    geocoded?.latitude ?? parent.latitude,
+    geocoded?.longitude ?? parent.longitude,
+  );
 }
 
 async function createForeignCity(name: string, country: RegionLookupItem) {
   const cleanName = cleanRegionText(name);
-  const [row] = await Region.findOrCreate({
-    where: { type: "CITY", parent_id: country.id, name_el: cleanName },
-    defaults: {
-      name_el: cleanName,
-      name_en: null,
-      type: "CITY",
-      parent_id: country.id,
-      latitude: country.latitude,
-      longitude: country.longitude,
-    } as any,
-  });
-  clearRegionLookupIndex();
-  return Number(row.id);
+  return persistCity(cleanName, country, country.latitude, country.longitude);
 }
 
 async function ensureGreekCityLocation(name: string, peripheryId: number | null, nomosId: number | null, allowOnlineLookup = true) {
