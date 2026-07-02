@@ -55,7 +55,7 @@ async function geocodeGreekCity(name: string) {
     const latitude = Number(item?.lat);
     const longitude = Number(item?.lon);
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-    return { latitude, longitude, external_ref_id: item?.osm_id ? `nominatim:${item.osm_type}:${item.osm_id}` : null };
+    return { latitude, longitude };
   } catch {
     return null;
   } finally {
@@ -64,20 +64,17 @@ async function geocodeGreekCity(name: string) {
 }
 
 async function createCity(name: string, parent: RegionLookupItem, allowOnlineLookup: boolean) {
-  const normalized = normalizeRegionText(name);
-  const geocoded = allowOnlineLookup ? await geocodeGreekCity(name) : null;
+  const cleanName = cleanRegionText(name);
+  const geocoded = allowOnlineLookup ? await geocodeGreekCity(cleanName) : null;
   const [row] = await Region.findOrCreate({
-    where: { type: "CITY", parent_id: parent.id, normalized_name: normalized },
+    where: { type: "CITY", parent_id: parent.id, name_el: cleanName },
     defaults: {
-      name,
-      name_el: name,
+      name_el: cleanName,
       name_en: null,
-      normalized_name: normalized,
       type: "CITY",
       parent_id: parent.id,
       latitude: geocoded?.latitude ?? parent.latitude,
       longitude: geocoded?.longitude ?? parent.longitude,
-      external_ref_id: geocoded?.external_ref_id ?? null,
     } as any,
   });
   clearRegionLookupIndex();
@@ -85,19 +82,16 @@ async function createCity(name: string, parent: RegionLookupItem, allowOnlineLoo
 }
 
 async function createForeignCity(name: string, country: RegionLookupItem) {
-  const normalized = normalizeRegionText(name);
+  const cleanName = cleanRegionText(name);
   const [row] = await Region.findOrCreate({
-    where: { type: "CITY", parent_id: country.id, normalized_name: normalized },
+    where: { type: "CITY", parent_id: country.id, name_el: cleanName },
     defaults: {
-      name,
-      name_el: name,
+      name_el: cleanName,
       name_en: null,
-      normalized_name: normalized,
       type: "CITY",
       parent_id: country.id,
       latitude: country.latitude,
       longitude: country.longitude,
-      external_ref_id: null,
     } as any,
   });
   clearRegionLookupIndex();

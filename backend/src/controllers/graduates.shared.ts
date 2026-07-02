@@ -1,6 +1,6 @@
-import { Region } from "../models/Region";
 import { StudyProgram } from "../models/StudyProgram";
 import { normalizeRegionText } from "../utils/regionText";
+import { loadRegionLookupIndex, type RegionLookupItem } from "../services/regionLookup.service";
 import {
   buildForeignGraduateOriginPayload,
   buildGreekGraduateOriginPayload,
@@ -20,7 +20,7 @@ import {
 } from "./graduates.helpers";
 
 export type ProgramLookup = Pick<StudyProgram, "id" | "name_el" | "name_en">;
-export type RegionLookup = Pick<Region, "id" | "name" | "name_el" | "name_en" | "normalized_name" | "external_ref_id" | "type" | "parent_id">;
+export type RegionLookup = RegionLookupItem;
 export type LocalizedNamesByRegionId = Map<number, { nameEl: string | null; nameEn: string | null }>;
 export type ReferenceMaps = {
   programsById: Map<number, ProgramLookup>;
@@ -100,13 +100,13 @@ export function getTemplateHeaders(lang: ExportLang) {
 }
 
 export async function getReferenceMaps(): Promise<ReferenceMaps> {
-  const [programs, regions] = await Promise.all([
+  const [programs, regionIndex] = await Promise.all([
     StudyProgram.findAll({ order: [["id", "ASC"]] }),
-    Region.findAll({ order: [["id", "ASC"]] }),
+    loadRegionLookupIndex(),
   ]);
   return {
     programsById: new Map(programs.map((item) => [Number(item.id), item as ProgramLookup])),
-    regionsById: new Map(regions.map((item) => [Number(item.id), item as RegionLookup])),
+    regionsById: regionIndex.byId,
   };
 }
 
@@ -143,7 +143,7 @@ export function resolveRegionId(value: unknown, regionsById: Map<number, RegionL
   if (Number.isFinite(directId) && regionsById.has(directId)) return directId;
   const normalized = normalizeLookupValue(raw);
   for (const [id, item] of regionsById) {
-    if ([item.name, item.name_el, item.name_en, item.normalized_name, item.external_ref_id].filter(Boolean).map(normalizeLookupValue).includes(normalized)) return id;
+    if ([item.name_el, item.name_en, item.normalized_name].filter(Boolean).map(normalizeLookupValue).includes(normalized)) return id;
   }
   return null;
 }

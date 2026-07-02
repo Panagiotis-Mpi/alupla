@@ -124,32 +124,32 @@ export async function publicStats(req: Request, res: Response) {
            CASE WHEN origin_parent_region.type = 'PERIPHERY' THEN origin_parent_region.id ELSE NULL END
          )`;
       const originRegionWhere = sqlWhere
-        ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
-        : `WHERE r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
+        ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
+        : `WHERE r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
       const avgGradeByRegionRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; avg: number }>(
         `SELECT r.id as id,
-                r.name as name_el,
-                r.name as name_en,
+                r.name_el as name_el,
+                COALESCE(r.name_en, r.name_el) as name_en,
                 CAST(COUNT(*) AS INTEGER) as count,
                 ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
          FROM graduate_details g
          ${originRegionJoin}
          ${originRegionWhere}
-         GROUP BY r.id, r.name
-         ORDER BY count DESC, r.name ASC`,
+         GROUP BY r.id, r.name_el, r.name_en
+         ORDER BY count DESC, r.name_el ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
       const avgYearsToDegreeByRegionRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; avg_years: number }>(
         `SELECT r.id as id,
-                r.name as name_el,
-                r.name as name_en,
+                r.name_el as name_el,
+                COALESCE(r.name_en, r.name_el) as name_en,
                 CAST(COUNT(*) AS INTEGER) as count,
                 ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
          FROM graduate_details g
          ${originRegionJoin}
          ${originRegionWhere}
-         GROUP BY r.id, r.name
-         ORDER BY count DESC, r.name ASC`,
+         GROUP BY r.id, r.name_el, r.name_en
+         ORDER BY count DESC, r.name_el ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
       const localizedAvgGradeByRegion = await Promise.all(avgGradeByRegionRaw.map(async (r) => {
@@ -196,32 +196,32 @@ export async function publicStats(req: Request, res: Response) {
            CASE WHEN origin_parent_region.type = 'PERIPHERY' THEN origin_parent_region.id ELSE NULL END
          )`;
       const originRegionWhere = sqlWhere
-        ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
-        : `WHERE r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
+        ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
+        : `WHERE r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
       const originRegionDistribution = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number }>(
         `SELECT r.id as id,
-                r.name as name_el,
-                r.name as name_en,
+                r.name_el as name_el,
+                COALESCE(r.name_en, r.name_el) as name_en,
                 CAST(COUNT(*) AS INTEGER) as count
          FROM graduate_details g
          ${originRegionJoin}
          ${originRegionWhere}
-         GROUP BY r.id, r.name
-         ORDER BY count DESC, r.name ASC`,
+         GROUP BY r.id, r.name_el, r.name_en
+         ORDER BY count DESC, r.name_el ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
       const genderByRegionRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; male: number; female: number }>(
         `SELECT r.id as id,
-                r.name as name_el,
-                r.name as name_en,
+                r.name_el as name_el,
+                COALESCE(r.name_en, r.name_el) as name_en,
                 CAST(COUNT(*) AS INTEGER) as count,
                 CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
                 CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
          FROM graduate_details g
          ${originRegionJoin}
          ${originRegionWhere}
-         GROUP BY r.id, r.name
-         ORDER BY count DESC, r.name ASC`,
+         GROUP BY r.id, r.name_el, r.name_en
+         ORDER BY count DESC, r.name_el ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
       const originNomosJoin = `LEFT JOIN regions origin_nomos_region ON origin_nomos_region.id = g.origin_region_id
@@ -234,19 +234,19 @@ export async function publicStats(req: Request, res: Response) {
            CASE WHEN origin_city_grandparent_region.type = 'NOMOS' THEN origin_city_grandparent_region.id ELSE NULL END
          )`;
       const originNomosWhere = sqlWhere
-        ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'NOMOS' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
-        : `WHERE r.id IS NOT NULL AND r.type = 'NOMOS' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
+        ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'NOMOS' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
+        : `WHERE r.id IS NOT NULL AND r.type = 'NOMOS' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
       const avgYearsToDegreeByNomosRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; avg_years: number }>(
         `SELECT r.id as id,
-                r.name as name_el,
-                r.name as name_en,
+                r.name_el as name_el,
+                COALESCE(r.name_en, r.name_el) as name_en,
                 CAST(COUNT(*) AS INTEGER) as count,
                 ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
          FROM graduate_details g
          ${originNomosJoin}
          ${originNomosWhere}
-         GROUP BY r.id, r.name
-         ORDER BY count DESC, r.name ASC`,
+         GROUP BY r.id, r.name_el, r.name_en
+         ORDER BY count DESC, r.name_el ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
       const abroadByYear = await sequelize.query<{ year: number; greece: number; abroad: number }>(
@@ -662,19 +662,19 @@ export async function publicStats(req: Request, res: Response) {
        )`;
 
     const originRegionWhere = sqlWhere
-      ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
-      : `WHERE r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
+      ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
+      : `WHERE r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
 
     const originRegionDistribution = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number }>(
       `SELECT r.id as id,
-              r.name as name_el,
-              r.name as name_en,
+              r.name_el as name_el,
+              COALESCE(r.name_en, r.name_el) as name_en,
               CAST(COUNT(*) AS INTEGER) as count
        FROM graduate_details g
        ${originRegionJoin}
        ${originRegionWhere}
-       GROUP BY r.id, r.name
-       ORDER BY count DESC, r.name ASC`,
+       GROUP BY r.id, r.name_el, r.name_en
+       ORDER BY count DESC, r.name_el ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
@@ -689,44 +689,44 @@ export async function publicStats(req: Request, res: Response) {
 
     const genderByRegionRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; male: number; female: number }>(
       `SELECT r.id as id,
-              r.name as name_el,
-              r.name as name_en,
+              r.name_el as name_el,
+              COALESCE(r.name_en, r.name_el) as name_en,
               CAST(COUNT(*) AS INTEGER) as count,
               CAST(SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) AS INTEGER) as male,
               CAST(SUM(CASE WHEN g.gender = 'F' THEN 1 ELSE 0 END) AS INTEGER) as female
        FROM graduate_details g
        ${originRegionJoin}
        ${originRegionWhere}
-       GROUP BY r.id, r.name
-       ORDER BY count DESC, r.name ASC`,
+       GROUP BY r.id, r.name_el, r.name_en
+       ORDER BY count DESC, r.name_el ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
     const avgGradeByRegionRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; avg: number }>(
       `SELECT r.id as id,
-              r.name as name_el,
-              r.name as name_en,
+              r.name_el as name_el,
+              COALESCE(r.name_en, r.name_el) as name_en,
               CAST(COUNT(*) AS INTEGER) as count,
               ROUND(CAST(AVG(g.degree_grade) AS NUMERIC), 2) as avg
        FROM graduate_details g
        ${originRegionJoin}
        ${originRegionWhere}
-       GROUP BY r.id, r.name
-       ORDER BY count DESC, r.name ASC`,
+       GROUP BY r.id, r.name_el, r.name_en
+       ORDER BY count DESC, r.name_el ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
 
     const avgYearsToDegreeByRegionRaw = await sequelize.query<{ id: number | null; name_el: string | null; name_en: string | null; count: number; avg_years: number }>(
       `SELECT r.id as id,
-              r.name as name_el,
-              r.name as name_en,
+              r.name_el as name_el,
+              COALESCE(r.name_en, r.name_el) as name_en,
               CAST(COUNT(*) AS INTEGER) as count,
               ROUND(CAST(AVG(EXTRACT(YEAR FROM g.graduation_date) - g.entry_year) AS NUMERIC), 2) as avg_years
        FROM graduate_details g
        ${originRegionJoin}
        ${originRegionWhere}
-       GROUP BY r.id, r.name
-       ORDER BY count DESC, r.name ASC`,
+       GROUP BY r.id, r.name_el, r.name_en
+       ORDER BY count DESC, r.name_el ASC`,
       { replacements: repl, type: QueryTypes.SELECT }
     );
 

@@ -61,11 +61,11 @@ let regionRowsCache: Promise<any[]> | null = null;
 async function loadRegionRows() {
   if (!regionRowsCache) {
     regionRowsCache = Region.findAll({
-      attributes: ["id", "name", "type", "parent_id", "latitude", "longitude"],
-      order: [["name", "ASC"]],
+      attributes: ["id", "name_el", "type", "parent_id", "latitude", "longitude"],
+      order: [["name_el", "ASC"]],
     }).then((rows) => (rows as any[]).map((row) => ({
       id: Number(row.id),
-      name: String(row.name ?? ""),
+      name: String(row.name_el ?? ""),
       type: String(row.type ?? ""),
       parent_id: row.parent_id != null ? Number(row.parent_id) : null,
       latitude: row.latitude != null ? Number(row.latitude) : null,

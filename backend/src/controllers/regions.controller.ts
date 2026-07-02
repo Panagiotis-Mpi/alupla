@@ -24,7 +24,8 @@ function parseListFilters(req: Request) {
 
 export async function listRegions(req: Request, res: Response, next: NextFunction) {
   try {
-    const items = await Region.findAll({ where: parseListFilters(req), order: [["name", "ASC"]] });
+    const rows = await Region.findAll({ where: parseListFilters(req), order: [["name_el", "ASC"]] });
+    const items = rows.map((row) => ({ ...row.get({ plain: true }), name: row.name_el }));
     res.json({ ok: true, items });
   } catch (err) {
     next(err);

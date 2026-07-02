@@ -251,9 +251,9 @@ export async function loadMapAggregateRows(req: Request, scope: MapScope) {
   return sequelize.query<MapAggregateRow>(
     `SELECT
        CASE WHEN :mapScope = 'greece' THEN rh.periphery_id ELSE rh.country_id END AS map_region_id,
-       CASE WHEN :mapScope = 'greece' THEN periphery_region.name ELSE country_region.name END AS map_region_name,
-       CASE WHEN :mapScope = 'greece' THEN COALESCE(periphery_region.name_el, periphery_region.name) ELSE COALESCE(country_region.name_el, country_region.name) END AS map_region_name_el,
-       CASE WHEN :mapScope = 'greece' THEN COALESCE(periphery_region.name_en, periphery_region.name) ELSE COALESCE(country_region.name_en, country_region.name) END AS map_region_name_en,
+       CASE WHEN :mapScope = 'greece' THEN periphery_region.name_el ELSE country_region.name_el END AS map_region_name,
+       CASE WHEN :mapScope = 'greece' THEN periphery_region.name_el ELSE country_region.name_el END AS map_region_name_el,
+       CASE WHEN :mapScope = 'greece' THEN COALESCE(periphery_region.name_en, periphery_region.name_el) ELSE COALESCE(country_region.name_en, country_region.name_el) END AS map_region_name_en,
        CASE WHEN :mapScope = 'greece' THEN COALESCE(periphery_region.latitude, city_region.latitude, rh.latitude, nomos_region.latitude, country_region.latitude) ELSE COALESCE(country_region.latitude, city_region.latitude, rh.latitude) END::double precision AS map_latitude,
        CASE WHEN :mapScope = 'greece' THEN COALESCE(periphery_region.longitude, city_region.longitude, rh.longitude, nomos_region.longitude, country_region.longitude) ELSE COALESCE(country_region.longitude, city_region.longitude, rh.longitude) END::double precision AS map_longitude,
        COALESCE(rh.city_id, rh.location_id) AS city_id,
@@ -263,13 +263,13 @@ export async function loadMapAggregateRows(req: Request, scope: MapScope) {
        COALESCE(city_region.latitude, rh.latitude, nomos_region.latitude, periphery_region.latitude, country_region.latitude)::double precision AS city_latitude,
        COALESCE(city_region.longitude, rh.longitude, nomos_region.longitude, periphery_region.longitude, country_region.longitude)::double precision AS city_longitude,
        rh.periphery_id,
-       periphery_region.name AS periphery_name,
-       COALESCE(periphery_region.name_el, periphery_region.name) AS periphery_name_el,
-       COALESCE(periphery_region.name_en, periphery_region.name) AS periphery_name_en,
+       periphery_region.name_el AS periphery_name,
+       periphery_region.name_el AS periphery_name_el,
+       COALESCE(periphery_region.name_en, periphery_region.name_el) AS periphery_name_en,
        rh.country_id,
-       country_region.name AS country_name,
-       COALESCE(country_region.name_el, country_region.name) AS country_name_el,
-       COALESCE(country_region.name_en, country_region.name) AS country_name_en,
+       country_region.name_el AS country_name,
+       country_region.name_el AS country_name_el,
+       COALESCE(country_region.name_en, country_region.name_el) AS country_name_en,
        g.study_program_id,
        ${metricColumns}
      ${joins}

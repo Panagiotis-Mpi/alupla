@@ -29,7 +29,7 @@ export async function loadPublicMapRows(context: PublicWhereContext) {
   return queryAnalyticsRows<PublicMapRow>(
     `SELECT
         g.origin_region_id as region_id,
-        COALESCE(r.name, 'Unknown') as region_name,
+        COALESCE(r.name_el, 'Unknown') as region_name,
         r.type as region_type,
         COUNT(*) as count,
         SUM(CASE WHEN g.gender = 'M' THEN 1 ELSE 0 END) as male,
@@ -37,7 +37,7 @@ export async function loadPublicMapRows(context: PublicWhereContext) {
      FROM graduate_details g
      LEFT JOIN regions r ON r.id = g.origin_region_id
      ${context.sqlWhere}
-     GROUP BY g.origin_region_id, r.name, r.type
+     GROUP BY g.origin_region_id, r.name_el, r.type
      ORDER BY count DESC, region_name ASC`,
     context,
   );

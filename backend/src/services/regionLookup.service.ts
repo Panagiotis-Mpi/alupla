@@ -11,7 +11,6 @@ export type RegionLookupItem = {
   parent_id: number | null;
   latitude: number | null;
   longitude: number | null;
-  external_ref_id: string | null;
 };
 
 export type RegionHierarchy = {
@@ -51,7 +50,7 @@ function createIndex(rows: RegionLookupItem[]) {
   for (const item of rows) {
     byId.set(item.id, item);
     const target = byTypeAndName.get(item.type)!;
-    for (const value of [item.normalized_name, item.name, item.name_el, item.name_en]) {
+    for (const value of [item.normalized_name, item.name_el, item.name_en]) {
       addMatch(target, normalizeRegionText(value), item);
     }
   }
@@ -61,19 +60,18 @@ function createIndex(rows: RegionLookupItem[]) {
 export async function loadRegionLookupIndex() {
   if (!lookupCache) {
     lookupCache = Region.findAll({
-      attributes: ["id", "name", "name_el", "name_en", "normalized_name", "type", "parent_id", "latitude", "longitude", "external_ref_id"],
+      attributes: ["id", "name_el", "name_en", "type", "parent_id", "latitude", "longitude"],
       order: [["id", "ASC"]],
     }).then((rows) => createIndex((rows as any[]).map((row) => ({
       id: Number(row.id),
-      name: String(row.name || ""),
-      name_el: row.name_el != null ? String(row.name_el) : null,
+      name: String(row.name_el || ""),
+      name_el: String(row.name_el || "") || null,
       name_en: row.name_en != null ? String(row.name_en) : null,
-      normalized_name: String(row.normalized_name || normalizeRegionText(row.name)),
+      normalized_name: normalizeRegionText(row.name_el),
       type: row.type as RegionType,
       parent_id: row.parent_id != null ? Number(row.parent_id) : null,
       latitude: numberOrNull(row.latitude),
       longitude: numberOrNull(row.longitude),
-      external_ref_id: row.external_ref_id != null ? String(row.external_ref_id) : null,
     }))));
   }
   return lookupCache;
