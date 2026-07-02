@@ -11,7 +11,6 @@ import {
 } from "../lib/api";
 import { downloadBlob } from "../lib/download";
 import { buildExportFilename } from "../lib/exportFilenames";
-import { compareSortText } from "./shared/sorting";
 import Icon from "../components/Icon";
 import arrowDownIcon from "../assets/icons/arrow-down-to-line.svg";
 import arrowUpIcon from "../assets/icons/arrow-up-to-line.svg";
@@ -98,7 +97,8 @@ export default function AcademicData() {
 
     try {
       const result = await listStudyPrograms();
-      setPrograms(result.items ?? []);
+      const items = result.items ?? [];
+      setPrograms([...items].sort((left, right) => left.id - right.id));
     } catch (error) {
       setError(errorText(error));
     } finally {
@@ -110,17 +110,6 @@ export default function AcademicData() {
   React.useEffect(() => {
     void load();
   }, []);
-
-  const sortedPrograms = React.useMemo(() => {
-    return [...programs].sort((left, right) =>
-      compareSortText(
-        programName(left, lang),
-        programName(right, lang),
-        "asc",
-        lang === "en" ? "en" : "el",
-      ),
-    );
-  }, [programs, lang]);
 
   const hasProgramDraft = Boolean(
     editingProgramId || programForm.name_el || programForm.name_en,
@@ -308,7 +297,7 @@ export default function AcademicData() {
               </tr>
             </thead>
             <tbody>
-              {sortedPrograms.map((item) => (
+              {programs.map((item) => (
                 <tr key={item.id}>
                   <td>{programName(item, lang)}</td>
                   <td>
