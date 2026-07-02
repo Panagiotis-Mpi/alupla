@@ -35,8 +35,8 @@ import {
 
 export async function publicStudyPrograms(_req: Request, res: Response) {
   const items = await StudyProgram.findAll({
-    attributes: ["id", "code", "name_el", "name_en"],
-    order: [["code", "ASC"]],
+    attributes: ["id", "name_el", "name_en"],
+    order: [["id", "ASC"]],
   });
   res.json({ ok: true, items });
 }

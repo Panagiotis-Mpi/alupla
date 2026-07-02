@@ -208,8 +208,8 @@ function cityItem(bucket: any) {
 }
 
 async function loadProgramLabels() {
-  const rows = await StudyProgram.findAll({ attributes: ["id", "code", "name_el", "name_en"] });
-  return new Map(rows.map((row: any) => [Number(row.id), String(row.name_el || row.name_en || row.code || "")]));
+  const rows = await StudyProgram.findAll({ attributes: ["id", "name_el", "name_en"], order: [["id", "ASC"]] });
+  return new Map(rows.map((row: any) => [Number(row.id), String(row.name_el || row.name_en || "")]));
 }
 
 function numericOrNull(value: unknown) {

@@ -3,7 +3,6 @@ import { sequelize } from "../config/sequelize";
 
 export class StudyProgram extends Model {
   declare id: number;
-  declare code: string;
   declare name_el: string;
   declare name_en: string | null;
 }
@@ -11,8 +10,7 @@ export class StudyProgram extends Model {
 StudyProgram.init(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    code: { type: DataTypes.STRING(50), allowNull: false, unique: true },
-    name_el: { type: DataTypes.STRING(255), allowNull: false },
+    name_el: { type: DataTypes.STRING(255), allowNull: false, unique: true },
     name_en: { type: DataTypes.STRING(255), allowNull: true }
   },
   {

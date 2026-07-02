@@ -18,7 +18,6 @@ import {
 } from "../utils/spreadsheetTemplate";
 
 type StudyProgramPatch = {
-  code?: string;
   name_el?: string;
   name_en?: string | null;
 };
@@ -33,12 +32,12 @@ async function findStudyProgramOrFail(id: number, res: Response) {
   return item;
 }
 
-// Ελέγχει αν υπάρχει ήδη πρόγραμμα με ίδιο code/name.
-async function findDuplicateStudyProgram(code: string, nameEl: string, excludedId?: number) {
+// Ελέγχει αν υπάρχει ήδη πρόγραμμα με ίδιο όνομα.
+async function findDuplicateStudyProgram(nameEl: string, excludedId?: number) {
   return StudyProgram.findOne({
     where: {
       ...(excludedId !== undefined ? { id: { [Op.ne]: excludedId } } : {}),
-      [Op.or]: [{ code }, { name_el: nameEl }]
+      name_el: nameEl
     }
   });
 }
@@ -47,13 +46,11 @@ async function findDuplicateStudyProgram(code: string, nameEl: string, excludedI
 function getTemplateHeaders(lang: string) {
   if (lang === "en") {
     return [[
-      "Study Program Code (required)",
       "Study Program Name in Greek (required)",
       "Study Program Name in English (optional)"
     ]];
   }
   return [[
-    "Κωδικός Προγράμματος Σπουδών (υποχρεωτικό)",
     "Ονομασία Προγράμματος Σπουδών στα Ελληνικά (υποχρεωτικό)",
     "Ονομασία Προγράμματος Σπουδών στα Αγγλικά (προαιρετικό)"
   ]];
@@ -71,16 +68,6 @@ function normalizeProgramRow(input: Record<string, unknown>) {
     const normalized = normHeader(key);
     return [normalizeImportKey(normalized), value];
   }));
-  const code = String(pickFirstFilled(row, [
-    "study_program_code_(required)",
-    "study_program_code",
-    "program_code",
-    "code",
-    "κωδικος_προγραμματος_σπουδων_(υποχρεωτικο)",
-    "κωδικος_προγραμματος_σπουδων",
-    "κωδικος_προγραμματος",
-    "κωδικος"
-  ]) ?? "").trim();
   const nameEl = String(pickFirstFilled(row, [
     "study_program_name_in_greek_(required)",
     "study_program_name_in_greek",
@@ -112,7 +99,6 @@ function normalizeProgramRow(input: Record<string, unknown>) {
     "ονομασια_en"
   ]) ?? "").trim();
   return {
-    code,
     name_el: nameEl,
     name_en: nameEn || null,
   };
@@ -173,20 +159,17 @@ export async function importStudyPrograms(req: Request, res: Response, next: Nex
 
     for (const sourceRow of rows) {
       const row = normalizeProgramRow(sourceRow);
-      if (!row.code || !row.name_el) {
+      if (!row.name_el) {
         skipped += 1;
         continue;
       }
 
       const existing = await StudyProgram.findOne({
-        where: {
-          [Op.or]: [{ code: row.code }, { name_el: row.name_el }]
-        }
+        where: { name_el: row.name_el }
       });
 
       if (existing) {
         await existing.update({
-          code: row.code,
           name_el: row.name_el,
           name_en: row.name_en,
         });
@@ -223,21 +206,19 @@ export async function importStudyPrograms(req: Request, res: Response, next: Nex
 // Δημιουργεί πρόγραμμα σπουδών από τη φόρμα διαχείρισης.
 export async function createStudyProgram(req: Request, res: Response, next: NextFunction) {
   try {
-    const code = readText(req.body?.code);
     const nameEl = readText(req.body?.name_el);
     const nameEn = readText(req.body?.name_en) || null;
 
-    if (!code || !nameEl) {
-      return invalid(res, "code and name_el are required");
+    if (!nameEl) {
+      return invalid(res, "name_el is required");
     }
 
-    const existing = await findDuplicateStudyProgram(code, nameEl);
+    const existing = await findDuplicateStudyProgram(nameEl);
     if (existing) {
       return invalid(res, "Study program already exists");
     }
 
     const item = await StudyProgram.create({
-      code,
       name_el: nameEl,
       name_en: nameEn
     });
@@ -248,7 +229,7 @@ export async function createStudyProgram(req: Request, res: Response, next: Next
       action: "create_study_program",
       entity_type: "study_program",
       entity_id: item.id,
-      details: { code, name_el: nameEl, name_en: nameEn }
+      details: { name_el: nameEl, name_en: nameEn }
     });
 
     res.status(201).json({ ok: true, item });
@@ -272,14 +253,6 @@ export async function updateStudyProgram(req: Request, res: Response, next: Next
 
     const patch: StudyProgramPatch = {};
 
-    if (req.body?.code !== undefined) {
-      const code = readText(req.body.code);
-      if (!code) {
-        return invalid(res, "code is required");
-      }
-      patch.code = code;
-    }
-
     if (req.body?.name_el !== undefined) {
       const nameEl = readText(req.body.name_el);
       if (!nameEl) {
@@ -296,10 +269,9 @@ export async function updateStudyProgram(req: Request, res: Response, next: Next
       return invalid(res, "No changes provided");
     }
 
-    const nextCode = patch.code ?? item.code;
     const nextNameEl = patch.name_el ?? item.name_el;
 
-    const existing = await findDuplicateStudyProgram(nextCode, nextNameEl, id);
+    const existing = await findDuplicateStudyProgram(nextNameEl, id);
     if (existing) {
       return invalid(res, "Study program already exists");
     }
@@ -341,7 +313,6 @@ export async function deleteStudyProgram(req: Request, res: Response, next: Next
 
 
     const details = {
-      code: item.code,
       name_el: item.name_el,
       name_en: item.name_en
     };

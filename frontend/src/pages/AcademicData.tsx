@@ -127,19 +127,6 @@ export default function AcademicData() {
     setProgramForm(emptyProgramForm);
   }
 
-  function createProgramCode() {
-    const usedCodes = new Set(
-      programs.map((item) => String(item.code ?? "").toLowerCase()),
-    );
-    let code = `SP-${Date.now().toString(36).toUpperCase()}`;
-    let suffix = 1;
-    while (usedCodes.has(code.toLowerCase())) {
-      code = `SP-${Date.now().toString(36).toUpperCase()}-${suffix}`;
-      suffix += 1;
-    }
-    return code.slice(0, 50);
-  }
-
   async function saveProgram() {
     try {
       if (editingProgramId) {
@@ -149,7 +136,6 @@ export default function AcademicData() {
         });
       } else {
         await createStudyProgram({
-          code: createProgramCode(),
           name_el: programForm.name_el,
           name_en: programForm.name_en,
         });

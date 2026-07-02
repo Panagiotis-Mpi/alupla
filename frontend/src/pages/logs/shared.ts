@@ -440,9 +440,6 @@ export function createLogsLocalizer({
   const studyProgramById = new Map(
     studyPrograms.map((program) => [Number(program.id), program]),
   );
-  const studyProgramByCode = new Map(
-    studyPrograms.map((program) => [normalizeLookup(program.code), program]),
-  );
   const studyProgramByName = new Map<string, StudyProgram>();
 
   for (const program of studyPrograms) {
@@ -459,16 +456,15 @@ export function createLogsLocalizer({
 
     const id = Number(details.study_program_id);
     const byId = Number.isFinite(id) ? studyProgramById.get(id) : undefined;
-    const byCode = studyProgramByCode.get(normalizeLookup(details.code));
     const byName = studyProgramByName.get(
       normalizeLookup(details.name ?? details.name_el ?? details.name_en),
     );
-    const program = byId ?? byCode ?? byName;
+    const program = byId ?? byName;
 
     if (program) {
       const preferred = activeLang === "en" ? program.name_en : program.name_el;
       const fallback = activeLang === "en" ? program.name_el : program.name_en;
-      return String(preferred ?? fallback ?? program.code ?? "").trim();
+      return String(preferred ?? fallback ?? "").trim();
     }
 
     return String(

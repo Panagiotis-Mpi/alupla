@@ -187,8 +187,8 @@ export function createNameMap(items: Array<Record<string, unknown>>, activeLang:
   const map = new Map<number, string>();
   for (const item of items || []) {
     const name = activeLang === "en"
-      ? firstText(item.name_en, item.name_el, item.code, item.id)
-      : firstText(item.name_el, item.name_en, item.code, item.id);
+      ? firstText(item.name_en, item.name_el, item.id)
+      : firstText(item.name_el, item.name_en, item.id);
     map.set(Number(item.id), name);
   }
   return map;

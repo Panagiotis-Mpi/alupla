@@ -19,7 +19,7 @@ import {
   type ExportLang,
 } from "./graduates.helpers";
 
-export type ProgramLookup = Pick<StudyProgram, "id" | "code" | "name_el" | "name_en">;
+export type ProgramLookup = Pick<StudyProgram, "id" | "name_el" | "name_en">;
 export type RegionLookup = Pick<Region, "id" | "name" | "name_el" | "name_en" | "normalized_name" | "external_ref_id" | "type" | "parent_id">;
 export type LocalizedNamesByRegionId = Map<number, { nameEl: string | null; nameEn: string | null }>;
 export type ReferenceMaps = {
@@ -84,8 +84,8 @@ export function buildExportRows(
       [labels.oath_date]: formatDateDisplay(row.oath_date),
       [labels.study_program]: program
         ? lang === "en"
-          ? firstText(program.name_en, program.name_el, program.code, program.id)
-          : firstText(program.name_el, program.name_en, program.code, program.id)
+          ? firstText(program.name_en, program.name_el, program.id)
+          : firstText(program.name_el, program.name_en, program.id)
         : "",
       [labels.origin_country]: countryName,
       [labels.origin_region]: isGreece ? regionName(periphery, lang, localizedNamesById) : "",
@@ -128,7 +128,7 @@ export function resolveStudyProgramId(value: unknown, programsById: Map<number, 
   if (Number.isFinite(directId) && programsById.has(directId)) return directId;
   const normalized = normalizeLookupValue(raw);
   for (const [id, item] of programsById) {
-    const candidates = [item.code, item.name_el, item.name_en, `${item.id} (${item.name_el ?? item.name_en ?? item.code ?? item.id})`, `${item.id} (${item.name_en ?? item.name_el ?? item.code ?? item.id})`]
+    const candidates = [item.name_el, item.name_en, `${item.id} (${item.name_el ?? item.name_en ?? item.id})`, `${item.id} (${item.name_en ?? item.name_el ?? item.id})`]
       .filter(Boolean)
       .map(normalizeLookupValue);
     if (candidates.includes(normalized)) return id;

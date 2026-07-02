@@ -36,7 +36,6 @@ export type User = {
 
 export type StudyProgram = {
   id: number;
-  code: string;
   name_el: string;
   name_en?: string | null;
 };
@@ -453,25 +452,24 @@ export async function listStudyPrograms(): Promise<ListResponse<StudyProgram>> {
   if (!getToken())
     return cachedPrivateApi(
       "references",
-      "/public/study-programs",
+      "/public/study-programs?order=id",
       REFERENCE_CACHE_MS,
     );
   try {
     return await cachedPrivateApi(
       "references",
-      "/study-programs",
+      "/study-programs?order=id",
       REFERENCE_CACHE_MS,
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (/401|403|unauthorized|forbidden/i.test(message))
-      return api("/public/study-programs", { method: "GET" });
+      return api("/public/study-programs?order=id", { method: "GET" });
     throw error;
   }
 }
 
 export async function createStudyProgram(payload: {
-  code: string;
   name_el: string;
   name_en?: string | null;
 }): Promise<ItemResponse<StudyProgram>> {
@@ -491,7 +489,6 @@ export async function createStudyProgram(payload: {
 export async function updateStudyProgram(
   id: number,
   payload: Partial<{
-    code: string;
     name_el: string;
     name_en?: string | null;
   }>,
