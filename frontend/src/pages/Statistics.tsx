@@ -851,6 +851,10 @@ export default function Statistics() {
     }
 
     if (!files.length) throw new Error("png_export_failed");
+    if (files.length === 1) {
+      downloadBlob(files[0].blob, files[0].filename);
+      return;
+    }
 
     const zip = new JSZip();
     files.forEach((file) => zip.file(file.filename, file.blob));
