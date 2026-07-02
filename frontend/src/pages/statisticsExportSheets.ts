@@ -19,6 +19,39 @@ import {
   type StatisticsChartId,
 } from "./statisticsExportCore";
 
+function controlledPercentages(values: number[], total: number) {
+  const safeValues = values.map((value) => Math.max(0, num(value)));
+  const denominator = Math.max(0, num(total));
+  if (!safeValues.length || denominator <= 0) return safeValues.map(() => 0);
+
+  const factor = 100;
+  const exactUnits = safeValues.map((value) => (value / denominator) * 100 * factor);
+  const units = exactUnits.map((value) => Math.floor(value));
+  const targetUnits = Math.round((safeValues.reduce((sum, value) => sum + value, 0) / denominator) * 100 * factor);
+  let remaining = targetUnits - units.reduce((sum, value) => sum + value, 0);
+  const order = exactUnits
+    .map((value, index) => ({ index, remainder: value - Math.floor(value) }))
+    .sort((a, b) => b.remainder - a.remainder || a.index - b.index);
+
+  for (let index = 0; index < remaining; index += 1) {
+    units[order[index % order.length].index] += 1;
+  }
+
+  return units.map((value) => value / factor);
+}
+
+function applyDistributionPercentages(rows: Record<string, string | number>[], countColumn: string, percentageColumn: string, total: number) {
+  const percentages = controlledPercentages(rows.map((row) => num(row[countColumn])), total);
+  rows.forEach((row, index) => {
+    row[percentageColumn] = percentages[index] ?? 0;
+  });
+}
+
+function percentagePair(first: number, second: number) {
+  const percentages = controlledPercentages([first, second], first + second);
+  return [percentages[0] ?? 0, percentages[1] ?? 0] as const;
+}
+
 export function buildSheets(args: BuildArgs) {
   const { data, activeLang } = args;
   const l = exportLabels(activeLang);
@@ -36,6 +69,7 @@ export function buildSheets(args: BuildArgs) {
       [l.percentage]: percentOf(count, totalGraduates),
     };
   });
+  applyDistributionPercentages(byYearRows, l.graduateCount, l.percentage, totalGraduates);
 
   sheets.set("byYear", {
     chartId: "byYear",
@@ -56,6 +90,7 @@ export function buildSheets(args: BuildArgs) {
       [l.percentage]: percentOf(count, totalGraduates),
     };
   });
+  applyDistributionPercentages(countByEntryYearRows, l.graduateCount, l.percentage, totalGraduates);
 
   sheets.set("countByEntryYear", {
     chartId: "countByEntryYear",
@@ -72,18 +107,20 @@ export function buildSheets(args: BuildArgs) {
     const male = num(row.male);
     const female = num(row.female);
     const count = male + female;
+    const [malePercentage, femalePercentage] = percentagePair(male, female);
     return {
       [l.graduationYear]: num(row.year),
       [l.maleCount]: male,
       [l.femaleCount]: female,
       [l.graduateCount]: count,
-      [l.malePercentage]: percentOf(male, count),
-      [l.femalePercentage]: percentOf(female, count),
+      [l.malePercentage]: malePercentage,
+      [l.femalePercentage]: femalePercentage,
     };
   });
   const genderMaleTotal = sumValues(data.gender_by_year, (row) => row.male);
   const genderFemaleTotal = sumValues(data.gender_by_year, (row) => row.female);
   const genderTotal = genderMaleTotal + genderFemaleTotal;
+  const [genderMalePercentage, genderFemalePercentage] = percentagePair(genderMaleTotal, genderFemaleTotal);
 
   sheets.set("gender", {
     chartId: "gender",
@@ -96,8 +133,8 @@ export function buildSheets(args: BuildArgs) {
             [l.maleCount]: genderMaleTotal,
             [l.femaleCount]: genderFemaleTotal,
             [l.graduateCount]: genderTotal,
-            [l.malePercentage]: percentOf(genderMaleTotal, genderTotal),
-            [l.femalePercentage]: percentOf(genderFemaleTotal, genderTotal),
+            [l.malePercentage]: genderMalePercentage,
+            [l.femalePercentage]: genderFemalePercentage,
           },
         ]
       : genderRows,
@@ -118,12 +155,12 @@ export function buildSheets(args: BuildArgs) {
       {
         [l.category]: activeLang === "en" ? "Male" : "Άνδρες",
         [l.graduateCount]: genderMaleTotal,
-        [l.percentage]: percentOf(genderMaleTotal, genderTotal),
+        [l.percentage]: genderMalePercentage,
       },
       {
         [l.category]: activeLang === "en" ? "Female" : "Γυναίκες",
         [l.graduateCount]: genderFemaleTotal,
-        [l.percentage]: percentOf(genderFemaleTotal, genderTotal),
+        [l.percentage]: genderFemalePercentage,
       },
       {
         [l.category]: l.total,
@@ -145,19 +182,22 @@ export function buildSheets(args: BuildArgs) {
     const genderRow = genderByBirthYearMap.get(year);
     const male = num(genderRow?.male);
     const female = num(genderRow?.female);
+    const [malePercentage, femalePercentage] = percentagePair(male, female);
     return {
       [l.birthYear]: year,
       [l.graduateCount]: count,
       [l.percentage]: percentOf(count, totalGraduates),
       [l.maleCount]: male,
       [l.femaleCount]: female,
-      [l.malePercentage]: percentOf(male, count),
-      [l.femalePercentage]: percentOf(female, count),
+      [l.malePercentage]: malePercentage,
+      [l.femalePercentage]: femalePercentage,
     };
   });
   const birthYearMaleTotal = birthYearRows.reduce((sum, row) => sum + num(row[l.maleCount]), 0);
   const birthYearFemaleTotal = birthYearRows.reduce((sum, row) => sum + num(row[l.femaleCount]), 0);
   const birthYearCountTotal = birthYearRows.reduce((sum, row) => sum + num(row[l.graduateCount]), 0);
+  const [birthYearMalePercentage, birthYearFemalePercentage] = percentagePair(birthYearMaleTotal, birthYearFemaleTotal);
+  applyDistributionPercentages(birthYearRows, l.graduateCount, l.percentage, totalGraduates);
 
   sheets.set("birthYear", {
     chartId: "birthYear",
@@ -171,8 +211,8 @@ export function buildSheets(args: BuildArgs) {
             [l.percentage]: birthYearCountTotal > 0 ? 100 : 0,
             [l.maleCount]: birthYearMaleTotal,
             [l.femaleCount]: birthYearFemaleTotal,
-            [l.malePercentage]: percentOf(birthYearMaleTotal, birthYearCountTotal),
-            [l.femalePercentage]: percentOf(birthYearFemaleTotal, birthYearCountTotal),
+            [l.malePercentage]: birthYearMalePercentage,
+            [l.femalePercentage]: birthYearFemalePercentage,
           },
         ]
       : birthYearRows,
@@ -197,6 +237,7 @@ export function buildSheets(args: BuildArgs) {
       [l.averageGraduationGrade]: roundTo(row.avg, 2),
     };
   });
+  applyDistributionPercentages(gradeByYearRows, l.graduateCount, l.percentage, totalGraduates);
 
   sheets.set("gradeByYear", {
     chartId: "gradeByYear",
@@ -228,6 +269,7 @@ export function buildSheets(args: BuildArgs) {
       [l.percentage]: percentOf(count, totalGraduates),
     };
   });
+  applyDistributionPercentages(gradeDistributionRows, l.graduateCount, l.percentage, totalGraduates);
 
   sheets.set("gradeDistribution", {
     chartId: "gradeDistribution",
@@ -244,18 +286,20 @@ export function buildSheets(args: BuildArgs) {
     const male = num(row.male);
     const female = num(row.female);
     const count = male + female;
+    const [malePercentage, femalePercentage] = percentagePair(male, female);
     return {
       [l.graduationGradeRange]: text(row.label),
       [l.maleCount]: male,
       [l.femaleCount]: female,
       [l.graduateCount]: count,
-      [l.malePercentage]: percentOf(male, count),
-      [l.femalePercentage]: percentOf(female, count),
+      [l.malePercentage]: malePercentage,
+      [l.femalePercentage]: femalePercentage,
     };
   });
   const gradeGenderMaleTotal = sumValues(data.degree_grade_bins_by_gender, (row) => row.male);
   const gradeGenderFemaleTotal = sumValues(data.degree_grade_bins_by_gender, (row) => row.female);
   const gradeGenderTotal = gradeGenderMaleTotal + gradeGenderFemaleTotal;
+  const [gradeGenderMalePercentage, gradeGenderFemalePercentage] = percentagePair(gradeGenderMaleTotal, gradeGenderFemaleTotal);
 
   sheets.set("gradeDistributionByGender", {
     chartId: "gradeDistributionByGender",
@@ -268,8 +312,8 @@ export function buildSheets(args: BuildArgs) {
             [l.maleCount]: gradeGenderMaleTotal,
             [l.femaleCount]: gradeGenderFemaleTotal,
             [l.graduateCount]: gradeGenderTotal,
-            [l.malePercentage]: percentOf(gradeGenderMaleTotal, gradeGenderTotal),
-            [l.femalePercentage]: percentOf(gradeGenderFemaleTotal, gradeGenderTotal),
+            [l.malePercentage]: gradeGenderMalePercentage,
+            [l.femalePercentage]: gradeGenderFemalePercentage,
           },
         ]
       : gradeDistributionByGenderRows,
@@ -294,6 +338,7 @@ export function buildSheets(args: BuildArgs) {
   });
   const weightedGradeRegionTotal = gradeByRegionRows.reduce((sum, row) => sum + num(row[l.graduateCount]) * num(row[l.averageGraduationGrade]), 0);
   const gradeRegionCountTotal = gradeByRegionRows.reduce((sum, row) => sum + num(row[l.graduateCount]), 0);
+  applyDistributionPercentages(gradeByRegionRows, l.graduateCount, l.percentage, gradeRegionCountTotal);
 
   sheets.set("gradeByRegion", {
     chartId: "gradeByRegion",
@@ -321,18 +366,20 @@ export function buildSheets(args: BuildArgs) {
     const male = num(row.male);
     const female = num(row.female);
     const count = male + female;
+    const [malePercentage, femalePercentage] = percentagePair(male, female);
     return {
       [l.entryYear]: num(row.entry_year),
       [l.maleCount]: male,
       [l.femaleCount]: female,
       [l.graduateCount]: count,
-      [l.malePercentage]: percentOf(male, count),
-      [l.femalePercentage]: percentOf(female, count),
+      [l.malePercentage]: malePercentage,
+      [l.femalePercentage]: femalePercentage,
     };
   });
   const entryMaleTotal = sumValues(data.gender_by_entry_year, (row) => row.male);
   const entryFemaleTotal = sumValues(data.gender_by_entry_year, (row) => row.female);
   const entryGenderTotal = entryMaleTotal + entryFemaleTotal;
+  const [entryMalePercentage, entryFemalePercentage] = percentagePair(entryMaleTotal, entryFemaleTotal);
 
   sheets.set("genderByEntryYear", {
     chartId: "genderByEntryYear",
@@ -345,8 +392,8 @@ export function buildSheets(args: BuildArgs) {
             [l.maleCount]: entryMaleTotal,
             [l.femaleCount]: entryFemaleTotal,
             [l.graduateCount]: entryGenderTotal,
-            [l.malePercentage]: percentOf(entryMaleTotal, entryGenderTotal),
-            [l.femalePercentage]: percentOf(entryFemaleTotal, entryGenderTotal),
+            [l.malePercentage]: entryMalePercentage,
+            [l.femalePercentage]: entryFemalePercentage,
           },
         ]
       : genderByEntryYearRows,
@@ -365,9 +412,11 @@ export function buildSheets(args: BuildArgs) {
     return {
       [l.regionOfOrigin]: localizedName(row, activeLang),
       [l.graduateCount]: count,
-      [l.percentage]: percentOf(count, totalGraduates),
+      [l.percentage]: 0,
     };
   });
+  const originRegionCountTotal = originRegionRows.reduce((sum, row) => sum + num(row[l.graduateCount]), 0);
+  applyDistributionPercentages(originRegionRows, l.graduateCount, l.percentage, originRegionCountTotal);
 
   sheets.set("originRegion", {
     chartId: "originRegion",
@@ -384,18 +433,20 @@ export function buildSheets(args: BuildArgs) {
     const male = num(row.male);
     const female = num(row.female);
     const count = male + female;
+    const [malePercentage, femalePercentage] = percentagePair(male, female);
     return {
       [l.regionOfOrigin]: localizedName(row, activeLang),
       [l.maleCount]: male,
       [l.femaleCount]: female,
       [l.graduateCount]: count,
-      [l.malePercentage]: percentOf(male, count),
-      [l.femalePercentage]: percentOf(female, count),
+      [l.malePercentage]: malePercentage,
+      [l.femalePercentage]: femalePercentage,
     };
   });
   const regionMaleTotal = sumValues(data.gender_by_region, (row) => row.male);
   const regionFemaleTotal = sumValues(data.gender_by_region, (row) => row.female);
   const regionGenderTotal = regionMaleTotal + regionFemaleTotal;
+  const [regionMalePercentage, regionFemalePercentage] = percentagePair(regionMaleTotal, regionFemaleTotal);
 
   sheets.set("genderByRegion", {
     chartId: "genderByRegion",
@@ -408,8 +459,8 @@ export function buildSheets(args: BuildArgs) {
             [l.maleCount]: regionMaleTotal,
             [l.femaleCount]: regionFemaleTotal,
             [l.graduateCount]: regionGenderTotal,
-            [l.malePercentage]: percentOf(regionMaleTotal, regionGenderTotal),
-            [l.femalePercentage]: percentOf(regionFemaleTotal, regionGenderTotal),
+            [l.malePercentage]: regionMalePercentage,
+            [l.femalePercentage]: regionFemalePercentage,
           },
         ]
       : genderByRegionRows,
@@ -447,18 +498,20 @@ export function buildSheets(args: BuildArgs) {
     const male = num(row.male);
     const female = num(row.female);
     const count = male + female;
+    const [malePercentage, femalePercentage] = percentagePair(male, female);
     return {
       [l.cityOfOrigin]: localizedCityName(row, activeLang),
       [l.maleCount]: male,
       [l.femaleCount]: female,
       [l.graduateCount]: count,
-      [l.malePercentage]: percentOf(male, count),
-      [l.femalePercentage]: percentOf(female, count),
+      [l.malePercentage]: malePercentage,
+      [l.femalePercentage]: femalePercentage,
     };
   });
   const municipalityMaleTotal = sumValues(data.gender_by_municipality, (row) => row.male);
   const municipalityFemaleTotal = sumValues(data.gender_by_municipality, (row) => row.female);
   const municipalityGenderTotal = municipalityMaleTotal + municipalityFemaleTotal;
+  const [municipalityMalePercentage, municipalityFemalePercentage] = percentagePair(municipalityMaleTotal, municipalityFemaleTotal);
 
   sheets.set("genderByMunicipality", {
     chartId: "genderByMunicipality",
@@ -471,8 +524,8 @@ export function buildSheets(args: BuildArgs) {
             [l.maleCount]: municipalityMaleTotal,
             [l.femaleCount]: municipalityFemaleTotal,
             [l.graduateCount]: municipalityGenderTotal,
-            [l.malePercentage]: percentOf(municipalityMaleTotal, municipalityGenderTotal),
-            [l.femalePercentage]: percentOf(municipalityFemaleTotal, municipalityGenderTotal),
+            [l.malePercentage]: municipalityMalePercentage,
+            [l.femalePercentage]: municipalityFemalePercentage,
           },
         ]
       : genderByMunicipalityRows,
@@ -494,6 +547,7 @@ export function buildSheets(args: BuildArgs) {
       [l.percentage]: percentOf(count, totalGraduates),
     };
   });
+  applyDistributionPercentages(originCountryRows, l.graduateCount, l.percentage, totalGraduates);
 
   sheets.set("originCountry", {
     chartId: "originCountry",
@@ -590,6 +644,7 @@ export function buildSheets(args: BuildArgs) {
   });
   const weightedDurationTotal = durationByEntryYearRows.reduce((sum, row) => sum + num(row[l.graduateCount]) * num(row[l.averageStudyDuration]), 0);
   const durationCountTotal = durationByEntryYearRows.reduce((sum, row) => sum + num(row[l.graduateCount]), 0);
+  applyDistributionPercentages(durationByEntryYearRows, l.graduateCount, l.percentage, entryYearTotal);
 
   sheets.set("timeToDegreeByEntryYear", {
     chartId: "timeToDegreeByEntryYear",
@@ -624,6 +679,7 @@ export function buildSheets(args: BuildArgs) {
   });
   const weightedDurationRegionTotal = durationByRegionRows.reduce((sum, row) => sum + num(row[l.graduateCount]) * num(row[l.averageStudyDuration]), 0);
   const durationRegionCountTotal = durationByRegionRows.reduce((sum, row) => sum + num(row[l.graduateCount]), 0);
+  applyDistributionPercentages(durationByRegionRows, l.graduateCount, l.percentage, durationRegionCountTotal);
 
   sheets.set("timeToDegreeByRegion", {
     chartId: "timeToDegreeByRegion",
@@ -689,6 +745,7 @@ export function buildSheets(args: BuildArgs) {
       [l.percentage]: percentOf(count, totalGraduates),
     };
   });
+  applyDistributionPercentages(durationDistributionRows, l.graduateCount, l.percentage, totalGraduates);
 
   sheets.set("timeToDegreeDistribution", {
     chartId: "timeToDegreeDistribution",
