@@ -196,7 +196,7 @@
   white-space:nowrap;
 }
 .graduates-filter-panel{
-  padding:18px;
+  padding:20px;
   display:grid;
   gap:18px;
 }
@@ -205,22 +205,27 @@
   align-items:flex-start;
   justify-content:space-between;
   gap:16px;
+  padding-bottom:16px;
+  border-bottom:1px solid #e2e8f0;
 }
 .graduates-filter-panel-head h2{
   margin:0;
   color:#1e3a8a;
-  font-size:20px;
+  font-size:22px;
+  line-height:1.2;
 }
 .graduates-filter-panel-head p{
-  margin:5px 0 0;
+  margin:6px 0 0;
   color:#64748b;
   font-size:13px;
+  line-height:1.5;
 }
 .graduates-panel-close{
-  width:38px;
-  height:38px;
+  width:40px;
+  height:40px;
+  flex:0 0 auto;
   border:1px solid #dbeafe;
-  border-radius:10px;
+  border-radius:12px;
   background:#fff;
   color:#475569;
   display:inline-flex;
@@ -232,41 +237,128 @@
   background:#eff6ff;
   color:#1d4ed8;
 }
-.graduates-filter-grid{
+.graduates-filter-layout{
   display:grid;
-  grid-template-columns:repeat(12,minmax(0,1fr));
-  gap:14px;
-  align-items:stretch;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+}
+.graduates-filter-section{
+  min-width:0;
+  padding:16px;
+  border:1px solid #dbeafe;
+  border-radius:16px;
+  background:#fbfdff;
+  display:grid;
+  align-content:start;
+  gap:16px;
+}
+.graduates-filter-section.is-wide{
+  grid-column:1 / -1;
+}
+.graduates-filter-section-head{
+  display:grid;
+  grid-template-columns:32px minmax(0,1fr);
+  gap:11px;
+  align-items:start;
+}
+.graduates-filter-section-head > span{
+  width:32px;
+  height:32px;
+  border-radius:10px;
+  background:#dbeafe;
+  color:#1d4ed8;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:13px;
+  font-weight:900;
+}
+.graduates-filter-section-head h3{
+  margin:0;
+  color:#1e3a8a;
+  font-size:16px;
+  line-height:1.25;
+}
+.graduates-filter-section-head p{
+  margin:4px 0 0;
+  color:#64748b;
+  font-size:12px;
+  line-height:1.45;
+}
+.graduates-filter-section-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:13px;
+  align-items:start;
+}
+.graduates-filter-section-grid.origin-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr));
 }
 .graduates-filter-field{
-  display:flex;
-  flex-direction:column;
+  min-width:0;
+  display:grid;
   gap:7px;
-  min-height:94px;
 }
 .graduates-filter-field .label{
-  min-height:34px;
+  min-height:30px;
   margin:0;
   color:#475569;
   font-size:12px;
-  font-weight:750;
+  font-weight:800;
+  line-height:1.25;
   display:flex;
   align-items:flex-end;
 }
 .graduates-filter-field .input{
-  min-height:42px;
+  min-height:44px;
+  width:100%;
 }
 .range-field-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:8px;
 }
+.range-field-grid > div{
+  min-width:0;
+}
+.range-field-label{
+  display:block;
+  margin-bottom:6px;
+  color:#64748b;
+  font-size:11px;
+  font-weight:800;
+}
 .graduates-filter-actions{
   grid-column:1 / -1;
+  min-width:0;
+  padding:14px 16px;
+  border:1px solid #bfdbfe;
+  border-radius:14px;
+  background:#eff6ff;
   display:flex;
   align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
+  justify-content:space-between;
+  gap:16px;
+}
+.graduates-filter-actions > div:first-child{
+  min-width:0;
+  display:grid;
+  gap:3px;
+}
+.graduates-filter-actions strong{
+  color:#1e3a8a;
+  font-size:14px;
+}
+.graduates-filter-actions span{
+  color:#64748b;
+  font-size:12px;
+  line-height:1.4;
+}
+.graduates-filter-action-buttons{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:9px;
 }
 .graduates-filter-actions .btn{
   min-height:42px;
@@ -575,6 +667,158 @@
   white-space:nowrap !important;
   border:0 !important;
 }
+.graduate-form-page{
+  display:grid;
+  gap:16px;
+  min-width:0;
+}
+.graduate-form-header{
+  padding:22px 24px;
+}
+.graduate-form-header h1{
+  margin:5px 0 0;
+  color:#0f172a;
+  font-size:clamp(26px,3vw,34px);
+  line-height:1.15;
+  letter-spacing:-.025em;
+}
+.graduate-form-header p{
+  max-width:760px;
+  margin:8px 0 0;
+  color:#64748b;
+  font-size:14px;
+  line-height:1.55;
+}
+.graduate-form-eyebrow{
+  color:#2563eb;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.graduate-form-card{
+  padding:20px;
+}
+.graduate-form-loading{
+  min-height:220px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#64748b;
+  font-weight:800;
+}
+.graduate-form-content{
+  display:grid;
+  gap:18px;
+}
+.graduate-form-section{
+  padding:18px;
+  border:1px solid #dbeafe;
+  border-radius:18px;
+  background:#fbfdff;
+  display:grid;
+  gap:18px;
+}
+.graduate-form-section-head{
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr);
+  gap:12px;
+  align-items:start;
+  padding-bottom:14px;
+  border-bottom:1px solid #e2e8f0;
+}
+.graduate-form-section-number{
+  width:38px;
+  height:38px;
+  border-radius:12px;
+  background:#dbeafe;
+  color:#1d4ed8;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+  font-weight:900;
+}
+.graduate-form-section-head h2{
+  margin:0;
+  color:#1e3a8a;
+  font-size:18px;
+  line-height:1.25;
+}
+.graduate-form-section-head p{
+  margin:5px 0 0;
+  color:#64748b;
+  font-size:13px;
+  line-height:1.45;
+}
+.graduate-form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+.graduate-form-field{
+  min-width:0;
+  padding:13px;
+  border:1px solid #e2e8f0;
+  border-radius:14px;
+  background:#fff;
+  display:grid;
+  gap:8px;
+  transition:border-color .16s ease,box-shadow .16s ease,background .16s ease;
+}
+.graduate-form-field:focus-within{
+  border-color:#93c5fd;
+  box-shadow:0 0 0 3px rgba(59,130,246,.1);
+}
+.graduate-form-field.is-highlighted{
+  border-color:#fca5a5;
+  background:#fff7f7;
+  box-shadow:0 0 0 3px rgba(220,38,38,.08);
+}
+.graduate-form-field.is-wide{
+  grid-column:1 / -1;
+}
+.graduate-form-field > label{
+  color:#475569;
+  font-size:13px;
+  font-weight:800;
+  line-height:1.3;
+}
+.graduate-form-field .input{
+  min-height:46px;
+  width:100%;
+  background:#fff;
+}
+.graduate-form-field .input:disabled{
+  background:#f1f5f9;
+  color:#94a3b8;
+}
+.graduate-form-actions{
+  position:sticky;
+  bottom:12px;
+  z-index:20;
+  padding:13px;
+  border:1px solid #dbeafe;
+  border-radius:16px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 12px 30px rgba(15,23,42,.12);
+  backdrop-filter:blur(10px);
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+}
+.graduate-form-actions .btn{
+  min-height:44px;
+  padding-inline:18px;
+}
+.graduate-form-cancel{
+  text-decoration:none;
+  background:#fff;
+}
+.graduate-form-save{
+  min-width:150px;
+}
 @media (max-width:1180px){
   .graduates-page-actions{
     flex-wrap:wrap;
@@ -594,8 +838,14 @@
   .graduates-results-count{
     width:100%;
   }
-  .graduates-filter-field{
-    grid-column:span 6 !important;
+  .graduates-filter-layout{
+    grid-template-columns:1fr;
+  }
+  .graduates-filter-section.is-wide{
+    grid-column:auto;
+  }
+  .graduates-filter-section-grid.origin-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
   }
   .graduates-bulk-bar{
     align-items:flex-start;
@@ -634,18 +884,39 @@
     min-width:0;
     width:100%;
   }
-  .graduates-filter-field{
-    grid-column:1 / -1 !important;
-    min-height:0;
+  .graduates-filter-layout,
+  .graduates-filter-section-grid,
+  .graduates-filter-section-grid.origin-grid{
+    grid-template-columns:1fr;
   }
   .graduates-filter-field .label{
     min-height:0;
   }
-  .graduates-filter-grid{
+  .graduates-filter-actions{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .graduates-filter-action-buttons{
+    width:100%;
+  }
+  .graduates-filter-action-buttons .btn{
+    flex:1 1 0;
+  }
+  .graduate-form-header,
+  .graduate-form-card{
+    padding:14px;
+  }
+  .graduate-form-section{
+    padding:14px;
+  }
+  .graduate-form-grid{
     grid-template-columns:1fr;
   }
-  .graduates-filter-actions{
-    grid-column:1;
+  .graduate-form-field.is-wide{
+    grid-column:auto;
+  }
+  .graduate-form-actions{
+    position:static;
   }
   .graduates-active-filters{
     align-items:flex-start;
@@ -766,6 +1037,12 @@
   .range-field-grid{
     grid-template-columns:1fr;
   }
+  .graduate-form-actions{
+    flex-direction:column-reverse;
+  }
+  .graduate-form-actions .btn{
+    width:100%;
+  }
   .graduate-mobile-details{
     grid-template-columns:1fr;
   }
@@ -775,6 +1052,12 @@
 }
 html.accessibility-high-contrast .graduates-page-header,
 html.accessibility-high-contrast .graduates-filter-panel,
+html.accessibility-high-contrast .graduates-filter-section,
+html.accessibility-high-contrast .graduate-form-header,
+html.accessibility-high-contrast .graduate-form-card,
+html.accessibility-high-contrast .graduate-form-section,
+html.accessibility-high-contrast .graduate-form-field,
+html.accessibility-high-contrast .graduate-form-actions,
 html.accessibility-high-contrast .graduates-list-card,
 html.accessibility-high-contrast .graduate-mobile-card,
 html.accessibility-high-contrast .graduates-data-menu-panel,
@@ -786,6 +1069,9 @@ html.accessibility-high-contrast .graduates-row-action-panel{
 }
 html.accessibility-high-contrast .graduates-page-title-row h1,
 html.accessibility-high-contrast .graduates-filter-panel-head h2,
+html.accessibility-high-contrast .graduates-filter-section-head h3,
+html.accessibility-high-contrast .graduate-form-header h1,
+html.accessibility-high-contrast .graduate-form-section-head h2,
 html.accessibility-high-contrast .graduate-mobile-identity strong,
 html.accessibility-high-contrast .graduates-bulk-summary strong,
 html.accessibility-high-contrast .graduates-data-menu-heading,
@@ -814,4 +1100,15 @@ html.accessibility-high-contrast .graduates-bulk-bar{
   right:auto;
   z-index:3000;
   width:170px;
+}
+
+html.accessibility-high-contrast .graduates-filter-section-head > span,
+html.accessibility-high-contrast .graduate-form-section-number{
+  background:#000 !important;
+  border:1px solid #fff !important;
+  color:#fff !important;
+}
+html.accessibility-high-contrast .graduates-filter-actions{
+  background:#000 !important;
+  border-color:#fff !important;
 }

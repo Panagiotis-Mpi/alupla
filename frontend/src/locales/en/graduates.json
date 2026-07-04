@@ -41,7 +41,17 @@
     "foreignCity": "Foreign city",
     "nomos": "Regional unit",
     "description": "Fill in one or more fields and apply the filters to the list.",
-    "close": "Close filters"
+    "close": "Close filters",
+    "sections": {
+      "identityTitle": "Identification details",
+      "identityDescription": "Record numbers, name, gender and birth date.",
+      "academicTitle": "Academic details",
+      "academicDescription": "Study programme, grade and study date ranges.",
+      "originTitle": "Origin details",
+      "originDescription": "Narrow the results by Greek or international origin."
+    },
+    "actionsTitle": "Apply filters",
+    "actionsDescription": "The list will update using every field you have completed."
   },
   "table": {
     "ad": "Diploma number",

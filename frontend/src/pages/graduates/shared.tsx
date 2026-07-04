@@ -87,9 +87,9 @@ const ORIGIN_TEXT_FILTER_FIELDS = [
   ["origin_foreign_city_like", "filters.foreignCity"],
 ] as const;
 
-function Field(props: { label: string; children: React.ReactNode; span?: number }) {
+function Field(props: { label: string; children: React.ReactNode }) {
   return (
-    <div className="graduates-filter-field" style={{ gridColumn: `span ${props.span ?? 4}` }}>
+    <div className="graduates-filter-field">
       <label className="label">{props.label}</label>
       {props.children}
     </div>
@@ -108,17 +108,16 @@ function RangeField(props: {
   min?: string;
   max?: string;
   step?: string;
-  span?: number;
 }) {
   return (
-    <Field label={props.label} span={props.span}>
+    <Field label={props.label}>
       <div className="range-field-grid">
         <div>
-          <label className="label" style={{ fontSize: 12, marginBottom: 6 }}>{props.fromLabel}</label>
+          <label className="range-field-label">{props.fromLabel}</label>
           <input className="input" type={props.type ?? "text"} value={props.fromValue} min={props.min} max={props.max} step={props.step} onChange={(e) => props.onFromChange(e.target.value)} />
         </div>
         <div>
-          <label className="label" style={{ fontSize: 12, marginBottom: 6 }}>{props.toLabel}</label>
+          <label className="range-field-label">{props.toLabel}</label>
           <input className="input" type={props.type ?? "text"} value={props.toValue} min={props.min} max={props.max} step={props.step} onChange={(e) => props.onToChange(e.target.value)} />
         </div>
       </div>
@@ -410,109 +409,151 @@ export function GraduatesFilters(props: {
   const nomoi = regions.filter((region) => String(region.type) === "NOMOS");
 
   return (
-    <div className="graduates-filter-grid">
-      {MAIN_TEXT_FILTER_FIELDS.map(([key, labelKey]) => (
-        <Field key={key} label={t(labelKey)}>
-          <input className="input" value={filters[key]} onChange={(event) => updateFilter(key, event.target.value)} />
-        </Field>
-      ))}
-      <Field label={t("table.gender")}>
-        <select className="input" value={filters.gender} onChange={(e) => updateFilter("gender", e.target.value)}>
-          <option value="">{t("filters.all")}</option>
-          <option value="M">{t("filters.male")}</option>
-          <option value="F">{t("filters.female")}</option>
-        </select>
-      </Field>
-      <RangeField
-        label={t("table.entryYear")}
-        fromLabel={t("filters.from")}
-        toLabel={t("filters.to")}
-        fromValue={filters.entry_year_min}
-        toValue={filters.entry_year_max}
-        onFromChange={(value) => updateFilter("entry_year_min", value)}
-        onToChange={(value) => updateFilter("entry_year_max", value)}
-        type="number"
-      />
-      <RangeField
-        label={t("table.birthDate")}
-        fromLabel={t("filters.from")}
-        toLabel={t("filters.to")}
-        fromValue={filters.birth_date_from}
-        toValue={filters.birth_date_to}
-        onFromChange={(value) => updateFilter("birth_date_from", value)}
-        onToChange={(value) => updateFilter("birth_date_to", value)}
-        type="date"
-      />
-      <Field label={t("table.degreeGrade")}>
-        <input className="input" type="number" step="0.01" value={filters.degree_grade_min || filters.degree_grade_max} onChange={(e) => {
-          const value = e.target.value;
-          setFilters((current) => ({ ...current, degree_grade_min: value, degree_grade_max: value }));
-        }} />
-      </Field>
-      <RangeField
-        label={t("table.graduationDate")}
-        fromLabel={t("filters.from")}
-        toLabel={t("filters.to")}
-        fromValue={filters.graduation_date_from}
-        toValue={filters.graduation_date_to}
-        onFromChange={(value) => updateFilter("graduation_date_from", value)}
-        onToChange={(value) => updateFilter("graduation_date_to", value)}
-        type="date"
-      />
-      <RangeField
-        label={t("table.oathDate")}
-        fromLabel={t("filters.from")}
-        toLabel={t("filters.to")}
-        fromValue={filters.oath_date_from}
-        toValue={filters.oath_date_to}
-        onFromChange={(value) => updateFilter("oath_date_from", value)}
-        onToChange={(value) => updateFilter("oath_date_to", value)}
-        type="date"
-      />
-      <Field label={t("table.studyProgram")}>
-        <select className="input" value={filters.study_program_id} onChange={(e) => updateFilter("study_program_id", e.target.value)}>
-          <option value="">{t("filters.all")}</option>
-          {programs.map((program) => (
-            <option key={program.id} value={program.id}>
-              {programNameById.get(Number(program.id))}
-            </option>
+    <div className="graduates-filter-layout">
+      <section className="graduates-filter-section">
+        <div className="graduates-filter-section-head">
+          <span>1</span>
+          <div>
+            <h3>{t("filters.sections.identityTitle")}</h3>
+            <p>{t("filters.sections.identityDescription")}</p>
+          </div>
+        </div>
+        <div className="graduates-filter-section-grid">
+          {MAIN_TEXT_FILTER_FIELDS.map(([key, labelKey]) => (
+            <Field key={key} label={t(labelKey)}>
+              <input className="input" value={filters[key]} onChange={(event) => updateFilter(key, event.target.value)} />
+            </Field>
           ))}
-        </select>
-      </Field>
-      <Field label={t("filters.region")}>
-        <select className="input" value={filters.origin_region_id} onChange={(e) => updateFilter("origin_region_id", e.target.value)}>
-          <option value="">{t("filters.all")}</option>
-          {peripheries.map((region) => (
-            <option key={Number(region.id)} value={Number(region.id)}>
-              {regionNameById.get(Number(region.id)) ?? String(region.name ?? "")}
-            </option>
+          <Field label={t("table.gender")}>
+            <select className="input" value={filters.gender} onChange={(e) => updateFilter("gender", e.target.value)}>
+              <option value="">{t("filters.all")}</option>
+              <option value="M">{t("filters.male")}</option>
+              <option value="F">{t("filters.female")}</option>
+            </select>
+          </Field>
+          <RangeField
+            label={t("table.birthDate")}
+            fromLabel={t("filters.from")}
+            toLabel={t("filters.to")}
+            fromValue={filters.birth_date_from}
+            toValue={filters.birth_date_to}
+            onFromChange={(value) => updateFilter("birth_date_from", value)}
+            onToChange={(value) => updateFilter("birth_date_to", value)}
+            type="date"
+          />
+        </div>
+      </section>
+
+      <section className="graduates-filter-section">
+        <div className="graduates-filter-section-head">
+          <span>2</span>
+          <div>
+            <h3>{t("filters.sections.academicTitle")}</h3>
+            <p>{t("filters.sections.academicDescription")}</p>
+          </div>
+        </div>
+        <div className="graduates-filter-section-grid">
+          <Field label={t("table.studyProgram")}>
+            <select className="input" value={filters.study_program_id} onChange={(e) => updateFilter("study_program_id", e.target.value)}>
+              <option value="">{t("filters.all")}</option>
+              {programs.map((program) => (
+                <option key={program.id} value={program.id}>
+                  {programNameById.get(Number(program.id))}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label={t("table.degreeGrade")}>
+            <input className="input" type="number" step="0.01" value={filters.degree_grade_min || filters.degree_grade_max} onChange={(e) => {
+              const value = e.target.value;
+              setFilters((current) => ({ ...current, degree_grade_min: value, degree_grade_max: value }));
+            }} />
+          </Field>
+          <RangeField
+            label={t("table.entryYear")}
+            fromLabel={t("filters.from")}
+            toLabel={t("filters.to")}
+            fromValue={filters.entry_year_min}
+            toValue={filters.entry_year_max}
+            onFromChange={(value) => updateFilter("entry_year_min", value)}
+            onToChange={(value) => updateFilter("entry_year_max", value)}
+            type="number"
+          />
+          <RangeField
+            label={t("table.graduationDate")}
+            fromLabel={t("filters.from")}
+            toLabel={t("filters.to")}
+            fromValue={filters.graduation_date_from}
+            toValue={filters.graduation_date_to}
+            onFromChange={(value) => updateFilter("graduation_date_from", value)}
+            onToChange={(value) => updateFilter("graduation_date_to", value)}
+            type="date"
+          />
+          <RangeField
+            label={t("table.oathDate")}
+            fromLabel={t("filters.from")}
+            toLabel={t("filters.to")}
+            fromValue={filters.oath_date_from}
+            toValue={filters.oath_date_to}
+            onFromChange={(value) => updateFilter("oath_date_from", value)}
+            onToChange={(value) => updateFilter("oath_date_to", value)}
+            type="date"
+          />
+        </div>
+      </section>
+
+      <section className="graduates-filter-section is-wide">
+        <div className="graduates-filter-section-head">
+          <span>3</span>
+          <div>
+            <h3>{t("filters.sections.originTitle")}</h3>
+            <p>{t("filters.sections.originDescription")}</p>
+          </div>
+        </div>
+        <div className="graduates-filter-section-grid origin-grid">
+          <Field label={t("filters.region")}>
+            <select className="input" value={filters.origin_region_id} onChange={(e) => updateFilter("origin_region_id", e.target.value)}>
+              <option value="">{t("filters.all")}</option>
+              {peripheries.map((region) => (
+                <option key={Number(region.id)} value={Number(region.id)}>
+                  {regionNameById.get(Number(region.id)) ?? String(region.name ?? "")}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label={t("filters.nomos")}>
+            <select className="input" value={filters.origin_nomos_region_id} onChange={(e) => updateFilter("origin_nomos_region_id", e.target.value)}>
+              <option value="">{t("filters.all")}</option>
+              {nomoi.map((region) => (
+                <option key={Number(region.id)} value={Number(region.id)}>
+                  {regionNameById.get(Number(region.id)) ?? String(region.name ?? "")}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {ORIGIN_TEXT_FILTER_FIELDS.map(([key, labelKey]) => (
+            <Field key={key} label={t(labelKey)}>
+              <input className="input" value={filters[key]} onChange={(event) => updateFilter(key, event.target.value)} />
+            </Field>
           ))}
-        </select>
-      </Field>
-      <Field label={t("filters.nomos")}>
-        <select className="input" value={filters.origin_nomos_region_id} onChange={(e) => updateFilter("origin_nomos_region_id", e.target.value)}>
-          <option value="">{t("filters.all")}</option>
-          {nomoi.map((region) => (
-            <option key={Number(region.id)} value={Number(region.id)}>
-              {regionNameById.get(Number(region.id)) ?? String(region.name ?? "")}
-            </option>
-          ))}
-        </select>
-      </Field>
-      {ORIGIN_TEXT_FILTER_FIELDS.map(([key, labelKey]) => (
-        <Field key={key} label={t(labelKey)}>
-          <input className="input" value={filters[key]} onChange={(event) => updateFilter(key, event.target.value)} />
-        </Field>
-      ))}
+        </div>
+      </section>
+
       <div className="graduates-filter-actions">
-        <button className="btn" onClick={onSearch}>
-          <Icon src={listFilterIcon} size={17} />
-          <span>{t("filters.search")}</span>
-        </button>
-        <button className="btn" onClick={onReset}>
-          <Icon src={historyIcon} size={17} />
-          <span>{t("filters.reset")}</span>
-        </button>
+        <div>
+          <strong>{t("filters.actionsTitle")}</strong>
+          <span>{t("filters.actionsDescription")}</span>
+        </div>
+        <div className="graduates-filter-action-buttons">
+          <button className="btn" type="button" onClick={onReset}>
+            <Icon src={historyIcon} size={17} />
+            <span>{t("filters.reset")}</span>
+          </button>
+          <button className="btn primary" type="button" onClick={onSearch}>
+            <Icon src={listFilterIcon} size={17} />
+            <span>{t("filters.search")}</span>
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -36,5 +36,16 @@
     "oathAfterGraduation": "The oath date must be after the diploma award date.",
     "studyDuration": "Study duration must be at least 5 years from entry year."
   },
-  "requiredNotice": "All fields must be filled in."
+  "requiredNotice": "All fields must be filled in.",
+  "eyebrowCreate": "New graduate record",
+  "eyebrowEdit": "Record management",
+  "subtitleEdit": "Update the graduate’s personal, academic and geographic information in clearly organised sections.",
+  "sections": {
+    "identityTitle": "Identification details",
+    "identityDescription": "Core personal information and unique record numbers.",
+    "academicTitle": "Academic journey",
+    "academicDescription": "Study, grade, graduation and oath information.",
+    "originTitle": "Origin details",
+    "originDescription": "Select the country and, for Greece, the corresponding geographic hierarchy."
+  }
 }
