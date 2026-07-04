@@ -6,7 +6,6 @@ import type { SessionUser } from "../lib/auth";
 import Icon from "./Icon";
 import aluplaLogo from "../assets/logo_black.svg";
 import chartColumnIcon from "../assets/icons/chart-column-big.svg";
-import dashboardIcon from "../assets/icons/book-open-check.svg";
 import globeIcon from "../assets/icons/globe.svg";
 import graduationCapIcon from "../assets/icons/graduation-cap.svg";
 import graduatePeopleIcon from "../assets/icons/graduate-people.svg";
@@ -150,7 +149,7 @@ function PublicHeader({ user, onLogout }: PublicHeaderProps) {
   return (
     <header className="public-shell-header">
       <div className="public-shell-header-inner">
-        <Link className="shell-brand" to={user ? "/dashboard" : "/"} aria-label={t("aria.brandHome")}>
+        <Link className="shell-brand" to={user ? "/graduates" : "/"} aria-label={t("aria.brandHome")}>
           <img src={aluplaLogo} alt="" aria-hidden="true" />
           <span>ALUPLA</span>
         </Link>
@@ -178,7 +177,7 @@ function PublicHeader({ user, onLogout }: PublicHeaderProps) {
               </button>
               {accountOpen && (
                 <div className="shell-account-popover">
-                  <button type="button" onClick={() => navigate("/dashboard")}>
+                  <button type="button" onClick={() => navigate("/graduates")}>
                     <Icon src={graduatePeopleIcon} size={18} />
                     <span>{t("nav.openWorkspace", { defaultValue: lang === "en" ? "Open workspace" : "Άνοιγμα πλατφόρμας" })}</span>
                   </button>
@@ -236,8 +235,8 @@ function PublicHeader({ user, onLogout }: PublicHeaderProps) {
               ))}
               {user ? (
                 <>
-                  <Link className="shell-nav-link" to="/dashboard">
-                    <Icon src={dashboardIcon} size={19} />
+                  <Link className="shell-nav-link" to="/graduates">
+                    <Icon src={graduatePeopleIcon} size={19} />
                     <span>{t("nav.openWorkspace", { defaultValue: lang === "en" ? "Open workspace" : "Άνοιγμα πλατφόρμας" })}</span>
                   </Link>
                   <Link className="shell-nav-link" to="/profile">
@@ -272,12 +271,6 @@ function AuthenticatedShell({ user, onLogout, children }: AuthenticatedShellProp
 
   const groups = React.useMemo<ShellGroup[]>(() => {
     const result: ShellGroup[] = [
-      {
-        label: t("nav.overview", { defaultValue: lang === "en" ? "Overview" : "Επισκόπηση" }),
-        links: [
-          { to: "/dashboard", label: t("nav.dashboard"), icon: dashboardIcon },
-        ],
-      },
       {
         label: t("nav.data", { defaultValue: lang === "en" ? "Data" : "Δεδομένα" }),
         links: [
@@ -317,7 +310,7 @@ function AuthenticatedShell({ user, onLogout, children }: AuthenticatedShellProp
         return match.label;
       }
     }
-    return t("nav.dashboard");
+    return t("nav.graduates");
   }, [groups, location.pathname, t]);
 
   const roleLabel = t(`profile:roles.${user.role}`);
@@ -346,7 +339,7 @@ function AuthenticatedShell({ user, onLogout, children }: AuthenticatedShellProp
   const sidebar = (
     <>
       <div className="private-sidebar-brand-row">
-        <Link className="private-sidebar-brand" to="/dashboard" aria-label={t("aria.brandHome")}>
+        <Link className="private-sidebar-brand" to="/graduates" aria-label={t("aria.brandHome")}>
           <img src={aluplaLogo} alt="" aria-hidden="true" />
           <span>
             <strong>ALUPLA</strong>
