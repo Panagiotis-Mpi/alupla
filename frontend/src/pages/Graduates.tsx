@@ -1,4 +1,3 @@
-// Κεντρική σελίδα αποφοίτων: λίστα, φίλτρα, επιλογές, import και export.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -14,7 +13,7 @@ import {
   type QueryParams,
   type StudyProgram,
 } from "../lib/api";
-import { GraduatesTable } from "./graduates/GraduatesTable";
+import { GraduatesTable, graduateSortColumns } from "./graduates/GraduatesTable";
 import { exportGraduatesPdf } from "./graduates/pdfExport";
 import {
   buildGraduatesParams,
@@ -22,6 +21,7 @@ import {
   createRegionMap,
   EMPTY_GRADUATES_FILTERS,
   filterAndSortGraduates,
+  formatDateValue,
   GraduatesFilters,
   renderGenderValue,
   type GraduatesFiltersState,
@@ -46,13 +46,13 @@ import arrowUpIcon from "../assets/icons/arrow-up-to-line.svg";
 import fileSpreadsheetIcon from "../assets/icons/file-spreadsheet.svg";
 import listFilterIcon from "../assets/icons/list-filter.svg";
 import graduatePersonIcon from "../assets/icons/graduate-person.svg";
+import xIcon from "../assets/icons/x.svg";
 import {
   toggleMergedVisibleSelection,
   toggleSelectionValue,
 } from "./shared/selection";
 import { sortIndicator } from "./shared/sorting";
 import type { RecentGraduateRequest } from "./graduates/recentDownloads";
-import { ActionDropdown } from "./graduates/ActionDropdown";
 import { RecentDownloadsMenu } from "./graduates/RecentDownloadsMenu";
 import {
   ImportResultToast,
@@ -62,8 +62,10 @@ import {
   toRecentGraduatePdfItem,
   useRecentGraduateDownloads,
 } from "./graduates/useRecentGraduateDownloads";
+import { GraduateDataActionsMenu } from "./graduates/GraduateDataActionsMenu";
 
-type MenuName = "import" | "export" | "template" | "recent";
+type MenuName = "data" | "recent";
+type FilterChip = { id: string; label: string; onRemove: () => void };
 
 export default function Graduates() {
   const { t, i18n } = useTranslation("graduates");
@@ -81,18 +83,17 @@ export default function Graduates() {
     key: "ad_code",
     dir: "asc",
   });
-  const [filters, setFilters] = useState<GraduatesFiltersState>(
-    EMPTY_GRADUATES_FILTERS,
-  );
+  const [filters, setFilters] = useState<GraduatesFiltersState>(EMPTY_GRADUATES_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<GraduatesFiltersState>(EMPTY_GRADUATES_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [openMenu, setOpenMenu] = useState<MenuName | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const importFileRef = useRef<HTMLInputElement | null>(null);
-  const importMenuRef = useRef<HTMLDivElement | null>(null);
-  const exportMenuRef = useRef<HTMLDivElement | null>(null);
-  const templateMenuRef = useRef<HTMLDivElement | null>(null);
+  const dataMenuRef = useRef<HTMLDivElement | null>(null);
   const recentDownloadsRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarRef = useRef<HTMLDivElement | null>(null);
   const floatingScrollbarInnerRef = useRef<HTMLDivElement | null>(null);
@@ -107,7 +108,7 @@ export default function Graduates() {
     .startsWith("en")
     ? "en"
     : "gr";
-  const params = useMemo(() => buildGraduatesParams(filters), [filters]);
+  const params = useMemo(() => buildGraduatesParams(appliedFilters), [appliedFilters]);
   const programNameById = useMemo(
     () => createNameMap(programs as Array<Record<string, unknown>>, activeLang),
     [programs, activeLang],
@@ -139,12 +140,21 @@ export default function Graduates() {
     ],
   );
 
+  const resultCount = visibleItems.length;
+  const pageCount = Math.max(1, Math.ceil(resultCount / pageSize));
+  const safeCurrentPage = Math.min(currentPage, pageCount);
+  const firstResult = resultCount ? (safeCurrentPage - 1) * pageSize + 1 : 0;
+  const lastResult = Math.min(safeCurrentPage * pageSize, resultCount);
+  const pagedVisibleItems = useMemo(
+    () => visibleItems.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize),
+    [visibleItems, safeCurrentPage, pageSize],
+  );
   const visibleIds = useMemo(
     () =>
-      visibleItems
+      pagedVisibleItems
         .map((graduate) => Number(graduate.id))
         .filter((id) => Number.isFinite(id)),
-    [visibleItems],
+    [pagedVisibleItems],
   );
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const allVisibleSelected =
@@ -156,7 +166,7 @@ export default function Graduates() {
     downloadStoredExport,
     removeStoredExport,
   } = useRecentGraduateDownloads({
-    filters,
+    filters: appliedFilters,
     activeLang,
     items,
     programNameById,
@@ -169,10 +179,10 @@ export default function Graduates() {
     setShowImportDetails(false);
   }
 
-  async function load() {
+  async function load(nextFilters: GraduatesFiltersState = appliedFilters) {
     setLoading(true);
     try {
-      const response = await loadGraduatesScreen(params, activeLang);
+      const response = await loadGraduatesScreen(buildGraduatesParams(nextFilters), activeLang);
       setPrograms(response.programs);
       setRegions(response.regions);
       setItems(response.items);
@@ -188,18 +198,28 @@ export default function Graduates() {
   }
 
   useEffect(() => {
-    void load();
+    void load(appliedFilters);
   }, [activeLang]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortState.key, sortState.dir, pageSize, appliedFilters]);
+
+  useEffect(() => {
+    if (currentPage > pageCount) {
+      setCurrentPage(pageCount);
+    }
+  }, [currentPage, pageCount]);
 
   useSyncedScrollbar(
     tableWrapRef,
     floatingScrollbarRef,
     floatingScrollbarInnerRef,
-    [items, sortState, programs, regions],
+    [pagedVisibleItems, sortState, programs, regions],
   );
 
   useMenuDismiss(
-    [importMenuRef, exportMenuRef, templateMenuRef, recentDownloadsRef],
+    [dataMenuRef, recentDownloadsRef],
     () => setOpenMenu(null),
   );
 
@@ -298,7 +318,10 @@ export default function Graduates() {
         format,
         i18n.resolvedLanguage || i18n.language,
       );
-      downloadBlob(blob, buildExportFilename("graduates", ["import", "template"], format, { timestamp: false }));
+      downloadBlob(
+        blob,
+        buildExportFilename("graduates", ["import", "template"], format, { timestamp: false }),
+      );
     } catch (error: any) {
       alert(error?.message ?? t("export.failed"));
     }
@@ -368,6 +391,39 @@ export default function Graduates() {
     await load();
   }
 
+  function applyFilters() {
+    setAppliedFilters(filters);
+    setSelectedIds([]);
+    setCurrentPage(1);
+    void load(filters);
+  }
+
+  function resetFilters() {
+    setFilters(EMPTY_GRADUATES_FILTERS);
+    setAppliedFilters(EMPTY_GRADUATES_FILTERS);
+    setSelectedIds([]);
+    setCurrentPage(1);
+    void load(EMPTY_GRADUATES_FILTERS);
+  }
+
+  function clearAppliedFilter(keys: Array<keyof GraduatesFiltersState>) {
+    const nextApplied = { ...appliedFilters };
+    keys.forEach((key) => {
+      nextApplied[key] = "";
+    });
+    setAppliedFilters(nextApplied);
+    setFilters((current) => {
+      const next = { ...current };
+      keys.forEach((key) => {
+        next[key] = "";
+      });
+      return next;
+    });
+    setSelectedIds([]);
+    setCurrentPage(1);
+    void load(nextApplied);
+  }
+
   const openImportFile = () => {
     closeMenus();
     importFileRef.current?.click();
@@ -381,7 +437,7 @@ export default function Graduates() {
   const templateActions = (["xlsx", "csv"] as const).map((format) => ({
     key: format,
     label: t(format === "xlsx" ? "topbar.templateExcel" : "topbar.templateCsv"),
-    icon: fileSpreadsheetIcon,
+    icon: arrowDownIcon,
     onClick: () => {
       closeMenus();
       void onDownloadTemplate(format);
@@ -398,50 +454,86 @@ export default function Graduates() {
           : "topbar.exportPdf",
     ),
     icon: fileSpreadsheetIcon,
+    disabled: !selectedIds.length,
     onClick: () => {
       closeMenus();
-      if (!selectedIds.length) {
-        alert(t("topbar.noSelection"));
-        return;
+      if (selectedIds.length) {
+        void onExport(format, selectedIds);
       }
-      void onExport(format, selectedIds);
     },
   }));
 
-  const wideCardStyle: React.CSSProperties = {
-    width: "calc(100vw - 32px)",
-    marginLeft: "calc(50% - 50vw + 16px)",
-    marginRight: 0,
-    boxSizing: "border-box",
-    marginBottom: 48,
+  const dataActionGroups = [
+    {
+      key: "import",
+      label: t("topbar.import"),
+      actions: importActions.map((action) => ({ ...action, disabled: importBusy })),
+      hint: importBusy ? t("topbar.importing") : undefined,
+    },
+    {
+      key: "template",
+      label: t("topbar.downloadTemplate"),
+      actions: templateActions,
+    },
+    {
+      key: "export",
+      label: t("bulk.exportSelected"),
+      actions: exportActions,
+      hint: selectedIds.length ? undefined : t("topbar.noSelection"),
+    },
+  ];
+
+  const activeFilterChips: FilterChip[] = [];
+  const addChip = (id: string, label: string, keys: Array<keyof GraduatesFiltersState>) => {
+    if (label.trim()) {
+      activeFilterChips.push({ id, label, onRemove: () => clearAppliedFilter(keys) });
+    }
+  };
+  const rangeText = (from: string, to: string, isDate = false) => {
+    const fromValue = isDate ? formatDateValue(from) : from;
+    const toValue = isDate ? formatDateValue(to) : to;
+    if (fromValue && toValue) return `${fromValue} – ${toValue}`;
+    if (fromValue) return `${t("filters.from")}: ${fromValue}`;
+    if (toValue) return `${t("filters.to")}: ${toValue}`;
+    return "";
   };
 
-  const headerButtonStyle: React.CSSProperties = {
-    all: "unset",
-    cursor: "pointer",
-    fontWeight: 500,
-    color: "inherit",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    lineHeight: 1.25,
-  };
+  addChip("ad", appliedFilters.ad_code_like ? `${t("table.ad")}: ${appliedFilters.ad_code_like}` : "", ["ad_code_like"]);
+  addChip("am", appliedFilters.student_number_like ? `${t("table.am")}: ${appliedFilters.student_number_like}` : "", ["student_number_like"]);
+  addChip("last-name", appliedFilters.last_name_like ? `${t("table.lastName")}: ${appliedFilters.last_name_like}` : "", ["last_name_like"]);
+  addChip("first-name", appliedFilters.first_name_like ? `${t("table.firstName")}: ${appliedFilters.first_name_like}` : "", ["first_name_like"]);
+  addChip("father-name", appliedFilters.father_name_like ? `${t("table.fatherName")}: ${appliedFilters.father_name_like}` : "", ["father_name_like"]);
+  addChip("gender", appliedFilters.gender ? `${t("table.gender")}: ${appliedFilters.gender === "M" ? t("filters.male") : t("filters.female")}` : "", ["gender"]);
+  addChip("entry-year", rangeText(appliedFilters.entry_year_min, appliedFilters.entry_year_max) ? `${t("table.entryYear")}: ${rangeText(appliedFilters.entry_year_min, appliedFilters.entry_year_max)}` : "", ["entry_year_min", "entry_year_max"]);
+  addChip("birth-date", rangeText(appliedFilters.birth_date_from, appliedFilters.birth_date_to, true) ? `${t("table.birthDate")}: ${rangeText(appliedFilters.birth_date_from, appliedFilters.birth_date_to, true)}` : "", ["birth_date_from", "birth_date_to"]);
+  addChip("grade", rangeText(appliedFilters.degree_grade_min, appliedFilters.degree_grade_max) ? `${t("table.degreeGrade")}: ${rangeText(appliedFilters.degree_grade_min, appliedFilters.degree_grade_max)}` : "", ["degree_grade_min", "degree_grade_max"]);
+  addChip("graduation-date", rangeText(appliedFilters.graduation_date_from, appliedFilters.graduation_date_to, true) ? `${t("table.graduationDate")}: ${rangeText(appliedFilters.graduation_date_from, appliedFilters.graduation_date_to, true)}` : "", ["graduation_date_from", "graduation_date_to"]);
+  addChip("oath-date", rangeText(appliedFilters.oath_date_from, appliedFilters.oath_date_to, true) ? `${t("table.oathDate")}: ${rangeText(appliedFilters.oath_date_from, appliedFilters.oath_date_to, true)}` : "", ["oath_date_from", "oath_date_to"]);
+  addChip("program", appliedFilters.study_program_id ? `${t("table.studyProgram")}: ${programNameById.get(Number(appliedFilters.study_program_id)) ?? appliedFilters.study_program_id}` : "", ["study_program_id"]);
+  addChip("region", appliedFilters.origin_region_id ? `${t("table.region")}: ${regionNameById.get(Number(appliedFilters.origin_region_id)) ?? appliedFilters.origin_region_id}` : "", ["origin_region_id"]);
+  addChip("nomos", appliedFilters.origin_nomos_region_id ? `${t("table.nomos")}: ${regionNameById.get(Number(appliedFilters.origin_nomos_region_id)) ?? appliedFilters.origin_nomos_region_id}` : "", ["origin_nomos_region_id"]);
+  addChip("city", appliedFilters.origin_municipality_like ? `${t("table.originMunicipality")}: ${appliedFilters.origin_municipality_like}` : "", ["origin_municipality_like"]);
+  addChip("country", appliedFilters.origin_country_like ? `${t("table.country")}: ${appliedFilters.origin_country_like}` : "", ["origin_country_like"]);
+  addChip("foreign-city", appliedFilters.origin_foreign_city_like ? `${t("filters.foreignCity")}: ${appliedFilters.origin_foreign_city_like}` : "", ["origin_foreign_city_like"]);
+  if (searchTerm.trim()) {
+    activeFilterChips.unshift({
+      id: "search",
+      label: `${t("toolbar.search")}: ${searchTerm.trim()}`,
+      onRemove: () => setSearchTerm(""),
+    });
+  }
 
-  const topButtonStyle: React.CSSProperties = {
-    minWidth: 136,
-    minHeight: 48,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    boxSizing: "border-box",
-    padding: "0 18px",
-    fontSize: 16,
+  const filterCount = activeFilterChips.filter((chip) => chip.id !== "search").length;
+  const emptyMessage = activeFilterChips.length ? t("table.emptyFiltered") : t("table.empty");
+  const toolbarButtonStyle: React.CSSProperties = {
+    minHeight: 44,
+    padding: "0 14px",
+    fontSize: 14,
     fontWeight: 700,
-    lineHeight: 1.25,
   };
 
   return (
-    <div className="grid" style={{ gap: 14 }}>
+    <div className="graduates-page">
       <ImportResultToast
         toast={toast}
         report={importReport}
@@ -451,188 +543,185 @@ export default function Graduates() {
         t={t}
       />
 
-      <div className="card graduates-top-card" style={{ padding: 14 }}>
-        <div style={{ display: "grid", gap: 14 }}>
-          <div
-            className="graduates-top-layout"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 14,
-              flexWrap: "wrap",
-            }}
-          >
-            <div
-              className="graduates-title-line"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
-              <span className="badge">
-                {loading ? t("topbar.loading") : t("topbar.total", { total })}
-              </span>
-              <span className="badge">
-                {t("topbar.selected", { count: selectedIds.length })}
-              </span>
-            </div>
+      <input
+        ref={importFileRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) {
+            void onImportFile(file);
+          }
+          event.currentTarget.value = "";
+        }}
+      />
 
-            <div style={{ display: "grid", gap: 10, width: "100%" }}>
-              <div
-                className="graduates-actions-grid graduates-actions-grid-main"
-                style={{ gap: 10, width: "100%", alignItems: "stretch" }}
-              >
-                <Link
-                  className="btn primary"
-                  to="/graduates/new"
-                  style={{
-                    ...topButtonStyle,
-                    textDecoration: "none",
-                    width: "100%",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Icon src={graduatePersonIcon} size={18} />
-                  <span>{t("topbar.newGraduate")}</span>
-                </Link>
-                <input
-                  ref={importFileRef}
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      void onImportFile(file);
-                    }
-                    e.currentTarget.value = "";
-                  }}
-                />
-                <ActionDropdown
-                  containerRef={templateMenuRef}
-                  open={openMenu === "template"}
-                  onToggle={() => toggleMenu("template")}
-                  buttonIcon={arrowDownIcon}
-                  buttonLabel={t("topbar.downloadTemplate")}
-                  buttonStyle={topButtonStyle}
-                  actions={templateActions}
-                />
-                <ActionDropdown
-                  containerRef={importMenuRef}
-                  open={openMenu === "import"}
-                  onToggle={() => toggleMenu("import")}
-                  buttonIcon={arrowUpIcon}
-                  buttonLabel={importBusy ? t("topbar.importing") : t("topbar.import")}
-                  buttonStyle={topButtonStyle}
-                  actions={importActions}
-                  disabled={importBusy}
-                />
-                <ActionDropdown
-                  containerRef={exportMenuRef}
-                  open={openMenu === "export"}
-                  onToggle={() => toggleMenu("export")}
-                  buttonIcon={fileSpreadsheetIcon}
-                  buttonLabel={t("topbar.export")}
-                  buttonStyle={topButtonStyle}
-                  actions={exportActions}
-                />
-                <div
-                  className="graduates-actions-secondary"
-                  style={{
-                    gridColumn: "1 / -1",
-                    display: "flex",
-                    justifyContent: "center",
-                    width: "100%",
-                  }}
-                >
-                  <div
-                    className="graduates-actions-grid"
-                    style={{ gap: 10, width: "100%", alignItems: "stretch" }}
-                  >
-                    <button
-                      className="btn"
-                      type="button"
-                      style={{
-                        ...topButtonStyle,
-                        width: "100%",
-                        justifyContent: "center",
-                      }}
-                      onClick={() => setShowFilters((current) => !current)}
-                    >
-                      <Icon src={listFilterIcon} size={18} />
-                      <span>{t("topbar.filters")}</span>
-                    </button>
-                    <RecentDownloadsMenu
-                      containerRef={recentDownloadsRef}
-                      open={openMenu === "recent"}
-                      onToggle={() => toggleMenu("recent")}
-                      buttonStyle={topButtonStyle}
-                      downloads={recentDownloads}
-                      activeLang={activeLang}
-                      t={t}
-                      onDownload={(item) => void downloadStoredExport(item)}
-                      onRemove={removeStoredExport}
-                    />
-                    <button
-                      className="btn"
-                      type="button"
-                      style={{
-                        ...topButtonStyle,
-                        width: "100%",
-                        justifyContent: "center",
-                      }}
-                      onClick={() => void onDeleteSelected()}
-                      disabled={!selectedIds.length}
-                    >
-                      {t("topbar.delete")}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <header className="card graduates-page-header">
+        <div className="graduates-page-heading">
+          <div className="graduates-page-title-row">
+            <h1>{t("pageTitle")}</h1>
+            <span className="badge">
+              {loading ? t("topbar.loading") : t("topbar.total", { total })}
+            </span>
           </div>
-
-          {showFilters ? (
-            <GraduatesFilters
-              t={(key) => t(key)}
-              filters={filters}
-              programs={programs}
-              regions={regions}
-              programNameById={programNameById}
-              regionNameById={regionNameById}
-              setFilters={setFilters}
-              onSearch={() => void load()}
-              onReset={() => {
-                setFilters(EMPTY_GRADUATES_FILTERS);
-                setSelectedIds([]);
-                setTimeout(() => void load(), 0);
-              }}
-            />
-          ) : null}
-          <input
-            className="input graduates-search-input"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={t("topbar.searchPlaceholder")}
+          <p>{t("pageSubtitle")}</p>
+        </div>
+        <div className="graduates-page-actions">
+          <Link className="btn primary graduates-primary-action" to="/graduates/new">
+            <Icon src={graduatePersonIcon} size={18} />
+            <span>{t("topbar.newGraduate")}</span>
+          </Link>
+          <GraduateDataActionsMenu
+            containerRef={dataMenuRef}
+            open={openMenu === "data"}
+            onToggle={() => toggleMenu("data")}
+            buttonLabel={t("topbar.dataActions")}
+            groups={dataActionGroups}
           />
         </div>
-      </div>
+      </header>
+
+      <section className="card graduates-toolbar">
+        <div className="graduates-toolbar-main">
+          <label className="graduates-search-field">
+            <span className="sr-only">{t("toolbar.search")}</span>
+            <input
+              className="input"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder={t("topbar.searchPlaceholder")}
+            />
+          </label>
+          <button
+            className={`btn graduates-toolbar-button${showFilters ? " is-active" : ""}`}
+            type="button"
+            onClick={() => setShowFilters((current) => !current)}
+            aria-expanded={showFilters}
+          >
+            <Icon src={listFilterIcon} size={18} />
+            <span>{t("topbar.filters")}</span>
+            {filterCount ? <span className="graduates-filter-count">{filterCount}</span> : null}
+          </button>
+          <label className="graduates-sort-field">
+            <span>{t("toolbar.sortBy")}</span>
+            <select
+              className="input"
+              value={sortState.key}
+              onChange={(event) => setSortState((current) => ({ ...current, key: event.target.value as SortKey }))}
+            >
+              {graduateSortColumns.map((column) => (
+                <option key={column.sortKey} value={column.sortKey}>{t(column.labelKey)}</option>
+              ))}
+            </select>
+          </label>
+          <label className="graduates-sort-direction">
+            <span className="sr-only">{t("toolbar.sortDirection")}</span>
+            <select
+              className="input"
+              value={sortState.dir}
+              onChange={(event) => setSortState((current) => ({ ...current, dir: event.target.value as SortDir }))}
+            >
+              <option value="asc">{t("toolbar.ascending")}</option>
+              <option value="desc">{t("toolbar.descending")}</option>
+            </select>
+          </label>
+          <RecentDownloadsMenu
+            containerRef={recentDownloadsRef}
+            open={openMenu === "recent"}
+            onToggle={() => toggleMenu("recent")}
+            buttonStyle={toolbarButtonStyle}
+            downloads={recentDownloads}
+            activeLang={activeLang}
+            t={t}
+            onDownload={(item) => void downloadStoredExport(item)}
+            onRemove={removeStoredExport}
+          />
+        </div>
+        <div className="graduates-results-count">
+          {t("toolbar.resultsCount", { count: resultCount })}
+        </div>
+      </section>
+
+      {showFilters ? (
+        <section className="card graduates-filter-panel">
+          <div className="graduates-filter-panel-head">
+            <div>
+              <h2>{t("topbar.filters")}</h2>
+              <p>{t("filters.description")}</p>
+            </div>
+            <button className="graduates-panel-close" type="button" onClick={() => setShowFilters(false)} aria-label={t("filters.close")}>
+              <Icon src={xIcon} size={18} />
+            </button>
+          </div>
+          <GraduatesFilters
+            t={(key) => t(key)}
+            filters={filters}
+            programs={programs}
+            regions={regions}
+            programNameById={programNameById}
+            regionNameById={regionNameById}
+            setFilters={setFilters}
+            onSearch={applyFilters}
+            onReset={resetFilters}
+          />
+        </section>
+      ) : null}
+
+      {activeFilterChips.length ? (
+        <section className="graduates-active-filters" aria-label={t("toolbar.activeFilters")}>
+          <span className="graduates-active-filters-label">{t("toolbar.activeFilters")}</span>
+          <div className="graduates-filter-chips">
+            {activeFilterChips.map((chip) => (
+              <button key={chip.id} className="graduates-filter-chip" type="button" onClick={chip.onRemove}>
+                <span>{chip.label}</span>
+                <Icon src={xIcon} size={14} />
+              </button>
+            ))}
+          </div>
+          <button
+            className="graduates-clear-filters"
+            type="button"
+            onClick={() => {
+              setSearchTerm("");
+              resetFilters();
+            }}
+          >
+            {t("toolbar.clearAll")}
+          </button>
+        </section>
+      ) : null}
+
+      {selectedIds.length ? (
+        <section className="graduates-bulk-bar">
+          <div className="graduates-bulk-summary">
+            <strong>{t("bulk.selectedCount", { count: selectedIds.length })}</strong>
+            <button type="button" onClick={() => setSelectedIds([])}>{t("bulk.clearSelection")}</button>
+          </div>
+          <div className="graduates-bulk-actions">
+            <span>{t("bulk.exportSelected")}</span>
+            {(["xlsx", "csv", "pdf"] as const).map((format) => (
+              <button key={format} className="btn graduates-bulk-export" type="button" onClick={() => void onExport(format, selectedIds)}>
+                {format.toUpperCase()}
+              </button>
+            ))}
+            <button className="btn danger" type="button" onClick={() => void onDeleteSelected()}>
+              {t("bulk.deleteSelected")}
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <GraduatesTable
-        visibleItems={visibleItems}
+        visibleItems={pagedVisibleItems}
         loading={loading}
+        emptyMessage={emptyMessage}
         selectedIdSet={selectedIdSet}
         allVisibleSelected={allVisibleSelected}
         selectAllRef={selectAllRef}
         tableWrapRef={tableWrapRef}
         floatingScrollbarRef={floatingScrollbarRef}
         floatingScrollbarInnerRef={floatingScrollbarInnerRef}
-        headerButtonStyle={headerButtonStyle}
-        wideCardStyle={wideCardStyle}
         toggleAllVisible={toggleAllVisible}
         toggleSelected={toggleSelected}
         toggleSort={toggleSort}
@@ -643,6 +732,14 @@ export default function Graduates() {
         activeLang={activeLang}
         t={t}
         onDelete={onDeleteGraduate}
+        page={safeCurrentPage}
+        pageCount={pageCount}
+        pageSize={pageSize}
+        resultCount={resultCount}
+        firstResult={firstResult}
+        lastResult={lastResult}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
       />
     </div>
   );

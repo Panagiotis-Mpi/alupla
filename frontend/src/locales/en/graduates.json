@@ -25,7 +25,8 @@
     "lastDownload": "Last download: {{date}}",
     "selected": "Selected: {{count}}",
     "filters": "Filters",
-    "noSelection": "You have not selected graduates."
+    "noSelection": "You have not selected graduates.",
+    "dataActions": "Data actions"
   },
   "filters": {
     "all": "All",
@@ -38,7 +39,9 @@
     "female": "Female",
     "originTypeGreece": "Greece",
     "foreignCity": "Foreign city",
-    "nomos": "Regional unit"
+    "nomos": "Regional unit",
+    "description": "Fill in one or more fields and apply the filters to the list.",
+    "close": "Close filters"
   },
   "table": {
     "ad": "Diploma number",
@@ -61,7 +64,12 @@
     "empty": "No results.",
     "region": "Region",
     "country": "Country",
-    "nomos": "Regional unit"
+    "nomos": "Regional unit",
+    "moreActions": "More actions",
+    "selectPage": "Select all graduates on this page",
+    "selectGraduate": "Select graduate {{name}}",
+    "openDetails": "View / edit",
+    "emptyFiltered": "No graduates were found with these filters. Try removing a filter."
   },
   "toast": {
     "importCompleted": "Import completed",
@@ -104,5 +112,27 @@
   },
   "export": {
     "failed": "Export failed"
+  },
+  "pageSubtitle": "Manage, search and export graduate records",
+  "toolbar": {
+    "search": "Search",
+    "sortBy": "Sort by",
+    "sortDirection": "Sort direction",
+    "ascending": "Ascending",
+    "descending": "Descending",
+    "resultsCount": "{{count}} results",
+    "resultsRange": "{{from}}–{{to}} of {{total}}",
+    "pageSize": "Per page",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {{page}} of {{pages}}",
+    "activeFilters": "Active filters",
+    "clearAll": "Clear all"
+  },
+  "bulk": {
+    "selectedCount": "{{count}} graduates selected",
+    "clearSelection": "Clear selection",
+    "exportSelected": "Export selected",
+    "deleteSelected": "Delete selected"
   }
 }

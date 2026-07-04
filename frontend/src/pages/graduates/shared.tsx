@@ -89,7 +89,7 @@ const ORIGIN_TEXT_FILTER_FIELDS = [
 
 function Field(props: { label: string; children: React.ReactNode; span?: number }) {
   return (
-    <div style={{ gridColumn: `span ${props.span ?? 4}`, display: "flex", flexDirection: "column", gap: 8, minHeight: 104 }}>
+    <div className="graduates-filter-field" style={{ gridColumn: `span ${props.span ?? 4}` }}>
       <label className="label">{props.label}</label>
       {props.children}
     </div>
@@ -112,7 +112,7 @@ function RangeField(props: {
 }) {
   return (
     <Field label={props.label} span={props.span}>
-      <div className="range-field-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div className="range-field-grid">
         <div>
           <label className="label" style={{ fontSize: 12, marginBottom: 6 }}>{props.fromLabel}</label>
           <input className="input" type={props.type ?? "text"} value={props.fromValue} min={props.min} max={props.max} step={props.step} onChange={(e) => props.onFromChange(e.target.value)} />
@@ -410,7 +410,7 @@ export function GraduatesFilters(props: {
   const nomoi = regions.filter((region) => String(region.type) === "NOMOS");
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 14, alignItems: "stretch" }}>
+    <div className="graduates-filter-grid">
       {MAIN_TEXT_FILTER_FIELDS.map(([key, labelKey]) => (
         <Field key={key} label={t(labelKey)}>
           <input className="input" value={filters[key]} onChange={(event) => updateFilter(key, event.target.value)} />
@@ -504,7 +504,7 @@ export function GraduatesFilters(props: {
           <input className="input" value={filters[key]} onChange={(event) => updateFilter(key, event.target.value)} />
         </Field>
       ))}
-      <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-start" }}>
+      <div className="graduates-filter-actions">
         <button className="btn" onClick={onSearch}>
           <Icon src={listFilterIcon} size={17} />
           <span>{t("filters.search")}</span>
