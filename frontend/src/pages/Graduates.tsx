@@ -1,6 +1,6 @@
 // Κεντρική σελίδα αποφοίτων: λίστα, φίλτρα, επιλογές, import και export.
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   deleteGraduate,
@@ -67,8 +67,6 @@ type MenuName = "import" | "export" | "template" | "recent";
 
 export default function Graduates() {
   const { t, i18n } = useTranslation("graduates");
-  const location = useLocation();
-  const navigate = useNavigate();
   const [importBusy, setImportBusy] = useState(false);
   const [importReport, setImportReport] = useState<ImportReport | null>(null);
   const [toast, setToast] = useState<GraduateToastState | null>(null);
@@ -192,13 +190,6 @@ export default function Graduates() {
   useEffect(() => {
     void load();
   }, [activeLang]);
-
-  useEffect(() => {
-    const action = (location.state as { dashboardAction?: string } | null)?.dashboardAction;
-    if (action !== "import" && action !== "export") return;
-    setOpenMenu(action);
-    navigate(location.pathname, { replace: true, state: null });
-  }, [location.pathname, location.state, navigate]);
 
   useSyncedScrollbar(
     tableWrapRef,

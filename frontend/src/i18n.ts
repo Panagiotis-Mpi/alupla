@@ -6,7 +6,6 @@ import { initReactI18next } from "react-i18next";
 import enAcademicData from "./locales/en/academicData.json";
 import enAuth from "./locales/en/auth.json";
 import enCommon from "./locales/en/common.json";
-import enDashboard from "./locales/en/dashboard.json";
 import enGraduateForm from "./locales/en/graduateForm.json";
 import enGraduates from "./locales/en/graduates.json";
 import enLogs from "./locales/en/logs.json";
@@ -17,7 +16,6 @@ import enUsers from "./locales/en/users.json";
 import grAcademicData from "./locales/gr/academicData.json";
 import grAuth from "./locales/gr/auth.json";
 import grCommon from "./locales/gr/common.json";
-import grDashboard from "./locales/gr/dashboard.json";
 import grGraduateForm from "./locales/gr/graduateForm.json";
 import grGraduates from "./locales/gr/graduates.json";
 import grLogs from "./locales/gr/logs.json";
@@ -29,7 +27,6 @@ import grUsers from "./locales/gr/users.json";
 const resources = {
   gr: {
     common: grCommon,
-    dashboard: grDashboard,
     graduates: grGraduates,
     auth: grAuth,
     graduateForm: grGraduateForm,
@@ -42,7 +39,6 @@ const resources = {
   },
   en: {
     common: enCommon,
-    dashboard: enDashboard,
     graduates: enGraduates,
     auth: enAuth,
     graduateForm: enGraduateForm,
