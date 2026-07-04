@@ -10,7 +10,17 @@
     "academicPrograms": "Ακαδημαϊκά προγράμματα",
     "myAccount": "Ο λογαριασμός μου",
     "myProfile": "Το προφίλ μου",
-    "homepage": "Αρχική σελίδα"
+    "homepage": "Αρχική σελίδα",
+    "data": "Δεδομένα",
+    "analysis": "Ανάλυση",
+    "management": "Διαχείριση",
+    "workspace": "Πλατφόρμα αποφοίτων",
+    "workspaceLabel": "Χώρος εργασίας",
+    "menu": "Μενού",
+    "primary": "Κύρια πλοήγηση",
+    "openWorkspace": "Άνοιγμα πλατφόρμας",
+    "dashboard": "Dashboard",
+    "overview": "Επισκόπηση"
   },
   "home": {
     "heroTitle": "Alumni Platform | Πλατφόρμα αποφοίτων",

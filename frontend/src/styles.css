@@ -3,3 +3,7 @@
 @import "./styles/part-3.css";
 @import "./styles/part-4.css";
 @import "./styles/part-5.css";
+@import "./styles/design-system.css";
+@import "./styles/app-shell.css";
+
+@import "./styles/dashboard.css";

@@ -174,6 +174,50 @@ type ActivityLogFileSummaryResponse = ApiOk & {
   total?: number;
 };
 type PublicStatsResponse = ApiOk & Record<string, unknown>;
+
+export type DashboardActivity = {
+  id: number;
+  action: string;
+  entity_type: string | null;
+  entity_id: number | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
+  actor_name: string | null;
+  actor_email: string | null;
+};
+
+export type DashboardResponse = ApiOk & {
+  role: UserRole;
+  current_year: number;
+  summary: {
+    total_graduates: number;
+    current_year_graduates: number;
+    study_programs: number;
+    last_data_update: string | null;
+  };
+  program_distribution: Array<{
+    study_program_id: number;
+    name_el: string;
+    name_en: string | null;
+    count: number;
+  }>;
+  data_quality: {
+    missing_program_translations: number;
+    missing_region_translations: number;
+  };
+  recent_data_activity: DashboardActivity[];
+  admin?: {
+    summary: {
+      total_users: number;
+      active_users: number;
+      actions_last_24h: number;
+      failed_imports_30d: number;
+    };
+    recent_logins: DashboardActivity[];
+    recent_operations: DashboardActivity[];
+  };
+};
+
 export type ImportReport = ApiOk & {
   summary?: {
     inserted?: number;
@@ -265,15 +309,16 @@ function clearGraduateRelatedCaches() {
     "alupla:map:",
     "alupla:logs:",
     "alupla:logs-summary:",
+    "alupla:dashboard:",
   ]);
 }
 
 function clearUserRelatedCaches() {
-  clearCachedKeys(["alupla:users:", "alupla:logs:", "alupla:logs-summary:"]);
+  clearCachedKeys(["alupla:users:", "alupla:logs:", "alupla:logs-summary:", "alupla:dashboard:"]);
 }
 
 function clearActivityLogCaches() {
-  clearCachedKeys(["alupla:logs:", "alupla:logs-summary:"]);
+  clearCachedKeys(["alupla:logs:", "alupla:logs-summary:", "alupla:dashboard:"]);
 }
 
 async function cachedPrivateApi<T>(
@@ -390,6 +435,10 @@ export async function changePassword(currentPassword: string, newPassword: strin
   });
 }
 
+export async function getDashboard(): Promise<DashboardResponse> {
+  return api("/dashboard", { method: "GET" });
+}
+
 export async function listUsers(): Promise<ListResponse<User>> {
   return cachedPrivateApi("users", "/users", USERS_CACHE_MS);
 }
@@ -482,6 +531,7 @@ export async function createStudyProgram(payload: {
     "alupla:graduates:",
     "alupla:public-stats:",
     "alupla:map:",
+    "alupla:dashboard:",
   ]);
   return response;
 }
@@ -502,6 +552,7 @@ export async function updateStudyProgram(
     "alupla:graduates:",
     "alupla:public-stats:",
     "alupla:map:",
+    "alupla:dashboard:",
   ]);
   return response;
 }
@@ -515,6 +566,7 @@ export async function deleteStudyProgram(id: number): Promise<ApiOk> {
     "alupla:graduates:",
     "alupla:public-stats:",
     "alupla:map:",
+    "alupla:dashboard:",
   ]);
   return response;
 }
@@ -544,6 +596,7 @@ export async function importStudyProgramsFile(
     "alupla:graduates:",
     "alupla:public-stats:",
     "alupla:map:",
+    "alupla:dashboard:",
   ]);
   return data;
 }

@@ -13,6 +13,7 @@ import { activityLogsRouter } from "./routes/activityLogs.routes";
 import { presenceRouter } from "./routes/presence.routes";
 import mapRouter from "./routes/map.routes";
 import { publicRouter } from "./routes/public.routes";
+import { dashboardRouter } from "./routes/dashboard.routes";
 
 // Συγκεντρώνει όλα τα frontend URLs που επιτρέπεται να κάνουν requests στο backend.
 function collectAllowedOrigins() {
@@ -76,6 +77,7 @@ export function createApp() {
   app.use("/users", usersRouter);
   app.use("/activity-logs", activityLogsRouter);
   app.use("/presence", presenceRouter);
+  app.use("/dashboard", dashboardRouter);
   app.use("/map", mapRouter);
 
   // Public routes που μπορούν να χρησιμοποιηθούν χωρίς πλήρες admin flow.
