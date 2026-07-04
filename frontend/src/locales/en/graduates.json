@@ -66,7 +66,7 @@
     "country": "Country",
     "nomos": "Regional unit",
     "moreActions": "More actions",
-    "selectPage": "Select all graduates on this page",
+    "selectPage": "Select all graduates",
     "selectGraduate": "Select graduate {{name}}",
     "openDetails": "View / edit",
     "emptyFiltered": "No graduates were found with these filters. Try removing a filter."

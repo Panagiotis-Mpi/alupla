@@ -4,10 +4,8 @@
   min-width:0;
 }
 .graduates-page-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:20px;
+  display:grid;
+  gap:18px;
   padding:20px;
 }
 .graduates-page-heading{
@@ -34,9 +32,9 @@
 .graduates-page-actions{
   display:flex;
   align-items:center;
-  justify-content:flex-end;
   gap:10px;
-  flex-wrap:wrap;
+  min-width:0;
+  flex-wrap:nowrap;
 }
 .graduates-primary-action,
 .graduates-secondary-action{
@@ -128,24 +126,14 @@
   color:#64748b;
   font-size:12px;
 }
-.graduates-toolbar{
-  padding:14px 16px;
+.graduates-search-row{
   display:flex;
   align-items:center;
-  justify-content:space-between;
   gap:14px;
-  flex-wrap:wrap;
-}
-.graduates-toolbar-main{
-  display:flex;
-  align-items:flex-end;
-  gap:10px;
-  flex:1 1 780px;
   min-width:0;
-  flex-wrap:wrap;
 }
 .graduates-search-field{
-  flex:1 1 300px;
+  flex:1 1 auto;
   min-width:220px;
 }
 .graduates-search-field .input{
@@ -153,7 +141,7 @@
   padding-inline:14px;
 }
 .graduates-toolbar-button{
-  min-height:44px;
+  min-height:46px;
   padding:0 14px;
   font-size:14px;
   font-weight:800;
@@ -172,24 +160,33 @@
 }
 .graduates-sort-field,
 .graduates-sort-direction{
-  display:grid;
-  gap:4px;
+  display:flex;
+  align-items:center;
+  gap:8px;
   color:#64748b;
   font-size:12px;
   font-weight:700;
+  min-width:0;
 }
 .graduates-sort-field{
-  flex:0 1 210px;
+  flex:1 1 290px;
+}
+.graduates-sort-field > span{
+  white-space:nowrap;
 }
 .graduates-sort-direction{
-  flex:0 1 145px;
+  flex:0 1 140px;
 }
 .graduates-sort-field .input,
 .graduates-sort-direction .input{
-  min-height:44px;
+  min-height:46px;
   padding:8px 34px 8px 11px;
   font-size:13px;
   font-weight:700;
+}
+.graduates-sort-field .input{
+  min-width:170px;
+  flex:1 1 auto;
 }
 .graduates-results-count{
   flex:0 0 auto;
@@ -373,10 +370,8 @@
   font-size:12px;
 }
 .graduates-list-card{
-  width:calc(100vw - 32px);
-  margin-left:calc(50% - 50vw + 16px);
-  margin-right:0;
-  margin-bottom:36px;
+  width:100%;
+  margin:0 0 36px;
   padding:12px;
   position:relative;
   min-width:0;
@@ -569,42 +564,6 @@
 .graduates-mobile-list{
   display:none;
 }
-.graduates-pagination{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  padding:14px 4px 2px;
-  flex-wrap:wrap;
-}
-.graduates-pagination-summary{
-  color:#475569;
-  font-size:13px;
-  font-weight:700;
-}
-.graduates-page-size{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  color:#64748b;
-  font-size:12px;
-  font-weight:750;
-}
-.graduates-page-size .input{
-  width:78px;
-  min-height:38px;
-  padding:6px 28px 6px 9px;
-}
-.graduates-page-navigation{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-.graduates-pagination-button{
-  min-height:38px;
-  padding:7px 12px;
-  font-size:13px;
-}
 .sr-only{
   position:absolute !important;
   width:1px !important;
@@ -616,17 +575,21 @@
   white-space:nowrap !important;
   border:0 !important;
 }
-@media (max-width:980px){
-  .graduates-page-header{
-    align-items:flex-start;
-    flex-direction:column;
+@media (max-width:1180px){
+  .graduates-page-actions{
+    flex-wrap:wrap;
   }
+  .graduates-sort-field{
+    flex:1 1 260px;
+  }
+}
+@media (max-width:980px){
   .graduates-page-actions{
     width:100%;
-    justify-content:flex-start;
   }
-  .graduates-toolbar-main{
-    flex-basis:100%;
+  .graduates-search-row{
+    align-items:stretch;
+    flex-direction:column;
   }
   .graduates-results-count{
     width:100%;
@@ -644,14 +607,14 @@
     gap:12px;
   }
   .graduates-page-header,
-  .graduates-toolbar,
   .graduates-filter-panel{
     padding:14px;
   }
   .graduates-page-actions,
   .graduates-primary-action,
   .graduates-data-menu,
-  .graduates-secondary-action{
+  .graduates-secondary-action,
+  .graduates-toolbar-button{
     width:100%;
   }
   .graduates-data-menu-panel{
@@ -659,23 +622,17 @@
     right:auto;
     width:100%;
   }
-  .graduates-toolbar-main{
+  .graduates-page-actions{
     display:grid;
-    grid-template-columns:1fr 1fr;
-    align-items:end;
-    width:100%;
+    grid-template-columns:1fr;
   }
   .graduates-search-field{
-    grid-column:1 / -1;
     min-width:0;
   }
   .graduates-sort-field,
   .graduates-sort-direction{
     min-width:0;
     width:100%;
-  }
-  .graduates-toolbar-main > div{
-    min-width:0;
   }
   .graduates-filter-field{
     grid-column:1 / -1 !important;
@@ -710,8 +667,8 @@
     flex:1 1 auto;
   }
   .graduates-list-card{
-    width:calc(100vw - 20px);
-    margin-left:calc(50% - 50vw + 10px);
+    width:100%;
+    margin:0 0 24px;
     padding:10px;
   }
   .graduates-desktop-table{
@@ -795,18 +752,6 @@
     text-align:center;
     color:#64748b;
   }
-  .graduates-pagination{
-    align-items:stretch;
-    flex-direction:column;
-  }
-  .graduates-page-size,
-  .graduates-page-navigation{
-    justify-content:space-between;
-    width:100%;
-  }
-  .graduates-page-navigation .badge{
-    flex:1 1 auto;
-  }
 }
 @media (max-width:480px){
   .graduates-page-actions{
@@ -815,11 +760,8 @@
   .graduates-data-menu-actions{
     grid-template-columns:1fr;
   }
-  .graduates-toolbar-main{
-    grid-template-columns:1fr;
-  }
   .graduates-search-field{
-    grid-column:1;
+    min-width:0;
   }
   .range-field-grid{
     grid-template-columns:1fr;
@@ -830,15 +772,8 @@
   .graduates-bulk-actions > span{
     width:100%;
   }
-  .graduates-page-navigation{
-    gap:6px;
-  }
-  .graduates-pagination-button{
-    padding-inline:9px;
-  }
 }
 html.accessibility-high-contrast .graduates-page-header,
-html.accessibility-high-contrast .graduates-toolbar,
 html.accessibility-high-contrast .graduates-filter-panel,
 html.accessibility-high-contrast .graduates-list-card,
 html.accessibility-high-contrast .graduate-mobile-card,

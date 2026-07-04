@@ -300,19 +300,6 @@ function AuthenticatedShell({ user, onLogout, children }: AuthenticatedShellProp
     return result;
   }, [lang, t, user.role]);
 
-  const currentLabel = React.useMemo(() => {
-    if (location.pathname.startsWith("/profile")) {
-      return t("nav.myProfile");
-    }
-    for (const group of groups) {
-      const match = group.links.find((link) => routeIsActive(location.pathname, link.to));
-      if (match) {
-        return match.label;
-      }
-    }
-    return t("nav.graduates");
-  }, [groups, location.pathname, t]);
-
   const roleLabel = t(`profile:roles.${user.role}`);
 
   React.useEffect(() => {
@@ -373,9 +360,6 @@ function AuthenticatedShell({ user, onLogout, children }: AuthenticatedShellProp
 
       <div className="private-sidebar-account">
         <div className="private-sidebar-user">
-          <div className="private-sidebar-avatar" aria-hidden="true">
-            {user.first_name.trim().charAt(0).toUpperCase()}{user.last_name.trim().charAt(0).toUpperCase()}
-          </div>
           <div>
             <strong>{user.first_name} {user.last_name}</strong>
             <span>{roleLabel}</span>
@@ -412,10 +396,6 @@ function AuthenticatedShell({ user, onLogout, children }: AuthenticatedShellProp
               <span aria-hidden="true" />
               <span aria-hidden="true" />
             </button>
-            <div className="private-topbar-title">
-              <span>{t("nav.workspaceLabel", { defaultValue: lang === "en" ? "Workspace" : "Χώρος εργασίας" })}</span>
-              <strong>{currentLabel}</strong>
-            </div>
           </div>
           <LanguageMenu compact />
         </header>
