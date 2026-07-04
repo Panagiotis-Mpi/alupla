@@ -88,6 +88,8 @@ export default function Graduates() {
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [openMenu, setOpenMenu] = useState<MenuName | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const importFileRef = useRef<HTMLInputElement | null>(null);
@@ -139,12 +141,20 @@ export default function Graduates() {
   );
 
   const resultCount = visibleItems.length;
+  const pageCount = Math.max(1, Math.ceil(resultCount / pageSize));
+  const safeCurrentPage = Math.min(currentPage, pageCount);
+  const firstResult = resultCount ? (safeCurrentPage - 1) * pageSize + 1 : 0;
+  const lastResult = Math.min(safeCurrentPage * pageSize, resultCount);
+  const pagedVisibleItems = useMemo(
+    () => visibleItems.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize),
+    [visibleItems, safeCurrentPage, pageSize],
+  );
   const visibleIds = useMemo(
     () =>
-      visibleItems
+      pagedVisibleItems
         .map((graduate) => Number(graduate.id))
         .filter((id) => Number.isFinite(id)),
-    [visibleItems],
+    [pagedVisibleItems],
   );
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const allVisibleSelected =
@@ -191,11 +201,21 @@ export default function Graduates() {
     void load(appliedFilters);
   }, [activeLang]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortState.key, sortState.dir, pageSize, appliedFilters]);
+
+  useEffect(() => {
+    if (currentPage > pageCount) {
+      setCurrentPage(pageCount);
+    }
+  }, [currentPage, pageCount]);
+
   useSyncedScrollbar(
     tableWrapRef,
     floatingScrollbarRef,
     floatingScrollbarInnerRef,
-    [visibleItems, sortState, programs, regions],
+    [pagedVisibleItems, sortState, programs, regions],
   );
 
   useMenuDismiss(
@@ -374,6 +394,7 @@ export default function Graduates() {
   function applyFilters() {
     setAppliedFilters(filters);
     setSelectedIds([]);
+    setCurrentPage(1);
     void load(filters);
   }
 
@@ -381,6 +402,7 @@ export default function Graduates() {
     setFilters(EMPTY_GRADUATES_FILTERS);
     setAppliedFilters(EMPTY_GRADUATES_FILTERS);
     setSelectedIds([]);
+    setCurrentPage(1);
     void load(EMPTY_GRADUATES_FILTERS);
   }
 
@@ -398,6 +420,7 @@ export default function Graduates() {
       return next;
     });
     setSelectedIds([]);
+    setCurrentPage(1);
     void load(nextApplied);
   }
 
@@ -442,15 +465,15 @@ export default function Graduates() {
 
   const dataActionGroups = [
     {
-      key: "template",
-      label: t("topbar.downloadTemplate"),
-      actions: templateActions,
-    },
-    {
       key: "import",
       label: t("topbar.import"),
       actions: importActions.map((action) => ({ ...action, disabled: importBusy })),
       hint: importBusy ? t("topbar.importing") : undefined,
+    },
+    {
+      key: "template",
+      label: t("topbar.downloadTemplate"),
+      actions: templateActions,
     },
     {
       key: "export",
@@ -503,7 +526,7 @@ export default function Graduates() {
   const filterCount = activeFilterChips.filter((chip) => chip.id !== "search").length;
   const emptyMessage = activeFilterChips.length ? t("table.emptyFiltered") : t("table.empty");
   const toolbarButtonStyle: React.CSSProperties = {
-    minHeight: 46,
+    minHeight: 44,
     padding: "0 14px",
     fontSize: 14,
     fontWeight: 700,
@@ -556,6 +579,20 @@ export default function Graduates() {
             buttonLabel={t("topbar.dataActions")}
             groups={dataActionGroups}
           />
+        </div>
+      </header>
+
+      <section className="card graduates-toolbar">
+        <div className="graduates-toolbar-main">
+          <label className="graduates-search-field">
+            <span className="sr-only">{t("toolbar.search")}</span>
+            <input
+              className="input"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder={t("topbar.searchPlaceholder")}
+            />
+          </label>
           <button
             className={`btn graduates-toolbar-button${showFilters ? " is-active" : ""}`}
             type="button"
@@ -601,21 +638,10 @@ export default function Graduates() {
             onRemove={removeStoredExport}
           />
         </div>
-        <div className="graduates-search-row">
-          <label className="graduates-search-field">
-            <span className="sr-only">{t("toolbar.search")}</span>
-            <input
-              className="input"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder={t("topbar.searchPlaceholder")}
-            />
-          </label>
-          <div className="graduates-results-count">
-            {t("toolbar.resultsCount", { count: resultCount })}
-          </div>
+        <div className="graduates-results-count">
+          {t("toolbar.resultsCount", { count: resultCount })}
         </div>
-      </header>
+      </section>
 
       {showFilters ? (
         <section className="card graduates-filter-panel">
@@ -687,7 +713,7 @@ export default function Graduates() {
       ) : null}
 
       <GraduatesTable
-        visibleItems={visibleItems}
+        visibleItems={pagedVisibleItems}
         loading={loading}
         emptyMessage={emptyMessage}
         selectedIdSet={selectedIdSet}
@@ -706,6 +732,14 @@ export default function Graduates() {
         activeLang={activeLang}
         t={t}
         onDelete={onDeleteGraduate}
+        page={safeCurrentPage}
+        pageCount={pageCount}
+        pageSize={pageSize}
+        resultCount={resultCount}
+        firstResult={firstResult}
+        lastResult={lastResult}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
       />
     </div>
   );

@@ -41,17 +41,7 @@
     "foreignCity": "Foreign city",
     "nomos": "Regional unit",
     "description": "Fill in one or more fields and apply the filters to the list.",
-    "close": "Close filters",
-    "sections": {
-      "identityTitle": "Identification details",
-      "identityDescription": "Record numbers, name, gender and birth date.",
-      "academicTitle": "Academic details",
-      "academicDescription": "Study programme, grade and study date ranges.",
-      "originTitle": "Origin details",
-      "originDescription": "Narrow the results by Greek or international origin."
-    },
-    "actionsTitle": "Apply filters",
-    "actionsDescription": "The list will update using every field you have completed."
+    "close": "Close filters"
   },
   "table": {
     "ad": "Diploma number",
@@ -76,7 +66,7 @@
     "country": "Country",
     "nomos": "Regional unit",
     "moreActions": "More actions",
-    "selectPage": "Select all graduates",
+    "selectPage": "Select all graduates on this page",
     "selectGraduate": "Select graduate {{name}}",
     "openDetails": "View / edit",
     "emptyFiltered": "No graduates were found with these filters. Try removing a filter."

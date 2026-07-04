@@ -1,5 +1,5 @@
 // Φόρμα δημιουργίας ή επεξεργασίας αποφοίτου.
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Icon from "../components/Icon";
@@ -383,14 +383,14 @@ useEffect(() => {
     }
   };
 
-  const legacyFieldStyle = (label: string) => ({
+  const fieldStyle = (label: string): React.CSSProperties => ({
     border: highlightedMissing === label ? "1px solid rgba(220,38,38,.35)" : "1px solid rgba(148,163,184,.18)",
     borderRadius: 16,
     padding: 14,
     background: highlightedMissing === label ? "rgba(254,242,242,.7)" : "#fff"
   });
 
-  const legacyLabelStyle = {
+  const labelStyle: React.CSSProperties = {
     display: "block",
     marginBottom: 8,
     fontSize: 15,
@@ -398,8 +398,7 @@ useEffect(() => {
     color: "#475569"
   };
 
-  if (!isEdit) {
-    return (
+  return (
     <div className="grid" style={{ gap: 16 }}>
       <div className="card" style={{ padding: 18 }}>
         <div style={{ display: "grid", gap: 8 }}>
@@ -414,62 +413,62 @@ useEffect(() => {
         ) : (
         <div style={{ display: "grid", gap: 16 }}>
           <div className="grid cols2">
-            <div style={legacyFieldStyle(t("labels.adCode"))}>
-              <label style={legacyLabelStyle}>{t("labels.adCode")}</label>
+            <div style={fieldStyle(t("labels.adCode"))}>
+              <label style={labelStyle}>{t("labels.adCode")}</label>
               <input className="input" value={form.ad_code ?? ""} onChange={(e) => setForm((f) => ({ ...f, ad_code: e.target.value }))} required={!isEdit} />
             </div>
-            <div style={legacyFieldStyle(t("labels.studentNumber"))}>
-              <label style={legacyLabelStyle}>{t("labels.studentNumber")}</label>
+            <div style={fieldStyle(t("labels.studentNumber"))}>
+              <label style={labelStyle}>{t("labels.studentNumber")}</label>
               <input className="input" value={form.student_number ?? ""} onChange={(e) => setForm((f) => ({ ...f, student_number: e.target.value }))} />
             </div>
-            <div style={legacyFieldStyle(t("labels.lastName"))}>
-              <label style={legacyLabelStyle}>{t("labels.lastName")}</label>
+            <div style={fieldStyle(t("labels.lastName"))}>
+              <label style={labelStyle}>{t("labels.lastName")}</label>
               <input className="input" value={form.last_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} />
             </div>
-            <div style={legacyFieldStyle(t("labels.firstName"))}>
-              <label style={legacyLabelStyle}>{t("labels.firstName")}</label>
+            <div style={fieldStyle(t("labels.firstName"))}>
+              <label style={labelStyle}>{t("labels.firstName")}</label>
               <input className="input" value={form.first_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} />
             </div>
-            <div style={legacyFieldStyle(t("labels.fatherName"))}>
-              <label style={legacyLabelStyle}>{t("labels.fatherName")}</label>
+            <div style={fieldStyle(t("labels.fatherName"))}>
+              <label style={labelStyle}>{t("labels.fatherName")}</label>
               <input className="input" value={form.father_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, father_name: e.target.value }))} />
             </div>
-            <div style={legacyFieldStyle(t("labels.gender"))}>
-              <label style={legacyLabelStyle}>{t("labels.gender")}</label>
+            <div style={fieldStyle(t("labels.gender"))}>
+              <label style={labelStyle}>{t("labels.gender")}</label>
               <select className="input" value={form.gender ?? ""} onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value as any }))}>
                 <option value="">{t("labels.choice")}</option>
                 <option value="M">{t("labels.genderMale")}</option>
                 <option value="F">{t("labels.genderFemale")}</option>
               </select>
             </div>
-            <div style={legacyFieldStyle(t("labels.birthDate"))}>
-              <label style={legacyLabelStyle}>{t("labels.birthDate")}</label>
+            <div style={fieldStyle(t("labels.birthDate"))}>
+              <label style={labelStyle}>{t("labels.birthDate")}</label>
               <input className="input" type="date" value={(form as any).birth_date ?? ""} onChange={(e) => setForm((f) => ({ ...f, birth_date: e.target.value }))} />
             </div>
-            <div style={legacyFieldStyle(t("labels.entryYearReq"))}>
-              <label style={legacyLabelStyle}>{t("labels.entryYearReq")}</label>
+            <div style={fieldStyle(t("labels.entryYearReq"))}>
+              <label style={labelStyle}>{t("labels.entryYearReq")}</label>
               <input className="input" inputMode="numeric" value={form.entry_year ?? ""} onChange={(e) => setForm((f) => ({ ...f, entry_year: e.target.value ? Number(e.target.value) : ("" as any) }))} />
             </div>
-            <div style={legacyFieldStyle(t("labels.degreeGrade"))}>
-              <label style={legacyLabelStyle}>{t("labels.degreeGrade")}</label>
+            <div style={fieldStyle(t("labels.degreeGrade"))}>
+              <label style={labelStyle}>{t("labels.degreeGrade")}</label>
               <input className="input" type="number" min="5" max="10" step="0.01" value={form.degree_grade ?? ""} onChange={(e) => setForm((f) => ({ ...f, degree_grade: e.target.value ? Number(e.target.value) : ("" as any) }))} />
             </div>
-            <div style={legacyFieldStyle(t("labels.graduationDate"))}>
-              <label style={legacyLabelStyle}>{t("labels.graduationDate")}</label>
+            <div style={fieldStyle(t("labels.graduationDate"))}>
+              <label style={labelStyle}>{t("labels.graduationDate")}</label>
               <input className="input" type="date" value={(form.graduation_date ?? "") as any} onChange={(e) => setForm((f) => ({ ...f, graduation_date: e.target.value }))} />
             </div>
-            <div style={legacyFieldStyle(t("labels.oathDate"))}>
-              <label style={legacyLabelStyle}>{t("labels.oathDate")}</label>
+            <div style={fieldStyle(t("labels.oathDate"))}>
+              <label style={labelStyle}>{t("labels.oathDate")}</label>
               <input className="input" type="date" value={(form.oath_date ?? "") as any} onChange={(e) => setForm((f) => ({ ...f, oath_date: e.target.value }))} />
             </div>
-            <div style={legacyFieldStyle(t("labels.studyProgram"))}>
-              <label style={legacyLabelStyle}>{t("labels.studyProgram")}</label>
+            <div style={fieldStyle(t("labels.studyProgram"))}>
+              <label style={labelStyle}>{t("labels.studyProgram")}</label>
               <select className="input" value={String(form.study_program_id ?? "")} onChange={(e) => setForm((f) => ({ ...f, study_program_id: Number(e.target.value) }))}>
                 {programs.map((p) => <option key={p.id} value={p.id}>{activeLang === "en" ? p.name_en || p.name_el : p.name_el || p.name_en}</option>)}
               </select>
             </div>
-            <div style={legacyFieldStyle(t("labels.country"))}>
-              <label style={legacyLabelStyle}>{t("labels.country")}</label>
+            <div style={fieldStyle(t("labels.country"))}>
+              <label style={labelStyle}>{t("labels.country")}</label>
               <select className="input" value={form.origin_country_region_id ?? ""} onChange={(e) => {
                 const nextCountryId = e.target.value ? Number(e.target.value) : null;
                 const nextIsGreece = nextCountryId != null && nextCountryId === Number(greeceCountry?.id ?? null);
@@ -491,22 +490,22 @@ useEffect(() => {
             </div>
             {greeceSelected ? (
               <>
-                <div style={legacyFieldStyle(t("labels.regionSearch"))}>
-                  <label style={legacyLabelStyle}>{t("labels.regionSearch")}</label>
+                <div style={fieldStyle(t("labels.regionSearch"))}>
+                  <label style={labelStyle}>{t("labels.regionSearch")}</label>
                   <select className="input" value={form.origin_periphery_region_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_periphery_region_id: e.target.value ? Number(e.target.value) : null, origin_region_id: null, origin_city_region_id: null, origin_municipality: null }))}>
                     <option value="">{t("labels.choice")}</option>
                     {peripheries.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
                 </div>
-                <div style={legacyFieldStyle(t("labels.nomos"))}>
-                  <label style={legacyLabelStyle}>{t("labels.nomos")}</label>
+                <div style={fieldStyle(t("labels.nomos"))}>
+                  <label style={labelStyle}>{t("labels.nomos")}</label>
                   <select className="input" value={form.origin_region_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_region_id: e.target.value ? Number(e.target.value) : null, origin_city_region_id: null, origin_municipality: null }))} disabled={!Number.isFinite(Number(form.origin_periphery_region_id)) || nomoi.length === 0}>
                     <option value="">{t("labels.choice")}</option>
                     {nomoi.map((item) => <option key={item.id} value={item.id}>{getRegionDisplayName(item, activeLang)}</option>)}
                   </select>
                 </div>
-                <div style={legacyFieldStyle(t("labels.originText"))}>
-                  <label style={legacyLabelStyle}>{t("labels.originText")}</label>
+                <div style={fieldStyle(t("labels.originText"))}>
+                  <label style={labelStyle}>{t("labels.originText")}</label>
                   <select
                     className="input"
                     value={form.origin_city_region_id ?? ""}
@@ -528,8 +527,8 @@ useEffect(() => {
               </>
             ) : (
               <>
-                <div style={legacyFieldStyle(t("labels.originText"))}>
-                  <label style={legacyLabelStyle}>{t("labels.originText")}</label>
+                <div style={fieldStyle(t("labels.originText"))}>
+                  <label style={labelStyle}>{t("labels.originText")}</label>
                   <input className="input" value={form.origin_foreign_city ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_foreign_city: e.target.value }))} />
                 </div>
               </>
@@ -544,199 +543,6 @@ useEffect(() => {
             </Link>
           </div>
         </div>
-        )}
-      </div>
-    </div>
-  );
-  }
-
-  const fieldClassName = (label: string, wide = false) => {
-    const classes = ["graduate-form-field"];
-    if (highlightedMissing === label) classes.push("is-highlighted");
-    if (wide) classes.push("is-wide");
-    return classes.join(" ");
-  };
-
-  return (
-    <div className="graduate-form-page">
-      <header className="card graduate-form-header">
-        <div>
-          <span className="graduate-form-eyebrow">{isEdit ? t("eyebrowEdit") : t("eyebrowCreate")}</span>
-          <h1>{isEdit ? t("titleEdit") : t("titleCreate")}</h1>
-          <p>{isEdit ? t("subtitleEdit") : t("requiredNotice")}</p>
-        </div>
-      </header>
-
-      <div className="card graduate-form-card" aria-busy={loading || saving}>
-        {loading ? (
-          <div className="graduate-form-loading">{t("loading")}</div>
-        ) : (
-          <div className="graduate-form-content">
-            <section className="graduate-form-section">
-              <div className="graduate-form-section-head">
-                <span className="graduate-form-section-number">1</span>
-                <div>
-                  <h2>{t("sections.identityTitle")}</h2>
-                  <p>{t("sections.identityDescription")}</p>
-                </div>
-              </div>
-              <div className="graduate-form-grid">
-                <div className={fieldClassName(t("labels.adCode"))}>
-                  <label>{t("labels.adCode")}</label>
-                  <input className="input" value={form.ad_code ?? ""} onChange={(e) => setForm((f) => ({ ...f, ad_code: e.target.value }))} required={!isEdit} />
-                </div>
-                <div className={fieldClassName(t("labels.studentNumber"))}>
-                  <label>{t("labels.studentNumber")}</label>
-                  <input className="input" value={form.student_number ?? ""} onChange={(e) => setForm((f) => ({ ...f, student_number: e.target.value }))} />
-                </div>
-                <div className={fieldClassName(t("labels.lastName"))}>
-                  <label>{t("labels.lastName")}</label>
-                  <input className="input" value={form.last_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} />
-                </div>
-                <div className={fieldClassName(t("labels.firstName"))}>
-                  <label>{t("labels.firstName")}</label>
-                  <input className="input" value={form.first_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} />
-                </div>
-                <div className={fieldClassName(t("labels.fatherName"))}>
-                  <label>{t("labels.fatherName")}</label>
-                  <input className="input" value={form.father_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, father_name: e.target.value }))} />
-                </div>
-                <div className={fieldClassName(t("labels.gender"))}>
-                  <label>{t("labels.gender")}</label>
-                  <select className="input" value={form.gender ?? ""} onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value as any }))}>
-                    <option value="">{t("labels.choice")}</option>
-                    <option value="M">{t("labels.genderMale")}</option>
-                    <option value="F">{t("labels.genderFemale")}</option>
-                  </select>
-                </div>
-                <div className={fieldClassName(t("labels.birthDate"))}>
-                  <label>{t("labels.birthDate")}</label>
-                  <input className="input" type="date" value={(form as any).birth_date ?? ""} onChange={(e) => setForm((f) => ({ ...f, birth_date: e.target.value }))} />
-                </div>
-              </div>
-            </section>
-
-            <section className="graduate-form-section">
-              <div className="graduate-form-section-head">
-                <span className="graduate-form-section-number">2</span>
-                <div>
-                  <h2>{t("sections.academicTitle")}</h2>
-                  <p>{t("sections.academicDescription")}</p>
-                </div>
-              </div>
-              <div className="graduate-form-grid">
-                <div className={fieldClassName(t("labels.entryYearReq"))}>
-                  <label>{t("labels.entryYearReq")}</label>
-                  <input className="input" inputMode="numeric" value={form.entry_year ?? ""} onChange={(e) => setForm((f) => ({ ...f, entry_year: e.target.value ? Number(e.target.value) : ("" as any) }))} />
-                </div>
-                <div className={fieldClassName(t("labels.degreeGrade"))}>
-                  <label>{t("labels.degreeGrade")}</label>
-                  <input className="input" type="number" min="5" max="10" step="0.01" value={form.degree_grade ?? ""} onChange={(e) => setForm((f) => ({ ...f, degree_grade: e.target.value ? Number(e.target.value) : ("" as any) }))} />
-                </div>
-                <div className={fieldClassName(t("labels.graduationDate"))}>
-                  <label>{t("labels.graduationDate")}</label>
-                  <input className="input" type="date" value={(form.graduation_date ?? "") as any} onChange={(e) => setForm((f) => ({ ...f, graduation_date: e.target.value }))} />
-                </div>
-                <div className={fieldClassName(t("labels.oathDate"))}>
-                  <label>{t("labels.oathDate")}</label>
-                  <input className="input" type="date" value={(form.oath_date ?? "") as any} onChange={(e) => setForm((f) => ({ ...f, oath_date: e.target.value }))} />
-                </div>
-                <div className={fieldClassName(t("labels.studyProgram"), true)}>
-                  <label>{t("labels.studyProgram")}</label>
-                  <select className="input" value={String(form.study_program_id ?? "")} onChange={(e) => setForm((f) => ({ ...f, study_program_id: Number(e.target.value) }))}>
-                    {programs.map((p) => <option key={p.id} value={p.id}>{activeLang === "en" ? p.name_en || p.name_el : p.name_el || p.name_en}</option>)}
-                  </select>
-                </div>
-              </div>
-            </section>
-
-            <section className="graduate-form-section">
-              <div className="graduate-form-section-head">
-                <span className="graduate-form-section-number">3</span>
-                <div>
-                  <h2>{t("sections.originTitle")}</h2>
-                  <p>{t("sections.originDescription")}</p>
-                </div>
-              </div>
-              <div className="graduate-form-grid">
-                <div className={fieldClassName(t("labels.country"), true)}>
-                  <label>{t("labels.country")}</label>
-                  <select className="input" value={form.origin_country_region_id ?? ""} onChange={(e) => {
-                    const nextCountryId = e.target.value ? Number(e.target.value) : null;
-                    const nextIsGreece = nextCountryId != null && nextCountryId === Number(greeceCountry?.id ?? null);
-                    const nextCountry = countries.find((item) => Number(item.id) === Number(nextCountryId));
-                    setForm((f) => ({
-                      ...f,
-                      origin_country_region_id: nextCountryId,
-                      origin_periphery_region_id: nextIsGreece ? f.origin_periphery_region_id ?? null : null,
-                      origin_region_id: nextIsGreece ? f.origin_region_id ?? null : null,
-                      origin_city_region_id: nextIsGreece ? f.origin_city_region_id ?? null : null,
-                      origin_municipality: nextIsGreece ? f.origin_municipality ?? null : null,
-                      origin_country: nextIsGreece ? "Ελλάδα" : nextCountry?.name ?? null,
-                      origin_foreign_city: nextIsGreece ? null : f.origin_foreign_city ?? null,
-                    }));
-                  }}>
-                    <option value="">{t("labels.choice")}</option>
-                    {countries.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                  </select>
-                </div>
-                {greeceSelected ? (
-                  <>
-                    <div className={fieldClassName(t("labels.regionSearch"))}>
-                      <label>{t("labels.regionSearch")}</label>
-                      <select className="input" value={form.origin_periphery_region_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_periphery_region_id: e.target.value ? Number(e.target.value) : null, origin_region_id: null, origin_city_region_id: null, origin_municipality: null }))}>
-                        <option value="">{t("labels.choice")}</option>
-                        {peripheries.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                      </select>
-                    </div>
-                    <div className={fieldClassName(t("labels.nomos"))}>
-                      <label>{t("labels.nomos")}</label>
-                      <select className="input" value={form.origin_region_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_region_id: e.target.value ? Number(e.target.value) : null, origin_city_region_id: null, origin_municipality: null }))} disabled={!Number.isFinite(Number(form.origin_periphery_region_id)) || nomoi.length === 0}>
-                        <option value="">{t("labels.choice")}</option>
-                        {nomoi.map((item) => <option key={item.id} value={item.id}>{getRegionDisplayName(item, activeLang)}</option>)}
-                      </select>
-                    </div>
-                    <div className={fieldClassName(t("labels.originText"))}>
-                      <label>{t("labels.originText")}</label>
-                      <select
-                        className="input"
-                        value={form.origin_city_region_id ?? ""}
-                        onChange={(e) => {
-                          const cityId = e.target.value ? Number(e.target.value) : null;
-                          const matchedCity = cities.find((item) => Number(item.id) === Number(cityId));
-                          setForm((f) => ({
-                            ...f,
-                            origin_city_region_id: cityId,
-                            origin_municipality: matchedCity ? String(matchedCity.name ?? "").trim() : null,
-                          }));
-                        }}
-                        disabled={!Number.isFinite(Number(form.origin_periphery_region_id))}
-                      >
-                        <option value="">{t("labels.choice")}</option>
-                        {cities.map((item) => <option key={item.id} value={item.id}>{getRegionDisplayName(item, activeLang)}</option>)}
-                      </select>
-                    </div>
-                  </>
-                ) : (
-                  <div className={fieldClassName(t("labels.originText"), true)}>
-                    <label>{t("labels.originText")}</label>
-                    <input className="input" value={form.origin_foreign_city ?? ""} onChange={(e) => setForm((f) => ({ ...f, origin_foreign_city: e.target.value }))} />
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <div className="graduate-form-actions">
-              <Link className="btn graduate-form-cancel" to="/graduates">
-                <Icon src={xIcon} size={17} />
-                <span>{t("back")}</span>
-              </Link>
-              <button className="btn primary graduate-form-save" type="button" disabled={saving} onClick={onSave}>
-                <Icon src={graduationCapIcon} size={18} />
-                <span>{saving ? t("saving") : t("save")}</span>
-              </button>
-            </div>
-          </div>
         )}
       </div>
     </div>

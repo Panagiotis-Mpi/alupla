@@ -50,6 +50,14 @@ export function GraduatesTable(props: {
   activeLang: "gr" | "en";
   t: (key: string, options?: Record<string, unknown>) => string;
   onDelete: (graduate: Graduate) => Promise<void>;
+  page: number;
+  pageCount: number;
+  pageSize: number;
+  resultCount: number;
+  firstResult: number;
+  lastResult: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }) {
   const {
     visibleItems,
@@ -71,6 +79,14 @@ export function GraduatesTable(props: {
     activeLang,
     t,
     onDelete,
+    page,
+    pageCount,
+    pageSize,
+    resultCount,
+    firstResult,
+    lastResult,
+    onPageChange,
+    onPageSizeChange,
   } = props;
   const [openActionMenu, setOpenActionMenu] = React.useState<{
     key: string;
@@ -102,7 +118,7 @@ export function GraduatesTable(props: {
 
   React.useEffect(() => {
     setOpenActionMenu(null);
-  }, [visibleItems]);
+  }, [page, visibleItems]);
 
   const renderActions = (graduate: Graduate, context: "desktop" | "mobile") => {
     const actionKey = `${context}-${graduate.id}`;
@@ -310,6 +326,46 @@ export function GraduatesTable(props: {
           )
         : null}
 
+      <div className="graduates-pagination">
+        <div className="graduates-pagination-summary">
+          {resultCount > 0
+            ? t("toolbar.resultsRange", { from: firstResult, to: lastResult, total: resultCount })
+            : t("toolbar.resultsCount", { count: 0 })}
+        </div>
+        <label className="graduates-page-size">
+          <span>{t("toolbar.pageSize")}</span>
+          <select
+            className="input"
+            value={pageSize}
+            onChange={(event) => onPageSizeChange(Number(event.target.value))}
+          >
+            {[25, 50, 100].map((size) => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </label>
+        <div className="graduates-page-navigation">
+          <button
+            className="btn graduates-pagination-button"
+            type="button"
+            onClick={() => onPageChange(page - 1)}
+            disabled={page <= 1}
+          >
+            {t("toolbar.previous")}
+          </button>
+          <span className="badge">
+            {t("toolbar.page", { page, pages: pageCount })}
+          </span>
+          <button
+            className="btn graduates-pagination-button"
+            type="button"
+            onClick={() => onPageChange(page + 1)}
+            disabled={page >= pageCount}
+          >
+            {t("toolbar.next")}
+          </button>
+        </div>
+      </div>
     </section>
   );
 }
