@@ -10,15 +10,7 @@
     "academicPrograms": "Academic programs",
     "myAccount": "My account",
     "myProfile": "My profile",
-    "homepage": "Homepage",
-    "data": "Data",
-    "analysis": "Analysis",
-    "management": "Management",
-    "workspace": "Graduate platform",
-    "workspaceLabel": "Workspace",
-    "menu": "Menu",
-    "primary": "Primary navigation",
-    "openWorkspace": "Open workspace"
+    "homepage": "Homepage"
   },
   "home": {
     "heroTitle": "Alumni Platform | Graduate Platform",

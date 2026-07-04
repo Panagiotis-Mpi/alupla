@@ -1,17 +1,10 @@
+// Πίνακας αποφοίτων με στήλες, επιλογή γραμμών και actions.
 import React from "react";
-import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import type { Graduate } from "../../lib/api";
-import {
-  formatValue,
-  getGraduateOriginCountryDisplay,
-  getGraduateOriginMunicipalityDisplay,
-  getGraduateOriginNomosDisplay,
-  getGraduateOriginRegionDisplay,
-  type SortKey,
-} from "./shared";
+import { formatValue, getGraduateOriginCountryDisplay, getGraduateOriginMunicipalityDisplay, getGraduateOriginNomosDisplay, getGraduateOriginRegionDisplay, type SortKey } from "./shared";
 
-export const graduateSortColumns: Array<{ sortKey: SortKey; labelKey: string }> = [
+const graduateSortColumns: Array<{ sortKey: SortKey; labelKey: string }> = [
   { sortKey: "ad_code", labelKey: "table.ad" },
   { sortKey: "student_number", labelKey: "table.am" },
   { sortKey: "last_name", labelKey: "table.lastName" },
@@ -30,16 +23,18 @@ export const graduateSortColumns: Array<{ sortKey: SortKey; labelKey: string }> 
   { sortKey: "origin_municipality", labelKey: "table.originMunicipality" },
 ];
 
+// Εμφανίζει αποφοίτους σε πίνακα και ενημερώνει την επιλογή γραμμών.
 export function GraduatesTable(props: {
   visibleItems: Graduate[];
   loading: boolean;
-  emptyMessage: string;
   selectedIdSet: Set<number>;
   allVisibleSelected: boolean;
   selectAllRef: React.RefObject<HTMLInputElement>;
   tableWrapRef: React.RefObject<HTMLDivElement>;
   floatingScrollbarRef: React.RefObject<HTMLDivElement>;
   floatingScrollbarInnerRef: React.RefObject<HTMLDivElement>;
+  headerButtonStyle: React.CSSProperties;
+  wideCardStyle: React.CSSProperties;
   toggleAllVisible: () => void;
   toggleSelected: (id: number) => void;
   toggleSort: (key: SortKey) => void;
@@ -50,322 +45,106 @@ export function GraduatesTable(props: {
   activeLang: "gr" | "en";
   t: (key: string, options?: Record<string, unknown>) => string;
   onDelete: (graduate: Graduate) => Promise<void>;
-  page: number;
-  pageCount: number;
-  pageSize: number;
-  resultCount: number;
-  firstResult: number;
-  lastResult: number;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
 }) {
-  const {
-    visibleItems,
-    loading,
-    emptyMessage,
-    selectedIdSet,
-    allVisibleSelected,
-    selectAllRef,
-    tableWrapRef,
-    floatingScrollbarRef,
-    floatingScrollbarInnerRef,
-    toggleAllVisible,
-    toggleSelected,
-    toggleSort,
-    getSortIndicator,
-    renderGender,
-    programNameById,
-    regionNameById,
-    activeLang,
-    t,
-    onDelete,
-    page,
-    pageCount,
-    pageSize,
-    resultCount,
-    firstResult,
-    lastResult,
-    onPageChange,
-    onPageSizeChange,
-  } = props;
-  const [openActionMenu, setOpenActionMenu] = React.useState<{
-    key: string;
-    graduate: Graduate;
-    top: number;
-    left: number;
-  } | null>(null);
-  const actionMenuRef = React.useRef<HTMLDivElement | null>(null);
-  const actionTriggerRef = React.useRef<HTMLButtonElement | null>(null);
-
-  React.useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (actionMenuRef.current?.contains(target) || actionTriggerRef.current?.contains(target)) {
-        return;
-      }
-      setOpenActionMenu(null);
-    };
-    const closeMenu = () => setOpenActionMenu(null);
-    document.addEventListener("mousedown", handlePointerDown);
-    window.addEventListener("resize", closeMenu);
-    window.addEventListener("scroll", closeMenu, true);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      window.removeEventListener("resize", closeMenu);
-      window.removeEventListener("scroll", closeMenu, true);
-    };
-  }, []);
-
-  React.useEffect(() => {
-    setOpenActionMenu(null);
-  }, [page, visibleItems]);
-
-  const renderActions = (graduate: Graduate, context: "desktop" | "mobile") => {
-    const actionKey = `${context}-${graduate.id}`;
-    const open = openActionMenu?.key === actionKey;
-    return (
-      <div className="graduates-row-action-menu">
-        <button
-          ref={open ? actionTriggerRef : undefined}
-          className="graduates-row-action-trigger"
-          type="button"
-          onClick={(event) => {
-            if (open) {
-              setOpenActionMenu(null);
-              return;
-            }
-            const rect = event.currentTarget.getBoundingClientRect();
-            const panelWidth = 170;
-            const panelHeight = 92;
-            const left = Math.max(8, Math.min(rect.right - panelWidth, window.innerWidth - panelWidth - 8));
-            const top = rect.bottom + 6 + panelHeight <= window.innerHeight
-              ? rect.bottom + 6
-              : Math.max(8, rect.top - panelHeight - 6);
-            setOpenActionMenu({ key: actionKey, graduate, top, left });
-          }}
-          aria-label={t("table.moreActions")}
-          aria-expanded={open}
-          aria-haspopup="menu"
-        >
-          <span aria-hidden="true">⋯</span>
-        </button>
-      </div>
-    );
-  };
+  const { visibleItems, loading, selectedIdSet, allVisibleSelected, selectAllRef, tableWrapRef, floatingScrollbarRef, floatingScrollbarInnerRef, headerButtonStyle, wideCardStyle, toggleAllVisible, toggleSelected, toggleSort, getSortIndicator, renderGender, programNameById, regionNameById, activeLang, t, onDelete } = props;
 
   return (
-    <section className="card graduates-list-card">
-      <div className="graduates-desktop-table">
-        <div className="table-wrap graduates-table-wrap" ref={tableWrapRef}>
-          <table className="table graduates-table">
-            <thead>
-              <tr>
-                <th className="graduates-select-column">
-                  <input
-                    ref={selectAllRef}
-                    type="checkbox"
-                    checked={allVisibleSelected}
-                    onChange={toggleAllVisible}
-                    aria-label={t("table.selectPage")}
-                  />
+    <div className="card" style={{ ...wideCardStyle, position: "relative" }}>
+      <div
+        className="table-wrap"
+        ref={tableWrapRef}
+        style={{
+          overflowX: "auto",
+          overflowY: "hidden",
+          WebkitOverflowScrolling: "touch",
+          touchAction: "pan-x pan-y",
+          overscrollBehaviorX: "contain",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+        }}
+      >
+        <table className="table" style={{ minWidth: 2380 }}>
+          <thead>
+            <tr>
+              <th style={{ width: 44 }}><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} /></th>
+              {graduateSortColumns.map((column) => (
+                <th key={column.sortKey}>
+                  <button type="button" style={headerButtonStyle} onClick={() => toggleSort(column.sortKey)}>
+                    {t(column.labelKey)}{getSortIndicator(column.sortKey)}
+                  </button>
                 </th>
-                {graduateSortColumns.map((column) => (
-                  <th key={column.sortKey} className={`graduates-col-${column.sortKey}`}>
-                    <button
-                      className="graduates-sort-button"
-                      type="button"
-                      onClick={() => toggleSort(column.sortKey)}
-                    >
-                      <span>{t(column.labelKey)}</span>
-                      <span aria-hidden="true">{getSortIndicator(column.sortKey)}</span>
-                    </button>
-                  </th>
-                ))}
-                <th className="graduates-actions-column">{t("table.actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleItems.map((graduate) => {
-                const id = Number(graduate.id);
-                const selected = selectedIdSet.has(id);
-                return (
-                  <tr key={graduate.id} className={selected ? "is-selected-row" : undefined} aria-selected={selected}>
-                    <td className="graduates-select-column">
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleSelected(id)}
-                        aria-label={t("table.selectGraduate", { name: `${graduate.first_name} ${graduate.last_name}` })}
-                      />
-                    </td>
-                    <td>{formatValue(graduate.ad_code)}</td>
-                    <td>{formatValue(graduate.student_number ?? (graduate as unknown as Record<string, unknown>).student_nuad_code ?? (graduate as unknown as Record<string, unknown>).am ?? (graduate as unknown as Record<string, unknown>).student_id)}</td>
-                    <td>{formatValue(graduate.last_name)}</td>
-                    <td>{formatValue(graduate.first_name)}</td>
-                    <td>{formatValue(graduate.father_name)}</td>
-                    <td>{renderGender(graduate.gender)}</td>
-                    <td>{formatValue(graduate.entry_year)}</td>
-                    <td>{formatValue(graduate.birth_date, "date")}</td>
-                    <td>{formatValue(graduate.degree_grade)}</td>
-                    <td>{formatValue(graduate.graduation_date, "date")}</td>
-                    <td>{formatValue(graduate.oath_date, "date")}</td>
-                    <td>{programNameById.get(Number(graduate.study_program_id)) ?? ""}</td>
-                    <td>{formatValue(getGraduateOriginCountryDisplay(graduate, regionNameById, t, activeLang))}</td>
-                    <td>{formatValue(getGraduateOriginRegionDisplay(graduate, regionNameById, activeLang))}</td>
-                    <td>{formatValue(getGraduateOriginNomosDisplay(graduate, regionNameById, activeLang))}</td>
-                    <td>{formatValue(getGraduateOriginMunicipalityDisplay(graduate, regionNameById, activeLang))}</td>
-                    <td className="graduates-actions-column">{renderActions(graduate, "desktop")}</td>
-                  </tr>
-                );
-              })}
-              {!visibleItems.length ? (
-                <tr>
-                  <td colSpan={18} className="graduates-table-empty">
-                    {loading ? t("table.loading") : emptyMessage}
+              ))}
+              <th className="row-actions">{t("table.actions")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleItems.map((graduate) => {
+              const id = Number(graduate.id);
+              const selected = selectedIdSet.has(id);
+              return (
+                <tr key={graduate.id} className={selected ? "is-selected-row" : undefined} aria-selected={selected}>
+                  <td>
+                    <input type="checkbox" checked={selected} onChange={() => toggleSelected(id)} />
+                  </td>
+                  <td>{formatValue(graduate.ad_code)}</td>
+                  <td>{formatValue(graduate.student_number ?? (graduate as unknown as Record<string, unknown>).student_nuad_code ?? (graduate as unknown as Record<string, unknown>).am ?? (graduate as unknown as Record<string, unknown>).student_id)}</td>
+                  <td>{formatValue(graduate.last_name)}</td>
+                  <td>{formatValue(graduate.first_name)}</td>
+                  <td>{formatValue(graduate.father_name)}</td>
+                  <td>{renderGender(graduate.gender)}</td>
+                  <td>{formatValue(graduate.entry_year)}</td>
+                  <td>{formatValue(graduate.birth_date, "date")}</td>
+                  <td>{formatValue(graduate.degree_grade)}</td>
+                  <td>{formatValue(graduate.graduation_date, "date")}</td>
+                  <td>{formatValue(graduate.oath_date, "date")}</td>
+                  <td>{programNameById.get(Number(graduate.study_program_id)) ?? ""}</td>
+                  <td>{formatValue(getGraduateOriginCountryDisplay(graduate, regionNameById, t, activeLang))}</td>
+                  <td>{formatValue(getGraduateOriginRegionDisplay(graduate, regionNameById, activeLang))}</td>
+                  <td>{formatValue(getGraduateOriginNomosDisplay(graduate, regionNameById, activeLang))}</td>
+                  <td>{formatValue(getGraduateOriginMunicipalityDisplay(graduate, regionNameById, activeLang))}</td>
+                  <td>
+                    <div className="row-actions">
+                      <Link className="btn" to={`/graduates/${graduate.id}`} style={{ textDecoration: "none" }}>
+                        <span>{t("table.edit")}</span>
+                      </Link>
+                      <button className="btn danger" onClick={() => void onDelete(graduate)}>
+                        {t("table.delete")}
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-        <div ref={floatingScrollbarRef} className="graduates-floating-scrollbar">
-          <div ref={floatingScrollbarInnerRef} />
-        </div>
+              );
+            })}
+            {!visibleItems.length ? (
+              <tr>
+                <td colSpan={19} className="muted">
+                  {loading ? t("table.loading", { defaultValue: t("topbar.loading") }) : t("table.empty")}
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
       </div>
-
-      <div className="graduates-mobile-list">
-        {visibleItems.map((graduate) => {
-          const id = Number(graduate.id);
-          const selected = selectedIdSet.has(id);
-          const city = getGraduateOriginMunicipalityDisplay(graduate, regionNameById, activeLang);
-          const country = getGraduateOriginCountryDisplay(graduate, regionNameById, t, activeLang);
-          return (
-            <article key={graduate.id} className={`graduate-mobile-card${selected ? " is-selected" : ""}`}>
-              <div className="graduate-mobile-card-head">
-                <input
-                  type="checkbox"
-                  checked={selected}
-                  onChange={() => toggleSelected(id)}
-                  aria-label={t("table.selectGraduate", { name: `${graduate.first_name} ${graduate.last_name}` })}
-                />
-                <div className="graduate-mobile-identity">
-                  <strong>{formatValue(graduate.last_name)} {formatValue(graduate.first_name)}</strong>
-                  <span>{t("table.am")}: {formatValue(graduate.student_number)}</span>
-                </div>
-                {renderActions(graduate, "mobile")}
-              </div>
-              <dl className="graduate-mobile-details">
-                <div>
-                  <dt>{t("table.ad")}</dt>
-                  <dd>{formatValue(graduate.ad_code)}</dd>
-                </div>
-                <div>
-                  <dt>{t("table.graduationDate")}</dt>
-                  <dd>{formatValue(graduate.graduation_date, "date")}</dd>
-                </div>
-                <div>
-                  <dt>{t("table.studyProgram")}</dt>
-                  <dd>{programNameById.get(Number(graduate.study_program_id)) ?? ""}</dd>
-                </div>
-                <div>
-                  <dt>{t("table.gender")}</dt>
-                  <dd>{renderGender(graduate.gender)}</dd>
-                </div>
-                <div>
-                  <dt>{t("table.country")}</dt>
-                  <dd>{country}</dd>
-                </div>
-                <div>
-                  <dt>{t("table.originMunicipality")}</dt>
-                  <dd>{city}</dd>
-                </div>
-              </dl>
-              <Link className="btn graduate-mobile-details-link" to={`/graduates/${graduate.id}`}>
-                {t("table.openDetails")}
-              </Link>
-            </article>
-          );
-        })}
-        {!visibleItems.length ? (
-          <div className="graduates-mobile-empty">
-            {loading ? t("table.loading") : emptyMessage}
-          </div>
-        ) : null}
+      <div
+        ref={floatingScrollbarRef}
+        style={{
+          position: "sticky",
+          left: 16,
+          right: 16,
+          bottom: 8,
+          overflowX: "auto",
+          overflowY: "hidden",
+          zIndex: 30,
+          background: "rgba(255,255,255,0.96)",
+          border: "1px solid rgba(0,0,0,0.08)",
+          borderRadius: 10,
+          boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+          height: 18,
+          marginTop: 8,
+        }}
+      >
+        <div ref={floatingScrollbarInnerRef} style={{ height: 1 }} />
       </div>
-
-      {openActionMenu && typeof document !== "undefined"
-        ? createPortal(
-            <div
-              ref={actionMenuRef}
-              className="graduates-row-action-panel graduates-row-action-portal"
-              style={{ top: openActionMenu.top, left: openActionMenu.left }}
-              role="menu"
-            >
-              <Link
-                className="graduates-row-action-item"
-                to={`/graduates/${openActionMenu.graduate.id}`}
-                onClick={() => setOpenActionMenu(null)}
-                role="menuitem"
-              >
-                {t("table.edit")}
-              </Link>
-              <button
-                className="graduates-row-action-item is-danger"
-                type="button"
-                onClick={() => {
-                  const graduate = openActionMenu.graduate;
-                  setOpenActionMenu(null);
-                  void onDelete(graduate);
-                }}
-                role="menuitem"
-              >
-                {t("table.delete")}
-              </button>
-            </div>,
-            document.body,
-          )
-        : null}
-
-      <div className="graduates-pagination">
-        <div className="graduates-pagination-summary">
-          {resultCount > 0
-            ? t("toolbar.resultsRange", { from: firstResult, to: lastResult, total: resultCount })
-            : t("toolbar.resultsCount", { count: 0 })}
-        </div>
-        <label className="graduates-page-size">
-          <span>{t("toolbar.pageSize")}</span>
-          <select
-            className="input"
-            value={pageSize}
-            onChange={(event) => onPageSizeChange(Number(event.target.value))}
-          >
-            {[25, 50, 100].map((size) => (
-              <option key={size} value={size}>{size}</option>
-            ))}
-          </select>
-        </label>
-        <div className="graduates-page-navigation">
-          <button
-            className="btn graduates-pagination-button"
-            type="button"
-            onClick={() => onPageChange(page - 1)}
-            disabled={page <= 1}
-          >
-            {t("toolbar.previous")}
-          </button>
-          <span className="badge">
-            {t("toolbar.page", { page, pages: pageCount })}
-          </span>
-          <button
-            className="btn graduates-pagination-button"
-            type="button"
-            onClick={() => onPageChange(page + 1)}
-            disabled={page >= pageCount}
-          >
-            {t("toolbar.next")}
-          </button>
-        </div>
-      </div>
-    </section>
+    </div>
   );
 }
