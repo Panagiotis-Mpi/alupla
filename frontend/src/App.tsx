@@ -6,7 +6,6 @@ import i18n from "./i18n";
 import Guard from "./components/Guard";
 import { getUser, logout, subscribeSessionChange } from "./lib/auth";
 import { pingPresence } from "./lib/api";
-import Footer from "./components/Footer";
 import AccessibilityMenu from "./components/AccessibilityMenu";
 import Icon from "./components/Icon";
 import PublicHome from "./pages/PublicHome";
@@ -453,7 +452,6 @@ function App() {
           </Routes>
         </React.Suspense>
       </main>
-      <Footer />
       <ScrollToTopButton />
       <AccessibilityMenu />
     </div>
