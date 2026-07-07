@@ -302,6 +302,14 @@ body.public-home-scroll-lock .accessibility-trigger{
     align-items:center;
     align-content:space-between;
   }
+
+  .public-home-card-split .public-home-title{
+    transform:translateY(8px);
+  }
+
+  .public-home-side-actions{
+    transform:translateY(-8px);
+  }
 }
 
 @media (min-width:1025px){
