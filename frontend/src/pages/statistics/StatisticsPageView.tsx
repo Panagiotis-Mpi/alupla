@@ -183,10 +183,10 @@ const renderCompareExportCard = (
         html.accessibility-high-contrast .statistics-chart-loading-region [data-stat-chart-plot]::after { background: #fff; color: #000; border: 2px solid #000; }
       `}</style>
       <div className="page-stable-shell statistics-page" ref={pageRef}>
-        <div className="card page-header-card" style={{ padding: 14 }}>
+        <div className="card page-header-card page-central-menu-card" style={{ padding: 14 }}>
           <div style={{ display: "grid", gap: 14 }}>
             <div style={{ display: "grid", gap: 14 }}>
-              <div className="mobile-summary-title-row">
+              <div className="mobile-summary-title-row page-central-menu-title-row">
                 <h2 style={{ margin: 0 }}>{t("pageTitle")}</h2>
               </div>
               <StatisticsGroupMenu

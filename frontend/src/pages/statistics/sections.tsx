@@ -185,7 +185,7 @@ export function StatisticsGroupMenu(props: {
 }) {
   return (
     <div style={props.sectionMenuStyle}>
-      <div className="page-header-actions-grid" style={props.sectionButtonsStyle}>
+      <div className="page-header-actions-grid page-central-menu-actions" style={props.sectionButtonsStyle}>
         {(["demographics", "academic", "geography", "compare"] as const).map((groupKey) => (
           <button
             key={groupKey}

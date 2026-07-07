@@ -59,12 +59,12 @@ export function MapTopControls(props: {
       : props.mt("scope.abroad", { defaultValue: "Εξωτερικό" });
 
   return (
-    <div className="card map-top-menu-card">
-      <div className="map-top-menu-title">
+    <div className="card map-top-menu-card page-central-menu-card">
+      <div className="map-top-menu-title page-central-menu-title-row">
         <h2>{props.mt("title", { defaultValue: "Χάρτης" })}</h2>
         <span className="map-top-menu-title-spacer" />
       </div>
-      <div className="map-top-controls-row">
+      <div className="map-top-controls-row page-central-menu-actions">
         {(["count", "dominant_gender"] as MapMetric[]).map((option) => (
           <button key={option} type="button" className={`btn map-metric-button ${props.mapMetric === option ? "active primary" : ""}`} onClick={() => props.onMetricChange(option)}>
             {option === "count" ? (
@@ -123,10 +123,10 @@ export function MapTopControls(props: {
             <span>{props.mt("downloadMap", { defaultValue: "Λήψη χάρτη" })}</span>
           </button>
         </div>
-      </div>
-      <div className="mobile-submenu-toggle-row map-mobile-submenu-toggle-row">
-        {props.summaryToggle}
-        {props.timelineToggle}
+        <div className="mobile-submenu-toggle-row map-mobile-submenu-toggle-row">
+          {props.summaryToggle}
+          {props.timelineToggle}
+        </div>
       </div>
     </div>
   );

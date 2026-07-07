@@ -299,13 +299,13 @@ export default function Logs() {
         </div>
       )}
 
-      <div className="card page-header-card" style={{ padding: 14 }}>
+      <div className="card page-header-card page-central-menu-card" style={{ padding: 14 }}>
         <div style={{ display: "grid", gap: 14 }}>
-          <div className="mobile-summary-title-row" style={{ alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div className="mobile-summary-title-row page-central-menu-title-row" style={{ alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <h2 style={{ margin: 0 }}>{t("title")}</h2>
           </div>
           <div
-            className="page-header-actions-grid"
+            className="page-header-actions-grid page-central-menu-actions page-central-menu-actions-odd"
             style={{
               display: "grid",
               gap: 12,

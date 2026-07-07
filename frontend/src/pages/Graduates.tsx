@@ -451,7 +451,7 @@ export default function Graduates() {
         t={t}
       />
 
-      <div className="card graduates-top-card" style={{ padding: 14 }}>
+      <div className="card graduates-top-card page-central-menu-card" style={{ padding: 14 }}>
         <div style={{ display: "grid", gap: 14 }}>
           <div
             className="graduates-top-layout"
@@ -483,7 +483,7 @@ export default function Graduates() {
 
             <div style={{ display: "grid", gap: 10, width: "100%" }}>
               <div
-                className="graduates-actions-grid graduates-actions-grid-main"
+                className="graduates-actions-grid graduates-actions-grid-main page-central-menu-actions"
                 style={{ gap: 10, width: "100%", alignItems: "stretch" }}
               >
                 <Link

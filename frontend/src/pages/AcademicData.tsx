@@ -188,9 +188,9 @@ export default function AcademicData() {
 
   return (
     <div className="grid" style={{ gap: 14 }}>
-      <div className="card" style={{ padding: 16 }}>
+      <div className="card page-central-menu-card" style={{ padding: 16 }}>
         <div
-          className="topbar"
+          className="topbar page-central-menu-title-row"
           style={{
             alignItems: "center",
             justifyContent: "flex-start",
@@ -200,7 +200,7 @@ export default function AcademicData() {
           <h2 style={{ margin: 0 }}>{t("title")}</h2>
         </div>
 
-        <div className="topbar" style={menuGridStyle}>
+        <div className="topbar page-central-menu-actions" style={menuGridStyle}>
           <button
             className="btn"
             style={menuButtonStyle}
