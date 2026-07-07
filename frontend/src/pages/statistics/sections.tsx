@@ -100,22 +100,9 @@ function exportChunkRanges(labels: string[], datasetCount = 1) {
   return ranges;
 }
 
-function exportValueMax(values: number[], precision?: number) {
+function exportSuggestedMax(values: number[]) {
   const max = values.reduce((current, value) => Number.isFinite(Number(value)) ? Math.max(current, Number(value)) : current, 0);
-  if (!(max > 0)) return undefined;
-  const padded = max * 1.08;
-
-  if (precision !== undefined) {
-    const factor = 10 ** Math.max(0, precision);
-    return Number((Math.ceil(padded * factor) / factor).toFixed(Math.max(0, precision)));
-  }
-
-  if (max <= 10) return Math.ceil(padded);
-  const rawStep = padded / 8;
-  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
-  const normalized = rawStep / magnitude;
-  const step = (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10) * magnitude;
-  return Math.ceil(padded / step) * step;
+  return max > 0 ? max : undefined;
 }
 
 function ExportBarCards(props: {
@@ -125,7 +112,7 @@ function ExportBarCards(props: {
   yTickPrecision?: number;
 }) {
   const ranges = exportChunkRanges(props.series.labels);
-  const maxValue = exportValueMax(props.series.values, props.yTickPrecision);
+  const suggestedMax = exportSuggestedMax(props.series.values);
 
   return (
     <>
@@ -143,7 +130,7 @@ function ExportBarCards(props: {
             minLabelWidth={82}
             maxLabelWidth={112}
             yTickPrecision={props.yTickPrecision}
-            maxValue={maxValue}
+            suggestedMax={suggestedMax}
             exportMode
           />
         );
@@ -160,7 +147,7 @@ function ExportMultiBarCards(props: {
   yTickPrecision?: number;
 }) {
   const ranges = exportChunkRanges(props.labels, props.datasets.length);
-  const maxValue = exportValueMax(props.datasets.flatMap((dataset) => dataset.values), props.yTickPrecision);
+  const suggestedMax = exportSuggestedMax(props.datasets.flatMap((dataset) => dataset.values));
 
   return (
     <>
@@ -178,7 +165,7 @@ function ExportMultiBarCards(props: {
             minLabelWidth={88}
             maxLabelWidth={120}
             yTickPrecision={props.yTickPrecision}
-            maxValue={maxValue}
+            suggestedMax={suggestedMax}
             exportMode
           />
         );

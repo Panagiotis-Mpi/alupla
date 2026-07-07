@@ -94,6 +94,7 @@ function buildBarChartOptions(options?: {
   beginAtZero?: boolean;
   min?: number;
   max?: number;
+  suggestedMax?: number;
   xTickRotation?: number;
   xTickFormatter?: (label: string) => string | string[];
   yTickPrecision?: number;
@@ -126,6 +127,7 @@ function buildBarChartOptions(options?: {
           stacked: !!options?.stacked,
           min: options?.min,
           max: options?.max,
+          suggestedMax: options?.suggestedMax,
           ticks: { precision: yTickPrecision ?? 0, color: chartTickColor, callback: yTickCallback },
           grid: { color: chartGridColor },
           border: { display: false },
@@ -175,6 +177,7 @@ function buildBarChartOptions(options?: {
         stacked: !!options?.stacked,
         min: options?.min,
         max: options?.max,
+        suggestedMax: options?.suggestedMax,
         ticks: { precision: yTickPrecision ?? 0, color: chartTickColor, callback: yTickCallback },
         grid: { color: chartGridColor },
         border: { display: false },
@@ -715,7 +718,7 @@ export function BarChartCard(props: {
   scrollThreshold?: number;
   chartId?: string;
   yTickPrecision?: number;
-  maxValue?: number;
+  suggestedMax?: number;
   exportMode?: boolean;
 }) {
   const highContrast = useHighContrastEnabled();
@@ -734,10 +737,10 @@ export function BarChartCard(props: {
         fullLabelTooltip: props.fullLabelTooltip,
         labels: props.labels,
         yTickPrecision: props.yTickPrecision,
-        max: props.maxValue,
+        suggestedMax: props.suggestedMax,
         exportMode: props.exportMode,
       }),
-    [props.exportMode, props.fullLabelTooltip, props.horizontal, props.labels, props.maxValue, props.yTickPrecision],
+    [props.exportMode, props.fullLabelTooltip, props.horizontal, props.labels, props.suggestedMax, props.yTickPrecision],
   );
   const ariaLabel = useChartAriaLabel(props.title, props.labels, props.values);
 
@@ -788,7 +791,7 @@ export function MultiBarChartCard(props: {
   stacked?: boolean;
   horizontal?: boolean;
   yTickPrecision?: number;
-  maxValue?: number;
+  suggestedMax?: number;
   exportMode?: boolean;
 }) {
   const highContrast = useHighContrastEnabled();
@@ -822,10 +825,10 @@ export function MultiBarChartCard(props: {
         horizontal: props.horizontal,
         stacked: props.stacked,
         yTickPrecision: props.yTickPrecision,
-        max: props.maxValue,
+        suggestedMax: props.suggestedMax,
         exportMode: props.exportMode,
       }),
-    [props.exportMode, props.horizontal, props.labels, props.maxValue, props.stacked, props.yTickPrecision],
+    [props.exportMode, props.horizontal, props.labels, props.suggestedMax, props.stacked, props.yTickPrecision],
   );
   const ariaLabel = React.useMemo(() => {
     const preview = props.labels

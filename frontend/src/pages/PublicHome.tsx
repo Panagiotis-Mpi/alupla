@@ -1,6 +1,6 @@
 // Δημόσια αρχική σελίδα για επισκέπτες χωρίς login.
 import { useNavigate } from "react-router-dom";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import greeceMapIllustration from "../assets/home_greece_map.svg";
 import greeceMapHighContrastIllustration from "../assets/home_greece_map_high_contrast.svg";
@@ -37,8 +37,6 @@ export default function PublicHome() {
   const [homeStats, setHomeStats] = useState<HomeStats | null>(null);
   const [mapSlideStep, setMapSlideStep] = useState(0);
   const [mapSlideTransition, setMapSlideTransition] = useState(true);
-  const homeCardRef = useRef<HTMLDivElement | null>(null);
-  const activeMapSlideRef = useRef<HTMLButtonElement | null>(null);
 
   const actions = [
     { to: "/map", label: t("home.map"), className: "public-home-action primary", icon: globeIcon },
@@ -95,39 +93,6 @@ export default function PublicHome() {
 
     return () => window.clearInterval(timer);
   }, [homeMapSlides.length]);
-
-  useLayoutEffect(() => {
-    const card = homeCardRef.current;
-    const slide = activeMapSlideRef.current;
-    if (!card || !slide) return undefined;
-
-    const images = Array.from(slide.querySelectorAll<HTMLImageElement>(".public-home-illustration"));
-    const activeImage = images.find((image) => window.getComputedStyle(image).display !== "none") ?? images[0];
-    if (!activeImage) return undefined;
-
-    let frame = 0;
-    const syncHeight = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        const height = activeImage.getBoundingClientRect().height;
-        if (height > 0) card.style.setProperty("--public-home-visual-height", `${Math.round(height)}px`);
-      });
-    };
-
-    const observer = new ResizeObserver(syncHeight);
-    observer.observe(activeImage);
-    observer.observe(slide);
-    activeImage.addEventListener("load", syncHeight);
-    window.addEventListener("resize", syncHeight);
-    syncHeight();
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      observer.disconnect();
-      activeImage.removeEventListener("load", syncHeight);
-      window.removeEventListener("resize", syncHeight);
-    };
-  }, [activeCarouselMapIndex]);
 
   useEffect(() => {
     let active = true;
@@ -197,7 +162,7 @@ export default function PublicHome() {
 
   return (
     <div className="public-home-shell">
-      <div ref={homeCardRef} className="public-home-card public-home-card-split">
+      <div className="public-home-card public-home-card-split">
         <section className="public-home-left" aria-labelledby="public-home-title">
           <h1 id="public-home-title" className="public-home-title">
             {t("home.heroTitle")
@@ -254,7 +219,6 @@ export default function PublicHome() {
                     <button
                       type="button"
                       key={`${slide.scope}-${index}`}
-                      ref={isActive ? activeMapSlideRef : undefined}
                       className={`public-home-illustration-slide public-home-illustration-clickable public-home-illustration-slide-${slide.scope}`}
                       onClick={() => openMapScope(slide.scope)}
                       tabIndex={isActive ? 0 : -1}
