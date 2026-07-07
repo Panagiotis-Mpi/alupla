@@ -288,6 +288,34 @@ body.public-home-scroll-lock .accessibility-trigger{
   }
 }
 
+
+@media (min-width:1025px){
+  .public-home-left{
+    width:100%;
+    height:min(100%,var(--public-home-visual-height,100%));
+    min-height:0;
+    align-self:center;
+    box-sizing:border-box;
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr) auto;
+    justify-items:center;
+    align-items:center;
+    align-content:stretch;
+  }
+
+  .public-home-card-split .public-home-title{
+    align-self:start;
+  }
+
+  .public-home-card-split .public-home-counters{
+    align-self:center;
+  }
+
+  .public-home-side-actions{
+    align-self:end;
+  }
+}
+
 @media (min-width:1025px){
   body.public-home-scroll-lock{
     overflow:hidden;

@@ -141,11 +141,47 @@ export function buildStatisticsExportFilename(args: BuildArgs, format: Statistic
   return buildExportFilename("statistics", [scope, ...selectionParts, ...groupRangeParts(args, groups.length ? groups : ["demographics", "academic", "geography", "compare"])], format);
 }
 
+const statisticsGroupFilenameParts: Record<StatisticsExportGroupKey, string> = {
+  demographics: "demographics",
+  academic: "academic",
+  geography: "geography",
+  compare: "comparison",
+};
+
+const statisticsChartFilenameParts: Record<StatisticsChartId, string> = {
+  byYear: "graduates_by_graduation_year",
+  countByEntryYear: "graduates_by_entry_year",
+  gender: "gender_by_graduation_year",
+  genderTotal: "gender_distribution",
+  birthYear: "graduates_by_birth_year",
+  gradeByYear: "average_grade_by_graduation_year",
+  gradeDistribution: "grade_distribution",
+  gradeDistributionByGender: "grade_distribution_by_gender",
+  genderByEntryYear: "gender_by_entry_year",
+  gradeByRegion: "average_grade_by_origin_region",
+  originRegion: "graduates_by_origin_region",
+  genderByRegion: "gender_by_origin_region",
+  originMunicipality: "graduates_by_origin_city",
+  genderByMunicipality: "gender_by_origin_city",
+  originCountry: "graduates_by_origin_country",
+  abroadShare: "greece_abroad_distribution",
+  abroadByYear: "greece_abroad_by_graduation_year",
+  timeToDegreeByEntryYear: "average_study_duration_by_entry_year",
+  timeToDegreeDistribution: "study_duration_distribution",
+  timeToDegreeByRegion: "average_study_duration_by_origin_region",
+  timeToDegreeByNomos: "average_study_duration_by_regional_unit",
+  compare: "time_range_comparison",
+};
+
 export function buildStatisticsPngFilename(args: BuildArgs, chartId: StatisticsChartId | null, fallbackParts: Array<string | number | null | undefined>, groupKey?: StatisticsExportGroupKey) {
   const group = groupKey ?? (chartId ? statisticsExportGroupForChart(chartId) : null);
   const rangeParts = group ? groupRangeParts(args, [group]) : [];
-  const parts = [...fallbackParts, group, chartId, ...rangeParts, exportTimestamp()].map(filenamePart).filter(Boolean);
-  return `${parts.join("_") || `alupla_statistics_${exportTimestamp()}`}.png`;
+  const segmentedPart = fallbackParts.map(filenamePart).find((part) => /^part_\d+_of_\d+$/.test(part));
+  const parts = chartId
+    ? ["alupla", "statistics", group ? statisticsGroupFilenameParts[group] : null, statisticsChartFilenameParts[chartId], segmentedPart, ...rangeParts, exportTimestamp()]
+    : [...fallbackParts, group ? statisticsGroupFilenameParts[group] : null, ...rangeParts, exportTimestamp()];
+  const normalizedParts = parts.map(filenamePart).filter(Boolean);
+  return `${normalizedParts.join("_") || `alupla_statistics_${exportTimestamp()}`}.png`;
 }
 
 function statisticsWorkbook(args: BuildArgs) {
