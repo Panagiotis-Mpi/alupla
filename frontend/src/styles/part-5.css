@@ -1148,18 +1148,43 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
   }
 }
 
-.page-central-menu-actions .btn > span:not(.ui-icon):not(.map-gender-icons):not(.btn-dropdown-chevron):not(.map-dropdown-caret),
-.page-central-menu-actions a.btn > span:not(.ui-icon):not(.map-gender-icons):not(.btn-dropdown-chevron):not(.map-dropdown-caret),
-.page-central-menu-actions > div > .btn:first-child > span:not(.ui-icon):not(.map-gender-icons):not(.btn-dropdown-chevron):not(.map-dropdown-caret),
-.page-central-menu-actions > div > div:first-child > .btn:first-child > span:not(.ui-icon):not(.map-gender-icons):not(.btn-dropdown-chevron):not(.map-dropdown-caret),
-.page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn > span:not(.ui-icon):not(.map-gender-icons):not(.btn-dropdown-chevron):not(.map-dropdown-caret){
+.page-central-menu-actions .btn,
+.page-central-menu-actions a.btn,
+.page-central-menu-actions > div > .btn:first-child,
+.page-central-menu-actions > div > div:first-child > .btn:first-child,
+.page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn,
+.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > .btn,
+.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child{
+  display:inline-flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:7px !important;
+}
+
+.page-central-menu-actions .btn > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+.page-central-menu-actions a.btn > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+.page-central-menu-actions > div > .btn:first-child > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+.page-central-menu-actions > div > div:first-child > .btn:first-child > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+.page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron){
   flex:0 1 auto !important;
   width:auto !important;
   min-width:0 !important;
-  max-width:calc(100% - 38px) !important;
+  max-width:min(210px, calc(100% - 42px)) !important;
   text-align:center !important;
 }
 
-.page-central-menu-actions .map-gender-icons{
+.page-central-menu-actions .btn > .ui-icon,
+.page-central-menu-actions a.btn > .ui-icon,
+.page-central-menu-actions .btn > .map-gender-icons,
+.page-central-menu-actions a.btn > .map-gender-icons{
+  flex:0 0 auto !important;
   margin-right:0 !important;
+}
+
+.page-central-menu-actions .map-gender-icons{
+  width:auto !important;
+  max-width:none !important;
+  margin-right:0 !important;
+  gap:2px !important;
 }
