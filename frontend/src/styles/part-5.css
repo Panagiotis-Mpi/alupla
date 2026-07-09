@@ -1147,3 +1147,19 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
     height:auto !important;
   }
 }
+
+.page-central-menu-actions .btn > span:not(.ui-icon):not(.map-gender-icons):not(.btn-dropdown-chevron):not(.map-dropdown-caret),
+.page-central-menu-actions a.btn > span:not(.ui-icon):not(.map-gender-icons):not(.btn-dropdown-chevron):not(.map-dropdown-caret),
+.page-central-menu-actions > div > .btn:first-child > span:not(.ui-icon):not(.map-gender-icons):not(.btn-dropdown-chevron):not(.map-dropdown-caret),
+.page-central-menu-actions > div > div:first-child > .btn:first-child > span:not(.ui-icon):not(.map-gender-icons):not(.btn-dropdown-chevron):not(.map-dropdown-caret),
+.page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn > span:not(.ui-icon):not(.map-gender-icons):not(.btn-dropdown-chevron):not(.map-dropdown-caret){
+  flex:0 1 auto !important;
+  width:auto !important;
+  min-width:0 !important;
+  max-width:calc(100% - 38px) !important;
+  text-align:center !important;
+}
+
+.page-central-menu-actions .map-gender-icons{
+  margin-right:0 !important;
+}
