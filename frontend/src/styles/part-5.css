@@ -1121,56 +1121,29 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
 }
 
 @media (min-width:821px){
-  .page-central-menu-actions{
-    display:flex !important;
-    flex-wrap:wrap !important;
-    justify-content:center !important;
-    align-items:stretch !important;
+  .graduates-actions-grid-main.page-central-menu-actions{
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+    grid-auto-rows:auto !important;
+    align-items:start !important;
+  }
+  .graduates-actions-grid-main.page-central-menu-actions > a.btn:first-child{
+    min-height:48px !important;
+    height:auto !important;
+    align-self:start !important;
+  }
+  .graduates-actions-grid-main.page-central-menu-actions > .graduates-actions-secondary{
+    grid-column:1 / -1 !important;
+    display:block !important;
+    width:100% !important;
+  }
+  .graduates-actions-grid-main.page-central-menu-actions > .graduates-actions-secondary > .graduates-actions-grid{
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
     gap:10px !important;
     width:100% !important;
   }
-
-  .page-central-menu-actions > *,
-  .page-central-menu-actions > .map-top-control-slot,
-  .graduates-actions-grid-main > .graduates-actions-secondary,
-  .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid{
-    width:auto !important;
-    min-width:0 !important;
-    flex:0 0 auto !important;
-  }
-
-  .page-central-menu-actions .btn,
-  .page-central-menu-actions a.btn,
-  .page-central-menu-actions > div > .btn:first-child,
-  .page-central-menu-actions > div > div:first-child > .btn:first-child,
-  .page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn,
-  .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > .btn,
-  .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child{
-    width:auto !important;
-    min-width:128px !important;
-    max-width:none !important;
+  .graduates-actions-grid-main.page-central-menu-actions > .graduates-actions-secondary .btn{
     min-height:48px !important;
-    padding-left:10px !important;
-    padding-right:10px !important;
-    gap:6px !important;
-    flex:0 0 auto !important;
-    white-space:nowrap !important;
-    text-align:center !important;
-    justify-content:center !important;
-    align-items:center !important;
-  }
-
-  .page-central-menu-actions .map-scope-button{
-    min-width:150px !important;
-    padding-left:10px !important;
-    padding-right:24px !important;
-  }
-
-  .page-central-menu-actions .map-scope-button .map-dropdown-caret{
-    right:10px !important;
-  }
-
-  .page-central-menu-actions .btn-dropdown-chevron{
-    margin-left:4px !important;
+    height:auto !important;
   }
 }
