@@ -1061,9 +1061,9 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
 .page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn,
 .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > .btn,
 .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child{
-  gap:8px !important;
-  padding-left:14px !important;
-  padding-right:14px !important;
+  gap:7px !important;
+  padding-left:8px !important;
+  padding-right:8px !important;
   align-items:center !important;
   justify-content:center !important;
 }
@@ -1079,17 +1079,17 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
 }
 
 .page-central-menu-actions .btn-dropdown-chevron{
-  margin-left:4px !important;
+  margin-left:5px !important;
   transform:rotate(45deg) translateY(-1px) !important;
 }
 
 .page-central-menu-actions .map-scope-button{
-  padding-left:14px !important;
-  padding-right:30px !important;
+  padding-left:8px !important;
+  padding-right:26px !important;
 }
 
 .page-central-menu-actions .map-scope-button .map-dropdown-caret{
-  right:13px !important;
+  right:11px !important;
   width:8px !important;
   height:8px !important;
   transform:rotate(45deg) translateY(-1px) !important;
@@ -1107,15 +1107,15 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
   .page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn,
   .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > .btn,
   .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child{
-    gap:7px !important;
-    padding-left:9px !important;
-    padding-right:9px !important;
+    gap:6px !important;
+    padding-left:8px !important;
+    padding-right:8px !important;
   }
   .page-central-menu-actions .map-scope-button{
-    padding-left:9px !important;
-    padding-right:28px !important;
+    padding-left:8px !important;
+    padding-right:26px !important;
   }
   .page-central-menu-actions .map-scope-button .map-dropdown-caret{
-    right:12px !important;
+    right:11px !important;
   }
 }
