@@ -1188,3 +1188,33 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
   margin-right:0 !important;
   gap:2px !important;
 }
+
+@media (min-width:821px){
+  .page-header-actions-grid > .statistics-mobile-summary-grid-button{
+    display:none !important;
+  }
+
+  .page-central-menu-actions > .btn,
+  .page-central-menu-actions > a.btn,
+  .page-central-menu-actions > div > .btn:first-child,
+  .page-central-menu-actions > div > div:first-child > .btn:first-child,
+  .page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn,
+  .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > .btn,
+  .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child{
+    width:calc(100% - 16px) !important;
+    justify-self:center !important;
+  }
+
+  .page-central-menu-actions .map-scope-button{
+    padding-right:28px !important;
+  }
+
+  .page-central-menu-actions .map-scope-button .map-dropdown-caret{
+    right:10px !important;
+  }
+
+  .page-central-menu-actions .btn-dropdown-chevron{
+    flex:0 0 auto !important;
+    margin-left:4px !important;
+  }
+}
