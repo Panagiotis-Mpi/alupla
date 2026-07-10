@@ -43,23 +43,7 @@ export function RecentDownloadsMenu(props: {
         <span className="btn-dropdown-chevron" aria-hidden="true" />
       </button>
       {open ? (
-        <div
-          style={{
-            position: "absolute",
-            top: "calc(100% + 8px)",
-            left: 0,
-            width: 380,
-            maxWidth: "calc(100vw - 32px)",
-            background: "#fff",
-            border: "1px solid rgba(15,23,42,.12)",
-            borderRadius: 12,
-            boxShadow: "0 12px 30px rgba(15,23,42,.12)",
-            padding: 10,
-            display: "grid",
-            gap: 10,
-            zIndex: 30,
-          }}
-        >
+        <div className="central-menu-dropdown central-menu-dropdown-wide central-menu-dropdown-align-left">
           <div
             style={{
               display: "flex",

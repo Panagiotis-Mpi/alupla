@@ -53,21 +53,6 @@ const usersMenuButtonStyle: React.CSSProperties = {
   minHeight: 46,
   justifyContent: "center",
 };
-const exportDropdownStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "calc(100% + 8px)",
-  right: 0,
-  width: 170,
-  background: "#fff",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  boxShadow: "0 18px 40px rgba(15,23,42,.16)",
-  padding: 8,
-  zIndex: 50,
-  display: "grid",
-  gap: 6,
-};
-
 type SortState = { key: SortKey; dir: SortDir };
 
 type RoleSelectProps = {
@@ -318,18 +303,16 @@ export default function Users() {
                 <span className="btn-dropdown-chevron" aria-hidden="true" />
               </button>
               {exportMenuOpen && (
-                <div style={exportDropdownStyle}>
+                <div className="central-menu-dropdown central-menu-dropdown-compact central-menu-dropdown-align-right">
                   <button
-                    className="btn"
-                    style={{ width: "100%", justifyContent: "flex-start" }}
+                    className="btn central-menu-dropdown-item"
                     onClick={() => void onExport("xlsx")}
                   >
                     <Icon src={fileSpreadsheetIcon} size={17} />
                     <span>{t("actions.excel")}</span>
                   </button>
                   <button
-                    className="btn"
-                    style={{ width: "100%", justifyContent: "flex-start" }}
+                    className="btn central-menu-dropdown-item"
                     onClick={() => void onExport("csv")}
                   >
                     <Icon src={fileSpreadsheetIcon} size={17} />

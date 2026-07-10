@@ -346,27 +346,12 @@ export default function Logs() {
                 <span className="btn-dropdown-chevron" aria-hidden="true" />
               </button>
               {exportMenuOpen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "calc(100% + 8px)",
-                    right: 0,
-                    width: 170,
-                    background: "#fff",
-                    border: "1px solid var(--border)",
-                    borderRadius: 14,
-                    boxShadow: "0 18px 40px rgba(15,23,42,.16)",
-                    padding: 8,
-                    zIndex: 50,
-                    display: "grid",
-                    gap: 6,
-                  }}
-                >
-                  <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("xlsx")}>
+                <div className="central-menu-dropdown central-menu-dropdown-compact central-menu-dropdown-align-right">
+                  <button className="btn central-menu-dropdown-item" onClick={() => void onExport("xlsx")}>
                     <Icon src={fileSpreadsheetIcon} size={17} />
                     <span>{t("summary.fileTypes.excel")}</span>
                   </button>
-                  <button className="btn" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => void onExport("csv")}>
+                  <button className="btn central-menu-dropdown-item" onClick={() => void onExport("csv")}>
                     <Icon src={fileSpreadsheetIcon} size={17} />
                     <span>{t("summary.fileTypes.csv")}</span>
                   </button>

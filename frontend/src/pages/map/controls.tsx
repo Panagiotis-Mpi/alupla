@@ -93,7 +93,7 @@ export function MapTopControls(props: {
             <span className={`map-dropdown-caret ${showScopeMenu ? "open" : ""}`} aria-hidden="true" />
           </button>
           {showScopeMenu ? (
-            <div className="map-menu map-scope-menu" role="menu">
+            <div className="map-menu map-scope-menu central-menu-dropdown central-menu-dropdown-map central-menu-dropdown-align-left" role="menu">
               {(["greece", "abroad"] as MapScope[]).map((option) => {
                 const optionLabel = option === "greece"
                   ? props.mt("scope.greece", { defaultValue: "Ελλάδα" })
@@ -105,7 +105,7 @@ export function MapTopControls(props: {
                     type="button"
                     role="menuitemradio"
                     aria-checked={isActive}
-                    className={`map-menu-item map-scope-menu-item ${isActive ? "active" : ""}`}
+                    className={`map-menu-item map-scope-menu-item central-menu-dropdown-item ${isActive ? "active" : ""}`}
                     onClick={() => {
                       setShowScopeMenu(false);
                       if (!isActive) props.onScopeChange(option);

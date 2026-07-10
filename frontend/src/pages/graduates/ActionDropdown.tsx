@@ -43,28 +43,11 @@ export function ActionDropdown(props: {
         <span className="btn-dropdown-chevron" aria-hidden="true" />
       </button>
       {open ? (
-        <div
-          style={{
-            position: "absolute",
-            top: "calc(100% + 8px)",
-            left: 0,
-            minWidth: 170,
-            width: "max-content",
-            maxWidth: "calc(100vw - 32px)",
-            background: "#fff",
-            border: "1px solid rgba(15,23,42,.12)",
-            borderRadius: 12,
-            boxShadow: "0 12px 30px rgba(15,23,42,.12)",
-            padding: 8,
-            display: "grid",
-            gap: 8,
-            zIndex: 30,
-          }}
-        >
+        <div className="central-menu-dropdown central-menu-dropdown-actions central-menu-dropdown-align-left">
           {actions.map((action) => (
             <button
               key={action.key}
-              className="btn"
+              className="btn central-menu-dropdown-item"
               type="button"
               onClick={action.onClick}
             >
