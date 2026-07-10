@@ -93,6 +93,8 @@ export async function prepareGraduateImportRows(
   const errors: ImportRowError[] = [];
   const preparedRows: PreparedGraduateImportRow[] = [];
   const studentNumbers: string[] = [];
+  const seenStudentNumbers = new Map<string, number>();
+  const seenAdCodes = new Map<string, number>();
   let skipped = 0;
   const defaultGreeceId = getGreeceRegionId(regionsById);
 
@@ -318,6 +320,36 @@ export async function prepareGraduateImportRows(
       skipped++;
       continue;
     }
+
+    const firstStudentRow = seenStudentNumbers.get(student_number);
+    const firstAdCodeRow = seenAdCodes.get(ad_code);
+    if (firstStudentRow !== undefined || firstAdCodeRow !== undefined) {
+      if (firstStudentRow !== undefined) {
+        errors.push({
+          row: rowNum,
+          column: "student_number",
+          message: importLang === "en"
+            ? `Duplicate student number in the import file (first occurrence: row ${firstStudentRow})`
+            : `Διπλότυπος αριθμός μητρώου στο αρχείο εισαγωγής (πρώτη εμφάνιση: γραμμή ${firstStudentRow})`,
+          value: student_number,
+        });
+      }
+      if (firstAdCodeRow !== undefined) {
+        errors.push({
+          row: rowNum,
+          column: "ad_code",
+          message: importLang === "en"
+            ? `Duplicate diploma number in the import file (first occurrence: row ${firstAdCodeRow})`
+            : `Διπλότυπος αριθμός διπλώματος στο αρχείο εισαγωγής (πρώτη εμφάνιση: γραμμή ${firstAdCodeRow})`,
+          value: ad_code,
+        });
+      }
+      skipped++;
+      continue;
+    }
+
+    seenStudentNumbers.set(student_number, rowNum);
+    seenAdCodes.set(ad_code, rowNum);
 
     preparedRows.push({
       rowNum,

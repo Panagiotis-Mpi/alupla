@@ -972,6 +972,29 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
     padding-left:4px;
     padding-right:4px;
   }
+  .graduates-title-line{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) max-content max-content !important;
+    align-items:center !important;
+    gap:8px !important;
+    width:100%;
+  }
+  .graduates-title-line h2{
+    grid-column:auto !important;
+    min-width:0;
+    font-size:24px !important;
+    line-height:1.1 !important;
+    white-space:nowrap;
+  }
+  .graduates-title-line .badge{
+    width:auto !important;
+    min-height:28px !important;
+    padding:4px 8px !important;
+    font-size:12px !important;
+    line-height:1.1 !important;
+    white-space:nowrap;
+    justify-content:center;
+  }
 }
 
 @media (max-width:520px){
@@ -1008,35 +1031,6 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
     font-size:13px;
     padding:5px 9px;
   }
-}
-
-@media (max-width:820px){
-  .graduates-title-line{
-    display:grid !important;
-    grid-template-columns:minmax(0,1fr) max-content max-content !important;
-    align-items:center !important;
-    gap:8px !important;
-    width:100%;
-  }
-  .graduates-title-line h2{
-    grid-column:auto !important;
-    min-width:0;
-    font-size:24px !important;
-    line-height:1.1 !important;
-    white-space:nowrap;
-  }
-  .graduates-title-line .badge{
-    width:auto !important;
-    min-height:28px !important;
-    padding:4px 8px !important;
-    font-size:12px !important;
-    line-height:1.1 !important;
-    white-space:nowrap;
-    justify-content:center;
-  }
-}
-
-@media (max-width:520px){
   .graduates-title-line{
     gap:4px !important;
   }
@@ -1054,27 +1048,18 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
   justify-content:center !important;
 }
 
-.page-central-menu-actions .btn,
-.page-central-menu-actions a.btn,
-.page-central-menu-actions > div > .btn:first-child,
-.page-central-menu-actions > div > div:first-child > .btn:first-child,
-.page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn,
-.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > .btn,
-.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child{
-  gap:7px !important;
-  padding-left:8px !important;
-  padding-right:8px !important;
+.page-central-menu-actions .btn{
+  display:inline-flex !important;
+  flex-direction:row !important;
   align-items:center !important;
   justify-content:center !important;
+  gap:7px !important;
+  column-gap:7px !important;
+  padding-left:8px !important;
+  padding-right:8px !important;
 }
 
-.page-central-menu-actions .btn .ui-icon,
-.page-central-menu-actions a.btn .ui-icon,
-.page-central-menu-actions > div > .btn:first-child .ui-icon,
-.page-central-menu-actions > div > div:first-child > .btn:first-child .ui-icon,
-.page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn .ui-icon,
-.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > .btn .ui-icon,
-.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child .ui-icon{
+.page-central-menu-actions .btn .ui-icon{
   margin-right:0 !important;
 }
 
@@ -1099,28 +1084,68 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
   transform:rotate(225deg) translateY(-1px) !important;
 }
 
-@media (max-width:820px){
-  .page-central-menu-actions .btn,
-  .page-central-menu-actions a.btn,
+.page-central-menu-actions .btn > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron){
+  flex:0 1 max-content !important;
+  width:max-content !important;
+  min-width:0 !important;
+  inline-size:max-content !important;
+  max-width:min(210px,calc(100% - 42px)) !important;
+  max-inline-size:min(210px,calc(100% - 42px)) !important;
+  text-align:center !important;
+}
+
+.page-central-menu-actions .btn > .ui-icon,
+.page-central-menu-actions .btn > .map-gender-icons{
+  flex:0 0 auto !important;
+  margin-right:0 !important;
+}
+
+.page-central-menu-actions .map-gender-icons{
+  width:auto !important;
+  max-width:none !important;
+  margin-right:0 !important;
+  gap:2px !important;
+}
+
+.users-central-menu-title{
+  justify-content:flex-start !important;
+}
+
+@media (min-width:821px){
+  .page-header-actions-grid > .statistics-mobile-summary-grid-button{
+    display:none !important;
+  }
+  .page-central-menu-actions > .btn,
+  .page-central-menu-actions > a.btn,
   .page-central-menu-actions > div > .btn:first-child,
   .page-central-menu-actions > div > div:first-child > .btn:first-child,
   .page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn,
   .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > .btn,
   .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child{
-    gap:6px !important;
-    padding-left:8px !important;
-    padding-right:8px !important;
+    width:calc(100% - 16px) !important;
+    justify-self:center !important;
   }
   .page-central-menu-actions .map-scope-button{
-    padding-left:8px !important;
-    padding-right:26px !important;
+    padding-right:8px !important;
   }
   .page-central-menu-actions .map-scope-button .map-dropdown-caret{
-    right:11px !important;
+    right:10px !important;
   }
-}
-
-@media (min-width:821px){
+  .page-central-menu-actions .btn-dropdown-chevron{
+    flex:0 0 auto !important;
+    margin-left:4px !important;
+  }
+  .map-top-controls-row.page-central-menu-actions .map-metric-button,
+  .map-top-controls-row.page-central-menu-actions .map-action-button{
+    min-height:48px !important;
+    height:48px !important;
+    padding-top:0 !important;
+    padding-bottom:0 !important;
+  }
+  .page-central-menu-actions.page-central-menu-actions-two > *{
+    width:88% !important;
+    justify-self:center !important;
+  }
   .graduates-actions-grid-main.page-central-menu-actions{
     grid-template-columns:repeat(4,minmax(0,1fr)) !important;
     grid-auto-rows:auto !important;
@@ -1148,300 +1173,34 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
   }
 }
 
-.page-central-menu-actions .btn,
-.page-central-menu-actions a.btn,
-.page-central-menu-actions > div > .btn:first-child,
-.page-central-menu-actions > div > div:first-child > .btn:first-child,
-.page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn,
-.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > .btn,
-.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child{
-  display:inline-flex !important;
-  flex-direction:row !important;
-  align-items:center !important;
-  justify-content:center !important;
-  gap:7px !important;
-}
-
-.page-central-menu-actions .btn > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-.page-central-menu-actions a.btn > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-.page-central-menu-actions > div > .btn:first-child > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-.page-central-menu-actions > div > div:first-child > .btn:first-child > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-.page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron){
-  flex:0 1 auto !important;
-  width:auto !important;
-  min-width:0 !important;
-  max-width:min(210px, calc(100% - 42px)) !important;
-  text-align:center !important;
-}
-
-.page-central-menu-actions .btn > .ui-icon,
-.page-central-menu-actions a.btn > .ui-icon,
-.page-central-menu-actions .btn > .map-gender-icons,
-.page-central-menu-actions a.btn > .map-gender-icons{
-  flex:0 0 auto !important;
-  margin-right:0 !important;
-}
-
-.page-central-menu-actions .map-gender-icons{
-  width:auto !important;
-  max-width:none !important;
-  margin-right:0 !important;
-  gap:2px !important;
-}
-
-@media (min-width:821px){
-  .page-header-actions-grid > .statistics-mobile-summary-grid-button{
-    display:none !important;
-  }
-
-  .page-central-menu-actions > .btn,
-  .page-central-menu-actions > a.btn,
-  .page-central-menu-actions > div > .btn:first-child,
-  .page-central-menu-actions > div > div:first-child > .btn:first-child,
-  .page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn,
-  .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > .btn,
-  .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child{
-    width:calc(100% - 16px) !important;
-    justify-self:center !important;
-  }
-
-  .page-central-menu-actions .map-scope-button{
-    padding-right:28px !important;
-  }
-
-  .page-central-menu-actions .map-scope-button .map-dropdown-caret{
-    right:10px !important;
-  }
-
-  .page-central-menu-actions .btn-dropdown-chevron{
-    flex:0 0 auto !important;
-    margin-left:4px !important;
-  }
-}
-
-
-@media (min-width:821px){
-  .map-top-controls-row.page-central-menu-actions .map-metric-button,
-  .map-top-controls-row.page-central-menu-actions .map-action-button{
-    min-height:48px !important;
-    height:48px !important;
-    padding-top:0 !important;
-    padding-bottom:0 !important;
-  }
-
-  .page-central-menu-actions.page-central-menu-actions-two > *{
-    width:88% !important;
-    justify-self:center !important;
-  }
-}
-
-.page-central-menu-actions .btn,
-.page-central-menu-actions a.btn,
-.page-central-menu-actions > div > .btn:first-child,
-.page-central-menu-actions > div > div:first-child > .btn:first-child,
-.page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn,
-.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > .btn,
-.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child{
-  column-gap:7px !important;
-}
-
-.page-central-menu-actions .map-gender-icons{
-  margin-right:0 !important;
-}
-
-.users-central-menu-title{
-  justify-content:flex-start !important;
-}
-
-.page-central-menu-actions .btn > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-.page-central-menu-actions a.btn > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-.page-central-menu-actions > div > .btn:first-child > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-.page-central-menu-actions > div > div:first-child > .btn:first-child > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-.page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > .btn > span:not(.ui-icon):not(.btn-dropdown-chevron),
-.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child > span:not(.ui-icon):not(.btn-dropdown-chevron){
-  flex:0 1 max-content !important;
-  width:max-content !important;
-  inline-size:max-content !important;
-  max-width:min(210px,calc(100% - 42px)) !important;
-  max-inline-size:min(210px,calc(100% - 42px)) !important;
-}
-
 @media (max-width:820px){
-  .page-central-menu-actions .btn:has(> .ui-icon),
-  .page-central-menu-actions a.btn:has(> .ui-icon),
-  .page-central-menu-actions .btn:has(> .map-gender-icons),
-  .page-central-menu-actions a.btn:has(> .map-gender-icons),
-  .graduates-actions-grid-main .btn:has(> .ui-icon),
-  .graduates-actions-grid-main a.btn:has(> .ui-icon){
-    display:grid !important;
-    grid-template-columns:30px minmax(0,1fr) !important;
-    align-items:center !important;
-    justify-content:stretch !important;
-    column-gap:7px !important;
-    text-align:left !important;
-  }
-
-  .page-central-menu-actions .btn:has(> .ui-icon) > .ui-icon,
-  .page-central-menu-actions a.btn:has(> .ui-icon) > .ui-icon,
-  .page-central-menu-actions .btn:has(> .map-gender-icons) > .map-gender-icons,
-  .page-central-menu-actions a.btn:has(> .map-gender-icons) > .map-gender-icons,
-  .graduates-actions-grid-main .btn:has(> .ui-icon) > .ui-icon,
-  .graduates-actions-grid-main a.btn:has(> .ui-icon) > .ui-icon{
-    grid-column:1 !important;
-    justify-self:center !important;
-    margin:0 !important;
-  }
-
-  .page-central-menu-actions .btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .page-central-menu-actions a.btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .page-central-menu-actions .btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .page-central-menu-actions a.btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .graduates-actions-grid-main .btn:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron),
-  .graduates-actions-grid-main a.btn:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron){
-    grid-column:2 !important;
-    justify-self:start !important;
-    width:100% !important;
-    inline-size:100% !important;
-    text-align:left !important;
-  }
-
-  .page-central-menu-actions .btn-dropdown-chevron,
-  .page-central-menu-actions .map-dropdown-caret,
-  .graduates-actions-grid-main .btn-dropdown-chevron{
-    position:absolute !important;
-    right:10px !important;
-    margin:0 !important;
-  }
-
-  .page-central-menu-actions .btn:has(> .btn-dropdown-chevron),
-  .page-central-menu-actions .btn:has(> .map-dropdown-caret),
-  .graduates-actions-grid-main .btn:has(> .btn-dropdown-chevron){
-    padding-right:32px !important;
-  }
-}
-
-@media (max-width:820px){
-  .page-central-menu-actions .btn:has(> .ui-icon),
-  .page-central-menu-actions a.btn:has(> .ui-icon),
-  .page-central-menu-actions .btn:has(> .map-gender-icons),
-  .page-central-menu-actions a.btn:has(> .map-gender-icons),
-  .graduates-actions-grid-main .btn:has(> .ui-icon),
-  .graduates-actions-grid-main a.btn:has(> .ui-icon){
-    position:relative !important;
-    display:grid !important;
-    grid-template-columns:34px minmax(0,1fr) 30px !important;
-    align-items:center !important;
-    justify-content:stretch !important;
-    gap:0 8px !important;
-    padding-left:12px !important;
-    padding-right:12px !important;
-    text-align:left !important;
-  }
-
-  .page-central-menu-actions .btn:has(> .ui-icon) > .ui-icon,
-  .page-central-menu-actions a.btn:has(> .ui-icon) > .ui-icon,
-  .page-central-menu-actions .btn:has(> .map-gender-icons) > .map-gender-icons,
-  .page-central-menu-actions a.btn:has(> .map-gender-icons) > .map-gender-icons,
-  .graduates-actions-grid-main .btn:has(> .ui-icon) > .ui-icon,
-  .graduates-actions-grid-main a.btn:has(> .ui-icon) > .ui-icon{
-    grid-column:1 !important;
-    grid-row:1 !important;
-    justify-self:center !important;
-    align-self:center !important;
-    width:auto !important;
-    margin:0 !important;
-  }
-
-  .page-central-menu-actions .btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .page-central-menu-actions a.btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .page-central-menu-actions .btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .page-central-menu-actions a.btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .graduates-actions-grid-main .btn:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron),
-  .graduates-actions-grid-main a.btn:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron){
-    grid-column:2 !important;
-    grid-row:1 !important;
-    justify-self:start !important;
-    align-self:center !important;
-    width:100% !important;
-    min-width:0 !important;
-    max-width:none !important;
-    inline-size:100% !important;
-    max-inline-size:none !important;
-    text-align:left !important;
-  }
-
-  .page-central-menu-actions .btn-dropdown-chevron,
-  .page-central-menu-actions .map-dropdown-caret,
-  .graduates-actions-grid-main .btn-dropdown-chevron{
-    position:static !important;
-    grid-column:3 !important;
-    grid-row:1 !important;
-    justify-self:end !important;
-    align-self:center !important;
-    margin:0 !important;
-  }
-
-  .page-central-menu-actions .btn:has(> .btn-dropdown-chevron),
-  .page-central-menu-actions .btn:has(> .map-dropdown-caret),
-  .graduates-actions-grid-main .btn:has(> .btn-dropdown-chevron){
-    padding-right:12px !important;
-  }
-
   .page-central-menu-actions > div,
   .graduates-actions-grid-main > div,
   .graduates-actions-grid-main .graduates-actions-grid > div{
     min-width:0 !important;
     width:100% !important;
   }
-}
-
-@media (max-width:820px){
   .page-central-menu-actions .btn:has(> .ui-icon),
-  .page-central-menu-actions a.btn:has(> .ui-icon),
-  .page-central-menu-actions .btn:has(> .map-gender-icons),
-  .page-central-menu-actions a.btn:has(> .map-gender-icons),
-  .graduates-actions-grid-main .btn:has(> .ui-icon),
-  .graduates-actions-grid-main a.btn:has(> .ui-icon){
+  .page-central-menu-actions .btn:has(> .map-gender-icons){
     position:relative !important;
-    display:grid !important;
-    grid-template-columns:34px minmax(0,1fr) 34px !important;
     align-items:center !important;
     justify-content:stretch !important;
-    column-gap:6px !important;
-    padding-left:10px !important;
-    padding-right:10px !important;
   }
-
-  .page-central-menu-actions .btn:has(> .ui-icon) > .ui-icon,
-  .page-central-menu-actions a.btn:has(> .ui-icon) > .ui-icon,
-  .graduates-actions-grid-main .btn:has(> .ui-icon) > .ui-icon,
-  .graduates-actions-grid-main a.btn:has(> .ui-icon) > .ui-icon{
+  .page-central-menu-actions .btn:has(> .ui-icon) > .ui-icon{
     display:inline-block !important;
-    grid-column:1 !important;
     grid-row:1 !important;
-    justify-self:center !important;
     align-self:center !important;
     width:20px !important;
     height:20px !important;
     min-width:20px !important;
     min-height:20px !important;
-    margin:0 !important;
   }
-
-  .page-central-menu-actions .btn:has(> .map-gender-icons) > .map-gender-icons,
-  .page-central-menu-actions a.btn:has(> .map-gender-icons) > .map-gender-icons{
+  .page-central-menu-actions .btn:has(> .map-gender-icons) > .map-gender-icons{
     display:inline-flex !important;
-    grid-column:1 !important;
     grid-row:1 !important;
-    justify-self:center !important;
     align-self:center !important;
-    width:34px !important;
-    min-width:34px !important;
-    margin:0 !important;
     gap:2px !important;
   }
-
   .page-central-menu-actions .map-gender-icons .ui-icon{
     display:inline-block !important;
     width:17px !important;
@@ -1450,13 +1209,36 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
     min-height:17px !important;
     margin:0 !important;
   }
-
-  .page-central-menu-actions .btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .page-central-menu-actions a.btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .page-central-menu-actions .btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .page-central-menu-actions a.btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .graduates-actions-grid-main .btn:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron),
-  .graduates-actions-grid-main a.btn:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron){
+  .statistics-central-menu-gr .btn:has(> .ui-icon),
+  .statistics-central-menu-en .btn:has(> .ui-icon),
+  .statistics-central-menu-gr .btn:has(> .map-gender-icons),
+  .statistics-central-menu-en .btn:has(> .map-gender-icons){
+    display:grid !important;
+    grid-template-columns:34px minmax(0,1fr) 34px !important;
+    column-gap:6px !important;
+    padding-left:10px !important;
+    padding-right:10px !important;
+  }
+  .statistics-central-menu-gr .btn:has(> .ui-icon) > .ui-icon,
+  .statistics-central-menu-en .btn:has(> .ui-icon) > .ui-icon{
+    grid-column:1 !important;
+    justify-self:center !important;
+    margin:0 !important;
+    transform:translateX(22px) !important;
+  }
+  .statistics-central-menu-gr .btn:has(> .map-gender-icons) > .map-gender-icons,
+  .statistics-central-menu-en .btn:has(> .map-gender-icons) > .map-gender-icons{
+    grid-column:1 !important;
+    justify-self:center !important;
+    width:34px !important;
+    min-width:34px !important;
+    margin:0 !important;
+    transform:translateX(18px) !important;
+  }
+  .statistics-central-menu-gr .btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+  .statistics-central-menu-en .btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+  .statistics-central-menu-gr .btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+  .statistics-central-menu-en .btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron){
     grid-column:2 !important;
     grid-row:1 !important;
     justify-self:center !important;
@@ -1468,77 +1250,42 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
     max-inline-size:none !important;
     text-align:center !important;
   }
-
-  .page-central-menu-actions .btn-dropdown-chevron,
-  .page-central-menu-actions .map-dropdown-caret,
-  .graduates-actions-grid-main .btn-dropdown-chevron{
+  .statistics-central-menu-gr .btn-dropdown-chevron,
+  .statistics-central-menu-en .btn-dropdown-chevron,
+  .statistics-central-menu-gr .map-dropdown-caret,
+  .statistics-central-menu-en .map-dropdown-caret{
+    position:static !important;
     grid-column:3 !important;
     grid-row:1 !important;
     justify-self:center !important;
     align-self:center !important;
     margin:0 !important;
   }
-}
-
-@media (max-width:820px){
-  .page-central-menu-actions .btn:has(> .ui-icon) > .ui-icon,
-  .page-central-menu-actions a.btn:has(> .ui-icon) > .ui-icon,
-  .graduates-actions-grid-main .btn:has(> .ui-icon) > .ui-icon,
-  .graduates-actions-grid-main a.btn:has(> .ui-icon) > .ui-icon{
-    transform:translateX(22px) !important;
-  }
-
-  .page-central-menu-actions .btn:has(> .map-gender-icons) > .map-gender-icons,
-  .page-central-menu-actions a.btn:has(> .map-gender-icons) > .map-gender-icons{
-    transform:translateX(18px) !important;
-  }
-}
-
-@media (max-width:820px){
   .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .btn:has(> .ui-icon),
-  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) a.btn:has(> .ui-icon),
-  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .btn:has(> .map-gender-icons),
-  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) a.btn:has(> .map-gender-icons),
-  .graduates-actions-grid-main .btn:has(> .ui-icon),
-  .graduates-actions-grid-main a.btn:has(> .ui-icon){
-    position:relative !important;
+  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .btn:has(> .map-gender-icons){
     display:grid !important;
     grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) !important;
     column-gap:0 !important;
     padding-left:12px !important;
     padding-right:12px !important;
+    text-align:left !important;
   }
-
-  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .btn:has(> .ui-icon) > .ui-icon,
-  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) a.btn:has(> .ui-icon) > .ui-icon,
-  .graduates-actions-grid-main .btn:has(> .ui-icon) > .ui-icon,
-  .graduates-actions-grid-main a.btn:has(> .ui-icon) > .ui-icon{
+  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .btn:has(> .ui-icon) > .ui-icon{
     grid-column:1 !important;
-    grid-row:1 !important;
     justify-self:end !important;
-    align-self:center !important;
     margin:0 8px 0 0 !important;
     transform:none !important;
   }
-
-  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .btn:has(> .map-gender-icons) > .map-gender-icons,
-  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) a.btn:has(> .map-gender-icons) > .map-gender-icons{
+  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .btn:has(> .map-gender-icons) > .map-gender-icons{
     grid-column:1 !important;
-    grid-row:1 !important;
     justify-self:end !important;
-    align-self:center !important;
     width:auto !important;
     min-width:0 !important;
     margin:0 8px 0 0 !important;
     transform:none !important;
   }
-
   .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) a.btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) a.btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
-  .graduates-actions-grid-main .btn:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron),
-  .graduates-actions-grid-main a.btn:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron){
+  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron){
     grid-column:2 !important;
     grid-row:1 !important;
     justify-self:center !important;
@@ -1550,14 +1297,49 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
     max-inline-size:100% !important;
     text-align:center !important;
   }
-
   .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .btn-dropdown-chevron,
-  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .map-dropdown-caret,
-  .graduates-actions-grid-main .btn-dropdown-chevron{
+  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .map-dropdown-caret{
     position:absolute !important;
     right:12px !important;
     top:50% !important;
     transform:translateY(-50%) !important;
+    grid-column:3 !important;
+    grid-row:1 !important;
+    justify-self:center !important;
+    align-self:center !important;
     margin:0 !important;
+  }
+}
+
+@media (max-width:820px){
+  .graduates-actions-grid-main.page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) > .graduates-actions-secondary > .graduates-actions-grid > .btn:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron){
+    width:max-content !important;
+    inline-size:max-content !important;
+    max-width:min(210px,calc(100% - 42px)) !important;
+    max-inline-size:min(210px,calc(100% - 42px)) !important;
+  }
+  .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:has(> .ui-icon){
+    display:inline-flex !important;
+    gap:7px !important;
+    padding-left:8px !important;
+    padding-right:8px !important;
+    text-align:center !important;
+  }
+  .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:has(> .ui-icon) > .ui-icon{
+    margin:0 !important;
+  }
+  .graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron){
+    width:auto !important;
+    inline-size:auto !important;
+    max-width:100% !important;
+    max-inline-size:100% !important;
+  }
+}
+
+@media (max-width:520px){
+  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) > div > .btn > .btn-dropdown-chevron,
+  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) > div > .btn > .map-dropdown-caret,
+  .graduates-actions-grid-main.page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) > div > .btn > .btn-dropdown-chevron{
+    top:20px !important;
   }
 }

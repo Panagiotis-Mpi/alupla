@@ -46,7 +46,7 @@ export async function publicStats(req: Request, res: Response) {
   try {
     const cacheKey = req.originalUrl || req.url;
 // Τα δημόσια στατιστικά cache-άρονται για να μη γίνονται βαριά queries συνέχεια.
-    const cached = getPublicStatsCache(cacheKey);
+    const cached = await getPublicStatsCache(cacheKey);
     if (cached) {
       res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
       return res.json(cached);
@@ -98,7 +98,7 @@ export async function publicStats(req: Request, res: Response) {
         gender_by_entry_year: genderByEntryYear,
         avg_age_by_year: avgAgeByYear,
       };
-      setPublicStatsCache(cacheKey, body);
+      await setPublicStatsCache(cacheKey, body);
       res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
       return res.json(body);
     }
@@ -182,7 +182,7 @@ export async function publicStats(req: Request, res: Response) {
         avg_years_to_degree_by_graduation_year: avgYearsToDegreeByGraduationYear,
         years_to_degree_distribution: yearsToDegreeDistribution,
       };
-      setPublicStatsCache(cacheKey, body);
+      await setPublicStatsCache(cacheKey, body);
       res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
       return res.json(body);
     }
@@ -355,7 +355,7 @@ export async function publicStats(req: Request, res: Response) {
         origin_municipality_distribution: originMunicipalityDistribution,
         gender_by_municipality: genderByMunicipality,
       };
-      setPublicStatsCache(cacheKey, body);
+      await setPublicStatsCache(cacheKey, body);
       res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
       return res.json(body);
     }
@@ -923,7 +923,7 @@ export async function publicStats(req: Request, res: Response) {
       years_to_degree_distribution: yearsToDegreeDistribution,
     };
 
-    setPublicStatsCache(cacheKey, body);
+    await setPublicStatsCache(cacheKey, body);
     res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
     return res.json(body);
   } catch (err) {

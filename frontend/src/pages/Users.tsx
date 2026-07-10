@@ -24,7 +24,6 @@ type UserFormState = {
   last_name: string;
   email: string;
   role: AdminUser["role"];
-  password: string;
 };
 
 const emptyForm: UserFormState = {
@@ -32,7 +31,6 @@ const emptyForm: UserFormState = {
   last_name: "",
   email: "",
   role: "secretariat",
-  password: "",
 };
 
 const clickableHeaderStyle: React.CSSProperties = {
@@ -42,8 +40,6 @@ const clickableHeaderStyle: React.CSSProperties = {
 };
 const inlineSelectStyle: React.CSSProperties = { padding: 6, minWidth: 130 };
 const monospaceBadgeStyle: React.CSSProperties = { fontFamily: "monospace" };
-const passwordFieldStyle: React.CSSProperties = { gridColumn: "span 2" };
-const passwordHintStyle: React.CSSProperties = { whiteSpace: "pre-line" };
 const topSpacingStyle: React.CSSProperties = { marginTop: 12 };
 const errorCardStyle: React.CSSProperties = {
   borderColor: "#b00020",
@@ -397,18 +393,6 @@ export default function Users() {
                 <option value="secretariat">{roleLabels.secretariat}</option>
                 <option value="super_admin">{roleLabels.superAdmin}</option>
               </select>
-            </div>
-            <div style={passwordFieldStyle}>
-              <label className="label">{t("labels.passwordStrong")}</label>
-              <input
-                className="input"
-                type="password"
-                value={form.password}
-                onChange={(e) => setFormValue("password", e.target.value)}
-              />
-              <div className="muted" style={passwordHintStyle}>
-                {t("labels.passwordHint")}
-              </div>
             </div>
           </div>
           <div className="row-actions" style={topSpacingStyle}>

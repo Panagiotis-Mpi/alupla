@@ -47,5 +47,5 @@ export async function logAction(params: LogActionParams) {
   };
 
   await ActivityLog.create(payload);
-  clearRouteCaches(["activity-logs", "activity-log-summary"]);
+  await clearRouteCaches(["activity-logs", "activity-log-summary"]);
 }

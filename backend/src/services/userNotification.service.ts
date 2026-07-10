@@ -1,11 +1,9 @@
-type EmailLanguage = "gr" | "en";
-
 type NewUserAccountEmailInput = {
   firstName: string;
   lastName: string;
   email: string;
   role: "super_admin" | "secretariat";
-  password: string;
+  setupUrl: string;
   language?: string;
 };
 
@@ -53,10 +51,6 @@ function normalizedFrontendUrl() {
   return frontendUrl().replace(/\/+$/, "");
 }
 
-function loginUrl() {
-  return `${normalizedFrontendUrl()}/login`;
-}
-
 export function passwordResetUrl(token: string) {
   return `${normalizedFrontendUrl()}/reset-password?token=${encodeURIComponent(token)}`;
 }
@@ -74,7 +68,7 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#39;");
 }
 
-function accountRoleLabel(role: NewUserAccountEmailInput["role"], language: EmailLanguage) {
+function accountRoleLabel(role: NewUserAccountEmailInput["role"], language: "gr" | "en") {
   if (language === "en") return role === "super_admin" ? "Administrator" : "Secretariat";
   return role === "super_admin" ? "Διαχειριστής" : "Γραμματεία";
 }
@@ -87,7 +81,7 @@ function fullName(input: { firstName?: string; lastName?: string; email: string 
   return `${String(input.firstName ?? "").trim()} ${String(input.lastName ?? "").trim()}`.trim() || input.email;
 }
 
-function buildText(input: NewUserAccountEmailInput) {
+function buildInvitationText(input: NewUserAccountEmailInput) {
   const name = fullName(input);
   const role = bilingualRoleLabel(input.role);
 
@@ -98,19 +92,21 @@ function buildText(input: NewUserAccountEmailInput) {
     `Ονοματεπώνυμο / Full name: ${name}`,
     `Email σύνδεσης / Login email: ${input.email}`,
     `Ρόλος / Role: ${role}`,
-    `Προσωρινός κωδικός / Temporary password: ${input.password}`,
     "",
-    "Παρακαλούμε συνδεθείτε στην πλατφόρμα και αλλάξτε τον κωδικό σας από το προφίλ σας.",
-    "Please sign in to the platform and change your password from your profile."
+    "Πατήστε τον παρακάτω σύνδεσμο για να ορίσετε τον προσωπικό σας κωδικό:",
+    "Use the link below to set your personal password:",
+    input.setupUrl,
+    "",
+    "Ο σύνδεσμος χρησιμοποιείται μία φορά και ισχύει για 24 ώρες.",
+    "The link can be used once and is valid for 24 hours."
   ].join("\n");
 }
 
-function buildHtml(input: NewUserAccountEmailInput) {
+function buildInvitationHtml(input: NewUserAccountEmailInput) {
   const name = escapeHtml(fullName(input));
   const email = escapeHtml(input.email);
   const role = escapeHtml(bilingualRoleLabel(input.role));
-  const password = escapeHtml(input.password);
-  const url = escapeHtml(loginUrl());
+  const url = escapeHtml(input.setupUrl);
 
   return [
     "<div style=\"font-family:Arial,sans-serif;line-height:1.55;color:#1f2937\">",
@@ -121,11 +117,10 @@ function buildHtml(input: NewUserAccountEmailInput) {
     `<tr><td style=\"padding:6px 18px 6px 0;font-weight:700\">Ονοματεπώνυμο / Full name</td><td style=\"padding:6px 0\">${name}</td></tr>`,
     `<tr><td style=\"padding:6px 18px 6px 0;font-weight:700\">Email σύνδεσης / Login email</td><td style=\"padding:6px 0\">${email}</td></tr>`,
     `<tr><td style=\"padding:6px 18px 6px 0;font-weight:700\">Ρόλος / Role</td><td style=\"padding:6px 0\">${role}</td></tr>`,
-    `<tr><td style=\"padding:6px 18px 6px 0;font-weight:700\">Προσωρινός κωδικός / Temporary password</td><td style=\"padding:6px 0\"><strong>${password}</strong></td></tr>`,
     "</table>",
-    `<p style=\"margin:18px 0 14px\"><a href=\"${url}\" style=\"display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:10px;font-weight:700\">Άνοιγμα ALUPLA / Open ALUPLA</a></p>`,
-    "<p style=\"margin:0 0 6px\">Παρακαλούμε συνδεθείτε στην πλατφόρμα και αλλάξτε τον κωδικό σας από το προφίλ σας.</p>",
-    "<p style=\"margin:0\">Please sign in to the platform and change your password from your profile.</p>",
+    `<p style=\"margin:18px 0 14px\"><a href=\"${url}\" style=\"display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:10px;font-weight:700\">Ορισμός κωδικού / Set password</a></p>`,
+    "<p style=\"margin:0 0 6px\">Ο σύνδεσμος χρησιμοποιείται μία φορά και ισχύει για 24 ώρες.</p>",
+    "<p style=\"margin:0\">The link can be used once and is valid for 24 hours.</p>",
     "</div>"
   ].join("");
 }
@@ -198,17 +193,19 @@ async function sendBrevoEmail(payload: EmailPayload) {
   return true;
 }
 
-async function sendWithBrevo(input: NewUserAccountEmailInput) {
+export async function sendNewUserAccountEmail(input: NewUserAccountEmailInput) {
+  if (!isMailConfigured()) return false;
   return sendBrevoEmail({
     to: input.email,
     toName: fullName(input),
-    subject: "ALUPLA - Δημιουργία λογαριασμού / Account created",
-    textContent: buildText(input),
-    htmlContent: buildHtml(input)
+    subject: "ALUPLA - Πρόσκληση λογαριασμού / Account invitation",
+    textContent: buildInvitationText(input),
+    htmlContent: buildInvitationHtml(input)
   });
 }
 
-async function sendPasswordResetWithBrevo(input: PasswordResetEmailInput) {
+export async function sendPasswordResetEmail(input: PasswordResetEmailInput) {
+  if (!isMailConfigured()) return false;
   return sendBrevoEmail({
     to: input.email,
     toName: fullName(input),
@@ -216,14 +213,4 @@ async function sendPasswordResetWithBrevo(input: PasswordResetEmailInput) {
     textContent: buildPasswordResetText(input),
     htmlContent: buildPasswordResetHtml(input)
   });
-}
-
-export async function sendNewUserAccountEmail(input: NewUserAccountEmailInput) {
-  if (!isMailConfigured()) return false;
-  return sendWithBrevo(input);
-}
-
-export async function sendPasswordResetEmail(input: PasswordResetEmailInput) {
-  if (!isMailConfigured()) return false;
-  return sendPasswordResetWithBrevo(input);
 }

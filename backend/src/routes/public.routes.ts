@@ -5,9 +5,9 @@ import { rateLimit } from "../middleware/rateLimit";
 import { asyncHandler } from "../utils/asyncHandler";
 
 const publicRouter = express.Router();
-const publicReadLimit = rateLimit({ windowMs: 60 * 1000, max: 120 });
-const publicExportLimit = rateLimit({ windowMs: 60 * 1000, max: 20 });
-const publicLogLimit = rateLimit({ windowMs: 60 * 1000, max: 60 });
+const publicReadLimit = rateLimit({ scope: "public-read", windowMs: 60 * 1000, max: 120 });
+const publicExportLimit = rateLimit({ scope: "public-export", windowMs: 60 * 1000, max: 20 });
+const publicLogLimit = rateLimit({ scope: "public-export-log", windowMs: 60 * 1000, max: 60 });
 
 publicRouter.get("/study-programs", publicReadLimit, asyncHandler(publicStudyPrograms));
 publicRouter.get("/stats", publicReadLimit, asyncHandler(publicStats));

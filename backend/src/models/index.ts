@@ -4,6 +4,7 @@ import { StudyProgram } from "./StudyProgram";
 import { Graduate } from "./Graduate";
 import { ActivityLog } from "./ActivityLog";
 import { Region } from "./Region";
+import { initializeSharedState } from "../services/sharedState.service";
 
 StudyProgram.hasMany(Graduate, { foreignKey: "study_program_id" });
 Graduate.belongsTo(StudyProgram, { foreignKey: "study_program_id" });
@@ -18,4 +19,5 @@ ActivityLog.belongsTo(User, { foreignKey: "user_id", as: "user" });
 
 export async function initDb() {
   await sequelize.authenticate();
+  await initializeSharedState();
 }

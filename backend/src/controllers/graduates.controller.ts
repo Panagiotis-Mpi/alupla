@@ -396,7 +396,7 @@ export async function importGraduates(
     } catch {}
 
     // Μετά από import καθαρίζονται τα cached δεδομένα που επηρεάζονται από αλλαγές αποφοίτων.
-    clearGraduateCaches();
+    await clearGraduateCaches();
 
     return res.json({
       ok: true,
@@ -504,7 +504,7 @@ export async function createGraduate(
       details: { student_number: values.student_number },
     });
 
-    clearGraduateCaches();
+    await clearGraduateCaches();
 
     res.status(201).json({ ok: true, item: (await serializeGraduateRows([created], String(body.lang ?? "")))[0] });
   } catch (err) {
@@ -584,7 +584,7 @@ export async function updateGraduate(
       details: changed.length ? { changed } : null,
     });
 
-    clearGraduateCaches();
+    await clearGraduateCaches();
 
     res.json({ ok: true, item: (await serializeGraduateRows([item], String(body.lang ?? "")))[0] });
   } catch (err) {
@@ -621,7 +621,7 @@ export async function deleteGraduates(
       });
     }
 
-    clearGraduateCaches();
+    await clearGraduateCaches();
 
     res.json({ ok: true, deleted });
   } catch (err) {
@@ -654,7 +654,7 @@ export async function deleteGraduate(
       },
     });
 
-    clearGraduateCaches();
+    await clearGraduateCaches();
 
     res.json({ ok: true });
   } catch (err) {

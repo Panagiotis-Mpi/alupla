@@ -406,7 +406,6 @@ export async function createUser(payload: {
   last_name: string;
   email: string;
   role: UserRole;
-  password: string;
   language?: string;
 }): Promise<ItemResponse<User> & { mail_sent?: boolean }> {
   const response = await api<ItemResponse<User> & { mail_sent?: boolean }>(

@@ -2,6 +2,7 @@
 import type { NextFunction, Request, Response } from "express";
 import XLSX from "xlsx";
 import { Op } from "sequelize";
+import { sequelize } from "../config/sequelize";
 import { Graduate } from "../models/Graduate";
 import { StudyProgram } from "../models/StudyProgram";
 import { logAction } from "../services/log.service";
@@ -153,33 +154,39 @@ export async function importStudyPrograms(req: Request, res: Response, next: Nex
       return invalid(res, "Empty file");
     }
 
-    let inserted = 0;
-    let updated = 0;
-    let skipped = 0;
+    const summary = await sequelize.transaction(async (transaction) => {
+      let inserted = 0;
+      let updated = 0;
+      let skipped = 0;
 
-    for (const sourceRow of rows) {
-      const row = normalizeProgramRow(sourceRow);
-      if (!row.name_el) {
-        skipped += 1;
-        continue;
-      }
+      for (const sourceRow of rows) {
+        const row = normalizeProgramRow(sourceRow);
+        if (!row.name_el) {
+          skipped += 1;
+          continue;
+        }
 
-      const existing = await StudyProgram.findOne({
-        where: { name_el: row.name_el }
-      });
-
-      if (existing) {
-        await existing.update({
-          name_el: row.name_el,
-          name_en: row.name_en,
+        const existing = await StudyProgram.findOne({
+          where: { name_el: row.name_el },
+          transaction,
+          lock: transaction.LOCK.UPDATE
         });
-        updated += 1;
-        continue;
+
+        if (existing) {
+          await existing.update({
+            name_el: row.name_el,
+            name_en: row.name_en,
+          }, { transaction });
+          updated += 1;
+          continue;
+        }
+
+        await StudyProgram.create(row as any, { transaction });
+        inserted += 1;
       }
 
-      await StudyProgram.create(row as any);
-      inserted += 1;
-    }
+      return { inserted, updated, skipped };
+    });
 
 // Οι αλλαγές προγραμμάτων γράφονται στα logs.
     await logAction({
@@ -191,13 +198,13 @@ export async function importStudyPrograms(req: Request, res: Response, next: Nex
         file: req.file?.originalname ?? null,
         format: importedFileFormat(req.file),
         total_rows: rows.length,
-        inserted,
-        updated,
-        skipped
+        inserted: summary.inserted,
+        updated: summary.updated,
+        skipped: summary.skipped
       }
     });
 
-    res.json({ ok: true, summary: { inserted, updated, skipped } });
+    res.json({ ok: true, summary });
   } catch (error) {
     next(error);
   }

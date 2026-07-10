@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import crypto from "crypto";
 import type { Transaction } from "sequelize";
 import XLSX from "xlsx";
 import { User } from "../models/User";
@@ -7,7 +8,8 @@ import { badRequest, hashPassword, isStrongPassword, normalizeEmail, normalizeTe
 import { clearRouteCaches } from "../utils/routeCache";
 import { sanitizeExportRows } from "../utils/exportSafety";
 import { applySheetLayout, buildDelimitedText, buildUtf16CsvBuffer } from "./activityLogs.helpers";
-import { sendNewUserAccountEmail } from "../services/userNotification.service";
+import { passwordResetUrl, sendNewUserAccountEmail } from "../services/userNotification.service";
+import { createPasswordResetTokenData, USER_INVITATION_TTL_MS } from "../services/passwordReset.service";
 import { buildExportFilename } from "../utils/exportFilename";
 import { sequelize } from "../config/sequelize";
 
@@ -18,7 +20,6 @@ type UserCreateInput = {
   last_name: string;
   email: string;
   role: string;
-  password: string;
   language: string;
 };
 
@@ -32,7 +33,6 @@ function readCreateInput(body: any): UserCreateInput {
     last_name: normalizeText(body?.last_name),
     email: normalizeEmail(body?.email),
     role: normalizeText(body?.role),
-    password: String(body?.password ?? ""),
     language: normalizeText(body?.language ?? body?.lang ?? "")
   };
 }
@@ -191,25 +191,25 @@ export async function createUser(req: Request, res: Response, next: NextFunction
   try {
     const input = readCreateInput(req.body ?? {});
 
-    if (!input.first_name || !input.last_name || !input.email || !input.role || !input.password) {
+    if (!input.first_name || !input.last_name || !input.email || !input.role) {
       return badRequest(res, "Missing fields");
     }
 
     if (!isAllowedRole(input.role)) return badRequest(res, "Invalid role");
-    if (!isStrongPassword(input.password)) {
-      return badRequest(res, "Weak password (min 8, letter+number+symbol)");
-    }
-
     const exists = await User.findOne({ where: { email: input.email } });
     if (exists) return res.status(409).json({ ok: false, error: { message: "Email already exists" } });
 
+    const invitation = createPasswordResetTokenData(USER_INVITATION_TTL_MS);
+    const placeholderPassword = crypto.randomBytes(48).toString("base64url");
     const user = await User.create({
       first_name: input.first_name,
       last_name: input.last_name,
       email: input.email,
-      password_hash: await hashPassword(input.password),
+      password_hash: await hashPassword(placeholderPassword),
       role: input.role,
-      is_active: true
+      is_active: true,
+      password_reset_token_hash: invitation.tokenHash,
+      password_reset_expires_at: invitation.expiresAt
     });
 
     let mailSent = false;
@@ -221,7 +221,7 @@ export async function createUser(req: Request, res: Response, next: NextFunction
         lastName: input.last_name,
         email: input.email,
         role: input.role,
-        password: input.password,
+        setupUrl: passwordResetUrl(invitation.token),
         language: input.language
       });
     } catch (error) {
@@ -229,8 +229,8 @@ export async function createUser(req: Request, res: Response, next: NextFunction
       console.error("ALUPLA user email notification failed:", mailError);
     }
 
-    await writeUserLog(req, "create_user", user, { target_name: userDisplayName(user), target_role: input.role, mail_sent: mailSent, ...(mailError ? { mail_error: mailError } : {}) });
-    clearRouteCaches(["users"]);
+    await writeUserLog(req, "create_user", user, { target_name: userDisplayName(user), target_role: input.role, invitation_sent: mailSent, ...(mailError ? { mail_error: mailError } : {}) });
+    await clearRouteCaches(["users"]);
 
     res.status(201).json({ ok: true, item: toSafeUser(user), mail_sent: mailSent });
   } catch (e) {
@@ -297,7 +297,7 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
     if (!user) return;
 
     await writeUserLog(req, "update_user", user, { changed: Object.keys(body) });
-    clearRouteCaches(["users"]);
+    await clearRouteCaches(["users"]);
 
     res.json({ ok: true, item: toSafeUser(user) });
   } catch (e) {
@@ -329,7 +329,7 @@ export async function deactivateUser(req: Request, res: Response, next: NextFunc
 
     if (!user) return;
 
-    clearRouteCaches(["users"]);
+    await clearRouteCaches(["users"]);
     res.json({ ok: true });
   } catch (e) {
     next(e);

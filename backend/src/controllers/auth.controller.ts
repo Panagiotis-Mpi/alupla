@@ -1,9 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
-import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { User } from "../models/User";
 import { logAction } from "../services/log.service";
 import { passwordResetUrl, sendPasswordResetEmail } from "../services/userNotification.service";
+import { createPasswordResetTokenData, findPasswordResetUser } from "../services/passwordReset.service";
 import { passwordSessionKey, signToken } from "../utils/jwt";
 import { fail, hashPassword, isStrongPassword, normalizeEmail, toSafeUser } from "../utils/userAccounts";
 
@@ -12,9 +12,6 @@ type SessionLog = {
   entity_type: string;
   entity_id: number | null;
 };
-
-const PASSWORD_RESET_TOKEN_BYTES = 32;
-const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 
 async function findActiveUserByEmail(email: unknown) {
   const normalizedEmail = normalizeEmail(email);
@@ -33,34 +30,6 @@ async function openSession(user: User, log: SessionLog) {
 
 function passwordError(password: unknown) {
   return isStrongPassword(String(password)) ? null : "Weak password (min 8, letter+number+symbol)";
-}
-
-function createResetToken() {
-  return crypto.randomBytes(PASSWORD_RESET_TOKEN_BYTES).toString("hex");
-}
-
-function hashResetToken(token: string) {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
-
-async function findResetUser(token: unknown) {
-  const normalizedToken = String(token ?? "").trim();
-  if (!normalizedToken) return null;
-
-  const user = await User.findOne({
-    where: { password_reset_token_hash: hashResetToken(normalizedToken) }
-  });
-
-  if (!user?.is_active || !user.password_reset_expires_at) return null;
-
-  if (new Date(user.password_reset_expires_at).getTime() < Date.now()) {
-    user.password_reset_token_hash = null;
-    user.password_reset_expires_at = null;
-    await user.save();
-    return null;
-  }
-
-  return user;
 }
 
 export async function login(req: Request, res: Response) {
@@ -98,9 +67,9 @@ export async function requestPasswordReset(req: Request, res: Response, next: Ne
       return res.json({ ok: true, mail_sent: true });
     }
 
-    const token = createResetToken();
-    user.password_reset_token_hash = hashResetToken(token);
-    user.password_reset_expires_at = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
+    const resetToken = createPasswordResetTokenData();
+    user.password_reset_token_hash = resetToken.tokenHash;
+    user.password_reset_expires_at = resetToken.expiresAt;
     await user.save();
 
     let mailSent = false;
@@ -111,7 +80,7 @@ export async function requestPasswordReset(req: Request, res: Response, next: Ne
         firstName: user.first_name,
         lastName: user.last_name,
         email: user.email,
-        resetUrl: passwordResetUrl(token),
+        resetUrl: passwordResetUrl(resetToken.token),
         language
       });
     } catch (error) {
@@ -134,7 +103,7 @@ export async function requestPasswordReset(req: Request, res: Response, next: Ne
 }
 
 export async function passwordResetAccount(req: Request, res: Response) {
-  const user = await findResetUser(req.body?.token);
+  const user = await findPasswordResetUser(req.body?.token);
   if (!user) {
     return fail(res, 400, "Invalid or expired reset link");
   }
@@ -167,7 +136,7 @@ export async function resetPassword(req: Request, res: Response) {
     return fail(res, 400, weakPasswordMessage);
   }
 
-  const user = await findResetUser(token);
+  const user = await findPasswordResetUser(token);
   if (!user) {
     return fail(res, 400, "Invalid or expired reset link");
   }
