@@ -5,7 +5,6 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import Icon from "../../components/Icon";
 import arrowDownIcon from "../../assets/icons/arrow-down-to-line.svg";
 import globeIcon from "../../assets/icons/globe.svg";
-import genderGeoDistributionIcon from "../../assets/icons/gender-geo-distribution.svg";
 import usersIcon from "../../assets/icons/users.svg";
 
 type MetricOption = { label: string };
@@ -70,16 +69,18 @@ export function MapTopControls(props: {
             {option === "count" ? (
               <Icon src={usersIcon} size={18} />
             ) : (
-              <span
-                className="ui-icon map-gender-icons"
-                style={{
-                  width: "38px",
-                  height: "18px",
-                  WebkitMask: `url("${genderGeoDistributionIcon}") center / contain no-repeat`,
-                  mask: `url("${genderGeoDistributionIcon}") center / contain no-repeat`,
-                }}
-                aria-hidden="true"
-              />
+              <svg className="map-gender-icons" width="38" height="18" viewBox="0 0 38 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                <g transform="scale(.75)">
+                  <path d="M16 3h5v5" />
+                  <path d="m21 3-6.75 6.75" />
+                  <circle cx="10" cy="14" r="6" />
+                </g>
+                <g transform="translate(20 0) scale(.75)">
+                  <path d="M12 15v7" />
+                  <path d="M9 19h6" />
+                  <circle cx="12" cy="9" r="6" />
+                </g>
+              </svg>
             )}
             <span>{props.metricOptions[option].label}</span>
           </button>
