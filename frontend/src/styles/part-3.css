@@ -466,7 +466,7 @@ html.accessibility-high-contrast .auth-page-shell .auth-back-home-button:hover{
 .scroll-to-top-button{
   position:fixed;
   right:22px;
-  bottom:96px;
+  bottom:22px;
   z-index:1240;
   width:42px;
   height:42px;
@@ -522,7 +522,7 @@ html.accessibility-high-contrast .scroll-to-top-button{
 @media (max-width:640px){
   .scroll-to-top-button{
     right:18px;
-    bottom:88px;
+    bottom:18px;
     width:40px;
     height:40px;
   }
@@ -905,3 +905,8 @@ html.accessibility-high-contrast .public-home-counter span{
   color:currentColor;
   flex:0 0 auto;
 }
+
+.accessibility-menu{left:18px;right:auto}
+.accessibility-panel{left:0;right:auto}
+@media (max-width:640px){.accessibility-menu{left:12px;right:auto}.accessibility-panel{left:0;right:auto}}
+@media (max-width:520px){.accessibility-menu{left:10px;right:auto}.accessibility-panel{left:-2px;right:auto}}
