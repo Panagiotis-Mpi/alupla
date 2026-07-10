@@ -304,7 +304,7 @@ body.public-home-scroll-lock .accessibility-trigger{
   }
 
   .public-home-card-split .public-home-title{
-    transform:translateY(8px);
+    transform:translateY(18px);
   }
 
   .public-home-side-actions{
@@ -1302,12 +1302,15 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
     position:absolute !important;
     right:12px !important;
     top:50% !important;
-    transform:translateY(-50%) !important;
+    transform:translateY(-65%) rotate(45deg) !important;
     grid-column:3 !important;
     grid-row:1 !important;
     justify-self:center !important;
     align-self:center !important;
     margin:0 !important;
+  }
+  .page-central-menu-actions:not(.statistics-central-menu-gr):not(.statistics-central-menu-en) .map-dropdown-caret.open{
+    transform:translateY(-35%) rotate(225deg) !important;
   }
 }
 
@@ -1333,6 +1336,36 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
     inline-size:auto !important;
     max-width:100% !important;
     max-inline-size:100% !important;
+  }
+}
+
+@media (max-width:1024px){
+  .page-central-menu-actions .academic-programs-import-button:has(> .ui-icon){
+    display:grid !important;
+    grid-template-columns:28px minmax(0,1fr) 28px !important;
+    column-gap:6px !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    padding-left:10px !important;
+    padding-right:10px !important;
+    box-sizing:border-box !important;
+    overflow:hidden !important;
+  }
+  .page-central-menu-actions .academic-programs-import-button:has(> .ui-icon) > .ui-icon{
+    grid-column:1 !important;
+    justify-self:center !important;
+    margin:0 !important;
+    transform:none !important;
+  }
+  .page-central-menu-actions .academic-programs-import-button:has(> .ui-icon) > span:not(.ui-icon){
+    grid-column:2 !important;
+    grid-row:1 !important;
+    justify-self:center !important;
+    width:100% !important;
+    inline-size:100% !important;
+    max-width:none !important;
+    max-inline-size:none !important;
+    text-align:center !important;
   }
 }
 

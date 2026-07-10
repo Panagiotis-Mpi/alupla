@@ -210,7 +210,7 @@ export default function AcademicData() {
             <span>{t("menu.template")}</span>
           </button>
           <button
-            className="btn"
+            className="btn academic-programs-import-button"
             style={menuButtonStyle}
             onClick={() => importFileRef.current?.click()}
           >
