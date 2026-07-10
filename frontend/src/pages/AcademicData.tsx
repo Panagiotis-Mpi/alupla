@@ -200,7 +200,7 @@ export default function AcademicData() {
           <h2 style={{ margin: 0 }}>{t("title")}</h2>
         </div>
 
-        <div className="topbar page-central-menu-actions" style={menuGridStyle}>
+        <div className="topbar page-central-menu-actions page-central-menu-actions-two" style={menuGridStyle}>
           <button
             className="btn"
             style={menuButtonStyle}
