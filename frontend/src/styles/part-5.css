@@ -1266,3 +1266,57 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
   max-width:min(210px,calc(100% - 42px)) !important;
   max-inline-size:min(210px,calc(100% - 42px)) !important;
 }
+
+@media (max-width:820px){
+  .page-central-menu-actions .btn:has(> .ui-icon),
+  .page-central-menu-actions a.btn:has(> .ui-icon),
+  .page-central-menu-actions .btn:has(> .map-gender-icons),
+  .page-central-menu-actions a.btn:has(> .map-gender-icons),
+  .graduates-actions-grid-main .btn:has(> .ui-icon),
+  .graduates-actions-grid-main a.btn:has(> .ui-icon){
+    display:grid !important;
+    grid-template-columns:30px minmax(0,1fr) !important;
+    align-items:center !important;
+    justify-content:stretch !important;
+    column-gap:7px !important;
+    text-align:left !important;
+  }
+
+  .page-central-menu-actions .btn:has(> .ui-icon) > .ui-icon,
+  .page-central-menu-actions a.btn:has(> .ui-icon) > .ui-icon,
+  .page-central-menu-actions .btn:has(> .map-gender-icons) > .map-gender-icons,
+  .page-central-menu-actions a.btn:has(> .map-gender-icons) > .map-gender-icons,
+  .graduates-actions-grid-main .btn:has(> .ui-icon) > .ui-icon,
+  .graduates-actions-grid-main a.btn:has(> .ui-icon) > .ui-icon{
+    grid-column:1 !important;
+    justify-self:center !important;
+    margin:0 !important;
+  }
+
+  .page-central-menu-actions .btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+  .page-central-menu-actions a.btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+  .page-central-menu-actions .btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+  .page-central-menu-actions a.btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+  .graduates-actions-grid-main .btn:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron),
+  .graduates-actions-grid-main a.btn:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron){
+    grid-column:2 !important;
+    justify-self:start !important;
+    width:100% !important;
+    inline-size:100% !important;
+    text-align:left !important;
+  }
+
+  .page-central-menu-actions .btn-dropdown-chevron,
+  .page-central-menu-actions .map-dropdown-caret,
+  .graduates-actions-grid-main .btn-dropdown-chevron{
+    position:absolute !important;
+    right:10px !important;
+    margin:0 !important;
+  }
+
+  .page-central-menu-actions .btn:has(> .btn-dropdown-chevron),
+  .page-central-menu-actions .btn:has(> .map-dropdown-caret),
+  .graduates-actions-grid-main .btn:has(> .btn-dropdown-chevron){
+    padding-right:32px !important;
+  }
+}
