@@ -5,9 +5,8 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import Icon from "../../components/Icon";
 import arrowDownIcon from "../../assets/icons/arrow-down-to-line.svg";
 import globeIcon from "../../assets/icons/globe.svg";
-import marsIcon from "../../assets/icons/mars.svg";
+import genderGeoDistributionIcon from "../../assets/icons/gender-geo-distribution.svg";
 import usersIcon from "../../assets/icons/users.svg";
-import venusIcon from "../../assets/icons/venus.svg";
 
 type MetricOption = { label: string };
 type MapMetric = "count" | "dominant_gender";
@@ -71,10 +70,16 @@ export function MapTopControls(props: {
             {option === "count" ? (
               <Icon src={usersIcon} size={18} />
             ) : (
-              <span className="map-gender-icons" aria-hidden="true">
-                <Icon src={marsIcon} size={18} />
-                <Icon src={venusIcon} size={18} />
-              </span>
+              <span
+                className="ui-icon map-gender-icons"
+                style={{
+                  width: "38px",
+                  height: "18px",
+                  WebkitMask: `url("${genderGeoDistributionIcon}") center / contain no-repeat`,
+                  mask: `url("${genderGeoDistributionIcon}") center / contain no-repeat`,
+                }}
+                aria-hidden="true"
+              />
             )}
             <span>{props.metricOptions[option].label}</span>
           </button>
@@ -93,7 +98,7 @@ export function MapTopControls(props: {
             <span className={`map-dropdown-caret ${showScopeMenu ? "open" : ""}`} aria-hidden="true" />
           </button>
           {showScopeMenu ? (
-            <div className="map-menu map-scope-menu central-menu-dropdown central-menu-dropdown-map central-menu-dropdown-align-left" role="menu">
+            <div className="map-menu map-scope-menu" role="menu">
               {(["greece", "abroad"] as MapScope[]).map((option) => {
                 const optionLabel = option === "greece"
                   ? props.mt("scope.greece", { defaultValue: "Ελλάδα" })
@@ -105,7 +110,7 @@ export function MapTopControls(props: {
                     type="button"
                     role="menuitemradio"
                     aria-checked={isActive}
-                    className={`map-menu-item map-scope-menu-item central-menu-dropdown-item ${isActive ? "active" : ""}`}
+                    className={`map-menu-item map-scope-menu-item ${isActive ? "active" : ""}`}
                     onClick={() => {
                       setShowScopeMenu(false);
                       if (!isActive) props.onScopeChange(option);
