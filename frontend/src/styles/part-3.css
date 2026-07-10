@@ -906,7 +906,8 @@ html.accessibility-high-contrast .public-home-counter span{
   flex:0 0 auto;
 }
 
-.accessibility-menu{left:18px;right:auto}
+.accessibility-menu{left:18px;right:auto;bottom:24px}
 .accessibility-panel{left:0;right:auto}
-@media (max-width:640px){.accessibility-menu{left:12px;right:auto}.accessibility-panel{left:0;right:auto}}
-@media (max-width:520px){.accessibility-menu{left:10px;right:auto}.accessibility-panel{left:-2px;right:auto}}
+body.public-home-scroll-lock .accessibility-menu{bottom:30px}
+@media (max-width:640px){.accessibility-menu{left:12px;right:auto;bottom:18px}.accessibility-panel{left:0;right:auto}body.public-home-scroll-lock .accessibility-menu{bottom:24px}}
+@media (max-width:520px){.accessibility-menu{left:10px;right:auto;bottom:16px}.accessibility-panel{left:-2px;right:auto}body.public-home-scroll-lock .accessibility-menu{bottom:22px}}
