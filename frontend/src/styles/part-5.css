@@ -1568,3 +1568,58 @@ html.accessibility-high-contrast .central-menu-dropdown-item.active{
     text-align:left !important;
   }
 }
+
+@media (max-width:1024px){
+  .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .map-gender-icons){
+    display:grid !important;
+    align-items:center !important;
+    grid-template-columns:40px minmax(0,1fr) 40px !important;
+    column-gap:4px !important;
+    padding-left:10px !important;
+    padding-right:10px !important;
+  }
+  .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .map-gender-icons) > .map-gender-icons{
+    grid-column:1 !important;
+    justify-self:center !important;
+    width:36px !important;
+    min-width:36px !important;
+    max-width:36px !important;
+    gap:2px !important;
+    margin:0 !important;
+  }
+  .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .map-gender-icons) > .map-gender-icons .ui-icon{
+    width:17px !important;
+    height:17px !important;
+    min-width:17px !important;
+    min-height:17px !important;
+    flex:0 0 17px !important;
+  }
+}
+
+@media (max-width:820px){
+  .graduates-actions-grid-main.page-central-menu-actions > .graduates-actions-secondary > .graduates-actions-grid > .btn:first-child:has(> .ui-icon) > .ui-icon{
+    margin-right:4px !important;
+  }
+  .statistics-central-menu-gr > div > div > .btn:has(> .ui-icon) > .ui-icon,
+  .statistics-central-menu-en > div > div > .btn:has(> .ui-icon) > .ui-icon{
+    transform:translateX(0) !important;
+  }
+}
+
+@media (max-width:520px){
+  .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .map-gender-icons){
+    grid-template-columns:34px minmax(0,1fr) 34px !important;
+  }
+  .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .map-gender-icons) > .map-gender-icons{
+    width:30px !important;
+    min-width:30px !important;
+    max-width:30px !important;
+  }
+  .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .map-gender-icons) > .map-gender-icons .ui-icon{
+    width:14px !important;
+    height:14px !important;
+    min-width:14px !important;
+    min-height:14px !important;
+    flex-basis:14px !important;
+  }
+}
