@@ -69,20 +69,35 @@ export function MapTopControls(props: {
             {option === "count" ? (
               <Icon src={usersIcon} size={18} />
             ) : (
-              <svg className="map-gender-icons" width="38" height="18" viewBox="0 0 38 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
-                <g transform="scale(.75)">
-                  <path d="M16 3h5v5" />
-                  <path d="m21 3-6.75 6.75" />
-                  <circle cx="10" cy="14" r="6" />
-                </g>
-                <g transform="translate(20 0) scale(.75)">
-                  <path d="M12 15v7" />
-                  <path d="M9 19h6" />
-                  <circle cx="12" cy="9" r="6" />
-                </g>
+              <svg
+                className="map-gender-icons"
+                width="30"
+                height="20"
+                viewBox="0 0 30 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                focusable="false"
+                style={{ width: 30, minWidth: 30, maxWidth: 30, height: 20, flex: "0 0 30px", overflow: "visible" }}
+              >
+                <circle cx="5.5" cy="12.5" r="4.1" />
+                <path d="M8.4 9.6 14.5 3.5M10.2 3.5h4.3v4.3" />
+                <circle cx="22.5" cy="7" r="4.1" />
+                <path d="M22.5 11.1V18M19.1 15.3h6.8" />
               </svg>
             )}
-            <span>{props.metricOptions[option].label}</span>
+            {option === "dominant_gender" ? (
+              <span>
+                {props.metricOptions[option].label.trim().split(/\s+/).slice(0, -1).join(" ")}
+                <br />
+                {props.metricOptions[option].label.trim().split(/\s+/).slice(-1)[0]}
+              </span>
+            ) : (
+              <span>{props.metricOptions[option].label}</span>
+            )}
           </button>
         ))}
         <div className="map-top-control-slot" ref={scopeMenuRef}>
