@@ -133,6 +133,7 @@ export function MapPageView(props: any) {
         mapMetric={mapMetric}
         mapScope={mapScope}
         metricOptions={metricOptions}
+        language={mapLanguage}
         onMetricChange={(metric) => {
           if (metric === mapMetric) return;
           resetComparedSelections();

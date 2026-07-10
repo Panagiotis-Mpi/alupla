@@ -1248,3 +1248,21 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
 .page-central-menu-actions .map-gender-icons{
   margin-right:0 !important;
 }
+
+.map-gender-spacing-fix{
+  column-gap:3px !important;
+}
+
+.statistics-central-menu-gr > :nth-child(1),
+.statistics-central-menu-gr > :nth-child(2),
+.statistics-central-menu-gr > :nth-child(3),
+.statistics-central-menu-gr > :nth-child(5) .btn,
+.statistics-central-menu-en > :nth-child(1),
+.statistics-central-menu-en > :nth-child(2),
+.statistics-central-menu-en > :nth-child(3){
+  column-gap:3px !important;
+}
+
+.users-central-menu-title{
+  justify-content:flex-start !important;
+}

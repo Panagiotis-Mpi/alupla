@@ -196,6 +196,7 @@ const renderCompareExportCard = (
                 topButtonStyle={topButtonStyle}
                 sectionMenuStyle={sectionMenuStyle}
                 sectionButtonsStyle={sectionButtonsStyle}
+                language={i18n.language?.startsWith("en") ? "en" : "gr"}
                 exportButton={(
                   <>
                     <div ref={exportMenuRef}>

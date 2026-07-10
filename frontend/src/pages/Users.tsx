@@ -274,7 +274,7 @@ export default function Users() {
         <div style={{ display: "grid", gap: 14 }}>
           <div
             className="mobile-summary-title-row page-central-menu-title-row users-central-menu-title"
-            style={{ alignItems: "center", gap: 12, flexWrap: "wrap" }}
+            style={{ alignItems: "center", justifyContent: "flex-start", gap: 12, flexWrap: "wrap" }}
           >
             <h2 style={{ margin: 0 }}>{t("title")}</h2>
             <span className="badge">

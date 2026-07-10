@@ -34,6 +34,7 @@ export function MapTopControls(props: {
   onMetricChange: (metric: MapMetric) => void;
   onScopeChange: (scope: MapScope) => void;
   onExportClick: () => void;
+  language: string;
 }) {
   const [showScopeMenu, setShowScopeMenu] = React.useState(false);
   const scopeMenuRef = React.useRef<HTMLDivElement | null>(null);
@@ -66,7 +67,7 @@ export function MapTopControls(props: {
       </div>
       <div className="map-top-controls-row page-central-menu-actions">
         {(["count", "dominant_gender"] as MapMetric[]).map((option) => (
-          <button key={option} type="button" className={`btn map-metric-button ${props.mapMetric === option ? "active primary" : ""}`} onClick={() => props.onMetricChange(option)}>
+          <button key={option} type="button" className={`btn map-metric-button ${props.mapMetric === option ? "active primary" : ""}${option === "dominant_gender" && props.language === "en" ? " map-gender-spacing-fix" : ""}`} onClick={() => props.onMetricChange(option)}>
             {option === "count" ? (
               <Icon src={usersIcon} size={18} />
             ) : (

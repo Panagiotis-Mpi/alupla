@@ -182,10 +182,11 @@ export function StatisticsGroupMenu(props: {
   topButtonStyle: React.CSSProperties;
   sectionMenuStyle: React.CSSProperties;
   sectionButtonsStyle: React.CSSProperties;
+  language: string;
 }) {
   return (
     <div style={props.sectionMenuStyle}>
-      <div className="page-header-actions-grid page-central-menu-actions" style={props.sectionButtonsStyle}>
+      <div className={`page-header-actions-grid page-central-menu-actions statistics-central-menu-${props.language}`} style={props.sectionButtonsStyle}>
         {(["demographics", "academic", "geography", "compare"] as const).map((groupKey) => (
           <button
             key={groupKey}
