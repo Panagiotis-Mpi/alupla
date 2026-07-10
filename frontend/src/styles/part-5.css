@@ -1252,3 +1252,17 @@ html.accessibility-high-contrast .public-home-card-split .public-home-illustrati
 .users-central-menu-title{
   justify-content:flex-start !important;
 }
+
+.page-central-menu-actions .btn > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+.page-central-menu-actions a.btn > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+.page-central-menu-actions > div > .btn:first-child > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+.page-central-menu-actions > div > div:first-child > .btn:first-child > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+.page-central-menu-actions > .map-mobile-submenu-toggle-row > .btn > span:not(.ui-icon):not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > .btn > span:not(.ui-icon):not(.btn-dropdown-chevron),
+.graduates-actions-grid-main > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child > span:not(.ui-icon):not(.btn-dropdown-chevron){
+  flex:0 1 max-content !important;
+  width:max-content !important;
+  inline-size:max-content !important;
+  max-width:min(210px,calc(100% - 42px)) !important;
+  max-inline-size:min(210px,calc(100% - 42px)) !important;
+}
