@@ -2,8 +2,33 @@ import crypto from "crypto";
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/sequelize";
 
+type CacheEntry = {
+  version: number;
+  body: unknown;
+  expiresAt: number;
+  updatedAt: number;
+};
+
+const cacheVersions = new Map<string, number>();
+const responseCache = new Map<string, Map<string, CacheEntry>>();
+
 function keyHash(value: string) {
   return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function scopeCache(scope: string) {
+  let entries = responseCache.get(scope);
+  if (!entries) {
+    entries = new Map<string, CacheEntry>();
+    responseCache.set(scope, entries);
+  }
+  return entries;
+}
+
+function clearExpiredEntries(entries: Map<string, CacheEntry>, now = Date.now()) {
+  for (const [key, entry] of entries) {
+    if (entry.expiresAt <= now) entries.delete(key);
+  }
 }
 
 export async function initializeSharedState() {
@@ -23,30 +48,7 @@ export async function initializeSharedState() {
       CREATE INDEX IF NOT EXISTS app_rate_limits_reset_at_idx
       ON public.app_rate_limits (reset_at)
     `, { transaction });
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS public.app_cache_versions (
-        scope VARCHAR(100) PRIMARY KEY,
-        version BIGINT NOT NULL DEFAULT 0,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `, { transaction });
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS public.app_response_cache (
-        scope VARCHAR(100) NOT NULL,
-        key_hash CHAR(64) NOT NULL,
-        version BIGINT NOT NULL,
-        body JSONB NOT NULL,
-        expires_at TIMESTAMPTZ NOT NULL,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        PRIMARY KEY (scope, key_hash)
-      )
-    `, { transaction });
-    await sequelize.query(`
-      CREATE INDEX IF NOT EXISTS app_response_cache_expires_at_idx
-      ON public.app_response_cache (expires_at)
-    `, { transaction });
     await sequelize.query(`DELETE FROM public.app_rate_limits WHERE reset_at < NOW() - INTERVAL '1 day'`, { transaction });
-    await sequelize.query(`DELETE FROM public.app_response_cache WHERE expires_at < NOW()`, { transaction });
   });
 }
 
@@ -81,41 +83,24 @@ export async function consumeSharedRateLimit(scope: string, key: string, windowM
 }
 
 export async function getSharedCacheVersion(scope: string) {
-  const rows = await sequelize.query<{ version: string | number }>(
-    `
-      WITH inserted AS (
-        INSERT INTO public.app_cache_versions (scope, version, updated_at)
-        VALUES (:scope, 0, NOW())
-        ON CONFLICT (scope) DO NOTHING
-        RETURNING version
-      )
-      SELECT version FROM inserted
-      UNION ALL
-      SELECT version FROM public.app_cache_versions WHERE scope = :scope
-      LIMIT 1
-    `,
-    { replacements: { scope }, type: QueryTypes.SELECT },
-  );
-  return Number(rows[0]?.version ?? 0);
+  return cacheVersions.get(scope) ?? 0;
 }
 
 export async function readSharedCache(scope: string, key: string, version: number) {
-  const rows = await sequelize.query<{ body: unknown }>(
-    `
-      SELECT body
-      FROM public.app_response_cache
-      WHERE scope = :scope
-        AND key_hash = :keyHash
-        AND version = :version
-        AND expires_at > NOW()
-      LIMIT 1
-    `,
-    {
-      replacements: { scope, keyHash: keyHash(key), version },
-      type: QueryTypes.SELECT,
-    },
-  );
-  return rows[0]?.body ?? null;
+  const entries = responseCache.get(scope);
+  if (!entries) return null;
+
+  const hashedKey = keyHash(key);
+  const entry = entries.get(hashedKey);
+  if (!entry) return null;
+
+  if (entry.version !== version || entry.expiresAt <= Date.now()) {
+    entries.delete(hashedKey);
+    if (!entries.size) responseCache.delete(scope);
+    return null;
+  }
+
+  return entry.body;
 }
 
 export async function writeSharedCache(
@@ -126,79 +111,32 @@ export async function writeSharedCache(
   ttlMs: number,
   maxEntries = 200,
 ) {
-  await sequelize.transaction(async (transaction) => {
-    await sequelize.query(
-      `
-        INSERT INTO public.app_response_cache (scope, key_hash, version, body, expires_at, updated_at)
-        SELECT :scope, :keyHash, :version, CAST(:body AS JSONB), NOW() + (:ttlMs * INTERVAL '1 millisecond'), NOW()
-        FROM public.app_cache_versions
-        WHERE scope = :scope AND version = :version
-        ON CONFLICT (scope, key_hash) DO UPDATE SET
-          version = EXCLUDED.version,
-          body = EXCLUDED.body,
-          expires_at = EXCLUDED.expires_at,
-          updated_at = NOW()
-        WHERE public.app_response_cache.version <= EXCLUDED.version
-      `,
-      {
-        replacements: {
-          scope,
-          keyHash: keyHash(key),
-          version,
-          body: JSON.stringify(body),
-          ttlMs: Math.max(1, Math.trunc(ttlMs)),
-        },
-        transaction,
-      },
-    );
-    await sequelize.query(
-      `
-        DELETE FROM public.app_response_cache
-        WHERE expires_at <= NOW()
-      `,
-      { transaction },
-    );
-    await sequelize.query(
-      `
-        WITH overflow AS (
-          SELECT key_hash
-          FROM public.app_response_cache
-          WHERE scope = :scope
-          ORDER BY updated_at DESC
-          OFFSET :maxEntries
-        )
-        DELETE FROM public.app_response_cache
-        WHERE scope = :scope
-          AND key_hash IN (SELECT key_hash FROM overflow)
-      `,
-      {
-        replacements: { scope, maxEntries: Math.max(1, Math.trunc(maxEntries)) },
-        transaction,
-      },
-    );
+  if ((cacheVersions.get(scope) ?? 0) !== version) return;
+
+  const entries = scopeCache(scope);
+  const now = Date.now();
+  clearExpiredEntries(entries, now);
+  entries.set(keyHash(key), {
+    version,
+    body,
+    expiresAt: now + Math.max(1, Math.trunc(ttlMs)),
+    updatedAt: now,
   });
+
+  const limit = Math.max(1, Math.trunc(maxEntries));
+  if (entries.size <= limit) return;
+
+  const overflow = Array.from(entries.entries())
+    .sort((a, b) => b[1].updatedAt - a[1].updatedAt)
+    .slice(limit);
+
+  for (const [entryKey] of overflow) entries.delete(entryKey);
 }
 
 export async function invalidateSharedCacheScopes(scopes: string[]) {
   const uniqueScopes = Array.from(new Set(scopes.map((scope) => scope.trim()).filter(Boolean)));
-  if (!uniqueScopes.length) return;
-
-  await sequelize.transaction(async (transaction) => {
-    for (const scope of uniqueScopes) {
-      await sequelize.query(
-        `
-          INSERT INTO public.app_cache_versions (scope, version, updated_at)
-          VALUES (:scope, 1, NOW())
-          ON CONFLICT (scope) DO UPDATE SET
-            version = public.app_cache_versions.version + 1,
-            updated_at = NOW()
-        `,
-        { replacements: { scope }, transaction },
-      );
-      await sequelize.query(
-        `DELETE FROM public.app_response_cache WHERE scope = :scope`,
-        { replacements: { scope }, transaction },
-      );
-    }
-  });
+  for (const scope of uniqueScopes) {
+    cacheVersions.set(scope, (cacheVersions.get(scope) ?? 0) + 1);
+    responseCache.delete(scope);
+  }
 }
