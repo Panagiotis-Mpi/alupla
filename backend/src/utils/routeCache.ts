@@ -27,9 +27,7 @@ export function routeCache(scope: string, ttlMs: number) {
       const originalJson = res.json.bind(res);
       res.json = (body: unknown) => {
         if (res.statusCode >= 200 && res.statusCode < 300 && (body as any)?.ok) {
-          void writeMemoryCache(scope, key, version, body, ttlMs).catch((error) => {
-            console.error("ALUPLA memory cache write failed:", error);
-          });
+          writeMemoryCache(scope, key, version, body, ttlMs);
         }
         res.setHeader("X-ALUPLA-Cache", "MISS");
         return originalJson(body);
