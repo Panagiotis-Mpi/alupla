@@ -16,6 +16,6 @@ studyProgramsRouter.get("/import-template", allowRoles(["secretariat", "super_ad
 // Ανεβάζει αρχείο import προγραμμάτων.
 studyProgramsRouter.post("/import", allowRoles(["secretariat", "super_admin"]), upload.single("file"), asyncHandler(importStudyPrograms));
 // Δημιουργία προγράμματος σπουδών.
-studyProgramsRouter.post("/", allowRoles(["super_admin"]), asyncHandler(createStudyProgram));
-studyProgramsRouter.put("/:id", allowRoles(["super_admin"]), asyncHandler(updateStudyProgram));
-studyProgramsRouter.delete("/:id", allowRoles(["super_admin"]), asyncHandler(deleteStudyProgram));
+studyProgramsRouter.post("/", allowRoles(["secretariat", "super_admin"]), asyncHandler(createStudyProgram));
+studyProgramsRouter.put("/:id", allowRoles(["secretariat", "super_admin"]), asyncHandler(updateStudyProgram));
+studyProgramsRouter.delete("/:id", allowRoles(["secretariat", "super_admin"]), asyncHandler(deleteStudyProgram));
