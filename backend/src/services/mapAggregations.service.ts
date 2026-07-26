@@ -73,11 +73,6 @@ function buildMapFilter(req: Request, scope: MapScope): SqlFilter {
     }
   };
 
-  for (const field of ["ad_code", "last_name", "first_name", "father_name", "student_number"]) {
-    addExactText(field, `g.${field}`);
-    addLikeText(`${field}_like`, `g.${field}`);
-  }
-
   addExactText("origin_municipality", "rh.city_name");
   addLikeText("origin_municipality_like", "rh.city_name");
   addExactText("origin_foreign_city", "rh.city_name");
@@ -111,32 +106,6 @@ function buildMapFilter(req: Request, scope: MapScope): SqlFilter {
 
   addNumberRange("g.degree_grade", "degree_grade", "degree_grade_min", "degree_grade_max");
   addNumberRange("g.entry_year", "entry_year", "entry_year_min", "entry_year_max");
-
-  const birthDateFrom = textValue(query.birth_date_from);
-  const birthDateTo = textValue(query.birth_date_to);
-  const birthDateExact = textValue(query.birth_date);
-  const birthYear = integerValue(query.birth_year);
-  const birthYearMin = integerValue(query.birth_year_min);
-  const birthYearMax = integerValue(query.birth_year_max);
-  if (birthDateFrom || birthDateTo) {
-    addDateRange("g.birth_date", "birth_date_from", "birth_date_to");
-  } else if (birthDateExact) {
-    conditions.push("g.birth_date = :birthDateExact");
-    replacements.birthDateExact = birthDateExact;
-  } else if (birthYear !== null) {
-    conditions.push("g.birth_date BETWEEN :birthYearStart AND :birthYearEnd");
-    replacements.birthYearStart = `${birthYear}-01-01`;
-    replacements.birthYearEnd = `${birthYear}-12-31`;
-  } else {
-    if (birthYearMin !== null) {
-      conditions.push("g.birth_date >= :birthYearMinDate");
-      replacements.birthYearMinDate = `${birthYearMin}-01-01`;
-    }
-    if (birthYearMax !== null) {
-      conditions.push("g.birth_date <= :birthYearMaxDate");
-      replacements.birthYearMaxDate = `${birthYearMax}-12-31`;
-    }
-  }
 
   addDateRange("g.graduation_date", "graduation_date_from", "graduation_date_to");
   addDateRange("g.oath_date", "oath_date_from", "oath_date_to");
@@ -172,19 +141,6 @@ function buildMapFilter(req: Request, scope: MapScope): SqlFilter {
     conditions.push("g.birth_date BETWEEN :ageBirthDateFrom AND :ageBirthDateTo");
     replacements.ageBirthDateFrom = `${currentYear - 120}-01-01`;
     replacements.ageBirthDateTo = `${currentYear - 31}-12-31`;
-  }
-
-  const keyword = textValue(query.q);
-  if (keyword) {
-    conditions.push(`(
-      g.last_name ILIKE :keyword OR
-      g.first_name ILIKE :keyword OR
-      g.father_name ILIKE :keyword OR
-      g.student_number ILIKE :keyword OR
-      g.ad_code ILIKE :keyword OR
-      CONCAT_WS(' ', rh.city_name, rh.nomos_name, rh.periphery_name, rh.country_name) ILIKE :keyword
-    )`);
-    replacements.keyword = `%${keyword}%`;
   }
 
   return { clause: `WHERE ${conditions.join(" AND ")}`, replacements };
