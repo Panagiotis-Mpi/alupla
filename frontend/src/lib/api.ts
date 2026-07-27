@@ -45,7 +45,7 @@ export type Region = {
   id: number;
   name: string;
   name_el?: string | null;
-  name_en?: string | null;
+  name_en: string;
   type: RegionType;
   parent_id?: number | null;
   latitude?: number | null;

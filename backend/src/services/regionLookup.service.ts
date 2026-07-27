@@ -5,7 +5,7 @@ export type RegionLookupItem = {
   id: number;
   name: string;
   name_el: string | null;
-  name_en: string | null;
+  name_en: string;
   normalized_name: string;
   type: RegionType;
   parent_id: number | null;
@@ -66,7 +66,7 @@ export async function loadRegionLookupIndex() {
       id: Number(row.id),
       name: String(row.name_el || ""),
       name_el: String(row.name_el || "") || null,
-      name_en: row.name_en != null ? String(row.name_en) : null,
+      name_en: String(row.name_en),
       normalized_name: normalizeRegionText(row.name_el),
       type: row.type as RegionType,
       parent_id: row.parent_id != null ? Number(row.parent_id) : null,
