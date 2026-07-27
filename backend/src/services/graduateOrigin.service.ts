@@ -16,12 +16,14 @@ export async function buildForeignGraduateOriginPayload(
     origin_country_region_id: countryRegionId,
     origin_foreign_city: foreignCity,
   });
+  if (normalized.error) return { error: normalized.error };
   if (!normalized.origin_location_id) return { error: "origin location could not be resolved" };
   return { payload: { origin_location_id: normalized.origin_location_id } satisfies GraduateOriginPayload };
 }
 
 export async function buildGreekGraduateOriginPayload(input: ResolveOriginInput, _regionsById?: Map<number, unknown>) {
   const normalized = await normalizeOriginLocation(input);
+  if (normalized.error) return { error: normalized.error };
   if (!normalized.origin_location_id) return { error: "origin location could not be resolved" };
   return { payload: { origin_location_id: normalized.origin_location_id } satisfies GraduateOriginPayload };
 }
