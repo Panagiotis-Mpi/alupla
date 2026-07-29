@@ -33,6 +33,17 @@ Region.init(
   {
     sequelize,
     tableName: "regions",
-    modelName: "Region"
+    modelName: "Region",
+    validate: {
+      coordinatesRequiredForCityAndCountry() {
+        const region = this as unknown as Region;
+        if (
+          (region.type === "CITY" || region.type === "COUNTRY") &&
+          (region.latitude == null || region.longitude == null)
+        ) {
+          throw new Error("latitude and longitude are required for CITY and COUNTRY regions");
+        }
+      }
+    }
   }
 );
