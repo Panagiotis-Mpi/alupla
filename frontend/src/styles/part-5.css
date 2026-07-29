@@ -1680,3 +1680,25 @@ html.accessibility-high-contrast .central-menu-dropdown-item.active{
     min-height:15px !important;
   }
 }
+
+.map-top-controls-row.page-central-menu-actions .map-metric-button > .map-gender-icons > .map-gender-distribution-icon{
+  position:static !important;
+  display:inline-block !important;
+  width:38px !important;
+  height:18px !important;
+  min-width:38px !important;
+  min-height:18px !important;
+  flex:0 0 38px !important;
+  margin:0 !important;
+  transform:none !important;
+}
+
+@media (max-width:520px){
+  .map-top-controls-row.page-central-menu-actions .map-metric-button > .map-gender-icons > .map-gender-distribution-icon{
+    width:32px !important;
+    height:15px !important;
+    min-width:32px !important;
+    min-height:15px !important;
+    flex-basis:32px !important;
+  }
+}
