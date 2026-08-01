@@ -5,6 +5,9 @@ import Icon from "./Icon";
 import personStandingIcon from "../assets/icons/person-standing.svg";
 import contrastIcon from "../assets/icons/contrast.svg";
 import linkIcon from "../assets/icons/link.svg";
+import aArrowDownIcon from "../assets/icons/a-arrow-down.svg";
+import aArrowUpIcon from "../assets/icons/a-arrow-up.svg";
+import rotateCcwIcon from "../assets/icons/rotate-ccw.svg";
 import {
   applyAccessibilitySettings,
   readAccessibilitySettings,
@@ -41,7 +44,7 @@ function FontSizeControls({
           title={t("accessibility.decreaseText")}
           disabled={!canDecrease}
         >
-          <span aria-hidden="true">A−</span>
+          <Icon src={aArrowDownIcon} size={24} />
         </button>
         <button
           type="button"
@@ -50,7 +53,7 @@ function FontSizeControls({
           aria-label={t("accessibility.resetText")}
           title={t("accessibility.resetText")}
         >
-          <span aria-hidden="true">↺</span>
+          <Icon src={rotateCcwIcon} size={24} />
         </button>
         <button
           type="button"
@@ -60,7 +63,7 @@ function FontSizeControls({
           title={t("accessibility.increaseText")}
           disabled={!canIncrease}
         >
-          <span aria-hidden="true">A+</span>
+          <Icon src={aArrowUpIcon} size={24} />
         </button>
       </div>
       <div className="accessibility-font-status" aria-live="polite">

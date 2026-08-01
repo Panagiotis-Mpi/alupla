@@ -134,7 +134,7 @@ export function MapCanvas({
               title={mt("mapReset", {
                 defaultValue: "Επαναφορά αρχικής προβολής",
               })}
-              label="↺"
+              label=""
               bounds={activeBounds}
               padding={fitPadding}
               maxZoom={activeFitMaxZoom}

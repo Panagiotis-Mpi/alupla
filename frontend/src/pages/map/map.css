@@ -12,7 +12,7 @@
         .alupla-city-bubble-gender.is-high-contrast { border-color: #000000; background: var(--alupla-bubble-background, #ffd400); box-shadow: inset 0 0 0 1px #000, var(--alupla-bubble-shadow, none); overflow: hidden; }
         .alupla-map .leaflet-control-zoom .alupla-map-reset-button { display: block; text-align: center; text-decoration: none; }
         .alupla-map .leaflet-control-zoom .alupla-map-reset-button:hover { text-decoration: none; }
-        .alupla-map .leaflet-control-zoom .alupla-map-reset-button span { font-size: 18px; line-height: 1; font-weight: 800; }
+        .alupla-map .leaflet-control-zoom .alupla-map-reset-button span { display: inline-block; width: 18px; height: 18px; background-color: currentColor; -webkit-mask: url("../../assets/icons/rotate-ccw.svg") center / contain no-repeat; mask: url("../../assets/icons/rotate-ccw.svg") center / contain no-repeat; vertical-align: middle; }
         .map-top-menu-card { padding: 20px 16px 16px; display: grid; gap: 14px; }
         .map-top-menu-title { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .map-top-menu-title h2 { margin: 0; }

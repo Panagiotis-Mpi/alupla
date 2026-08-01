@@ -20,6 +20,7 @@ import languagesIcon from "./assets/icons/languages.svg";
 import logInIcon from "./assets/icons/log-in.svg";
 import logOutIcon from "./assets/icons/log-out.svg";
 import userPenIcon from "./assets/icons/user-pen.svg";
+import textAlignJustifyIcon from "./assets/icons/text-align-justify.svg";
 
 const Login = React.lazy(() => import("./pages/Login"));
 const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
@@ -246,7 +247,7 @@ function TopNav() {
         aria-expanded={compactMenuAvailable ? menuOpen : undefined}
         aria-controls={compactMenuAvailable ? "mobile-drawer" : undefined}
       >
-        {compactMenuAvailable && <span className="brand-burger" aria-hidden="true">☰</span>}
+        {compactMenuAvailable && <Icon src={textAlignJustifyIcon} size={18} className="brand-burger" />}
         <img src={aluplaLogo} alt="" className="brand-logo" aria-hidden="true" />
         <span>ALUPLA</span>
       </button>
