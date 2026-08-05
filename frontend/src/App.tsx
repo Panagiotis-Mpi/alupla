@@ -9,7 +9,7 @@ import { pingPresence } from "./lib/api";
 import AccessibilityMenu from "./components/AccessibilityMenu";
 import Icon from "./components/Icon";
 import PublicHome from "./pages/PublicHome";
-import aluplaLogo from "./assets/logo_black.svg";
+import aluplaLogo from "./assets/logo.png";
 import chartColumnIcon from "./assets/icons/chart-column-big.svg";
 import globeIcon from "./assets/icons/globe.svg";
 import graduationCapIcon from "./assets/icons/graduation-cap.svg";
@@ -323,7 +323,7 @@ function TopNav() {
         <div className="mobile-drawer-section">
           {showPublicHomeMobileLink && (
             <Link className="btn nav-link-with-icon" to="/">
-              <Icon src={aluplaLogo} size={17} className="nav-link-icon" />
+              <img src={aluplaLogo} alt="" width={17} height={17} style={{ objectFit: "contain", marginRight: 8 }} aria-hidden="true" />
               <span>{t("nav.homepage", { defaultValue: lang === "en" ? "Homepage" : "Αρχική σελίδα" })}</span>
             </Link>
           )}

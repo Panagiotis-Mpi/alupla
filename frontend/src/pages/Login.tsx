@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { login as apiLogin } from "../lib/api";
 import { setSession, type Role } from "../lib/auth";
-import aluplaLogo from "../assets/logo_black.svg";
+import aluplaLogo from "../assets/logo.png";
 import Icon from "../components/Icon";
 import lockIcon from "../assets/icons/lock.svg";
 import mailIcon from "../assets/icons/mail.svg";

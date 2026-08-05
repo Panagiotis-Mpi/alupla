@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPasswordResetAccount, resetPassword, type PasswordResetAccount } from "../lib/api";
-import aluplaLogo from "../assets/logo_black.svg";
+import aluplaLogo from "../assets/logo.png";
 import Icon from "../components/Icon";
 import lockIcon from "../assets/icons/lock.svg";
 import mailIcon from "../assets/icons/mail.svg";
