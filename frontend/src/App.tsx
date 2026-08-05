@@ -9,7 +9,7 @@ import { pingPresence } from "./lib/api";
 import AccessibilityMenu from "./components/AccessibilityMenu";
 import Icon from "./components/Icon";
 import PublicHome from "./pages/PublicHome";
-import aluplaLogo from "./assets/logo.png";
+import aluplaLogo from "./assets/Logo_alupla.svg";
 import chartColumnIcon from "./assets/icons/chart-column-big.svg";
 import globeIcon from "./assets/icons/globe.svg";
 import graduationCapIcon from "./assets/icons/graduation-cap.svg";
