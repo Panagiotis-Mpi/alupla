@@ -32,7 +32,7 @@ export function MapCanvas({
   mapRef,
   mapCanvasRef,
   renderedMarkers,
-  selectedCityCards,
+  selectedCityCard,
   highContrastEnabled,
   inlineMapLoading,
   mapViewSettling,
@@ -62,7 +62,7 @@ export function MapCanvas({
   mapRef: MutableRefObject<L.Map | null>;
   mapCanvasRef: RefObject<HTMLDivElement>;
   renderedMarkers: any[];
-  selectedCityCards: any[];
+  selectedCityCard: any | null;
   highContrastEnabled: boolean;
   inlineMapLoading: boolean;
   mapViewSettling: boolean;
@@ -143,9 +143,10 @@ export function MapCanvas({
               const latitude = mapCityLatitude(city);
               const longitude = mapCityLongitude(city);
               if (latitude === null || longitude === null) return null;
-              const selectedCity = selectedCityCards.find((selectedCard) =>
-                sameMapSelection(mapScope, selectedCard, city),
-              );
+              const selectedCity =
+                selectedCityCard && sameMapSelection(mapScope, selectedCityCard, city)
+                  ? selectedCityCard
+                  : null;
               const popupItem = selectedCity || city;
               return (
                 <Marker

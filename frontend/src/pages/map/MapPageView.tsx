@@ -13,7 +13,7 @@ export function MapPageView(props: any) {
     mapScope,
     mapLanguage,
     metricOptions,
-    resetComparedSelections,
+    resetSelectedCityCard,
     setMetricTransitionLoading,
     setMapMetric,
     setScopeTransitionLoading,
@@ -49,7 +49,7 @@ export function MapPageView(props: any) {
     mapRef,
     mapCanvasRef,
     renderedMarkers,
-    selectedCityCards,
+    selectedCityCard,
     highContrastEnabled,
     inlineMapLoading,
     mapViewSettling,
@@ -59,8 +59,8 @@ export function MapPageView(props: any) {
     setMapBounds,
     markMapViewChanging,
     markMapViewReady,
-    toggleSelectedCityCard,
-    removeSelectedCityCard,
+    selectCityCard,
+    clearSelectedCityCard,
     shouldShowMarkerLabel,
     mapPopupTitle,
     mapPopupTotalText,
@@ -136,13 +136,13 @@ export function MapPageView(props: any) {
         language={mapLanguage}
         onMetricChange={(metric) => {
           if (metric === mapMetric) return;
-          resetComparedSelections();
+          resetSelectedCityCard();
           setMetricTransitionLoading(true);
           setMapMetric(metric);
         }}
         onScopeChange={(scope) => {
           if (scope === mapScope) return;
-          resetComparedSelections();
+          resetSelectedCityCard();
           setScopeTransitionLoading(true);
           setMapScope(scope);
         }}
@@ -180,7 +180,7 @@ export function MapPageView(props: any) {
           selectedEndYear={selectedGraduationYearEnd}
           loading={timelineLoading}
           onRangeChange={(startYear, endYear) => {
-            resetComparedSelections();
+            resetSelectedCityCard();
             setScopeTotals({});
             setSelectedGraduationYearStart(startYear);
             setSelectedGraduationYearEnd(endYear);
@@ -202,7 +202,7 @@ export function MapPageView(props: any) {
         mapRef={mapRef}
         mapCanvasRef={mapCanvasRef}
         renderedMarkers={renderedMarkers}
-        selectedCityCards={selectedCityCards}
+        selectedCityCard={selectedCityCard}
         highContrastEnabled={highContrastEnabled}
         inlineMapLoading={inlineMapLoading}
         mapViewSettling={mapViewSettling}
@@ -212,8 +212,8 @@ export function MapPageView(props: any) {
         onBoundsChange={setMapBounds}
         onViewChangeStart={markMapViewChanging}
         onViewChangeEnd={markMapViewReady}
-        onMarkerClick={(city) => void toggleSelectedCityCard(city)}
-        onPopupRemove={removeSelectedCityCard}
+        onMarkerClick={(city) => void selectCityCard(city)}
+        onPopupRemove={clearSelectedCityCard}
         shouldShowMarkerLabel={shouldShowMarkerLabel}
         popupTitle={mapPopupTitle}
         popupTotalText={mapPopupTotalText}

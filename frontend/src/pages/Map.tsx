@@ -105,7 +105,7 @@ export default function GraduatesMapPage() {
   const [mapZoom, setMapZoom] = useState(6.5);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [mapViewSettling, setMapViewSettling] = useState(false);
-  const [selectedCityCards, setSelectedCityCards] = useState<any[]>([]);
+  const [selectedCityCard, setSelectedCityCard] = useState<any | null>(null);
   const [selectedGraduationYearStart, setSelectedGraduationYearStart] =
     useState<string>("");
   const [selectedGraduationYearEnd, setSelectedGraduationYearEnd] =
@@ -308,8 +308,8 @@ export default function GraduatesMapPage() {
     [isCompactViewport],
   );
 
-  const resetComparedSelections = useCallback(() => {
-    setSelectedCityCards([]);
+  const resetSelectedCityCard = useCallback(() => {
+    setSelectedCityCard(null);
   }, []);
 
   const activeBounds = mapScope === "abroad" ? worldBounds : greeceBounds;
@@ -345,8 +345,8 @@ export default function GraduatesMapPage() {
   }, [activeBounds, activeFitMaxZoom, fitPadding, highContrastEnabled]);
 
   useEffect(() => {
-    resetComparedSelections();
-  }, [mapScope, resetComparedSelections]);
+    resetSelectedCityCard();
+  }, [mapScope, resetSelectedCityCard]);
 
 
 
@@ -826,17 +826,14 @@ export default function GraduatesMapPage() {
     });
   }
 
-  function removeSelectedCityCard(city: any) {
-    setSelectedCityCards((prev) =>
-      prev.filter((entry) => !sameMapSelection(mapScope, entry, city)),
+  function clearSelectedCityCard(city: any) {
+    setSelectedCityCard((current) =>
+      current && sameMapSelection(mapScope, current, city) ? null : current,
     );
   }
 
-  async function toggleSelectedCityCard(city: any) {
-    const alreadySelected = selectedCityCards.some((entry) =>
-      sameMapSelection(mapScope, entry, city),
-    );
-    if (alreadySelected) return;
+  async function selectCityCard(city: any) {
+    if (selectedCityCard && sameMapSelection(mapScope, selectedCityCard, city)) return;
 
     const requestParams = {
       ...(city.city_id ? { city_id: city.city_id } : {}),
@@ -881,13 +878,7 @@ export default function GraduatesMapPage() {
         detail?.avg_graduation_years ?? city.avg_graduation_years ?? null,
     };
 
-    setSelectedCityCards((prev) => {
-      const next = prev.filter(
-        (entry) => !sameMapSelection(mapScope, entry, mergedCity),
-      );
-      next.push(mergedCity);
-      return next.slice(-6);
-    });
+    setSelectedCityCard(mergedCity);
   }
 
   function mapPopupTitle(item: any) {
@@ -906,12 +897,12 @@ export default function GraduatesMapPage() {
   async function exportMapSelectionAsPng() {
     const previousMetric = mapMetric;
     const previousScope = mapScope;
-    const previousSelectedCityCards = selectedCityCards;
+    const previousSelectedCityCard = selectedCityCard;
     const previousStartYear = selectedGraduationYearStartRef.current;
     const previousEndYear = selectedGraduationYearEndRef.current;
     const files: Array<{ filename: string; blob: Blob }> = [];
 
-    setSelectedCityCards([]);
+    setSelectedCityCard(null);
     await waitForMapFrame(mapRef);
 
     try {
@@ -950,7 +941,7 @@ export default function GraduatesMapPage() {
       setMapMetric(previousMetric);
       setSelectedGraduationYearStart(previousStartYear);
       setSelectedGraduationYearEnd(previousEndYear);
-      setSelectedCityCards(previousSelectedCityCards);
+      setSelectedCityCard(previousSelectedCityCard);
       await waitForMapFrame(mapRef);
     }
 
@@ -996,16 +987,16 @@ export default function GraduatesMapPage() {
   return (
     <MapPageView
       {...{
-        mt, ct, loading, mapMetric, mapScope, mapLanguage, metricOptions, resetComparedSelections,
+        mt, ct, loading, mapMetric, mapScope, mapLanguage, metricOptions, resetSelectedCityCard,
         setMetricTransitionLoading, setMapMetric, setScopeTransitionLoading, setMapScope, openExportSelection,
         mobileSummaryOpen, setMobileSummaryOpen, mobileTimelineOpen, setMobileTimelineOpen, summaryLoading,
         overallSummaryTotal, greeceSummaryTotal, abroadSummaryTotal, topPeriphery, topCityName, topCity,
         topAbroadCountry, topAbroadCountryLoading, timelineLoading, availableYears, selectedGraduationYearStart,
         selectedGraduationYearEnd, setScopeTotals, setSelectedGraduationYearStart, setSelectedGraduationYearEnd,
         isCompactViewport, worldBounds, activeBounds, activeInitialZoom, activeMinZoom, activeFitMaxZoom, fitPadding,
-        mapRef, mapCanvasRef, renderedMarkers, selectedCityCards, highContrastEnabled, inlineMapLoading, mapViewSettling,
+        mapRef, mapCanvasRef, renderedMarkers, selectedCityCard, highContrastEnabled, inlineMapLoading, mapViewSettling,
         renderedLegendEntries, legendDescription, setMapZoom, setMapBounds, markMapViewChanging, markMapViewReady,
-        toggleSelectedCityCard, removeSelectedCityCard, shouldShowMarkerLabel, mapPopupTitle, mapPopupTotalText,
+        selectCityCard, clearSelectedCityCard, shouldShowMarkerLabel, mapPopupTitle, mapPopupTotalText,
         selectedExportFormat, exportCategoryOptions, selectedExportSelections, exportingSelection, exportYearOptions,
         exportCategoryRanges, closeExportSelection, toggleAllExportSelections, toggleExportScopeSelection,
         toggleExportCategorySelections, changeExportCategoryRange, handleExportSelection,
