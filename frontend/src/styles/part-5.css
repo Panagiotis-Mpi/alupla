@@ -1702,3 +1702,80 @@ html.accessibility-high-contrast .central-menu-dropdown-item.active{
     flex-basis:32px !important;
   }
 }
+
+@media (max-width:1024px){
+  .page-central-menu-actions > .btn:has(> .ui-icon),
+  .page-central-menu-actions > a.btn:has(> .ui-icon),
+  .page-central-menu-actions > div > .btn:first-child:has(> .ui-icon),
+  .page-central-menu-actions > div > div:first-child > .btn:first-child:has(> .ui-icon),
+  .page-central-menu-actions > .btn:has(> .map-gender-icons),
+  .page-central-menu-actions > div > .btn:first-child:has(> .map-gender-icons),
+  .graduates-actions-grid-main.page-central-menu-actions > .graduates-actions-secondary > .graduates-actions-grid > .btn:has(> .ui-icon),
+  .graduates-actions-grid-main.page-central-menu-actions > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child:has(> .ui-icon){
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:10px !important;
+    column-gap:10px !important;
+  }
+
+  .page-central-menu-actions > .btn:has(> .ui-icon) > .ui-icon,
+  .page-central-menu-actions > a.btn:has(> .ui-icon) > .ui-icon,
+  .page-central-menu-actions > div > .btn:first-child:has(> .ui-icon) > .ui-icon,
+  .page-central-menu-actions > div > div:first-child > .btn:first-child:has(> .ui-icon) > .ui-icon,
+  .graduates-actions-grid-main.page-central-menu-actions > .graduates-actions-secondary > .graduates-actions-grid > .btn:has(> .ui-icon) > .ui-icon,
+  .graduates-actions-grid-main.page-central-menu-actions > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child:has(> .ui-icon) > .ui-icon{
+    position:static !important;
+    grid-column:auto !important;
+    grid-row:auto !important;
+    justify-self:auto !important;
+    align-self:center !important;
+    margin:0 !important;
+    transform:none !important;
+  }
+
+  .page-central-menu-actions > .btn:has(> .map-gender-icons) > .map-gender-icons,
+  .page-central-menu-actions > div > .btn:first-child:has(> .map-gender-icons) > .map-gender-icons{
+    grid-column:auto !important;
+    grid-row:auto !important;
+    justify-self:auto !important;
+    align-self:center !important;
+    margin:0 !important;
+    transform:none !important;
+  }
+
+  .page-central-menu-actions > .btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+  .page-central-menu-actions > a.btn:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+  .page-central-menu-actions > div > .btn:first-child:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+  .page-central-menu-actions > div > div:first-child > .btn:first-child:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+  .page-central-menu-actions > .btn:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+  .page-central-menu-actions > div > .btn:first-child:has(> .map-gender-icons) > span:not(.map-gender-icons):not(.map-dropdown-caret):not(.btn-dropdown-chevron),
+  .graduates-actions-grid-main.page-central-menu-actions > .graduates-actions-secondary > .graduates-actions-grid > .btn:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron),
+  .graduates-actions-grid-main.page-central-menu-actions > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child:has(> .ui-icon) > span:not(.ui-icon):not(.btn-dropdown-chevron){
+    grid-column:auto !important;
+    grid-row:auto !important;
+    justify-self:auto !important;
+    align-self:center !important;
+    flex:0 1 auto !important;
+    width:auto !important;
+    min-width:0 !important;
+    max-width:calc(100% - 40px) !important;
+    inline-size:auto !important;
+    max-inline-size:calc(100% - 40px) !important;
+    text-align:center !important;
+  }
+}
+
+@media (max-width:520px){
+  .page-central-menu-actions > .btn:has(> .ui-icon),
+  .page-central-menu-actions > a.btn:has(> .ui-icon),
+  .page-central-menu-actions > div > .btn:first-child:has(> .ui-icon),
+  .page-central-menu-actions > div > div:first-child > .btn:first-child:has(> .ui-icon),
+  .page-central-menu-actions > .btn:has(> .map-gender-icons),
+  .page-central-menu-actions > div > .btn:first-child:has(> .map-gender-icons),
+  .graduates-actions-grid-main.page-central-menu-actions > .graduates-actions-secondary > .graduates-actions-grid > .btn:has(> .ui-icon),
+  .graduates-actions-grid-main.page-central-menu-actions > .graduates-actions-secondary > .graduates-actions-grid > div > .btn:first-child:has(> .ui-icon){
+    gap:8px !important;
+    column-gap:8px !important;
+  }
+}
