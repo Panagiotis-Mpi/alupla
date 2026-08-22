@@ -200,6 +200,21 @@ body.public-home-scroll-lock .accessibility-trigger{
   object-fit:contain;
 }
 
+@media (min-width:1025px){
+  [data-stat-chart-card] > .topbar:has(> .statistics-chart-fullscreen-btn):has(> .statistics-chart-legend) > h3{
+    order:1 !important;
+  }
+  [data-stat-chart-card] > .topbar:has(> .statistics-chart-fullscreen-btn):has(> .statistics-chart-legend) > .statistics-chart-legend{
+    order:2 !important;
+    margin-left:0 !important;
+    margin-right:0 !important;
+    justify-content:flex-start !important;
+  }
+  [data-stat-chart-card] > .topbar:has(> .statistics-chart-fullscreen-btn):has(> .statistics-chart-legend) > .statistics-chart-fullscreen-btn{
+    order:3 !important;
+  }
+}
+
 @media (max-width:1024px){
 
   .public-home-card-split{
@@ -1875,13 +1890,13 @@ html.accessibility-high-contrast .central-menu-dropdown-item.active{
     margin:0 !important;
   }
   [data-stat-chart-card] > .topbar:has(> .statistics-chart-fullscreen-btn):has(> .statistics-chart-legend) > .statistics-chart-legend{
-    grid-column:1 / -1 !important;
+    grid-column:1 !important;
     grid-row:2 !important;
-    width:100% !important;
+    width:auto !important;
     max-width:100% !important;
     margin:0 !important;
-    justify-self:stretch !important;
-    justify-content:center !important;
+    justify-self:start !important;
+    justify-content:flex-start !important;
   }
 
   .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .map-gender-icons){
