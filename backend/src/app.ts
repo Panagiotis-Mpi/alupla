@@ -66,6 +66,10 @@ export function createApp() {
   // Εκτυπώνει σύντομα logs για κάθε HTTP request στο terminal.
   app.use(morgan("dev"));
 
+  app.get("/", (_req, res) => {
+    res.send("ALUPLA backend is running");
+  });
+
   // Απλό endpoint ελέγχου ότι ο server λειτουργεί.
   app.get("/health", (_req, res) => {
     res.json({ ok: true });
