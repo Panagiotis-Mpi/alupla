@@ -420,7 +420,7 @@ export default function Logs() {
       {activePanel === "logs" && (
         <>
           <div className="card logs-filters-card page-header-card">
-        <div className="grid cols2" style={{ gap: 14 }}>
+        <div className="grid cols2 logs-primary-filters-grid" style={{ gap: 14 }}>
           <div>
             <label className="label">{t("filters.actor")}</label>
             <select

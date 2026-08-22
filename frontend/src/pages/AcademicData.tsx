@@ -238,7 +238,7 @@ export default function AcademicData() {
           <h3 style={{ margin: 0 }}>{t("programs.title")}</h3>
         </div>
 
-        <div className="grid cols2" style={{ marginTop: 12 }}>
+        <div className="grid cols2 academic-program-names-grid" style={{ marginTop: 12 }}>
           <div>
             <label className="label">{t("programs.labels.nameEl")}</label>
             <input

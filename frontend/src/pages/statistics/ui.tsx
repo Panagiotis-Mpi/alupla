@@ -384,6 +384,7 @@ export function ChartLegendInset(props: { items: ChartLegendItem[] }) {
   return (
     <div
       aria-hidden="true"
+      className="statistics-chart-legend"
       style={{
         display: "flex",
         flexWrap: "wrap",

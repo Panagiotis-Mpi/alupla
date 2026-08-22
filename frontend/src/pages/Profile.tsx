@@ -120,8 +120,8 @@ export default function Profile() {
         </div>
       )}
 
-      <div className="card page-header-card" style={profileCardStyle}>
-        <div style={topStyle}>
+      <div className="card page-header-card profile-card" style={profileCardStyle}>
+        <div className="profile-top" style={topStyle}>
           <div style={{ display: "grid", gap: 4 }}>
             <h2 style={{ margin: 0 }}>{t("title")}</h2>
             <div className="muted">{t("subtitle")}</div>
@@ -133,7 +133,7 @@ export default function Profile() {
               <span>{t("changePassword.show")}</span>
             </button>
           ) : (
-            <div style={actionStyle}>
+            <div className="profile-actions" style={actionStyle}>
               <button className="btn primary" onClick={onSavePassword} style={{ width: "auto" }}>
                 <Icon src={lockIcon} size={18} />
                 <span>{t("changePassword.save")}</span>
@@ -146,30 +146,30 @@ export default function Profile() {
           )}
         </div>
 
-        <div style={rowsStyle}>
-          <div style={rowStyle}>
+        <div className="profile-info-rows" style={rowsStyle}>
+          <div className="profile-info-row" style={rowStyle}>
             <div className="label">{t("info.name")}</div>
-            <div style={valueStyle}>{fullName}</div>
+            <div className="profile-info-value" style={valueStyle}>{fullName}</div>
           </div>
 
-          <div style={rowStyle}>
+          <div className="profile-info-row" style={rowStyle}>
             <div className="label">{t("info.email")}</div>
-            <div style={valueStyle}>{user.email}</div>
+            <div className="profile-info-value" style={valueStyle}>{user.email}</div>
           </div>
 
-          <div style={lastRowStyle}>
+          <div className="profile-info-row profile-info-row-last" style={lastRowStyle}>
             <div className="label">{t("info.role")}</div>
-            <div>
+            <div className="profile-info-value">
               <span className="badge">{roleLabel}</span>
             </div>
           </div>
         </div>
 
         {showPassword && (
-          <div style={passwordBoxStyle}>
+          <div className="profile-password-box" style={passwordBoxStyle}>
             <h3 style={{ margin: 0 }}>{t("changePassword.title")}</h3>
 
-            <div className="grid cols2" style={{ gap: 10 }}>
+            <div className="grid cols2 profile-password-grid" style={{ gap: 10 }}>
               <div>
                 <label className="label">{t("changePassword.current")}</label>
                 <input
