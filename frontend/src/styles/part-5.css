@@ -1995,3 +1995,24 @@ html.accessibility-high-contrast .central-menu-dropdown-item.active{
     flex-basis:34px !important;
   }
 }
+
+@media (min-width:1025px){
+  .public-home-card-split .public-home-illustration-slide-abroad .public-home-illustration{
+    transform:scale(1.14);
+    transform-origin:center center;
+  }
+}
+
+@media (min-width:641px) and (max-width:1024px){
+  .public-home-card-split .public-home-illustration-slide-abroad .public-home-illustration{
+    transform:scale(1.06);
+    transform-origin:center center;
+  }
+}
+
+@media (max-width:640px){
+  .public-home-card-split .public-home-illustration-slide-abroad .public-home-illustration{
+    transform:scale(1.03);
+    transform-origin:center center;
+  }
+}
