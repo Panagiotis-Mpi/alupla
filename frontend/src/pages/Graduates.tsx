@@ -87,7 +87,7 @@ export default function Graduates() {
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [openMenu, setOpenMenu] = useState<MenuName | null>(null);
- 
+
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const importFileRef = useRef<HTMLInputElement | null>(null);
   const importMenuRef = useRef<HTMLDivElement | null>(null);
