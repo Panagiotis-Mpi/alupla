@@ -144,9 +144,8 @@ function athensLookupKey(value: unknown) {
 }
 
 function isAtticaLocation(resolvedLocation: any) {
-  const peripheryId = Number(resolvedLocation?.peripheryId || 0);
-  if (peripheryId === 1) return true;
-  return athensLookupKey(resolvedLocation?.peripheryName) === athensLookupKey("Αττική");
+  const peripheryKey = athensLookupKey(resolvedLocation?.peripheryName);
+  return peripheryKey === athensLookupKey("Αττική") || peripheryKey === athensLookupKey("Attica");
 }
 
 function greekCityGroupForName(value: unknown) {
@@ -415,12 +414,13 @@ export async function getMapCityDetail(req: Request, res: Response) {
   };
   if (String(req.query.mode || "count") === "dominant_gender") return res.json({ ...base, mode: "dominant_gender" });
 
-  const startYear = 2010;
   const currentYear = new Date().getFullYear();
-  const endYear = Math.max(currentYear, startYear);
+  const yearRows = await loadMapCityYearCounts(req, scope, selectedCityIds, scope === "abroad" ? countryLookupId : null);
+  const rowYears = yearRows.map((row) => Number(row.year)).filter((year) => Number.isFinite(year) && year > 1900);
+  const startYear = rowYears.length ? Math.min(...rowYears) : currentYear;
+  const endYear = Math.max(currentYear, rowYears.length ? Math.max(...rowYears) : startYear);
   const labels = Array.from({ length: endYear - startYear + 1 }, (_, index) => String(startYear + index));
   const counts = labels.map(() => 0);
-  const yearRows = await loadMapCityYearCounts(req, scope, selectedCityIds, scope === "abroad" ? countryLookupId : null);
   for (const row of yearRows) {
     const year = Number(row.year);
     if (year >= startYear && year <= endYear) counts[year - startYear] = Number(row.count) || 0;

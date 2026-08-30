@@ -127,20 +127,13 @@ function buildMapFilter(req: Request, scope: MapScope): SqlFilter {
     }
   }
 
-  const currentYear = new Date().getFullYear();
   const ageGroup = textValue(query.age_group);
   if (ageGroup === "23-26") {
-    conditions.push("g.birth_date BETWEEN :ageBirthDateFrom AND :ageBirthDateTo");
-    replacements.ageBirthDateFrom = `${currentYear - 26}-01-01`;
-    replacements.ageBirthDateTo = `${currentYear - 23}-12-31`;
+    conditions.push("g.birth_date > (current_date - INTERVAL '27 years')::date AND g.birth_date <= (current_date - INTERVAL '23 years')::date");
   } else if (ageGroup === "27-30") {
-    conditions.push("g.birth_date BETWEEN :ageBirthDateFrom AND :ageBirthDateTo");
-    replacements.ageBirthDateFrom = `${currentYear - 30}-01-01`;
-    replacements.ageBirthDateTo = `${currentYear - 27}-12-31`;
+    conditions.push("g.birth_date > (current_date - INTERVAL '31 years')::date AND g.birth_date <= (current_date - INTERVAL '27 years')::date");
   } else if (ageGroup === "31+") {
-    conditions.push("g.birth_date BETWEEN :ageBirthDateFrom AND :ageBirthDateTo");
-    replacements.ageBirthDateFrom = `${currentYear - 120}-01-01`;
-    replacements.ageBirthDateTo = `${currentYear - 31}-12-31`;
+    conditions.push("g.birth_date <= (current_date - INTERVAL '31 years')::date");
   }
 
   return { clause: `WHERE ${conditions.join(" AND ")}`, replacements };
