@@ -41,12 +41,11 @@ type CityResolution = {
   error?: string;
 };
 
-const GREECE_KEYS = new Set([normalizeRegionText("Ελλάδα"), normalizeRegionText("Greece")]);
 const GREEK_LETTERS = /[\u0370-\u03ff\u1f00-\u1fff]/u;
 const CITY_LOOKUP_ERROR = "origin city could not be resolved with an English name";
 
 function isGreece(region: RegionLookupItem | null | undefined) {
-  return Boolean(region && region.type === "COUNTRY" && GREECE_KEYS.has(normalizeRegionText(region.name)));
+  return Boolean(region && region.type === "COUNTRY" && region.code === "GR");
 }
 
 function firstScoped(candidates: RegionLookupItem[], scopeId: number | null, byId: Map<number, RegionLookupItem>) {
@@ -227,7 +226,7 @@ export async function normalizeOriginLocation(input: ResolveOriginInput): Promis
   if (!country && explicitCity) country = getRegionAncestor(explicitCity.id, "COUNTRY", index.byId);
   if (!country && explicitNomos) country = getRegionAncestor(explicitNomos.id, "COUNTRY", index.byId);
   if (!country && explicitPeriphery) country = getRegionAncestor(explicitPeriphery.id, "COUNTRY", index.byId);
-  if (!country) country = findRegions("COUNTRY", "Ελλάδα", index)[0] ?? null;
+  if (!country) country = index.rows.find((item) => item.type === "COUNTRY" && item.code === "GR") ?? null;
   if (!country) return { origin_location_id: null };
 
   const cityText = cleanRegionText(input.origin_foreign_city || input.origin_municipality);

@@ -27,7 +27,7 @@ function textValue(value: unknown) {
 
 function buildMapFilter(req: Request, scope: MapScope): SqlFilter {
   const query = req.query;
-  const conditions = [scope === "greece" ? "rh.country_id = 116" : "rh.country_id IS NOT NULL AND rh.country_id <> 116"];
+  const conditions = [scope === "greece" ? "rh.country_code = 'GR'" : "rh.country_code IS NOT NULL AND rh.country_code <> 'GR'"];
   const replacements: Record<string, unknown> = {};
 
   const addExactText = (parameter: string, column: string) => {

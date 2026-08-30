@@ -238,7 +238,7 @@ export function parseStoredGender(value: unknown) {
 }
 
 export function getGreeceRegionId(regionsById: Map<number, any>) {
-  return Array.from(regionsById.values()).find((item: any) => normalizeRegionText(item?.name) === normalizeRegionText("Ελλάδα"))?.id ?? null;
+  return Array.from(regionsById.values()).find((item: any) => item?.type === "COUNTRY" && String(item?.code ?? "").toUpperCase() === "GR")?.id ?? null;
 }
 
 export function trimNullableText(value: unknown) {

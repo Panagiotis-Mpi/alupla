@@ -6,6 +6,7 @@ export type RegionLookupItem = {
   name: string;
   name_el: string | null;
   name_en: string;
+  code: string | null;
   normalized_name: string;
   type: RegionType;
   parent_id: number | null;
@@ -60,13 +61,14 @@ function createIndex(rows: RegionLookupItem[]) {
 export async function loadRegionLookupIndex() {
   if (!lookupCache) {
     lookupCache = Region.findAll({
-      attributes: ["id", "name_el", "name_en", "type", "parent_id", "latitude", "longitude"],
+      attributes: ["id", "name_el", "name_en", "code", "type", "parent_id", "latitude", "longitude"],
       order: [["id", "ASC"]],
     }).then((rows) => createIndex((rows as any[]).map((row) => ({
       id: Number(row.id),
       name: String(row.name_el || ""),
       name_el: String(row.name_el || "") || null,
       name_en: String(row.name_en),
+      code: String(row.code ?? "").trim().toUpperCase() || null,
       normalized_name: normalizeRegionText(row.name_el),
       type: row.type as RegionType,
       parent_id: row.parent_id != null ? Number(row.parent_id) : null,
