@@ -347,11 +347,6 @@ export async function getMapSummary(req: Request, res: Response) {
   return res.json({ ok: true, items: data.map.items, total: data.map.total, cities: data.cities.items });
 }
 
-export async function getMapCities(req: Request, res: Response) {
-  const data = await buildMapData(req, { includeMapItems: false, includeCityItems: true });
-  return res.json({ ok: true, items: data.cities.items });
-}
-
 export async function getMapYearRange(_req: Request, res: Response) {
   try {
     const years = await getGraduationYears();
