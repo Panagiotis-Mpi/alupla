@@ -268,7 +268,6 @@ async function writeExportLog(
     user_id: req.user?.id ?? null,
     action,
     entity_type: "logs",
-    entity_id: null,
     details: { format: action === "export_csv" ? "csv" : "xlsx", count },
   });
 }

@@ -153,7 +153,6 @@ export async function exportGraduates(
       user_id: req.user?.id ?? null,
       action: "export_graduates",
       entity_type: "graduate",
-      entity_id: null,
       details: {
         format,
         limit: ids.length ? null : limit,
@@ -222,7 +221,6 @@ export async function logGraduatesPdfExport(
       user_id: req.user?.id ?? null,
       action: "export_graduates",
       entity_type: "graduate",
-      entity_id: null,
       details: { format: "pdf", limit: null, count, selected: ids.length || 0 },
     });
 
@@ -383,7 +381,6 @@ export async function importGraduates(
         user_id: req.user?.id ?? null,
         action: "import_graduates",
         entity_type: "graduate",
-        entity_id: null,
         details: {
           file: file.originalname,
           total_rows: rows.length - 1,
@@ -500,7 +497,6 @@ export async function createGraduate(
       user_id: req.user?.id ?? null,
       action: "create_graduate",
       entity_type: "graduate",
-      entity_id: (created as any).id,
       details: { student_number: values.student_number },
     });
 
@@ -580,7 +576,6 @@ export async function updateGraduate(
       user_id: req.user?.id ?? null,
       action: "update_graduate",
       entity_type: "graduate",
-      entity_id: id,
       details: changed.length ? { changed } : null,
     });
 
@@ -616,7 +611,6 @@ export async function deleteGraduates(
         user_id: req.user?.id ?? null,
         action: "bulk_delete_graduates",
         entity_type: "graduate",
-        entity_id: null,
         details: { deleted },
       });
     }
@@ -648,7 +642,6 @@ export async function deleteGraduate(
       user_id: req.user?.id ?? null,
       action: "delete_graduate",
       entity_type: "graduate",
-      entity_id: id,
       details: {
         student_number: String((item as any).student_number ?? "").trim(),
       },

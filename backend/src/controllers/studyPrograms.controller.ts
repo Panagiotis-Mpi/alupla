@@ -193,7 +193,6 @@ export async function importStudyPrograms(req: Request, res: Response, next: Nex
       user_id: req.user?.id ?? null,
       action: "import_study_programs",
       entity_type: "study_program",
-      entity_id: null,
       details: {
         file: req.file?.originalname ?? null,
         format: importedFileFormat(req.file),
@@ -235,7 +234,6 @@ export async function createStudyProgram(req: Request, res: Response, next: Next
       user_id: req.user?.id ?? null,
       action: "create_study_program",
       entity_type: "study_program",
-      entity_id: item.id,
       details: { name_el: nameEl, name_en: nameEn }
     });
 
@@ -290,7 +288,6 @@ export async function updateStudyProgram(req: Request, res: Response, next: Next
       user_id: req.user?.id ?? null,
       action: "update_study_program",
       entity_type: "study_program",
-      entity_id: item.id,
       details: patch
     });
 
@@ -331,7 +328,6 @@ export async function deleteStudyProgram(req: Request, res: Response, next: Next
       user_id: req.user?.id ?? null,
       action: "delete_study_program",
       entity_type: "study_program",
-      entity_id: id,
       details
     });
 

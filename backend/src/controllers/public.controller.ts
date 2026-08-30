@@ -56,6 +56,41 @@ export async function publicStats(req: Request, res: Response) {
     const birthYearExpr = await getBirthYearExpr();
     const section = String(req.query.section ?? "all").toLowerCase();
 
+    if (section === "home") {
+      const context = { sqlWhere, repl, birthExpr, birthYearExpr };
+      const [totalRow, byYear, rawOriginCountryDistribution] = await Promise.all([
+        getTotalGraduates(context),
+        getCountByGraduationYear(context),
+        sequelize.query<StatisticsCountryRow>(
+          `SELECT g.origin_country_region_id as id,
+                  CASE
+                    WHEN COALESCE(NULLIF(TRIM(g.origin_country), ''), '') = '' THEN 'Άγνωστη χώρα'
+                    WHEN LOWER(TRANSLATE(TRIM(g.origin_country), 'ΆάΈέΉήΊίΌόΎύΏώ', 'ΑαΕεΗηΙιΟοΥυΩω')) IN ('ελλαδα', 'greece') THEN 'Ελλάδα'
+                    ELSE TRIM(g.origin_country)
+                  END as name,
+                  CAST(COUNT(*) AS INTEGER) as count
+           FROM graduate_details g ${sqlWhere}
+           GROUP BY g.origin_country_region_id, 2
+           ORDER BY count DESC, name ASC`,
+          { replacements: repl, type: QueryTypes.SELECT }
+        ),
+      ]);
+      const countryGroups = await groupStatisticsCountries(rawOriginCountryDistribution);
+      const originCountryDistribution = Array.from(countryGroups.values()).sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.name_el.localeCompare(b.name_el, "el");
+      });
+      const body = {
+        ok: true,
+        total: Number(totalRow?.[0]?.total ?? 0),
+        by_year: byYear,
+        origin_country_distribution: originCountryDistribution,
+      };
+      await setPublicStatsCache(cacheKey, body);
+      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=240");
+      return res.json(body);
+    }
+
     if (section === "demographics") {
       const context = { sqlWhere, repl, birthExpr, birthYearExpr };
       const [totalRow, avgRow, byYear, byTerm, genderRows, genderByYear, birthYearRows, genderByBirthYear, countByEntryYear, genderByEntryYear, avgAgeByYear] = await Promise.all([
@@ -116,13 +151,7 @@ export async function publicStats(req: Request, res: Response) {
         getAverageYearsToDegreeByGraduationYear(context),
       ]);
       const total = Number(totalRow?.[0]?.total ?? 0);
-      const originRegionJoin = `LEFT JOIN regions origin_region ON origin_region.id = g.origin_region_id
-         LEFT JOIN regions origin_parent_region ON origin_parent_region.id = origin_region.parent_id
-         LEFT JOIN regions r ON r.id = COALESCE(
-           g.origin_periphery_region_id,
-           CASE WHEN origin_region.type = 'PERIPHERY' THEN origin_region.id ELSE NULL END,
-           CASE WHEN origin_parent_region.type = 'PERIPHERY' THEN origin_parent_region.id ELSE NULL END
-         )`;
+      const originRegionJoin = `LEFT JOIN regions r ON r.id = g.origin_periphery_region_id`;
       const originRegionWhere = sqlWhere
         ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
         : `WHERE r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
@@ -188,13 +217,7 @@ export async function publicStats(req: Request, res: Response) {
     }
 
     if (section === "geography") {
-      const originRegionJoin = `LEFT JOIN regions origin_region ON origin_region.id = g.origin_region_id
-         LEFT JOIN regions origin_parent_region ON origin_parent_region.id = origin_region.parent_id
-         LEFT JOIN regions r ON r.id = COALESCE(
-           g.origin_periphery_region_id,
-           CASE WHEN origin_region.type = 'PERIPHERY' THEN origin_region.id ELSE NULL END,
-           CASE WHEN origin_parent_region.type = 'PERIPHERY' THEN origin_parent_region.id ELSE NULL END
-         )`;
+      const originRegionJoin = `LEFT JOIN regions r ON r.id = g.origin_periphery_region_id`;
       const originRegionWhere = sqlWhere
         ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
         : `WHERE r.id IS NOT NULL AND r.type = 'PERIPHERY' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;
@@ -224,15 +247,7 @@ export async function publicStats(req: Request, res: Response) {
          ORDER BY count DESC, r.name_el ASC`,
         { replacements: repl, type: QueryTypes.SELECT }
       );
-      const originNomosJoin = `LEFT JOIN regions origin_nomos_region ON origin_nomos_region.id = g.origin_region_id
-         LEFT JOIN regions origin_city_region ON origin_city_region.id = g.origin_city_region_id
-         LEFT JOIN regions origin_city_parent_region ON origin_city_parent_region.id = origin_city_region.parent_id
-         LEFT JOIN regions origin_city_grandparent_region ON origin_city_grandparent_region.id = origin_city_parent_region.parent_id
-         LEFT JOIN regions r ON r.id = COALESCE(
-           CASE WHEN origin_nomos_region.type = 'NOMOS' THEN origin_nomos_region.id ELSE NULL END,
-           CASE WHEN origin_city_parent_region.type = 'NOMOS' THEN origin_city_parent_region.id ELSE NULL END,
-           CASE WHEN origin_city_grandparent_region.type = 'NOMOS' THEN origin_city_grandparent_region.id ELSE NULL END
-         )`;
+      const originNomosJoin = `LEFT JOIN regions r ON r.id = g.origin_region_id`;
       const originNomosWhere = sqlWhere
         ? `${sqlWhere} AND r.id IS NOT NULL AND r.type = 'NOMOS' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`
         : `WHERE r.id IS NOT NULL AND r.type = 'NOMOS' AND (LOWER(BTRIM(COALESCE(g.origin_country, ''))) IN ('ελλάδα', 'ελλαδα', 'greece') OR ((g.origin_country IS NULL OR BTRIM(g.origin_country) = '') AND g.origin_country_region_id IN (SELECT id FROM regions WHERE type = 'COUNTRY' AND LOWER(BTRIM(name_el)) IN ('ελλάδα', 'ελλαδα', 'greece'))))`;

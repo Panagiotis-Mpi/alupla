@@ -10,7 +10,6 @@ import { fail, hashPassword, isStrongPassword, normalizeEmail, toSafeUser } from
 type SessionLog = {
   action: string;
   entity_type: string;
-  entity_id: number | null;
 };
 
 async function findActiveUserByEmail(email: unknown) {
@@ -49,7 +48,7 @@ export async function login(req: Request, res: Response) {
     return fail(res, 401, "Invalid credentials");
   }
 
-  const session = await openSession(user, { action: "login", entity_type: "system", entity_id: null });
+  const session = await openSession(user, { action: "login", entity_type: "system" });
   return res.json({ ok: true, ...session });
 }
 
@@ -92,7 +91,6 @@ export async function requestPasswordReset(req: Request, res: Response, next: Ne
       user_id: user.id,
       action: "request_password_reset",
       entity_type: "user",
-      entity_id: user.id,
       details: { mail_sent: mailSent, ...(mailError ? { mail_error: mailError } : {}) }
     });
 
@@ -145,7 +143,7 @@ export async function resetPassword(req: Request, res: Response) {
   user.password_reset_token_hash = null;
   user.password_reset_expires_at = null;
   await user.save();
-  await logAction({ user_id: user.id, action: "reset_password", entity_type: "user", entity_id: user.id });
+  await logAction({ user_id: user.id, action: "reset_password", entity_type: "user" });
 
   return res.json({ ok: true });
 }
@@ -175,7 +173,7 @@ export async function changePassword(req: Request, res: Response) {
 
   user.password_hash = await hashPassword(String(new_password));
   await user.save();
-  await logAction({ user_id: user.id, action: "change_password", entity_type: "user", entity_id: user.id });
+  await logAction({ user_id: user.id, action: "change_password", entity_type: "user" });
 
   return res.json({ ok: true });
 }

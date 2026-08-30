@@ -97,7 +97,7 @@ export default function PublicHome() {
   useEffect(() => {
     let active = true;
 
-    getPublicStats()
+    getPublicStats({ section: "home" })
       .then((stats: any) => {
         if (!active) return;
         const years = Array.isArray(stats?.by_year)

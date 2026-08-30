@@ -58,7 +58,6 @@ async function writeUserLog(req: Request, action: string, user: User, details?: 
     user_id: req.auth!.id,
     action,
     entity_type: "user",
-    entity_id: user.id,
     ...(details ? { details } : {})
   });
 }
@@ -138,7 +137,6 @@ async function writeUsersExportLog(req: Request, format: "csv" | "xlsx", count: 
     user_id: req.auth!.id,
     action: format === "csv" ? "export_users_csv" : "export_users_xlsx",
     entity_type: "user",
-    entity_id: null,
     details: { format, count }
   });
 }

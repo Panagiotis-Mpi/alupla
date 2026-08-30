@@ -6,7 +6,6 @@ type LogActionParams = {
   user_id?: number | null;
   action: string;
   entity_type?: string | null;
-  entity_id?: number | null;
   details?: Record<string, unknown> | null;
 };
 
@@ -42,7 +41,6 @@ export async function logAction(params: LogActionParams) {
     user_id: userId,
     action: params.action,
     entity_type: params.entity_type ?? null,
-    entity_id: params.entity_id ?? null,
     details: await buildLogDetails(userId, params.action, params.details),
   };
 

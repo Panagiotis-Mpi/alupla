@@ -132,7 +132,6 @@ export async function logPublicExportAction(req: Request, action: string, entity
     user_id: await getOptionalUserId(req),
     action,
     entity_type: entityType,
-    entity_id: null,
     details: details ?? null,
   });
 }

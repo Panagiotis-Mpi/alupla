@@ -87,7 +87,6 @@ export type ActivityLog = {
   user_id: number | null;
   action: string;
   entity_type: string | null;
-  entity_id: number | null;
   details: Record<string, unknown> | null;
   created_at: string;
   user_email?: string | null;
