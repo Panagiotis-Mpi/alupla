@@ -64,6 +64,7 @@
     "nomos": "Νομός"
   },
   "toast": {
+    "importing": "Εισαγωγή",
     "importCompleted": "Η εισαγωγή ολοκληρώθηκε",
     "importCompletedInserted": "Η εισαγωγή ολοκληρώθηκε. Προστέθηκαν {{inserted}} νέες εγγραφές",
     "importCompletedUpdated": "Η εισαγωγή ολοκληρώθηκε. Ενημερώθηκαν {{updated}} εγγραφές",

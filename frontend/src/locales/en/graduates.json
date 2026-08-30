@@ -64,6 +64,7 @@
     "nomos": "Regional unit"
   },
   "toast": {
+    "importing": "Importing",
     "importCompleted": "Import completed",
     "importCompletedInserted": "Import completed. Added {{inserted}} new records",
     "importCompletedUpdated": "Import completed. Updated {{updated}} records",

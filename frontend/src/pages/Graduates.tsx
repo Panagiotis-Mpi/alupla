@@ -306,6 +306,10 @@ export default function Graduates() {
 
   async function onImportFile(file: File) {
     setImportReport(null);
+    showToast({
+      type: "loading",
+      title: t("toast.importing"),
+    });
     setImportBusy(true);
     try {
       const report = await importGraduatesFile(

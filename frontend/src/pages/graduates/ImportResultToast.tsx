@@ -7,7 +7,7 @@ import {
 } from "./importFeedback";
 
 export type GraduateToastState = {
-  type: "success" | "error";
+  type: "success" | "error" | "loading";
   title: string;
   detail?: string;
 };
@@ -25,6 +25,8 @@ export function ImportResultToast(props: {
 
   if (!toast) return null;
 
+  const accent = toast.type === "success" ? "#16a34a" : toast.type === "error" ? "#dc2626" : "#2563eb";
+
   return (
     <div
       style={{
@@ -36,7 +38,7 @@ export function ImportResultToast(props: {
         maxWidth: "calc(100vw - 32px)",
         background: "#fff",
         border: "1px solid rgba(0,0,0,0.12)",
-        borderLeft: `6px solid ${toast.type === "success" ? "#16a34a" : "#dc2626"}`,
+        borderLeft: `6px solid ${accent}`,
         borderRadius: 12,
         boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
         padding: 12,
@@ -57,15 +59,17 @@ export function ImportResultToast(props: {
             </div>
           ) : null}
         </div>
-        <button
-          className="btn"
-          type="button"
-          onClick={onClose}
-          style={{ padding: "6px 10px" }}
-          aria-label="Close"
-        >
-          ✕
-        </button>
+        {toast.type !== "loading" ? (
+          <button
+            className="btn"
+            type="button"
+            onClick={onClose}
+            style={{ padding: "6px 10px" }}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        ) : null}
       </div>
       {report?.summary ? (
         <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
