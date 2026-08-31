@@ -389,7 +389,8 @@ export async function changePassword(currentPassword: string, newPassword: strin
   });
 }
 
-export async function listUsers(): Promise<ListResponse<User>> {
+export async function listUsers(options?: { fresh?: boolean }): Promise<ListResponse<User>> {
+  if (options?.fresh) return api("/users", { method: "GET" });
   return cachedPrivateApi("users", "/users", USERS_CACHE_MS);
 }
 

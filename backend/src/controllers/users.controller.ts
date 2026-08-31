@@ -53,12 +53,13 @@ async function findUserByParamId(req: Request, res: Response, transaction?: Tran
   return user;
 }
 
-async function writeUserLog(req: Request, action: string, user: User, details?: Record<string, unknown>) {
+async function writeUserLog(req: Request, action: string, user: User, details?: Record<string, unknown>, transaction?: Transaction) {
   await logAction({
     user_id: req.auth!.id,
     action,
     entity_type: "user",
-    ...(details ? { details } : {})
+    ...(details ? { details } : {}),
+    ...(transaction ? { transaction } : {})
   });
 }
 
@@ -320,14 +321,15 @@ export async function deactivateUser(req: Request, res: Response, next: NextFunc
         return null;
       }
 
-      await writeUserLog(req, "διαγραφή χρήστη", currentUser, { target_name: userDisplayName(currentUser) });
+      const targetName = userDisplayName(currentUser);
       await currentUser.destroy({ transaction });
+      await writeUserLog(req, "διαγραφή χρήστη", currentUser, { target_name: targetName }, transaction);
       return currentUser;
     });
 
     if (!user) return;
 
-    await clearRouteCaches(["users"]);
+    await clearRouteCaches(["users", "activity-logs", "activity-log-summary"]);
     res.json({ ok: true });
   } catch (e) {
     next(e);

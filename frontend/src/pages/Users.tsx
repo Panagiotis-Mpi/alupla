@@ -105,7 +105,7 @@ export default function Users() {
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
   const [ok, setOk] = React.useState<string | null>(null);
-  const inFlight = React.useRef(false);
+  const loadRequestId = React.useRef(0);
   const [sortState, setSortState] = React.useState<SortState>({
     key: "id",
     dir: "asc",
@@ -133,18 +133,18 @@ export default function Users() {
   };
 
   async function load() {
-    if (inFlight.current) return;
-    inFlight.current = true;
+    const requestId = ++loadRequestId.current;
     setLoading(true);
     setErr(null);
     try {
-      const data = await listUsers();
+      const data = await listUsers({ fresh: true });
+      if (requestId !== loadRequestId.current) return;
       setItems(data.items);
     } catch (e: any) {
+      if (requestId !== loadRequestId.current) return;
       setErr(e?.message ?? t("error"));
     } finally {
-      setLoading(false);
-      inFlight.current = false;
+      if (requestId === loadRequestId.current) setLoading(false);
     }
   }
 
@@ -205,6 +205,7 @@ export default function Users() {
     setOk(null);
     try {
       await deactivateUser(userId, i18n.language);
+      setItems((current) => current.filter((user) => user.id !== userId));
       await load();
     } catch (e: any) {
       setErr(e?.message ?? t("error"));
