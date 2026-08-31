@@ -41,7 +41,7 @@
     "deactivate": "Delete user #{{id}}?"
   },
   "messages": {
-    "createdWithEmail": "The user was created and a one-time link to set the password was sent by email.",
-    "createdWithoutEmail": "The user was created, but the invitation was not sent. Check the Brevo/API settings and use password recovery to send a new link."
+    "createdWithEmail": "The user {{name}} was created and a one-time link to set the password was sent by email.",
+    "createdWithoutEmail": "The user {{name}} was created, but the invitation was not sent. Check the Brevo/API settings and use password recovery to send a new link."
   }
 }

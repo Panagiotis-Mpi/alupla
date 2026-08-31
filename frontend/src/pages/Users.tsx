@@ -45,10 +45,6 @@ const errorCardStyle: React.CSSProperties = {
   borderColor: "#b00020",
   color: "#b00020",
 };
-const successCardStyle: React.CSSProperties = {
-  borderColor: "#bfdbfe",
-  color: "#1d4ed8",
-};
 const usersMenuButtonStyle: React.CSSProperties = {
   minHeight: 46,
   justifyContent: "center",
@@ -74,6 +70,54 @@ function nextSortState(state: SortState, key: SortKey): SortState {
   return state.key === key
     ? { key, dir: state.dir === "asc" ? "desc" : "asc" }
     : { key, dir: "asc" };
+}
+
+function UserSuccessToast({
+  message,
+  onClose,
+}: {
+  message: string | null;
+  onClose: () => void;
+}) {
+  if (!message) return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 16,
+        right: 16,
+        zIndex: 9999,
+        width: 360,
+        maxWidth: "calc(100vw - 32px)",
+        background: "#fff",
+        border: "1px solid rgba(0,0,0,0.12)",
+        borderLeft: "6px solid #16a34a",
+        borderRadius: 12,
+        boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+        padding: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 10,
+        }}
+      >
+        <div style={{ fontWeight: 700 }}>{message}</div>
+        <button
+          className="btn"
+          type="button"
+          onClick={onClose}
+          style={{ padding: "6px 10px" }}
+          aria-label="Close"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function RoleSelect({
@@ -175,10 +219,11 @@ export default function Users() {
     try {
       setOk(null);
       const response = await createUser({ ...form, language: i18n.language });
+      const createdUserName = userFullName(response.item);
       setOk(
         response.mail_sent
-          ? t("messages.createdWithEmail")
-          : t("messages.createdWithoutEmail"),
+          ? t("messages.createdWithEmail", { name: createdUserName })
+          : t("messages.createdWithoutEmail", { name: createdUserName }),
       );
       setForm(emptyForm);
       setActivePanel("list");
@@ -331,11 +376,7 @@ export default function Users() {
           {err}
         </div>
       )}
-      {ok && (
-        <div className="card page-header-card" style={successCardStyle}>
-          {ok}
-        </div>
-      )}
+      <UserSuccessToast message={ok} onClose={() => setOk(null)} />
 
       {activePanel === "create" && (
         <div className="card page-header-card">
