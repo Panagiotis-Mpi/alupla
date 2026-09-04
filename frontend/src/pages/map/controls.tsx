@@ -148,6 +148,9 @@ export function MapYearTimeline(props: {
   onRangeChange: (startYear: string, endYear: string) => void;
 }) {
   const isCompactTimeline = useMediaQuery("(max-width: 520px)");
+  const draftRangeRef = React.useRef<{ start: number; end: number } | null>(null);
+  const draggingRef = React.useRef(false);
+  const [draftRange, setDraftRange] = React.useState<{ start: number; end: number } | null>(null);
 
   const sortedYears = Array.from(new Set(props.years)).sort((left, right) => left - right);
   const currentYear = new Date().getFullYear();
@@ -158,8 +161,10 @@ export function MapYearTimeline(props: {
   const endValue = props.selectedEndYear ? Number(props.selectedEndYear) : maxYear;
   const safeStart = Math.min(Math.max(Number.isFinite(startValue) ? startValue : minYear, minYear), maxYear);
   const safeEnd = Math.min(Math.max(Number.isFinite(endValue) ? endValue : maxYear, minYear), maxYear);
-  const leftYear = Math.min(safeStart, safeEnd);
-  const rightYear = Math.max(safeStart, safeEnd);
+  const committedStart = Math.min(safeStart, safeEnd);
+  const committedEnd = Math.max(safeStart, safeEnd);
+  const leftYear = draftRange?.start ?? committedStart;
+  const rightYear = draftRange?.end ?? committedEnd;
   const yearSpan = Math.max(maxYear - minYear, 1);
   const leftPercent = ((leftYear - minYear) / yearSpan) * 100;
   const rightPercent = ((rightYear - minYear) / yearSpan) * 100;
@@ -180,6 +185,18 @@ export function MapYearTimeline(props: {
         ? String(leftYear)
         : `${leftYear} - ${rightYear}`;
 
+  React.useEffect(() => {
+    if (draggingRef.current) return;
+    draftRangeRef.current = null;
+    setDraftRange(null);
+  }, [props.selectedStartYear, props.selectedEndYear, minYear, maxYear]);
+
+  const setDraft = (start: number, end: number) => {
+    const next = { start: Math.min(start, end), end: Math.max(start, end) };
+    draftRangeRef.current = next;
+    setDraftRange(next);
+  };
+
   const emitRange = (start: number, end: number) => {
     const nextStart = Math.min(start, end);
     const nextEnd = Math.max(start, end);
@@ -188,6 +205,12 @@ export function MapYearTimeline(props: {
       return;
     }
     props.onRangeChange(String(nextStart), String(nextEnd));
+  };
+
+  const commitDraft = (fallbackStart: number, fallbackEnd: number) => {
+    const current = draftRangeRef.current ?? { start: fallbackStart, end: fallbackEnd };
+    draggingRef.current = false;
+    emitRange(current.start, current.end);
   };
 
   return (
@@ -216,10 +239,25 @@ export function MapYearTimeline(props: {
               className="map-timeline-slider map-timeline-slider-start"
               style={{ zIndex: leftYear === rightYear && leftYear > minYear ? 5 : 3 }}
               disabled={props.loading || minYear === maxYear}
+              onPointerDown={() => {
+                draggingRef.current = true;
+                if (!draftRangeRef.current) setDraft(leftYear, rightYear);
+              }}
               onChange={(event) => {
                 const nextYear = Math.min(Number(event.target.value), rightYear);
-                emitRange(nextYear, rightYear);
+                setDraft(nextYear, rightYear);
               }}
+              onPointerUp={(event) => {
+                const nextYear = Math.min(Number(event.currentTarget.value), rightYear);
+                setDraft(nextYear, rightYear);
+                commitDraft(nextYear, rightYear);
+              }}
+              onPointerCancel={() => {
+                draggingRef.current = false;
+                draftRangeRef.current = null;
+                setDraftRange(null);
+              }}
+              onKeyUp={() => commitDraft(leftYear, rightYear)}
               aria-label={props.mt("timeline.startYear", { defaultValue: "Παλαιότερη χρονιά" })}
             />
             <input
@@ -231,10 +269,25 @@ export function MapYearTimeline(props: {
               className="map-timeline-slider map-timeline-slider-end"
               style={{ zIndex: leftYear === rightYear && leftYear === minYear ? 5 : 4 }}
               disabled={props.loading || minYear === maxYear}
+              onPointerDown={() => {
+                draggingRef.current = true;
+                if (!draftRangeRef.current) setDraft(leftYear, rightYear);
+              }}
               onChange={(event) => {
                 const nextYear = Math.max(Number(event.target.value), leftYear);
-                emitRange(leftYear, nextYear);
+                setDraft(leftYear, nextYear);
               }}
+              onPointerUp={(event) => {
+                const nextYear = Math.max(Number(event.currentTarget.value), leftYear);
+                setDraft(leftYear, nextYear);
+                commitDraft(leftYear, nextYear);
+              }}
+              onPointerCancel={() => {
+                draggingRef.current = false;
+                draftRangeRef.current = null;
+                setDraftRange(null);
+              }}
+              onKeyUp={() => commitDraft(leftYear, rightYear)}
               aria-label={props.mt("timeline.endYear", { defaultValue: "Πιο πρόσφατη χρονιά" })}
             />
           </div>
