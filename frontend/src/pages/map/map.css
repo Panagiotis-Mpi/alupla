@@ -97,3 +97,71 @@
 
         .map-main-card, .map-map-wrap, .alupla-map.map-canvas { isolation: isolate; }
         .map-main-card { z-index: 0; }
+
+@media (max-width: 520px) {
+  .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .ui-icon),
+  .map-top-controls-row.page-central-menu-actions .map-action-button:has(> .ui-icon) {
+    display: grid !important;
+    grid-template-columns: 18px minmax(0, 1fr) !important;
+    column-gap: 5px !important;
+    padding-inline: 7px !important;
+    align-items: center !important;
+  }
+
+  .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .ui-icon) > .ui-icon,
+  .map-top-controls-row.page-central-menu-actions .map-action-button:has(> .ui-icon) > .ui-icon {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+    margin: 0 !important;
+    grid-column: 1 !important;
+    justify-self: center !important;
+  }
+
+  .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret),
+  .map-top-controls-row.page-central-menu-actions .map-action-button:has(> .ui-icon) > span:not(.ui-icon):not(.map-dropdown-caret) {
+    grid-column: 2 !important;
+    width: 100% !important;
+    max-width: none !important;
+    text-align: center !important;
+  }
+
+  .map-top-controls-row.page-central-menu-actions .map-scope-button:has(> .ui-icon) {
+    grid-template-columns: 18px minmax(0, 1fr) 14px !important;
+  }
+
+  .map-top-controls-row.page-central-menu-actions .map-scope-button > .map-dropdown-caret {
+    position: static !important;
+    grid-column: 3 !important;
+    justify-self: center !important;
+    margin: 0 !important;
+  }
+
+  .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .map-gender-icons) {
+    display: grid !important;
+    grid-template-columns: 24px minmax(0, 1fr) !important;
+    column-gap: 4px !important;
+    padding-inline: 6px !important;
+    align-items: center !important;
+  }
+
+  .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .map-gender-icons) > .map-gender-icons,
+  .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .map-gender-icons) > .map-gender-icons > .map-gender-distribution-icon {
+    position: static !important;
+    width: 24px !important;
+    min-width: 24px !important;
+    max-width: 24px !important;
+    height: 12px !important;
+    min-height: 12px !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  .map-top-controls-row.page-central-menu-actions .map-metric-button:has(> .map-gender-icons) > span:not(.map-gender-icons) {
+    grid-column: 2 !important;
+    width: 100% !important;
+    max-width: none !important;
+    text-align: center !important;
+  }
+}
