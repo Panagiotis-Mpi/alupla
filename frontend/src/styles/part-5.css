@@ -2330,3 +2330,32 @@ html.accessibility-high-contrast .central-menu-dropdown-item.active{
     white-space:nowrap !important;
   }
 }
+
+/* Desktop only: simple option dropdowns should hug their content without oversized empty space. */
+@media (min-width:1025px){
+  .central-menu-dropdown-compact,
+  .central-menu-dropdown-actions{
+    width:fit-content !important;
+    min-width:fit-content !important;
+    padding:6px !important;
+    gap:2px !important;
+  }
+
+  .central-menu-dropdown-compact .central-menu-dropdown-item,
+  .central-menu-dropdown-actions .central-menu-dropdown-item{
+    display:flex !important;
+    width:100% !important;
+    min-width:0 !important;
+    min-height:0 !important;
+    height:auto !important;
+    padding:8px 10px !important;
+    gap:7px !important;
+    justify-content:flex-start !important;
+    white-space:nowrap !important;
+  }
+
+  .central-menu-dropdown-compact .central-menu-dropdown-item .ui-icon,
+  .central-menu-dropdown-actions .central-menu-dropdown-item .ui-icon{
+    flex:0 0 auto !important;
+  }
+}
