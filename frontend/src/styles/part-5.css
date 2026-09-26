@@ -2313,3 +2313,20 @@ html.accessibility-high-contrast .central-menu-dropdown-item.active{
   max-width:100% !important;
   white-space:nowrap !important;
 }
+
+/* Desktop only: compact dropdowns size to their longest option, while every option fills that panel. */
+@media (min-width:1025px){
+  .central-menu-dropdown-compact,
+  .central-menu-dropdown-actions{
+    width:max-content !important;
+    min-width:max-content !important;
+    max-width:calc(100vw - 32px) !important;
+  }
+
+  .central-menu-dropdown-compact .central-menu-dropdown-item,
+  .central-menu-dropdown-actions .central-menu-dropdown-item{
+    width:100% !important;
+    max-width:none !important;
+    white-space:nowrap !important;
+  }
+}
