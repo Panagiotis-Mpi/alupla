@@ -268,3 +268,15 @@
     hyphens: none !important;
   }
 }
+
+/* Content-sized scope dropdown: no unused horizontal space beside its labels. */
+.map-menu.map-scope-menu{
+  width:max-content !important;
+  min-width:0 !important;
+  max-width:calc(100vw - 32px) !important;
+}
+.map-scope-menu .map-menu-item{
+  width:max-content !important;
+  max-width:100% !important;
+  white-space:nowrap !important;
+}

@@ -934,3 +934,26 @@ body.public-home-scroll-lock .accessibility-menu{bottom:112px}
     margin-inline:auto;
   }
 }
+
+/* Let header dropdown panels follow their actual option text instead of reserving empty width. */
+.nav-dropdown-menu{
+  width:max-content;
+  min-width:0;
+  max-width:calc(100vw - 32px);
+}
+.nav-account-menu{
+  width:max-content;
+  min-width:0;
+}
+.nav-right > .nav-dropdown:first-child > .nav-dropdown-menu{
+  width:max-content;
+  min-width:0;
+}
+@media (max-width:720px){
+  .nav-dropdown-menu,
+  .nav-right > .nav-dropdown:first-child > .nav-dropdown-menu{
+    width:max-content;
+    min-width:0;
+    max-width:calc(100vw - 24px);
+  }
+}
