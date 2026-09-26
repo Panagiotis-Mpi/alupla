@@ -2225,3 +2225,76 @@ html.accessibility-high-contrast .central-menu-dropdown-item.active{
     flex-basis:36px !important;
   }
 }
+
+/* Final mobile corrections: gender-geodistribution icon weight + horizontal containment. */
+@media (max-width:1024px){
+  .map-top-controls-row.page-central-menu-actions .map-metric-button > .map-gender-icons > .map-gender-distribution-icon{
+    filter:none !important;
+  }
+}
+
+@media (max-width:520px){
+  html,
+  body,
+  #root,
+  .app-shell,
+  .app-content{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    overflow-x:clip !important;
+  }
+
+  .app-content > .container,
+  .map-page-container,
+  .map-page-container .page-central-menu-card,
+  .map-page-container .map-main-card,
+  .map-page-container .map-map-wrap{
+    min-width:0 !important;
+    max-width:100% !important;
+    box-sizing:border-box !important;
+  }
+
+  .map-page-container .page-central-menu-actions,
+  .map-page-container .page-central-menu-actions > *,
+  .map-page-container .page-central-menu-actions .btn{
+    min-width:0 !important;
+    max-width:100% !important;
+  }
+
+  .nav{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    padding-left:8px !important;
+    padding-right:8px !important;
+    gap:4px !important;
+  }
+  .nav .brand.brand-compact{
+    min-width:0 !important;
+    gap:4px !important;
+    flex:0 1 auto !important;
+  }
+  .nav .brand.brand-compact .brand-logo{
+    width:36px !important;
+    height:36px !important;
+  }
+  .nav .brand.brand-compact span{
+    font-size:15px !important;
+    white-space:nowrap !important;
+  }
+  .nav-right,
+  .nav-actions,
+  .nav-dropdown{
+    min-width:0 !important;
+  }
+  .nav-right{
+    gap:4px !important;
+  }
+  .nav-dropdown-toggle,
+  .nav-login-btn,
+  .nav-actions .user-profile-btn{
+    padding-left:7px !important;
+    padding-right:7px !important;
+  }
+}
