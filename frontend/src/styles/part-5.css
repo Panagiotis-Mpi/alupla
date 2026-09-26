@@ -2184,3 +2184,44 @@ html.accessibility-high-contrast .central-menu-dropdown-item.active{
     min-height:18px !important;
   }
 }
+
+/* Mobile/tablet: keep the gender-geodistribution symbol visually consistent
+   with the other action icons without changing desktop layout or behavior. */
+@media (max-width:1024px){
+  .map-top-controls-row.page-central-menu-actions .map-metric-button > .map-gender-icons{
+    width:40px !important;
+    min-width:40px !important;
+    max-width:40px !important;
+    height:20px !important;
+    min-height:20px !important;
+    flex-basis:40px !important;
+  }
+  .map-top-controls-row.page-central-menu-actions .map-metric-button > .map-gender-icons > .map-gender-distribution-icon{
+    width:40px !important;
+    min-width:40px !important;
+    max-width:40px !important;
+    height:20px !important;
+    min-height:20px !important;
+    flex-basis:40px !important;
+    filter:drop-shadow(0 0 .35px currentColor) !important;
+  }
+}
+
+@media (max-width:520px){
+  .map-top-controls-row.page-central-menu-actions .map-metric-button > .map-gender-icons{
+    width:36px !important;
+    min-width:36px !important;
+    max-width:36px !important;
+    height:18px !important;
+    min-height:18px !important;
+    flex-basis:36px !important;
+  }
+  .map-top-controls-row.page-central-menu-actions .map-metric-button > .map-gender-icons > .map-gender-distribution-icon{
+    width:36px !important;
+    min-width:36px !important;
+    max-width:36px !important;
+    height:18px !important;
+    min-height:18px !important;
+    flex-basis:36px !important;
+  }
+}
