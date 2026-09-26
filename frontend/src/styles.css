@@ -3,3 +3,10 @@
 @import "./styles/part-3.css";
 @import "./styles/part-4.css";
 @import "./styles/part-5.css";
+
+/* Platform-wide: suppress keyboard focus outlines/rings on every viewport. */
+*:focus,
+*:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+}
