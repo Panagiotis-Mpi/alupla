@@ -221,7 +221,6 @@ export default function PublicHome() {
                       key={`${slide.scope}-${index}`}
                       className={`public-home-illustration-slide public-home-illustration-clickable public-home-illustration-slide-${slide.scope}`}
                       onClick={() => openMapScope(slide.scope)}
-                      tabIndex={isActive ? 0 : -1}
                       aria-hidden={!isActive}
                       aria-label={slide.alt}
                     >

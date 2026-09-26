@@ -106,7 +106,6 @@
     "underlineLinks": "Επισήμανση συνδέσμων",
     "enabled": "Ενεργό",
     "disabled": "Ανενεργό",
-    "skipToContent": "Μετάβαση στο κύριο περιεχόμενο",
     "fontLevel": "Επίπεδο {{current}} από {{total}}"
   }
 }

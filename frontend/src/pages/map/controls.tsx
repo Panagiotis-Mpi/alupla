@@ -257,7 +257,6 @@ export function MapYearTimeline(props: {
                 draftRangeRef.current = null;
                 setDraftRange(null);
               }}
-              onKeyUp={() => commitDraft(leftYear, rightYear)}
               aria-label={props.mt("timeline.startYear", { defaultValue: "Παλαιότερη χρονιά" })}
             />
             <input
@@ -287,7 +286,6 @@ export function MapYearTimeline(props: {
                 draftRangeRef.current = null;
                 setDraftRange(null);
               }}
-              onKeyUp={() => commitDraft(leftYear, rightYear)}
               aria-label={props.mt("timeline.endYear", { defaultValue: "Πιο πρόσφατη χρονιά" })}
             />
           </div>

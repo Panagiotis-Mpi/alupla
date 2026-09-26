@@ -228,18 +228,6 @@ export default function Statistics() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  React.useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setExportOpen(false);
-        setExportPreviewData(null);
-        setSelectedExportFormat(null);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   const {
     total, numberValue, seriesFromRows, sortSeriesDescending, reorderRegionMetricSeries,

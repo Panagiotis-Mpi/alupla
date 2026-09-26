@@ -574,7 +574,6 @@ html.accessibility-high-contrast .public-home-illustration-slide:focus-visible{
   outline-color:#ffd400;
 }
 @media (prefers-reduced-motion:reduce){
-  .skip-link,
   .public-home-illustration-track{
     transition:none;
   }

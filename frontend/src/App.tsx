@@ -377,11 +377,33 @@ export default // Κρατά το global state χρήστη και στήνει 
 function App() {
   const { t } = useTranslation();
 
+  React.useEffect(() => {
+    const disableKeyboardNavigation = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName;
+      const isTextEntry =
+        tagName === "TEXTAREA" ||
+        (tagName === "INPUT" && !["button", "checkbox", "radio", "range", "reset", "submit"].includes((target as HTMLInputElement).type)) ||
+        target?.isContentEditable;
+
+      if (event.key === "Tab") {
+        event.preventDefault();
+        return;
+      }
+
+      if (!isTextEntry) {
+        event.preventDefault();
+      }
+    };
+
+    document.addEventListener("keydown", disableKeyboardNavigation, true);
+    return () => document.removeEventListener("keydown", disableKeyboardNavigation, true);
+  }, []);
+
   return (
     <div className="app-shell">
-      <a className="skip-link" href="#main-content">{t("accessibility.skipToContent")}</a>
       <TopNav />
-      <main id="main-content" className="container app-content" tabIndex={-1}>
+      <main id="main-content" className="container app-content">
         <React.Suspense fallback={<div className="page-loading">{i18n.language?.startsWith("en") ? "Loading" : "Φόρτωση"}</div>}>
                   {/* Κάθε Route συνδέει URL με τη σελίδα που θα εμφανιστεί. */}
 <Routes>
