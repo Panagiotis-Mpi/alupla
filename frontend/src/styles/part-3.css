@@ -914,3 +914,23 @@ html.accessibility-high-contrast .public-home-counter span{
 body.public-home-scroll-lock .accessibility-menu{bottom:112px}
 @media (max-width:640px){.accessibility-menu{left:12px;right:auto;bottom:18px}.accessibility-panel{left:0;right:auto}body.public-home-scroll-lock .accessibility-menu{bottom:24px}}
 @media (max-width:520px){.accessibility-menu{left:10px;right:auto;bottom:16px}.accessibility-panel{left:-2px;right:auto}body.public-home-scroll-lock .accessibility-menu{bottom:22px}}
+
+/* Graduates table: clearer column alignment on tablet and mobile only. */
+@media (max-width:1024px){
+  .graduates-table th,
+  .graduates-table td{
+    text-align:center;
+  }
+  .graduates-table th > button{
+    width:100%;
+    justify-content:center;
+    text-align:center;
+  }
+  .graduates-table .row-actions{
+    justify-content:center;
+  }
+  .graduates-table input[type="checkbox"]{
+    display:block;
+    margin-inline:auto;
+  }
+}

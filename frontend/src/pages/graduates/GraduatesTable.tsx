@@ -63,7 +63,7 @@ export function GraduatesTable(props: {
           msOverflowStyle: "none",
         }}
       >
-        <table className="table" style={{ minWidth: 2380 }}>
+        <table className="table graduates-table" style={{ minWidth: 2380 }}>
           <thead>
             <tr>
               <th style={{ width: 44 }}><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} /></th>
