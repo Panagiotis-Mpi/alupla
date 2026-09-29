@@ -386,6 +386,17 @@ function App() {
         (tagName === "INPUT" && !["button", "checkbox", "radio", "range", "reset", "submit"].includes((target as HTMLInputElement).type)) ||
         target?.isContentEditable;
 
+      const isBrowserShortcut =
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        /^F(?:[1-9]|1[0-2])$/.test(event.key) ||
+        ["BrowserBack", "BrowserForward", "BrowserRefresh", "BrowserHome", "BrowserSearch", "BrowserFavorites", "BrowserStop"].includes(event.key);
+
+      if (isBrowserShortcut) {
+        return;
+      }
+
       if (event.key === "Tab") {
         event.preventDefault();
         return;
