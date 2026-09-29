@@ -188,7 +188,7 @@ export function StatisticsExportSelectionModal(props: {
                     }}
                   >
                     <span>{group.label}</span>
-                    <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1, marginLeft: 4 }}>{groupOpen ? "⌃" : "⌄"}</span>
+                    <span className="nav-dropdown-chevron" aria-hidden="true" style={groupOpen ? { transform: "rotate(225deg) translateY(-2px)" } : undefined} />
                   </button>
                   ) : (
                     <div style={{ flex: "0 1 auto", minHeight: 40, minWidth: 0, display: "flex", alignItems: "center", fontWeight: 700 }}>
@@ -297,7 +297,7 @@ export function StatisticsExportSelectionModal(props: {
                               onClick={() => setOpenYearPicker((value) => !value)}
                             >
                               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedYearsText}</span>
-                              <span aria-hidden="true">⌄</span>
+                              <span className="nav-dropdown-chevron" aria-hidden="true" />
                             </button>
                             {openYearPicker ? (
                               <div

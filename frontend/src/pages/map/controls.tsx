@@ -430,7 +430,7 @@ export function MapExportSelectionModal(props: {
                     }}
                   >
                     <span>{category.label}</span>
-                    <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1, marginLeft: 4 }}>{categoryOpen ? "⌃" : "⌄"}</span>
+                    <span className="nav-dropdown-chevron" aria-hidden="true" style={categoryOpen ? { transform: "rotate(225deg) translateY(-2px)" } : undefined} />
                   </button>
                   {props.yearOptions.length ? (
                     <div onClick={(event) => event.stopPropagation()} style={categoryRangeStyle}>
