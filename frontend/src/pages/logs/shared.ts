@@ -510,10 +510,10 @@ export function createLogsLocalizer({
           abroadShare: "Greece and abroad graduate distribution",
           abroadByYear: "Greece and abroad graduates distribution by graduation year",
           timeToDegreeByNomos: "Average study duration by regional unit of origin",
-          "greece:count": "Greece, Graduate count",
-          "abroad:count": "Abroad, Graduate count",
-          "greece:dominant_gender": "Greece, Gender geo distribution",
-          "abroad:dominant_gender": "Abroad, Gender geo distribution",
+          "greece:count": "Greece, graduate count",
+          "abroad:count": "Abroad, graduate count",
+          "greece:dominant_gender": "Greece, gender geo distribution",
+          "abroad:dominant_gender": "Abroad, gender geo distribution",
         }
       : {
           demographics: "Πλήθος και φύλο",
@@ -540,10 +540,10 @@ export function createLogsLocalizer({
           abroadShare: "Κατανομή αποφοίτων Ελλάδας και εξωτερικού",
           abroadByYear: "Κατανομή αποφοίτων Ελλάδας και εξωτερικού ανά έτος αποφοίτησης",
           timeToDegreeByNomos: "Μέση διάρκεια σπουδών ανά νομό καταγωγής",
-          "greece:count": "Ελλάδα, Πλήθος αποφοίτων",
-          "abroad:count": "Εξωτερικό, Πλήθος αποφοίτων",
-          "greece:dominant_gender": "Ελλάδα, Γεωκατανομή φύλου",
-          "abroad:dominant_gender": "Εξωτερικό, Γεωκατανομή φύλου",
+          "greece:count": "Ελλάδα, πλήθος αποφοίτων",
+          "abroad:count": "Εξωτερικό, πλήθος αποφοίτων",
+          "greece:dominant_gender": "Ελλάδα, γεωκατανομή φύλου",
+          "abroad:dominant_gender": "Εξωτερικό, γεωκατανομή φύλου",
         };
 
   const localValue = (value: string) => {

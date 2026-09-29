@@ -48,8 +48,8 @@
   "graduates": {
     "filters": {
       "toggle": "Filters",
-      "adCode": "Diploma Number",
-      "studentNumber": "Student Number",
+      "adCode": "Diploma number",
+      "studentNumber": "Student number",
       "lastName": "Last name",
       "firstName": "First name",
       "fatherName": "Father name",

@@ -1,5 +1,5 @@
 {
-  "title": "Study Programs Management",
+  "title": "Study programs management",
   "error": "Error",
   "menu": {
     "import": "Import study programs",
@@ -19,7 +19,7 @@
     "loading": "Loading"
   },
   "programs": {
-    "title": "Study Programs",
+    "title": "Study programs",
     "labels": {
       "nameEl": "Name in Greek",
       "nameEn": "Name in English"

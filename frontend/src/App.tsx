@@ -88,7 +88,7 @@ function TopNav() {
     const academicData = {
       to: "/academic-data",
       label: t("nav.academicPrograms", {
-        defaultValue: lang === "en" ? "Academic Programs" : "Ακαδημαϊκά προγράμματα",
+        defaultValue: lang === "en" ? "Academic programs" : "Ακαδημαϊκά προγράμματα",
       }),
     };
 
