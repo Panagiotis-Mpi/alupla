@@ -305,7 +305,7 @@ export function formatDateDisplay(value: unknown) {
   const normalized = toDateOnly(value);
   if (!normalized) return value == null ? "" : String(value);
   const [year, month, day] = normalized.split("-");
-  return `${day}/${month}/${year}`;
+  return `${day}-${month}-${year}`;
 }
 
 // Εμφανίζει το φύλο στη γλώσσα του export/list.
