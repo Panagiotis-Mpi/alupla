@@ -126,7 +126,7 @@ export default function Logs() {
   const [page, setPage] = React.useState(1);
   const [totalItems, setTotalItems] = React.useState(0);
   const [filters, setFilters] = React.useState<LogFilters>(emptyFilters);
-  const [summaryRole, setSummaryRole] = React.useState<FileSummaryRole>("secretariat");
+  const [summaryRole, setSummaryRole] = React.useState<FileSummaryRole>("visitor");
   const [fileSummary, setFileSummary] = React.useState<FileSummaryItem[]>([]);
   const [summaryLoading, setSummaryLoading] = React.useState(true);
   const [userOptions, setUserOptions] = React.useState<UserOption[]>([]);
@@ -376,9 +376,9 @@ export default function Logs() {
             }}
             style={{ width: "100%", minWidth: 0, maxWidth: 280, flex: "1 1 220px" }}
           >
+            <option value="visitor">{t("summary.roles.visitor")}</option>
             <option value="secretariat">{t("summary.roles.secretariat")}</option>
             <option value="super_admin">{t("summary.roles.admin")}</option>
-            <option value="visitor">{t("summary.roles.visitor")}</option>
           </select>
         </div>
 

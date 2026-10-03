@@ -481,7 +481,7 @@ export default function Users() {
                   <tr key={user.id}>
                     <td>{user.id}</td>
                     <td>{user.email}</td>
-                    <td>{userFullName(user)}</td>
+                    <td>{`${user.last_name ?? ""} ${user.first_name ?? ""}`.trim()}</td>
                     <td>
                       <RoleSelect
                         value={user.role}
