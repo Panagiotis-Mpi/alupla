@@ -63,7 +63,10 @@ function userFullName(user: Pick<AdminUser, "first_name" | "last_name">) {
 }
 
 function sortValue(user: AdminUser, key: SortKey) {
-  return key === "name" ? userFullName(user) : user[key];
+  if (key === "name") {
+    return `${user.last_name ?? ""} ${user.first_name ?? ""}`.trim();
+  }
+  return user[key];
 }
 
 function nextSortState(state: SortState, key: SortKey): SortState {

@@ -213,14 +213,14 @@ export function getSummaryLayout(role: FileSummaryRole): SummaryLayout {
 
   if (role === "secretariat") {
     return {
-      pages: ["graduates", "academicData", "statistics", "map"],
+      pages: ["academicData", "graduates", "statistics", "map"],
       importTypes: ["excel", "csv"],
       exportTypes: ["excel", "csv", "pdf", "png"],
     };
   }
 
   return {
-    pages: ["graduates", "users", "academicData", "statistics", "map", "logs"],
+    pages: ["logs", "users", "academicData", "graduates", "statistics", "map"],
     importTypes: ["excel", "csv"],
     exportTypes: ["excel", "csv", "pdf", "png"],
   };
