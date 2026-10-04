@@ -49,7 +49,7 @@ function Login() {
         throw new Error(t(`login.roleMismatch.${selectedRole}`));
       }
       setSession(res.token, res.user);
-      navigate("/graduates");
+      navigate(res.user.role === "super_admin" ? "/users" : "/graduates");
     } catch (e: any) {
       const message = e?.message;
       if (message === "Account pending admin approval") {
