@@ -441,24 +441,28 @@ export default function Users() {
 
       {pendingDeactivation && (
         <div
-          className="export-selection-backdrop"
           style={{
             position: "fixed",
             inset: 0,
             background: "rgba(15, 23, 42, 0.34)",
-            display: "grid",
-            placeItems: "center",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             padding: 16,
             zIndex: 60,
           }}
         >
           <div
-            className="card export-selection-card"
+            className="card"
             role="dialog"
             aria-modal="true"
             style={{
               width: "min(420px, calc(100vw - 32px))",
-              display: "grid",
+              minHeight: 0,
+              height: "auto",
+              boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
               gap: 16,
               padding: 18,
             }}
