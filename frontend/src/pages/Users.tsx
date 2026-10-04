@@ -162,6 +162,7 @@ export default function Users() {
   const [activePanel, setActivePanel] = React.useState<"list" | "create">(
     "list",
   );
+  const [pendingDeactivation, setPendingDeactivation] = React.useState<AdminUser | null>(null);
   const exportMenuRef = React.useRef<HTMLDivElement | null>(null);
 
   const roleLabels = React.useMemo(
@@ -247,12 +248,18 @@ export default function Users() {
     }
   }
 
-  async function onDeactivate(userId: number) {
-    if (!confirm(t("confirm.deactivate", { id: userId }))) return;
+  function onDeactivate(user: AdminUser) {
+    setPendingDeactivation(user);
+  }
+
+  async function onConfirmDeactivate() {
+    if (!pendingDeactivation) return;
+    const userId = pendingDeactivation.id;
     setErr(null);
     setOk(null);
     try {
       await deactivateUser(userId, i18n.language);
+      setPendingDeactivation(null);
       setItems((current) => current.filter((user) => user.id !== userId));
       await load();
     } catch (e: any) {
@@ -432,6 +439,45 @@ export default function Users() {
         </div>
       )}
 
+      {pendingDeactivation && (
+        <div
+          className="export-selection-backdrop"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.34)",
+            display: "grid",
+            placeItems: "center",
+            padding: 16,
+            zIndex: 60,
+          }}
+        >
+          <div
+            className="card export-selection-card"
+            role="dialog"
+            aria-modal="true"
+            style={{
+              width: "min(420px, calc(100vw - 32px))",
+              display: "grid",
+              gap: 16,
+              padding: 18,
+            }}
+          >
+            <h3 style={{ margin: 0, fontSize: 17 }}>
+              {t("confirm.deactivate", { name: userFullName(pendingDeactivation) })}
+            </h3>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
+              <button type="button" className="btn primary" onClick={() => void onConfirmDeactivate()}>
+                <span>{t("actions.confirm")}</span>
+              </button>
+              <button type="button" className="btn" onClick={() => setPendingDeactivation(null)}>
+                <span>{t("actions.cancel")}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activePanel === "list" && (
         <div className="card page-header-card mobile-table-card">
           <div className="table-wrap">
@@ -504,7 +550,7 @@ export default function Users() {
                     <td>
                       <button
                         className="btn danger"
-                        onClick={() => void onDeactivate(user.id)}
+                        onClick={() => onDeactivate(user)}
                       >
                         <span>{t("actions.deactivate")}</span>
                       </button>

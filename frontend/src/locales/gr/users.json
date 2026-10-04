@@ -21,7 +21,9 @@
     "deactivate": "Διαγραφή",
     "export": "Εξαγωγή χρηστών",
     "excel": "Excel",
-    "csv": "CSV"
+    "csv": "CSV",
+    "confirm": "Επιβεβαίωση",
+    "cancel": "Ακύρωση"
   },
   "table": {
     "id": "ID",
@@ -38,7 +40,7 @@
     "offline": "○ εκτός σύνδεσης"
   },
   "confirm": {
-    "deactivate": "Διαγραφή χρήστη #{{id}};"
+    "deactivate": "Διαγραφή χρήστη {{name}};"
   },
   "messages": {
     "createdWithEmail": "Ο χρήστης {{name}} δημιουργήθηκε και στάλθηκε email με σύνδεσμο μίας χρήσης για να ορίσει τον κωδικό του.",
