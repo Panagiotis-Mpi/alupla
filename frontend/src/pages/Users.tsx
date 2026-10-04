@@ -224,11 +224,9 @@ export default function Users() {
       setOk(null);
       const response = await createUser({ ...form, language: i18n.language });
       const createdUserName = userFullName(response.item);
-      setOk(
-        response.mail_sent
-          ? t("messages.createdWithEmail", { name: createdUserName })
-          : t("messages.createdWithoutEmail", { name: createdUserName }),
-      );
+      if (response.mail_sent) {
+        setOk(t("messages.createdWithEmail", { name: createdUserName }));
+      }
       setForm(emptyForm);
       setActivePanel("list");
       await load();
